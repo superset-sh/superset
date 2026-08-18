@@ -1,0 +1,1 @@
+export { useDiffActiveSection } from "./useDiffActiveSection";

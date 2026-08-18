@@ -1,0 +1,7 @@
+{
+	"extends": "@superset/typescript/base.json",
+	"compilerOptions": {
+		"types": ["bun-types"]
+	},
+	"include": ["src"]
+}

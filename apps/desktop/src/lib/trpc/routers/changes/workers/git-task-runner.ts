@@ -1,9 +1,12 @@
 import { cpus } from "node:os";
 import { join } from "node:path";
 import {
+	WorkerTaskError,
 	type WorkerTaskOptions,
 	WorkerTaskRunner,
 } from "../../../workers/WorkerTaskRunner";
+import { NotGitRepoError } from "../../workspaces/utils/git";
+import { GitEnvironmentError } from "../../workspaces/utils/git-errors";
 import type {
 	GitTaskPayloadMap,
 	GitTaskResultMap,
@@ -60,9 +63,27 @@ export function runGitTask<TTask extends GitTaskType>(
 	payload: GitTaskPayloadMap[TTask],
 	options?: WorkerTaskOptions,
 ): Promise<GitTaskResultMap[TTask]> {
-	return getRunner().runTask<GitTaskResultMap[TTask]>(
-		taskType,
-		payload,
-		options,
-	);
+	return getRunner()
+		.runTask<GitTaskResultMap[TTask]>(taskType, payload, options)
+		.catch((error) => {
+			// The worker boundary serializes errors down to {name, message, stack,
+			// code}; rebuild the domain classes here so callers can use instanceof.
+			// Runner timeouts are an environment condition (huge repos, cold
+			// network volumes), not a worker bug.
+			if (error instanceof WorkerTaskError) {
+				if (error.name === "NotGitRepoError") {
+					throw new NotGitRepoError(error.message);
+				}
+				if (error.name === "GitEnvironmentError") {
+					throw new GitEnvironmentError(error.message);
+				}
+				if (
+					error.name === "WorkerTaskError" &&
+					/ timed out after \d+ms$/.test(error.message)
+				) {
+					throw new GitEnvironmentError(error.message);
+				}
+			}
+			throw error;
+		});
 }

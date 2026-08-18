@@ -14,7 +14,10 @@ import {
 	countOpenPullRequestComments,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/ChangesView/components/ReviewPanel/utils";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
-import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import {
+	gitChangesUnavailableCopy,
+	useGitChangesStatus,
+} from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
 import {
 	pathsMatch,
@@ -99,16 +102,22 @@ export function ChangesView({
 		},
 	);
 
-	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
-		useGitChangesStatus({
-			worktreePath,
-			refetchInterval: isActive ? 2500 : undefined,
-			refetchOnWindowFocus: isActive,
-			branchRefetchInterval: isActive
-				? undefined
-				: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
-			branchRefetchOnWindowFocus: true,
-		});
+	const {
+		status,
+		isLoading,
+		errorCause,
+		effectiveBaseBranch,
+		branchData,
+		refetch,
+	} = useGitChangesStatus({
+		worktreePath,
+		refetchInterval: isActive ? 2500 : undefined,
+		refetchOnWindowFocus: isActive,
+		branchRefetchInterval: isActive
+			? undefined
+			: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
+		branchRefetchOnWindowFocus: true,
+	});
 
 	const {
 		data: githubStatus,
@@ -173,17 +182,16 @@ export function ChangesView({
 		},
 	});
 
-	const discardChangesMutation =
-		electronTrpc.changes.discardChanges.useMutation({
-			onSuccess: () => refetch(),
-			onError: (error, variables) => {
-				console.error(
-					`Failed to discard changes for ${variables.filePath}:`,
-					error,
-				);
-				toast.error(`Failed to discard changes: ${error.message}`);
-			},
-		});
+	const discardFilesMutation = electronTrpc.changes.discardFiles.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to discard changes for ${variables.filePaths.join(", ")}:`,
+				error,
+			);
+			toast.error(`Failed to discard changes: ${error.message}`);
+		},
+	});
 
 	const deleteUntrackedMutation =
 		electronTrpc.changes.deleteUntracked.useMutation({
@@ -299,17 +307,25 @@ export function ChangesView({
 		}
 	};
 
-	const handleDiscard = (file: ChangedFile) => {
+	const handleDiscardFiles = (files: ChangedFile[]) => {
 		if (!worktreePath) return;
-		if (file.status === "untracked" || file.status === "added") {
+		const isUntracked = (file: ChangedFile) =>
+			file.status === "untracked" || file.status === "added";
+		// Untracked/added files are deleted from disk; git never touches the
+		// index for them, so per-file deletes can't race on index.lock.
+		for (const file of files.filter(isUntracked)) {
 			deleteUntrackedMutation.mutate({
 				worktreePath,
 				filePath: file.path,
 			});
-		} else {
-			discardChangesMutation.mutate({
+		}
+		const trackedPaths = files
+			.filter((file) => !isUntracked(file))
+			.map((file) => file.path);
+		if (trackedPaths.length > 0) {
+			discardFilesMutation.mutate({
 				worktreePath,
-				filePath: file.path,
+				filePaths: trackedPaths,
 			});
 		}
 	};
@@ -376,7 +392,6 @@ export function ChangesView({
 				const invalidations: Promise<unknown>[] = [
 					trpcUtils.changes.getStatus.invalidate({
 						worktreePath,
-						defaultBranch: effectiveBaseBranch,
 					}),
 				];
 
@@ -592,6 +607,7 @@ export function ChangesView({
 		againstBaseFiles,
 		onAgainstBaseFileSelect: (file) => handleFileSelect(file, "against-base"),
 		commitsWithFiles,
+		totalCommitCount: status?.totalCommitCount ?? commits.length,
 		expandedCommits,
 		onCommitToggle: handleCommitToggle,
 		onCommitFileSelect: handleCommitFileSelect,
@@ -631,7 +647,7 @@ export function ChangesView({
 				worktreePath: worktreePath || "",
 				filePaths: files.map((f) => f.path),
 			}),
-		onDiscardFile: handleDiscard,
+		onDiscardFiles: handleDiscardFiles,
 		onShowDiscardUnstagedDialog: () => setShowDiscardUnstagedDialog(true),
 		onStageAll: () =>
 			stageAllMutation.mutate({
@@ -643,7 +659,7 @@ export function ChangesView({
 			stageFileMutation.isPending ||
 			stageFilesMutation.isPending ||
 			stageAllMutation.isPending ||
-			discardChangesMutation.isPending ||
+			discardFilesMutation.isPending ||
 			deleteUntrackedMutation.isPending ||
 			discardAllUnstagedMutation.isPending,
 	});
@@ -656,7 +672,15 @@ export function ChangesView({
 		);
 	}
 
-	if (isLoading) {
+	if (errorCause) {
+		return (
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
+				{gitChangesUnavailableCopy(errorCause)}
+			</div>
+		);
+	}
+
+	if (!status && isLoading) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				Loading changes...
@@ -673,7 +697,7 @@ export function ChangesView({
 		!status.untracked
 	) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
 				Unable to load changes
 			</div>
 		);

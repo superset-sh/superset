@@ -4,11 +4,13 @@ import type {
 	RendererContext,
 	WorkspaceStore,
 } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -20,14 +22,15 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
+import {
+	confirmCloseTerminals,
+	probeTerminalRunning,
+} from "renderer/lib/terminal/confirm-close-terminals";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	clearV2TerminalRunStatus,
-	getV2NotificationSourcesForPane,
-} from "renderer/stores/v2-notifications";
+import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
@@ -36,7 +39,7 @@ import {
 } from "../../state/fileDocumentStore";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
+	ChatV3PaneData,
 	CommentPaneData,
 	DevtoolsPaneData,
 	FilePaneData,
@@ -45,8 +48,7 @@ import type {
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
-import { ChatPane } from "./components/ChatPane";
-import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
+import { ChatV3Pane } from "./components/ChatV3Pane";
 import { CommentPane } from "./components/CommentPane";
 import { CommentPaneHeaderExtras } from "./components/CommentPane/components/CommentPaneHeaderExtras";
 import { CommentPaneTitle } from "./components/CommentPane/components/CommentPaneTitle";
@@ -55,6 +57,7 @@ import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneH
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
+import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
@@ -116,6 +119,7 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
@@ -125,7 +129,7 @@ export function usePaneRegistry({
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
 				toast.success("Terminal session killed");
-				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+				void workspaceTrpcUtils.terminal.list.invalidate({
 					workspaceId,
 				});
 			},
@@ -140,7 +144,7 @@ export function usePaneRegistry({
 	const { mutate: killTerminalSessionSilently } =
 		workspaceTrpc.terminal.killSession.useMutation({
 			onSuccess: () => {
-				void workspaceTrpcUtils.terminal.listSessions.invalidate({
+				void workspaceTrpcUtils.terminal.list.invalidate({
 					workspaceId,
 				});
 			},
@@ -324,13 +328,25 @@ export function usePaneRegistry({
 								?.trim() || undefined,
 					};
 				},
+				onBeforeClose: (pane) => {
+					const { terminalId } = pane.data as TerminalPaneData;
+					return confirmCloseTerminals(
+						[terminalId],
+						(id) => probeTerminalRunning(workspaceTrpcUtils, workspaceId, id),
+						{
+							title: "A process is still running in this terminal",
+							description:
+								"Closing this terminal will end the running process.",
+							confirmLabel: "Close terminal",
+						},
+					);
+				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
 					if (consumeTerminalBackgroundIntent(terminalId)) {
 						terminalRuntimeRegistry.release(terminalId);
 						return;
 					}
-					clearV2TerminalRunStatus(terminalId, workspaceId);
 					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
@@ -347,6 +363,15 @@ export function usePaneRegistry({
 						/>
 					</div>
 				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
+					const { terminalId } = ctx.pane.data as TerminalPaneData;
+					return (
+						<TerminalPaneHeaderExtras
+							terminalId={terminalId}
+							terminalInstanceId={ctx.pane.id}
+						/>
+					);
+				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}
@@ -478,33 +503,33 @@ export function usePaneRegistry({
 						d.key === "close-pane" ? { ...d, label: "Close Browser" } : d,
 					),
 			},
-			chat: {
-				getIcon: () => <MessageSquare className="size-3.5" />,
-				getTitle: () => "Chat",
-				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
-					<ChatPaneTitle context={ctx} workspaceId={workspaceId} />
-				),
-				renderPane: (ctx: RendererContext<PaneViewerData>) => {
-					const data = ctx.pane.data as ChatPaneData;
-					return (
-						<ChatPane
-							workspaceId={workspaceId}
-							sessionId={data.sessionId}
-							onSessionIdChange={(id) =>
-								ctx.actions.updateData({ ...data, sessionId: id })
-							}
-							initialLaunchConfig={data.launchConfig ?? null}
-							onConsumeLaunchConfig={() =>
-								ctx.actions.updateData({ ...data, launchConfig: null })
-							}
-						/>
-					);
-				},
-				contextMenuActions: (_ctx, defaults) =>
-					defaults.map((d) =>
-						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
-					),
-			},
+			...(isChatV3Enabled
+				? {
+						"chat-v3": {
+							getIcon: () => <MessageSquare className="size-3.5" />,
+							getTitle: () => "Chat v3",
+							renderPane: (ctx: RendererContext<PaneViewerData>) => {
+								const data = ctx.pane.data as ChatV3PaneData;
+								return (
+									<ChatV3Pane
+										workspaceId={workspaceId}
+										sessionId={data.sessionId}
+										onSessionIdChange={(id) =>
+											ctx.actions.updateData({ ...data, sessionId: id })
+										}
+									/>
+								);
+							},
+							contextMenuActions: (
+								_ctx: RendererContext<PaneViewerData>,
+								defaults: ContextMenuActionConfig<PaneViewerData>[],
+							) =>
+								defaults.map((d) =>
+									d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
+								),
+						},
+					}
+				: {}),
 			comment: {
 				getIcon: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as CommentPaneData;
@@ -551,6 +576,7 @@ export function usePaneRegistry({
 		}),
 		[
 			workspaceId,
+			isChatV3Enabled,
 			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,
@@ -561,6 +587,7 @@ export function usePaneRegistry({
 			onOpenFile,
 			onRevealPath,
 			createNewAgentSession,
+			workspaceTrpcUtils,
 		],
 	);
 }

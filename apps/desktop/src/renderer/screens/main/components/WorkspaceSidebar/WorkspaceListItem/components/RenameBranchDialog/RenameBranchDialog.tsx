@@ -11,6 +11,7 @@ import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
+import { useWorkspaceHostTarget } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
@@ -36,6 +37,12 @@ export function RenameBranchDialog({
 	const electronUtils = electronTrpc.useUtils();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
+	// Workspace records are host-owned: a v2 workspace resolves to its owning
+	// host (which may be remote, via relay). v1 workspaces aren't in the host
+	// collection and fall back to the local host-service.
+	const hostTarget = useWorkspaceHostTarget(workspaceId);
+	const workspaceHostUrl =
+		hostTarget.status === "ready" ? hostTarget.url : activeHostUrl;
 
 	useEffect(() => {
 		if (open) setValue(currentBranchName);
@@ -47,14 +54,14 @@ export function RenameBranchDialog({
 
 	const handleSubmit = async () => {
 		if (isInvalid || isSubmitting) return;
-		if (!activeHostUrl) {
+		if (!workspaceHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
 				action: "rename the branch",
 			});
 			return;
 		}
 
-		const client = getHostServiceClientByUrl(activeHostUrl);
+		const client = getHostServiceClientByUrl(workspaceHostUrl);
 		const renamePromise = client.git.renameBranch.mutate({
 			workspaceId,
 			oldName: currentBranchName,

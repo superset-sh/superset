@@ -95,6 +95,12 @@ export async function waitForDaemonReady(
 	if (bootstrapPromise) {
 		await bootstrapPromise;
 	}
+	// The bootstrap promise is one-shot: it stays resolved after the daemon
+	// it started dies later (adopted-daemon death, crash circuit), leaving
+	// getSocketPath() null forever. ensure() is a map lookup while the
+	// instance is alive; when it's gone it re-adopts/respawns, or throws
+	// the real circuit-open error instead of "no socket path".
+	await getSupervisor().ensure(organizationId);
 }
 
 /** Test-only — reset the singleton between tests. */

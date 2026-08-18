@@ -1,13 +1,14 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
 import { resolveHostFilter, resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
-	description: "Delete workspaces by ID",
+	description: "Delete workspaces by ID on a host (default: this machine)",
 	args: [positional("ids").required().variadic().desc("Workspace IDs")],
 	options: {
-		host: string().desc("Skip the cloud lookup and target this host directly"),
-		local: boolean().desc("Skip the cloud lookup and target this machine"),
+		host: string().desc("Host the workspaces live on"),
+		local: boolean().desc("Target this machine (the default)"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const ids = args.ids as string[];
@@ -16,32 +17,21 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const explicitHostId = resolveHostFilter({
-			host: options.host ?? undefined,
-			local: options.local ?? undefined,
+		const hostId =
+			resolveHostFilter({
+				host: options.host ?? undefined,
+				local: options.local ?? undefined,
+			}) ?? getHostId();
+		const target = await resolveHostTarget({
+			requestedHostId: hostId,
+			organizationId,
+			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const deleted: string[] = [];
 		const warnings: string[] = [];
 		for (const id of ids) {
-			let hostId = explicitHostId;
-			if (!hostId) {
-				const cloudWorkspace = await ctx.api.v2Workspace.getFromHost.query({
-					organizationId,
-					id,
-				});
-				if (!cloudWorkspace) {
-					throw new CLIError(`Workspace not found: ${id}`);
-				}
-				hostId = cloudWorkspace.hostId;
-			}
-
-			const target = resolveHostTarget({
-				requestedHostId: hostId,
-				organizationId,
-				userJwt: ctx.bearer,
-			});
-
 			const result = await target.client.workspace.delete.mutate({ id });
 			deleted.push(id);
 			for (const warning of result.warnings ?? []) {

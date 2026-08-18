@@ -77,7 +77,7 @@ export function FileViewerToolbar({
 							{fileName}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
+					<TooltipContent side="bottom">
 						{copied ? "Copied!" : "Click to copy path"}
 					</TooltipContent>
 				</Tooltip>
@@ -135,7 +135,7 @@ export function FileViewerToolbar({
 									)}
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
+							<TooltipContent side="bottom">
 								{diffViewMode === "side-by-side"
 									? "Switch to inline diff"
 									: "Switch to side by side diff"}
@@ -156,7 +156,7 @@ export function FileViewerToolbar({
 									<TbFold className="size-3.5" />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
+							<TooltipContent side="bottom">
 								{hideUnchangedRegions
 									? "Show all lines"
 									: "Hide unchanged regions"}
@@ -180,9 +180,7 @@ export function FileViewerToolbar({
 										<TbPinFilled className="size-3" />
 									</button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									Pin (keep open)
-								</TooltipContent>
+								<TooltipContent side="bottom">Pin (keep open)</TooltipContent>
 							</Tooltip>
 						) : null
 					}

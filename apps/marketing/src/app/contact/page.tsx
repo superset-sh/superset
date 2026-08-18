@@ -46,6 +46,66 @@ export default function ContactPage() {
 
 			<div className="relative max-w-3xl mx-auto px-6 py-12 md:py-16">
 				<ContactForm />
+
+				<section className="mt-16 border-t border-border pt-10">
+					<h2 className="text-xl font-medium text-foreground">
+						Other ways to reach us
+					</h2>
+					<p className="text-muted-foreground mt-3">
+						Superset is built by a team based in San Francisco, California. For
+						product support or account questions, email{" "}
+						<a className="text-foreground underline" href={COMPANY.MAIL_TO}>
+							support{COMPANY.EMAIL_DOMAIN}
+						</a>{" "}
+						and we&apos;ll get back to you within one business day. For
+						partnerships, press, enterprise, or anything for the founding team,
+						write to{" "}
+						<a
+							className="text-foreground underline"
+							href={COMPANY.FOUNDERS_MAIL_TO}
+						>
+							{COMPANY.FOUNDERS_EMAIL}
+						</a>
+						.
+					</p>
+					<p className="text-muted-foreground mt-3">
+						For bug reports and feature requests, the fastest path is a GitHub
+						issue at{" "}
+						<a
+							className="text-foreground underline"
+							href={COMPANY.REPORT_ISSUE_URL}
+						>
+							github.com/superset-sh/superset
+						</a>
+						. Our community lives on{" "}
+						<a className="text-foreground underline" href={COMPANY.DISCORD_URL}>
+							Discord
+						</a>
+						, and we post updates on{" "}
+						<a className="text-foreground underline" href={COMPANY.X_URL}>
+							X (@superset_sh)
+						</a>{" "}
+						and{" "}
+						<a
+							className="text-foreground underline"
+							href={COMPANY.LINKEDIN_URL}
+						>
+							LinkedIn
+						</a>
+						.
+					</p>
+					<p className="text-muted-foreground mt-3">
+						Service availability is published at{" "}
+						<a className="text-foreground underline" href={COMPANY.STATUS_URL}>
+							status.superset.sh
+						</a>
+						, and security and compliance documentation at{" "}
+						<a className="text-foreground underline" href={COMPANY.TRUST_URL}>
+							trust.superset.sh
+						</a>
+						.
+					</p>
+				</section>
 			</div>
 		</main>
 	);

@@ -5,7 +5,7 @@ import {
 } from "./agent-prompt-template";
 
 export type AgentDefinitionSource = "builtin" | "user";
-export type AgentKind = "terminal" | "chat";
+export type AgentKind = "terminal";
 
 interface BaseAgentDefinition {
 	id: string;
@@ -35,6 +35,23 @@ export interface TerminalAgentDefinition extends BaseAgentDefinition {
 	promptCommand: string;
 	promptCommandSuffix?: string;
 	promptTransport: PromptTransport;
+	/**
+	 * Command that resumes a previous session; the session id is appended as
+	 * the final argument (e.g. "claude … --resume <id>"). Includes the base
+	 * command as a prefix, like `promptCommand`. Omitted when the CLI has no
+	 * id-based resume.
+	 */
+	resumeCommand?: string;
+	/**
+	 * Command for one-shot headless runs: the CLI executes the prompt and
+	 * exits without a TUI. The prompt is appended as the final argument.
+	 * Locked down — no permission bypasses; tools are denied or read-only
+	 * (plan/ask modes, --no-tools, default-deny sandboxes) so a hostile
+	 * prompt can't make the agent act. Includes only the flags the CLI
+	 * needs to run unattended in a fresh untrusted dir (trust/repo-check
+	 * bypasses). Omitted when the CLI has no headless mode.
+	 */
+	nonInteractiveCommand?: string;
 }
 
 export interface TerminalAgentDefinitionInput
@@ -51,12 +68,7 @@ export interface TerminalAgentDefinitionInput
 	contextPromptTemplateUser?: string;
 }
 
-export interface ChatAgentDefinition extends BaseAgentDefinition {
-	kind: "chat";
-	model?: string;
-}
-
-export type AgentDefinition = TerminalAgentDefinition | ChatAgentDefinition;
+export type AgentDefinition = TerminalAgentDefinition;
 
 export function createTerminalAgentDefinition(
 	input: TerminalAgentDefinitionInput,
@@ -77,10 +89,4 @@ export function isTerminalAgentDefinition(
 	definition: AgentDefinition,
 ): definition is TerminalAgentDefinition {
 	return definition.kind === "terminal";
-}
-
-export function isChatAgentDefinition(
-	definition: AgentDefinition,
-): definition is ChatAgentDefinition {
-	return definition.kind === "chat";
 }

@@ -252,13 +252,13 @@ This avoids the O(n²) string concatenation problem while maintaining ~30fps vis
 
 ## The Headless Emulator: State Without a Screen
 
-Each daemon session runs a headless xterm.js emulator. This might seem redundant—why emulate if there's no screen?
+Each daemon session runs a headless xterm.js emulator. This might seem redundant: why emulate if there's no screen?
 
 The emulator gives us:
 
 1. **Accurate snapshots**: When a new client attaches, we serialize the *current screen state*, not just raw scrollback. The user sees exactly what was on screen, cursor position included.
 
-2. **Terminal mode tracking**: Application mode, bracketed paste, mouse tracking—all parsed and tracked so reconnecting clients get correct state.
+2. **Terminal mode tracking**: Application mode, bracketed paste, mouse tracking. All parsed and tracked so reconnecting clients get correct state.
 
 3. **CWD detection**: By parsing OSC escape sequences, we know the shell's current directory even when the session was created hours ago.
 
@@ -368,7 +368,7 @@ interface TerminalRuntime {
 }
 ```
 
-Today, `LocalTerminalRuntime` wraps our daemon. Tomorrow, `CloudTerminalRuntime` could wrap SSH connections or remote tmux sessions—same interface, different backend. The renderer doesn't need to know where the terminal lives.
+Today, `LocalTerminalRuntime` wraps our daemon. Tomorrow, `CloudTerminalRuntime` could wrap SSH connections or remote tmux sessions: same interface, different backend. The renderer doesn't need to know where the terminal lives.
 
 ---
 

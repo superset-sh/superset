@@ -1,1 +1,1 @@
-export { GhAuthDialog } from "./GhAuthDialog";
+export { GhAuthDialog, type GhAuthDialogMode } from "./GhAuthDialog";

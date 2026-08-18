@@ -1,4 +1,5 @@
 import { projects } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -29,7 +30,10 @@ export const createGenerateBranchNameProcedures = () => {
 					.where(eq(projects.id, input.projectId))
 					.get();
 				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
 				}
 
 				// Get existing branches to check for conflicts

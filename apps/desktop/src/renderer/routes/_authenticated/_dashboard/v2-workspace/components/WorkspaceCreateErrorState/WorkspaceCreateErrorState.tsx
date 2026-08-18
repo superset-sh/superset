@@ -17,7 +17,7 @@ export function WorkspaceCreateErrorState({
 	const { submit } = useWorkspaceCreates();
 
 	const name = entry.input.name;
-	const branch = entry.input.branch;
+	const branch = "branch" in entry.input ? entry.input.branch : undefined;
 
 	const handleRetry = () => {
 		const { workspaceId, completed } = submit({

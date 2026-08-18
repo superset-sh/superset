@@ -10,22 +10,23 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
-import {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
-import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import { useBuiltinPresets } from "renderer/hooks/useBuiltinPresets";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import type { HotkeyId } from "renderer/hotkeys";
+import { posthog } from "renderer/lib/posthog";
 import { resolveV2PresetIcon } from "renderer/lib/preset-icon";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { BuiltinPresetBarItem } from "./components/BuiltinPresetBarItem";
 import { V2PresetBarItem } from "./components/V2PresetBarItem";
 
 interface V2PresetsBarProps {
@@ -33,7 +34,6 @@ interface V2PresetsBarProps {
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
-	trailing?: ReactNode;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -75,13 +75,14 @@ export function V2PresetsBar({
 	executePreset,
 	showPresetsBar,
 	onToggleShowPresetsBar,
-	trailing,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
 	const { activeHostUrl } = useLocalHostService();
 	const { data: agents } = useV2AgentConfigs(activeHostUrl);
+	const builtinPresets = useBuiltinPresets();
+	const { setBuiltinPresetHidden } = useV2UserPreferences();
 
 	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
 		() => getVisiblePresetOrder(matchedPresets),
@@ -132,6 +133,11 @@ export function V2PresetsBar({
 				]),
 			),
 		[visiblePresets],
+	);
+
+	const visibleBuiltinPresets = useMemo(
+		() => builtinPresets.filter((entry) => entry.isVisible),
+		[builtinPresets],
 	);
 
 	const handleEditPreset = useCallback(
@@ -200,13 +206,34 @@ export function V2PresetsBar({
 		[collections.v2TerminalPresets],
 	);
 
+	// Built-in presets have no collection row: visibility lives in user
+	// preferences, and launches are worth tracking to measure discovery.
+	const handleToggleBuiltinVisibility = useCallback(
+		(presetId: string, nextVisible: boolean) => {
+			setBuiltinPresetHidden(presetId, !nextVisible);
+			posthog.capture(
+				nextVisible ? "builtin_preset_unhidden" : "builtin_preset_hidden",
+				{ presetId },
+			);
+		},
+		[setBuiltinPresetHidden],
+	);
+
+	const handleExecuteBuiltinPreset = useCallback(
+		(preset: V2TerminalPresetRow) => {
+			posthog.capture("builtin_preset_launched", { presetId: preset.id });
+			void executePreset(preset);
+		},
+		[executePreset],
+	);
+
 	return (
 		<div
-			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border/60 bg-background px-2"
+			className="flex h-10 min-w-0 shrink-0 items-center gap-1.5 overflow-x-auto overflow-y-hidden bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
-				<Tooltip>
+				<Tooltip delayDuration={1000} disableHoverableContent>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button
@@ -218,9 +245,7 @@ export function V2PresetsBar({
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
-						Manage Presets
-					</TooltipContent>
+					<TooltipContent side="bottom">Manage Presets</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {
@@ -261,6 +286,37 @@ export function V2PresetsBar({
 							</DropdownMenuItem>
 						);
 					})}
+					{builtinPresets.map(({ preset, isVisible }) => {
+						const builtinIcon = getPresetIcon("superset", isDark);
+						return (
+							<DropdownMenuItem
+								key={preset.id}
+								className="gap-2"
+								onSelect={(event) => {
+									event.preventDefault();
+									handleToggleBuiltinVisibility(preset.id, !isVisible);
+								}}
+							>
+								{builtinIcon ? (
+									<img
+										src={builtinIcon}
+										alt=""
+										className="size-4 object-contain"
+									/>
+								) : (
+									<HiMiniCommandLine className="size-4" />
+								)}
+								<span className="min-w-0 flex-1 truncate">{preset.name}</span>
+								<div className="ml-auto flex items-center gap-2">
+									{isVisible ? (
+										<Eye className="size-3.5 text-foreground" />
+									) : (
+										<EyeOff className="size-3.5 text-muted-foreground/60" />
+									)}
+								</div>
+							</DropdownMenuItem>
+						);
+					})}
 					<DropdownMenuSeparator />
 					<DropdownMenuCheckboxItem
 						checked={showPresetsBar}
@@ -281,9 +337,6 @@ export function V2PresetsBar({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{visiblePresets.length > 0 ? (
-				<div className="mx-1 h-3.5 w-px shrink-0 bg-border/60" />
-			) : null}
 			{visiblePresets.map(({ preset }, visibleIndex) => {
 				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
 				return (
@@ -301,9 +354,16 @@ export function V2PresetsBar({
 					/>
 				);
 			})}
-			{trailing ? (
-				<div className="ml-auto shrink-0 pl-1">{trailing}</div>
-			) : null}
+			{/* Built-ins render after user presets, outside the hotkey index. */}
+			{visibleBuiltinPresets.map(({ preset }) => (
+				<BuiltinPresetBarItem
+					key={preset.id}
+					preset={preset}
+					isDark={isDark}
+					onExecutePreset={handleExecuteBuiltinPreset}
+					onHide={(presetId) => handleToggleBuiltinVisibility(presetId, false)}
+				/>
+			))}
 		</div>
 	);
 }

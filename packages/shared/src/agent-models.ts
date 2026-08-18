@@ -1,13 +1,12 @@
 /**
- * Curated per-agent model catalogs for the workspace-create model picker.
+ * Curated per-agent model and effort catalogs for the workspace-create
+ * pickers.
  *
  * Entries are keyed by terminal-agent presetId (see
- * `builtin-terminal-agents.ts`) plus the virtual `"superset"` chat agent.
- * Agents absent from this list don't support model selection and render no
- * picker. Model ids are the exact values the CLI accepts after `modelFlag`
- * (opencode requires `provider/model`, so the provider is baked into the id);
- * for `"superset"` the id is passed as chat-session metadata instead and
- * `modelFlag` is null.
+ * `builtin-terminal-agents.ts`). Agents absent from this list don't support
+ * model selection and render no picker. Model ids are the exact values the CLI
+ * accepts after `modelFlag` (opencode requires `provider/model`, so the
+ * provider is baked into the id).
  *
  * The lists are hand-maintained and expected to drift with CLI releases —
  * update them here when a tool adds or retires models.
@@ -21,6 +20,11 @@ export interface AgentModelOption {
 export interface AgentModelSupport {
 	presetId: string;
 	modelFlag: string | null;
+	/**
+	 * Env var that carries the model when the CLI has no model flag (e.g. Vibe's
+	 * `VIBE_ACTIVE_MODEL`). Mutually exclusive with `modelFlag` in practice.
+	 */
+	modelEnv?: string;
 	models: AgentModelOption[];
 }
 
@@ -29,12 +33,10 @@ export interface SupersetChatModel extends AgentModelOption {
 }
 
 /**
- * Canonical model catalog for the Superset chat agent. This is the single
- * source of truth — `tRPC chat.getModels` re-shapes it for its API and the
- * `"superset"` entry in `AGENT_MODEL_SUPPORT` reuses it for the picker. Keep
- * model edits here so the two never drift.
+ * Canonical model catalog served by the cloud `tRPC chat.getModels`.
  */
 export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
+	{ id: "anthropic/claude-opus-5", label: "Opus 5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-8", label: "Opus 4.8", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-7", label: "Opus 4.7", provider: "Anthropic" },
 	{ id: "anthropic/claude-fable-5", label: "Fable 5", provider: "Anthropic" },
@@ -48,7 +50,15 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		label: "Haiku 4.5",
 		provider: "Anthropic",
 	},
+	{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "OpenAI" },
+	{
+		id: "openai/gpt-5.6-terra",
+		label: "GPT-5.6 Terra",
+		provider: "OpenAI",
+	},
+	{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.5", label: "GPT-5.5", provider: "OpenAI" },
+	// Retiring from Codex on 2026-08-31; prefer the GPT-5.6 models above.
 	{ id: "openai/gpt-5.4", label: "GPT-5.4", provider: "OpenAI" },
 	{ id: "openai/gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "OpenAI" },
 ];
@@ -58,7 +68,9 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "claude",
 		modelFlag: "--model",
 		models: [
+			{ id: "fable", label: "Fable" },
 			{ id: "opus", label: "Opus" },
+			{ id: "claude-opus-5", label: "Opus 5" },
 			{ id: "sonnet", label: "Sonnet" },
 			{ id: "haiku", label: "Haiku" },
 		],
@@ -67,7 +79,11 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "codex",
 		modelFlag: "--model",
 		models: [
+			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
 			{ id: "gpt-5.5", label: "GPT-5.5" },
+			// Retiring from Codex on 2026-08-31; superseded by gpt-5.6-terra/luna.
 			{ id: "gpt-5.4", label: "GPT-5.4" },
 			{ id: "gpt-5.3-codex", label: "GPT-5.3 Codex" },
 		],
@@ -84,6 +100,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "copilot",
 		modelFlag: "--model",
 		models: [
+			{ id: "claude-fable-5", label: "Claude Fable 5" },
 			{ id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
 			{ id: "gpt-5.1", label: "GPT-5.1" },
 		],
@@ -92,24 +109,154 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "cursor-agent",
 		modelFlag: "--model",
 		models: [
-			{ id: "opus", label: "Opus" },
-			{ id: "sonnet-4.5", label: "Sonnet 4.5" },
-			{ id: "gpt-5", label: "GPT-5" },
-			{ id: "composer-1", label: "Composer 1" },
+			// cursor-agent has no effort flag, so effort/thinking levels are
+			// baked into the model ids. Ids verified against a live account's
+			// `--list-models` (2026-08-05); the list is account-dependent and
+			// unknown ids are rejected by the CLI, not silently ignored.
+			// "auto" is the only id free-plan accounts can use (besides
+			// composer) — named models fail there with "Named models
+			// unavailable", so keep an explicit working choice in the picker.
+			{ id: "auto", label: "Auto" },
+			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
+			{ id: "claude-fable-5-thinking-xhigh", label: "Fable 5 xHigh" },
+			{ id: "claude-opus-5-high", label: "Opus 5" },
+			{ id: "claude-opus-4-8-high", label: "Opus 4.8" },
+			{ id: "claude-4.6-sonnet-medium", label: "Sonnet 4.6" },
+			{ id: "gpt-5.6-sol-medium", label: "GPT-5.6 Sol" },
+			{ id: "gpt-5.6-terra-medium", label: "GPT-5.6 Terra" },
+			{ id: "gpt-5.6-luna-medium", label: "GPT-5.6 Luna" },
+			{ id: "gpt-5.3-codex", label: "Codex 5.3" },
+			{ id: "composer-2.5", label: "Composer 2.5" },
 		],
 	},
 	{
 		presetId: "opencode",
 		modelFlag: "--model",
 		models: [
+			// openai ids verified against `opencode models` (2026-08-05), which
+			// no longer lists the old `openai/gpt-5`. anthropic ids follow the
+			// same models.dev catalog but need an authed anthropic provider to
+			// appear in that listing.
+			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
+			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
-			{ id: "openai/gpt-5", label: "GPT-5" },
+			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
+			{ id: "openai/gpt-5.6-terra", label: "GPT-5.6 Terra" },
+			{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna" },
 		],
 	},
 	{
-		presetId: "superset",
+		presetId: "vibe",
 		modelFlag: null,
-		models: SUPERSET_CHAT_MODELS.map(({ id, label }) => ({ id, label })),
+		modelEnv: "VIBE_ACTIVE_MODEL",
+		models: [
+			{ id: "mistral-medium-3.5", label: "Mistral Medium 3.5" },
+			{ id: "devstral-small", label: "Devstral Small" },
+		],
+	},
+	{
+		// Polygraph's picker selects the harness it launches, not a model: the
+		// selection rides `polygraph session start --agent <id>`. The launch
+		// plumbing is flag-agnostic, so it reuses this catalog. Unset
+		// ("Default") omits the flag and polygraph falls back to its own
+		// `--agent auto` resolution.
+		presetId: "polygraph",
+		modelFlag: "--agent",
+		models: [
+			{ id: "claude", label: "Claude" },
+			{ id: "codex", label: "Codex" },
+			{ id: "opencode", label: "OpenCode" },
+		],
+	},
+];
+
+export interface AgentEffortSupport {
+	presetId: string;
+	effortFlag: string;
+	/**
+	 * Prepended to the selected effort id to form the flag's value token.
+	 * Codex has no dedicated effort flag, so effort rides a config override:
+	 * `-c model_reasoning_effort=high`.
+	 */
+	effortValuePrefix?: string;
+	efforts: AgentModelOption[];
+}
+
+/**
+ * Curated per-agent reasoning-effort catalogs, mirroring
+ * `AGENT_MODEL_SUPPORT`. Flags and accepted values were verified against each
+ * CLI's `--help` (or its own validator) — agents absent from this list
+ * (gemini, opencode, cursor-agent, droid, superset chat) expose no effort
+ * control on their interactive launch command.
+ */
+export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
+	{
+		presetId: "claude",
+		effortFlag: "--effort",
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+			{ id: "max", label: "Max" },
+		],
+	},
+	{
+		presetId: "amp",
+		effortFlag: "--effort",
+		efforts: [
+			{ id: "none", label: "None" },
+			{ id: "minimal", label: "Minimal" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+			{ id: "max", label: "Max" },
+		],
+	},
+	{
+		presetId: "codex",
+		effortFlag: "-c",
+		effortValuePrefix: "model_reasoning_effort=",
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "mastracode",
+		effortFlag: "--thinking-level",
+		efforts: [
+			{ id: "off", label: "Off" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "pi",
+		effortFlag: "--thinking",
+		efforts: [
+			{ id: "off", label: "Off" },
+			{ id: "minimal", label: "Minimal" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "copilot",
+		effortFlag: "--effort",
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "xHigh" },
+		],
 	},
 ];
 
@@ -117,6 +264,29 @@ export function getAgentModelSupport(
 	presetId: string,
 ): AgentModelSupport | undefined {
 	return AGENT_MODEL_SUPPORT.find((entry) => entry.presetId === presetId);
+}
+
+export function getAgentEffortSupport(
+	presetId: string,
+): AgentEffortSupport | undefined {
+	return AGENT_EFFORT_SUPPORT.find((entry) => entry.presetId === presetId);
+}
+
+/**
+ * Argv tokens that select `effort` for the given preset, e.g.
+ * `["--effort", "high"]` (codex: `["-c", "model_reasoning_effort=high"]`).
+ * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets
+ * or effort ids outside the curated list return `[]`.
+ */
+export function buildAgentEffortArgs(
+	presetId: string,
+	effort: string | undefined,
+): string[] {
+	if (!effort) return [];
+	const support = getAgentEffortSupport(presetId);
+	if (!support) return [];
+	if (!support.efforts.some((option) => option.id === effort)) return [];
+	return [support.effortFlag, `${support.effortValuePrefix ?? ""}${effort}`];
 }
 
 /**
@@ -136,4 +306,21 @@ export function buildAgentModelArgs(
 	if (!support?.modelFlag) return [];
 	if (!support.models.some((option) => option.id === model)) return [];
 	return [support.modelFlag, model];
+}
+
+/**
+ * Env vars that select `model` for env-based agents (Vibe has no `--model`
+ * flag; the model rides `VIBE_ACTIVE_MODEL`). Same degrade-to-default contract
+ * as `buildAgentModelArgs`: unknown presets, presets without `modelEnv`, an
+ * unset model, or a model id outside the curated list return `{}`.
+ */
+export function buildAgentModelEnv(
+	presetId: string,
+	model: string | undefined,
+): Record<string, string> {
+	if (!model) return {};
+	const support = getAgentModelSupport(presetId);
+	if (!support?.modelEnv) return {};
+	if (!support.models.some((option) => option.id === model)) return {};
+	return { [support.modelEnv]: model };
 }

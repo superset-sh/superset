@@ -303,13 +303,13 @@ export async function generateMetadata({
 		: `${person.name}, ${person.role} at Superset`;
 
 	return {
-		title: `${person.name} — ${person.role}`,
+		title: `${person.name} - ${person.role}`,
 		description,
 		alternates: {
 			canonical: url,
 		},
 		openGraph: {
-			title: `${person.name} — ${person.role} at Superset`,
+			title: `${person.name} - ${person.role} at Superset`,
 			description,
 			type: "profile",
 			url,
@@ -320,7 +320,7 @@ export async function generateMetadata({
 		},
 		twitter: {
 			card: "summary",
-			title: `${person.name} — ${person.role} at Superset`,
+			title: `${person.name} - ${person.role} at Superset`,
 			description,
 			...(person.avatar && {
 				images: [`${COMPANY.MARKETING_URL}${person.avatar}`],

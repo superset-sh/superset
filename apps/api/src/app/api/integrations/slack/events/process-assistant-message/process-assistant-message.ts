@@ -1,11 +1,8 @@
 import { db } from "@superset/db/client";
-import {
-	integrationConnections,
-	subscriptions,
-	usersSlackUsers,
-} from "@superset/db/schema";
+import { integrationConnections, subscriptions } from "@superset/db/schema";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { posthog } from "@/lib/analytics";
+import { findSlackUserLink } from "../../lib/find-slack-user-link";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import {
 	formatErrorForSlack,
@@ -83,12 +80,10 @@ export async function processAssistantMessage({
 
 	const [slackUserLink, activeSubscription] = await Promise.all([
 		event.user
-			? db.query.usersSlackUsers.findFirst({
-					where: and(
-						eq(usersSlackUsers.slackUserId, event.user),
-						eq(usersSlackUsers.teamId, teamId),
-					),
-					columns: { userId: true, modelPreference: true },
+			? findSlackUserLink({
+					organizationId: connection.organizationId,
+					slackUserId: event.user,
+					teamId,
 				})
 			: undefined,
 		db.query.subscriptions.findFirst({

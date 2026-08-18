@@ -1,6 +1,7 @@
 import { parentPort } from "node:worker_threads";
 import { executeGitTask } from "../lib/trpc/routers/changes/workers/git-task-handlers";
 import type { GitTaskType } from "../lib/trpc/routers/changes/workers/git-task-types";
+import { classifyEnvironmentalGitError } from "../lib/trpc/routers/workspaces/utils/git-errors";
 import {
 	serializeWorkerError,
 	type WorkerTaskRequestMessage,
@@ -44,7 +45,13 @@ parentPort.on("message", async (message: unknown) => {
 			kind: "result",
 			taskId: task.taskId,
 			ok: false,
-			error: serializeWorkerError(error),
+			error: serializeWorkerError(translateRawGitError(error)),
 		});
 	}
 });
+
+// Task handlers call simple-git directly in places; classify its raw errors
+// here so every task crosses the boundary in the domain vocabulary.
+function translateRawGitError(error: unknown): unknown {
+	return classifyEnvironmentalGitError(error) ?? error;
+}

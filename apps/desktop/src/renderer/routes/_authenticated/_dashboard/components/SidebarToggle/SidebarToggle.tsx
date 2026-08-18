@@ -23,12 +23,12 @@ export function SidebarToggle() {
 	};
 
 	return (
-		<Tooltip delayDuration={300}>
+		<Tooltip delayDuration={1000}>
 			<TooltipTrigger asChild>
 				<button
 					type="button"
 					onClick={toggleCollapsed}
-					className="no-drag group flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+					className="no-drag group flex items-center justify-center size-8 rounded-md text-muted-foreground hover:bg-fill-hover transition-colors"
 				>
 					<span className="group-hover:hidden">{getToggleIcon(false)}</span>
 					<span className="hidden group-hover:block">
@@ -37,7 +37,10 @@ export function SidebarToggle() {
 				</button>
 			</TooltipTrigger>
 			<TooltipContent side="right">
-				<HotkeyLabel label="Toggle sidebar" id="TOGGLE_WORKSPACE_SIDEBAR" />
+				<HotkeyLabel
+					fallbackLabel="Toggle sidebar"
+					id="TOGGLE_WORKSPACE_SIDEBAR"
+				/>
 			</TooltipContent>
 		</Tooltip>
 	);

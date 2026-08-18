@@ -30,38 +30,26 @@ export class Agents extends APIResource {
 	}
 
 	/**
-	 * Create (launch) an agent session inside an existing workspace. Looks up
-	 * the host that owns the workspace (cloud index) and starts the named
-	 * preset (or HostAgentConfig instance) in a fresh terminal session on that
-	 * host. Pass an explicit `hostId` to skip the lookup.
+	 * Create (launch) an agent session inside an existing workspace on its
+	 * host: starts the named preset (or HostAgentConfig instance) in a fresh
+	 * terminal session there.
 	 *
-	 * Mirrors `superset agents create`.
+	 * Mirrors `superset agents create --host <id>`.
 	 */
-	async create(
-		params: AgentCreateParams,
-		options?: { hostId?: string },
-	): Promise<AgentCreateResult> {
+	async create(params: AgentCreateParams): Promise<AgentCreateResult> {
 		this._requireOrgId();
-		let hostId = options?.hostId;
-		if (!hostId) {
-			const cloud = await this._client.query<HostLookup | null>(
-				"v2Workspace.getFromHost",
-				{
-					organizationId: this._client.organizationId,
-					id: params.workspaceId,
-				},
-			);
-			if (!cloud) {
-				throw new SupersetError(`Workspace not found: ${params.workspaceId}`);
-			}
-			hostId = cloud.hostId;
-		}
-		return this._client.hostMutation<AgentCreateResult>(hostId, "agents.run", {
-			workspaceId: params.workspaceId,
-			agent: params.agent,
-			prompt: params.prompt,
-			attachmentIds: params.attachmentIds,
-		});
+		return this._client.hostMutation<AgentCreateResult>(
+			params.hostId,
+			"agents.run",
+			{
+				workspaceId: params.workspaceId,
+				agent: params.agent,
+				prompt: params.prompt,
+				resumeSessionId: params.resumeSessionId,
+				effort: params.effort,
+				attachmentIds: params.attachmentIds,
+			},
+		);
 	}
 
 	private _requireOrgId(): string {
@@ -85,6 +73,8 @@ export interface HostAgentConfig {
 	args: string[];
 	promptTransport: PromptTransport;
 	promptArgs: string[];
+	/** Args that resume a previous session by id; empty when the agent has no id-based resume. */
+	resumeArgs: string[];
 	env: Record<string, string>;
 	order: number;
 }
@@ -97,23 +87,27 @@ export interface AgentListParams {
 }
 
 export interface AgentCreateParams {
+	/** The host machineId the workspace lives on (see `hosts.list()`). */
+	hostId: string;
 	/** Workspace UUID to launch the agent session in. */
 	workspaceId: string;
-	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
+	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance UUID. */
 	agent: string;
-	/** Prompt sent to the agent. */
-	prompt: string;
+	/** Prompt sent to the agent. Optional when `resumeSessionId` is provided. */
+	prompt?: string;
+	/** Session id of a previous run of this agent to restore instead of starting fresh (e.g. `claude --resume <id>`). */
+	resumeSessionId?: string;
+	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
+	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
 }
 
-interface HostLookup {
-	hostId: string;
-}
-
-export type AgentCreateResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
+export type AgentCreateResult = {
+	kind: "terminal";
+	sessionId: string;
+	label: string;
+};
 
 export declare namespace Agents {
 	export type {

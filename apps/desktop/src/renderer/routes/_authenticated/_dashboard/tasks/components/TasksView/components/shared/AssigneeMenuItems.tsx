@@ -9,8 +9,10 @@ interface MenuItemProps {
 	className?: string;
 }
 
+type AssigneeOption = Pick<SelectUser, "id" | "name" | "email" | "image">;
+
 interface AssigneeMenuItemsProps {
-	users: SelectUser[];
+	users: AssigneeOption[];
 	currentAssigneeId: string | null;
 	hasExternalAssignee?: boolean;
 	onSelect: (userId: string | null) => void;

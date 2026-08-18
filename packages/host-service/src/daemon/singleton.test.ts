@@ -58,8 +58,9 @@ describe("fire-and-track bootstrap", () => {
 
 		// Now await readiness — should complete after ensure resolves.
 		await waitForDaemonReady("org-fnt");
-		// Sanity: ensure was invoked exactly once across both calls.
-		expect(ensureMock).toHaveBeenCalledTimes(1);
+		// Readiness re-ensures (ensure is an idempotent map lookup when the
+		// daemon is alive) so a daemon that died post-bootstrap gets revived.
+		expect(ensureMock).toHaveBeenCalledTimes(2);
 	});
 
 	test("startDaemonBootstrap is idempotent", () => {
@@ -86,7 +87,26 @@ describe("fire-and-track bootstrap", () => {
 			ensureMock as typeof sup.ensure;
 
 		await waitForDaemonReady("org-lazy");
-		expect(ensureMock).toHaveBeenCalledTimes(1);
+		// Once for the kicked-off bootstrap, once for the readiness re-check.
+		expect(ensureMock).toHaveBeenCalledTimes(2);
+	});
+
+	test("waitForDaemonReady re-ensures after a successful bootstrap", async () => {
+		const sup = getSupervisor("/nonexistent");
+		const ensureMock = mock(async () => {
+			return {} as Awaited<ReturnType<typeof sup.ensure>>;
+		});
+		(sup as unknown as { ensure: typeof sup.ensure }).ensure =
+			ensureMock as typeof sup.ensure;
+
+		await waitForDaemonReady("org-revive");
+		const callsAfterFirst = ensureMock.mock.calls.length;
+		// The bootstrap promise stays resolved forever, so if the daemon dies
+		// later (adopted-daemon death, crash circuit) only a fresh ensure()
+		// can revive it. Each wait must go through ensure, not just the
+		// stale bootstrap promise.
+		await waitForDaemonReady("org-revive");
+		expect(ensureMock.mock.calls.length).toBe(callsAfterFirst + 1);
 	});
 
 	test("a failed bootstrap is retryable", async () => {
@@ -107,8 +127,9 @@ describe("fire-and-track bootstrap", () => {
 			"simulated spawn failure",
 		);
 		// Second wait kicks off a new bootstrap (the failed promise was
-		// cleared) and succeeds.
+		// cleared) and succeeds: one ensure for the bootstrap, one for the
+		// readiness re-check.
 		await waitForDaemonReady("org-retry");
-		expect(ensureMock).toHaveBeenCalledTimes(2);
+		expect(ensureMock).toHaveBeenCalledTimes(3);
 	});
 });

@@ -1,9 +1,12 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const DEFAULT_HINT_DELAY_MS = 500;
 
 interface ShadowClickHintProps {
 	hint: string;
 	side?: "top" | "right" | "bottom" | "left";
+	delayMs?: number;
 	/**
 	 * Walk an event's composed path to find the row to anchor on. Return null
 	 * to dismiss. Pierre's open shadow root retargets event.target to the
@@ -22,11 +25,20 @@ interface ShadowClickHintProps {
 export function ShadowClickHint({
 	hint,
 	side = "right",
+	delayMs = DEFAULT_HINT_DELAY_MS,
 	findRow,
 	children,
 }: ShadowClickHintProps) {
 	const [hoverRect, setHoverRect] = useState<DOMRect | null>(null);
 	const hoverRowRef = useRef<HTMLElement | null>(null);
+	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const clearTimer = useCallback(() => {
+		if (timerRef.current) {
+			clearTimeout(timerRef.current);
+			timerRef.current = null;
+		}
+	}, []);
 
 	const handleMouseOver = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
@@ -34,21 +46,31 @@ export function ShadowClickHint({
 			if (!row) {
 				if (hoverRowRef.current) {
 					hoverRowRef.current = null;
+					clearTimer();
 					setHoverRect(null);
 				}
 				return;
 			}
 			if (hoverRowRef.current === row) return;
 			hoverRowRef.current = row;
-			setHoverRect(row.getBoundingClientRect());
+			clearTimer();
+			setHoverRect(null);
+			timerRef.current = setTimeout(() => {
+				if (hoverRowRef.current === row) {
+					setHoverRect(row.getBoundingClientRect());
+				}
+			}, delayMs);
 		},
-		[findRow],
+		[findRow, delayMs, clearTimer],
 	);
 
 	const handleMouseLeave = useCallback(() => {
 		hoverRowRef.current = null;
+		clearTimer();
 		setHoverRect(null);
-	}, []);
+	}, [clearTimer]);
+
+	useEffect(() => clearTimer, [clearTimer]);
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: wraps a custom-element host with its own keyboard nav

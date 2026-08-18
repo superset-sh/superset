@@ -1,89 +1,8 @@
-# Superset Monorepo Guide
+# Superset Monorepo
 
-You're running inside a Superset workspace — an isolated git-worktree copy of this repo. "Workspace" in any user message refers to this, not VS Code/editor workspaces.
+Superset is an agent-first development platform, with an Electron desktop IDE, Next.js web apps, and an Expo mobile app as the main customer-facing surfaces. It's a Turborepo monorepo, deployed apps are in apps/ and supporting packages are in packages/, and we use tRPC for the api.
 
-## Question Tool
-
-When you need to ask the user ANY question — including simple yes/no, confirmations, and clarifications — ALWAYS use the `ask_user` tool. Never ask questions in plain text. The Superset UI renders `ask_user` calls as an interactive overlay with clickable option buttons; plain-text questions will not be surfaced to the user in the same way.
-
-Guidelines for agents and developers working in this repository.
-
-## Structure
-
-Bun + Turbo monorepo with:
-- **Apps**:
-  - `apps/web` - Main web application (app.superset.sh)
-  - `apps/marketing` - Marketing site (superset.sh)
-  - `apps/admin` - Admin dashboard
-  - `apps/api` - API backend
-  - `apps/desktop` - Electron desktop application
-  - `apps/docs` - Documentation site
-  - `apps/mobile` - React Native mobile app (Expo)
-- **Packages**:
-  - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4).
-    - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
-  - `packages/db` - Drizzle ORM database schema
-  - `packages/auth` - Authentication
-  - `packages/trpc` - Shared tRPC definitions
-  - `packages/shared` - Shared utilities
-  - `packages/mcp` - MCP integration
-  - `packages/local-db` - Local SQLite database
-  - `packages/durable-session` - Durable session management
-  - `packages/email` - Email templates/sending
-  - `packages/scripts` - CLI tooling
-- **Tooling**:
-  - `tooling/typescript` - Shared TypeScript configs
-
-## Tech Stack
-
-- **Package Manager**: Bun (no npm/yarn/pnpm)
-- **Build System**: Turborepo
-- **Database**: Drizzle ORM + Neon PostgreSQL
-- **UI**: React + TailwindCSS v4 + shadcn/ui
-- **Code Quality**: Biome (formatting + linting at root)
-- **Next.js**: Version 16 - NEVER create `middleware.ts`. Next.js 16 renamed middleware to `proxy.ts`. Always use `proxy.ts` for request interception.
-
-## Common Commands
-
-```bash
-# Development
-bun dev                    # Start all dev servers
-bun test                   # Run tests
-bun build                  # Build all packages
-
-# Code Quality
-bun run lint               # Check for lint issues (no changes)
-bun run lint:fix           # Fix auto-fixable lint issues
-bun run format             # Format code only
-bun run format:check       # Check formatting only (CI)
-bun run typecheck          # Type check all packages
-
-# Maintenance
-bun run clean              # Clean root node_modules
-bun run clean:workspaces   # Clean all workspace node_modules
-```
-
-## Code Quality
-
-**Biome runs at root level** (not per-package) for speed:
-- `biome check --write --unsafe` = format + lint + organize imports + fix all auto-fixable issues
-- `biome check` = check only (no changes)
-- `biome format` = format only
-- Use `bun run lint:fix` to fix all issues automatically
-
-## Agent Rules
-1. **Type safety** - avoid `any` unless necessary
-2. **Prefer `gh` CLI** - when performing git operations (PRs, issues, checkout, etc.), prefer the GitHub CLI (`gh`) over raw `git` commands where possible
-3. **Shared command and skill source** - keep command definitions in `.agents/commands/` and skill definitions in `.agents/skills/`. `.claude/commands` and `.cursor/commands` should be symlinks to `../.agents/commands`; `.claude/skills` should be a symlink to `../.agents/skills`. (`packages/chat` discovers slash commands from `.claude/commands`.) Skills aren't a cross-agent format yet, so non-Claude agents (Codex, Cursor, OpenCode) should read the relevant `.agents/skills/*/SKILL.md` file directly when its description matches the task.
-4. **Workspace MCP config** - keep shared MCP servers in `.mcp.json`; `.cursor/mcp.json` should link to `../.mcp.json`. Codex uses `.codex/config.toml` (run with `CODEX_HOME=.codex codex ...`). OpenCode uses `opencode.json` and should mirror the same MCP set using OpenCode's `remote`/`local` schema.
-5. **Mastra dependencies** - use the published upstream `mastracode` and `@mastra/*` packages. Do not add fork tarball overrides or custom patch steps unless explicitly requested.
-6. **Plan & doc placement** - implementation plans go in `plans/` (cross-cutting) or `apps/<app>/plans/` (app-scoped); shipped plans move to `plans/done/`. Architecture/reference docs go in `<app>/docs/`. Never drop `*_PLAN.md` at an app root or inside `src/`.
-7. **Always fix lint warnings before pushing** - CI fails on Biome warnings, not just errors (the lint script treats warnings as errors). Run `bun run lint:fix` after edits and verify `bun run lint` exits 0 before `git push`. Never push code that produces lint output, even auto-fixable formatting.
-8. **Linear ticket format** - all tickets (creation, drafting, grooming) follow `.agents/skills/ticket-format/SKILL.md`. Read that file before creating or grooming a ticket.
-9. **TanStack DB / Electric live queries are cache-first** - `useLiveQuery` can return persisted rows in `data` while the collection is still not `isReady`. Always render existing rows first. Use `isReady` only to decide what to show when no row/data exists yet: no data + not ready = loading/skeleton/null; no data + ready = empty/not-found. Never hide, blank, or replace existing `data` just because `isReady` is false or `isLoading` is true. This cache-first rendering rule does not apply to write/seeding side effects: wait for strict readiness before deriving missing rows or writing defaults, unless the write is provably idempotent.
-
-
----
+You're working inside a Superset workspace, an isolated git-worktree copy of this repo. "Workspace" in a user message means that, not an editor workspace.
 
 ## Project Structure
 
@@ -159,17 +78,49 @@ components/                                # Used in 2+ pages (last resort)
 
 The `src/components/ui/` and `src/components/ai-elements` directories contain shadcn/ui components. These use **kebab-case single files** (e.g., `button.tsx`, `base-node.tsx`) instead of the folder structure above. This is intentional—shadcn CLI expects this format for updates via `bunx shadcn@latest add`.
 
-## Database Rules
+## Database
 
-** IMPORTANT ** - Never touch the production database unless explicitly asked to. Even then, confirm with the user first.
+Drizzle ORM, schema in `packages/db/src/`. Follow `.agents/skills/db-migrations/SKILL.md` to generate
+migrations. Never hand-edit `packages/db/drizzle/` (SQL, `meta/_journal.json`, snapshots) without
+explicit user confirmation, and never apply migrations against a shared or production database.
 
-- Schema in `packages/db/src/`
-- Use Drizzle ORM for all database operations
+## Releases
 
-## DB migrations
-- Always spin up a new neon branch to create migrations. Update our root .env files to point at the neon branch locally.
-- Use drizzle to manage the migration. You can see the schema at packages/db/src/schema. Never run a migration yourself.
-- Create migrations by changing drizzle schema then running `bunx drizzle-kit generate --name="<sample_name_snake_case>"`
-- `NEON_ORG_ID` and `NEON_PROJECT_ID` env vars are set in .env
-- list_projects tool requires org_id passed in
-- **NEVER manually edit files in `packages/db/drizzle/`** - this includes `.sql` migration files, `meta/_journal.json`, and snapshot files. These are auto-generated by Drizzle. If you need to create a migration, only modify the schema files in `packages/db/src/schema/` and ask the user to run `drizzle-kit generate`.
+Desktop, host-service, and cli share one version; cut releases on a dedicated branch. Runbook:
+`scripts/release/README.md`. A *canary* is a separate thing: `bash scripts/release-canary.sh
+[commit]` builds the rolling internal `desktop-canary` prerelease, not a versioned release.
+
+## Orchestrating agents and workspaces
+
+When work wants a fresh isolated environment, a parallel agent, or a long-running job, reach for the
+`superset` CLI instead of hand-rolling git worktrees or doing it all serially in this one. It's
+already on `PATH` in Superset terminals, and we dogfood it.
+
+Replace the capitalized placeholders before running these:
+
+```bash
+superset ws create --project PROJECT_ID --branch BRANCH --agent claude --prompt "..."
+superset agents create --workspace WORKSPACE_ID --agent claude --prompt "..."
+superset ws list
+superset terminals read --workspace WORKSPACE_ID --terminal TERMINAL_ID
+superset ws delete WORKSPACE_ID
+```
+
+In order: an isolated workspace with an agent already working in it, another agent in an existing
+workspace, what's running, what an agent is doing right now, and cleanup when you're done.
+
+`superset <command> --help` covers the rest (tasks, automations, hosts, settings). Pass `--json` for
+parsable output; it's on by default under agent environments.
+
+## Further reading
+
+- `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
+  `SKILL.md` when a task fits its description.
+- `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
+- `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
+- `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
+- `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the
+  app makes about a machine someone owns. Read it before touching sandboxes, and add to it when
+  you find a new one.
+- `docs/cloud-sandbox-considerations.md`: what cloud sandboxes still owe before they leave the
+  team — billing, credential blast radius, untested behaviour.

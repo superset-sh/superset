@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import { resolveDefaultBranchName } from "../../../../runtime/git/refs";
 import { protectedProcedure } from "../../../index";
@@ -11,7 +11,10 @@ import {
 	markRefetchRemote,
 	shouldRefetchRemote,
 } from "../shared/branch-search";
-import { findLocalProject } from "../shared/local-project";
+import {
+	findLocalProject,
+	requireProjectRepoPath,
+} from "../shared/local-project";
 import type { BranchRow } from "../shared/types";
 
 type BranchAccum = {
@@ -36,7 +39,7 @@ export const searchBranches = protectedProcedure
 			};
 		}
 
-		const git = await ctx.git(localProject.repoPath);
+		const git = await ctx.git(requireProjectRepoPath(localProject));
 
 		// Honor `refresh` only if TTL elapsed — prevents thrashing `git fetch`
 		// on every keystroke when the client tags first-page requests.
@@ -60,7 +63,12 @@ export const searchBranches = protectedProcedure
 			ctx.db
 				.select()
 				.from(workspaces)
-				.where(eq(workspaces.projectId, input.projectId))
+				.where(
+					and(
+						eq(workspaces.projectId, input.projectId),
+						isNull(workspaces.archivedAt),
+					),
+				)
 				.all()
 				.map((workspace) => workspace.branch)
 				.filter((branch): branch is string => Boolean(branch)),

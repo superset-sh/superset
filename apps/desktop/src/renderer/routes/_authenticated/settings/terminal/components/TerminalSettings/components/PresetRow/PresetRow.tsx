@@ -29,7 +29,7 @@ interface PresetRowProps {
 	projectOptionsById: ReadonlyMap<string, PresetProjectOption>;
 	/**
 	 * v2 host-agent configs. When the preset's `agentId` matches a config,
-	 * its `presetId` (e.g. `"cursor-agent"`) is used to resolve the icon.
+	 * its `iconId` override or fallback `presetId` is used to resolve the icon.
 	 * Older v2 rows that still store `presetId` in `agentId` resolve via the
 	 * `presetId` fallback. Omitted by v1 callers — no v1 row has `agentId`.
 	 */

@@ -1,0 +1,1 @@
+export { useRevealInFinder } from "./useRevealInFinder";

@@ -5,6 +5,7 @@
 
 import packageJson from "../package.json" with { type: "json" };
 
+export { drainPendingKills } from "./Pty/index.ts";
 export { Server, type ServerOptions } from "./Server/index.ts";
 export type {
 	HandoffSnapshot,

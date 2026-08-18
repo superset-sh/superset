@@ -1,15 +1,31 @@
 import { observable } from "@trpc/server/observable";
 import { session } from "electron";
-import { browserManager } from "main/lib/browser/browser-manager";
+import {
+	type BrowserOpenRequest,
+	browserManager,
+	type ForwardedKey,
+} from "main/lib/browser/browser-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 export const createBrowserRouter = () => {
 	return router({
 		register: publicProcedure
-			.input(z.object({ paneId: z.string(), webContentsId: z.number() }))
+			.input(
+				z.object({
+					paneId: z.string(),
+					webContentsId: z.number(),
+					// Optional: v1 browser panes register without workspace scoping
+					// and stay invisible to the browser bridge.
+					workspaceId: z.string().optional(),
+				}),
+			)
 			.mutation(({ input }) => {
-				browserManager.register(input.paneId, input.webContentsId);
+				browserManager.register(
+					input.paneId,
+					input.webContentsId,
+					input.workspaceId,
+				);
 				return { success: true };
 			}),
 
@@ -156,6 +172,46 @@ export const createBrowserRouter = () => {
 					};
 				});
 			}),
+
+		// Renderer-registered canonical chords the main process should suppress in
+		// the focused guest and forward for replay (override/layout-aware).
+		setForwardableChords: publicProcedure
+			.input(z.object({ chords: z.array(z.string()) }))
+			.mutation(({ input }) => {
+				browserManager.setForwardableChords(input.chords);
+				return { success: true };
+			}),
+
+		// Keystrokes intercepted from the focused guest webview, replayed by the
+		// renderer into its hotkey system (guest focus hides them from the host).
+		onKeyForward: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<ForwardedKey>((emit) => {
+					const handler = (key: ForwardedKey) => {
+						emit.next(key);
+					};
+					browserManager.on(`key-forward:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`key-forward:${input.paneId}`, handler);
+					};
+				});
+			}),
+
+		// External open requests (CLI/agents via the browser bridge). A global
+		// renderer hook consumes these and routes them through the same
+		// openUrl search-param flow the ports sidebar uses.
+		onOpenRequest: publicProcedure.subscription(() => {
+			return observable<BrowserOpenRequest>((emit) => {
+				const handler = (request: BrowserOpenRequest) => {
+					emit.next(request);
+				};
+				browserManager.on("open-request", handler);
+				return () => {
+					browserManager.off("open-request", handler);
+				};
+			});
+		}),
 
 		openDevTools: publicProcedure
 			.input(z.object({ paneId: z.string() }))

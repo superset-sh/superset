@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-import {
-	ACTIVE_ORG_ID_KEY,
-	AUTH_COMPLETED_KEY,
-} from "renderer/hooks/useSignOut";
-import { track } from "renderer/lib/analytics";
+import { ACTIVE_ORG_ID_KEY } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "../../lib/posthog";
@@ -16,19 +12,23 @@ export function PostHogUserIdentifier() {
 
 	useEffect(() => {
 		if (!user) return;
+		const createdAt = user.createdAt
+			? new Date(user.createdAt).toISOString()
+			: undefined;
 		posthog.identify(user.id, {
 			email: user.email,
 			name: user.name,
 			desktop_version: window.App.appVersion,
+			...(createdAt ? { created_at: createdAt } : {}),
 		});
+		if (createdAt) {
+			// Included in flag evaluation requests so release conditions can
+			// target account age immediately, without waiting for ingestion.
+			// `false` skips the built-in reload; reloadFeatureFlags below covers it.
+			posthog.setPersonPropertiesForFlags({ created_at: createdAt }, false);
+		}
 		posthog.reloadFeatureFlags();
 		setUserId({ userId: user.id });
-
-		const trackedUserId = localStorage.getItem(AUTH_COMPLETED_KEY);
-		if (trackedUserId !== user.id) {
-			track("auth_completed");
-			localStorage.setItem(AUTH_COMPLETED_KEY, user.id);
-		}
 	}, [user, setUserId]);
 
 	useEffect(() => {

@@ -3,31 +3,58 @@ import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
 
+/** Workspace row as served by the owning host's `workspace.list`. */
+export interface HostWorkspaceRow {
+	id: string;
+	organizationId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
+	/** Host-served project name; null for an orphaned projectId or a session. */
+	projectName: string | null;
+	hostId: string;
+	name: string;
+	branch: string;
+	type: "main" | "worktree" | "session";
+	createdByUserId: string | null;
+	taskId: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+	/** Absolute worktree path on the host filesystem. */
+	worktreePath: string;
+	worktreeExists: boolean;
+}
+
 /**
  * Workspaces are physical artifacts (git worktrees / clones) on a developer's
- * machine. Their lifecycle (create / delete) is managed by the host service
- * running on that machine, reached through the relay tunnel. The cloud API
- * holds the metadata index — used here for listing and to look up which host
- * a workspace lives on so we can route delete calls to it.
+ * machine. Their records are host-owned: every operation targets one host
+ * (`hostId`, see `hosts.list()`) — there is no org-wide search.
  *
  * Mirrors the CLI's `superset workspaces …` commands.
  */
 export class Workspaces extends APIResource {
 	/**
-	 * List workspaces in the organization (cloud index). Optionally scope to a
-	 * single host.
+	 * List workspaces on a host.
 	 *
-	 * Mirrors `superset workspaces list`.
+	 * Mirrors `superset workspaces list --host <id>`.
 	 */
-	list(
-		params?: WorkspaceListParams,
-		options?: RequestOptions,
-	): APIPromise<WorkspaceListResponse> {
-		return this._client.query<WorkspaceListResponse>(
-			"v2Workspace.list",
-			{ organizationId: this._requireOrgId(), ...params },
-			options,
+	async list(params: WorkspaceListParams): Promise<WorkspaceListResponse> {
+		this._requireOrgId();
+		const workspaces = await this._client.hostQuery<HostWorkspaceRow[]>(
+			params.hostId,
+			"workspace.list",
 		);
+		const search = params.search?.toLowerCase();
+		return workspaces
+			.filter(
+				(workspace) =>
+					!params.projectId || workspace.projectId === params.projectId,
+			)
+			.filter(
+				(workspace) =>
+					!search ||
+					workspace.name.toLowerCase().includes(search) ||
+					workspace.branch.toLowerCase().includes(search),
+			);
 	}
 
 	/**
@@ -61,47 +88,60 @@ export class Workspaces extends APIResource {
 	}
 
 	/**
-	 * Update fields on a workspace. At least one field is required. Currently
-	 * exposes `name` and `taskId`; branch and host moves require host-side
-	 * orchestration and aren't safe to set directly. Pass `taskId: null` to
-	 * unlink the workspace from its current task.
+	 * Create a project-less "session" workspace on a host — a managed scratch
+	 * folder (its own git repo) with no project, branch, or PR semantics.
 	 *
-	 * Mirrors `superset workspaces update`.
+	 * Mirrors `superset workspaces create` without `--project`.
 	 */
-	update(
-		id: string,
-		params: WorkspaceUpdateParams,
+	createSession(
+		params: WorkspaceCreateSessionParams,
 		options?: RequestOptions,
-	): APIPromise<WorkspaceUpdateResult> {
-		return this._client.mutation<WorkspaceUpdateResult>(
-			"v2Workspace.update",
-			{ id, ...params },
+	): APIPromise<WorkspaceCreateSessionResult> {
+		return this._client.hostMutation<WorkspaceCreateSessionResult>(
+			params.hostId,
+			"workspaces.createSession",
+			{
+				name: params.name,
+				agents: params.agents,
+				command: params.command,
+			},
 			options,
 		);
 	}
 
 	/**
-	 * Delete a workspace by id. Looks up the host the workspace lives on (via
-	 * the cloud index) and routes the delete to that host's service through
-	 * the relay. Pass an explicit `hostId` to skip the lookup.
+	 * Update fields on a workspace. At least one field is required. Currently
+	 * exposes `name` and `taskId`; branch and host moves require host-side
+	 * orchestration and aren't safe to set directly. Pass `taskId: null` to
+	 * unlink the workspace from its current task.
 	 *
-	 * Mirrors `superset workspaces delete`.
+	 * Mirrors `superset workspaces update --host <id>`.
+	 */
+	async update(
+		id: string,
+		params: WorkspaceUpdateParams,
+		options: { hostId: string },
+	): Promise<WorkspaceUpdateResult> {
+		this._requireOrgId();
+		return this._client.hostMutation<WorkspaceUpdateResult>(
+			options.hostId,
+			"workspace.update",
+			{ id, ...params },
+		);
+	}
+
+	/**
+	 * Delete a workspace by id on its host.
+	 *
+	 * Mirrors `superset workspaces delete --host <id>`.
 	 */
 	async delete(
 		id: string,
-		options?: { hostId?: string },
+		options: { hostId: string },
 	): Promise<WorkspaceDeleteResult> {
-		let hostId = options?.hostId;
-		if (!hostId) {
-			const cloud = await this._client.query<HostLookup | null>(
-				"v2Workspace.getFromHost",
-				{ organizationId: this._requireOrgId(), id },
-			);
-			if (!cloud) throw new SupersetError(`Workspace not found: ${id}`);
-			hostId = cloud.hostId;
-		}
+		this._requireOrgId();
 		return this._client.hostMutation<WorkspaceDeleteResult>(
-			hostId,
+			options.hostId,
 			"workspace.delete",
 			{ id },
 		);
@@ -117,15 +157,8 @@ export class Workspaces extends APIResource {
 	}
 }
 
-/** Cloud-index workspace row (from the API). */
-export interface Workspace {
-	id: string;
-	name: string;
-	branch: string;
-	projectId: string;
-	projectName: string;
-	hostId: string;
-}
+/** Workspace row as served by the owning host's `workspace.list`. */
+export type Workspace = HostWorkspaceRow;
 
 /** Workspace as returned by the host service (slightly different fields). */
 export interface HostWorkspace {
@@ -138,19 +171,13 @@ export interface HostWorkspace {
 	type?: "main" | "worktree";
 }
 
-interface HostLookup {
-	hostId: string;
-}
-
 export type WorkspaceListResponse = Array<Workspace>;
 
 export interface WorkspaceListParams {
-	/** Restrict the listing to workspaces on a single host machineId. */
-	hostId?: string;
+	/** The host machineId to list (see `hosts.list()`). */
+	hostId: string;
 	/** Restrict the listing to a single project by UUID. */
 	projectId?: string;
-	/** Restrict the listing by project name (case-insensitive exact match). */
-	projectName?: string;
 	/** Substring match against workspace name or branch. */
 	search?: string;
 }
@@ -177,28 +204,30 @@ export interface WorkspaceCreateParams {
 }
 
 export interface WorkspaceAgentLaunch {
-	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance id. */
+	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance id. */
 	agent: string;
 	/** What to tell the agent. */
 	prompt: string;
+	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
+	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
 }
 
 export type WorkspaceCreateAgentResult =
 	| { ok: true; kind: "terminal"; sessionId: string; label: string }
-	| { ok: true; kind: "chat"; sessionId: string; label: string }
 	| { ok: false; error: string };
 
 export interface WorkspaceCreateResult {
 	workspace: {
 		id: string;
 		organizationId: string;
-		projectId: string;
+		/** Null for project-less "session" workspaces. */
+		projectId: string | null;
 		hostId: string;
 		name: string;
 		branch: string;
-		type: "main" | "worktree";
+		type: "main" | "worktree" | "session";
 		createdByUserId: string | null;
 		taskId: string | null;
 		createdAt: Date;
@@ -208,6 +237,22 @@ export interface WorkspaceCreateResult {
 	agents: WorkspaceCreateAgentResult[];
 	alreadyExists: boolean;
 }
+
+export interface WorkspaceCreateSessionParams {
+	/** The host machineId to create the session on (see `hosts.list()`). */
+	hostId: string;
+	/** Display name; omit to get a friendly generated one. */
+	name?: string;
+	/** Agents to spawn in the session immediately after creation. */
+	agents?: WorkspaceAgentLaunch[];
+	/** Shell command to run in the session folder after creation. */
+	command?: string;
+}
+
+export type WorkspaceCreateSessionResult = Omit<
+	WorkspaceCreateResult,
+	"alreadyExists"
+>;
 
 export interface WorkspaceUpdateParams {
 	/** New workspace name. */
@@ -228,7 +273,6 @@ export interface WorkspaceUpdateResult {
 	taskId: string | null;
 	createdAt: Date;
 	updatedAt: Date;
-	txid: number;
 }
 
 export interface WorkspaceDeleteResult {
@@ -249,6 +293,8 @@ export declare namespace Workspaces {
 		WorkspaceAgentLaunch,
 		WorkspaceCreateAgentResult,
 		WorkspaceCreateResult,
+		WorkspaceCreateSessionParams,
+		WorkspaceCreateSessionResult,
 		WorkspaceUpdateParams,
 		WorkspaceUpdateResult,
 		WorkspaceDeleteResult,

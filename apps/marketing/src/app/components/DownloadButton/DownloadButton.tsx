@@ -25,10 +25,18 @@ export function DownloadButton({
 
 	const sizeClasses =
 		size === "sm"
-			? "px-2 sm:px-4 py-2 text-sm"
+			? "px-3 sm:px-4 py-2 font-mono text-xs uppercase tracking-wider"
 			: "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
 
-	const buttonClasses = `bg-brand/10 text-[#ff8c3a] border border-brand/20 ${sizeClasses} font-normal hover:bg-brand/15 hover:border-brand/35 transition-colors flex items-center gap-2 ${className}`;
+	const buttonClasses = `group bg-foreground text-background ${sizeClasses} font-normal transition-colors hover:bg-brand hover:text-white flex items-center gap-2 whitespace-nowrap shrink-0 ${className}`;
+
+	// slide-through swap: arrow exits below while a clone drops in from above
+	const downloadIcon = (
+		<span className="relative size-4 overflow-hidden">
+			<HiMiniArrowDownTray className="size-4 transition-transform duration-300 ease-out group-hover:translate-y-full" />
+			<HiMiniArrowDownTray className="absolute inset-0 size-4 -translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0" />
+		</span>
+	);
 
 	const goToInterstitial = () => {
 		track("download_clicked");
@@ -102,7 +110,7 @@ export function DownloadButton({
 		const trigger = (
 			<button type="button" className={buttonClasses}>
 				Download
-				<HiMiniArrowDownTray className="size-4" />
+				{downloadIcon}
 			</button>
 		);
 
@@ -120,7 +128,7 @@ export function DownloadButton({
 			>
 				<span className="hidden sm:inline">Download for macOS</span>
 				<span className="sm:hidden">Download</span>
-				<HiMiniArrowDownTray className="size-4" />
+				{downloadIcon}
 			</button>
 		);
 	}

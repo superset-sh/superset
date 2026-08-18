@@ -1,7 +1,11 @@
-import { getPresetIcon, PRESET_ICONS } from "@superset/ui/icons/preset-icons";
+import {
+	getPresetIcon,
+	isDataImageUri,
+	PRESET_ICONS,
+} from "@superset/ui/icons/preset-icons";
 import { useThemeStore } from "renderer/stores/theme/store";
 
-export { PRESET_ICONS, getPresetIcon };
+export { PRESET_ICONS, getPresetIcon, isDataImageUri };
 export type { PresetIconSet } from "@superset/ui/icons/preset-icons";
 
 export function usePresetIcon(presetName: string): string | undefined {

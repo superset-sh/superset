@@ -41,7 +41,7 @@ interface FileListTreeProps {
 	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
-	onDiscard?: (file: ChangedFile) => void;
+	onDiscardFiles?: (files: ChangedFile[]) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
@@ -114,7 +114,7 @@ interface TreeNodeComponentProps {
 	onUnstageFiles?: (files: ChangedFile[]) => void;
 	isActioning?: boolean;
 	worktreePath: string;
-	onDiscard?: (file: ChangedFile) => void;
+	onDiscardFiles?: (files: ChangedFile[]) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
 	isExpandedView?: boolean;
@@ -135,7 +135,7 @@ function TreeNodeComponent({
 	onUnstageFiles,
 	isActioning,
 	worktreePath,
-	onDiscard,
+	onDiscardFiles,
 	category,
 	commitHash,
 	isExpandedView,
@@ -168,12 +168,8 @@ function TreeNodeComponent({
 	}, [node, onUnstage, onUnstageFiles]);
 
 	const handleDiscardAll = useCallback(() => {
-		if (!onDiscard) return;
-		const files = collectFilesFromNode(node);
-		for (const file of files) {
-			onDiscard(file);
-		}
-	}, [node, onDiscard]);
+		onDiscardFiles?.(collectFilesFromNode(node));
+	}, [node, onDiscardFiles]);
 
 	if (hasChildren) {
 		return (
@@ -191,7 +187,7 @@ function TreeNodeComponent({
 				onUnstageAll={
 					onUnstage || onUnstageFiles ? handleUnstageAll : undefined
 				}
-				onDiscardAll={onDiscard ? handleDiscardAll : undefined}
+				onDiscardAll={onDiscardFiles ? handleDiscardAll : undefined}
 				isActioning={isActioning}
 			>
 				{node.children?.map((child) => (
@@ -209,7 +205,7 @@ function TreeNodeComponent({
 						onUnstageFiles={onUnstageFiles}
 						isActioning={isActioning}
 						worktreePath={worktreePath}
-						onDiscard={onDiscard}
+						onDiscardFiles={onDiscardFiles}
 						category={category}
 						commitHash={commitHash}
 						isExpandedView={isExpandedView}
@@ -236,7 +232,7 @@ function TreeNodeComponent({
 				worktreePath={worktreePath}
 				projectId={projectId}
 				defaultApp={defaultApp}
-				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+				onDiscard={onDiscardFiles ? () => onDiscardFiles([file]) : undefined}
 				category={category}
 				commitHash={commitHash}
 				isExpandedView={isExpandedView}
@@ -259,7 +255,7 @@ export function FileListTree({
 	onUnstageFiles,
 	isActioning,
 	worktreePath,
-	onDiscard,
+	onDiscardFiles,
 	category,
 	commitHash,
 	isExpandedView,
@@ -284,7 +280,7 @@ export function FileListTree({
 					onUnstageFiles={onUnstageFiles}
 					isActioning={isActioning}
 					worktreePath={worktreePath}
-					onDiscard={onDiscard}
+					onDiscardFiles={onDiscardFiles}
 					category={category}
 					commitHash={commitHash}
 					isExpandedView={isExpandedView}

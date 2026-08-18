@@ -308,16 +308,6 @@ export const HOTKEYS_REGISTRY = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	},
-	SPLIT_WITH_CHAT: {
-		key: {
-			mac: L("meta+shift+e"),
-			windows: L("ctrl+alt+e"),
-			linux: L("ctrl+alt+e"),
-		},
-		label: "Split with New Chat",
-		category: "Layout",
-		description: "Split the current pane and open a new chat pane",
-	},
 	SPLIT_WITH_BROWSER: {
 		key: {
 			mac: L("meta+shift+s"),
@@ -360,6 +350,17 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 		description: "Search text in the active terminal",
 	},
+	TOGGLE_TERMINAL_RICH_INPUT: {
+		key: {
+			mac: L("meta+i"),
+			// Ctrl+Shift+I is the Electron devtools accelerator; use +M instead.
+			windows: L("ctrl+shift+m"),
+			linux: L("ctrl+shift+m"),
+		},
+		label: "Toggle Terminal Rich Input",
+		category: "Terminal",
+		description: "Open a multiline prompt composer for the active terminal",
+	},
 	FIND_IN_FILE_VIEWER: {
 		key: {
 			mac: L("meta+f"),
@@ -380,6 +381,16 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 		description: "Search text in the active chat",
 	},
+	FIND_IN_CHANGES: {
+		key: {
+			mac: L("meta+f"),
+			windows: L("ctrl+shift+f"),
+			linux: L("ctrl+shift+f"),
+		},
+		label: "Find in Changes",
+		category: "Terminal",
+		description: "Search text in the changes diff",
+	},
 	NEW_GROUP: {
 		key: {
 			mac: L("meta+t"),
@@ -387,15 +398,6 @@ export const HOTKEYS_REGISTRY = {
 			linux: L("ctrl+shift+t"),
 		},
 		label: "New Terminal",
-		category: "Terminal",
-	},
-	NEW_CHAT: {
-		key: {
-			mac: L("meta+shift+t"),
-			windows: L("ctrl+shift+alt+t"),
-			linux: L("ctrl+shift+alt+t"),
-		},
-		label: "New Chat",
 		category: "Terminal",
 	},
 	REOPEN_TAB: {
@@ -709,6 +711,16 @@ export const HOTKEYS_REGISTRY = {
 		label: "Open Command Palette",
 		category: "Help",
 		description: "Open the global command palette",
+	},
+	CHECK_RESOURCES: {
+		key: {
+			mac: L("meta+shift+u"),
+			windows: L("ctrl+shift+alt+u"),
+			linux: L("ctrl+shift+alt+u"),
+		},
+		label: "Check Resources",
+		category: "Help",
+		description: "Open the resource usage view in the command palette",
 	},
 } as const satisfies Record<string, HotkeyRegistryDefinition>;
 

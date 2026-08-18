@@ -4,17 +4,61 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./automation-matching": {
+			"types": "./src/automation-matching.ts",
+			"default": "./src/automation-matching.ts"
+		},
+		"./automation-triggers": {
+			"types": "./src/automation-triggers.ts",
+			"default": "./src/automation-triggers.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
+		},
+		"./git-hook-tolerance": {
+			"types": "./src/git-hook-tolerance.ts",
+			"default": "./src/git-hook-tolerance.ts"
+		},
+		"./sentry": {
+			"types": "./src/sentry.ts",
+			"default": "./src/sentry.ts"
+		},
+		"./terminal-wheel-handler": {
+			"types": "./src/terminal-wheel-handler/index.ts",
+			"default": "./src/terminal-wheel-handler/index.ts"
 		},
 		"./dev-credentials": {
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
 		},
+		"./desktop-notices": {
+			"types": "./src/desktop-notices.ts",
+			"default": "./src/desktop-notices.ts"
+		},
 		"./media-files": {
 			"types": "./src/media-files.ts",
 			"default": "./src/media-files.ts"
+		},
+		"./ringtones": {
+			"types": "./src/ringtones.ts",
+			"default": "./src/ringtones.ts"
+		},
+		"./settings-constraints": {
+			"types": "./src/settings-constraints.ts",
+			"default": "./src/settings-constraints.ts"
+		},
+		"./themes": {
+			"types": "./src/themes/index.ts",
+			"default": "./src/themes/index.ts"
+		},
+		"./themes/types": {
+			"types": "./src/themes/types.ts",
+			"default": "./src/themes/types.ts"
+		},
+		"./themes/utils": {
+			"types": "./src/themes/utils.ts",
+			"default": "./src/themes/utils.ts"
 		},
 		"./v2-only-user": {
 			"types": "./src/v2-only-user.ts",
@@ -108,9 +152,17 @@
 			"types": "./src/tunnel-protocol.ts",
 			"default": "./src/tunnel-protocol.ts"
 		},
+		"./tunnel-v2-protocol": {
+			"types": "./src/tunnel-v2-protocol.ts",
+			"default": "./src/tunnel-v2-protocol.ts"
+		},
 		"./host-info": {
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"
+		},
+		"./rotating-log": {
+			"types": "./src/rotating-log.ts",
+			"default": "./src/rotating-log.ts"
 		},
 		"./host-routing": {
 			"types": "./src/host-routing.ts",
@@ -148,14 +200,19 @@
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
+		"culori": "4.0.2",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",
-		"zod": "4.3.6"
+		"semver": "7.7.4",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/culori": "4.0.1",
 		"@types/friendly-words": "1.2.2",
-		"bun-types": "1.3.11",
+		"@types/semver": "7.7.1",
+		"@xterm/xterm": "6.1.0-beta.289",
+		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}
 }

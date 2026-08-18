@@ -1,4 +1,7 @@
-import { getAgentModelSupport } from "@superset/shared/agent-models";
+import {
+	getAgentEffortSupport,
+	getAgentModelSupport,
+} from "@superset/shared/agent-models";
 import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
@@ -12,20 +15,22 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { ArrowUpIcon, HistoryIcon, Settings2Icon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentModelSelect } from "renderer/components/AgentModelSelect";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
-import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
+import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
+import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -39,6 +44,7 @@ import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prom
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
 import { DevicePicker } from "../components/DevicePicker";
+import { CLOUD_HOST_ID } from "../components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { AttachmentButtons } from "./components/AttachmentButtons";
 import { CompareBaseBranchPicker } from "./components/CompareBaseBranchPicker";
@@ -47,6 +53,7 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
+import { PromptHistoryCommand } from "./components/PromptHistoryCommand";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
@@ -57,6 +64,7 @@ import {
 } from "./hooks/useUploadAttachments";
 import {
 	AGENT_STORAGE_KEY,
+	EFFORT_STORAGE_KEY,
 	MODEL_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
 	type ProjectOption,
@@ -67,16 +75,24 @@ interface PromptGroupProps {
 	projectId: string | null;
 	selectedProject: ProjectOption | undefined;
 	recentProjects: ProjectOption[];
-	onSelectProject: (projectId: string) => void;
+	/** True when "No project" (session) is the explicit selection. */
+	isSessionSelected?: boolean;
+	/** Null selects "No project" (session). */
+	onSelectProject: (projectId: string | null) => void;
 }
 
 export function PromptGroup({
 	projectId,
 	selectedProject,
 	recentProjects,
+	isSessionSelected = false,
 	onSelectProject,
 }: PromptGroupProps) {
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
+	// The markdown editor is uncontrolled after mount, so inserting a history
+	// prompt bumps this seed to remount it with the new content (same pattern
+	// as NewWorkspaceScreen's sample prompts).
+	const [promptSeed, setPromptSeed] = useState(0);
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const { closeModal, draft, updateDraft, resetKey } =
 		useDashboardNewWorkspaceDraft();
@@ -110,6 +126,21 @@ export function PromptGroup({
 			params: { projectId: targetProjectId },
 			search: {
 				hostId: draft.hostId ?? machineId ?? undefined,
+			},
+		});
+	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
+	// AI naming (title + branch) follows the project's naming instructions;
+	// this is the jump from "where do these names come from?" to the setting.
+	const handleGoToNamingInstructions = useCallback(() => {
+		if (!selectedProject?.id) return;
+		const targetProjectId = selectedProject.id;
+		closeModal();
+		void navigate({
+			to: "/settings/projects/$projectId",
+			params: { projectId: targetProjectId },
+			search: {
+				hostId: draft.hostId ?? machineId ?? undefined,
+				focus: "naming-instructions",
 			},
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
@@ -170,6 +201,13 @@ export function PromptGroup({
 		MODEL_STORAGE_KEY,
 		modelSupport ? selectedPresetId : null,
 	);
+	const effortSupport = selectedPresetId
+		? getAgentEffortSupport(selectedPresetId)
+		: undefined;
+	const { selectedEffort, setSelectedEffort } = useAgentEffortPreference(
+		EFFORT_STORAGE_KEY,
+		effortSupport ? selectedPresetId : null,
+	);
 
 	// Promote the placeholder "none" → first configured agent whenever the
 	// current selection isn't a real agent and the user hasn't explicitly
@@ -193,6 +231,14 @@ export function PromptGroup({
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
 		: "";
+
+	const applyPrompt = useCallback(
+		(nextPrompt: string) => {
+			updateDraft({ prompt: nextPrompt });
+			setPromptSeed((seed) => seed + 1);
+		},
+		[updateDraft],
+	);
 
 	// Reset baseBranch on project or host change, defaulting to the user's
 	// last selected branch for that project when one exists.
@@ -264,8 +310,11 @@ export function PromptGroup({
 	// fall into a toast.
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!projectId) return "Select a project";
+		if (!projectId && !draft.isSession) return "Select a project";
 		const selectedHostId = draft.hostId ?? machineId;
+		// A cloud workspace is provisioned on submit, so there is no host whose
+		// readiness could block it.
+		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!selectedHostId) return "No active host";
 		if (selectedHostId !== machineId) {
 			const remote = otherHosts.find((h) => h.id === selectedHostId);
@@ -274,7 +323,14 @@ export function PromptGroup({
 			return "Host service is not running";
 		}
 		return null;
-	}, [projectId, draft.hostId, machineId, activeHostUrl, otherHosts]);
+	}, [
+		projectId,
+		draft.isSession,
+		draft.hostId,
+		machineId,
+		activeHostUrl,
+		otherHosts,
+	]);
 
 	// ── Linked-context prefetch ──────────────────────────────────────
 	const promptContext = useNewWorkspacePromptContext({
@@ -285,10 +341,11 @@ export function PromptGroup({
 	});
 
 	// ── Submit (fork) ────────────────────────────────────────────────
-	const createWorkspace = useSubmitWorkspace(
+	const { submitWorkspace: createWorkspace, isCreating } = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
+		effortSupport ? selectedEffort : null,
 		uploadAttachments,
 		promptContext,
 	);
@@ -371,16 +428,54 @@ export function PromptGroup({
 							updateDraft({
 								branchName: e.target.value.replace(/\s+/g, "-"),
 								branchNameEdited: true,
+								branchNameFromProvider: false,
 							})
 						}
 						onBlur={() => {
 							const sanitized = sanitizeUserBranchName(branchName.trim());
 							if (!sanitized)
-								updateDraft({ branchName: "", branchNameEdited: false });
+								updateDraft({
+									branchName: "",
+									branchNameEdited: false,
+									branchNameFromProvider: false,
+								});
 							else updateDraft({ branchName: sanitized });
 						}}
 					/>
 				</div>
+				{selectedProject && !needsSetup && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label="Update naming instructions"
+								className="ml-2 size-6 shrink-0 text-muted-foreground"
+								onClick={handleGoToNamingInstructions}
+							>
+								<Settings2Icon className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							Update naming instructions for {selectedProject.name}
+						</TooltipContent>
+					</Tooltip>
+				)}
+				<PromptHistoryCommand
+					onSelect={applyPrompt}
+					tooltipLabel="Previous prompts"
+				>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label="Previous prompts"
+						className="ml-2 size-6 shrink-0 text-muted-foreground"
+					>
+						<HistoryIcon className="size-3.5" />
+					</Button>
+				</PromptHistoryCommand>
 			</div>
 
 			{/* Prompt input */}
@@ -451,11 +546,11 @@ export function PromptGroup({
 				    listener does the single submit, so onModEnter is intentionally unset
 				    to avoid a double-fire. resetKey remounts a clean editor on reset. */}
 				<MarkdownEditor
-					key={resetKey}
+					key={`${resetKey}-${promptSeed}`}
 					content={prompt}
 					onChange={(markdown) => updateDraft({ prompt: markdown })}
 					onPasteFiles={(files) => attachments.add(files)}
-					autoFocus="start"
+					autoFocus={promptSeed > 0 || prompt ? "end" : "start"}
 					placeholder="What do you want to do?"
 					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
 					editorClassName="overflow-y-auto text-sm"
@@ -485,6 +580,16 @@ export function PromptGroup({
 								models={modelSupport.models}
 								value={selectedModel}
 								onValueChange={setSelectedModel}
+								defaultLabel="Default model"
+								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
+							/>
+						)}
+						{effortSupport && (
+							<AgentModelSelect
+								models={effortSupport.efforts}
+								value={selectedEffort}
+								onValueChange={setSelectedEffort}
+								defaultLabel="Default effort"
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}
@@ -544,13 +649,18 @@ export function PromptGroup({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={needsSetup}
+							disabled={needsSetup || isCreating}
 							onClick={(e) => {
 								e.preventDefault();
 								handleSubmit();
 							}}
+							status={isCreating ? "submitted" : undefined}
 						>
-							<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+							{/* PromptInputSubmit renders `children ?? statusIcon`, so the
+							    arrow has to stand aside for the spinner to show. */}
+							{isCreating ? null : (
+								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+							)}
 						</PromptInputSubmit>
 					</div>
 				</PromptInputFooter>
@@ -569,6 +679,7 @@ export function PromptGroup({
 					<ProjectPickerPill
 						selectedProject={selectedProject}
 						projects={recentProjects}
+						isSessionSelected={isSessionSelected}
 						onSelectProject={onSelectProject}
 					/>
 					<AnimatePresence mode="wait" initial={false}>
@@ -593,7 +704,9 @@ export function PromptGroup({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<CompareBaseBranchPicker {...pickerProps} />
+								{!draft.isSession && (
+									<CompareBaseBranchPicker {...pickerProps} />
+								)}
 							</motion.div>
 						)}
 					</AnimatePresence>

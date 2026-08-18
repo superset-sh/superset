@@ -14,10 +14,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -32,8 +33,8 @@ interface MembersSettingsProps {
 }
 
 export function MembersSettings({ visibleItems }: MembersSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const showMembersList = isItemVisible(
@@ -41,44 +42,35 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 		visibleItems,
 	);
 
-	const { data: membersData, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.innerJoin({ users: collections.users }, ({ members, users }) =>
-					eq(members.userId, users.id),
-				)
-				.select(({ members, users }) => ({
-					...users,
-					...members,
-					memberId: members.id,
-				}))
-				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc"),
-		[collections, activeOrganizationId],
-	);
+	const { data: membersData, isPending } =
+		cloudTrpc.organization.listMembers.useQuery({ includeDeactivated: true });
 
-	// Get organization name from collections
-	const { data: orgData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ organizations: collections.organizations })
-				.select(({ organizations }) => ({ ...organizations })),
-		[collections],
-	);
+	const { data: orgData } = cloudTrpc.organization.list.useQuery(undefined);
 	const organization = orgData?.find((org) => org.id === activeOrganizationId);
 
-	const members: TeamMember[] = (membersData ?? [])
-		.map((m) => ({
-			...m,
-			role: m.role as OrganizationRole,
-		}))
-		.sort((a, b) => {
-			const priorityDiff =
-				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
-			if (priorityDiff !== 0) return priorityDiff;
-			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		});
+	const members: TeamMember[] = useMemo(() => {
+		if (!activeOrganizationId) return [];
+		return (membersData ?? [])
+			.map((m) => ({
+				memberId: m.id,
+				userId: m.userId,
+				organizationId: activeOrganizationId,
+				role: m.role as OrganizationRole,
+				createdAt: m.createdAt,
+				name: m.user.name,
+				email: m.user.email,
+				image: m.user.image,
+				deletionRequestedAt: m.user.deletionRequestedAt,
+			}))
+			.sort((a, b) => {
+				const priorityDiff =
+					getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
+				if (priorityDiff !== 0) return priorityDiff;
+				return (
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				);
+			});
+	}, [membersData, activeOrganizationId]);
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
@@ -118,10 +110,12 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					)}
 
 					<div className="max-w-5xl space-y-4">
-						<h3 className="text-lg font-semibold">Team Members</h3>
+						<h3 className="text-lg font-semibold">
+							<HighlightText text="Team Members" query={searchQuery} />
+						</h3>
 
 						{showMembersList &&
-							(!isReady && members.length === 0 ? (
+							(isPending && members.length === 0 ? (
 								<div className="space-y-2 border rounded-lg">
 									{[1, 2, 3].map((i) => (
 										<div key={i} className="flex items-center gap-4 p-4">
@@ -166,7 +160,13 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																	image={member.image}
 																/>
 																<div className="flex items-center gap-2">
-																	<span className="font-medium">
+																	<span
+																		className={
+																			member.deletionRequestedAt
+																				? "font-medium text-muted-foreground"
+																				: "font-medium"
+																		}
+																	>
 																		{member.name || "Unknown"}
 																	</span>
 																	{isCurrentUserRow && (
@@ -175,6 +175,14 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																			className="text-xs"
 																		>
 																			You
+																		</Badge>
+																	)}
+																	{member.deletionRequestedAt && (
+																		<Badge
+																			variant="outline"
+																			className="text-xs text-muted-foreground"
+																		>
+																			Deactivated
 																		</Badge>
 																	)}
 																</div>

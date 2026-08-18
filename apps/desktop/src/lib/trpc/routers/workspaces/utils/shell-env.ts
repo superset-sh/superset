@@ -192,6 +192,9 @@ export async function getProcessEnvWithShellPath(
 		}
 	}
 
+	// A truncated login-shell PATH still needs homebrew/common dirs so git resolves; matches terminal behavior.
+	augmentPathForMacOS(env);
+
 	return env;
 }
 

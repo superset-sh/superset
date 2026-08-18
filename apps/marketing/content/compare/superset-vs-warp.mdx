@@ -2,7 +2,7 @@
 title: "Superset vs Warp (2026): Agent Orchestration vs AI-Powered Terminal"
 description: "Compare Superset and Warp for AI-enhanced development workflows. See how multi-agent orchestration differs from an AI-powered terminal experience."
 date: 2026-02-02
-lastUpdated: 2026-03-21
+lastUpdated: 2026-07-13
 type: "1v1"
 competitors:
   - warp
@@ -24,22 +24,22 @@ Superset and Warp both help developers work with AI around the command line, but
 |---|---|---|
 | **Category** | Agent orchestration workspace | AI-powered terminal emulator |
 | **What it does** | Runs 10+ AI coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | Modern terminal with built-in AI agents, code editing, and collaboration |
-| **AI approach** | Agent-agnostic — works with Claude Code, Codex, Aider, Superset Chat, or any CLI agent | Built-in agents (OpenAI, Anthropic, Google); supports BYOK and third-party CLI agents |
-| **Parallelism** | Core feature — every task gets its own worktree and branch | Agents run in terminal panes via Agent Management Panel |
-| **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited credits), Build $20/mo, Business $50/mo |
-| **License** | Source-available (ELv2) | Closed source |
+| **AI approach** | Agent-agnostic: works with Claude Code, Codex, Aider, Superset Chat, or any CLI agent | Built-in agents (OpenAI, Anthropic, Google); supports BYOK and third-party CLI agents |
+| **Parallelism** | Core feature: every task gets its own worktree and branch | Agents run in terminal panes; Oz cloud orchestrator for background agents |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free; Build $20/mo, Max $200/mo, Business $50/seat |
+| **License** | Source-available (ELv2) | Open source |
 
 ---
 
 ## What Is Superset?
 
-Superset is a local-first desktop workspace for AI coding agents. You spin up 10+ agents on separate tasks simultaneously, each in its own Git worktree with a dedicated branch and working directory. Around that core, Superset adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. Superset ships no required model layer — you can bring Claude Code, Codex, Aider, OpenCode, or other agents, and you can review inside Superset or jump into your editor of choice. Source-available under Elastic License 2.0 (ELv2).
+Superset is a local-first desktop workspace for AI coding agents. You spin up 100+ agents on separate tasks simultaneously, each in its own Git worktree with a dedicated branch and working directory. Around that core, Superset adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. Superset ships no required model layer: you can bring Claude Code, Codex, Aider, OpenCode, or other agents, and you can review inside Superset or jump into your editor of choice. Source-available under Elastic License 2.0 (ELv2).
 
 ---
 
 ## What Is Warp?
 
-Warp is a Rust-based, GPU-accelerated terminal emulator that evolved into an Agentic Development Environment. Warp 2.0 added built-in AI agents, a code editor with diff review, and Warp Drive for team knowledge sharing. Agent Mode takes natural language prompts, runs multi-step workflows, and self-corrects on errors. Agents 3.0 lets agents interact with REPLs, debuggers, and interactive CLI tools. Available on macOS, Windows, and Linux.
+Warp is a Rust-based, GPU-accelerated terminal that evolved into an agentic development environment and went open source in 2026. It runs built-in Warp Agents plus third-party CLI agents like Claude Code, Codex, Gemini, and OpenCode side by side in panes, adds a code editor with diff review and Warp Drive for team knowledge sharing, and includes a cloud orchestrator called Oz for managing background and parallel agents. Available on macOS, Windows, and Linux, plus the Oz cloud.
 
 ---
 
@@ -47,15 +47,15 @@ Warp is a Rust-based, GPU-accelerated terminal emulator that evolved into an Age
 
 ### Built-In Agents vs Bring-Your-Own
 
-Warp ships its own agents — type a prompt, get results, no external tools to install. Superset is more bring-your-own by default: you install Claude Code, Codex, Aider, or another agent, and Superset runs them in parallel. Warp is more convenient out of the box; Superset gives you complete freedom over which agent, model, and provider you use, while still adding its own chat and workspace tooling around them.
+Warp ships its own agents: type a prompt, get results, no external tools to install. Superset is more bring-your-own by default: you install Claude Code, Codex, Aider, or another agent, and Superset runs them in parallel. Warp is more convenient out of the box; Superset gives you complete freedom over which agent, model, and provider you use, while still adding its own chat and workspace tooling around them.
 
 ### Parallelism and Isolation
 
-Both tools support multiple agents, but the isolation model differs. Superset gives each agent a dedicated Git worktree — separate branch, separate working directory — so agents cannot modify each other's files. Warp runs agents in terminal panes on your file system directly. For a few agents on unrelated tasks, that works. For ten agents on the same codebase, worktree isolation prevents conflicts.
+Both tools support multiple agents, but the isolation model differs. Superset gives each agent a dedicated Git worktree (separate branch, separate working directory) so agents cannot modify each other's files. Warp runs agents in terminal panes on your file system directly. For a few agents on unrelated tasks, that works. For ten agents on the same codebase, worktree isolation prevents conflicts.
 
 ### Terminal Quality vs Orchestration Focus
 
-Warp is a polished terminal — GPU-accelerated, with block-based output and a command palette. Superset includes terminals because agents need them, but the product is increasingly closer to a code editor for AI agents than a classic daily-driver terminal. You would still use Warp, iTerm2, or Kitty for SSH and ad-hoc commands.
+Warp is a polished terminal: GPU-accelerated, with block-based output and a command palette. Superset includes terminals because agents need them, but the product is a workspace for running 100+ coding agents in parallel, not a classic daily-driver terminal. You would still use Warp, iTerm2, or Kitty for SSH and ad-hoc commands.
 
 ### Team Collaboration
 
@@ -67,7 +67,7 @@ Warp has team features via Warp Drive: shared commands, notebooks, environment v
 
 Superset offers a free tier and Pro at $20/seat/month. You also pay for the API keys your chosen agents consume.
 
-Warp's terminal features are free. AI features require the Build plan ($20/month, 1,500 credits) or BYOK. Business runs $50/user/month with SSO and zero data retention.
+Warp's terminal features are free, and the app is now open source. AI features come with the Build plan ($20/month, 1,500 credits) or BYOK, with Max at $200/month for higher credit volume and Business at $50/user/month with SSO and zero data retention.
 
 ---
 
@@ -75,7 +75,7 @@ Warp's terminal features are free. AI features require the Build plan ($20/month
 
 **Choose Warp if you:**
 - Want an all-in-one terminal with built-in AI agents, code editing, and team tools
-- Value terminal polish — GPU rendering, block output, command palette
+- Value terminal polish: GPU rendering, block output, command palette
 - Need cross-platform support (macOS, Windows, Linux)
 - Prefer built-in agents that work without configuring external tools
 

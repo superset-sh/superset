@@ -6,7 +6,7 @@
 #
 # Usage: smoke-test.sh <dist-dir> <target>
 #   <dist-dir>  extracted distribution root (contains bin/, lib/, share/)
-#   <target>    darwin-arm64 | linux-x64 | linux-arm64
+#   <target>    darwin-arm64 | darwin-x64 | linux-x64 | linux-arm64
 #
 # The decisive check is "boot the host service": a missing or unshippable
 # module (@mastra/core, @xterm/headless, anything reached via createRequire)

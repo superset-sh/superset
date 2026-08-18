@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { basename, resolve as resolvePath } from "node:path";
 import {
 	type ParsedGitHubRemote,
@@ -8,8 +9,19 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import {
+	emitProjectChanged,
+	toProjectSnapshot,
+	updateLocalProject,
+} from "../../../projects/local-project-store";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
-import { protectedProcedure, router } from "../../index";
+import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
+import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
+import {
+	normalizeSparseCheckoutPaths,
+	parseSparseCheckoutPaths,
+	serializeSparseCheckoutPaths,
+} from "../workspace-creation/shared/sparse-checkout";
 import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
 import {
 	createFromClone,
@@ -29,40 +41,163 @@ import {
 	validateDirectoryPath,
 } from "./utils/resolve-repo";
 
+// Icons are downscaled to a small square PNG data-URI client-side; this caps
+// the stored/broadcast value (it rides in project.list and project:changed).
+const MAX_PROJECT_ICON_LENGTH = 256 * 1024;
+
+// Naming instructions ride inside the naming model's system prompt; a couple
+// of sentences is the intended size, so cap well below prompt-bloat territory.
+const MAX_NAMING_INSTRUCTIONS_LENGTH = 2000;
+
+/** One findByPath match: an existing v2 project this repo path could link
+ * to — either the authoritative local-DB row (`local-path`) or a cloud
+ * project found via a GitHub remote URL (`remote`). Module-scoped so the
+ * exported router's declaration emit can name it. */
+export interface FindByPathCandidate {
+	id: string;
+	name: string;
+	repoCloneUrl: string | null;
+	source: "local-path" | "remote";
+	matchesExpected: boolean;
+}
+
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.db
-			.select({
-				id: projects.id,
-				repoPath: projects.repoPath,
-				repoOwner: projects.repoOwner,
-				repoName: projects.repoName,
-				repoUrl: projects.repoUrl,
-				worktreeBaseDir: projects.worktreeBaseDir,
-			})
+			.select()
 			.from(projects)
-			.all();
+			.all()
+			.map((row) => ({
+				id: row.id,
+				// Empty until the backfill sweep fills it; folder name is the
+				// honest fallback (same rule as toProjectSnapshot).
+				name: row.name || basename(row.repoPath),
+				repoPath: row.repoPath,
+				repoOwner: row.repoOwner,
+				repoName: row.repoName,
+				repoUrl: row.repoUrl,
+				worktreeBaseDir: row.worktreeBaseDir,
+				icon: row.icon,
+				color: row.color,
+				createdAt: row.createdAt,
+				updatedAt: row.updatedAt || row.createdAt,
+			}));
 	}),
+
+	/** Rename. Commits locally — projects have no cloud dependency. */
+	update: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				name: z.string().min(1),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const row = updateLocalProject(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.projectId,
+				{ name: input.name },
+			);
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return toProjectSnapshot(row);
+		}),
 
 	get: protectedProcedure
 		.input(z.object({ projectId: z.string().uuid() }))
 		.query(({ ctx, input }) => {
-			return (
-				ctx.db
-					.select({
-						id: projects.id,
-						repoPath: projects.repoPath,
-						repoOwner: projects.repoOwner,
-						repoName: projects.repoName,
-						repoUrl: projects.repoUrl,
-						worktreeBaseDir: projects.worktreeBaseDir,
-						branchPrefixMode: projects.branchPrefixMode,
-						branchPrefixCustom: projects.branchPrefixCustom,
-					})
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get() ?? null
+			const row = ctx.db
+				.select()
+				.from(projects)
+				.where(eq(projects.id, input.projectId))
+				.get();
+			if (!row) return null;
+			return {
+				id: row.id,
+				// Same fallback rule as project.list / toProjectSnapshot.
+				name: row.name || basename(row.repoPath),
+				repoPath: row.repoPath,
+				repoOwner: row.repoOwner,
+				repoName: row.repoName,
+				repoUrl: row.repoUrl,
+				worktreeBaseDir: row.worktreeBaseDir,
+				branchPrefixMode: row.branchPrefixMode,
+				branchPrefixCustom: row.branchPrefixCustom,
+				icon: row.icon,
+				color: row.color,
+				// Always an array; the column's JSON encoding stays internal.
+				sparseCheckoutPaths: parseSparseCheckoutPaths(row.sparseCheckoutPaths),
+				namingInstructions: row.namingInstructions,
+			};
+		}),
+
+	/**
+	 * Set (or clear) this project's custom icon. Local-first: the icon is a
+	 * small downscaled data-URI stored on the host row. The "none" sentinel
+	 * means "explicitly no icon" (renderers show the letter placeholder); a
+	 * null clears back to the default (GitHub owner avatar / placeholder).
+	 */
+	setIcon: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				icon: z
+					.union([
+						z
+							.string()
+							.max(MAX_PROJECT_ICON_LENGTH, "Icon image is too large")
+							.regex(/^data:image\//, "Icon must be an image data URI"),
+						z.literal("none"),
+					])
+					.nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const row = updateLocalProject(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.projectId,
+				{ icon: input.icon },
 			);
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return toProjectSnapshot(row);
+		}),
+
+	/**
+	 * Set (or clear) this project's accent color. Stored as a `#rrggbb` hex on
+	 * the host row; a null clears it back to the default (no accent).
+	 */
+	setColor: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				color: z
+					.string()
+					.regex(/^#[0-9a-fA-F]{6}$/, "Color must be a #rrggbb hex")
+					.nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const row = updateLocalProject(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.projectId,
+				{ color: input.color },
+			);
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return toProjectSnapshot(row);
 		}),
 
 	setWorktreeBaseDir: protectedProcedure
@@ -94,6 +229,73 @@ export const projectRouter = router({
 				id: project.id,
 				worktreeBaseDir: project.worktreeBaseDir ?? null,
 			};
+		}),
+
+	/**
+	 * Set (or clear) this project's AI naming instructions — free text
+	 * injected into workspace/branch name generation. Null or blank clears
+	 * the setting so naming falls back to the default behavior.
+	 */
+	setNamingInstructions: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				instructions: z
+					.string()
+					.max(
+						MAX_NAMING_INSTRUCTIONS_LENGTH,
+						"Naming instructions are too long",
+					)
+					.nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const namingInstructions = input.instructions?.trim() || null;
+			const updated = ctx.db
+				.update(projects)
+				.set({ namingInstructions })
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return { namingInstructions };
+		}),
+
+	/**
+	 * Set the folders new worktrees are sparse-checked-out to. An empty list
+	 * clears the setting so new worktrees get a full checkout again. Existing
+	 * worktrees are left as they are.
+	 */
+	setSparseCheckoutPaths: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				// Bounded well above the post-dedupe cap in
+				// `normalizeSparseCheckoutPaths`, so a runaway payload is
+				// rejected before we bother normalizing every entry.
+				paths: z.array(z.string().max(1024)).max(1000),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const paths = normalizeSparseCheckoutPaths(input.paths);
+			const updated = ctx.db
+				.update(projects)
+				.set({ sparseCheckoutPaths: serializeSparseCheckoutPaths(paths) })
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return { sparseCheckoutPaths: paths };
 		}),
 
 	/**
@@ -146,13 +348,13 @@ export const projectRouter = router({
 			z.object({
 				repoPath: z.string().min(1),
 				/**
-				 * Opt-in to the v1→v2 importer's discovery semantics: walk
-				 * every GitHub remote on the repo (not just origin/first),
-				 * try `expectedRemoteUrl` against cloud, and surface stale
-				 * local-DB rows. Default `false` preserves the long-standing
-				 * folder-first import behavior — local-DB hit short-circuits
-				 * before any cloud call, and only the primary remote is
-				 * cloud-queried.
+				 * Opt-in to the v1→v2 importer's discovery semantics: when no
+				 * local-DB row exists, walk every GitHub remote on the repo
+				 * (not just origin/first) and try `expectedRemoteUrl` against
+				 * cloud. In BOTH modes a local-DB hit short-circuits before
+				 * any cloud call — a local row means the repo is already a v2
+				 * project on this device ("local is reality"), regardless of
+				 * what the cloud knows.
 				 */
 				walkAllRemotes: z.boolean().optional(),
 				/**
@@ -192,78 +394,43 @@ export const projectRouter = router({
 				!!cloneUrl &&
 				cloneUrl.toLowerCase() === expectedUrlLower;
 
-			interface Candidate {
-				id: string;
-				name: string;
-				repoCloneUrl: string | null;
-				source: "local-path" | "remote";
-				matchesExpected: boolean;
-				/** True when the cloud-URL loop returned this id, which means
-				 *  it's reachable in cloud — lets us skip the per-id v2Project.get
-				 *  staleness check. Internal; not part of the wire response. */
-				cloudConfirmed: boolean;
-				/** True when this v2 project is no longer reachable in cloud
-				 *  (e.g. deleted) but a stale row still lives in this device's
-				 *  local DB. Caller-side filter drops these. */
-				staleLocalLink: boolean;
-			}
-
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.repoPath, gitRoot) })
 				.sync();
 
-			// Default behavior (folder-first import): local-DB hit wins,
-			// otherwise one cloud query against origin/first. Preserves the
-			// pre-importer-rewrite contract.
-			if (!input.walkAllRemotes) {
-				if (localProject) {
-					return {
-						candidates: [
-							{
-								id: localProject.id,
-								name: localProject.repoName ?? basename(gitRoot),
-								repoCloneUrl: localProject.repoUrl ?? null,
-								source: "local-path" as const,
-								matchesExpected: false,
-								staleLocalLink: false,
-							},
-						],
-						cloudErrors: [] as { url: string; message: string }[],
-					};
-				}
-				const { parsed } = resolved;
-				if (!parsed) return { candidates: [], cloudErrors: [] };
-				try {
-					const { candidates } =
-						await ctx.api.v2Project.findByGitHubRemote.query({
-							organizationId: ctx.organizationId,
-							repoCloneUrl: parsed.url,
-						});
-					return {
-						candidates: candidates.map((c) => ({
-							id: c.id,
-							name: c.name,
-							repoCloneUrl: parsed.url,
-							source: "remote" as const,
-							matchesExpected: false,
-							staleLocalLink: false,
-						})),
-						cloudErrors: [] as { url: string; message: string }[],
-					};
-				} catch (err) {
-					return {
-						candidates: [],
-						cloudErrors: [
-							{
-								url: parsed.url,
-								message: err instanceof Error ? err.message : String(err),
-							},
-						],
-					};
-				}
+			// A local-DB row keyed by this repo's git root is authoritative:
+			// the repo is already a v2 project on this device ("local is
+			// reality" — see the delete saga below). Return it without
+			// consulting the cloud. This covers both modes: the folder-first
+			// default has always worked this way, and the v1 importer must
+			// too — local-first projects have no cloud row, so any cloud
+			// probe here misreads them as stale and makes the importer
+			// create duplicates.
+			if (localProject) {
+				return {
+					candidates: [
+						{
+							id: localProject.id,
+							name:
+								localProject.name || localProject.repoName || basename(gitRoot),
+							repoCloneUrl: localProject.repoUrl ?? null,
+							source: "local-path" as const,
+							matchesExpected: matches(localProject.repoUrl ?? null),
+						},
+					],
+					cloudErrors: [] as { url: string; message: string }[],
+				};
 			}
 
-			// walkAllRemotes branch — v1→v2 importer.
+			// Default behavior (folder-first import): purely local. No local
+			// hit means the caller creates a fresh local project; the cloud
+			// is never consulted.
+			if (!input.walkAllRemotes) {
+				return { candidates: [], cloudErrors: [] };
+			}
+
+			// walkAllRemotes branch — v1→v2 importer, no local row: discover
+			// linkable cloud candidates across every GitHub remote.
 			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
@@ -274,21 +441,11 @@ export const projectRouter = router({
 				urlsToQuery.set(expectedParsed.url.toLowerCase(), expectedParsed);
 			}
 
-			const byId = new Map<string, Candidate>();
+			const byId = new Map<string, FindByPathCandidate>();
 
-			if (localProject) {
-				byId.set(localProject.id, {
-					id: localProject.id,
-					name: localProject.repoName ?? basename(gitRoot),
-					repoCloneUrl: localProject.repoUrl ?? null,
-					source: "local-path",
-					matchesExpected: matches(localProject.repoUrl ?? null),
-					cloudConfirmed: false,
-					staleLocalLink: false,
-				});
-			}
-
-			// Cloud lookup for every URL we know about.
+			// Cloud lookup for every URL we know about. This is the last
+			// consumer of the cloud v2_projects table; it dies with the v1
+			// importer (the only caller that sets walkAllRemotes).
 			const cloudErrors: { url: string; message: string }[] = [];
 			for (const parsed of urlsToQuery.values()) {
 				try {
@@ -300,15 +457,11 @@ export const projectRouter = router({
 					for (const c of candidates) {
 						const existing = byId.get(c.id);
 						if (existing) {
-							// Already have it from local-DB lookup; the cloud
-							// confirms it's reachable, so keep `local-path`
-							// source but populate matchesExpected if needed
-							// and flip `cloudConfirmed` so we skip the post-
-							// loop staleness round-trip.
+							// Same project reachable via two remote URLs; keep one
+							// candidate and merge the match flag.
 							existing.matchesExpected =
 								existing.matchesExpected || matches(parsed.url);
 							existing.repoCloneUrl = existing.repoCloneUrl ?? parsed.url;
-							existing.cloudConfirmed = true;
 						} else {
 							byId.set(c.id, {
 								id: c.id,
@@ -316,8 +469,6 @@ export const projectRouter = router({
 								repoCloneUrl: parsed.url,
 								source: "remote",
 								matchesExpected: matches(parsed.url),
-								cloudConfirmed: true,
-								staleLocalLink: false,
 							});
 						}
 					}
@@ -332,57 +483,13 @@ export const projectRouter = router({
 				}
 			}
 
-			// Detect stale local-DB row: returned by the path lookup but
-			// cloud never confirmed it via any remote URL. Most likely the
-			// cloud project was deleted by another device or user. Skip
-			// when the cloud loop already saw this id (cloudConfirmed) —
-			// no need for a second round-trip.
-			if (localProject) {
-				const candidate = byId.get(localProject.id);
-				if (
-					candidate &&
-					candidate.source === "local-path" &&
-					!candidate.cloudConfirmed
-				) {
-					try {
-						await ctx.api.v2Project.get.query({
-							organizationId: ctx.organizationId,
-							id: localProject.id,
-						});
-					} catch (err) {
-						// Only treat a confirmed not-found as stale. Transient
-						// network/auth/5xx errors should leave the local link
-						// intact and surface via cloudErrors instead, so we
-						// don't drop a probably-still-valid candidate on a
-						// blip.
-						const code =
-							typeof err === "object" && err !== null
-								? ((err as { data?: { code?: string } }).data?.code ?? null)
-								: null;
-						if (code === "NOT_FOUND") {
-							candidate.staleLocalLink = true;
-						} else {
-							cloudErrors.push({
-								url: `v2Project.get(${localProject.id})`,
-								message: err instanceof Error ? err.message : String(err),
-							});
-						}
-					}
+			// Sort: matchesExpected first, then alphabetic.
+			const candidates = Array.from(byId.values()).sort((a, b) => {
+				if (a.matchesExpected !== b.matchesExpected) {
+					return a.matchesExpected ? -1 : 1;
 				}
-			}
-
-			// Sort: matchesExpected first, then alphabetic. Strip the
-			// internal `cloudConfirmed` flag — it's a server-side
-			// optimization, not part of the wire contract.
-			const candidates = Array.from(byId.values())
-				.filter((c) => !c.staleLocalLink)
-				.sort((a, b) => {
-					if (a.matchesExpected !== b.matchesExpected) {
-						return a.matchesExpected ? -1 : 1;
-					}
-					return a.name.localeCompare(b.name);
-				})
-				.map(({ cloudConfirmed: _omit, ...rest }) => rest);
+				return a.name.localeCompare(b.name);
+			});
 
 			// Caller surfaces this when there are no candidates and at least
 			// one cloud query failed — so users see a clear "couldn't reach
@@ -391,7 +498,7 @@ export const projectRouter = router({
 			return { candidates, cloudErrors };
 		}),
 
-	create: protectedProcedure
+	create: machineOnlyProcedure
 		.input(
 			z.object({
 				name: z.string().min(1),
@@ -454,10 +561,22 @@ export const projectRouter = router({
 			}
 		}),
 
-	setup: protectedProcedure
+	setup: machineOnlyProcedure
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
+				/**
+				 * Repo coordinates supplied by the caller (from the host
+				 * fan-out) so a local-first project created on ANOTHER host can
+				 * be set up on this device. Required whenever this host has no
+				 * local row for the project — nothing else knows the repo.
+				 */
+				origin: z
+					.object({
+						repoCloneUrl: z.string().nullish(),
+						name: z.string().min(1).optional(),
+					})
+					.optional(),
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("clone"),
@@ -478,10 +597,23 @@ export const projectRouter = router({
 				.where(eq(projects.id, input.projectId))
 				.get();
 
-			const cloudProject = await ctx.api.v2Project.get.query({
-				organizationId: ctx.organizationId,
-				id: input.projectId,
-			});
+			// Projects are host-owned, so a local row is this host's only
+			// self-contained source of repo coordinates. Without one the
+			// caller must supply them from the host fan-out — there is no
+			// registry left to ask.
+			if (!existing && !input.origin) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						input.mode.kind === "clone"
+							? `Project ${input.projectId} is not set up on this host. Pass origin.repoCloneUrl to clone it.`
+							: `Project ${input.projectId} is not set up on this host. Pass origin to import it.`,
+				});
+			}
+			const origin = {
+				repoCloneUrl: input.origin?.repoCloneUrl ?? null,
+				name: input.origin?.name,
+			};
 
 			const allowRelocate =
 				input.mode.kind === "import" && input.mode.allowRelocate;
@@ -498,26 +630,12 @@ export const projectRouter = router({
 
 			switch (input.mode.kind) {
 				case "clone": {
-					if (!cloudProject.repoCloneUrl) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message:
-								"Project has no linked GitHub repository — cannot clone. Import an existing local folder instead.",
-						});
-					}
-					const expectedParsed = parseGitHubRemote(cloudProject.repoCloneUrl);
-					if (!expectedParsed) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: `Could not parse GitHub remote from ${cloudProject.repoCloneUrl}`,
-						});
-					}
-					const predictedPath = resolvePath(
-						input.mode.parentDir,
-						expectedParsed.name,
-					);
-					rejectIfRepoint(predictedPath);
 					if (existing) {
+						// Already on this device — same folder name predicted from
+						// the local row; a different parentDir means a repoint.
+						rejectIfRepoint(
+							resolvePath(input.mode.parentDir, basename(existing.repoPath)),
+						);
 						const mainWorkspace = await ensureMainWorkspace(
 							ctx,
 							input.projectId,
@@ -528,12 +646,28 @@ export const projectRouter = router({
 							mainWorkspaceId: mainWorkspace?.id ?? null,
 						};
 					}
+					if (!origin.repoCloneUrl) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Project has no linked GitHub repository — cannot clone. Import an existing local folder instead.",
+						});
+					}
+					const expectedParsed = parseGitHubRemote(origin.repoCloneUrl);
+					if (!expectedParsed) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Could not parse GitHub remote from ${origin.repoCloneUrl}`,
+						});
+					}
 					const resolved = await cloneRepoInto(
-						cloudProject.repoCloneUrl,
+						origin.repoCloneUrl,
 						input.mode.parentDir,
 						ctx.credentials,
 					);
-					persistLocalProject(ctx, input.projectId, resolved);
+					persistLocalProject(ctx, input.projectId, resolved, {
+						name: origin.name,
+					});
 					const mainWorkspace = await ensureMainWorkspace(
 						ctx,
 						input.projectId,
@@ -546,12 +680,12 @@ export const projectRouter = router({
 				}
 				case "import": {
 					let resolved: ResolvedRepo;
-					if (cloudProject.repoCloneUrl) {
-						const parsed = parseGitHubRemote(cloudProject.repoCloneUrl);
+					if (origin.repoCloneUrl) {
+						const parsed = parseGitHubRemote(origin.repoCloneUrl);
 						if (!parsed) {
 							throw new TRPCError({
 								code: "BAD_REQUEST",
-								message: `Could not parse GitHub remote from ${cloudProject.repoCloneUrl}`,
+								message: `Could not parse GitHub remote from ${origin.repoCloneUrl}`,
 							});
 						}
 						resolved = await resolveMatchingSlug(
@@ -593,14 +727,9 @@ export const projectRouter = router({
 						};
 					}
 
-					if (!cloudProject.repoCloneUrl && resolved.parsed) {
-						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
-							organizationId: ctx.organizationId,
-							id: input.projectId,
-							repoCloneUrl: resolved.parsed.url,
-						});
-					}
-					persistLocalProject(ctx, input.projectId, resolved);
+					persistLocalProject(ctx, input.projectId, resolved, {
+						name: origin.name,
+					});
 					const mainWorkspace = await ensureMainWorkspace(
 						ctx,
 						input.projectId,
@@ -615,41 +744,43 @@ export const projectRouter = router({
 		}),
 
 	/**
-	 * Project-delete saga. Cloud is reality — cloud delete is the kill point:
+	 * Project-delete saga. Local is reality — the local deletes are the
+	 * commit point, run first, and are fully offline-capable:
 	 *
-	 *   1. Cloud v2Project.delete   ← kill point. Cascades cloud workspaces.
-	 *      on fail → abort, leave local untouched, surface error to user.
+	 *   1. Ownership check: an id this host doesn't serve is a no-op —
+	 *      never a legacy cloud delete.
 	 *
-	 *   2. Local DB rows (workspaces + project)
-	 *      on fail → log; user can re-run later. Cloud is already gone.
-	 *
-	 *   3. Best-effort `git worktree remove` for each non-main local
+	 *   2. Best-effort `git worktree remove` for each non-main local
 	 *      workspace so subsequent worktree commands aren't confused.
+	 *
+	 *   3. Local DB rows (workspaces + project). A failure here surfaces as
+	 *      an error — the local table is what the UI lists from, so a
+	 *      swallowed failure would toast "Deleted" over a surviving row.
 	 *
 	 * The on-disk repo directory is NEVER auto-removed. The user's code is
 	 * their code; deletion of the working tree must be an explicit action,
 	 * not a side-effect of project removal. Returns repoPath so a future
 	 * UI can offer an explicit "delete files too" follow-up.
 	 */
-	remove: protectedProcedure
+	remove: machineOnlyProcedure
 		.input(z.object({ projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await ctx.api.v2Project.delete.mutate({
-				organizationId: ctx.organizationId,
-				id: input.projectId,
-			});
-
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
-
 			if (!localProject) return { success: true, repoPath: null };
 
+			// The project-row delete below cascades tombstones away — removing a
+			// project intentionally drops its workspace history. Sweep worktrees
+			// for live rows AND stranded tombstones (crash-interrupted deletes
+			// whose worktree survives): once the cascade runs, the startup
+			// reconciler can no longer see them.
 			const localWorkspaces = ctx.db
 				.select()
 				.from(workspaces)
 				.where(eq(workspaces.projectId, input.projectId))
-				.all();
+				.all()
+				.filter((ws) => ws.archivedAt == null || existsSync(ws.worktreePath));
 
 			for (const ws of localWorkspaces) {
 				if (ws.worktreePath === localProject.repoPath) continue;
@@ -666,15 +797,16 @@ export const projectRouter = router({
 			}
 
 			try {
-				ctx.db
-					.delete(workspaces)
-					.where(eq(workspaces.projectId, input.projectId))
-					.run();
+				// Per-row so each deletion broadcasts.
+				for (const ws of localWorkspaces) {
+					deleteLocalWorkspace(ctx, ws.id);
+				}
 				ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
+				emitProjectChanged(ctx.eventBus, "deleted", input.projectId);
 			} catch (err) {
-				console.warn("[project.remove] failed to delete local rows", {
-					projectId: input.projectId,
-					err,
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to delete project locally: ${err instanceof Error ? err.message : String(err)}`,
 				});
 			}
 

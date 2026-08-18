@@ -42,6 +42,12 @@ describe("settings search - font settings", () => {
 		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT);
 	});
 
+	it("normalizes whitespace between search terms", () => {
+		const results = searchSettings("  terminal   font  ");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT);
+	});
+
 	it("empty search returns all settings items", () => {
 		const results = searchSettings("");
 		expect(results.length).toBeGreaterThan(0);
@@ -61,5 +67,13 @@ describe("settings search - font settings", () => {
 
 		expect(editorFont?.section).toBe("appearance");
 		expect(terminalFont?.section).toBe("appearance");
+	});
+});
+
+describe("settings search - hosts", () => {
+	it('searching "delete host" returns the host deletion setting', () => {
+		const ids = getIds(searchSettings("delete host"));
+
+		expect(ids).toContain(SETTING_ITEM_ID.HOST_DELETE);
 	});
 });

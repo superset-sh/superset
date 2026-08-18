@@ -1,23 +1,20 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
-import { useFeatureFlagPayload } from "posthog-js/react";
+import { useQuery } from "@tanstack/react-query";
 import { env } from "renderer/env.renderer";
-
-interface RelayUrlPayload {
-	url?: string;
-}
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 
 /**
- * Returns the relay base URL the renderer should use for client-side WS opens
- * (terminal, eventBus). Reads the `relay-url-override` PostHog flag payload
- * and falls back to `env.RELAY_URL` when the flag is off or the payload is
- * malformed. Pairs with the main-side helper used at host-service spawn so
- * the tunnel and the client open against the same URL.
+ * Relay base URL for client-side WS opens (terminal, eventBus).
+ *
+ * Comes from the API so this client and the host-service it talks to always
+ * agree: resolving it separately on each side let them land on different
+ * relays, which surfaces as a host that looks permanently offline.
  */
 export function useRelayUrl(): string {
-	const payload = useFeatureFlagPayload(FEATURE_FLAGS.RELAY_URL_OVERRIDE) as
-		| RelayUrlPayload
-		| undefined;
-	const override = payload?.url;
-	if (typeof override === "string" && override.length > 0) return override;
-	return env.RELAY_URL;
+	const { data } = useQuery({
+		queryKey: ["relay-endpoint"],
+		queryFn: () => apiTrpcClient.host.relayEndpoint.query(),
+		staleTime: 5 * 60 * 1000,
+		retry: 3,
+	});
+	return data?.url ?? env.RELAY_URL;
 }

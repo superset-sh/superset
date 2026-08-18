@@ -3,6 +3,7 @@ import { LuCpu } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { matchAgentChoice } from "../../utils/agentIdentity";
 
 export function AgentCell({
 	agentId,
@@ -13,14 +14,14 @@ export function AgentCell({
 }) {
 	const hostUrl = useHostUrl(hostId);
 	const { agents } = useV2AgentChoices(hostUrl);
-	const hostMatch = agents.find((option) => option.id === agentId);
+	const hostMatch = matchAgentChoice(agents, agentId);
 	const presetMatch = hostMatch ? null : getPresetById(agentId);
 	const label = hostMatch?.label ?? presetMatch?.label ?? agentId;
 	const iconKey = hostMatch?.iconId ?? presetMatch?.presetId ?? agentId;
 	const icon = usePresetIcon(iconKey);
 
 	return (
-		<span className="inline-flex items-center gap-1.5">
+		<span className="flex min-w-0 items-center gap-1.5" title={label}>
 			{icon ? (
 				<img src={icon} alt="" className="size-3.5 shrink-0 object-contain" />
 			) : (

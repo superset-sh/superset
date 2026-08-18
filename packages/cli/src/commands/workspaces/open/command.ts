@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
-import { boolean, CLIError, positional } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
 
 function openUrl(url: string): Promise<void> {
 	const [bin, args]: [string, string[]] =
@@ -24,6 +25,7 @@ export default command({
 	description: "Open a workspace in the Superset desktop app",
 	args: [positional("id").required().desc("Workspace ID")],
 	options: {
+		host: string().desc("Host the workspace lives on (default: this machine)"),
 		print: boolean().desc(
 			"Print the deep link URL instead of opening the desktop app",
 		),
@@ -35,14 +37,19 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const workspace = await ctx.api.v2Workspace.getFromHost.query({
-			organizationId,
+		const { hostId, workspace } = await findWorkspaceOnHost(
+			{
+				organizationId,
+				userJwt: ctx.bearer,
+				api: ctx.api,
+				hostId: options.host ?? undefined,
+			},
 			id,
-		});
+		);
 		if (!workspace) {
 			throw new CLIError(
-				`Workspace not found: ${id}`,
-				"List workspaces with: superset workspaces list",
+				`Workspace not found on host ${hostId}: ${id}`,
+				"Pass --host <id> if it lives on another machine. List with: superset workspaces list",
 			);
 		}
 

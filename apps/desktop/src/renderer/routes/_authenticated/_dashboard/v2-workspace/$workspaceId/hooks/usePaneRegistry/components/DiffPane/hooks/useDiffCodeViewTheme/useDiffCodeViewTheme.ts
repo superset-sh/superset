@@ -1,8 +1,15 @@
 import type { CodeViewOptions } from "@pierre/diffs";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { type CSSProperties, useMemo } from "react";
 import {
+	resolveEditorLineHeight,
+	resolveFontVariantLigatures,
+} from "renderer/lib/editor-typography";
+import { FONT_SETTINGS_QUERY_KEY } from "renderer/lib/font-settings";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { DEFAULT_CODE_EDITOR_FONT_SIZE } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/constants";
+import {
+	DIFF_POOL_RENDER_OPTIONS,
 	getDiffsTheme,
 	getDiffViewerStyle,
 } from "renderer/screens/main/components/WorkspaceView/utils/code-theme";
@@ -16,7 +23,7 @@ export function useDiffCodeViewTheme() {
 	const activeTheme = useResolvedTheme();
 	const terminalTheme = useTerminalTheme();
 	const { data: fontSettings } = useQuery({
-		queryKey: ["electron", "settings", "getFontSettings"],
+		queryKey: FONT_SETTINGS_QUERY_KEY,
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
 		staleTime: 30_000,
 	});
@@ -27,22 +34,40 @@ export function useDiffCodeViewTheme() {
 			: typeof fontSettings?.editorFontSize === "string"
 				? Number.parseFloat(fontSettings.editorFontSize)
 				: Number.NaN;
+	const editorFontSize = Number.isFinite(parsedEditorFontSize)
+		? parsedEditorFontSize
+		: DEFAULT_CODE_EDITOR_FONT_SIZE;
 	const surfaceBg = terminalTheme?.background ?? "var(--background)";
 
 	const style = useMemo(
-		() => ({
-			...getDiffViewerStyle(activeTheme, {
-				fontFamily: fontSettings?.editorFontFamily ?? undefined,
-				fontSize: Number.isFinite(parsedEditorFontSize)
-					? parsedEditorFontSize
-					: undefined,
-			}),
-			backgroundColor: surfaceBg,
-		}),
+		() =>
+			({
+				...getDiffViewerStyle(activeTheme, {
+					fontFamily: fontSettings?.editorFontFamily ?? undefined,
+					fontSize: editorFontSize,
+				}),
+				"--diffs-line-height": `${resolveEditorLineHeight(
+					editorFontSize,
+					fontSettings?.editorLineHeight ?? undefined,
+				)}px`,
+				fontWeight: fontSettings?.editorFontWeight ?? undefined,
+				letterSpacing:
+					fontSettings?.editorLetterSpacing == null
+						? undefined
+						: `${fontSettings.editorLetterSpacing}px`,
+				fontVariantLigatures: resolveFontVariantLigatures(
+					fontSettings?.editorLigatures ?? undefined,
+				),
+				backgroundColor: surfaceBg,
+			}) as CSSProperties,
 		[
 			activeTheme,
 			fontSettings?.editorFontFamily,
-			parsedEditorFontSize,
+			fontSettings?.editorFontWeight,
+			fontSettings?.editorLetterSpacing,
+			fontSettings?.editorLigatures,
+			fontSettings?.editorLineHeight,
+			editorFontSize,
 			surfaceBg,
 		],
 	);
@@ -69,12 +94,13 @@ export function useDiffCodeViewTheme() {
 				paddingBottom: 8,
 				gap: 0,
 			},
-			// Degrade gracefully on lockfiles / minified bundles instead of
-			// blocking the worker. Pierre's defaults are 100k for whole-file
-			// tokenization and unbounded for the rest.
-			tokenizeMaxLineLength: 5_000,
+			// Diff/tokenize options shared with the diff worker pool
+			// (DIFF_POOL_RENDER_OPTIONS / buildDiffPoolRenderOptions) so the
+			// per-item and pool configs can't diverge. They degrade gracefully
+			// on lockfiles / minified bundles instead of blocking the worker.
+			...DIFF_POOL_RENDER_OPTIONS,
+			// tokenizeMaxLength is not a pool option, so it stays per-item.
 			tokenizeMaxLength: 200_000,
-			maxLineDiffLength: 5_000,
 			unsafeCSS: `
 				* { user-select: text; -webkit-user-select: text; }
 				/* Query container for slotted PR-comment bubbles
@@ -95,6 +121,20 @@ export function useDiffCodeViewTheme() {
 				 * FileIcon in the prefix slot instead. */
 				[data-diffs-header='default'] [data-change-icon] {
 					display: none;
+				}
+				/* Match the file header bar to the DiffSectionBar background
+				 * (bg-muted/40 flattened over the pane background) so the
+				 * pinned section strip and the file title strip read as one.
+				 * Pierre paints these with --diffs-bg (the diff surface
+				 * color); the [data-sticky] selector is needed to out-rank
+				 * Pierre's own two-attribute sticky rule. */
+				[data-diffs-header='default'],
+				[data-diffs-header='default'][data-sticky] {
+					background-color: color-mix(
+						in srgb,
+						var(--muted) 40%,
+						var(--background)
+					);
 				}
 				[data-diffs-header='default'] [data-additions-count] {
 					color: ${additionColor};

@@ -1,4 +1,4 @@
-import { chatServiceTrpc } from "@superset/chat/client";
+import { chatServiceTrpc } from "@superset/provider-auth/client";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -13,17 +13,17 @@ import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useEffect, useMemo, useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
-import { AnthropicOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/AnthropicOAuthDialog";
-import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/components/ModelPicker/components/OpenAIOAuthDialog";
-import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
-import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
+import { AnthropicOAuthDialog } from "renderer/components/ProviderAuth/components/AnthropicOAuthDialog";
+import { OpenAIOAuthDialog } from "renderer/components/ProviderAuth/components/OpenAIOAuthDialog";
+import { useAnthropicOAuth } from "renderer/components/ProviderAuth/hooks/useAnthropicOAuth";
+import { useOpenAIOAuth } from "renderer/components/ProviderAuth/hooks/useOpenAIOAuth";
+import { SettingsSection } from "renderer/routes/_authenticated/settings/components/SettingsSection";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { ConfigRow } from "./components/ConfigRow";
-import { SettingsSection } from "./components/SettingsSection";
 import {
 	buildAnthropicEnvText,
 	EMPTY_ANTHROPIC_FORM,
@@ -235,7 +235,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">Models</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Manage provider accounts, API keys, and overrides.
+						Manage provider accounts, API keys, and overrides. Connecting
+						Anthropic or OpenAI below is also what powers automatic workspace
+						naming — without one connected, new workspaces fall back to a name
+						derived from your prompt.
 					</p>
 				</div>
 

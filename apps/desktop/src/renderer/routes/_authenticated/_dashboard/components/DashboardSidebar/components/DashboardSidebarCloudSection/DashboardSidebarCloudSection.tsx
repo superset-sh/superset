@@ -1,0 +1,140 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useMemo } from "react";
+import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import type { DashboardSidebarWorkspace } from "../../types";
+import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
+import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
+
+/**
+ * Cloud workspaces, above the projects.
+ *
+ * They sit in their own section rather than under a project because the row a
+ * sandbox serves carries the sandbox's own project id — there is no cloud
+ * project to group under.
+ *
+ * The cloud row owns the workspace's identity — it is what created, named and
+ * lists it. The row inside the sandbox exists only so host-service has
+ * something to serve panes against, so its name is ignored here; live git
+ * state (branch) still comes from the sandbox, which is the only thing that
+ * knows it.
+ */
+export function DashboardSidebarCloudSection({
+	isCollapsed,
+	onWorkspaceHover,
+}: {
+	isCollapsed?: boolean;
+	onWorkspaceHover?: (workspaceId: string) => void | Promise<void>;
+}) {
+	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
+	const { data: session } = authClient.useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+
+	const { data: cloudWorkspaces = [] } = cloudTrpc.cloudWorkspace.list.useQuery(
+		{ organizationId: organizationId ?? "" },
+		{ enabled: Boolean(enabled && organizationId), refetchInterval: 30_000 },
+	);
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+
+	// Row visibility, pinning and order all live in the same local-state
+	// collection every other sidebar row reads. Rendering straight off the
+	// cloud list instead is what made "Remove from sidebar" look inert: the
+	// action wrote `isHidden` and nothing here consulted it.
+	const collections = useCollections();
+	const { data: localStateRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ local: collections.v2WorkspaceLocalState })
+				.select(({ local }) => ({
+					workspaceId: local.workspaceId,
+					isHidden: local.sidebarState.isHidden,
+					pinnedAt: local.sidebarState.pinnedAt,
+					tabOrder: local.sidebarState.tabOrder,
+				})),
+		[collections],
+	);
+
+	const rows = useMemo<DashboardSidebarWorkspace[]>(() => {
+		const servedById = new Map(hostWorkspaces.map((row) => [row.id, row]));
+		const localById = new Map(
+			localStateRows.map((row) => [row.workspaceId, row]),
+		);
+		return cloudWorkspaces
+			.filter((cloud) => {
+				const local = localById.get(cloud.id);
+				// Hidden rows stay gone until the workspace is opened again, and a
+				// pinned one renders in the Pinned section instead — rendering it
+				// here too would show the same workspace twice.
+				return !local?.isHidden && local?.pinnedAt == null;
+			})
+			.sort(
+				(left, right) =>
+					(localById.get(left.id)?.tabOrder ?? 0) -
+					(localById.get(right.id)?.tabOrder ?? 0),
+			)
+			.map((cloud) => {
+				const served = servedById.get(cloud.id);
+				return {
+					id: cloud.id,
+					// Grouping is by section here, and the sandbox's project id means
+					// nothing to this client.
+					projectId: null,
+					hostId: cloud.id,
+					hostType: "cloud",
+					type: "worktree",
+					// A sandbox is reachable or it isn't; there is no offline device
+					// behind it to report on.
+					hostIsOnline: null,
+					accentColor: null,
+					name: cloud.name,
+					branch: served?.branch ?? cloud.branch,
+					pullRequest: null,
+					repoUrl: null,
+					branchExistsOnRemote: true,
+					previewUrl: null,
+					needsRebase: null,
+					behindCount: null,
+					createdAt: cloud.createdAt,
+					updatedAt: cloud.updatedAt,
+					taskId: null,
+					isPinned: false,
+					pendingTransaction: null,
+				};
+			});
+	}, [cloudWorkspaces, hostWorkspaces, localStateRows]);
+
+	if (!enabled || rows.length === 0) return null;
+
+	if (isCollapsed) {
+		return (
+			<div className="flex flex-col gap-0.5 py-1">
+				{rows.map((workspace) => (
+					<DashboardSidebarWorkspaceItem
+						key={workspace.id}
+						workspace={workspace}
+						isCollapsed
+						onHoverCardOpen={onWorkspaceHover}
+					/>
+				))}
+				<div className="mx-3 mt-1 border-b border-border" />
+			</div>
+		);
+	}
+
+	return (
+		<div className="mb-1">
+			<DashboardSidebarSectionHeader label="Cloud" section="cloud" />
+			{rows.map((workspace) => (
+				<DashboardSidebarWorkspaceItem
+					key={workspace.id}
+					workspace={workspace}
+					onHoverCardOpen={onWorkspaceHover}
+				/>
+			))}
+		</div>
+	);
+}

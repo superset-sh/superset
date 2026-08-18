@@ -1,26 +1,34 @@
 import { toast } from "@superset/ui/sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
+import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
-	useV2NotificationStore,
-	useV2WorkspaceIsUnread,
-} from "renderer/stores/v2-notifications";
+	useMarkSidebarWorkspaceTerminalsSeen,
+	useSidebarWorkspaceStatus,
+} from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
+import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
+import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	workspaceName: string;
 	branch: string;
 	isMainWorkspace?: boolean;
+	isPinned?: boolean;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
@@ -29,25 +37,44 @@ export function useDashboardSidebarWorkspaceItemActions({
 	workspaceName,
 	branch,
 	isMainWorkspace = false,
+	isPinned = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const { copyToClipboard } = useCopyToClipboard();
-	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
+	const { v2Workspaces: workspaceActions } = useOptimisticActions();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
-	const clearWorkspaceAttention = useV2NotificationStore(
-		(s) => s.clearWorkspaceAttention,
-	);
 	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
-	const isUnread = useV2WorkspaceIsUnread(workspaceId);
-	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
+	const clearManualUnread = useV2NotificationStore((s) => s.clearManualUnread);
+	const markWorkspaceTerminalsSeen =
+		useMarkSidebarWorkspaceTerminalsSeen(workspaceId);
+	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
+	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
+	const queryClient = useQueryClient();
+
+	const clearWorkspaceAttention = () => {
+		clearManualUnread(workspaceId);
+		markWorkspaceTerminalsSeen();
+	};
+	const { createSection, moveWorkspaceToSection, setWorkspacePinned } =
 		useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+	/**
+	 * The submitted name, held until the store catches up.
+	 *
+	 * Closing the editor is a React state update while the optimistic cache
+	 * patch reaches this row through react-query's notifier, which flushes on
+	 * a microtask — so the row renders once with the pre-rename prop in
+	 * between, and the old name flashes for a frame.
+	 */
+	const [pendingName, setPendingName] = useState<string | null>(null);
+	if (pendingName !== null && pendingName === workspaceName) {
+		setPendingName(null);
+	}
 
 	const isActive = !!matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -57,7 +84,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const handleClick = () => {
 		if (isRenaming) return;
-		clearWorkspaceAttention(workspaceId);
+		clearWorkspaceAttention();
 		navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
@@ -78,11 +105,18 @@ export function useDashboardSidebarWorkspaceItemActions({
 		setIsRenaming(false);
 		const trimmed = renameValue.trim();
 		if (!trimmed || trimmed === workspaceName) return;
+		setPendingName(trimmed);
 		workspaceActions.renameWorkspace(workspaceId, trimmed);
 	};
 
-	const handleDeleted = () => {
-		removeWorkspaceFromSidebar(workspaceId);
+	// The delete dialog is globally mounted (archive-first tombstoning drops
+	// this row the moment the destroy starts, which would unmount a
+	// row-local dialog mid-flight).
+	const requestDelete = () => {
+		useDeleteWorkspaceIntent.getState().request({
+			workspaceId,
+			workspaceName: workspaceName || branch,
+		});
 	};
 
 	const handleRemoveFromSidebar = () => {
@@ -95,6 +129,8 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
+		// Sessions get groups in the stacked nesting PR.
+		if (projectId === null) return;
 		const sectionId = createSection(projectId);
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);
@@ -144,9 +180,55 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const handleToggleUnread = () => {
 		if (isUnread) {
-			clearWorkspaceAttention(workspaceId);
+			clearWorkspaceAttention();
 		} else {
 			setManualUnread(workspaceId);
+		}
+	};
+
+	const handleTogglePin = () => {
+		setWorkspacePinned(workspaceId, projectId, !isPinned);
+	};
+
+	// Clears manual + review marks locally, then forces the host's bindings
+	// to Stop — the escape hatch for a wedged working/permission dot (an
+	// interrupted agent fires no Stop hook). Live agents re-assert on their
+	// next hook event, so this is safe to run on a genuinely busy workspace.
+	const handleClearStatus = async () => {
+		clearWorkspaceAttention();
+		if (!workspaceHostUrl) return;
+		try {
+			await getHostServiceClientByUrl(
+				workspaceHostUrl,
+			).terminalAgents.clearWorkspaceStatuses.mutate({ workspaceId });
+			await queryClient.invalidateQueries({
+				queryKey: getTerminalAgentBindingsQueryKey(workspaceId),
+			});
+		} catch (error) {
+			toast.error(
+				`Failed to clear agent status: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	};
+
+	const handleRemovePullRequest = async () => {
+		if (!workspaceHostUrl) {
+			showHostServiceUnavailableToast(hostService, {
+				action: "remove the PR link",
+			});
+			return;
+		}
+		try {
+			await getHostServiceClientByUrl(
+				workspaceHostUrl,
+			).pullRequests.unlinkFromWorkspace.mutate({ workspaceId });
+			await queryClient.invalidateQueries({
+				queryKey: DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX,
+			});
+		} catch (error) {
+			toast.error(
+				`Failed to remove PR link: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
 		}
 	};
 
@@ -167,21 +249,23 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	return {
 		cancelRename,
+		handleClearStatus,
 		handleClick,
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
-		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleRemovePullRequest,
+		handleTogglePin,
 		handleToggleUnread,
 		isActive,
-		isDeleteDialogOpen,
 		isRenaming,
 		isUnread,
 		moveWorkspaceToSection,
+		pendingName,
 		renameValue,
-		setIsDeleteDialogOpen,
+		requestDelete,
 		setRenameValue,
 		startRename,
 		submitRename,

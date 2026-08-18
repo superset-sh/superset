@@ -157,19 +157,36 @@ export async function getDefaultBranchName(
 export async function resolveBaseComparison(
 	git: SimpleGit,
 	explicitBranch?: string,
-): Promise<{ branchName: string; baseRef: string } | null> {
+): Promise<{
+	branchName: string;
+	baseRef: string;
+	// Remote branch to fetch to keep `baseRef` current; null when the base
+	// tracks another local branch and there is nothing to fetch.
+	fetchTarget: { remote: string; branch: string } | null;
+} | null> {
 	const branchName = explicitBranch ?? (await getDefaultBranchName(git));
 	if (!branchName) return null;
 	const upstream = await resolveUpstream(git, branchName);
 	// Git encodes a branch tracking another local branch as
 	// `branch.<name>.remote = .` — in that case the merge target is
 	// already a bare branch name in this repo, not `./<name>`.
-	const baseRef = upstream
-		? upstream.remote === "."
-			? upstream.remoteBranch
-			: `${upstream.remote}/${upstream.remoteBranch}`
-		: `origin/${branchName}`;
-	return { branchName, baseRef };
+	if (upstream) {
+		return upstream.remote === "."
+			? { branchName, baseRef: upstream.remoteBranch, fetchTarget: null }
+			: {
+					branchName,
+					baseRef: `${upstream.remote}/${upstream.remoteBranch}`,
+					fetchTarget: {
+						remote: upstream.remote,
+						branch: upstream.remoteBranch,
+					},
+				};
+	}
+	return {
+		branchName,
+		baseRef: `origin/${branchName}`,
+		fetchTarget: { remote: "origin", branch: branchName },
+	};
 }
 
 export async function buildBranch(

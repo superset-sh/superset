@@ -3,6 +3,15 @@
 import { authClient } from "@superset/auth/client";
 import type { RouterOutputs } from "@superset/trpc";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Button } from "@superset/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,20 +21,27 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { Input } from "@superset/ui/input";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
 	useSidebar,
 } from "@superset/ui/sidebar";
+import { toast } from "@superset/ui/sonner";
+import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import {
 	LuBadgeCheck,
 	LuBell,
 	LuChevronsUpDown,
+	LuKeyRound,
+	LuLoaderCircle,
 	LuLogOut,
 	LuSettings,
 } from "react-icons/lu";
 import { env } from "@/env";
+import { useTRPC } from "@/trpc/react";
 
 export interface NavUserProps {
 	user: NonNullable<RouterOutputs["user"]["me"]>;
@@ -33,6 +49,28 @@ export interface NavUserProps {
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar();
+	const trpc = useTRPC();
+
+	const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+	const [newPassword, setNewPassword] = useState("");
+
+	const setPasswordMutation = useMutation(
+		trpc.admin.setMyPassword.mutationOptions({
+			onSuccess: () => {
+				toast.success("Password set");
+				setPasswordDialogOpen(false);
+				setNewPassword("");
+			},
+			onError: (error) => {
+				toast.error(`Failed to set password: ${error.message}`);
+			},
+		}),
+	);
+
+	const handleSetPassword = () => {
+		if (newPassword.length < 8) return;
+		setPasswordMutation.mutate({ password: newPassword });
+	};
 
 	const userInitials = user.name
 		.split(" ")
@@ -97,6 +135,10 @@ export function NavUser({ user }: NavUserProps) {
 								<LuBadgeCheck />
 								Account
 							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setPasswordDialogOpen(true)}>
+								<LuKeyRound />
+								Set password
+							</DropdownMenuItem>
 							<DropdownMenuItem>
 								<LuSettings />
 								Settings
@@ -113,6 +155,48 @@ export function NavUser({ user }: NavUserProps) {
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
+
+				<Dialog
+					open={passwordDialogOpen}
+					onOpenChange={(open) => {
+						setPasswordDialogOpen(open);
+						if (!open) setNewPassword("");
+					}}
+				>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>Set password</DialogTitle>
+							<DialogDescription>
+								Sets an email+password credential for{" "}
+								<strong>{user.email}</strong> via Better Auth (hashed with
+								scrypt). Existing sign-in methods keep working.
+							</DialogDescription>
+						</DialogHeader>
+						<Input
+							type="password"
+							autoComplete="new-password"
+							placeholder="New password (min 8 characters)"
+							value={newPassword}
+							onChange={(event) => setNewPassword(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") handleSetPassword();
+							}}
+						/>
+						<DialogFooter>
+							<Button
+								onClick={handleSetPassword}
+								disabled={
+									newPassword.length < 8 || setPasswordMutation.isPending
+								}
+							>
+								{setPasswordMutation.isPending ? (
+									<LuLoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+								) : null}
+								Set Password
+							</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
 			</SidebarMenuItem>
 		</SidebarMenu>
 	);

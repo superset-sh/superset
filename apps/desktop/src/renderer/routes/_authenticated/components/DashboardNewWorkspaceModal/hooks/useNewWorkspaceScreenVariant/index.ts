@@ -1,0 +1,1 @@
+export { useNewWorkspaceScreenVariant } from "./useNewWorkspaceScreenVariant";

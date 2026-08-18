@@ -1,16 +1,13 @@
-import type {
-	SelectInvitation,
-	SelectMember,
-	SelectUser,
-} from "@superset/db/schema/auth";
 import type { OrganizationRole } from "@superset/shared/auth";
 
-export type TeamMember = SelectUser &
-	SelectMember & {
-		memberId: string;
-		role: OrganizationRole;
-	};
-
-export type InvitationRow = SelectInvitation & {
-	inviterName: string;
+export type TeamMember = {
+	memberId: string;
+	userId: string;
+	organizationId: string;
+	role: OrganizationRole;
+	createdAt: Date;
+	name: string;
+	email: string;
+	image: string | null;
+	deletionRequestedAt: Date | null;
 };

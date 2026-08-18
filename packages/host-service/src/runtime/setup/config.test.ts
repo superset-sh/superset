@@ -4,9 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	getProjectConfigPath,
-	getResolvedSetupCommands,
 	hasConfiguredScripts,
 	loadSetupConfig,
+	resolveScript,
+	shellSingleQuote,
 } from "./config";
 
 interface Sandbox {
@@ -54,6 +55,16 @@ function writeUserOverride(
 	content: object,
 ) {
 	const dir = join(homeDir, ".superset", "projects", projectId);
+	mkdirSync(dir, { recursive: true });
+	writeFileSync(join(dir, "config.json"), JSON.stringify(content), "utf-8");
+}
+
+function writeUserOverrideByPath(
+	homeDir: string,
+	repoPath: string,
+	content: object,
+) {
+	const dir = join(homeDir, ".superset", "projects", repoPath);
 	mkdirSync(dir, { recursive: true });
 	writeFileSync(join(dir, "config.json"), JSON.stringify(content), "utf-8");
 }
@@ -138,6 +149,89 @@ describe("loadSetupConfig", () => {
 
 		const result = load();
 		expect(result?.cwd).toBe("packages/web");
+	});
+
+	it("worktree config overrides the repo config per key", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			setup: ["from-repo"],
+			teardown: ["repo-teardown"],
+		});
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoConfig(worktreePath, { setup: ["from-worktree"] });
+
+		const result = loadSetupConfig({
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			worktreePath,
+			homeDir: sandbox.homeDir,
+		});
+
+		// Keys the worktree doesn't define fall through to the repo config.
+		expect(result).toEqual({
+			setup: ["from-worktree"],
+			teardown: ["repo-teardown"],
+		});
+	});
+
+	it("user override still beats the worktree config", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoConfig(worktreePath, { setup: ["from-worktree"] });
+		writeUserOverride(sandbox.homeDir, PROJECT_ID, {
+			setup: ["from-user"],
+		});
+
+		const result = loadSetupConfig({
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			worktreePath,
+			homeDir: sandbox.homeDir,
+		});
+
+		expect(result?.setup).toEqual(["from-user"]);
+	});
+
+	it("prefers the worktree's config.local.json overlay when present", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["base"] });
+		writeRepoLocalConfig(sandbox.repoPath, {
+			setup: { before: ["repo-local"] },
+		});
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoLocalConfig(worktreePath, {
+			setup: { before: ["worktree-local"] },
+		});
+
+		const result = loadSetupConfig({
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			worktreePath,
+			homeDir: sandbox.homeDir,
+		});
+
+		expect(result?.setup).toEqual(["worktree-local", "base"]);
+	});
+
+	it("resolves the user override by repo path", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		writeUserOverrideByPath(sandbox.homeDir, sandbox.repoPath, {
+			setup: ["from-path-override"],
+		});
+
+		const result = load();
+		expect(result?.setup).toEqual(["from-path-override"]);
+	});
+
+	it("path-keyed user override wins over the legacy id-keyed one", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		writeUserOverrideByPath(sandbox.homeDir, sandbox.repoPath, {
+			setup: ["from-path-override"],
+		});
+		writeUserOverride(sandbox.homeDir, PROJECT_ID, {
+			setup: ["from-id-override"],
+		});
+
+		const result = load();
+		expect(result?.setup).toEqual(["from-path-override"]);
 	});
 
 	it("user override only sets keys it explicitly defines", () => {
@@ -321,17 +415,145 @@ describe("hasConfiguredScripts", () => {
 	});
 });
 
-describe("getResolvedSetupCommands", () => {
-	it("returns empty for null config", () => {
-		expect(getResolvedSetupCommands(null)).toEqual([]);
+describe("resolveScript", () => {
+	let sandbox: Sandbox;
+
+	beforeEach(() => {
+		sandbox = createSandbox();
 	});
 
-	it("filters out empty and whitespace-only entries", () => {
+	afterEach(() => {
+		sandbox.cleanup();
+	});
+
+	function resolve(key: "setup" | "teardown" | "run") {
+		return resolveScript(key, {
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			homeDir: sandbox.homeDir,
+		});
+	}
+
+	function writeFallbackScript(key: string) {
+		const dir = join(sandbox.repoPath, ".superset");
+		mkdirSync(dir, { recursive: true });
+		const scriptPath = join(dir, `${key}.sh`);
+		writeFileSync(scriptPath, "#!/usr/bin/env bash\n", "utf-8");
+		return scriptPath;
+	}
+
+	it("returns null when no config and no fallback script exist", () => {
+		expect(resolve("setup")).toBeNull();
+		expect(resolve("teardown")).toBeNull();
+		expect(resolve("run")).toBeNull();
+	});
+
+	it("returns configured commands, filtering empty entries", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			teardown: ["docker compose down", "", "   ", "rm -rf .cache"],
+		});
+		expect(resolve("teardown")).toEqual({
+			kind: "commands",
+			commands: ["docker compose down", "rm -rf .cache"],
+		});
+	});
+
+	it("only resolves the requested key", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["bun install"] });
+		expect(resolve("setup")).toEqual({
+			kind: "commands",
+			commands: ["bun install"],
+		});
+		expect(resolve("teardown")).toBeNull();
+		expect(resolve("run")).toBeNull();
+	});
+
+	it("falls back to <repoPath>/.superset/<key>.sh per key", () => {
+		const setupScript = writeFallbackScript("setup");
+		const teardownScript = writeFallbackScript("teardown");
+		expect(resolve("setup")).toEqual({
+			kind: "script",
+			scriptPath: setupScript,
+		});
+		expect(resolve("teardown")).toEqual({
+			kind: "script",
+			scriptPath: teardownScript,
+		});
+		expect(resolve("run")).toBeNull();
+	});
+
+	it("prefers the worktree script when worktreePath is in scope", () => {
+		writeFallbackScript("teardown");
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+		const worktreeScript = join(worktreePath, ".superset", "teardown.sh");
+		writeFileSync(worktreeScript, "#!/usr/bin/env bash\n", "utf-8");
+
 		expect(
-			getResolvedSetupCommands({
-				setup: ["bun install", "", "   ", "bun run db:migrate"],
+			resolveScript("teardown", {
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
 			}),
-		).toEqual(["bun install", "bun run db:migrate"]);
+		).toEqual({ kind: "script", scriptPath: worktreeScript });
+	});
+
+	it("falls back to the main repo script when the worktree has none", () => {
+		const teardownScript = writeFallbackScript("teardown");
+		expect(
+			resolveScript("teardown", {
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath: join(sandbox.repoPath, ".worktrees", "feature"),
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ kind: "script", scriptPath: teardownScript });
+	});
+
+	it("worktree config commands override the main repo's", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoConfig(worktreePath, { setup: ["from-worktree"] });
+
+		expect(
+			resolveScript("setup", {
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ kind: "commands", commands: ["from-worktree"] });
+	});
+
+	it("configured commands win over the fallback script", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["bun install"] });
+		writeFallbackScript("setup");
+		expect(resolve("setup")).toEqual({
+			kind: "commands",
+			commands: ["bun install"],
+		});
+	});
+
+	it("carries cwd on both command and script resolutions", () => {
+		writeRepoConfig(sandbox.repoPath, { cwd: "apps/web", run: ["bun dev"] });
+		const teardownScript = writeFallbackScript("teardown");
+		expect(resolve("run")).toEqual({
+			kind: "commands",
+			commands: ["bun dev"],
+			cwd: "apps/web",
+		});
+		expect(resolve("teardown")).toEqual({
+			kind: "script",
+			scriptPath: teardownScript,
+			cwd: "apps/web",
+		});
+	});
+});
+
+describe("shellSingleQuote", () => {
+	it("escapes embedded single quotes", () => {
+		expect(shellSingleQuote("it's a path")).toBe("'it'\\''s a path'");
 	});
 });
 

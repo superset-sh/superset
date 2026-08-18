@@ -24,24 +24,24 @@ interface SetupProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	projectId: string;
+	projectName?: string;
 	hostUrl: string | null;
 	hostName: string;
 	repoCloneUrl: string | null;
 	isRemoteTarget: boolean;
 	onChanged?: () => void;
-	onConflict: (conflict: { id: string; name: string }) => void;
 }
 
 export function SetupProjectModal({
 	open,
 	onOpenChange,
 	projectId,
+	projectName,
 	hostUrl,
 	hostName,
 	repoCloneUrl,
 	isRemoteTarget,
 	onChanged,
-	onConflict,
 }: SetupProjectModalProps) {
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
@@ -107,6 +107,9 @@ export function SetupProjectModal({
 			const client = getHostServiceClientByUrl(hostUrl);
 			const result = await client.project.setup.mutate({
 				projectId,
+				// Coordinates from the host fan-out: local-first projects created
+				// on another host have no cloud row for the target host to read.
+				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "clone", parentDir: trimmed },
 			});
 			toast.success(`Cloned to ${result.repoPath}`);
@@ -142,17 +145,9 @@ export function SetupProjectModal({
 		setWorking(true);
 		try {
 			const client = getHostServiceClientByUrl(hostUrl);
-			const precheck = await client.project.findBackfillConflict.query({
-				projectId,
-				repoPath: trimmed,
-			});
-			if (precheck.conflict) {
-				onConflict(precheck.conflict);
-				onOpenChange(false);
-				return;
-			}
 			const result = await client.project.setup.mutate({
 				projectId,
+				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "import", repoPath: trimmed, allowRelocate: false },
 			});
 			toast.success(`Project set up at ${result.repoPath}`);

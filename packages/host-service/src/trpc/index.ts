@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { HostServiceContext } from "../types";
@@ -10,7 +11,7 @@ import {
 	type TeardownFailureCause,
 } from "./error-types";
 
-interface RouterMeta {
+export interface RouterMeta {
 	/**
 	 * Per-procedure timeout in milliseconds, applied to query procedures
 	 * via `queryProcedure`. Defaults to 5_000 when omitted. Set higher for
@@ -64,10 +65,43 @@ const t = initTRPC
 		},
 	});
 
-export const router = t.router;
-export const publicProcedure = t.procedure;
+/**
+ * Middleware that reports unhandled errors to Sentry.
+ *
+ * Contract: expected domain states are translated by routers/adapters into
+ * non-500 TRPCErrors before they get here. Anything still
+ * INTERNAL_SERVER_ERROR at this boundary is a bug and is always reported —
+ * fix the missing translation at the throw site, never add a filter here.
+ */
+const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
+	const result = await next();
 
-export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+	if (!result.ok && result.error.code === "INTERNAL_SERVER_ERROR") {
+		const error = result.error;
+		const originalError = error.cause instanceof Error ? error.cause : error;
+
+		Sentry.captureException(originalError, {
+			tags: {
+				trpc_path: path,
+				trpc_type: type,
+				trpc_code: error.code,
+			},
+			extra: {
+				trpc_message: error.message,
+			},
+		});
+	}
+
+	return result;
+});
+
+const baseProcedure = t.procedure.use(sentryMiddleware);
+
+export const router = t.router;
+export const createCallerFactory = t.createCallerFactory;
+export const publicProcedure = baseProcedure;
+
+export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
 	if (!ctx.isAuthenticated) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
@@ -76,6 +110,33 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 	}
 	return next({ ctx });
 });
+
+/**
+ * For procedures that only make sense on a machine someone owns.
+ *
+ * A cloud workspace's sandbox is one repo, one project, one workspace, fixed
+ * at provision: the checkout *is* the workspace and there is no base repo to
+ * branch from. Adding a project, removing the only one, or cutting a worktree
+ * inside it produces state the cloud side can neither see nor clean up. The
+ * check lives here rather than in each caller because the callers are
+ * whatever runs in the sandbox — an agent, the CLI, a shell — not just our
+ * own UI.
+ *
+ * Reads `process.env` rather than the validated `env`: importing that here
+ * would drag full env validation into the import graph of every consumer of
+ * the router, including tests that have no reason to supply one.
+ */
+export const machineOnlyProcedure = protectedProcedure.use(
+	async ({ ctx, next, path }) => {
+		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: `${path} is not available in a cloud workspace: its sandbox holds exactly one project and one workspace.`,
+			});
+		}
+		return next({ ctx });
+	},
+);
 
 const DEFAULT_QUERY_TIMEOUT_MS = 5_000;
 
@@ -119,4 +180,5 @@ export type {
 	ProjectNotSetupCause,
 	TeardownFailureCause,
 } from "./error-types";
+// INTERIM cross-runtime types via dist-types — see docs/interim-router-types.md
 export type { AppRouter } from "./router";

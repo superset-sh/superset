@@ -16,14 +16,21 @@ import {
 	useChangesSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
 import { PathActionsMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PathActionsMenuItems";
-import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 
 interface FileRowContextMenuItemsProps {
 	file: ChangesetFile;
 	worktreePath?: string;
 	sectionKind: "unstaged" | "staged" | "against-base" | "commit";
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 	/**
@@ -54,6 +61,7 @@ export function FileRowContextMenuItems({
 		: undefined;
 	const canDiscard = sectionKind === "unstaged";
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
+	const changeKey = getChangesetFileKey(file);
 
 	const policy = useChangesSidebarFilePolicy();
 	const diffNewTabTier = policy.tierForIntent("diffNewTab");
@@ -62,11 +70,15 @@ export function FileRowContextMenuItems({
 
 	return (
 		<>
-			<DropdownMenuItem onSelect={() => onSelectFile?.(file.path)}>
+			<DropdownMenuItem
+				onSelect={() => onSelectFile?.(file.path, false, changeKey)}
+			>
 				<GitCompare />
 				Open Diff
 			</DropdownMenuItem>
-			<DropdownMenuItem onSelect={() => onSelectFile?.(file.path, true)}>
+			<DropdownMenuItem
+				onSelect={() => onSelectFile?.(file.path, true, changeKey)}
+			>
 				<SquarePlus />
 				Open Diff in New Tab
 				{diffNewTabTier && (

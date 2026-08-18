@@ -1,5 +1,6 @@
-import { boolean, positional, string } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
 export default command({
 	description: "Update an automation's metadata (name, schedule, agent, host)",
@@ -15,11 +16,21 @@ export default command({
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
-		mcpScope: string().desc("Comma-separated MCP scope strings"),
+		session: boolean().desc(
+			"Switch to session mode: no project, each run creates a project-less session workspace",
+		),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
+
+		// Validate before any mutation — setEnabled below must not run for a
+		// rejected invocation.
+		if (options.session && (options.workspace || options.project)) {
+			throw new CLIError(
+				"--session cannot be combined with --project or --workspace",
+			);
+		}
 
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
@@ -28,13 +39,28 @@ export default command({
 			});
 		}
 
-		const mcpScope =
-			options.mcpScope !== undefined
-				? options.mcpScope
-						.split(",")
-						.map((s) => s.trim())
-						.filter(Boolean)
-				: undefined;
+		// Retargeting (--workspace or --project) re-derives targetHostId +
+		// v2ProjectId; the resource must exist on the target host.
+		let target:
+			| { targetHostId: string; v2ProjectId: string | null }
+			| undefined;
+		if (options.workspace || options.project) {
+			const organizationId = ctx.config.organizationId;
+			if (!organizationId) {
+				throw new CLIError(
+					"No active organization",
+					"Run: superset auth login",
+				);
+			}
+			target = await resolveAutomationTarget({
+				organizationId,
+				userJwt: ctx.bearer,
+				api: ctx.api,
+				hostId: options.host ?? undefined,
+				workspaceId: options.workspace ?? undefined,
+				projectId: options.project ?? undefined,
+			});
+		}
 
 		const result = await ctx.api.automation.update.mutate({
 			id,
@@ -50,7 +76,9 @@ export default command({
 			...(options.workspace !== undefined
 				? { v2WorkspaceId: options.workspace }
 				: {}),
-			...(mcpScope !== undefined ? { mcpScope } : {}),
+			// Session mode clears both the project and any workspace pin.
+			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
+			...target,
 		});
 
 		return {

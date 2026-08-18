@@ -129,39 +129,3 @@ describe("bug-hunt-v2: workspaceCreation.adopt cross-project safety", () => {
 		).rejects.toThrow();
 	});
 });
-
-describe("bug-hunt-v2: chat.sendMessage cloud failure must not break the turn", () => {
-	let host: TestHost;
-	const sessionId = randomUUID();
-	const workspaceId = randomUUID();
-
-	const stubChatRuntime = {
-		sendMessage: async () => ({ ok: true, messageId: "m1" }),
-	};
-
-	beforeEach(async () => {
-		host = await createTestHost({
-			chatRuntime: stubChatRuntime,
-			apiOverrides: {
-				"chat.updateSession.mutate": () => {
-					throw new Error("cloud-down");
-				},
-			},
-		});
-	});
-
-	afterEach(async () => {
-		await host.dispose();
-	});
-
-	test("chat.sendMessage swallows cloud chat.updateSession failures", async () => {
-		// The procedure does `void ctx.api.chat.updateSession.mutate(...).catch(() => {})`
-		// — the user-visible turn must not fail because of a cloud blip.
-		const result = await host.trpc.chat.sendMessage.mutate({
-			sessionId,
-			workspaceId,
-			payload: { content: "hi" },
-		});
-		expect(result).toBeDefined();
-	});
-});

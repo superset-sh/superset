@@ -1,7 +1,9 @@
 import { isAbsolute, normalize, resolve, sep } from "node:path";
 import { projects, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import type { PathValidationCode } from "shared/changes-types";
 
 /**
  * Security model for desktop app filesystem access:
@@ -22,33 +24,35 @@ import { localDb } from "main/lib/local-db";
  * - Defense in depth against path manipulation
  *
  * SYMLINK PROTECTION:
- * - Filesystem operations should delegate to `workspace-fs`, which enforces
- *   workspace-boundary and symlink-escape checks for reads and writes.
+ * - Filesystem operations should delegate to `workspace-fs`. Mutations are
+ *   confined to the workspace root; reads are host-wide, but file-content
+ *   reads (`readFile`) still reject in-workspace symlinks that resolve
+ *   outside the root, so a malicious repo can't disguise a sensitive host
+ *   file's contents as a workspace file. `listDirectory`/`getMetadata` don't
+ *   apply this check: `getMetadata` lstats (never follows links) and
+ *   directory listings only expose entry names.
  * - This module remains focused on registered-worktree and relative-path validation.
  */
 
-/**
- * Security error codes for path validation failures.
- */
-export type PathValidationErrorCode =
-	| "ABSOLUTE_PATH"
-	| "PATH_TRAVERSAL"
-	| "UNREGISTERED_WORKTREE"
-	| "INVALID_TARGET"
-	| "SYMLINK_ESCAPE";
+const PATH_VALIDATION_TO_TRPC: Record<PathValidationCode, TRPCError["code"]> = {
+	// A worktree that was deleted while a poller still references it is the
+	// common case — a missing resource, not a server fault.
+	UNREGISTERED_WORKTREE: "NOT_FOUND",
+	ABSOLUTE_PATH: "BAD_REQUEST",
+	PATH_TRAVERSAL: "BAD_REQUEST",
+	INVALID_TARGET: "BAD_REQUEST",
+	SYMLINK_ESCAPE: "FORBIDDEN",
+};
 
-/**
- * Error thrown when path validation fails.
- * Includes a code for programmatic handling.
- */
-export class PathValidationError extends Error {
-	constructor(
-		message: string,
-		public readonly code: PathValidationErrorCode,
-	) {
-		super(message);
-		this.name = "PathValidationError";
-	}
+function pathValidationError(
+	message: string,
+	code: PathValidationCode,
+): TRPCError {
+	return new TRPCError({
+		code: PATH_VALIDATION_TO_TRPC[code],
+		message,
+		cause: { kind: "PATH_VALIDATION", code },
+	});
 }
 
 /**
@@ -59,7 +63,7 @@ export class PathValidationError extends Error {
  * - Worktree paths (from worktrees table)
  * - Project mainRepoPath (for branch workspaces that work on the main repo)
  *
- * @throws PathValidationError if path is not registered
+ * @throws TRPCError if path is not registered
  */
 export function assertRegisteredWorktree(workspacePath: string): void {
 	// Check worktrees table first (most common case)
@@ -84,7 +88,7 @@ export function assertRegisteredWorktree(workspacePath: string): void {
 		return;
 	}
 
-	throw new PathValidationError(
+	throw pathValidationError(
 		"Workspace path not registered in database",
 		"UNREGISTERED_WORKTREE",
 	);
@@ -94,7 +98,7 @@ export function assertRegisteredWorktree(workspacePath: string): void {
  * Gets the worktree record if registered. Returns record for updates.
  * Only works for actual worktrees, not project mainRepoPath.
  *
- * @throws PathValidationError if worktree is not registered
+ * @throws TRPCError if worktree is not registered
  */
 export function getRegisteredWorktree(
 	worktreePath: string,
@@ -106,7 +110,7 @@ export function getRegisteredWorktree(
 		.get();
 
 	if (!worktree) {
-		throw new PathValidationError(
+		throw pathValidationError(
 			"Worktree not registered in database",
 			"UNREGISTERED_WORKTREE",
 		);
@@ -130,7 +134,7 @@ export interface ValidatePathOptions {
  * Validates a relative file path for safety.
  * Rejects absolute paths and path traversal attempts.
  *
- * @throws PathValidationError if path is invalid
+ * @throws TRPCError if path is invalid
  */
 export function validateRelativePath(
 	filePath: string,
@@ -140,7 +144,7 @@ export function validateRelativePath(
 
 	// Reject absolute paths
 	if (isAbsolute(filePath)) {
-		throw new PathValidationError(
+		throw pathValidationError(
 			"Absolute paths are not allowed",
 			"ABSOLUTE_PATH",
 		);
@@ -151,18 +155,12 @@ export function validateRelativePath(
 
 	// Reject ".." as a path segment (allows "..foo" directories)
 	if (segments.includes("..")) {
-		throw new PathValidationError(
-			"Path traversal not allowed",
-			"PATH_TRAVERSAL",
-		);
+		throw pathValidationError("Path traversal not allowed", "PATH_TRAVERSAL");
 	}
 
 	// Reject root path unless explicitly allowed
 	if (!allowRoot && (normalized === "" || normalized === ".")) {
-		throw new PathValidationError(
-			"Cannot target worktree root",
-			"INVALID_TARGET",
-		);
+		throw pathValidationError("Cannot target worktree root", "INVALID_TARGET");
 	}
 }
 
@@ -173,7 +171,7 @@ export function validateRelativePath(
  * @param filePath - The relative file path to validate
  * @param options - Validation options
  * @returns The resolved full path
- * @throws PathValidationError if path is invalid
+ * @throws TRPCError if path is invalid
  */
 export function resolvePathInWorktree(
 	worktreePath: string,
@@ -188,7 +186,7 @@ export function resolvePathInWorktree(
 /**
  * Validates a path for git commands. Lighter check that allows root.
  *
- * @throws PathValidationError if path is invalid
+ * @throws TRPCError if path is invalid
  */
 export function assertValidGitPath(filePath: string): void {
 	validateRelativePath(filePath, { allowRoot: true });

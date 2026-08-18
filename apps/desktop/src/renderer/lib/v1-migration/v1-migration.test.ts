@@ -1,0 +1,563 @@
+import { describe, expect, test } from "bun:test";
+import type { HostServiceClient } from "renderer/lib/host-service-client";
+import { resolvePresetImport } from "./presets";
+import {
+	decideProjectImport,
+	importV1Project,
+	type ProjectFindByPathResult,
+} from "./projects";
+import { planHostBranchPrefix, planProjectPrefs } from "./settings";
+import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
+import { planWorkspaceAdoptions } from "./workspaces";
+
+type Candidate = { id: string; source: string };
+const findByPath = (candidates: Candidate[], cloudErrors: unknown[] = []) =>
+	// Structural subset of ProjectFindByPathResult — decideProjectImport only
+	// reads candidates/cloudErrors.
+	({ candidates, cloudErrors }) as Parameters<typeof decideProjectImport>[0];
+
+describe("decideProjectImport", () => {
+	test("local-path candidate means already imported", () => {
+		expect(
+			decideProjectImport(
+				findByPath([
+					{ id: "cloud-1", source: "github-remote" },
+					{ id: "v2-local", source: "local-path" },
+				]),
+			),
+		).toEqual({ kind: "already-imported", v2ProjectId: "v2-local" });
+	});
+
+	test("multiple cloud candidates need a human", () => {
+		expect(
+			decideProjectImport(
+				findByPath([
+					{ id: "a", source: "github-remote" },
+					{ id: "b", source: "github-remote" },
+				]),
+			),
+		).toEqual({ kind: "skip", reason: "multiple-candidates" });
+	});
+
+	test("no candidates but cloud errors: don't risk a duplicate", () => {
+		expect(
+			decideProjectImport(findByPath([], [{ url: "x", message: "boom" }])),
+		).toEqual({ kind: "skip", reason: "cloud-unreachable" });
+	});
+
+	test("single candidate or none imports", () => {
+		expect(
+			decideProjectImport(findByPath([{ id: "a", source: "github-remote" }])),
+		).toEqual({ kind: "import" });
+		expect(decideProjectImport(findByPath([]))).toEqual({ kind: "import" });
+	});
+});
+
+describe("importV1Project appearance carry", () => {
+	const v1Project = {
+		id: "v1-1",
+		name: "proj",
+		mainRepoPath: "/tmp/proj",
+		githubOwner: null,
+		color: "#112233",
+		hideImage: false,
+	};
+
+	function fakeHostClient(created: boolean | undefined) {
+		const setColorCalls: unknown[] = [];
+		const client = {
+			project: {
+				create: {
+					mutate: async () => ({
+						projectId: "p-new",
+						mainWorkspaceId: "w-1",
+						repoPath: "/tmp/proj",
+						created,
+					}),
+				},
+				setColor: {
+					mutate: async (input: unknown) => {
+						setColorCalls.push(input);
+					},
+				},
+				setIcon: { mutate: async () => {} },
+				setup: {
+					mutate: async () => {
+						throw new Error("setup should not be called");
+					},
+				},
+			},
+		} as unknown as HostServiceClient;
+		return { client, setColorCalls };
+	}
+
+	const emptyFindByPath = {
+		candidates: [],
+		cloudErrors: [],
+	} as unknown as ProjectFindByPathResult;
+
+	test("skips appearance carry when the host reused an existing project", async () => {
+		const { client, setColorCalls } = fakeHostClient(false);
+		const result = await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(result.kind).toBe("imported");
+		expect(setColorCalls).toHaveLength(0);
+	});
+
+	test("carries appearance for newly created projects", async () => {
+		const { client, setColorCalls } = fakeHostClient(true);
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(setColorCalls).toHaveLength(1);
+	});
+
+	test("carries appearance when an older host omits the created field", async () => {
+		const { client, setColorCalls } = fakeHostClient(undefined);
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(setColorCalls).toHaveLength(1);
+	});
+});
+
+describe("planWorkspaceAdoptions", () => {
+	const base = {
+		v1WorktreesById: new Map([
+			["wt-1", { id: "wt-1", path: "/tree/feat", baseBranch: "main" }],
+		]),
+		v2ProjectIdByV1ProjectId: new Map([["v1-proj", "v2-proj"]]),
+		hostWorkspaces: [{ id: "v2-ws", projectId: "v2-proj", branch: "done" }],
+		onDiskBranchesByV2ProjectId: new Map([
+			["v2-proj", new Set(["feat", "done"])],
+		]),
+	};
+	const ws = (
+		over: Partial<
+			Parameters<typeof planWorkspaceAdoptions>[0]["v1Workspaces"][0]
+		>,
+	) => ({
+		id: "v1-ws",
+		projectId: "v1-proj",
+		worktreeId: "wt-1" as string | null,
+		name: "Feat",
+		branch: "feat",
+		...over,
+	});
+
+	test("adoptable workspace carries worktree path and base branch", () => {
+		const plan = planWorkspaceAdoptions({ ...base, v1Workspaces: [ws({})] });
+		expect(plan.toAdopt).toEqual([
+			{
+				v1WorkspaceId: "v1-ws",
+				v1ProjectId: "v1-proj",
+				v2ProjectId: "v2-proj",
+				name: "Feat",
+				branch: "feat",
+				worktreePath: "/tree/feat",
+				baseBranch: "main",
+			},
+		]);
+	});
+
+	test("branch already on host is linked, not re-adopted", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "done" })],
+		});
+		expect(plan.toAdopt).toHaveLength(0);
+		expect(plan.alreadyAdopted[0]?.v2WorkspaceId).toBe("v2-ws");
+	});
+
+	test("branch with no on-disk worktree is unadoptable", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ branch: "gone" })],
+		});
+		expect(plan.missingWorktree).toHaveLength(1);
+		expect(plan.toAdopt).toHaveLength(0);
+	});
+
+	test("unknown on-disk state stays adoptable (adopt decides)", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			onDiskBranchesByV2ProjectId: new Map(),
+			v1Workspaces: [ws({ branch: "gone", worktreeId: null })],
+		});
+		expect(plan.toAdopt).toHaveLength(1);
+		expect(plan.toAdopt[0]?.worktreePath).toBeUndefined();
+	});
+
+	test("unmapped project defers the workspace", () => {
+		const plan = planWorkspaceAdoptions({
+			...base,
+			v1Workspaces: [ws({ projectId: "other" })],
+		});
+		expect(plan.unmappedProject).toEqual(["v1-ws"]);
+	});
+});
+
+describe("resolvePresetImport", () => {
+	const agents = [{ id: "agent-cfg-1", presetId: "claude" }];
+
+	test("built-in preset links to its agent config and keeps v2 on collision", () => {
+		const resolved = resolvePresetImport({ name: "claude" }, agents, [
+			{ name: "Claude Code", agentId: "agent-cfg-1" },
+		]);
+		expect(resolved.linkedAgentId).toBe("agent-cfg-1");
+		expect(resolved.alreadyImported).toBe(true);
+	});
+
+	test("custom preset dedups by name", () => {
+		expect(
+			resolvePresetImport({ name: "my setup" }, agents, [
+				{ name: "my setup", agentId: null },
+			]).alreadyImported,
+		).toBe(true);
+		expect(
+			resolvePresetImport({ name: "my setup" }, agents, []).alreadyImported,
+		).toBe(false);
+	});
+
+	test("built-in preset without an agent config links to the raw agent id", () => {
+		const resolved = resolvePresetImport({ name: "claude" }, [], []);
+		expect(resolved.linkedAgentId).toBe("claude");
+		expect(resolved.alreadyImported).toBe(false);
+	});
+});
+
+describe("planHostBranchPrefix", () => {
+	test("copies v1 prefix onto an unconfigured host", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "github", customPrefix: null },
+				{ mode: "none", customPrefix: null },
+			),
+		).toEqual({ action: "set", mode: "github", customPrefix: null });
+	});
+
+	test("custom mode carries its prefix string", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "custom", customPrefix: "kiet/" },
+				{ mode: null, customPrefix: null },
+			),
+		).toEqual({ action: "set", mode: "custom", customPrefix: "kiet/" });
+	});
+
+	test("configured host wins (keep-v2)", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "github", customPrefix: null },
+				{ mode: "author", customPrefix: null },
+			),
+		).toEqual({ action: "keep-v2" });
+	});
+
+	test("unconfigured v1 does nothing", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "none", customPrefix: null },
+				{ mode: "none", customPrefix: null },
+			).action,
+		).toBe("nothing");
+		expect(
+			planHostBranchPrefix(
+				{ mode: null, customPrefix: null },
+				{ mode: "github", customPrefix: null },
+			).action,
+		).toBe("nothing");
+	});
+});
+
+describe("planProjectPrefs", () => {
+	const noPrefs = {
+		worktreeBaseDir: null,
+		branchPrefixMode: null,
+		branchPrefixCustom: null,
+	};
+
+	test("no v1 overrides means nothing to record", () => {
+		expect(planProjectPrefs(noPrefs, noPrefs)).toBeNull();
+	});
+
+	test("applies v1 overrides where v2 is unset", () => {
+		expect(
+			planProjectPrefs(
+				{
+					worktreeBaseDir: "/trees",
+					branchPrefixMode: "custom",
+					branchPrefixCustom: "team/",
+				},
+				noPrefs,
+			),
+		).toEqual({
+			setWorktreeBaseDir: "/trees",
+			setBranchPrefix: { mode: "custom", customPrefix: "team/" },
+			keptV2: false,
+		});
+	});
+
+	test("keeps v2 values that are already configured", () => {
+		expect(
+			planProjectPrefs(
+				{
+					worktreeBaseDir: "/v1-trees",
+					branchPrefixMode: "github",
+					branchPrefixCustom: null,
+				},
+				{
+					worktreeBaseDir: "/v2-trees",
+					branchPrefixMode: null,
+					branchPrefixCustom: null,
+				},
+			),
+		).toEqual({
+			setWorktreeBaseDir: null,
+			setBranchPrefix: { mode: "github", customPrefix: null },
+			keptV2: true,
+		});
+	});
+});
+
+describe("planTerminalMigration", () => {
+	const panes = [
+		{ paneId: "pane-1", v1WorkspaceId: "v1-ws", cwd: "/repo/feat" },
+		{ paneId: "pane-2", v1WorkspaceId: "v1-ws", cwd: null },
+		{ paneId: "pane-3", v1WorkspaceId: "v1-unmapped", cwd: "/x" },
+	];
+	let n = 0;
+	const plan = planTerminalMigration({
+		v1TerminalPanes: panes,
+		v2WorkspaceIdByV1WorkspaceId: new Map([["v1-ws", "v2-ws"]]),
+		newTerminalId: () => `term-${++n}`,
+	});
+
+	test("mapped panes queue under their v2 workspace with fresh ids", () => {
+		expect(plan.pendingByV2WorkspaceId.get("v2-ws")).toEqual([
+			{ terminalId: "term-1", cwd: "/repo/feat", v1PaneId: "pane-1" },
+			{ terminalId: "term-2", cwd: null, v1PaneId: "pane-2" },
+		]);
+		expect(plan.terminalIdByPaneId.get("pane-1")).toBe("term-1");
+	});
+
+	test("panes on unmigrated workspaces defer", () => {
+		expect(plan.deferredPaneIds).toEqual(["pane-3"]);
+		expect(plan.terminalIdByPaneId.has("pane-3")).toBe(false);
+	});
+});
+
+describe("resolveMigratedPaneResume", () => {
+	const session = {
+		agentId: "claude",
+		agentSessionId: "sess-1",
+		prompted: true,
+	};
+
+	test("offers a prompted, un-ended session for resume", () => {
+		expect(resolveMigratedPaneResume(session)).toEqual({
+			agentId: "claude",
+			agentSessionId: "sess-1",
+		});
+	});
+
+	test("never offers a never-prompted session (no persisted conversation)", () => {
+		expect(
+			resolveMigratedPaneResume({ ...session, prompted: false }),
+		).toBeNull();
+	});
+
+	test("never offers a session the agent quit cleanly", () => {
+		expect(resolveMigratedPaneResume({ ...session, endedAt: 123 })).toBeNull();
+	});
+
+	test("handles absent captures", () => {
+		expect(resolveMigratedPaneResume(undefined)).toBeNull();
+	});
+});
+
+// --- flip gate + completion markers (2026-08-01 fixes) ---
+
+import {
+	consumeV1ContinuityPending,
+	consumeV1WelcomePending,
+	isForcedFlipVersion,
+	isV1FollowUpPending,
+	isV1WelcomePending,
+	markV1MigrationComplete,
+	peekV1ContinuityPending,
+	setV1FollowUpPending,
+	V1_MIGRATION_COMPLETED_EVENT,
+} from "./completion";
+import { computeGateComplete, type KindSummary } from "./summary";
+import { v1MigrationEventProps } from "./telemetry";
+
+const summary = (overrides: Partial<KindSummary> = {}): KindSummary => ({
+	migrated: 0,
+	linked: 0,
+	skipped: 0,
+	failed: 0,
+	deferred: 0,
+	...overrides,
+});
+
+describe("computeGateComplete", () => {
+	test("deliberate skips do not block the flip", () => {
+		// The common aged-install shape: some workspaces have no worktree on
+		// disk anymore, some repos are ambiguous — nothing left to migrate.
+		expect(
+			computeGateComplete(summary({ skipped: 2 }), summary({ skipped: 24 })),
+		).toBe(true);
+	});
+
+	test("failures block the flip", () => {
+		expect(computeGateComplete(summary({ failed: 1 }), summary())).toBe(false);
+		expect(computeGateComplete(summary(), summary({ failed: 1 }))).toBe(false);
+	});
+
+	test("deferred work blocks the flip", () => {
+		expect(computeGateComplete(summary({ deferred: 1 }), summary())).toBe(
+			false,
+		);
+		expect(computeGateComplete(summary(), summary({ deferred: 3 }))).toBe(
+			false,
+		);
+	});
+
+	test("clean pass completes the gate", () => {
+		expect(
+			computeGateComplete(
+				summary({ migrated: 2, linked: 1 }),
+				summary({ migrated: 5, linked: 3 }),
+			),
+		).toBe(true);
+	});
+});
+
+describe("isForcedFlipVersion", () => {
+	test("disabled while unset", () => {
+		expect(isForcedFlipVersion("1.19.0", null)).toBe(false);
+	});
+
+	test("flips at or past the forced version", () => {
+		expect(isForcedFlipVersion("1.19.0", "1.19.0")).toBe(true);
+		expect(isForcedFlipVersion("1.20.1", "1.19.0")).toBe(true);
+		expect(isForcedFlipVersion("1.18.2", "1.19.0")).toBe(false);
+	});
+
+	test("tolerates missing or invalid versions", () => {
+		expect(isForcedFlipVersion(undefined, "1.19.0")).toBe(false);
+		expect(isForcedFlipVersion("not-a-version", "1.19.0")).toBe(false);
+	});
+});
+
+describe("completion markers", () => {
+	// completion.ts reads the global localStorage inside try/catch; give the
+	// bun test runtime a Map-backed shim.
+	const store = new Map<string, string>();
+	// @ts-expect-error minimal Storage shim for tests
+	globalThis.localStorage = {
+		getItem: (k: string) => store.get(k) ?? null,
+		setItem: (k: string, v: string) => void store.set(k, String(v)),
+		removeItem: (k: string) => void store.delete(k),
+		get length() {
+			return store.size;
+		},
+	};
+
+	test("continuity peek is non-destructive; consume is one-shot", () => {
+		markV1MigrationComplete("org-peek");
+		expect(peekV1ContinuityPending("org-peek")).toBe(true);
+		expect(peekV1ContinuityPending("org-peek")).toBe(true);
+		expect(consumeV1ContinuityPending("org-peek")).toBe(true);
+		expect(peekV1ContinuityPending("org-peek")).toBe(false);
+		expect(consumeV1ContinuityPending("org-peek")).toBe(false);
+	});
+
+	test("re-completion does not re-arm continuity", () => {
+		markV1MigrationComplete("org-rearm");
+		expect(consumeV1ContinuityPending("org-rearm")).toBe(true);
+		markV1MigrationComplete("org-rearm");
+		expect(peekV1ContinuityPending("org-rearm")).toBe(false);
+	});
+
+	test("first completion dispatches the flip-notice event exactly once", () => {
+		const events: string[] = [];
+		// Scoped DOM shims: bun runs every test file in one process, so a
+		// leaked global `window` makes browser-gated modules in OTHER files
+		// (theme store) take their renderer-only paths and crash.
+		const g = globalThis as Record<string, unknown>;
+		const prevWindow = g.window;
+		const prevCustomEvent = g.CustomEvent;
+		try {
+			g.CustomEvent = class {
+				type: string;
+				detail: unknown;
+				constructor(type: string, init?: { detail?: unknown }) {
+					this.type = type;
+					this.detail = init?.detail;
+				}
+			};
+			g.window = {
+				dispatchEvent: (e: { type: string }) => {
+					events.push(e.type);
+					return true;
+				},
+			};
+			markV1MigrationComplete("org-evt");
+			markV1MigrationComplete("org-evt"); // re-completion: no re-dispatch
+			expect(events).toEqual([V1_MIGRATION_COMPLETED_EVENT]);
+		} finally {
+			if (prevWindow === undefined) delete g.window;
+			else g.window = prevWindow;
+			if (prevCustomEvent === undefined) delete g.CustomEvent;
+			else g.CustomEvent = prevCustomEvent;
+		}
+	});
+
+	test("first completion arms the post-flip welcome; consume is dismiss-time", () => {
+		markV1MigrationComplete("org-welcome");
+		expect(isV1WelcomePending("org-welcome")).toBe(true);
+		expect(isV1WelcomePending("org-welcome")).toBe(true); // read is non-destructive
+		consumeV1WelcomePending("org-welcome");
+		expect(isV1WelcomePending("org-welcome")).toBe(false);
+		markV1MigrationComplete("org-welcome"); // re-completion never re-arms
+		expect(isV1WelcomePending("org-welcome")).toBe(false);
+	});
+
+	test("follow-up flag set/clear round-trips", () => {
+		expect(isV1FollowUpPending("org-fu")).toBe(false);
+		setV1FollowUpPending("org-fu", true);
+		expect(isV1FollowUpPending("org-fu")).toBe(true);
+		setV1FollowUpPending("org-fu", false);
+		expect(isV1FollowUpPending("org-fu")).toBe(false);
+	});
+});
+
+describe("v1MigrationEventProps", () => {
+	test("flattens per-kind counts into snake_case numeric props", () => {
+		const props = v1MigrationEventProps({
+			projects: summary({ failed: 2 }),
+			workspaces: summary({ skipped: 23, migrated: 1 }),
+			presets: summary({ linked: 6 }),
+			settings: summary(),
+			terminals: summary({ migrated: 1 }),
+			gateComplete: false,
+		});
+		expect(props.gate_complete).toBe(false);
+		expect(props.projects_failed).toBe(2);
+		expect(props.workspaces_skipped).toBe(23);
+		expect(props.workspaces_migrated).toBe(1);
+		expect(props.presets_linked).toBe(6);
+		expect(props.terminals_migrated).toBe(1);
+		// 5 kinds x 5 counters + gate_complete
+		expect(Object.keys(props)).toHaveLength(26);
+	});
+});

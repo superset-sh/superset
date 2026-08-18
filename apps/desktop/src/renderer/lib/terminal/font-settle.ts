@@ -50,20 +50,11 @@ export async function waitForFontReady({
 	}
 }
 
-/**
- * Wait for the terminal's configured font to load, then run a refit.
- * Shared between v1 and v2 — both need identical
- * "measured-too-early" recovery after `terminal.open()` and after
- * font-setting changes. `refit` should return true iff terminal dimensions
- * changed (so the caller can propagate to the PTY). `isAlive` is checked
- * after the await to bail when the terminal has been disposed/detached
- * while the font was loading.
- */
+/** Wait for the configured font to load, then run a refit if still attached. */
 export function scheduleFontSettleRefit(
 	terminal: XTerm,
 	isAlive: () => boolean,
-	refit: () => boolean,
-	onDimensionsChanged?: () => void,
+	refit: () => void,
 ): void {
 	const fontFamily = String(terminal.options.fontFamily ?? "").trim();
 	if (!fontFamily) return;
@@ -71,7 +62,6 @@ export function scheduleFontSettleRefit(
 
 	void waitForFontReady({ fontFamily, fontSize }).then(() => {
 		if (!isAlive()) return;
-		const changed = refit();
-		if (changed) onDimensionsChanged?.();
+		refit();
 	});
 }

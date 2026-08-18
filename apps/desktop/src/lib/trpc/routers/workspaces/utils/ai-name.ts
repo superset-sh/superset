@@ -1,6 +1,6 @@
-import { generateTitleFromMessage } from "@superset/chat/server/desktop";
-import { getSmallModel } from "@superset/chat/server/shared";
 import { workspaces } from "@superset/local-db";
+import { generateTitleFromMessage } from "@superset/provider-auth/server";
+import { getSmallModel } from "@superset/provider-auth/server/shared";
 import { deriveWorkspaceTitleFromPrompt } from "@superset/shared/workspace-launch";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -43,7 +43,7 @@ export async function generateWorkspaceNameFromPrompt(prompt: string): Promise<{
 				agentId: "workspace-namer",
 				agentName: "Workspace Namer",
 				instructions:
-					"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.",
+					"You generate concise workspace titles. 20 characters or less. Write the title in the same language as the user's message. Return ONLY the title, nothing else.",
 				tracingContext: { surface: "workspace-auto-name" },
 			});
 			if (generated !== null && generated !== undefined) {

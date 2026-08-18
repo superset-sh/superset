@@ -1,8 +1,5 @@
-import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
@@ -13,7 +10,6 @@ import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
-import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
 import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
@@ -21,7 +17,6 @@ import type { SidebarTabDefinition } from "./types";
 // Gates the "Create PR" button only — the chat-driven create flow doesn't
 // exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
 // always renders so users can see PR state and merge once a PR exists.
-const CREATE_PR_BUTTON_ENABLED = false;
 
 type SidebarTabId = "changes" | "files" | "review";
 
@@ -43,46 +38,19 @@ interface WorkspaceSidebarProps {
 		openInNewTab?: boolean,
 		line?: number,
 		side?: DiffFocusSide,
+		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
 	workspaceId: string;
 }
 
-function IconButton({
-	icon: Icon,
-	tooltip,
-	onClick,
-}: {
-	icon: React.ComponentType<{ className?: string }>;
-	tooltip: string;
-	onClick?: () => void;
-}) {
-	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="size-6"
-					onClick={onClick}
-				>
-					<Icon className="size-3.5" />
-				</Button>
-			</TooltipTrigger>
-			<TooltipContent side="bottom">{tooltip}</TooltipContent>
-		</Tooltip>
-	);
-}
-
 export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
-	onOpenChat,
 	onSearch,
 	selectedFilePath,
 	pendingReveal,
@@ -129,7 +97,10 @@ export function WorkspaceSidebar({
 	const changesTabDef = useChangesTab({
 		workspaceId,
 		selectedFilePath,
-		onSelectFile: onSelectDiffFile,
+		onSelectFile: onSelectDiffFile
+			? (path, openInNewTab, changeKey) =>
+					onSelectDiffFile(path, openInNewTab, undefined, undefined, changeKey)
+			: undefined,
 		onOpenFile: onSelectFile,
 	});
 	const changesTab: SidebarTabDefinition = {
@@ -150,15 +121,10 @@ export function WorkspaceSidebar({
 	});
 
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
-	const dispatch = usePRFlowDispatch({
-		onOpenChat: onOpenChat ?? (() => {}),
-	});
-
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
 		label: "Files",
 		icon: LuFile,
-		actions: <IconButton icon={Search} tooltip="Search" onClick={onSearch} />,
 		content: (
 			<FilesTab
 				onSelectFile={onSelectFile}
@@ -166,6 +132,7 @@ export function WorkspaceSidebar({
 				pendingReveal={pendingReveal}
 				workspaceId={workspaceId}
 				gitStatus={gitStatus.data}
+				onSearch={onSearch}
 			/>
 		),
 	};
@@ -181,9 +148,7 @@ export function WorkspaceSidebar({
 			<PRActionHeader
 				workspaceId={workspaceId}
 				state={flowState}
-				dispatch={dispatch}
 				onRetry={onRetry}
-				createPREnabled={CREATE_PR_BUTTON_ENABLED}
 			/>
 			<SidebarHeader
 				tabs={tabs}

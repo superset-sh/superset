@@ -1,16 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
 import type { HostDb } from "../../db";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
+import { resolveScript, shellSingleQuote } from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
-export const TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.sh";
 const OUTPUT_TAIL_BYTES = 4096;
 const KILL_GRACE_MS = 2_000;
 
@@ -31,14 +29,24 @@ interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
 	worktreePath: string;
+	/** Main repo path — source of truth for `.superset/config.json`. */
+	repoPath: string;
+	projectId: string;
 	timeoutMs?: number;
+	/** Override $HOME for tests. Defaults to `os.homedir()`. */
+	homeDir?: string;
 }
 
 /**
- * Runs `.superset/teardown.sh` inside the workspace, reusing the same
- * terminal primitive v2 uses for interactive sessions. This gives the
- * script full environment parity with the user's terminals (login shell
- * rcfiles, PATH, nvm/rbenv, etc.), matching how setup.sh runs.
+ * Runs the workspace's teardown, reusing the same terminal primitive v2 uses
+ * for interactive sessions. This gives it full environment parity with the
+ * user's terminals (login shell rcfiles, PATH, nvm/rbenv, etc.), matching how
+ * setup runs.
+ *
+ * The teardown to run is resolved by {@link resolveTeardownCommand}: the
+ * configured `teardown` commands from `.superset/config.json` take precedence,
+ * falling back to a `.superset/teardown.sh` script (worktree first, then main
+ * repo). Skipped (as a success) when no source resolves to anything runnable.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -47,19 +55,27 @@ export async function runTeardown({
 	db,
 	workspaceId,
 	worktreePath,
+	repoPath,
+	projectId,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
+	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) return { status: "skipped" };
+	const resolved = resolveTeardownCommand({
+		repoPath,
+		projectId,
+		worktreePath,
+		homeDir,
+	});
+	if (resolved === null) return { status: "skipped" };
 
 	const terminalId = randomUUID();
-	const initialCommand = buildTeardownInitialCommand(scriptPath);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
 		workspaceId,
 		db,
-		initialCommand,
+		initialCommand: resolved.initialCommand,
+		...(resolved.cwd && { cwd: resolved.cwd }),
 		listed: false,
 	});
 	if ("error" in session) {
@@ -137,14 +153,50 @@ export async function runTeardown({
 	});
 }
 
+/**
+ * Resolve the teardown command for a workspace, if any. Uses the shared
+ * lifecycle-script posture (see `resolveScript`): configured `teardown`
+ * commands — joined with ` && ` so a failing command short-circuits, worktree
+ * config overriding the main repo's — then a `teardown.sh` script, worktree
+ * first (state generated during the session must win) and main repo second
+ * (gitignored scripts don't exist in worktrees).
+ *
+ * Returns null when no source resolves to anything runnable, which the
+ * caller treats as a skipped (successful) teardown.
+ *
+ * Exported for tests.
+ */
+export function resolveTeardownCommand(args: {
+	repoPath: string;
+	projectId: string;
+	worktreePath: string;
+	/** Override $HOME for tests. */
+	homeDir?: string;
+}): { initialCommand: string; cwd?: string } | null {
+	const resolved = resolveScript("teardown", args);
+	if (!resolved) return null;
+
+	const initialCommand =
+		resolved.kind === "commands"
+			? buildTeardownCommandFromShell(resolved.commands.join(" && "))
+			: buildTeardownInitialCommand(resolved.scriptPath);
+	return { initialCommand, ...(resolved.cwd && { cwd: resolved.cwd }) };
+}
+
 export function buildTeardownInitialCommand(scriptPath: string): string {
 	// `exec` replaces the user's login shell with the teardown process. That
 	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
 	// and leaves the hidden teardown terminal open until timeout.
-	return `exec bash ${singleQuote(scriptPath)}`;
+	return `exec bash ${shellSingleQuote(scriptPath)}`;
 }
 
-/** POSIX single-quote escape: safe for any byte sequence in a path. */
-function singleQuote(s: string): string {
-	return `'${s.replaceAll("'", "'\\''")}'`;
+/**
+ * Build the initial command for configured `teardown` commands. The joined
+ * command runs via `bash -c` so multiple `&&`-chained entries execute in one
+ * shell; `exec` still replaces the login shell so the hidden PTY exits with
+ * the teardown status (and avoids fish `$?` breakage), matching the script
+ * form above.
+ */
+export function buildTeardownCommandFromShell(shellCommand: string): string {
+	return `exec bash -c ${shellSingleQuote(shellCommand)}`;
 }

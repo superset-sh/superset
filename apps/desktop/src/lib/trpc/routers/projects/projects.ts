@@ -44,6 +44,7 @@ import {
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { rethrowEnvironmentalGitError } from "../workspaces/utils/git-errors";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
@@ -593,7 +594,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -749,7 +753,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -766,7 +773,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						hasOrigin = remotes.some((r) => r.name === "origin");
 					} catch {}
 
-					const branchSummary = await git.branch(["-a"]);
+					const branchSummary = await git
+						.branch(["-a"])
+						.catch((error: unknown) => {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: error instanceof Error ? error.message : String(error),
+							});
+						});
 
 					const localBranchSet = new Set<string>();
 					const remoteBranchSet = new Set<string>();
@@ -943,7 +957,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -1171,7 +1188,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				const { defaultBranch } = await initGitRepo(input.path);
+				let defaultBranch: string;
+				try {
+					({ defaultBranch } = await initGitRepo(input.path));
+				} catch (error) {
+					rethrowEnvironmentalGitError(error);
+					throw error;
+				}
 
 				const project = upsertProject(input.path, defaultBranch);
 				await ensureMainWorkspace(project);

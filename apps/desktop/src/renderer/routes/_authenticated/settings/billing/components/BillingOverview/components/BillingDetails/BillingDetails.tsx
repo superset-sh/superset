@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
 import stripeLinkIcon from "renderer/assets/stripe-link.png";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -70,8 +71,12 @@ export function BillingDetails() {
 			if (result?.url) {
 				openUrl.mutate(result.url);
 			}
-		} catch {
-			// Silently handle
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Failed to open the billing portal",
+			);
 		} finally {
 			setOpeningPortal(null);
 		}

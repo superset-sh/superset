@@ -108,7 +108,7 @@ export function WorkspaceRow({
 						)}
 					</div>
 				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={4}>
+				<TooltipContent side="top">
 					{isBranch ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
@@ -232,6 +232,7 @@ export function WorkspaceRow({
 			{isClosedWorktree && workspace.worktreeId && (
 				<DeleteWorktreeDialog
 					worktreeId={workspace.worktreeId}
+					worktreePath={workspace.worktreePath}
 					worktreeName={workspace.name}
 					open={showDeleteDialog}
 					onOpenChange={setShowDeleteDialog}

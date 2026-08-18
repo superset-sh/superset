@@ -3,7 +3,12 @@ import type { ElementType } from "react";
 import type { HotkeyId } from "renderer/hotkeys/registry";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
 
-export type SectionId = "workspace" | "actions" | "navigation";
+export type SectionId =
+	| "workspace"
+	| "actions"
+	| "navigation"
+	| "add-project"
+	| "dev";
 
 export interface CommandContext {
 	route: {
@@ -14,7 +19,7 @@ export interface CommandContext {
 		id: string;
 		name: string;
 		projectId?: string;
-		workspaceType?: "main" | "worktree";
+		workspaceType?: "main" | "worktree" | "session";
 		hostId?: string;
 		preferredOpenInApp?: ExternalApp;
 	} | null;

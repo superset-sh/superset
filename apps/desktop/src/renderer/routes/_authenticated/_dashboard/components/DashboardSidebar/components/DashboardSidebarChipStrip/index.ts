@@ -1,0 +1,1 @@
+export { DashboardSidebarChipStrip } from "./DashboardSidebarChipStrip";

@@ -9,6 +9,7 @@ import {
 	simulateUpdateReady,
 } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
+import { confirmAndQuitCompletely } from "./quit-completely";
 
 export function createApplicationMenu() {
 	const reloadAccelerator = "CmdOrCtrl+R";
@@ -62,12 +63,27 @@ export function createApplicationMenu() {
 						BrowserWindow.getFocusedWindow()?.reload();
 					},
 				},
-				{ role: "forceReload" },
+				// Explicit click handler (not `role: "forceReload"`) — the role adds
+				// an implicit CmdOrCtrl+Shift+R accelerator that prevents the renderer's
+				// Reopen Closed Tab shortcut from receiving the event.
+				{
+					label: "Force Reload",
+					click: () => {
+						BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache();
+					},
+				},
 				{ role: "toggleDevTools" },
 				{ type: "separator" },
 				{ role: "resetZoom" },
 				{ role: "zoomIn" },
 				{ role: "zoomOut" },
+				{ type: "separator" },
+				{
+					label: "Toggle Presets Bar",
+					click: () => {
+						menuEmitter.emit("toggle-presets-bar");
+					},
+				},
 				{ type: "separator" },
 				{ role: "togglefullscreen" },
 			],
@@ -79,6 +95,22 @@ export function createApplicationMenu() {
 				{ role: "zoom" },
 				{ type: "separator" },
 				{ role: "close", accelerator: closeAccelerator },
+			],
+		},
+		{
+			label: "Resources",
+			submenu: [
+				// No accelerator here: on macOS, a menu accelerator is always live
+				// and would bypass the renderer's user-customizable CHECK_RESOURCES
+				// binding (Settings > Keyboard). The default shortcut stays
+				// discoverable via the command palette and keyboard settings, both
+				// of which reflect the user's actual current/overridden binding.
+				{
+					label: "Check Resources",
+					click: () => {
+						menuEmitter.emit("check-resources");
+					},
+				},
 			],
 		},
 		{
@@ -184,6 +216,12 @@ export function createApplicationMenu() {
 				{ role: "unhide" },
 				{ type: "separator" },
 				{ role: "quit" },
+				{
+					label: "Quit Superset Completely",
+					click: () => {
+						void confirmAndQuitCompletely();
+					},
+				},
 			],
 		});
 	} else {

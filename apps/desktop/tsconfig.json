@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"types": ["bun"],
 		"paths": {
+			"@superset/chat-runtime": ["../../packages/chat-runtime/src/index.ts"],
 			"*": ["./src/*"],
 			"~/*": ["./*"]
 		}

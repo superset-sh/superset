@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { dbWs } from "@superset/db/client";
 import { automationRuns, automations } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
@@ -101,6 +101,7 @@ export async function POST(request: Request): Promise<Response> {
 		})
 		.onConflictDoUpdate({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
+			targetWhere: sql`${automationRuns.scheduledFor} IS NOT NULL`,
 			set: { status: "dispatch_failed", error: errorText },
 		});
 

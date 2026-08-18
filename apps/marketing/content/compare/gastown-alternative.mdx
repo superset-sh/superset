@@ -1,0 +1,99 @@
+---
+title: "Best Gas Town Alternatives in 2026"
+description: "The best alternatives to Gas Town for orchestrating fleets of AI coding agents, including Superset, Agent Orchestrator, Herdr, Firstmate, and Symphony."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "roundup"
+competitors:
+  - gastown
+  - agent-orchestrator
+  - herdr
+  - firstmate
+  - symphony
+keywords:
+  - gas town alternative
+  - gastown alternatives
+  - steve yegge gas town
+  - multi agent orchestration
+  - ai agent fleet
+---
+
+Gas Town is Steve Yegge's MIT-licensed orchestrator for running 20-30 coding agents on a sustained, autonomous basis: an AI Mayor dispatches work from a git-backed ledger, watchdogs recover stuck agents, and a bisecting merge queue lands the results. It is also heavy machinery -- Go, Dolt, tmux, and Beads to operate, a single-operator model, an admittedly steep bar, and token costs its author warns about outright. Here are the best Gas Town alternatives in 2026.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Platform | License |
+|---|---|---|---|
+| **Superset** | Fleet-scale parallel agents with visibility, review, and automations | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Agent Orchestrator** | Automatic CI/review feedback loops per session | macOS, Windows, Linux | Open source (Apache-2.0) |
+| **Herdr** | Persistent terminal runtime for many agents | macOS, Linux, Windows (beta) | Open source (Apache-2.0) |
+| **Firstmate** | Lightweight crew delegation, nothing to install | Terminal (macOS, Linux) | Open source (MIT) |
+| **Symphony** | Tracker-driven autonomous Codex runs | Headless daemon | Open source (Apache-2.0) |
+
+## Why Look for a Gas Town Alternative?
+
+Gas Town optimizes for maximum autonomy per operator, and the costs follow: real infrastructure to run, a terminal-and-tmux workflow with no desktop app or diff-review surface, no teams or multi-host story, and sustained token spend from always-running loops. Most engineers want fleet-scale parallelism with more visibility and less machinery.
+
+## The Best Alternatives
+
+### Superset
+
+Superset scales to large agent fleets while keeping humans usefully in the loop: any CLI agent in automatic worktree isolation, every terminal and diff visible in one workspace, orchestrating agents that spawn workers through the CLI and MCP server, and scheduled automations with a TypeScript SDK and Slack bot for the unattended slice. It installs as a desktop app, works across your machines via remote and cloud workspaces, and has team plans -- the fleet without the factory floor.
+
+For the direct comparison, see [Superset vs Gas Town](/compare/superset-vs-gastown).
+
+### Agent Orchestrator
+
+Agent Orchestrator (Apache-2.0, from Untrivial AI) packages Gas Town's most valuable behavior -- agents that respond to CI failures, review comments, and merge conflicts automatically -- as config-driven "reactions" in a cross-platform desktop app, without the Dolt/tmux operational stack.
+
+See [Superset vs Agent Orchestrator](/compare/superset-vs-agent-orchestrator).
+
+### Herdr
+
+Herdr covers the runtime layer: an always-on server that keeps dozens of agent terminals alive with status visualization, worktree management in the CLI, and a JSON socket API. You bring the coordination; it brings the persistence.
+
+See [Superset vs Herdr](/compare/superset-vs-herdr).
+
+### Firstmate
+
+Firstmate is the featherweight take on Gas Town's delegation idea: an MIT "agent distro" where one agent you talk to spawns and supervises crewmates in tmux windows and disposable worktrees. No daemon, no database -- just instructions and scripts.
+
+See [Superset vs Firstmate](/compare/superset-vs-firstmate).
+
+### Symphony
+
+Symphony, OpenAI's open-source spec and reference daemon, shares Gas Town's unattended ethos with a simpler control plane: your issue tracker. Tickets become isolated autonomous Codex runs that end in PRs. Codex-only and an engineering preview, but far less machinery.
+
+See [Superset vs Symphony](/compare/superset-vs-symphony).
+
+## How To Choose
+
+- For fleet-scale agents with visibility, review, and team features, choose **Superset**.
+- For packaged CI/review feedback loops, choose **Agent Orchestrator**.
+- For terminal persistence under your own coordination, choose **Herdr**.
+- For the lightest possible crew model, choose **Firstmate**.
+- For tracker-driven full autonomy on Codex, choose **Symphony**.
+
+## Verdict
+
+Gas Town is the boldest autonomy experiment in the category and its ideas -- the work ledger, the merge queue -- will outlive any single tool. But its own author frames the operator bar and costs honestly. For most engineers and teams that want many agents shipping real work, Superset is the strongest alternative, with Agent Orchestrator as the open-source pick for automated feedback loops. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best Gas Town alternative?
+
+For most teams, Superset: fleet-scale parallel agents in worktrees with visibility, review, automations, and multi-device reach, without operating a daemon stack. Agent Orchestrator is the closest open-source alternative for automated PR feedback loops.
+
+### Is there a Gas Town alternative with a GUI?
+
+Yes -- that is most of this list. Superset and Agent Orchestrator are desktop apps; Gas Town is CLI/tmux with a TUI feed and a local web dashboard.
+
+### Which alternatives support agents besides Claude Code?
+
+All of them except Symphony (Codex-only). Gas Town itself also ships presets for Codex, Gemini, Copilot, Cursor, and others, with Claude Code as the deepest integration.
+
+### Can any alternative match Gas Town's merge queue?
+
+Not directly. Agent Orchestrator automates CI-fix and review loops but never auto-merges; Superset routes work through normal PR review. Gas Town's bisecting Refinery remains unique -- and remains the part that demands the most trust.

@@ -13,20 +13,31 @@ type TerminalAgentBindings = Awaited<
 export type TerminalAgentBinding = TerminalAgentBindings[number];
 
 /**
+ * Keyed by workspaceId alone (globally unique): hostUrl in the key meant a
+ * host-service port change cold-started every agent chip. The queryFn
+ * resolves the current host URL at fetch time.
+ */
+export function getTerminalAgentBindingsQueryKey(workspaceId: string) {
+	return ["terminal-agent-bindings", workspaceId] as const;
+}
+
+/**
  * Map of `terminalId → agent binding` for a workspace, read from the host
  * store and invalidated on `agent:lifecycle` / `terminal:lifecycle` events.
  */
 export function useTerminalAgentBindings(
 	workspaceId: string,
+	options?: { enabled?: boolean },
 ): Map<string, TerminalAgentBinding> {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
-		() => ["terminal-agent-bindings", hostUrl, workspaceId] as const,
-		[hostUrl, workspaceId],
+		() => getTerminalAgentBindingsQueryKey(workspaceId),
+		[workspaceId],
 	);
 
-	const enabled = Boolean(workspaceId) && Boolean(hostUrl);
+	const enabled =
+		(options?.enabled ?? true) && Boolean(workspaceId) && Boolean(hostUrl);
 
 	const { data } = useQuery({
 		queryKey,
@@ -37,8 +48,10 @@ export function useTerminalAgentBindings(
 				hostUrl,
 			).terminalAgents.listByWorkspace.query({ workspaceId });
 		},
-		refetchOnWindowFocus: false,
-		staleTime: Number.POSITIVE_INFINITY,
+		// Lifecycle events invalidate for instant updates; the finite
+		// staleTime lets focus/remount refetches self-heal any staleness
+		// from events missed while the WS was down (host restart, sleep).
+		staleTime: 30_000,
 	});
 
 	const invalidate = useCallback(() => {

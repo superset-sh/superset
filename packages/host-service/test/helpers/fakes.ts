@@ -1,6 +1,5 @@
 import type { ApiAuthProvider } from "../../src/providers/auth";
 import type { HostAuthProvider } from "../../src/providers/host-auth";
-import type { ModelProviderRuntimeResolver } from "../../src/providers/model-providers";
 import type { GitCredentialProvider } from "../../src/runtime/git/types";
 import type { ApiClient } from "../../src/types";
 
@@ -31,13 +30,6 @@ export class MemoryGitCredentialProvider implements GitCredentialProvider {
 	async getToken(): Promise<string | null> {
 		return this.token;
 	}
-}
-
-export class FakeModelResolver implements ModelProviderRuntimeResolver {
-	async hasUsableRuntimeEnv(): Promise<boolean> {
-		return true;
-	}
-	async prepareRuntimeEnv(): Promise<void> {}
 }
 
 /**

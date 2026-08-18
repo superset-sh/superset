@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { formatDistanceToNow } from "date-fns";
 import { FaGithub } from "react-icons/fa";
 import { LuGitBranch } from "react-icons/lu";
 import type { V2WorkspacePrSummary } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
@@ -18,7 +17,8 @@ export function V2WorkspacePrHoverCardContent({
 	branch,
 }: V2WorkspacePrHoverCardContentProps) {
 	const showChecks =
-		(pr.state === "open" || pr.state === "draft") && pr.checksStatus !== "none";
+		(pr.state === "open" || pr.state === "draft" || pr.state === "queued") &&
+		pr.checksStatus !== "none";
 
 	return (
 		<div className="space-y-3">
@@ -35,27 +35,17 @@ export function V2WorkspacePrHoverCardContent({
 			</div>
 
 			<div className="space-y-2 border-t border-border pt-2">
-				<div className="flex items-center justify-between gap-2">
-					<div className="flex flex-wrap items-center gap-1.5">
-						<span className="text-xs font-medium text-muted-foreground">
-							#{pr.prNumber}
-						</span>
-						<PrStateBadge state={pr.state} />
-						{pr.state === "open" || pr.state === "draft" ? (
-							<ReviewStatusBadge status={pr.reviewDecision} />
-						) : null}
-					</div>
-					<div className="flex shrink-0 items-center gap-1.5 font-mono text-xs">
-						<span className="text-emerald-500">+{pr.additions}</span>
-						<span className="text-destructive-foreground">-{pr.deletions}</span>
-					</div>
+				<div className="flex flex-wrap items-center gap-1.5">
+					<span className="text-xs font-medium text-muted-foreground">
+						#{pr.prNumber}
+					</span>
+					<PrStateBadge state={pr.state} />
+					{pr.state === "open" || pr.state === "draft" ? (
+						<ReviewStatusBadge status={pr.reviewDecision} />
+					) : null}
 				</div>
 
 				<p className="line-clamp-2 text-xs leading-relaxed">{pr.title}</p>
-
-				<span className="block text-[10px] text-muted-foreground">
-					Updated {formatDistanceToNow(pr.updatedAt, { addSuffix: true })}
-				</span>
 
 				{showChecks ? (
 					<div className="space-y-2 pt-1">

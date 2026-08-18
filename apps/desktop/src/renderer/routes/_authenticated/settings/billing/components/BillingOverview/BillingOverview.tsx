@@ -1,12 +1,14 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -24,7 +26,8 @@ interface BillingOverviewProps {
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
+	const searchQuery = useSettingsSearchQuery();
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
@@ -38,27 +41,23 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	);
 	const isOwner = currentMember?.role === "owner";
 
-	// Get subscription from Electric (preloaded, instant)
-	const { data: subscriptionsData } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
-	const subscriptionData = subscriptionsData?.find(
-		(s) => s.status === "active",
-	);
+	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 
-	// Derive plan from subscription data (not session, which can be stale)
-	const plan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
+	// The subscription row wins over the session (which can lag a checkout), but
+	// an unresolved query must not read as "free" — fall back to the session plan
+	// until it arrives.
+	const plan: PlanTier = resolveCurrentPlan({
+		subscriptionPlan: activePlan?.plan,
+		sessionPlan: session?.session?.plan,
+		subscriptionsLoaded: activePlan !== undefined,
+	});
 
-	// Get member count from Electric
-	const { data: membersData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.select(({ members }) => ({ id: members.id })),
-		[collections],
-	);
-	const memberCount = membersData ? membersData.length : undefined;
+	const { data: membersData } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
+	// Seats are billed from this — never derive it from an unresolved query.
+	// undefined (not 0) keeps the upgrade action disabled until it loads.
+	const memberCount =
+		membersData && membersData.length > 0 ? membersData.length : undefined;
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -90,6 +89,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			);
 		} finally {
 			setIsUpgrading(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -113,6 +113,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			);
 		} finally {
 			setIsCanceling(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -127,6 +128,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			toast.success("Plan restored");
 		} finally {
 			setIsRestoring(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -138,7 +140,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 					<p className="text-sm text-muted-foreground mt-1">
 						For questions about billing,{" "}
 						<a
-							href="mailto:founders@superset.sh"
+							href="mailto:support@superset.sh"
 							className="text-primary hover:underline"
 						>
 							contact us
@@ -148,7 +150,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				</div>
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing/plans">
-						All plans
+						<HighlightText text="All plans" query={searchQuery} />
 						<HiArrowRight className="h-3 w-3" />
 					</Link>
 				</Button>
@@ -165,8 +167,8 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 								isCanceling={isCanceling}
 								onRestore={handleRestore}
 								isRestoring={isRestoring}
-								cancelAt={subscriptionData?.cancelAt}
-								periodEnd={subscriptionData?.periodEnd}
+								cancelAt={activePlan?.cancelAt}
+								periodEnd={activePlan?.periodEnd}
 							/>
 							{plan === "free" && (
 								<UpgradeCard

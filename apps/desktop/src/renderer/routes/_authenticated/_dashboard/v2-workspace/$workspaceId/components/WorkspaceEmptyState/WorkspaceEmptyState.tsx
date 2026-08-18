@@ -3,6 +3,7 @@ import type { IconType } from "react-icons";
 import { BsTerminalPlus } from "react-icons/bs";
 import { LuSearch } from "react-icons/lu";
 import { TbMessageCirclePlus, TbWorld } from "react-icons/tb";
+import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import supersetEmptyStateWordmark from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/assets/superset-empty-state-wordmark.svg";
 import { EmptyTabActionButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/components/EmptyTabActionButton";
@@ -10,7 +11,7 @@ import { useTheme } from "renderer/stores/theme";
 
 interface WorkspaceEmptyStateProps {
 	onOpenBrowser: () => void;
-	onOpenChat: () => void;
+	onOpenChatV3?: (() => void) | undefined;
 	onOpenQuickOpen: () => void;
 	onOpenTerminal: () => void;
 }
@@ -25,13 +26,12 @@ interface WorkspaceEmptyStateAction {
 
 export function WorkspaceEmptyState({
 	onOpenBrowser,
-	onOpenChat,
+	onOpenChatV3,
 	onOpenQuickOpen,
 	onOpenTerminal,
 }: WorkspaceEmptyStateProps) {
 	const activeTheme = useTheme();
 	const { keys: newGroupDisplay } = useHotkeyDisplay("NEW_GROUP");
-	const { keys: newChatDisplay } = useHotkeyDisplay("NEW_CHAT");
 	const { keys: newBrowserDisplay } = useHotkeyDisplay("NEW_BROWSER");
 	const { keys: quickOpenDisplay } = useHotkeyDisplay("QUICK_OPEN");
 
@@ -44,13 +44,17 @@ export function WorkspaceEmptyState({
 				icon: BsTerminalPlus,
 				onClick: onOpenTerminal,
 			},
-			{
-				id: "chat",
-				label: "Open Chat",
-				display: newChatDisplay,
-				icon: TbMessageCirclePlus,
-				onClick: onOpenChat,
-			},
+			...(onOpenChatV3
+				? [
+						{
+							id: "chat-v3",
+							label: "Open Chat v3",
+							display: [],
+							icon: TbMessageCirclePlus,
+							onClick: onOpenChatV3,
+						},
+					]
+				: []),
 			{
 				id: "browser",
 				label: "Open Browser",
@@ -68,10 +72,9 @@ export function WorkspaceEmptyState({
 		],
 		[
 			newBrowserDisplay,
-			newChatDisplay,
 			newGroupDisplay,
 			onOpenBrowser,
-			onOpenChat,
+			onOpenChatV3,
 			onOpenQuickOpen,
 			onOpenTerminal,
 			quickOpenDisplay,
@@ -104,6 +107,7 @@ export function WorkspaceEmptyState({
 						/>
 					))}
 				</div>
+				<GitHubStarPill className="mt-6" />
 			</div>
 		</div>
 	);

@@ -1,14 +1,28 @@
 import { Workspace } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
+import { ZoomStable } from "renderer/components/ZoomStable";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkey } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
+import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
+import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
+import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
+import {
+	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+	useWorkspaceSidebarStore,
+} from "renderer/stores/workspace-sidebar-state";
+import { StateScreenShell } from "../components/StateScreenShell";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { BackgroundTerminalsButton } from "./components/BackgroundTerminalsButton";
@@ -18,15 +32,18 @@ import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
 import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellInteractionPassthrough";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
+import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
-import { useDirtyTabCloseGuard } from "./hooks/useDirtyTabCloseGuard";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useSlotElement } from "./hooks/useSlotElement";
+import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
 import { useV2WorkspacePaneLayout } from "./hooks/useV2WorkspacePaneLayout";
@@ -41,7 +58,6 @@ import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 
 interface WorkspaceSearch {
 	terminalId?: string;
-	chatSessionId?: string;
 	focusRequestId?: string;
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
@@ -65,7 +81,6 @@ export const Route = createFileRoute(
 	component: V2WorkspacePage,
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
 		terminalId: parseNonEmptyString(raw.terminalId),
-		chatSessionId: parseNonEmptyString(raw.chatSessionId),
 		focusRequestId: parseNonEmptyString(raw.focusRequestId),
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
@@ -85,16 +100,18 @@ function V2WorkspacePage() {
 
 	if (workspaceStatusQuery.data?.worktreeExists === false) {
 		return (
-			<WorkspaceMissingWorktreeState
-				workspaceId={workspace.id}
-				workspaceName={workspace.name}
-				branch={workspace.branch}
-				worktreePath={workspaceStatusQuery.data?.worktreePath}
-				onRefresh={() => {
-					void workspaceStatusQuery.refetch();
-				}}
-				isRefreshing={workspaceStatusQuery.isFetching}
-			/>
+			<StateScreenShell>
+				<WorkspaceMissingWorktreeState
+					workspaceId={workspace.id}
+					workspaceName={workspace.name}
+					branch={workspace.branch}
+					worktreePath={workspaceStatusQuery.data?.worktreePath}
+					onRefresh={() => {
+						void workspaceStatusQuery.refetch();
+					}}
+					isRefreshing={workspaceStatusQuery.isFetching}
+				/>
+			</StateScreenShell>
 		);
 	}
 
@@ -104,7 +121,6 @@ function V2WorkspacePage() {
 function V2WorkspaceContent() {
 	const {
 		terminalId,
-		chatSessionId,
 		focusRequestId,
 		openUrl,
 		openUrlTarget,
@@ -122,7 +138,7 @@ function V2WorkspaceContent() {
 	} = useV2UserPreferences();
 	const showPresetsBar = v2UserPreferences.showPresetsBar;
 	const sidebarOpen = v2UserPreferences.rightSidebarOpen;
-	const { store } = useV2WorkspacePaneLayout();
+	const { store, isLayoutReady } = useV2WorkspacePaneLayout();
 	useClearActivePaneAttention({ store });
 	const launcher = useV2TerminalLauncher();
 	const {
@@ -144,9 +160,10 @@ function V2WorkspaceContent() {
 		store,
 		workspaceId,
 		terminalId,
-		chatSessionId,
 		focusRequestId,
 	});
+	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });
+	useAutoAdoptBackgroundSessions({ store, workspaceId, isLayoutReady });
 	useConsumeOpenUrlRequest({
 		store,
 		url: openUrl,
@@ -180,7 +197,7 @@ function V2WorkspaceContent() {
 	const {
 		openDiffPane,
 		addTerminalTab,
-		addChatTab,
+		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
 	} = useWorkspacePaneOpeners({
@@ -189,6 +206,7 @@ function V2WorkspaceContent() {
 		newTabPresets,
 		executePreset,
 	});
+	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 
 	const quickOpenOpen = useQuickOpenStore(
 		(s) => s.open && s.target?.workspaceId === workspaceId,
@@ -216,7 +234,7 @@ function V2WorkspaceContent() {
 		[openFilePaneFromTreeClick, setRightSidebarOpen, setRightSidebarTab],
 	);
 	const defaultPaneActions = useDefaultPaneActions({ launcher });
-	const onBeforeCloseTab = useDirtyTabCloseGuard();
+	const onBeforeCloseTab = useTabCloseGuard();
 
 	// Fallback for rows persisted before the rightSidebarWidth field existed —
 	// the live collection skips zod defaults, so an older row reads undefined
@@ -234,19 +252,8 @@ function V2WorkspaceContent() {
 	);
 
 	// The sidebar slot lives at the dashboard layout level (next to TopBar) so
-	// the sidebar runs full-height. The slot is mounted by the parent layout
-	// before this child renders, so look it up synchronously during state init —
-	// otherwise users with rightSidebarOpen=true persisted see a 1-frame flash
-	// while the post-mount effect fills the ref.
-	const [sidebarSlotEl, setSidebarSlotEl] = useState<HTMLElement | null>(() =>
-		typeof document !== "undefined"
-			? document.getElementById("workspace-right-sidebar-slot")
-			: null,
-	);
-	useEffect(() => {
-		if (sidebarSlotEl) return;
-		setSidebarSlotEl(document.getElementById("workspace-right-sidebar-slot"));
-	}, [sidebarSlotEl]);
+	// the sidebar runs full-height.
+	const sidebarSlotEl = useSlotElement("workspace-right-sidebar-slot");
 
 	useWorkspaceHotkeys({
 		store,
@@ -255,11 +262,24 @@ function V2WorkspaceContent() {
 		addTerminalTab,
 		paneRegistry,
 		launcher,
+		onBeforeCloseTab,
 	});
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 	useHotkey("RUN_WORKSPACE_COMMAND", () => {
 		void workspaceRun.toggleWorkspaceRun();
 	});
+
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	// Default to Mac while loading so window controls don't flash in.
+	const isMac = platform === undefined || platform === "darwin";
+	const zoomFactor = useZoomFactor();
+	const isSidebarPanelOpen = useWorkspaceSidebarStore((s) => s.isOpen);
+	const isSidebarPanelCollapsed = useWorkspaceSidebarStore((s) =>
+		s.isCollapsed(),
+	);
+	// With the sidebar collapsed the TopBar is hidden, so the tab bar hosts the
+	// traffic-light overhang past the rail plus the sidebar/nav controls.
+	const tabBarHostsChrome = isSidebarPanelOpen && isSidebarPanelCollapsed;
 
 	const workspaceRunButton = (
 		<V2WorkspaceRunButton
@@ -303,33 +323,60 @@ function V2WorkspaceContent() {
 										executePreset={executePreset}
 										showPresetsBar={showPresetsBar}
 										onToggleShowPresetsBar={setShowPresetsBar}
-										trailing={workspaceRunButton}
 									/>
-								) : (
-									<div className="flex h-8 min-w-0 shrink-0 items-center border-b border-border bg-background px-2">
-										{workspaceRunButton}
-									</div>
-								)
+								) : null
 							}
 							renderAddTabMenu={() => (
 								<AddTabMenu
 									onAddTerminal={addTerminalTab}
-									onAddChat={addChatTab}
+									onAddChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onAddBrowser={addBrowserTab}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
 								/>
 							)}
+							renderTabBarLeading={
+								tabBarHostsChrome
+									? () => (
+											<div className="flex h-full items-center">
+												{isMac && (
+													<div
+														className="drag h-full shrink-0"
+														style={{
+															width: `${Math.max(
+																80 / zoomFactor -
+																	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+																0,
+															)}px`,
+														}}
+													/>
+												)}
+												<ZoomStable
+													enabled={isMac}
+													className="flex items-center gap-1.5 px-1"
+												>
+													<SidebarToggle />
+													<NavigationControls />
+												</ZoomStable>
+											</div>
+										)
+									: undefined
+							}
 							renderTabBarTrailing={() => (
-								<BackgroundTerminalsButton
-									workspaceId={workspaceId}
-									store={store}
-								/>
+								<div className="flex items-center gap-1">
+									<BackgroundTerminalsButton
+										workspaceId={workspaceId}
+										store={store}
+									/>
+									{workspaceRunButton}
+									<RightSidebarToggle />
+									{!isMac && <WindowControls />}
+								</div>
 							)}
 							renderEmptyState={() => (
 								<WorkspaceEmptyState
 									onOpenBrowser={addBrowserTab}
-									onOpenChat={addChatTab}
+									onOpenChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onOpenQuickOpen={handleQuickOpen}
 									onOpenTerminal={addTerminalTab}
 								/>

@@ -6,7 +6,7 @@ import type { Pane, Tab } from "../types";
 export interface PaneActionConfig<TData> {
 	key: string;
 	icon: ReactNode | ((context: RendererContext<TData>) => ReactNode);
-	tooltip: ReactNode | ((context: RendererContext<TData>) => ReactNode);
+	tooltip?: ReactNode | ((context: RendererContext<TData>) => ReactNode);
 	onClick: (context: RendererContext<TData>) => void;
 }
 
@@ -105,6 +105,8 @@ export interface WorkspaceProps<TData> {
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderEmptyState?: () => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
+	/** Rendered at the leading (left) edge of the tab bar row, before the tabs. */
+	renderTabBarLeading?: () => ReactNode;
 	/** Rendered at the trailing (right) edge of the tab bar row. */
 	renderTabBarTrailing?: () => ReactNode;
 	renderBelowTabBar?: () => ReactNode;

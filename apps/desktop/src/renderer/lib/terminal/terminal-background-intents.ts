@@ -36,6 +36,11 @@ export function consumeTerminalBackgroundIntent(terminalId: string): boolean {
 	return backgroundTerminalIds.delete(terminalId);
 }
 
+/** Non-consuming check — is this terminal about to be backgrounded (kept alive) rather than killed? */
+export function hasTerminalBackgroundIntent(terminalId: string): boolean {
+	return backgroundTerminalIds.has(terminalId);
+}
+
 export function clearTerminalBackgroundMarker(
 	workspaceId: string,
 	terminalId: string,

@@ -1,12 +1,5 @@
 import { useControllableState } from "@rn-primitives/hooks";
-import {
-	CheckCircleIcon,
-	ChevronDownIcon,
-	CircleIcon,
-	ClockIcon,
-	WrenchIcon,
-	XCircleIcon,
-} from "lucide-react-native";
+import { ChevronDownIcon, WrenchIcon, XIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { createContext, isValidElement, useContext, useMemo } from "react";
 import { View } from "react-native";
@@ -15,9 +8,10 @@ import Animated, {
 	FadeOut,
 	useAnimatedStyle,
 	useDerivedValue,
+	withRepeat,
+	withSequence,
 	withTiming,
 } from "react-native-reanimated";
-import { Badge } from "@/components/ui/badge";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -95,32 +89,6 @@ export type ToolHeaderProps = React.ComponentProps<
 	toolName?: string;
 };
 
-const statusLabels: Record<ToolState, string> = {
-	"input-available": "Running",
-	"input-streaming": "Pending",
-	"output-available": "Completed",
-	"output-error": "Error",
-};
-
-const statusIcons: Record<ToolState, ReactNode> = {
-	"input-available": <Icon as={ClockIcon} className="size-3" />,
-	"input-streaming": <Icon as={CircleIcon} className="size-3" />,
-	"output-available": (
-		<Icon as={CheckCircleIcon} className="size-3 text-green-600" />
-	),
-	"output-error": <Icon as={XCircleIcon} className="size-3" />,
-};
-
-export const getStatusBadge = (status: ToolState) => (
-	<Badge
-		className="gap-1.5 rounded-full"
-		variant={status === "output-error" ? "destructive" : "secondary"}
-	>
-		{statusIcons[status]}
-		<Text>{statusLabels[status]}</Text>
-	</Badge>
-);
-
 export const ToolHeader = ({
 	className,
 	title,
@@ -132,6 +100,10 @@ export const ToolHeader = ({
 	const { isOpen } = useTool();
 	const derivedName =
 		type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
+	const isRunning = state === "input-streaming" || state === "input-available";
+	// Screen readers get the status the pulse/error mark only shows visually.
+	const stateLabel =
+		state === "output-error" ? "failed" : isRunning ? "running" : "completed";
 
 	const progress = useDerivedValue(
 		() =>
@@ -147,18 +119,44 @@ export const ToolHeader = ({
 		[progress],
 	);
 
+	// Running indicator: the title breathes while the tool executes — no badge
+	// chrome, the fade loop itself is the signal.
+	const pulse = useDerivedValue(
+		() =>
+			isRunning
+				? withRepeat(
+						withSequence(
+							withTiming(0.35, { duration: 700 }),
+							withTiming(1, { duration: 700 }),
+						),
+						-1,
+					)
+				: withTiming(1, { duration: 200 }),
+		[isRunning],
+	);
+	const titleStyle = useAnimatedStyle(
+		() => ({ opacity: pulse.value }),
+		[pulse],
+	);
+
 	return (
 		<CollapsibleTrigger
+			accessibilityLabel={`Tool ${title ?? derivedName}, ${stateLabel}`}
 			className={cn(
 				"w-full flex-row items-center justify-between gap-4 p-3",
 				className,
 			)}
 			{...props}
 		>
-			<View className="flex-row items-center gap-2">
+			<View className="flex-1 flex-row items-center gap-2">
 				<Icon as={WrenchIcon} className="size-4 text-muted-foreground" />
-				<Text className="font-medium text-sm">{title ?? derivedName}</Text>
-				{getStatusBadge(state)}
+				<Animated.View className="shrink" style={titleStyle}>
+					<Text className="font-medium text-sm">{title ?? derivedName}</Text>
+				</Animated.View>
+				{/* No status chrome — only a failure leaves a subtle faded mark. */}
+				{state === "output-error" ? (
+					<Icon as={XIcon} className="size-3.5 text-destructive/70" />
+				) : null}
 			</View>
 			<Animated.View style={chevronStyle}>
 				<Icon as={ChevronDownIcon} className="size-4 text-muted-foreground" />

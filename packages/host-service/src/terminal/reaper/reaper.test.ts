@@ -1,7 +1,34 @@
 import { describe, expect, it } from "bun:test";
-import { planPortScanSync } from "./reaper.ts";
+import {
+	PORT_SCAN_WARMUP_DELAYS_MS,
+	planPortScanSync,
+	REAP_INTERVAL_MS,
+	shouldReapRow,
+} from "./reaper.ts";
 
 const noneLive = () => false;
+
+describe("port-scan warm-up schedule", () => {
+	it("re-syncs multiple times after startup so ports recover without a reap tick", () => {
+		expect(PORT_SCAN_WARMUP_DELAYS_MS.length).toBeGreaterThanOrEqual(3);
+	});
+
+	it("runs strictly increasing offsets", () => {
+		for (let i = 1; i < PORT_SCAN_WARMUP_DELAYS_MS.length; i += 1) {
+			expect(PORT_SCAN_WARMUP_DELAYS_MS[i]).toBeGreaterThan(
+				PORT_SCAN_WARMUP_DELAYS_MS[i - 1] as number,
+			);
+		}
+	});
+
+	it("fully precedes the first scheduled reap so it covers the gap", () => {
+		// Every warm-up must fire before the 5-minute reap would otherwise be the
+		// first re-sync — that's the window this fix closes.
+		for (const delay of PORT_SCAN_WARMUP_DELAYS_MS) {
+			expect(delay).toBeLessThan(REAP_INTERVAL_MS);
+		}
+	});
+});
 
 describe("planPortScanSync", () => {
 	it("registers alive daemon sessions that map to an active workspace row", () => {
@@ -86,5 +113,42 @@ describe("planPortScanSync", () => {
 		});
 
 		expect(plan.unregister).toEqual([]);
+	});
+});
+
+describe("shouldReapRow", () => {
+	it("reaps rows whose dispose was requested but never confirmed", () => {
+		expect(
+			shouldReapRow({
+				status: "active",
+				originWorkspaceId: "ws-1",
+				disposeRequestedAt: 1_000,
+			}),
+		).toBe(true);
+	});
+
+	it("keeps live sessions with a workspace and no dispose request", () => {
+		expect(shouldReapRow({ status: "active", originWorkspaceId: "ws-1" })).toBe(
+			false,
+		);
+		expect(
+			shouldReapRow({
+				status: "active",
+				originWorkspaceId: "ws-1",
+				disposeRequestedAt: null,
+			}),
+		).toBe(false);
+	});
+
+	it("still reaps dead-status and workspace-less rows", () => {
+		expect(
+			shouldReapRow({ status: "disposed", originWorkspaceId: "ws-1" }),
+		).toBe(true);
+		expect(shouldReapRow({ status: "exited", originWorkspaceId: "ws-1" })).toBe(
+			true,
+		);
+		expect(shouldReapRow({ status: "active", originWorkspaceId: null })).toBe(
+			true,
+		);
 	});
 });

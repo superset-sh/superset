@@ -3,6 +3,7 @@ import {
 	getPaneParentDirection,
 	getSpatialNeighborPaneId,
 	type PaneRegistry,
+	type WorkspaceProps,
 	type WorkspaceStore,
 } from "@superset/panes";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -13,7 +14,6 @@ import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggl
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
 	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
@@ -27,6 +27,7 @@ export function useWorkspaceHotkeys({
 	addTerminalTab,
 	paneRegistry,
 	launcher,
+	onBeforeCloseTab,
 }: {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	matchedPresets: V2TerminalPresetRow[];
@@ -34,6 +35,7 @@ export function useWorkspaceHotkeys({
 	addTerminalTab: () => Promise<void>;
 	paneRegistry: PaneRegistry<PaneViewerData>;
 	launcher: TerminalLauncher;
+	onBeforeCloseTab?: WorkspaceProps<PaneViewerData>["onBeforeCloseTab"];
 }) {
 	const { setRightSidebarOpen, setRightSidebarTab } = useV2UserPreferences();
 	const visiblePresets = useMemo(
@@ -57,12 +59,6 @@ export function useWorkspaceHotkeys({
 
 	useHotkey("NEW_GROUP", async () => {
 		await addTerminalTab();
-	});
-
-	useHotkey("NEW_CHAT", () => {
-		store.getState().addTab({
-			panes: [{ kind: "chat", data: { sessionId: null } as ChatPaneData }],
-		});
 	});
 
 	useHotkey("NEW_BROWSER", () => {
@@ -122,10 +118,21 @@ export function useWorkspaceHotkeys({
 		}
 	});
 
-	useHotkey("CLOSE_TAB", () => {
-		const state = store.getState();
-		if (state.activeTabId) {
-			state.removeTab(state.activeTabId);
+	const isClosingTabRef = useRef(false);
+	useHotkey("CLOSE_TAB", async () => {
+		if (isClosingTabRef.current) return;
+		isClosingTabRef.current = true;
+		try {
+			const state = store.getState();
+			const tab = state.getActiveTab();
+			if (!tab) return;
+			if (onBeforeCloseTab) {
+				const allowed = await onBeforeCloseTab(tab);
+				if (!allowed) return;
+			}
+			state.removeTab(tab.id);
+		} finally {
+			isClosingTabRef.current = false;
 		}
 	});
 
@@ -204,7 +211,7 @@ export function useWorkspaceHotkeys({
 	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
 	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
-	useHotkey("SPLIT_AUTO", async () => {
+	useHotkey("SPLIT_AUTO", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
@@ -213,61 +220,52 @@ export function useWorkspaceHotkeys({
 			? getPaneParentDirection(tab.layout, active.pane.id)
 			: null;
 		const position = parentDirection === "horizontal" ? "bottom" : "right";
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position,
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_RIGHT", async () => {
+	useHotkey("SPLIT_RIGHT", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "right",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_DOWN", async () => {
+	useHotkey("SPLIT_DOWN", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "bottom",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
-			},
-		});
-	});
-
-	useHotkey("SPLIT_WITH_CHAT", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "chat",
-				data: { sessionId: null } as ChatPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});

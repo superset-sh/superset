@@ -3,7 +3,6 @@ import {
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
 import { z } from "zod";
 import {
 	createTerminalSessionInternal,
@@ -13,7 +12,13 @@ import type {
 	TerminalAgentBinding,
 	TerminalAgentId,
 } from "../../../terminal-agents";
+import {
+	findResumeCandidateBinding,
+	seedEndedTerminalAgentBinding,
+} from "../../../terminal-agents/persistence";
 import { protectedProcedure, router } from "../../index";
+import { resolveHostAgentConfig } from "../agents/agents";
+import { toTerminalSessionError } from "../terminal/errors";
 
 type GetOrCreateResult = {
 	binding: TerminalAgentBinding;
@@ -39,6 +44,10 @@ const agentDefinitionIdSchema = z.union([
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
 export const terminalAgentsRouter = router({
+	list: protectedProcedure.query(({ ctx }) => {
+		return ctx.terminalAgentStore.list();
+	}),
+
 	listByWorkspace: protectedProcedure
 		.input(
 			z.object({
@@ -71,6 +80,88 @@ export const terminalAgentsRouter = router({
 					input.definitionId,
 				) ?? null
 			);
+		}),
+
+	/**
+	 * The resumable agent session behind a dead terminal, if any: the binding
+	 * captured an agent session id and the terminal died under the agent
+	 * (kill, crash, daemon death, reboot) rather than the agent detaching
+	 * cleanly. `agent` is the value to pass to `agents.run` together with
+	 * `resumeSessionId`; `resumeSupported` is false when the matching agent
+	 * config has no resume args (or the config was removed).
+	 */
+	resumeCandidate: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) => {
+			const binding = findResumeCandidateBinding(
+				ctx.db,
+				input.workspaceId,
+				input.terminalId,
+			);
+			if (!binding?.agentSessionId) return null;
+
+			const config = resolveHostAgentConfig(
+				ctx.db,
+				binding.definitionId ?? binding.agentId,
+			);
+			return {
+				terminalId: binding.terminalId,
+				agentId: binding.agentId,
+				definitionId: binding.definitionId ?? null,
+				agentSessionId: binding.agentSessionId,
+				endedAt: binding.endedAt ?? null,
+				agent: config?.id ?? binding.agentId,
+				agentLabel: config?.label ?? binding.agentId,
+				resumeSupported: (config?.resumeArgs.length ?? 0) > 0,
+			};
+		}),
+
+	/**
+	 * Seed a resume candidate for a terminal recreated by the v1→v2 pane
+	 * migration: the v1 pane's captured agent session, stamped ended, so the
+	 * migrated pane surfaces the same resume banner and flows through the
+	 * same `agents.run({resumeSessionId})` path as a killed v2 session.
+	 * No-ops when the terminal already earned a real binding.
+	 */
+	seedResumeCandidate: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				agentId: terminalAgentIdSchema,
+				agentSessionId: z.string().min(1),
+				definitionId: agentDefinitionIdSchema.optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const result = seedEndedTerminalAgentBinding(ctx.db, input);
+			if (result === "terminal-not-found") {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No terminal ${input.terminalId} in workspace ${input.workspaceId}`,
+				});
+			}
+			return { seeded: result === "seeded" };
+		}),
+
+	/**
+	 * Status-clearing escape hatch: force the workspace's bindings (or just
+	 * `terminalId`'s) to `Stop` so a wedged working/permission indicator
+	 * resets. Used by sidebar "Clear Status" and the pane interrupt handler
+	 * (agents fire no hook on Esc/Ctrl+C). Deliberately not a hook event —
+	 * it must not broadcast a completion chime/notification. Safe on live
+	 * agents: their next hook event re-asserts the real state.
+	 */
+	clearWorkspaceStatuses: protectedProcedure
+		.input(
+			z.object({ workspaceId: z.string(), terminalId: z.string().optional() }),
+		)
+		.mutation(({ ctx, input }) => {
+			ctx.terminalAgentStore.clearWorkspaceStatuses(
+				input.workspaceId,
+				input.terminalId,
+			);
+			return { success: true };
 		}),
 
 	/**
@@ -122,10 +213,7 @@ export const terminalAgentsRouter = router({
 				});
 
 				if ("error" in created) {
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: created.error,
-					});
+					throw toTerminalSessionError(created);
 				}
 
 				try {
@@ -159,34 +247,6 @@ export const terminalAgentsRouter = router({
 			} finally {
 				inflight.delete(key);
 			}
-		}),
-
-	/**
-	 * Snapshot-then-deltas stream of bindings for a workspace. For host-side
-	 * consumers; the renderer reads via `listByWorkspace` since its tRPC
-	 * client is httpLink-only.
-	 */
-	onWorkspaceChange: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
-		.subscription(({ ctx, input }) => {
-			return observable<{
-				kind: "snapshot" | "change";
-				bindings: TerminalAgentBinding[];
-			}>((emit) => {
-				const snapshot = () => ({
-					bindings: ctx.terminalAgentStore.listByWorkspace(input.workspaceId),
-				});
-				emit.next({ kind: "snapshot", ...snapshot() });
-
-				const handler = (workspaceId: string) => {
-					if (workspaceId !== input.workspaceId) return;
-					emit.next({ kind: "change", ...snapshot() });
-				};
-				ctx.terminalAgentStore.on("change", handler);
-				return () => {
-					ctx.terminalAgentStore.off("change", handler);
-				};
-			});
 		}),
 });
 

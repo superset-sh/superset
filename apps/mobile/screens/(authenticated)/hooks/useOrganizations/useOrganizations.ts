@@ -1,19 +1,19 @@
-import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { authClient } from "@/lib/auth/client";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { apiClient } from "@/lib/trpc/client";
 
 export function useOrganizations() {
 	const router = useRouter();
-	const collections = useCollections();
 
 	const session = authClient.useSession();
 	const activeOrganizationId = session.data?.session?.activeOrganizationId;
 
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations } = useQuery({
+		queryKey: ["cloud", "user", "myOrganizations"],
+		queryFn: () => apiClient.user.myOrganizations.query(),
+		staleTime: 30_000,
+	});
 
 	const activeOrganization = organizations?.find(
 		(org) => org.id === activeOrganizationId,

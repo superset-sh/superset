@@ -4,9 +4,11 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffectEvent, useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import type { AgentLifecycleEvent } from "shared/notification-types";
@@ -14,7 +16,7 @@ import {
 	HostNotificationSubscriber,
 	type HostNotificationWorkspaceState,
 } from "./components/HostNotificationSubscriber";
-import { handleV2AgentLifecycleStatusEvent } from "./lib/lifecycleEvents";
+import { markV2AgentLifecycleTargetSeen } from "./lib/lifecycleEvents";
 
 interface WorkspaceHostRow {
 	workspaceId: string;
@@ -59,18 +61,17 @@ export function V2NotificationController() {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
-	const { data: allWorkspaceHosts = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.select(({ v2Workspaces }) => ({
-					workspaceId: v2Workspaces.id,
-					organizationId: v2Workspaces.organizationId,
-					hostId: v2Workspaces.hostId,
-					name: v2Workspaces.name,
-					branch: v2Workspaces.branch,
-				})),
-		[collections],
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const allWorkspaceHosts = useMemo<WorkspaceHostRow[]>(
+		() =>
+			hostWorkspaces.map((workspace) => ({
+				workspaceId: workspace.id,
+				organizationId: workspace.organizationId,
+				hostId: workspace.hostId,
+				name: workspace.name,
+				branch: workspace.branch,
+			})),
+		[hostWorkspaces],
 	);
 	const { data: allLocalWorkspaceRows = [] } = useLiveQuery(
 		(q) =>
@@ -126,18 +127,35 @@ export function V2NotificationController() {
 
 			// Adopted shells keep their launch-time host-service hook URL. When
 			// that URL is stale, the Electron fallback still has terminal context.
-			handleV2AgentLifecycleStatusEvent({
+			const eventType =
+				data.eventType === "PendingQuestion"
+					? "PermissionRequest"
+					: data.eventType;
+			markV2AgentLifecycleTargetSeen({
 				workspaceId: data.workspaceId,
 				payload: {
-					eventType:
-						data.eventType === "PendingQuestion"
-							? "PermissionRequest"
-							: data.eventType,
+					eventType,
 					terminalId: data.terminalId,
 					occurredAt: Date.now(),
 				},
 				paneLayout: workspace.paneLayout,
 			});
+
+			// Statuses derive from host bindings, so the host must hear the
+			// event too; the binding for an adopted agent persists host-side.
+			if (activeHostUrl) {
+				getHostServiceClientByUrl(activeHostUrl)
+					.notifications.hook.mutate({
+						terminalId: data.terminalId,
+						eventType,
+					})
+					.catch((error) => {
+						console.warn(
+							"[notifications] failed to forward lifecycle event to host:",
+							error,
+						);
+					});
+			}
 		},
 	);
 

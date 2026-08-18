@@ -14,23 +14,28 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useHostUrls } from "renderer/hooks/host-service/useHostTargetUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface DeleteProjectSectionProps {
 	projectId: string;
 	projectName: string;
+	/** Hosts serving this project — the delete fans out to each. */
+	hostIds: string[];
 }
 
 export function DeleteProjectSection({
 	projectId,
 	projectName,
+	hostIds,
 }: DeleteProjectSectionProps) {
 	const navigate = useNavigate();
-	const hostService = useLocalHostService();
-	const { activeHostUrl } = hostService;
+	const hostUrls = useHostUrls(hostIds);
+	const reachableHosts = hostUrls.filter(
+		(host): host is { hostId: string; url: string; isLocal: boolean } =>
+			host.url !== null,
+	);
 	const { data: session } = authClient.useSession();
 	const { data: activeOrg } = authClient.useActiveOrganization();
 	const currentUserId = session?.user?.id;
@@ -42,17 +47,35 @@ export function DeleteProjectSection({
 	const [isOpen, setIsOpen] = useState(false);
 
 	const handleDelete = async () => {
-		if (!activeHostUrl) {
-			showHostServiceUnavailableToast(hostService, {
-				action: "delete the project",
-			});
+		if (reachableHosts.length === 0) {
+			toast.error("No host serving this project is reachable right now");
 			return;
 		}
 		setIsDeleting(true);
 		try {
-			const client = getHostServiceClientByUrl(activeHostUrl);
-			await client.project.remove.mutate({ projectId });
-			toast.success(`Deleted "${projectName}"`);
+			// Projects are local per host — delete on every serving host.
+			const results = await Promise.allSettled(
+				reachableHosts.map((host) =>
+					getHostServiceClientByUrl(host.url).project.remove.mutate({
+						projectId,
+					}),
+				),
+			);
+			const failed = results.filter((r) => r.status === "rejected");
+			if (failed.length === results.length) {
+				const first = failed[0] as PromiseRejectedResult;
+				throw first.reason instanceof Error
+					? first.reason
+					: new Error(String(first.reason));
+			}
+			const skipped = hostIds.length - reachableHosts.length;
+			if (failed.length > 0 || skipped > 0) {
+				toast.warning(
+					`Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+				);
+			} else {
+				toast.success(`Deleted "${projectName}"`);
+			}
 			setIsOpen(false);
 			navigate({ to: "/settings/projects" });
 		} catch (err) {
@@ -102,10 +125,11 @@ export function DeleteProjectSection({
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete "{projectName}"?</AlertDialogTitle>
 							<AlertDialogDescription>
-								This deletes the project for{" "}
-								<span className="font-medium text-foreground">everyone</span> in
-								the organization and removes all of its workspaces from every
-								member's device. This cannot be undone.
+								This deletes the project and all of its workspaces from{" "}
+								<span className="font-medium text-foreground">
+									every reachable device
+								</span>{" "}
+								where it is set up. This cannot be undone.
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
@@ -117,7 +141,7 @@ export function DeleteProjectSection({
 									e.preventDefault();
 									handleDelete();
 								}}
-								disabled={isDeleting || !activeHostUrl}
+								disabled={isDeleting || reachableHosts.length === 0}
 								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 							>
 								{isDeleting ? "Deleting…" : "Delete"}

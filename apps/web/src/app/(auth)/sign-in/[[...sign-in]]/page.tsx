@@ -9,10 +9,33 @@ import {
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "@/env";
+
+const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+
+type AuthMethod = "github" | "google" | "dev";
+
+function readLastUsedMethod(): AuthMethod | null {
+	try {
+		const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
+		return stored === "github" || stored === "google" || stored === "dev"
+			? stored
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+function rememberLastUsedMethod(method: AuthMethod) {
+	try {
+		window.localStorage.setItem(LAST_USED_METHOD_KEY, method);
+	} catch {
+		// localStorage unavailable; skip persisting
+	}
+}
 
 export default function SignInPage() {
 	const searchParams = useSearchParams();
@@ -24,10 +47,16 @@ export default function SignInPage() {
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [lastUsedMethod, setLastUsedMethod] = useState<AuthMethod | null>(null);
+
+	useEffect(() => {
+		setLastUsedMethod(readLastUsedMethod());
+	}, []);
 
 	const signInWithGoogle = async () => {
 		setIsLoadingGoogle(true);
 		setError(null);
+		rememberLastUsedMethod("google");
 
 		try {
 			await authClient.signIn.social({
@@ -44,6 +73,7 @@ export default function SignInPage() {
 	const signInWithGithub = async () => {
 		setIsLoadingGithub(true);
 		setError(null);
+		rememberLastUsedMethod("github");
 
 		try {
 			await authClient.signIn.social({
@@ -62,6 +92,7 @@ export default function SignInPage() {
 	const signInAsDev = async () => {
 		setIsLoadingDev(true);
 		setError(null);
+		rememberLastUsedMethod("dev");
 
 		try {
 			let res = await authClient.signIn.email({
@@ -91,6 +122,12 @@ export default function SignInPage() {
 
 	const isLoading = isLoadingGoogle || isLoadingGithub || isLoadingDev;
 
+	const lastUsedBadge = (
+		<span className="bg-muted text-muted-foreground absolute right-3 rounded-full px-2 py-0.5 text-xs">
+			Last used
+		</span>
+	);
+
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
 			<div className="flex flex-col space-y-2 text-center">
@@ -108,28 +145,31 @@ export default function SignInPage() {
 						variant="outline"
 						disabled={isLoading}
 						onClick={signInAsDev}
-						className="w-full"
+						className="relative w-full"
 					>
 						{isLoadingDev ? "Signing in..." : "Sign in as Local Admin (dev)"}
+						{lastUsedMethod === "dev" && lastUsedBadge}
 					</Button>
 				)}
 				<Button
 					variant="outline"
 					disabled={isLoading}
 					onClick={signInWithGithub}
-					className="w-full"
+					className="relative w-full"
 				>
 					<FaGithub className="mr-2 size-4" />
 					{isLoadingGithub ? "Loading..." : "Sign in with GitHub"}
+					{lastUsedMethod === "github" && lastUsedBadge}
 				</Button>
 				<Button
 					variant="outline"
 					disabled={isLoading}
 					onClick={signInWithGoogle}
-					className="w-full"
+					className="relative w-full"
 				>
 					<FcGoogle className="mr-2 size-4" />
 					{isLoadingGoogle ? "Loading..." : "Sign in with Google"}
+					{lastUsedMethod === "google" && lastUsedBadge}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					By clicking continue, you agree to our{" "}

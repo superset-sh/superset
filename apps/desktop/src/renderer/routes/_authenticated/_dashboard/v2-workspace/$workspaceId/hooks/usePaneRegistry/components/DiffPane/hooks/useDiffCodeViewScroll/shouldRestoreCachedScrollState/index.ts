@@ -1,0 +1,1 @@
+export { shouldRestoreCachedScrollState } from "./shouldRestoreCachedScrollState";

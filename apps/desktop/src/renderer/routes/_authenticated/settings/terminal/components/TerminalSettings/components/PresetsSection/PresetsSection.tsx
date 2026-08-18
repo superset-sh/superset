@@ -10,7 +10,9 @@ import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { PresetEditorDialog } from "./components/PresetEditorDialog";
 import { PresetsTable } from "./components/PresetsTable";
 import {
@@ -37,6 +39,7 @@ export function PresetsSection({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: PresetsSectionProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const isDark = useIsDarkTheme();
 	const { data: groupedProjects = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
@@ -480,7 +483,9 @@ export function PresetsSection({
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<div className="space-y-0.5">
-					<Label className="text-sm font-medium">Terminal Presets</Label>
+					<Label className="text-sm font-medium">
+						<HighlightText text="Terminal Presets" query={searchQuery} />
+					</Label>
 					<p className="text-xs text-muted-foreground">
 						Presets let you quickly launch terminals with pre-configured
 						commands.

@@ -256,3 +256,21 @@ export function setWorkspaceDockIcon(): void {
 		console.error("[dock-icon] Failed to set dock icon:", error);
 	}
 }
+
+/**
+ * Sets the OS unread/attention badge on the app icon.
+ * - macOS: shows the count text in the dock badge ("" clears it).
+ * - Linux (Unity launchers) and Windows 11: `app.setBadgeCount` shows a numeric
+ *   badge; `0` clears it. No-op where the desktop environment lacks support.
+ */
+export function setBadgeCount(count: number): void {
+	try {
+		if (process.platform === "darwin") {
+			app.dock?.setBadge(count > 0 ? String(count) : "");
+			return;
+		}
+		app.setBadgeCount(count);
+	} catch (error) {
+		console.error("[dock-icon] Failed to set badge count:", error);
+	}
+}

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
+	buildDashboardSidebarSessionWorkspaces,
+	partitionSidebarWorkspacesByPinned,
 	type SidebarProjectInput,
 	type SidebarSectionInput,
 	type SidebarWorkspaceInput,
@@ -15,11 +18,10 @@ function makeProject(
 	return {
 		id: "project-1",
 		name: "Project",
-		slug: "project",
-		githubRepositoryId: null,
 		githubOwner: null,
 		githubRepoName: null,
 		iconUrl: null,
+		color: null,
 		createdAt: DATE,
 		updatedAt: DATE,
 		isCollapsed: false,
@@ -58,6 +60,7 @@ function makeWorkspace(
 		updatedAt: DATE,
 		tabOrder: 1,
 		sectionId: null,
+		pinnedAt: null,
 		pendingTransaction: null,
 		...overrides,
 	};
@@ -147,6 +150,30 @@ describe("buildDashboardSidebarProjects", () => {
 		).toEqual(["section-b", "section-a"]);
 	});
 
+	it("keeps an ungrouped workspace top-level below a section instead of absorbing it", () => {
+		const [project] = build({
+			sidebarSections: [makeSection({ id: "section-1", tabOrder: 2 })],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "ws-above", sectionId: null, tabOrder: 1 }),
+				makeWorkspace({ id: "ws-member", sectionId: "section-1", tabOrder: 1 }),
+				makeWorkspace({ id: "ws-below", sectionId: null, tabOrder: 3 }),
+			],
+		});
+
+		expect(
+			project.children.map((child) =>
+				child.type === "section"
+					? `section:${child.section.id}`
+					: child.workspace.id,
+			),
+		).toEqual(["ws-above", "section:section-1", "ws-below"]);
+		const section = project.children.find((child) => child.type === "section");
+		if (section?.type !== "section") throw new Error("expected section");
+		expect(section.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["ws-member"],
+		);
+	});
+
 	it("orders multiple orphaned workspaces by tabOrder above the sections", () => {
 		const [project] = build({
 			sidebarSections: [makeSection({ id: "section-1", tabOrder: 5 })],
@@ -166,5 +193,112 @@ describe("buildDashboardSidebarProjects", () => {
 			"orphan-late",
 			"section:section-1",
 		]);
+	});
+});
+
+describe("partitionSidebarWorkspacesByPinned", () => {
+	it("splits pinned rows out and sorts them by pin time ascending", () => {
+		const { pinned, unpinned } = partitionSidebarWorkspacesByPinned([
+			makeWorkspace({ id: "unpinned-1" }),
+			makeWorkspace({ id: "pinned-late", pinnedAt: 2000 }),
+			makeWorkspace({ id: "unpinned-2" }),
+			makeWorkspace({ id: "pinned-early", pinnedAt: 1000 }),
+		]);
+
+		expect(pinned.map((workspace) => workspace.id)).toEqual([
+			"pinned-early",
+			"pinned-late",
+		]);
+		expect(unpinned.map((workspace) => workspace.id)).toEqual([
+			"unpinned-1",
+			"unpinned-2",
+		]);
+	});
+});
+
+describe("buildDashboardSidebarPinnedWorkspaces", () => {
+	it("decorates pinned rows with project identity and drops project-less rows", () => {
+		const rows = buildDashboardSidebarPinnedWorkspaces({
+			pinnedSidebarWorkspaces: [
+				makeWorkspace({ id: "pinned-1", pinnedAt: 1000 }),
+				makeWorkspace({
+					id: "pinned-orphan",
+					projectId: "removed-project",
+					pinnedAt: 2000,
+				}),
+			],
+			sidebarProjects: [
+				makeProject({ id: "project-1", name: "Superset", iconUrl: "icon.png" }),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(rows.map((row) => row.id)).toEqual(["pinned-1"]);
+		expect(rows[0].projectName).toBe("Superset");
+		expect(rows[0].projectIconUrl).toBe("icon.png");
+		expect(rows[0].isPinned).toBe(true);
+	});
+});
+
+describe("sessions (null projectId)", () => {
+	it("never places a session row inside a project group", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "session-1", projectId: null, type: "session" }),
+				makeWorkspace({ id: "workspace-1" }),
+			],
+		});
+
+		const childIds = project.children.flatMap((child) =>
+			child.type === "workspace" ? [child.workspace.id] : [],
+		);
+		expect(childIds).toEqual(["workspace-1"]);
+	});
+
+	it("orders the Sessions section by tabOrder with no repo affordances", () => {
+		const rows = buildDashboardSidebarSessionWorkspaces({
+			sessionSidebarWorkspaces: [
+				makeWorkspace({
+					id: "session-b",
+					projectId: null,
+					type: "session",
+					tabOrder: 2,
+				}),
+				makeWorkspace({
+					id: "session-a",
+					projectId: null,
+					type: "session",
+					tabOrder: 1,
+				}),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(rows.map((row) => row.id)).toEqual(["session-a", "session-b"]);
+		expect(rows[0].projectId).toBeNull();
+		expect(rows[0].repoUrl).toBeNull();
+		expect(rows[0].branchExistsOnRemote).toBe(false);
+	});
+
+	it("keeps a pinned session in the Pinned section with null project identity", () => {
+		const rows = buildDashboardSidebarPinnedWorkspaces({
+			pinnedSidebarWorkspaces: [
+				makeWorkspace({
+					id: "pinned-session",
+					projectId: null,
+					type: "session",
+					pinnedAt: 1000,
+				}),
+			],
+			sidebarProjects: [makeProject()],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(rows.map((row) => row.id)).toEqual(["pinned-session"]);
+		expect(rows[0].projectName).toBeNull();
+		expect(rows[0].projectIconUrl).toBeNull();
 	});
 });

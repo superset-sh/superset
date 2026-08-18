@@ -1,1 +1,0 @@
-export { AnthropicProviderHeading } from "./AnthropicProviderHeading";

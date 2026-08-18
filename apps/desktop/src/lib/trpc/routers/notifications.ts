@@ -4,6 +4,7 @@ import type {
 	Notification as ElectronNotification,
 } from "electron";
 import { Notification } from "electron";
+import { setBadgeCount } from "main/lib/dock-icon";
 import {
 	type AgentLifecycleEvent,
 	type NotificationIds,
@@ -33,6 +34,10 @@ type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
 			data?: TerminalExitNotification;
+	  }
+	| {
+			type: typeof NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE;
+			data?: { themeState?: unknown };
 	  };
 
 const v2NotificationSourceSchema = z.discriminatedUnion("type", [
@@ -121,6 +126,13 @@ export const createNotificationsRouter = (
 				return { success: true as const };
 			}),
 
+		setDockBadge: publicProcedure
+			.input(z.object({ count: z.number().int().min(0) }))
+			.mutation(({ input }) => {
+				setBadgeCount(input.count);
+				return { success: true as const };
+			}),
+
 		subscribe: publicProcedure.subscription(() => {
 			return observable<NotificationEvent>((emit) => {
 				const onLifecycle = (data: AgentLifecycleEvent) => {
@@ -144,6 +156,13 @@ export const createNotificationsRouter = (
 					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
 				};
 
+				const onSettingsExternalChange = (data: { themeState?: unknown }) => {
+					emit.next({
+						type: NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+						data,
+					});
+				};
+
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
@@ -156,6 +175,10 @@ export const createNotificationsRouter = (
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.TERMINAL_EXIT,
 					onTerminalExit,
+				);
+				notificationsEmitter.on(
+					NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+					onSettingsExternalChange,
 				);
 
 				return () => {
@@ -171,6 +194,10 @@ export const createNotificationsRouter = (
 					notificationsEmitter.off(
 						NOTIFICATION_EVENTS.TERMINAL_EXIT,
 						onTerminalExit,
+					);
+					notificationsEmitter.off(
+						NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+						onSettingsExternalChange,
 					);
 				};
 			});

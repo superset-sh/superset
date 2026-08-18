@@ -23,9 +23,9 @@ import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferen
 import { launchAgentSession } from "renderer/lib/agent-session-orchestrator";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { ProjectThumbnail } from "renderer/screens/main/components/WorkspaceSidebar/ProjectSection/ProjectThumbnail";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 type TaskLaunchAgent = AgentDefinitionId | "none";
 
@@ -114,6 +114,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 		const branchName = deriveBranchName({
 			slug: task.slug,
 			title: task.title,
+			branch: task.branch,
 		});
 
 		try {

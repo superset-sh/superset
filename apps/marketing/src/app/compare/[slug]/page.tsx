@@ -8,12 +8,15 @@ import {
 	BreadcrumbJsonLd,
 	ComparisonJsonLd,
 	FAQPageJsonLd,
+	ItemListJsonLd,
 } from "@/components/JsonLd";
 import { getAllComparisonSlugs, getComparisonPage } from "@/lib/compare";
 import {
 	extractComparisonFaqItems,
+	extractRoundupItems,
 	getComparisonPageTypeLabel,
 } from "@/lib/compare-utils";
+import { slugify } from "@/lib/content-utils";
 import { CompareLayout } from "./components/CompareLayout";
 
 interface PageProps {
@@ -30,9 +33,19 @@ export default async function ComparePageRoute({ params }: PageProps) {
 
 	const url = `${COMPANY.MARKETING_URL}/compare/${slug}`;
 	const faqItems = extractComparisonFaqItems(page.content);
+	const roundupItems =
+		page.type === "roundup"
+			? extractRoundupItems(page.content).map((item) => ({
+					name: item,
+					url: `${url}#${slugify(item)}`,
+				}))
+			: [];
 
 	return (
 		<main>
+			{roundupItems.length > 1 && (
+				<ItemListJsonLd name={page.title} items={roundupItems} />
+			)}
 			<ComparisonJsonLd
 				title={page.title}
 				description={page.description}

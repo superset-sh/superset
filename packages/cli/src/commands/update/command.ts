@@ -14,7 +14,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { boolean, CLIError, string } from "@superset/cli-framework";
 import { command } from "../../lib/command";
-import { env } from "../../lib/env";
+import { env, isDesktopBundled } from "../../lib/env";
 
 // `cli-latest` is a rolling GH Release/tag updated by build-cli.yml on every
 // CLI release. Reading from a fixed download path (rather than the global
@@ -137,6 +137,13 @@ export default command({
 		),
 	},
 	run: async ({ options }) => {
+		if (isDesktopBundled()) {
+			throw new CLIError(
+				"This CLI is bundled with the Superset desktop app and updates together with the app.",
+				"For a standalone CLI that updates in place: curl -fsSL https://superset.sh/cli/install.sh | sh",
+			);
+		}
+
 		const target = detectTarget();
 		const currentVersion = getCurrentVersion();
 		if (currentVersion === "0.0.0-dev") {

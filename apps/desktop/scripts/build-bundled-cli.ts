@@ -62,6 +62,7 @@ function run(
 
 function buildCliBuildEnv(): NodeJS.ProcessEnv {
 	const env = { ...process.env };
+	env.SUPERSET_CLI_CHANNEL = "desktop-bundled";
 	const apiUrl =
 		process.env.SUPERSET_API_URL || process.env.NEXT_PUBLIC_API_URL;
 	const webUrl =

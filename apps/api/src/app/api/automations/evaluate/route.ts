@@ -1,5 +1,9 @@
 import { dbWs } from "@superset/db/client";
-import { automations } from "@superset/db/schema";
+import {
+	automations,
+	automationTriggers,
+	type TriggerConfig,
+} from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Client, Receiver } from "@upstash/qstash";
 import { and, eq, lte } from "drizzle-orm";
@@ -25,6 +29,20 @@ function bucketToMinute(d: Date): Date {
 	return copy;
 }
 
+/** Null when the config can't drive a schedule, so the caller can fall back. */
+function scheduleFromConfig(
+	config: TriggerConfig | null,
+): { rrule: string; dtstart: Date; timezone: string } | null {
+	// The kind-matches-config CHECK passes for jsonb `null` (SQL NULL = NULL is
+	// not false), so the column can hold something the type says it can't.
+	if (config === null || typeof config !== "object") return null;
+	if (config.kind !== "schedule") return null;
+	if (!config.rrule || !config.timezone) return null;
+	const dtstart = new Date(config.dtstart);
+	if (Number.isNaN(dtstart.getTime())) return null;
+	return { rrule: config.rrule, dtstart, timezone: config.timezone };
+}
+
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
 	const signature = request.headers.get("upstash-signature");
@@ -42,45 +60,99 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	const now = new Date();
-	const due = await dbWs
-		.select()
-		.from(automations)
-		.where(and(eq(automations.enabled, true), lte(automations.nextRunAt, now)))
-		.orderBy(automations.nextRunAt)
+
+	const rows = await dbWs
+		.select({
+			automationId: automations.id,
+			nextRunAt: automationTriggers.nextRunAt,
+			config: automationTriggers.config,
+		})
+		.from(automationTriggers)
+		.innerJoin(automations, eq(automations.id, automationTriggers.automationId))
+		.where(
+			and(
+				eq(automationTriggers.kind, "schedule"),
+				eq(automationTriggers.enabled, true),
+				eq(automations.enabled, true),
+				lte(automationTriggers.nextRunAt, now),
+			),
+		)
+		.orderBy(automationTriggers.nextRunAt)
 		.limit(BATCH_SIZE);
 
-	if (due.length === 0) {
-		return Response.json({ enqueued: 0 });
+	// `next_run_at <= now` already excludes nulls; this just tells the compiler.
+	const due = rows.filter(
+		(row): row is (typeof rows)[number] & { nextRunAt: Date } =>
+			row.nextRunAt !== null,
+	);
+
+	// Work out the next occurrence before dispatching anything: a trigger we
+	// can't advance must not be enqueued, or it would fire on every tick forever
+	// while its next_run_at stayed put.
+	const planned: Array<{
+		automationId: string;
+		scheduledFor: Date;
+		next: Date | null;
+	}> = [];
+	const unusable: Array<{ automationId: string; reason: string }> = [];
+
+	for (const row of due) {
+		const schedule = scheduleFromConfig(row.config);
+		if (!schedule) {
+			unusable.push({
+				automationId: row.automationId,
+				reason: "schedule trigger config is unusable",
+			});
+			continue;
+		}
+		try {
+			planned.push({
+				automationId: row.automationId,
+				scheduledFor: bucketToMinute(row.nextRunAt),
+				next: nextOccurrenceAfter({ ...schedule, after: row.nextRunAt }),
+			});
+		} catch (error) {
+			unusable.push({ automationId: row.automationId, reason: String(error) });
+		}
+	}
+
+	// Should be empty. These automations are stalled until someone fixes the
+	// config, so they need to be loud rather than silently skipped.
+	if (unusable.length > 0) {
+		console.error(
+			"[automations/evaluate] unusable schedule triggers, not dispatched",
+			unusable,
+		);
+	}
+
+	if (planned.length === 0) {
+		return Response.json({ enqueued: 0, unusable: unusable.length });
 	}
 
 	await qstash.batchJSON(
-		due.map((automation) => {
-			const scheduledFor = bucketToMinute(automation.nextRunAt);
-			return {
-				url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${automation.id}`,
-				body: {
-					automationId: automation.id,
-					scheduledFor: scheduledFor.toISOString(),
-				},
-				deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
-				retries: 2,
-				failureCallback: `${env.NEXT_PUBLIC_API_URL}/api/automations/run-failed`,
-			};
-		}),
+		planned.map(({ automationId, scheduledFor }) => ({
+			url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${automationId}`,
+			body: {
+				automationId,
+				scheduledFor: scheduledFor.toISOString(),
+			},
+			deduplicationId: `${automationId}_${scheduledFor.getTime()}`,
+			retries: 2,
+			failureCallback: `${env.NEXT_PUBLIC_API_URL}/api/automations/run-failed`,
+		})),
 	);
 
 	const advanceResults = await Promise.allSettled(
-		due.map((automation) => {
-			const next = nextOccurrenceAfter({
-				rrule: automation.rrule,
-				dtstart: automation.dtstart,
-				timezone: automation.timezone,
-				after: automation.nextRunAt,
-			});
-			return dbWs
-				.update(automations)
+		planned.map(async ({ automationId, next }) => {
+			await dbWs
+				.update(automationTriggers)
 				.set(next ? { nextRunAt: next } : { enabled: false })
-				.where(eq(automations.id, automation.id));
+				.where(
+					and(
+						eq(automationTriggers.automationId, automationId),
+						eq(automationTriggers.kind, "schedule"),
+					),
+				);
 		}),
 	);
 
@@ -89,8 +161,9 @@ export async function POST(request: Request): Promise<Response> {
 	// hide itself without this log.
 	const advanceFailures = advanceResults.flatMap((result, index) => {
 		if (result.status !== "rejected") return [];
-		const automation = due[index];
-		return [{ automationId: automation?.id, reason: result.reason }];
+		return [
+			{ automationId: planned[index]?.automationId, reason: result.reason },
+		];
 	});
 	if (advanceFailures.length > 0) {
 		console.error(
@@ -100,7 +173,8 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	return Response.json({
-		enqueued: due.length,
+		enqueued: planned.length,
 		advanceFailed: advanceFailures.length,
+		unusable: unusable.length,
 	});
 }

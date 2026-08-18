@@ -1,5 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
-import type { WorkspaceState } from "@superset/panes";
+import type { LayoutNode, Tab, WorkspaceState } from "@superset/panes";
 import type { inferRouterInputs } from "@trpc/server";
 import { z } from "zod";
 
@@ -16,6 +16,73 @@ export const dashboardSidebarProjectSchema = z.object({
 });
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
+
+// Structural validators for the persisted pane layout. `paneWorkspaceStateSchema`
+// above is a permissive passthrough for writes (the store always produces a
+// valid shape); these run on READ via `sanitizePaneLayout` so a malformed or
+// legacy-shaped layout (e.g. the pre-binary-tree `{ panes, focusedPaneId }`
+// shape) is healed instead of feeding an undefined node to the renderer.
+const layoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
+	z.discriminatedUnion("type", [
+		z.object({ type: z.literal("pane"), paneId: z.string() }),
+		z.object({
+			type: z.literal("split"),
+			direction: z.enum(["horizontal", "vertical"]),
+			first: layoutNodeSchema,
+			second: layoutNodeSchema,
+			splitPercentage: z.number().optional(),
+		}),
+	]),
+);
+
+const paneNodeSchema = z.object({
+	id: z.string(),
+	kind: z.string(),
+	titleOverride: z.string().optional(),
+	pinned: z.boolean().optional(),
+	data: z.unknown(),
+});
+
+const tabNodeSchema = z.object({
+	id: z.string(),
+	titleOverride: z.string().optional(),
+	createdAt: z.number(),
+	activePaneId: z.string().nullable(),
+	layout: layoutNodeSchema,
+	panes: z.record(z.string(), paneNodeSchema),
+});
+
+const EMPTY_PANE_LAYOUT: WorkspaceState<unknown> = {
+	version: 1,
+	tabs: [],
+	activeTabId: null,
+};
+
+/**
+ * Read-time heal for a persisted pane layout. An unparseable top-level shape
+ * (missing `version`/`tabs`, or the legacy `{ panes, focusedPaneId }` layout)
+ * resets to empty; individually-corrupt tabs (e.g. a split node missing a
+ * child) are dropped while valid tabs are kept, and `activeTabId` is repaired
+ * to point at a surviving tab. Prevents the renderer from rendering an
+ * undefined layout node.
+ */
+export function sanitizePaneLayout(raw: unknown): WorkspaceState<unknown> {
+	if (!raw || typeof raw !== "object") return EMPTY_PANE_LAYOUT;
+	const value = raw as Record<string, unknown>;
+	if (value.version !== 1 || !Array.isArray(value.tabs)) {
+		return EMPTY_PANE_LAYOUT;
+	}
+	const tabs = value.tabs.flatMap((tab): Tab<unknown>[] => {
+		const parsed = tabNodeSchema.safeParse(tab);
+		return parsed.success ? [parsed.data as Tab<unknown>] : [];
+	});
+	const activeTabId =
+		typeof value.activeTabId === "string" &&
+		tabs.some((tab) => tab.id === value.activeTabId)
+			? value.activeTabId
+			: (tabs[0]?.id ?? null);
+	return { version: 1, tabs, activeTabId };
+}
 
 const changesFilterSchema = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("all") }),
@@ -56,13 +123,21 @@ export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
 	createdAt: persistedDateSchema,
 	sidebarState: z.object({
-		projectId: z.string().uuid(),
+		// Null = project-less "session" workspace (renders in the Sessions
+		// section). Identity field: no default — widening string → string|null
+		// keeps every pre-existing persisted row parsing unchanged, and heal
+		// must never synthesize null (that would silently reparent a corrupt
+		// project workspace into Sessions).
+		projectId: z.string().uuid().nullable(),
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
 		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
 		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
 		isHidden: z.boolean().default(false),
+		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
+		// section; null = not pinned. Ordering is pinnedAt ascending.
+		pinnedAt: z.number().int().nullable().default(null),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	viewedFiles: z.array(z.string()).default([]),
@@ -78,6 +153,20 @@ export const workspaceLocalStateSchema = z.object({
 	workspaceRunTerminals: z
 		.record(z.string(), workspaceRunTerminalStateSchema)
 		.default({}),
+	// v1->v2 migration: terminals to recreate lazily on first workspace open
+	// (D2 in plans/20260716-v1-to-v2-auto-migration.md). Cleared after the
+	// sessions are created; panes come from useAutoAdoptBackgroundSessions.
+	pendingMigratedTerminals: z
+		.array(
+			z.object({
+				terminalId: z.string(),
+				cwd: z.string().nullable().default(null),
+				// Source v1 pane — lets creation seed the pane's captured agent
+				// session as a resume candidate. Null on pre-existing entries.
+				v1PaneId: z.string().nullable().default(null),
+			}),
+		)
+		.default([]),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -90,6 +179,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	changesViewMode: "folders",
 	activeTab: "changes",
 	isHidden: false,
+	pinnedAt: null,
 } as const;
 
 const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
@@ -103,8 +193,18 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		string,
 		z.infer<typeof workspaceRunTerminalStateSchema>
 	>,
+	pendingMigratedTerminals: [] as Array<{
+		terminalId: string;
+		cwd: string | null;
+		v1PaneId: string | null;
+	}>,
 };
 
+/**
+ * A sidebar group ("section" historically — the persisted key and field names
+ * keep that spelling so existing rows parse untouched). Sections are flat and
+ * project-scoped: one level of grouping inside a project.
+ */
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
 	projectId: z.string().uuid(),
@@ -201,6 +301,13 @@ const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	metaShift: "external",
 };
 
+const DEFAULT_URL_LINKS: LinkTierMap = {
+	plain: null,
+	shift: "newTab",
+	meta: "pane",
+	metaShift: "external",
+};
+
 const LEGACY_SIDEBAR_FILE_LINKS: LinkTierMap = {
 	plain: "pane",
 	shift: "newTab",
@@ -212,6 +319,32 @@ const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
 	plain: "pane",
 	shift: "newTab",
 	meta: "pane",
+	metaShift: "external",
+};
+
+/**
+ * Folder links (terminal output) have their own action set — folders can't
+ * open in the file viewer, so the choices are reveal-in-sidebar, external
+ * editor, or Finder. Sidebar folder rows stay hardcoded (folderIntentFor);
+ * this map drives terminal folder links only.
+ */
+const folderLinkActionSchema = z.enum(["reveal", "external", "finder"]);
+
+export type FolderLinkAction = z.infer<typeof folderLinkActionSchema>;
+
+const folderTierMapSchema = z.object({
+	plain: folderLinkActionSchema.nullable(),
+	shift: folderLinkActionSchema.nullable(),
+	meta: folderLinkActionSchema.nullable(),
+	metaShift: folderLinkActionSchema.nullable(),
+});
+
+export type FolderTierMap = z.infer<typeof folderTierMapSchema>;
+
+const DEFAULT_FOLDER_LINKS: FolderTierMap = {
+	plain: null,
+	shift: "finder",
+	meta: "reveal",
 	metaShift: "external",
 };
 
@@ -243,8 +376,9 @@ function isCompleteLinkTierMap(
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
-	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
+	urlLinks: linkTierMapSchema.default(DEFAULT_URL_LINKS),
 	sidebarFileLinks: linkTierMapSchema.default(DEFAULT_SIDEBAR_FILE_LINKS),
+	folderLinks: folderTierMapSchema.default(DEFAULT_FOLDER_LINKS),
 	portOpenAction: linkActionSchema.default(DEFAULT_PORT_OPEN_ACTION),
 	terminalPresetsInitialized: z.boolean().default(false),
 	rightSidebarOpen: z.boolean().default(true),
@@ -252,7 +386,17 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
+	// Built-in (synthetic, app-shipped) presets the user hid from the preset
+	// bar. Synthetic presets have no v2TerminalPresets row, so visibility can't
+	// live on the row's pinnedToBar like user presets. Pruned against
+	// KNOWN_BUILTIN_PRESET_IDS at heal time so retired ids can't persist.
+	hiddenBuiltinPresetIds: z.array(z.string()).default([]),
 });
+
+// The fixed set of built-in preset ids. Consumers derive their id constants
+// from this list (compile-checked via `satisfies`) so the heal-time pruning
+// below can never drop an id that is still in use.
+export const KNOWN_BUILTIN_PRESET_IDS = ["superset-cli"] as const;
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
 
@@ -261,8 +405,9 @@ export const V2_USER_PREFERENCES_ID = "preferences" as const;
 export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	id: V2_USER_PREFERENCES_ID,
 	fileLinks: DEFAULT_LINK_TIER_MAP,
-	urlLinks: DEFAULT_LINK_TIER_MAP,
+	urlLinks: DEFAULT_URL_LINKS,
 	sidebarFileLinks: DEFAULT_SIDEBAR_FILE_LINKS,
+	folderLinks: DEFAULT_FOLDER_LINKS,
 	portOpenAction: DEFAULT_PORT_OPEN_ACTION,
 	terminalPresetsInitialized: false,
 	rightSidebarOpen: true,
@@ -270,6 +415,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 	showPresetsBar: true,
+	hiddenBuiltinPresetIds: [],
 };
 
 /**
@@ -287,6 +433,10 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 	) as Partial<WorkspaceLocalStateRow["sidebarState"]>;
 	return {
 		...r,
+		// Heal a malformed/legacy persisted layout so consumers never render an
+		// undefined node. Passed through untouched before, which white-screened
+		// the workspace view on a corrupt layout.
+		paneLayout: sanitizePaneLayout(r.paneLayout),
 		viewedFiles:
 			r.viewedFiles ?? WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.viewedFiles,
 		recentlyViewedFiles:
@@ -295,6 +445,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		workspaceRunTerminals:
 			r.workspaceRunTerminals ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.workspaceRunTerminals,
+		pendingMigratedTerminals:
+			r.pendingMigratedTerminals ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingMigratedTerminals,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,
@@ -323,24 +476,53 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		r.sidebarFileLinks &&
 		isCompleteLinkTierMap(r.sidebarFileLinks) &&
 		isSameLinkTierMap(r.sidebarFileLinks, LEGACY_SIDEBAR_FILE_LINKS);
+	// A stored map identical to the retired default was never customized —
+	// swap it for the current default (shift gained "newTab").
+	const shouldMigrateLegacyUrlLinks =
+		r.urlLinks &&
+		isCompleteLinkTierMap(r.urlLinks) &&
+		isSameLinkTierMap(r.urlLinks, DEFAULT_LINK_TIER_MAP);
 	return {
 		...DEFAULT_V2_USER_PREFERENCES,
 		...r,
 		fileLinks: { ...DEFAULT_V2_USER_PREFERENCES.fileLinks, ...r.fileLinks },
-		urlLinks: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
+		urlLinks: shouldMigrateLegacyUrlLinks
+			? DEFAULT_V2_USER_PREFERENCES.urlLinks
+			: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
 		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
 			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
 			: sidebarFileLinks,
+		folderLinks: {
+			...DEFAULT_V2_USER_PREFERENCES.folderLinks,
+			...r.folderLinks,
+		},
+		// Prune retired/stray built-in ids so the array stays bounded.
+		hiddenBuiltinPresetIds: (Array.isArray(r.hiddenBuiltinPresetIds)
+			? r.hiddenBuiltinPresetIds
+			: []
+		).filter((id) =>
+			(KNOWN_BUILTIN_PRESET_IDS as readonly string[]).includes(id),
+		),
 	};
 }
 
 export type WorkspacesCreateInput =
 	inferRouterInputs<AppRouter>["workspaces"]["create"];
 
+/** Session create — projectId pinned to null so submit can discriminate. */
+export type WorkspacesCreateSessionInput =
+	inferRouterInputs<AppRouter>["workspaces"]["createSession"] & {
+		projectId: null;
+	};
+
+export type WorkspacesCreateAnyInput =
+	| WorkspacesCreateInput
+	| WorkspacesCreateSessionInput;
+
 export const failedWorkspaceCreateSchema = z.object({
 	id: z.string().uuid(),
 	hostId: z.string(),
-	input: z.custom<WorkspacesCreateInput>(),
+	input: z.custom<WorkspacesCreateAnyInput>(),
 	error: z.string(),
 	failedAt: persistedDateSchema,
 });

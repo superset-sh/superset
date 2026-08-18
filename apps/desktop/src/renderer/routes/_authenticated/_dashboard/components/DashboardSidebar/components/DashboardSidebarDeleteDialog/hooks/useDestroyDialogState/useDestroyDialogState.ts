@@ -10,9 +10,8 @@ import {
 } from "renderer/hooks/host-service/useDestroyWorkspace";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { waitForWorkspaceDeleted } from "renderer/routes/_authenticated/providers/CollectionsProvider/workspaceSyncWaits";
-import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
+import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface UseDestroyDialogStateOptions {
 	workspaceId: string;
@@ -36,8 +35,8 @@ export function useDestroyDialogState({
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
-	const collections = useCollections();
-	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
+	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
@@ -96,50 +95,59 @@ export function useDestroyDialogState({
 	);
 
 	const run = useCallback(
-		async (force: boolean) => {
+		// Two separate consents, never conflated: `force` covers git
+		// destructiveness (dirty worktree, unpushed commits), `skipTeardown`
+		// covers abandoning the teardown script and is set only by the
+		// teardown-failed retry — a warned "Delete anyway" still runs teardown.
+		async ({
+			force,
+			skipTeardown = false,
+		}: {
+			force: boolean;
+			skipTeardown?: boolean;
+		}) => {
 			if (inFlight.current) return;
 			inFlight.current = true;
-			let keepDeleting = false;
 
 			setError(null);
 			onOpenChange(false);
-			markDeleting(workspaceId);
+			// The archive commit tombstones the row almost immediately, but
+			// until that broadcast lands (and if a failure un-archives it)
+			// navigation/shortcuts must skip it.
+			useDeletingWorkspacesStore.getState().markDeleting(workspaceId);
 			// Navigate up-front: no-ops if the deleted workspace isn't the
 			// active route, so a later user navigation won't be hijacked.
 			navigateAwayFromWorkspace(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
 
+			const hostId = hostWorkspaces.find(
+				(item) => item.id === workspaceId,
+			)?.hostId;
+
 			try {
 				let result: DestroyWorkspaceSuccess;
 				try {
-					result = await destroy({ deleteBranch, force });
+					result = await destroy({ deleteBranch, force, skipTeardown });
 				} catch (firstErr) {
 					const e = firstErr as DestroyWorkspaceError;
 					// Silent force-retry on the dirty-worktree race: preflight said
 					// clean but the worktree was dirty by destroy time. The user
 					// already confirmed once — don't bounce them back through a
-					// second warning. Do NOT extend this to `in-progress` (that's
-					// a different CONFLICT cause; retrying just races the same
+					// second warning. Git consent only: teardown still runs on the
+					// retry. Do NOT extend this to `in-progress` (that's a
+					// different CONFLICT cause; retrying just races the same
 					// guard).
 					if (e.kind === "conflict" && !force) {
-						result = await destroy({ deleteBranch, force: true });
+						result = await destroy({ deleteBranch, force: true, skipTeardown });
 					} else {
 						throw firstErr;
 					}
 				}
-				try {
-					await waitForWorkspaceDeleted(collections.v2Workspaces, workspaceId);
-				} catch (syncErr) {
-					keepDeleting = true;
-					onDeleted?.();
-					console.warn("[workspace-delete] delete synced slowly", {
-						workspaceId,
-						err: syncErr,
-					});
-					toast.warning(
-						`Deleted ${workspaceName}, but sync is taking longer than expected.`,
-					);
-					return;
+				// The host's local delete is the commit point; its
+				// workspace:changed broadcast normally beats this, but drop the
+				// row explicitly so the UI never depends on the socket.
+				if (hostId) {
+					hostWorkspacesCache.removeWorkspace(hostId, workspaceId);
 				}
 				for (const warning of result.warnings) toast.warning(warning);
 				onDeleted?.();
@@ -156,9 +164,7 @@ export function useDestroyDialogState({
 					);
 				}
 			} finally {
-				if (!keepDeleting) {
-					clearDeleting(workspaceId);
-				}
+				useDeletingWorkspacesStore.getState().clearDeleting(workspaceId);
 				inFlight.current = false;
 			}
 		},
@@ -169,10 +175,9 @@ export function useDestroyDialogState({
 			workspaceId,
 			onOpenChange,
 			onDeleted,
-			markDeleting,
-			clearDeleting,
 			navigateAwayFromWorkspace,
-			collections,
+			hostWorkspaces,
+			hostWorkspacesCache,
 		],
 	);
 

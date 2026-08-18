@@ -1,13 +1,13 @@
-import { ChatServiceProvider } from "@superset/chat/client";
+import { ChatServiceProvider } from "@superset/provider-auth/client";
 import {
 	createFileRoute,
-	Navigate,
 	Outlet,
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
+import { createChatServiceIpcClient } from "renderer/components/ProviderAuth/provider-auth-client";
+import { Redirect } from "renderer/components/Redirect";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
@@ -16,6 +16,8 @@ import { OnboardingNavigation } from "./components/OnboardingNavigation";
 export const Route = createFileRoute("/_authenticated/onboarding")({
 	component: OnboardingFlowLayout,
 });
+
+const rootRedirect = <Redirect to="/" replace />;
 
 const STEPS = [
 	{
@@ -27,8 +29,8 @@ const STEPS = [
 	{
 		path: "/onboarding/project",
 		match: (p: string) => p === "/onboarding/project",
-		title: "Point Superset at some code",
-		subtitle: "Open a folder or clone a repo to finish setup.",
+		title: "Create or add a project",
+		subtitle: "Start from scratch, open a folder, or clone a repo.",
 	},
 ] as const;
 
@@ -42,7 +44,7 @@ function OnboardingFlowLayout() {
 
 	if (isPending) return null;
 	if (session?.user?.onboardedAt) {
-		return <Navigate to="/" replace />;
+		return rootRedirect;
 	}
 
 	const currentStepIdx = STEPS.findIndex((s) => s.match(location.pathname));

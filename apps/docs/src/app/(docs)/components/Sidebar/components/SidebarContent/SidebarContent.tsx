@@ -1,11 +1,3 @@
-import {
-	BookOpen,
-	CircleHelp,
-	Gauge,
-	type LucideIcon,
-	Rocket,
-	Terminal,
-} from "lucide-react";
 import { source } from "@/lib/source";
 
 interface SidebarItem {
@@ -15,17 +7,8 @@ interface SidebarItem {
 
 export interface SidebarSection {
 	title: string;
-	Icon: LucideIcon;
 	items: SidebarItem[];
 }
-
-const iconMap: Record<string, LucideIcon> = {
-	Rocket,
-	Gauge,
-	BookOpen,
-	CircleHelp,
-	Terminal,
-};
 
 interface PageTreeNode {
 	type: string;
@@ -40,13 +23,10 @@ function parseSectionsFromSeparators(nodes: PageTreeNode[]): SidebarSection[] {
 
 	const visit = (node: PageTreeNode) => {
 		if (node.type === "separator") {
-			const name = String(node.name ?? "");
-			const match = name.match(/^(\w+)\s+(.+)$/);
-			if (match) {
-				const [, iconName, title] = match;
+			const name = String(node.name ?? "").trim();
+			if (name) {
 				currentSection = {
-					title,
-					Icon: iconMap[iconName] || Rocket,
+					title: name,
 					items: [],
 				};
 				sections.push(currentSection);

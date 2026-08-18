@@ -3,6 +3,7 @@ import type { SettingsSection } from "renderer/stores/settings-state";
 export const SETTING_ITEM_ID = {
 	ACCOUNT_PROFILE: "account-profile",
 	ACCOUNT_SIGNOUT: "account-signout",
+	ACCOUNT_DELETE: "account-delete",
 
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
@@ -12,6 +13,7 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
 		"organization-members-pending-invitations",
+	ORGANIZATION_DELETE: "organization-delete",
 
 	TEAMS_LIST: "teams-list",
 
@@ -28,6 +30,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
+	BEHAVIOR_STAR_GITHUB: "behavior-star-github",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -41,8 +44,10 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_BACKGROUND_LIMIT: "terminal-background-limit",
 
 	LINKS_FILE: "links-file",
+	LINKS_FOLDER: "links-folder",
 	LINKS_URL: "links-url",
 	LINKS_SIDEBAR_FILE: "links-sidebar-file",
 	LINKS_PORT: "links-port",
@@ -53,6 +58,9 @@ export const SETTING_ITEM_ID = {
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
+	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
+	EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT:
+		"experimental-wait-for-setup-before-agent",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -67,8 +75,8 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_SPARSE_CHECKOUT: "project-sparse-checkout",
 	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
-	PROJECT_ENV_VARS: "project-env-vars",
 
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
@@ -86,6 +94,7 @@ export const SETTING_ITEM_ID = {
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
 	HOST_WORKTREE_LOCATION: "host-worktree-location",
+	HOST_DELETE: "host-delete",
 } as const;
 
 export type SettingItemId =
@@ -113,6 +122,7 @@ export type SettingVariant = "v1" | "v2" | "shared";
 export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ACCOUNT_PROFILE]: "shared",
 	[SETTING_ITEM_ID.ACCOUNT_SIGNOUT]: "shared",
+	[SETTING_ITEM_ID.ACCOUNT_DELETE]: "shared",
 
 	[SETTING_ITEM_ID.ORGANIZATION_LOGO]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_NAME]: "shared",
@@ -121,14 +131,15 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE]: "shared",
 	[SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS]: "shared",
+	[SETTING_ITEM_ID.ORGANIZATION_DELETE]: "shared",
 
 	[SETTING_ITEM_ID.TEAMS_LIST]: "shared",
 
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -138,6 +149,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
+	[SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB]: "shared",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -152,8 +164,10 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.TERMINAL_QUICK_ADD]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_SESSIONS]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
+	[SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT]: "v2",
 
 	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
+	[SETTING_ITEM_ID.LINKS_FOLDER]: "v2",
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
 	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_PORT]: "v2",
@@ -164,6 +178,9 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
+	// Gates both the v1 renderer launch and the v2 host-side launch.
+	[SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -178,8 +195,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "shared",
 	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
 	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
+	[SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT]: "v2",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
-	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
 
 	[SETTING_ITEM_ID.API_KEYS_LIST]: "shared",
 	[SETTING_ITEM_ID.API_KEYS_GENERATE]: "shared",
@@ -196,6 +213,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
 	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
+	[SETTING_ITEM_ID.HOST_DELETE]: "shared",
 };
 
 export function isItemAllowedForVariant(
@@ -237,6 +255,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"log out",
 			"disconnect",
 			"leave",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ACCOUNT_DELETE,
+		section: "account",
+		title: "Delete Account",
+		description: "Permanently delete your account",
+		keywords: [
+			"account",
+			"delete",
+			"remove",
+			"close",
+			"deactivate",
+			"gdpr",
+			"erase",
 		],
 	},
 	{
@@ -356,6 +389,20 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.ORGANIZATION_DELETE,
+		section: "organization",
+		title: "Delete Organization",
+		description: "Permanently delete this organization",
+		keywords: [
+			"organization",
+			"delete",
+			"remove",
+			"close",
+			"disband",
+			"danger",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.TEAMS_LIST,
 		section: "teams",
 		title: "Teams",
@@ -426,8 +473,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT,
 		section: "appearance",
-		title: "Editor Font",
-		description: "Font used in diff views and file editors",
+		title: "Editor Typography",
+		description: "Typography used in V2 diff views and file editors",
 		keywords: [
 			"appearance",
 			"font",
@@ -438,14 +485,19 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
 			"custom",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		section: "appearance",
-		title: "Terminal Font",
-		description: "Font used in terminal panels",
+		title: "Terminal Typography",
+		description: "Typography and cursor behavior used in V2 terminal panels",
 		keywords: [
 			"appearance",
 			"font",
@@ -455,6 +507,15 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
+			"contrast",
+			"minimum contrast",
+			"cursor",
+			"blink",
 			"custom",
 			"nerd",
 		],
@@ -626,6 +687,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
+		section: "behavior",
+		title: "Star Superset on GitHub",
+		description: "Support the project with a GitHub star",
+		keywords: [
+			"star",
+			"github",
+			"support",
+			"feedback",
+			"open source",
+			"repo",
+			"repository",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.AGENTS_ENABLED,
 		section: "agents",
 		title: "Enabled agents",
@@ -661,6 +737,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"copilot",
 			"cursor",
+			"vibe",
+			"mistral",
+			"kimi",
+			"moonshot",
+			"grok",
+			"xai",
 		],
 	},
 	{
@@ -716,6 +798,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"ai",
 			"assistant",
+			"vibe",
+			"mistral",
+			"kimi",
+			"moonshot",
+			"grok",
+			"xai",
 		],
 	},
 	{
@@ -740,6 +828,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"stop",
 			"manage",
 			"pty",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT,
+		section: "terminal",
+		title: "Background terminal memory",
+		description: "How many hidden terminals stay fully loaded",
+		keywords: [
+			"terminal",
+			"memory",
+			"background",
+			"hidden",
+			"parked",
+			"limit",
+			"cap",
+			"performance",
+			"ram",
+			"scrollback",
 		],
 	},
 	{
@@ -783,6 +889,31 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"terminal",
 			"chat",
 			"markdown",
+			"behavior",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.LINKS_FOLDER,
+		section: "links",
+		title: "Folder links",
+		description:
+			"How folder paths open when clicked in terminals: reveal in sidebar, editor, or Finder",
+		keywords: [
+			"links",
+			"folder",
+			"directory",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"finder",
+			"reveal",
+			"sidebar",
+			"editor",
+			"external",
+			"open",
+			"terminal",
 			"behavior",
 		],
 	},
@@ -878,13 +1009,16 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"auth",
 			"workspace naming",
 			"auto name",
+			"ai",
+			"autocomplete",
+			"auto complete",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.MODELS_OPENAI,
 		section: "models",
 		title: "OpenAI Model Auth",
-		description: "Connect OpenAI for supported model tasks",
+		description: "Connect OpenAI for workspace naming and other model tasks",
 		keywords: [
 			"models",
 			"openai",
@@ -894,6 +1028,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"auth",
 			"workspace naming",
 			"auto name",
+			"ai",
+			"autocomplete",
+			"auto complete",
 		],
 	},
 	{
@@ -951,6 +1088,48 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"dev server",
 			"toggle",
 			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		section: "experimental",
+		title: "Workspace agents",
+		description:
+			"Show running agents under each workspace in the sidebar, with their live status",
+		keywords: [
+			"experimental",
+			"agents",
+			"agent",
+			"running",
+			"inline",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"status",
+			"toggle",
+			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
+		section: "experimental",
+		title: "Wait for workspace setup before starting agents",
+		description:
+			"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
+		keywords: [
+			"experimental",
+			"workspace",
+			"setup",
+			"script",
+			"agent",
+			"terminal",
+			"wait",
+			"gate",
+			"complete",
+			"finish",
+			"reuse",
+			"sequential",
+			"install",
 		],
 	},
 	{
@@ -1136,6 +1315,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT,
+		section: "project",
+		title: "Sparse Checkout",
+		description: "Limit new worktrees to specific folders of the repository",
+		keywords: [
+			"project",
+			"sparse",
+			"checkout",
+			"cone",
+			"worktree",
+			"folders",
+			"directories",
+			"subset",
+			"partial",
+			"monorepo",
+			"size",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES,
 		section: "project",
 		title: "Import Worktrees",
@@ -1151,20 +1349,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"existing",
 			"disk",
 			"add",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.PROJECT_ENV_VARS,
-		section: "project",
-		title: "Environment Variables",
-		description: "Manage environment variables and secrets for cloud sandboxes",
-		keywords: [
-			"environment",
-			"variables",
-			"secrets",
-			"env",
-			"cloud",
-			"sandbox",
 		],
 	},
 	{
@@ -1375,18 +1559,41 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"admin",
 		],
 	},
+	{
+		id: SETTING_ITEM_ID.HOST_DELETE,
+		section: "hosts",
+		title: "Delete host",
+		description:
+			"Remove a host and its synced workspace records from the organization",
+		keywords: [
+			"host",
+			"hosts",
+			"delete",
+			"remove",
+			"machine",
+			"device",
+			"workspace",
+			"owner",
+			"danger zone",
+		],
+	},
 ];
 
-export function searchSettings(query: string): SettingsItem[] {
-	if (!query.trim()) return SETTINGS_ITEMS;
+export function splitSearchTerms(query: string): string[] {
+	return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
 
-	const q = query.toLowerCase();
-	return SETTINGS_ITEMS.filter(
-		(item) =>
-			item.title.toLowerCase().includes(q) ||
-			item.description.toLowerCase().includes(q) ||
-			item.keywords.some((kw) => kw.toLowerCase().includes(q)),
-	);
+export function searchSettings(query: string): SettingsItem[] {
+	const terms = splitSearchTerms(query);
+	if (terms.length === 0) return SETTINGS_ITEMS;
+
+	return SETTINGS_ITEMS.filter((item) => {
+		const searchableText = [item.title, item.description, ...item.keywords]
+			.join(" ")
+			.toLowerCase();
+
+		return terms.every((term) => searchableText.includes(term));
+	});
 }
 
 export function getMatchCountBySection(

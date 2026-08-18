@@ -13,13 +13,11 @@ export {
 } from "./providers/git";
 export type { HostAuthProvider } from "./providers/host-auth";
 export { PskHostAuthProvider } from "./providers/host-auth";
-export type { ModelProviderRuntimeResolver } from "./providers/model-providers";
-export {
-	CloudModelProvider,
-	LocalModelProvider,
-} from "./providers/model-providers";
+export { resolveBrowserBridgeFromEnv } from "./runtime/browser-bridge/env";
 export type { GitCredentialProvider, GitFactory } from "./runtime/git";
-export { installProcessSafetyNet } from "./safety";
+export { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
+export { captureFatalStartupError, initSentry } from "./sentry";
+export { startTerminalReaper } from "./terminal/reaper";
 export type {
 	DeleteInProgressCause,
 	TeardownFailureCause,

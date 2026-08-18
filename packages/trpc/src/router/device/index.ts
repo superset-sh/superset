@@ -1,1 +1,0 @@
-export { deviceRouter } from "./device";

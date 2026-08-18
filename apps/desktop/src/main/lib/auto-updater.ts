@@ -1,11 +1,20 @@
 import { EventEmitter } from "node:events";
+import { statfsSync } from "node:fs";
+import * as Sentry from "@sentry/electron/main";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
-import { autoUpdater } from "electron-updater";
+import { autoUpdater, type UpdateCheckResult } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
+import { appState } from "main/lib/app-state";
+import { isEnvironmentUpdateError } from "main/lib/update-error-classification";
 import { gte, prerelease } from "semver";
-import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
+import {
+	AUTO_UPDATE_STATUS,
+	type AutoUpdateProgress,
+	type AutoUpdateStatus,
+	type AutoUpdateStatusEvent,
+} from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
 // electron-updater's internal cache only self-invalidates when the remote
@@ -52,11 +61,7 @@ const UPDATE_FEED_URL = IS_PRERELEASE
 	? "https://github.com/superset-sh/superset/releases/download/desktop-canary"
 	: "https://github.com/superset-sh/superset/releases/latest/download";
 
-export interface AutoUpdateStatusEvent {
-	status: AutoUpdateStatus;
-	version?: string;
-	error?: string;
-}
+export type { AutoUpdateStatusEvent } from "shared/auto-update";
 
 export const autoUpdateEmitter = new EventEmitter();
 
@@ -80,8 +85,29 @@ function isNetworkError(error: Error | string): boolean {
 	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
 }
 
+// Free bytes on the volume backing the updater caches, which sit beside our app
+// data. Returns null when the volume can't be queried, so an unknown answer
+// never reads as "out of space".
+function freeStagingBytes(): number | null {
+	try {
+		const { bavail, bsize } = statfsSync(app.getPath("userData"));
+		return bavail * bsize;
+	} catch {
+		return null;
+	}
+}
+
+// electron-updater starts the auto-download inside checkForUpdates and hands
+// back its promise unattached; every rejection has already gone through the
+// `error` event, so the copy only needs to stop being unhandled.
+function releaseDownloadPromise(result: UpdateCheckResult | null): void {
+	result?.downloadPromise?.catch(() => {});
+}
+
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
+let currentError: string | undefined;
+let currentProgress: AutoUpdateProgress | undefined;
 let isDismissed = false;
 let isInstalling = false;
 
@@ -89,22 +115,31 @@ function emitStatus(
 	status: AutoUpdateStatus,
 	version?: string,
 	error?: string,
+	progress?: AutoUpdateProgress,
 ): void {
 	currentStatus = status;
 	currentVersion = version;
+	currentError = error;
+	currentProgress = progress;
 
 	if (isDismissed && status === AUTO_UPDATE_STATUS.READY) {
 		return;
 	}
 
-	autoUpdateEmitter.emit("status-changed", { status, version, error });
+	const event: AutoUpdateStatusEvent = { status, version, error, progress };
+	autoUpdateEmitter.emit("status-changed", event);
 }
 
 export function getUpdateStatus(): AutoUpdateStatusEvent {
 	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
 		return { status: AUTO_UPDATE_STATUS.IDLE };
 	}
-	return { status: currentStatus, version: currentVersion };
+	return {
+		status: currentStatus,
+		version: currentVersion,
+		error: currentError,
+		progress: currentProgress,
+	};
 }
 
 export function isUpdateReadyToInstall(): boolean {
@@ -113,8 +148,15 @@ export function isUpdateReadyToInstall(): boolean {
 
 export function installUpdate(): void {
 	if (env.NODE_ENV === "development") {
+		// Simulate the real lifecycle so the renderer can be previewed with the
+		// simulate* mutations: installing lingers, then the post-update
+		// confirmation shows, then everything goes idle.
 		log.info("[auto-updater] Install skipped in dev mode");
-		emitStatus(AUTO_UPDATE_STATUS.IDLE);
+		const installedVersion = currentVersion;
+		setTimeout(() => {
+			emitStatus(AUTO_UPDATE_STATUS.UPDATED, installedVersion);
+			setTimeout(() => emitStatus(AUTO_UPDATE_STATUS.IDLE), 6000);
+		}, 3500);
 		return;
 	}
 	// MacUpdater.quitAndInstall() registers a fresh native-updater
@@ -150,15 +192,18 @@ export function checkForUpdates(): void {
 	}
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
-	autoUpdater.checkForUpdates().catch((error) => {
-		if (isNetworkError(error)) {
-			log.info("[auto-updater] Network unavailable, will retry later");
-			emitStatus(AUTO_UPDATE_STATUS.IDLE);
-			return;
-		}
-		log.error("[auto-updater] Failed to check for updates:", error);
-		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
-	});
+	autoUpdater
+		.checkForUpdates()
+		.then(releaseDownloadPromise)
+		.catch((error) => {
+			if (isNetworkError(error)) {
+				log.info("[auto-updater] Network unavailable, will retry later");
+				emitStatus(AUTO_UPDATE_STATUS.IDLE);
+				return;
+			}
+			log.error("[auto-updater] Failed to check for updates:", error);
+			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		});
 }
 
 export function checkForUpdatesInteractive(): void {
@@ -185,6 +230,7 @@ export function checkForUpdatesInteractive(): void {
 	autoUpdater
 		.checkForUpdates()
 		.then((result) => {
+			releaseDownloadPromise(result);
 			if (
 				!result?.updateInfo ||
 				gte(app.getVersion(), result.updateInfo.version)
@@ -220,21 +266,51 @@ export function checkForUpdatesInteractive(): void {
 		});
 }
 
+const SIMULATED_VERSION = "99.0.0-test";
+let simulateDownloadInterval: NodeJS.Timeout | undefined;
+
+function clearSimulatedDownload(): void {
+	if (simulateDownloadInterval) {
+		clearInterval(simulateDownloadInterval);
+		simulateDownloadInterval = undefined;
+	}
+}
+
 export function simulateUpdateReady(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
-	emitStatus(AUTO_UPDATE_STATUS.READY, "99.0.0-test");
+	clearSimulatedDownload();
+	emitStatus(AUTO_UPDATE_STATUS.READY, SIMULATED_VERSION);
 }
 
 export function simulateDownloading(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
-	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, "99.0.0-test");
+	clearSimulatedDownload();
+	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, SIMULATED_VERSION);
+
+	// Stream fake progress so the renderer's ring/percent can be exercised,
+	// then land on READY like a real download.
+	const totalBytes = 48 * 1024 * 1024;
+	let percent = 0;
+	simulateDownloadInterval = setInterval(() => {
+		percent = Math.min(percent + 3 + Math.random() * 5, 100);
+		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, SIMULATED_VERSION, undefined, {
+			percent,
+			transferredBytes: Math.round((percent / 100) * totalBytes),
+			totalBytes,
+		});
+		if (percent >= 100) {
+			clearSimulatedDownload();
+			emitStatus(AUTO_UPDATE_STATUS.READY, SIMULATED_VERSION);
+		}
+	}, 300);
 }
 
 export function simulateError(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
+	clearSimulatedDownload();
 	emitStatus(
 		AUTO_UPDATE_STATUS.ERROR,
 		undefined,
@@ -287,6 +363,14 @@ export function setupAutoUpdater(): void {
 		);
 		void clearCachedUpdate(`error: ${error?.message ?? "unknown"}`);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		if (
+			!isEnvironmentUpdateError(
+				error?.message ?? String(error),
+				freeStagingBytes(),
+			)
+		) {
+			Sentry.captureException(error);
+		}
 	});
 
 	autoUpdater.on("checking-for-update", () => {
@@ -310,10 +394,21 @@ export function setupAutoUpdater(): void {
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 	});
 
+	// Throttle renderer notifications; electron-updater emits per chunk.
+	const PROGRESS_EMIT_INTERVAL_MS = 500;
+	let lastProgressEmitAt = 0;
 	autoUpdater.on("download-progress", (progress) => {
 		log.info(
 			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}% (${(progress.transferred / 1024 / 1024).toFixed(1)}MB / ${(progress.total / 1024 / 1024).toFixed(1)}MB)`,
 		);
+		const now = Date.now();
+		if (now - lastProgressEmitAt < PROGRESS_EMIT_INTERVAL_MS) return;
+		lastProgressEmitAt = now;
+		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, currentVersion, undefined, {
+			percent: progress.percent,
+			transferredBytes: progress.transferred,
+			totalBytes: progress.total,
+		});
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
@@ -323,15 +418,39 @@ export function setupAutoUpdater(): void {
 		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
 	});
 
+	// If the version changed since the last launch, an update was just
+	// installed — surface a transient confirmation before the first check.
+	const lastRunVersion = appState.data.lastRunVersion;
+	const currentAppVersion = app.getVersion();
+	const justUpdated = !!lastRunVersion && lastRunVersion !== currentAppVersion;
+	if (justUpdated) {
+		log.info(
+			`[auto-updater] Updated: ${lastRunVersion} → ${currentAppVersion}`,
+		);
+		emitStatus(AUTO_UPDATE_STATUS.UPDATED, currentAppVersion);
+	}
+	if (lastRunVersion !== currentAppVersion) {
+		appState.data.lastRunVersion = currentAppVersion;
+		appState.write().catch((error) => {
+			log.error("[auto-updater] Failed to persist lastRunVersion:", error);
+		});
+	}
+
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
 	interval.unref();
 
+	// Delay the first check when just updated so the confirmation isn't
+	// immediately overwritten by CHECKING before the renderer sees it.
+	const firstCheckDelayMs = justUpdated ? 10_000 : 0;
+	const startChecks = () => {
+		setTimeout(checkForUpdates, firstCheckDelayMs);
+	};
 	if (app.isReady()) {
-		void checkForUpdates();
+		startChecks();
 	} else {
 		app
 			.whenReady()
-			.then(() => checkForUpdates())
+			.then(startChecks)
 			.catch((error) => {
 				log.error("[auto-updater] Failed to start update checks:", error);
 			});

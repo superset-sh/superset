@@ -2,7 +2,7 @@ export {
 	type AgentRunInput,
 	type AgentRunResult,
 	agentsRouter,
-	buildAgentCommandString,
-	resolveHostAgentConfig,
+	buildTerminalAgentLaunch,
 	runAgentInWorkspace,
+	validateAgentLaunchEffort,
 } from "./agents";

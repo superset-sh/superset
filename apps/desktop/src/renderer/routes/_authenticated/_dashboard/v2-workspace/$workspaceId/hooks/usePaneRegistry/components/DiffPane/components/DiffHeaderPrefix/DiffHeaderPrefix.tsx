@@ -6,7 +6,7 @@ import type { ChangesetFile } from "../../../../../useChangeset";
 interface DiffHeaderPrefixProps {
 	file: ChangesetFile;
 	collapsed: boolean;
-	onSetCollapsed: (path: string, value: boolean) => void;
+	onSetCollapsed: (value: boolean) => void;
 }
 
 export function DiffHeaderPrefix({
@@ -15,8 +15,8 @@ export function DiffHeaderPrefix({
 	onSetCollapsed,
 }: DiffHeaderPrefixProps) {
 	const onToggle = useCallback(
-		() => onSetCollapsed(file.path, !collapsed),
-		[onSetCollapsed, file.path, collapsed],
+		() => onSetCollapsed(!collapsed),
+		[onSetCollapsed, collapsed],
 	);
 
 	return (

@@ -20,7 +20,7 @@ import {
 } from "../../src/terminal/env";
 import { __resetSessionsForTesting } from "../../src/terminal/terminal";
 import { __setAccountShellForTesting } from "../../src/terminal/user-shell";
-import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
+import { cloudFlows } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
 import {
@@ -28,7 +28,7 @@ import {
 	createFeatureWorktreeScenario,
 	type FeatureWorktreeScenario,
 } from "../helpers/scenarios";
-import { seedProject, seedWorkspace } from "../helpers/seed";
+import { seedProject, seedPullRequest, seedWorkspace } from "../helpers/seed";
 
 describe("workspaceCleanup.destroy integration", () => {
 	let scenario: FeatureWorktreeScenario;
@@ -73,17 +73,11 @@ describe("workspaceCleanup.destroy integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("rejects deleting a workspace flagged as main by cloud", async () => {
-		// Different scenario: cloud says type=main even though the path
-		// doesn't match repoPath. Build a fresh host with that mock.
+	test("rejects deleting a workspace flagged as main by local type", async () => {
+		// Different scenario: the local row says type=main even though the
+		// path doesn't match repoPath. Build a fresh host for it.
 		await scenario.dispose();
-		const host = await createTestHost({
-			apiOverrides: {
-				"v2Workspace.getFromHost.query": cloudOk.workspaceGetFromHost({
-					type: "main",
-				}),
-			},
-		});
+		const host = await createTestHost();
 		const repo = await createGitFixture();
 		const { id: projectId } = seedProject(host, { repoPath: repo.repoPath });
 		const worktreePath = join(repo.repoPath, ".worktrees", "feature-cleanup");
@@ -98,6 +92,7 @@ describe("workspaceCleanup.destroy integration", () => {
 			projectId,
 			worktreePath,
 			branch: "feature/cleanup",
+			type: "main",
 		});
 
 		try {
@@ -118,16 +113,9 @@ describe("workspaceCleanup.destroy integration", () => {
 				workspaceId: scenario.featureWorkspaceId,
 			}),
 		).rejects.toThrow(/uncommitted changes/i);
-
-		// Cloud delete should NOT have been called — we're past the dirty check.
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(false);
 	});
 
-	test("force=true skips preflight and runs cloud delete + db cleanup", async () => {
+	test("force=true skips preflight and runs db cleanup", async () => {
 		writeFileSync(join(scenario.worktreePath, "dirty.txt"), "uncommitted");
 
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
@@ -135,19 +123,16 @@ describe("workspaceCleanup.destroy integration", () => {
 			force: true,
 		});
 		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(true);
 
+		// The row survives as an archived tombstone (mark-first soft delete).
 		const remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(true);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
+		expect(remaining[0]?.archiveReason).toBe("deleted");
 	});
 
 	test("force=true removes a locked worktree whose directory still exists", async () => {
@@ -174,7 +159,7 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
-	test("teardown failure blocks local and cloud delete until force retry", async () => {
+	test("teardown failure blocks the local delete until force retry", async () => {
 		teardownTmp = mkdtempSync(join(tmpdir(), "workspace-cleanup-teardown-"));
 		const socketPath = join(teardownTmp, "pty-daemon.sock");
 		const teardownWrites: string[] = [];
@@ -222,11 +207,6 @@ describe("workspaceCleanup.destroy integration", () => {
 			}),
 		).rejects.toThrow(/Teardown script failed/i);
 		expect(teardownWrites).toHaveLength(1);
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(false);
 		expect(existsSync(scenario.worktreePath)).toBe(true);
 		let remaining = scenario.host.db
 			.select()
@@ -234,41 +214,71 @@ describe("workspaceCleanup.destroy integration", () => {
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
 		expect(remaining).toHaveLength(1);
+		// The blocking teardown failure un-archived the mark-first tombstone —
+		// the workspace is live and retryable.
+		expect(remaining[0]?.archivedAt).toBeNull();
 
+		// The teardown-failed retry carries both consents: force (git) and
+		// skipTeardown — force alone would run the failing script again.
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 			force: true,
+			skipTeardown: true,
 		});
 		expect(result.success).toBe(true);
 		expect(result.worktreeRemoved).toBe(true);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(true);
 
 		remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
 	});
 
-	test("clean worktree destroys without force and removes db row", async () => {
+	test("destroying a workspace with a merged PR archives with reason 'merged'", async () => {
+		const { id: prId } = seedPullRequest(scenario.host, {
+			projectId: scenario.projectId,
+			prNumber: 4242,
+			state: "merged",
+			headBranch: scenario.branch,
+		});
+		scenario.host.db
+			.update(workspaces)
+			.set({ pullRequestId: prId })
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.run();
+
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 		});
 		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(true);
 
 		const remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archiveReason).toBe("merged");
+	});
+
+	test("clean worktree destroys without force and archives the db row", async () => {
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+		});
+		expect(result.success).toBe(true);
+
+		const remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
+		expect(remaining[0]?.archiveReason).toBe("deleted");
 	});
 
 	test("deleteBranch=true also removes the branch after worktree teardown", async () => {
@@ -361,61 +371,17 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
-	test("cloud delete failure after local removal keeps row so delete can retry", async () => {
-		let cloudDeleteCalls = 0;
-		scenario.host.setApi("v2Workspace.delete.mutate", () => {
-			cloudDeleteCalls += 1;
-			if (cloudDeleteCalls === 1) {
-				throw new Error("cloud delete unavailable");
-			}
-			return { success: true };
-		});
-
-		await expect(
-			scenario.host.trpc.workspaceCleanup.destroy.mutate({
-				workspaceId: scenario.featureWorkspaceId,
-			}),
-		).rejects.toThrow(/cloud delete unavailable/i);
-		expect(cloudDeleteCalls).toBe(1);
-		expect(existsSync(scenario.worktreePath)).toBe(false);
-
-		let remaining = scenario.host.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, scenario.featureWorkspaceId))
-			.all();
-		expect(remaining).toHaveLength(1);
-
+	test("opted-in branch delete runs after the local commit point", async () => {
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
+			deleteBranch: true,
 		});
 		expect(result.success).toBe(true);
-		expect(result.worktreeRemoved).toBe(true);
-		expect(cloudDeleteCalls).toBe(2);
-
-		remaining = scenario.host.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, scenario.featureWorkspaceId))
-			.all();
-		expect(remaining).toHaveLength(0);
-	});
-
-	test("cloud delete failure does not delete the optional branch", async () => {
-		scenario.host.setApi("v2Workspace.delete.mutate", () => {
-			throw new Error("cloud delete unavailable");
-		});
-
-		await expect(
-			scenario.host.trpc.workspaceCleanup.destroy.mutate({
-				workspaceId: scenario.featureWorkspaceId,
-				deleteBranch: true,
-			}),
-		).rejects.toThrow(/cloud delete unavailable/i);
+		expect(result.branchDeleted).toBe(true);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 
 		const branches = await scenario.repo.git.branchLocal();
-		expect(branches.all).toContain(scenario.branch);
+		expect(branches.all).not.toContain(scenario.branch);
 
 		const remaining = scenario.host.db
 			.select()
@@ -423,24 +389,17 @@ describe("workspaceCleanup.destroy integration", () => {
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
 		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
 	});
 
-	test("returns success when no local workspace row exists, still calls cloud delete", async () => {
+	test("returns success when no local workspace row exists", async () => {
 		await scenario.dispose();
-		const fresh = await createBasicScenario({
-			hostOptions: {
-				apiOverrides: {
-					"v2Workspace.getFromHost.query": () => null,
-					"v2Workspace.delete.mutate": cloudOk.workspaceDelete(),
-				},
-			},
-		});
+		const fresh = await createBasicScenario();
 		try {
 			const result = await fresh.host.trpc.workspaceCleanup.destroy.mutate({
 				workspaceId: randomUUID(),
 			});
 			expect(result.success).toBe(true);
-			expect(result.cloudDeleted).toBe(true);
 		} finally {
 			await fresh.dispose();
 		}

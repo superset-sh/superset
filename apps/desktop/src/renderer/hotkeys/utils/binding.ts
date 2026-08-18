@@ -1,5 +1,5 @@
+import { canonicalizeChord, normalizeToken } from "shared/hotkey-chord";
 import type { ParsedBinding, ShortcutBinding } from "../types";
-import { canonicalizeChord, normalizeToken } from "./resolveHotkeyFromEvent";
 
 /**
  * Keys whose `event.code` is stable across keyboard layouts (Enter, arrows,

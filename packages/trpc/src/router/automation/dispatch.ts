@@ -2,6 +2,7 @@ import { mintUserJwt } from "@superset/auth/server";
 import { dbWs } from "@superset/db/client";
 import {
 	automationRuns,
+	automations,
 	type SelectAutomation,
 	users,
 	v2Hosts,
@@ -13,12 +14,11 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { fetchRelayPresence } from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
-type AgentRunResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
+type AgentRunResult = { kind: "terminal"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
@@ -26,11 +26,32 @@ export type DispatchOutcome =
 	| { status: "dispatch_failed"; runId: string | null; error: string }
 	| { status: "conflict" };
 
-export interface DispatchOptions {
-	automation: SelectAutomation;
-	scheduledFor: Date;
+/**
+ * Only what dispatch actually reads. Deliberately excludes the schedule
+ * columns, which live on the automation's trigger.
+ */
+export type DispatchableAutomation = Pick<
+	SelectAutomation,
+	| "id"
+	| "name"
+	| "organizationId"
+	| "ownerUserId"
+	| "agent"
+	| "prompt"
+	| "targetHostId"
+	| "v2ProjectId"
+	| "v2WorkspaceId"
+>;
+
+/** What caused this run: a schedule with a due minute, or a matched event. */
+export type DispatchCause =
+	| { scheduledFor: Date; trigger?: null }
+	| { scheduledFor?: null; trigger: { triggerId: string; eventId: string } };
+
+export type DispatchOptions = {
+	automation: DispatchableAutomation;
 	relayUrl: string;
-}
+} & DispatchCause;
 
 /**
  * Run one automation: resolve host, (maybe) create a workspace, start the
@@ -42,21 +63,24 @@ export interface DispatchOptions {
 export async function dispatchAutomation(
 	opts: DispatchOptions,
 ): Promise<DispatchOutcome> {
-	const { automation, scheduledFor, relayUrl } = opts;
+	const { automation, relayUrl } = opts;
+	const scheduledFor = opts.scheduledFor ?? null;
+	const trigger = opts.trigger ?? null;
 
-	const resolved = await resolveTargetHost(automation);
-	if (!resolved) {
+	const candidates = await resolveCandidateHosts(automation);
+	if (candidates.length === 0) {
 		const error = "no host available";
 		const inserted = await recordSkipped(automation, scheduledFor, null, error);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
-	const host = resolved;
-	if (!host.isOnline) {
+
+	const host = await pickOnlineHost(automation, relayUrl, candidates);
+	if (!host) {
 		const error = "target host offline";
 		const inserted = await recordSkipped(
 			automation,
 			scheduledFor,
-			host.machineId,
+			candidates[0]?.machineId ?? null,
 			error,
 		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
@@ -69,11 +93,14 @@ export async function dispatchAutomation(
 			organizationId: automation.organizationId,
 			title: automation.name,
 			scheduledFor,
+			triggerId: trigger?.triggerId ?? null,
+			eventId: trigger?.eventId ?? null,
 			hostId: host.machineId,
 			status: "dispatching",
 		})
 		.onConflictDoNothing({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
+			where: sql`${automationRuns.scheduledFor} IS NOT NULL`,
 		})
 		.returning();
 
@@ -101,9 +128,7 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
-		if (automation.v2WorkspaceId) {
-			workspaceId = automation.v2WorkspaceId;
-		} else {
+		const createFreshWorkspace = async () => {
 			const created = await createWorkspaceOnHost({
 				relayUrl,
 				hostId: routingKey,
@@ -112,25 +137,60 @@ export async function dispatchAutomation(
 				automation,
 				runId: run.id,
 			});
-			workspaceId = created.workspaceId;
-		}
+			return created.workspaceId;
+		};
 
-		const result = await runAgentOnHost({
-			relayUrl,
-			hostId: routingKey,
-			jwt,
-			workspaceId,
-			agent: automation.agent,
-			prompt: automation.prompt,
-		});
+		const runAgent = (targetWorkspaceId: string) =>
+			runAgentOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				workspaceId: targetWorkspaceId,
+				agent: automation.agent,
+				prompt: automation.prompt,
+			});
+
+		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
+
+		let result: AgentRunResult;
+		try {
+			result = await runAgent(workspaceId);
+		} catch (err) {
+			// Fall back only when the host says the pinned workspace is gone:
+			// tRPC NOT_FOUND (404) naming the pinned id. Other NOT_FOUNDs
+			// (agent config, attachments) rethrow.
+			const stalePin = automation.v2WorkspaceId;
+			const pinGone =
+				stalePin !== null &&
+				stalePin === workspaceId &&
+				err instanceof RelayDispatchError &&
+				err.status === 404 &&
+				err.message.includes(stalePin);
+			if (!pinGone) throw err;
+			// Clear the pin (CAS so a concurrent repin is never erased) and use
+			// a fresh workspace from here on.
+			await dbWs
+				.update(automations)
+				.set({ v2WorkspaceId: null })
+				.where(
+					and(
+						eq(automations.id, automation.id),
+						eq(automations.v2WorkspaceId, stalePin),
+					),
+				);
+			// Don't let the outer catch record the dead id if fresh-create throws.
+			workspaceId = null;
+			workspaceId = await createFreshWorkspace();
+			result = await runAgent(workspaceId);
+		}
 
 		await dbWs
 			.update(automationRuns)
 			.set({
 				status: "dispatched",
 				sessionKind: result.kind,
-				chatSessionId: result.kind === "chat" ? result.sessionId : null,
-				terminalSessionId: result.kind === "terminal" ? result.sessionId : null,
+				chatSessionId: null,
+				terminalSessionId: result.sessionId,
 				v2WorkspaceId: workspaceId,
 				dispatchedAt: new Date(),
 			})
@@ -151,9 +211,9 @@ export async function dispatchAutomation(
 	return { status: "dispatched", runId: run.id };
 }
 
-async function resolveTargetHost(
-	automation: SelectAutomation,
-): Promise<typeof v2Hosts.$inferSelect | null> {
+async function resolveCandidateHosts(
+	automation: DispatchableAutomation,
+): Promise<Array<typeof v2Hosts.$inferSelect>> {
 	if (automation.targetHostId) {
 		const [host] = await dbWs
 			.select()
@@ -166,15 +226,16 @@ async function resolveTargetHost(
 			)
 			.limit(1);
 
-		return host ?? null;
+		return host ? [host] : [];
 	}
 
-	const [host] = await dbWs
+	return dbWs
 		.select({
 			organizationId: v2Hosts.organizationId,
 			machineId: v2Hosts.machineId,
 			name: v2Hosts.name,
 			isOnline: v2Hosts.isOnline,
+			wakeCommand: v2Hosts.wakeCommand,
 			createdByUserId: v2Hosts.createdByUserId,
 			createdAt: v2Hosts.createdAt,
 			updatedAt: v2Hosts.updatedAt,
@@ -191,18 +252,46 @@ async function resolveTargetHost(
 			and(
 				eq(v2UsersHosts.userId, automation.ownerUserId),
 				eq(v2Hosts.organizationId, automation.organizationId),
-				eq(v2Hosts.isOnline, true),
 			),
 		)
-		.orderBy(v2Hosts.updatedAt)
-		.limit(1);
+		.orderBy(v2Hosts.updatedAt);
+}
 
-	return host ?? null;
+/**
+ * The relay's DOs are the presence authority; the DB flag only decides for
+ * hosts still on the v1 relay (which keeps writing it). First online
+ * candidate wins, preserving the updatedAt ordering.
+ */
+async function pickOnlineHost(
+	automation: DispatchableAutomation,
+	relayUrl: string,
+	candidates: Array<typeof v2Hosts.$inferSelect>,
+): Promise<typeof v2Hosts.$inferSelect | null> {
+	const jwt = await mintUserJwt({
+		userId: automation.ownerUserId,
+		organizationIds: [automation.organizationId],
+		scope: "automation-presence",
+		ttlSeconds: 60,
+	});
+	const presence = await fetchRelayPresence(
+		relayUrl,
+		jwt,
+		candidates.map((host) =>
+			buildHostRoutingKey(host.organizationId, host.machineId),
+		),
+	);
+	return (
+		candidates.find((host) => {
+			const info =
+				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)];
+			return info ? info.online : host.isOnline;
+		}) ?? null
+	);
 }
 
 async function recordSkipped(
-	automation: SelectAutomation,
-	scheduledFor: Date,
+	automation: DispatchableAutomation,
+	scheduledFor: Date | null,
 	hostId: string | null,
 	error: string,
 ): Promise<{ id: string } | undefined> {
@@ -219,6 +308,7 @@ async function recordSkipped(
 		})
 		.onConflictDoNothing({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
+			where: sql`${automationRuns.scheduledFor} IS NOT NULL`,
 		})
 		.returning({ id: automationRuns.id });
 	return row;
@@ -228,10 +318,29 @@ async function createWorkspaceOnHost(args: {
 	relayUrl: string;
 	hostId: string;
 	jwt: string;
-	projectId: string;
-	automation: SelectAutomation;
+	projectId: string | null;
+	automation: DispatchableAutomation;
 	runId: string;
-}): Promise<{ workspaceId: string; branchName: string }> {
+}): Promise<{ workspaceId: string }> {
+	// Session automation: no project, no branch. The host allocates a managed
+	// folder under ~/.superset/sessions and dedupes the name per run.
+	if (args.projectId === null) {
+		const result = await relayMutation<
+			{ name: string },
+			{ workspace: { id: string } }
+		>(
+			{
+				relayUrl: args.relayUrl,
+				hostId: args.hostId,
+				jwt: args.jwt,
+				timeoutMs: 90_000,
+			},
+			"workspaces.createSession",
+			{ name: args.automation.name.slice(0, 100) },
+		);
+		return { workspaceId: result.workspace.id };
+	}
+
 	// Full-precision timestamp keeps branch names readable AND collision-free
 	// for anything coarser than 1 second.
 	// e.g. "2026-04-19-17-30-00"
@@ -278,7 +387,7 @@ async function createWorkspaceOnHost(args: {
 		},
 	);
 
-	return { workspaceId: result.workspace.id, branchName };
+	return { workspaceId: result.workspace.id };
 }
 
 async function runAgentOnHost(args: {

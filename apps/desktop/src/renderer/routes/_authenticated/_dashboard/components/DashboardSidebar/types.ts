@@ -5,7 +5,7 @@ export type DashboardSidebarWorkspaceHostType =
 	| "remote-device"
 	| "cloud";
 
-export type DashboardSidebarWorkspaceType = "main" | "worktree";
+export type DashboardSidebarWorkspaceType = "main" | "worktree" | "session";
 
 export interface DashboardSidebarWorkspacePullRequestCheck {
 	name: string;
@@ -26,7 +26,8 @@ export interface DashboardSidebarWorkspacePullRequest {
 
 export interface DashboardSidebarWorkspace {
 	id: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
 	type: DashboardSidebarWorkspaceType;
@@ -43,8 +44,20 @@ export interface DashboardSidebarWorkspace {
 	createdAt: Date;
 	updatedAt: Date;
 	taskId: string | null;
+	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
+
+/**
+ * A pinned workspace rendered in the sidebar's top-level Pinned section.
+ * Carries its project's identity since the row renders outside any project
+ * group.
+ */
+export type DashboardSidebarPinnedWorkspace = DashboardSidebarWorkspace & {
+	/** Null for project-less "session" workspaces. */
+	projectName: string | null;
+	projectIconUrl: string | null;
+};
 
 export interface DashboardSidebarSection {
 	id: string;
@@ -70,11 +83,11 @@ export type DashboardSidebarProjectChild =
 export interface DashboardSidebarProject {
 	id: string;
 	name: string;
-	slug: string;
-	githubRepositoryId: string | null;
 	githubOwner: string | null;
 	githubRepoName: string | null;
 	iconUrl: string | null;
+	/** Accent color as a `#rrggbb` hex, or null for the default. */
+	color: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;

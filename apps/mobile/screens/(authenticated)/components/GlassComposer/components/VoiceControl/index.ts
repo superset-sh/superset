@@ -1,0 +1,1 @@
+export { VoiceControl } from "./VoiceControl";

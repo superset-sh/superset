@@ -7,6 +7,11 @@ try {
 }
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import {
+	setAgentSetupTemplatesDir,
+	setupAgentIntegrations,
+	writeSharedDisabledAgentIds,
+} from "@superset/agent-setup";
 import { settings } from "@superset/local-db";
 import {
 	app,
@@ -19,6 +24,7 @@ import {
 } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
+	authEvents,
 	handleAuthCallback,
 	loadToken,
 	parseAuthDeepLink,
@@ -30,10 +36,10 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
-import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
+import { startBrowserBridge } from "./lib/browser/browser-bridge";
 import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
@@ -46,6 +52,7 @@ import {
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
+import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
@@ -56,7 +63,7 @@ import {
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
-import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
+import { sweepNetworkLogs } from "./network-logger-sweep";
 import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
@@ -86,18 +93,32 @@ if (process.defaultApp) {
 }
 
 async function processDeepLink(url: string): Promise<void> {
-	console.log("[main] Processing deep link:", url);
-
-	const authParams = parseAuthDeepLink(url);
-	if (authParams) {
-		const result = await handleAuthCallback(authParams);
+	const authLink = parseAuthDeepLink(url);
+	if (authLink.type !== "not-auth") {
+		// Never log the auth URL: it contains the desktop session token.
+		console.log("[main] Processing auth deep link");
+		const result =
+			authLink.type === "valid"
+				? await handleAuthCallback(authLink.params)
+				: {
+						success: false as const,
+						error: "The sign-in link was incomplete. Please try again.",
+					};
 		if (result.success) {
 			focusMainWindow();
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);
+			focusMainWindow();
+			dialog.showErrorBox(
+				"Sign-in failed",
+				result.error ??
+					"Superset could not complete sign-in. Please try again.",
+			);
 		}
 		return;
 	}
+
+	console.log("[main] Processing deep link:", url);
 
 	// Non-auth deep links: extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
@@ -230,21 +251,17 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	try {
-		getHostServiceCoordinator().stopAll();
-		if (isDev || forceFullCleanup) {
-			await teardownTerminalHost();
-		} else if (isUpdateReadyToInstall()) {
-			disposeTerminalHostClient();
-		}
-		shutdownTanstackDbPersistence();
-		disposeTray();
-	} catch (error) {
-		console.error("[main] Cleanup during quit failed:", error);
-	} finally {
-		await stopNetworkLogger();
-	}
-	app.exit(0);
+	await runQuitCleanup({
+		isDev,
+		forceFullCleanup,
+		isUpdateInstalling: isUpdateReadyToInstall(),
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		disposeTerminalHostClient,
+		shutdownPersistence: shutdownTanstackDbPersistence,
+		disposeTray,
+		forceExit: (code) => app.exit(code),
+	});
 });
 
 /**
@@ -279,10 +296,9 @@ if (process.env.NODE_ENV === "development") {
 		signalHandled = true;
 		console.log(`[main] Received ${signal}, quitting...`);
 		getHostServiceCoordinator().stopAll();
-		void Promise.allSettled([
-			teardownTerminalHost(),
-			stopNetworkLogger(),
-		]).finally(() => app.exit(0));
+		void Promise.allSettled([teardownTerminalHost()]).finally(() =>
+			app.exit(0),
+		);
 	};
 
 	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
@@ -406,11 +422,7 @@ if (!gotTheLock) {
 		await initAppState();
 		initTanstackDbPersistence();
 
-		try {
-			await startNetworkLogger();
-		} catch (error) {
-			console.error("[main] Failed to start network logger:", error);
-		}
+		sweepNetworkLogs();
 
 		await loadWebviewBrowserExtension();
 
@@ -418,10 +430,74 @@ if (!gotTheLock) {
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
 
+		// Must be listening before any host-service spawns: the child learns the
+		// bridge endpoint/secret from its env, so a late bridge means browser
+		// control stays dark until the next respawn.
 		try {
-			setupAgentHooks();
+			await startBrowserBridge();
 		} catch (error) {
-			console.error("[main] Failed to set up agent hooks:", error);
+			console.error("[main] Failed to start browser bridge:", error);
+		}
+
+		const hostServiceCoordinator = getHostServiceCoordinator();
+		hostServiceCoordinator.setConfigProvider(async () => {
+			const { token } = await loadToken();
+			if (!token) return null;
+			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+		});
+
+		// The authenticated session's cached membership is the source of truth.
+		// Host data on disk can outlive membership and must never resurrect an
+		// obsolete service. This cache keeps subsequent launches offline-capable.
+		let authGeneration = 0;
+		const reconcileHostServices = async (providedAuth?: {
+			token: string;
+			organizationIds: string[];
+		}) => {
+			const generation = authGeneration;
+			try {
+				const storedAuth = providedAuth ?? (await loadToken());
+				if (generation !== authGeneration) return;
+				if (!storedAuth.token || !storedAuth.organizationIds) return;
+				await hostServiceCoordinator.reconcile(storedAuth.organizationIds, {
+					authToken: storedAuth.token,
+					cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL,
+				});
+			} catch (error) {
+				console.error("[main] host-service reconcile failed:", error);
+			}
+		};
+		void reconcileHostServices();
+		// A new token can belong to a different account. Stop immediately and wait
+		// for that account's session membership before starting anything.
+		authEvents.on("token-saved", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on("token-cleared", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on(
+			"organization-ids-saved",
+			(data: { token: string; organizationIds: string[] }) => {
+				authGeneration++;
+				void reconcileHostServices(data);
+			},
+		);
+
+		try {
+			// The vite build copies @superset/agent-setup's templates (plus the
+			// bundled Claude plugin) next to this bundle; see vite/helpers.ts.
+			setAgentSetupTemplatesDir(path.join(__dirname, "templates"));
+			const disabledAgentHooks =
+				localDb.select().from(settings).get()?.disabledAgentHooks ?? [];
+			// Mirror the disable list so CLI-launched host-services on this
+			// machine honor it instead of re-provisioning disabled agents.
+			writeSharedDisabledAgentIds(disabledAgentHooks);
+			setupAgentIntegrations({ disabledAgentIds: disabledAgentHooks });
+		} catch (error) {
+			console.error("[main] Failed to set up agent integrations:", error);
 		}
 		try {
 			installBundledCliShim();
@@ -430,7 +506,7 @@ if (!gotTheLock) {
 		}
 
 		if (IS_DEV) {
-			getHostServiceCoordinator().enableDevReload(async () => {
+			hostServiceCoordinator.enableDevReload(async () => {
 				const { token } = await loadToken();
 				if (!token) return null;
 				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };

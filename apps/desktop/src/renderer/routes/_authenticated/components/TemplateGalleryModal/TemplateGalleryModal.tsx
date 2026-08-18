@@ -98,7 +98,7 @@ export function TemplateGalleryModal({
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
+		<Dialog open={open} onOpenChange={handleOpenChange} modal>
 			<DialogContent
 				className="sm:max-w-5xl"
 				onOpenAutoFocus={(event) => event.preventDefault()}

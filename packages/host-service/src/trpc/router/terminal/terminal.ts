@@ -4,20 +4,32 @@ import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
-	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
-	listTerminalSessions,
+	disposeSessionsByWorkspaceId,
+	disposeSessionsByWorktreePath,
+	listLiveTerminalSessions,
 	parseThemeType,
+	sessionHasRunningProcess,
+	snapshotSession,
+	writeFramedInputToSession,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { toTerminalSessionError } from "./errors";
 
-const createSessionInputSchema = z.object({
+export const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
 	terminalId: z.string().optional(),
-	initialCommand: z.string().trim().min(1).optional(),
+	// An empty or whitespace-only command means "open a shell with no initial
+	// command" (e.g. a preset with no command), so normalize it to absent
+	// instead of rejecting. `launchSession` still requires a non-empty command.
+	initialCommand: z
+		.string()
+		.trim()
+		.optional()
+		.transform((value) => (value ? value : undefined)),
 	cwd: z.string().optional(),
 	themeType: z.string().optional(),
 	cols: z.number().int().positive().optional(),
@@ -45,10 +57,7 @@ async function createTerminalSessionFromInput({
 	});
 
 	if ("error" in result) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: result.error,
-		});
+		throw toTerminalSessionError(result);
 	}
 
 	return {
@@ -66,6 +75,16 @@ async function createTerminalSessionFromInput({
 const daemonRouter = router({
 	getUpdateStatus: protectedProcedure.query(({ ctx }) =>
 		getSupervisor().getUpdateStatus(ctx.organizationId),
+	),
+
+	/**
+	 * Whether the daemon is still answering, and for how long it hasn't.
+	 * Deliberately does not `waitForDaemonReady` — this is polled by the
+	 * terminal UI to decide whether a stall is worth surfacing, so it has to
+	 * answer immediately rather than block on the thing that may be wedged.
+	 */
+	getHealth: protectedProcedure.query(({ ctx }) =>
+		getSupervisor().getHealth(ctx.organizationId),
 	),
 
 	listSessions: protectedProcedure.query(async ({ ctx }) => {
@@ -106,32 +125,29 @@ export const terminalRouter = router({
 		)
 		.mutation(createTerminalSessionFromInput),
 
-	listSessions: protectedProcedure
+	list: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
-			}),
+			z
+				.object({
+					workspaceId: z.string().optional(),
+				})
+				.optional(),
 		)
-		.query(({ input }) => ({
-			sessions: listTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
+		.query(async ({ ctx, input }) => ({
+			sessions: await listLiveTerminalSessions(ctx.db, {
+				workspaceId: input?.workspaceId,
 			}),
 		})),
 
-	countBackgroundSessions: protectedProcedure
+	hasRunningProcess: protectedProcedure
 		.input(
 			z.object({
+				terminalId: z.string(),
 				workspaceId: z.string(),
-				attachedTerminalIds: z.array(z.string()).default([]),
 			}),
 		)
 		.query(({ input }) => ({
-			count: countTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-				excludeTerminalIds: input.attachedTerminalIds,
-			}),
+			running: sessionHasRunningProcess(input.terminalId, input.workspaceId),
 		})),
 
 	writeInput: protectedProcedure
@@ -145,12 +161,56 @@ export const terminalRouter = router({
 		.mutation(({ input }) => {
 			const result = writeInputToSession(input);
 			if ("error" in result) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: result.error,
-				});
+				throw toTerminalSessionError(result);
 			}
 			return { success: true as const };
+		}),
+
+	// Send a follow-up message into an already-running terminal (e.g. a
+	// claude/codex agent) instead of spawning a new session. Multi-line text
+	// is framed as a bracketed paste server-side.
+	send: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				text: z.string().min(1),
+				submit: z.boolean().default(true),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const result = await writeFramedInputToSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalSessionError(result);
+			}
+			return { terminalId: input.terminalId, submitted: input.submit };
+		}),
+
+	// Non-destructive snapshot of the terminal's current screen + recent
+	// scrollback, read off the per-session headless emulator.
+	snapshot: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				maxLines: z.number().int().positive().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const result = await snapshotSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalSessionError(result);
+			}
+			const { success: _success, ...snapshot } = result;
+			return { terminalId: input.terminalId, ...snapshot };
 		}),
 
 	killSession: protectedProcedure
@@ -194,6 +254,23 @@ export const terminalRouter = router({
 			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	// Kill every session (including backgrounded, renderer-detached ones) for a
+	// workspace. Called by delete paths that don't run the full
+	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
+	disposeWorkspaceSessions: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorkspaceId(input.workspaceId, ctx.db),
+		),
+
+	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
+	// has a workspace id — resolve sessions through the shared worktree path.
+	disposeWorktreeSessions: protectedProcedure
+		.input(z.object({ worktreePath: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorktreePath(input.worktreePath, ctx.db),
+		),
 
 	daemon: daemonRouter,
 });

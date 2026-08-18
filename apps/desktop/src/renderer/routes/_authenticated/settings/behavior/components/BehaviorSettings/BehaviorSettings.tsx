@@ -9,17 +9,21 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { GithubStarRow } from "./components/GithubStarRow";
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
 }
 
 export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const showConfirmQuit = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		visibleItems,
@@ -34,6 +38,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
+		visibleItems,
+	);
+	const showStarGithub = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
 		visibleItems,
 	);
 
@@ -139,7 +147,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
-								Confirm before quitting
+								<HighlightText
+									text="Confirm before quitting"
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								Show a confirmation dialog when quitting the app
@@ -157,7 +168,9 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				{showFileOpenMode && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">File open mode</Label>
+							<Label className="text-sm font-medium">
+								<HighlightText text="File open mode" query={searchQuery} />
+							</Label>
 							<p className="text-xs text-muted-foreground">
 								Choose how files open when no preview pane exists
 							</p>
@@ -184,7 +197,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
 							<Label htmlFor="resource-monitor" className="text-sm font-medium">
-								Resource monitor
+								<HighlightText text="Resource monitor" query={searchQuery} />
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								Show CPU and memory usage in the top bar
@@ -210,7 +223,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 								htmlFor="open-links-in-app"
 								className="text-sm font-medium"
 							>
-								Open links in the in-app browser
+								<HighlightText
+									text="Open links in the in-app browser"
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								Open links from chat and terminal in the in-app browser instead
@@ -227,6 +243,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						/>
 					</div>
 				)}
+
+				{showStarGithub && <GithubStarRow searchQuery={searchQuery} />}
 			</div>
 		</div>
 	);

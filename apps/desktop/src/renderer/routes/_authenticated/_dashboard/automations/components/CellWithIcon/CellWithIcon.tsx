@@ -8,7 +8,7 @@ export function CellWithIcon({
 	label: string;
 }) {
 	return (
-		<span className="inline-flex items-center gap-1.5">
+		<span className="flex min-w-0 items-center gap-1.5" title={label}>
 			{icon}
 			<span className="truncate">{label}</span>
 		</span>

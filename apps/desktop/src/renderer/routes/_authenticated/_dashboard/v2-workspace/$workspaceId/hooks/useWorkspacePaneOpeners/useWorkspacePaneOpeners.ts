@@ -4,7 +4,7 @@ import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/provide
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
+	ChatV3PaneData,
 	CommentPaneData,
 	DiffFocusSide,
 	DiffPaneData,
@@ -32,9 +32,10 @@ export function useWorkspacePaneOpeners({
 		openInNewTab?: boolean,
 		line?: number,
 		side?: DiffFocusSide,
+		changeKey?: string,
 	) => void;
 	addTerminalTab: () => Promise<void>;
-	addChatTab: () => void;
+	addChatV3Tab: () => void;
 	addBrowserTab: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
 } {
@@ -44,19 +45,16 @@ export function useWorkspacePaneOpeners({
 			openInNewTab?: boolean,
 			line?: number,
 			side?: DiffFocusSide,
+			changeKey?: string,
 		) => {
 			const state = store.getState();
-			// Bump tick on every request so the scroll effect re-fires on repeat
-			// clicks; clear when no line is given so reused panes don't jump
-			// to a stale focus.
-			const focusFields =
-				line != null
-					? { focusLine: line, focusSide: side, focusTick: Date.now() }
-					: {
-							focusLine: undefined,
-							focusSide: undefined,
-							focusTick: undefined,
-						};
+			// Bump the tick on every request so repeat clicks re-scroll and a
+			// navigation into an unmounted pane wins over its older cached position.
+			const focusFields = {
+				focusLine: line,
+				focusSide: line != null ? side : undefined,
+				focusTick: Date.now(),
+			};
 			if (openInNewTab) {
 				state.addTab({
 					panes: [
@@ -64,6 +62,7 @@ export function useWorkspacePaneOpeners({
 							kind: "diff",
 							data: {
 								path: filePath,
+								changeKey,
 								collapsedFiles: [],
 								...focusFields,
 							} as DiffPaneData,
@@ -81,9 +80,12 @@ export function useWorkspacePaneOpeners({
 						data: {
 							...prev,
 							path: filePath,
-							collapsedFiles: (prev.collapsedFiles ?? []).filter(
-								(p) => p !== filePath,
-							),
+							changeKey,
+							// Only the navigated file's key can be pruned; without a
+							// change key we can't identify it, so leave the set intact.
+							collapsedFiles: changeKey
+								? (prev.collapsedFiles ?? []).filter((key) => key !== changeKey)
+								: (prev.collapsedFiles ?? []),
 							...focusFields,
 						} as PaneViewerData,
 					});
@@ -97,6 +99,7 @@ export function useWorkspacePaneOpeners({
 					kind: "diff",
 					data: {
 						path: filePath,
+						changeKey,
 						collapsedFiles: [],
 						...focusFields,
 					} as DiffPaneData,
@@ -106,13 +109,15 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addBlankTerminalTab = useCallback(async () => {
-		const terminalId = await launcher.create();
+	const addBlankTerminalTab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
+					data: {
+						terminalId: launcher.mint(),
+						createOnAttach: true,
+					} as TerminalPaneData,
 				},
 			],
 		});
@@ -120,7 +125,7 @@ export function useWorkspacePaneOpeners({
 
 	const addTerminalTab = useCallback(async () => {
 		if (newTabPresets.length === 0) {
-			await addBlankTerminalTab();
+			addBlankTerminalTab();
 			return;
 		}
 
@@ -131,12 +136,12 @@ export function useWorkspacePaneOpeners({
 		}
 	}, [addBlankTerminalTab, executePreset, newTabPresets]);
 
-	const addChatTab = useCallback(() => {
+	const addChatV3Tab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
 				{
-					kind: "chat",
-					data: { sessionId: null } as ChatPaneData,
+					kind: "chat-v3",
+					data: { sessionId: null } as ChatV3PaneData,
 				},
 			],
 		});
@@ -185,7 +190,7 @@ export function useWorkspacePaneOpeners({
 	return {
 		openDiffPane,
 		addTerminalTab,
-		addChatTab,
+		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
 	};

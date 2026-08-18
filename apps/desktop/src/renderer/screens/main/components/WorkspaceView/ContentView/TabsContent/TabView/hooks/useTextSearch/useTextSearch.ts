@@ -2,8 +2,8 @@ import type { Dispatch, RefObject, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	findTextRanges,
-	getHighlightStyleContainers,
 	type SearchRootIndexCache,
+	syncHighlightStyles,
 } from "./utils/textSearchDom";
 
 const SEARCH_DEBOUNCE_MS = 150;
@@ -101,32 +101,12 @@ export function useTextSearch({
 		(searchRoots: Array<Node & ParentNode>) => {
 			if (typeof document === "undefined") return;
 
-			const styleContainers = new Set(
-				getHighlightStyleContainers(searchRoots, document),
+			syncHighlightStyles(
+				searchRoots,
+				document,
+				highlightStyleElementsRef.current,
+				highlightStyles,
 			);
-
-			for (const [
-				styleContainer,
-				styleElement,
-			] of highlightStyleElementsRef.current) {
-				if (styleContainers.has(styleContainer)) {
-					continue;
-				}
-
-				styleElement.remove();
-				highlightStyleElementsRef.current.delete(styleContainer);
-			}
-
-			for (const styleContainer of styleContainers) {
-				if (highlightStyleElementsRef.current.has(styleContainer)) {
-					continue;
-				}
-
-				const styleElement = document.createElement("style");
-				styleElement.textContent = highlightStyles;
-				styleContainer.appendChild(styleElement);
-				highlightStyleElementsRef.current.set(styleContainer, styleElement);
-			}
 		},
 		[highlightStyles],
 	);

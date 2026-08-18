@@ -24,8 +24,9 @@ export default ({ config }: ConfigContext) => ({
 		backgroundColor: "#09090b",
 	},
 	ios: {
-		supportsTablet: true,
+		supportsTablet: false,
 		bundleIdentifier: "sh.superset.mobile",
+		usesAppleSignIn: true,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 		},
@@ -42,7 +43,39 @@ export default ({ config }: ConfigContext) => ({
 		favicon: "./assets/favicon.png",
 		bundler: "metro",
 	},
-	plugins: ["expo-router", "expo-localization"],
+	plugins: [
+		"expo-router",
+		"expo-localization",
+		"expo-apple-authentication",
+		[
+			"expo-image-picker",
+			{
+				photosPermission:
+					"Superset needs access to your photo library so you can attach images to chat messages.",
+				cameraPermission:
+					"Superset uses the camera so you can attach photos to chat messages.",
+				microphonePermission:
+					"Superset uses the microphone so you can dictate chat messages.",
+			},
+		],
+		"expo-document-picker",
+		[
+			"expo-media-library",
+			{
+				photosPermission:
+					"Superset shows your recent photos so you can attach them to chats.",
+			},
+		],
+		[
+			"expo-speech-recognition",
+			{
+				microphonePermission:
+					"Superset uses the microphone so you can dictate chat messages.",
+				speechRecognitionPermission:
+					"Superset uses speech recognition to turn your voice into text.",
+			},
+		],
+	],
 	extra: {
 		router: {},
 		eas: {

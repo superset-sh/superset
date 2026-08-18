@@ -94,9 +94,18 @@ import {
 	TaskUpdateParams,
 } from "./resources/tasks";
 import {
+	TerminalCloseParams,
+	TerminalCloseResult,
 	TerminalCreateParams,
 	TerminalCreateResult,
+	TerminalListParams,
+	TerminalListResult,
+	TerminalReadParams,
+	TerminalReadResult,
 	Terminals,
+	TerminalSendParams,
+	TerminalSendResult,
+	TerminalSummary,
 } from "./resources/terminals";
 import {
 	HostWorkspace,
@@ -105,6 +114,8 @@ import {
 	WorkspaceCreateAgentResult,
 	WorkspaceCreateParams,
 	WorkspaceCreateResult,
+	WorkspaceCreateSessionParams,
+	WorkspaceCreateSessionResult,
 	WorkspaceDeleteResult,
 	WorkspaceListParams,
 	WorkspaceListResponse,
@@ -1126,7 +1137,7 @@ export class Superset {
 	automations: API.Automations = new API.Automations(this);
 	/** Agents (per-host terminal-agent rows): list, create. */
 	agents: API.Agents = new API.Agents(this);
-	/** Terminals (per-host PTY sessions): create. */
+	/** Terminals (per-host PTY sessions): create, list, send (follow-up), read, close. */
 	terminals: API.Terminals = new API.Terminals(this);
 	/** Active-organization config: nested `organization.members.list`. */
 	organization: API.Organization = new API.Organization(this);
@@ -1173,6 +1184,8 @@ export declare namespace Superset {
 		WorkspaceAgentLaunch,
 		WorkspaceCreateAgentResult,
 		WorkspaceCreateResult,
+		WorkspaceCreateSessionParams,
+		WorkspaceCreateSessionResult,
 		WorkspaceListResponse,
 		WorkspaceListParams,
 		WorkspaceCreateParams,
@@ -1206,5 +1219,18 @@ export declare namespace Superset {
 		PromptTransport,
 	};
 
-	export { Terminals, TerminalCreateParams, TerminalCreateResult };
+	export {
+		Terminals,
+		TerminalCreateParams,
+		TerminalCreateResult,
+		TerminalListParams,
+		TerminalListResult,
+		TerminalSummary,
+		TerminalSendParams,
+		TerminalSendResult,
+		TerminalReadParams,
+		TerminalReadResult,
+		TerminalCloseParams,
+		TerminalCloseResult,
+	};
 }

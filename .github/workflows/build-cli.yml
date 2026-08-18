@@ -76,6 +76,17 @@ jobs:
           DIST="$(pwd)/packages/cli/dist/superset-${{ matrix.target }}"
           bash packages/cli/scripts/smoke-test.sh "$DIST" "${{ matrix.target }}"
 
+      # Linux only: the E2E simulates a systemd launch (stat -c, stripped env)
+      # and wipes the runner $HOME's agent configs — fine on an ephemeral
+      # runner, which is why SUPERSET_HEADLESS_E2E must be set explicitly.
+      - name: Headless-host E2E
+        if: startsWith(matrix.target, 'linux-')
+        run: |
+          # zsh enables the wrapper-chain check; the E2E skips it when absent.
+          sudo apt-get install -y zsh || (sudo apt-get update -qq && sudo apt-get install -y zsh) || true
+          DIST="$(pwd)/packages/cli/dist/superset-${{ matrix.target }}"
+          SUPERSET_HEADLESS_E2E=1 bash packages/cli/scripts/headless-e2e.sh "$DIST"
+
       - name: Upload tarball
         if: inputs.upload
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0

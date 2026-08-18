@@ -1,0 +1,61 @@
+---
+title: Rich input for the terminal, Ghostty-speed scrolling, and Mistral Vibe
+date: 2026-07-12
+image: /changelog/2026-07-12-rich-input-hero.png
+---
+
+## Rich Input for the Terminal <PRBadge url="https://github.com/superset-sh/superset/pull/5453" />
+
+Press **⌘I** over any terminal pane and compose in a real editor instead of the raw TTY line. Great for prompting CLI agents like Claude Code, Codex, and OpenCode.
+
+![Rich input overlay floating over a Claude Code terminal, with a multiline prompt drafted](/changelog/2026-07-12-rich-input.png)
+
+- Enter sends, Shift+Enter adds a newline, and multiline prompts land as one block instead of executing line-by-line
+- @file mentions work, powered by the same editor as workspace chat
+- One global toggle covers every pane and persists across restarts <PRBadge url="https://github.com/superset-sh/superset/pull/5522" />
+
+## Terminal Scrolling at Ghostty Speed <PRBadge url="https://github.com/superset-sh/superset/pull/5563" />
+
+Claude Code transcript scrolling in Superset terminals used to crawl at about a third of native speed. Agent TUIs now compensate correctly for our terminal, and scrolling matches Ghostty.
+
+## Mistral Vibe Joins the Agent Roster <PRBadge url="https://github.com/superset-sh/superset/pull/5552" />
+
+Mistral Vibe is now a first-class terminal agent, contributed by [@ThomsenDrake](https://github.com/ThomsenDrake) from the Mistral team. Pick it in any agent picker, choose a model, and get the same working indicator and completion chime as the built-ins.
+
+![Add agent menu in Settings → Agents showing Mistral Vibe alongside Amp, Gemini, OpenCode, Copilot, and more](/changelog/2026-07-12-mistral-vibe.png)
+
+- Model picker includes `mistral-medium-3.5` and `devstral-small`
+- GPT-5.6 Sol, Terra, and Luna added to the Codex model picker <PRBadge url="https://github.com/superset-sh/superset/pull/5558" />
+
+## Improvements
+
+- **Wake offline hosts** - Attach a wake command to any host and run `superset hosts wake <host>` to power it back on <PRBadge url="https://github.com/superset-sh/superset/pull/5557" />
+- **Remote hosts on every plan** - Connecting to remote hosts through the relay no longer requires a paid plan <PRBadge url="https://github.com/superset-sh/superset/pull/5571" />
+- **Sydney relay region** - Australian users get a local relay for lower latency and fewer dropped connections <PRBadge url="https://github.com/superset-sh/superset/pull/5544" />
+- **Inline update pill** - The update toast is gone; a compact pill in the sidebar shows download progress, installs on click, and confirms the new version <PRBadge url="https://github.com/superset-sh/superset/pull/5588" />
+- **Copy CI logs** - Copy a failed GitHub Actions job's logs straight from the review sidebar for pasting into a prompt <PRBadge url="https://github.com/superset-sh/superset/pull/5257" />
+- **Linear filters for Tasks** - Filter and sort tasks by Linear project, cycle, due date, and priority across the desktop, CLI, and MCP <PRBadge url="https://github.com/superset-sh/superset/pull/2895" />
+- **Clear terminal connection errors** - When a terminal can't connect, the pane now says why (host offline, no access, or a relay routing issue) <PRBadge url="https://github.com/superset-sh/superset/pull/5546" />
+- **Delete hosts** - Owners can remove a host from Settings with typed confirmation <PRBadge url="https://github.com/superset-sh/superset/pull/5566" />
+- **Presets bar in the View menu** - Show or hide the presets bar from View → Toggle Presets Bar <PRBadge url="https://github.com/superset-sh/superset/pull/5576" />
+- **CLI workspace lookup** - `superset ws get` prints a workspace's details, with `--field` for scripting <PRBadge url="https://github.com/superset-sh/superset/pull/5549" />
+- **The main workspace is "local"** - The repo checkout always displays as "local" and can no longer be renamed <PRBadge url="https://github.com/superset-sh/superset/pull/5586" />
+
+**Experimental: live agent sessions on iOS** - an early build of driving a coding agent running on your desktop from the iOS app; the agent and your code stay on your machine. Off by default under Desktop → Settings → Security. <PRBadge url="https://github.com/superset-sh/superset/pull/5580" />
+
+---
+
+**Bug fixes**
+
+- Fixed remote-host terminals showing "disconnected" when the host lives in a different relay region <PRBadge url="https://github.com/superset-sh/superset/pull/5542" />
+- Stopped broken sessions from hammering auth endpoints with retry storms <PRBadge url="https://github.com/superset-sh/superset/pull/5518" />
+- Diff view syntax highlighting now follows your custom theme <PRBadge url="https://github.com/superset-sh/superset/pull/5404" />
+- Custom agent icons now apply to terminal presets <PRBadge url="https://github.com/superset-sh/superset/pull/5495" />
+- Malformed pane layouts heal themselves instead of crashing the workspace <PRBadge url="https://github.com/superset-sh/superset/pull/5512" />
+- Capped renderer memory growth from long chat sessions <PRBadge url="https://github.com/superset-sh/superset/pull/5459" />
+- Workspaces now stay in the creating state until creation fully resolves <PRBadge url="https://github.com/superset-sh/superset/pull/5545" />
+- Fixed agent launch failing when attachment directories were missing <PRBadge url="https://github.com/superset-sh/superset/pull/5560" />
+- Fixed git status failing under a truncated login-shell PATH <PRBadge url="https://github.com/superset-sh/superset/pull/5574" />
+- More reliable AI-generated workspace names <PRBadge url="https://github.com/superset-sh/superset/pull/5567" />
+- Stopped sync clients from retrying fatal errors in a loop <PRBadge url="https://github.com/superset-sh/superset/pull/5572" />
+- Terminal streams now close cleanly with accurate error codes instead of hanging <PRBadge url="https://github.com/superset-sh/superset/pull/5548" />

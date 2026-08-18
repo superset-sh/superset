@@ -11,12 +11,22 @@ export const PRODUCT_LINKS: NavLink[] = [
 	{
 		href: "/",
 		label: "Overview",
-		description: "The terminal for coding agents.",
+		description: "Run 100+ coding agents in parallel.",
 	},
 	{
 		href: "/changelog",
 		label: "Changelog",
 		description: "New releases and product updates.",
+	},
+	{
+		href: "/roadmap",
+		label: "Roadmap",
+		description: "What we're building now and next.",
+	},
+	{
+		href: "/mcp-install",
+		label: "MCP",
+		description: "Connect any AI agent to Superset.",
 	},
 ];
 
@@ -47,4 +57,5 @@ export const RESOURCE_LINKS: NavLink[] = [
 export const TOP_LEVEL_LINKS: NavLink[] = [
 	{ href: "/pricing", label: "Pricing" },
 	{ href: "/enterprise", label: "Enterprise" },
+	{ href: "/join-us", label: "Join us" },
 ];

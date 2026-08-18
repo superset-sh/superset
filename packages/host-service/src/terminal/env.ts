@@ -15,10 +15,15 @@ export {
 	getShellLaunchArgs,
 	getSupersetShellPaths,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
 } from "./shell-launch.ts";
 
 import fs from "node:fs";
 import os from "node:os";
+import {
+	TERMINAL_TERM_PROGRAM,
+	TERMINAL_TERM_PROGRAM_VERSION,
+} from "@superset/shared/constants";
 import {
 	augmentPathForMacOS,
 	clearStrictShellEnvCache,
@@ -29,6 +34,21 @@ import { getShellBootstrapEnv } from "./shell-launch.ts";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedMacosSystemCertAvailable: boolean | null = null;
+
+/**
+ * Agent credentials, forwarded to terminals in sandbox mode only.
+ *
+ * The rule everywhere else is that PTY env comes from a login-shell snapshot
+ * and never from this process — a local machine's host-service env is
+ * Electron's, and leaking it into every terminal would hand agents things
+ * they have no business reading. A sandbox has no user, no rc files and no
+ * login shell, so the process env is the *only* way a credential can arrive,
+ * and these keys are exactly what was provisioned for the agents to use.
+ *
+ * Read from `process.env` rather than the validated `env` so that importing
+ * this module doesn't require a fully-populated host environment.
+ */
+const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
 
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
@@ -97,8 +117,47 @@ export function getTerminalBaseEnv(): Record<string, string> {
 	return { ..._terminalBaseEnv };
 }
 
+let _terminalBaseEnvReady: Promise<void> | null = null;
+
+/**
+ * Kick off the shell-env snapshot in the background and stash it once resolved.
+ *
+ * Startup must NOT await this. The login-shell probe can take up to
+ * SHELL_ENV_TIMEOUT_MS (8s) — often the full budget when the user's shell is
+ * slow (e.g. a wedged powerlevel10k/gitstatus init) — and gating the HTTP
+ * listen on it pushes cold starts past the desktop coordinator's health-check
+ * window, especially when every org boots at once. PTY creation awaits
+ * `waitForTerminalBaseEnv()` instead, so terminals still get the preserved
+ * snapshot without blocking the server from becoming reachable.
+ */
+export function startTerminalBaseEnvResolution(): void {
+	if (_terminalBaseEnvReady) return;
+	const promise = resolveTerminalBaseEnv().then((baseEnv) => {
+		// Ignore a stale resolution whose gate was already reset (tests) so it
+		// can't clobber fresh state.
+		if (_terminalBaseEnvReady === promise) initTerminalBaseEnv(baseEnv);
+	});
+	// Fire-and-forget: nothing awaits the gate until the first PTY is created,
+	// so swallow a background failure rather than crash on an unhandled
+	// rejection. resolveTerminalBaseEnv already falls back internally.
+	promise.catch((err) => {
+		console.warn("[host-service] terminal base env resolution failed:", err);
+	});
+	_terminalBaseEnvReady = promise;
+}
+
+/**
+ * Await the background shell-env snapshot before reading getTerminalBaseEnv().
+ * Resolves immediately when resolution was never started (tests and helpers
+ * that call initTerminalBaseEnv() directly).
+ */
+export async function waitForTerminalBaseEnv(): Promise<void> {
+	if (_terminalBaseEnvReady) await _terminalBaseEnvReady;
+}
+
 export function resetTerminalBaseEnvForTests(): void {
 	_terminalBaseEnv = null;
+	_terminalBaseEnvReady = null;
 	cachedMacosSystemCertAvailable = null;
 	clearStrictShellEnvCache();
 }
@@ -126,14 +185,14 @@ interface BuildV2TerminalEnvParams {
 	workspaceId: string;
 	workspacePath: string;
 	rootPath: string;
-	hostServiceVersion: string;
 	supersetEnv: "development" | "production";
 	agentHookPort: string;
 	agentHookVersion: string;
 	/**
 	 * tRPC URL for the host-service notifications.hook mutation.
-	 * Endpoint is unauthenticated by design — it only broadcasts chimes,
-	 * no state change. See the router for rationale.
+	 * Endpoint is unauthenticated by design — it broadcasts chimes and
+	 * nudges the workspace's linked task to In Progress (idempotent,
+	 * forward-only). See the router for rationale.
 	 */
 	hostAgentHookUrl?: string;
 }
@@ -155,7 +214,6 @@ export function buildV2TerminalEnv(
 		workspaceId,
 		workspacePath,
 		rootPath,
-		hostServiceVersion,
 		supersetEnv,
 		agentHookPort,
 		agentHookVersion,
@@ -170,12 +228,13 @@ export function buildV2TerminalEnv(
 
 	env.TERM = "xterm-256color";
 	env.SHELL = shell;
-	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
-	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
-	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
-	// they're parsed instead of submitted as plain Enter.
-	env.TERM_PROGRAM = "kitty";
-	env.TERM_PROGRAM_VERSION = hostServiceVersion;
+	// See TERMINAL_TERM_PROGRAM for why we identify as kitty: the client's
+	// full-fidelity wheel handler produces a native-grade report stream that
+	// TUIs must trust as-is, not amplify with vscode-style compensation.
+	// Shift+Enter does NOT depend on this: line-edit-translations.ts sends
+	// ESC+CR directly.
+	env.TERM_PROGRAM = TERMINAL_TERM_PROGRAM;
+	env.TERM_PROGRAM_VERSION = TERMINAL_TERM_PROGRAM_VERSION;
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
 	// TERM_THEME is an explicit light/dark hint that cursor-agent (and other
@@ -196,14 +255,22 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
 	// v2 — agent posts to host-service so the renderer can play the sound
 	// client-side. No auth token: the endpoint is unauthenticated by design
-	// (it only broadcasts chimes). The notify-hook script falls back to
-	// the electron endpoint when this URL isn't set.
+	// (chimes plus an idempotent linked-task In Progress nudge). The
+	// notify-hook script falls back to the electron endpoint when this URL
+	// isn't set.
 	if (hostAgentHookUrl) {
 		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
 	}
 
 	if (supersetHomeDir) {
 		env.SUPERSET_HOME_DIR = supersetHomeDir;
+	}
+
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+		for (const key of SANDBOX_AGENT_CREDENTIAL_KEYS) {
+			const value = process.env[key];
+			if (value) env[key] = value;
+		}
 	}
 
 	// Electron child processes can't access macOS Keychain for TLS cert verification,

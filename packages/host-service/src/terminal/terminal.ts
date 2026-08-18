@@ -1,10 +1,19 @@
-import { existsSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { randomBytes } from "node:crypto";
+import { existsSync, writeFileSync } from "node:fs";
+import { readdir, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { basename, isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
+import { resolveSupersetHomeDir } from "@superset/agent-setup/paths";
+import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
+import {
+	buildFishPromptCommandString,
+	type ParsedPromptHeredocCommand,
+	parsePromptHeredocCommand,
+} from "@superset/shared/agent-prompt-launch";
 import {
 	createScanState,
-	SHELLS_WITH_READY_MARKER,
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
@@ -13,16 +22,20 @@ import {
 	scanForTerminalTitle,
 	type TerminalTitleScanState,
 } from "@superset/shared/terminal-title-scanner";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Hono } from "hono";
+import { getSupervisor } from "../daemon/index.ts";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
+import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
+import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
+	DaemonUnavailableError,
 } from "./DaemonClient/index.ts";
 import {
 	getDaemonClient,
@@ -33,12 +46,20 @@ import {
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
+	waitForTerminalBaseEnv,
 } from "./env.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
+	getShellReadyMarkerEvidence,
+	recordShellReadyMarkerEvidence,
+} from "./shell-ready-evidence.ts";
+import {
 	createModeTracker,
 	type ModeTracker,
+	type TerminalSnapshot,
 } from "./terminal-mode-tracker.ts";
+import { toWsCloseReason } from "./ws-close-reason.ts";
 
 /**
  * Thin adapter exposing approximately the IPty surface that the rest of
@@ -73,7 +94,12 @@ function makeDaemonPty(
 	return {
 		pid,
 		write(data) {
-			daemon.input(sessionId, Buffer.from(data, "utf8"));
+			try {
+				daemon.input(sessionId, Buffer.from(data, "utf8"));
+			} catch {
+				// Daemon socket died before the disconnect sweep ran; a throw
+				// here would escape the WS input handler uncaught.
+			}
 		},
 		resize(cols, rows) {
 			try {
@@ -146,6 +172,13 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
+	// The client's current keyboard-focus state, sent on every attach. A
+	// reattaching client may hold focus the program last heard it lost (or
+	// vice versa) — a fresh xterm can't self-report because focus-reporting
+	// mode only reaches it via the preamble after its focus already settled.
+	// The host forwards it as \x1b[I / \x1b[O only when the program actually
+	// enabled focus reporting (mode 1004), which the tracker knows.
+	| { type: "focus"; focused: boolean }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -155,11 +188,97 @@ type TerminalClientMessage =
 // from live data.
 type TerminalServerMessage =
 	| { type: "attached"; terminalId: string }
-	| { type: "error"; message: string }
+	// `code: "session-gone"` marks the session as permanently destroyed (not
+	// found / disposed / exited) so the renderer can drop persisted scrollback;
+	// `code: "attach-retryable"` marks a transient host-side failure (pty-daemon
+	// stalled/restarting) — the renderer keeps its reconnect loop alive instead
+	// of parking the pane dead. Plain errors leave it unset and the renderer
+	// keeps its snapshot but stops retrying.
+	| {
+			type: "error";
+			message: string;
+			code?: "session-gone" | "attach-retryable";
+	  }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "title"; title: string | null };
+	| { type: "title"; title: string | null }
+	// Sequence anchor for seq-aware clients (`?seq=` on the attach URL). Sent
+	// once per attach, AFTER any host-synthesized bytes (mode preamble,
+	// restored notice) and BEFORE catch-up/live PTY bytes. The client sets its
+	// byte counter to `seq` and counts every subsequent binary frame, so both
+	// sides agree on stream position without per-frame headers.
+	// - `exact`:    client's anchor was inside the catch-up ring — the binary
+	//               bytes that follow are exactly the missed suffix.
+	// - `tail`:     client attached empty — whatever ring content exists
+	//               follows as a best-effort scrollback restore.
+	// - `reanchor`: the client's position is unknown or unrecoverable (epoch
+	//               mismatch after a host restart, gap beyond the ring). No
+	//               content bytes are sent — the client's screen is presumed
+	//               better than anything we could synthesize (see #6290) — and
+	//               a repaint nudge asks the running program to redraw itself.
+	| { type: "synced"; epoch: string; seq: number; mode: SyncedMode };
+
+type SyncedMode = "exact" | "tail" | "reanchor";
+
+/**
+ * Parsed `?seq=` attach param.
+ * - absent  → legacy client: byte-identical pre-seq behavior (preamble + FIFO).
+ * - "new"   → seq-aware client with a virgin xterm: wants the ring tail.
+ * - "none"  → seq-aware client with restored content but no trustworthy
+ *             anchor (persisted by an older build, multi-instance seed):
+ *             reanchor without dumping bytes into its existing screen.
+ * - "<epoch>:<n>" → anchored client: exact catch-up when possible.
+ */
+type SeqAttachRequest =
+	| { kind: "legacy" }
+	| { kind: "new" }
+	| { kind: "none" }
+	| { kind: "anchor"; epoch: string; seq: number };
+
+function parseSeqAttachParam(
+	value: string | null | undefined,
+): SeqAttachRequest {
+	// Absent means a pre-seq client; an explicitly empty value is a malformed
+	// seq-aware dial and falls through to the safe reanchor below.
+	if (value === null || value === undefined) return { kind: "legacy" };
+	if (value === "new") return { kind: "new" };
+	if (value === "none") return { kind: "none" };
+	const sep = value.indexOf(":");
+	if (sep > 0) {
+		const epoch = value.slice(0, sep);
+		const seq = Number(value.slice(sep + 1));
+		if (epoch && Number.isSafeInteger(seq) && seq >= 0) {
+			return { kind: "anchor", epoch, seq };
+		}
+	}
+	// Malformed → safest degraded mode: reanchor, never dump bytes.
+	return { kind: "none" };
+}
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+/**
+ * Catch-up ring cap per session. Sized so that a renderer that missed output
+ * (laptop sleep, back-pressure drop, parked-runtime eviction) can almost
+ * always be caught up with the exact missed bytes instead of a lossy
+ * reanchor — the deterministic ghost repro from #6279 was ~105 KB of missed
+ * TUI repaints; 2 MiB gives ~20x margin while staying far under the 8 MiB
+ * per-socket send cap. Memory is bounded per session and only holds bytes
+ * actually emitted.
+ */
+const CATCHUP_RING_CAP_BYTES = 2 * 1024 * 1024;
+/**
+ * How long after a reanchor attach to wait for the renderer's own resize
+ * (which fires a natural SIGWINCH when dims changed) before forcing the
+ * repaint nudge anyway.
+ */
+const REPAINT_NUDGE_FALLBACK_MS = 2_000;
+/** Gap between the nudge's shrink and restore resizes. */
+const REPAINT_NUDGE_RESTORE_MS = 60;
+// Dim separator delivered ahead of a respawned shell's output so users can
+// tell restored scrollback from the fresh session (cf. VS Code's "History
+// restored" line).
+const SESSION_RESTORED_NOTICE = new TextEncoder().encode(
+	"\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n",
+);
 // Cap on a single renderer socket's unflushed WebSocket send buffer. With no
 // ACK flow control, a renderer that stops draining (slow paint, pinned main
 // thread, dead tab) would let this buffer grow without bound → host OOM (the
@@ -191,21 +310,144 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/** Flush partial OSC 133;A prefix bytes the scanner is holding if a full marker never arrives. */
-const SHELL_READY_TIMEOUT_MS = 3_000;
+/**
+ * Upper bound on the OSC 133;A wait before queued automation runs anyway.
+ * Wrapper files on disk don't guarantee the marker reaches the scanner —
+ * a user rc can exec another process or re-point ZDOTDIR so our .zlogin
+ * never runs — and an unbounded wait silently drops preset/agent commands
+ * (#4963, regressed by #5774). 15s covers heavy setups like Nix devenv
+ * via direnv; same budget as the v1 stack.
+ */
+const SHELL_READY_TIMEOUT_MS = 15_000;
+
+/**
+ * Wait budget when learned evidence says this machine's profile never
+ * delivers the marker (see shell-ready-evidence.ts): the full 15s wait would
+ * be the *normal* path there — every preset launch stalled exactly 15s
+ * (SUPER-1103). A short grace still covers the init window where startup
+ * hooks can read or flush PTY input, without pretending a marker is coming.
+ * A marker observed within this grace flips the evidence back to
+ * `delivered`, restoring the full wait for later launches.
+ */
+const SHELL_READY_MISSING_MARKER_GRACE_MS = 2_000;
+
+/**
+ * How long after creation a session whose marker wait timed out keeps
+ * watching the stream for a late OSC 133;A. A marker that lands after the
+ * grace window (a slow-init profile branded `missing`) is still proof this
+ * profile delivers — record it so the evidence self-heals in both directions
+ * instead of `missing` being a one-way brand. Evidence-only: nothing is
+ * withheld from the output stream. Bounded to the full marker budget so the
+ * scan can't run for the session's whole life.
+ */
+const LATE_MARKER_OBSERVATION_MS = SHELL_READY_TIMEOUT_MS;
+
+/**
+ * How long a grace-window launch watches the PTY stream for its own command
+ * echoing back before concluding a startup stdin reader ate it. The grace
+ * fires on learned evidence, not an observed prompt, so an oh-my-zsh-style
+ * `read` can still be consuming the TTY when we type (the #3941 eater class
+ * combined with a marker-less profile). Echo is the same kind of evidence the
+ * marker was: proof of what the shell actually received.
+ */
+const GRACE_ECHO_WINDOW_MS = 1_200;
+
+/**
+ * Output silence required after an intact-looking echo before trusting it.
+ * The kernel echoes typed bytes at input time, before any reader consumes
+ * them, so an intact echo alone can't prove the line editor holds the text —
+ * a raw-mode `read -k` steals the first byte(s) anyway and the surviving
+ * suffix re-echoes moments later when the editor drains the queue. The quiet
+ * window gives that mangle signature time to arrive.
+ */
+const GRACE_ECHO_QUIET_MS = 250;
+
+/**
+ * Retype attempts (Ctrl-U + text) after a missed or mangled echo before
+ * falling back to typing blind, exactly like the marker-timeout path always
+ * has. Each cycle costs at most one echo window, so this also bounds added
+ * latency when echo detection false-negatives (a TUI repainting instead of
+ * echoing).
+ */
+const GRACE_ECHO_MAX_RETYPES = 2;
+
+/**
+ * Output silence required before an ungated launch (no marker expected at
+ * all: unwrapped bash, sh/ksh, nushell) types its initialCommand. Typing
+ * while startup output is still streaming is how reedline-class editors
+ * (nushell) lose the command outright: they enable raw mode after init and
+ * flush pending typeahead — the kernel-echoed command looks delivered but the
+ * editor never held it (#6024). Quiescence alone is not enough (a silent
+ * startup `read -t` window looks quiescent, #3941/#5712) — that's what the
+ * echo verification below catches.
+ */
+const UNGATED_QUIESCENT_MS = 500;
+
+/**
+ * Cap on each quiescence wait so a busy startup (spinners, streaming MOTD)
+ * can only delay an ungated launch, never park it. After the cap the launch
+ * proceeds to the echo-verified type, whose retype loop is the real guard.
+ */
+const UNGATED_QUIESCENCE_CAP_MS = 8_000;
+
+/**
+ * Echo window for ungated launches. Must cover the post-echo quiet
+ * requirement (INITIAL_COMMAND_ENTER_DELAY_MS, doing double duty as the
+ * text→Enter separation) plus echo latency.
+ */
+const UNGATED_ECHO_WINDOW_MS = 1_800;
+
+/**
+ * Gap between writing the initialCommand text and the Enter (`\r`) that runs
+ * it. The shell-ready marker fires from precmd, before the line editor reads
+ * input — plugin init in that window can flush the PTY input queue, eating a
+ * newline bundled with the command while the text itself survives in the edit
+ * buffer (typed-but-never-run). A separated, delayed Enter lands after that
+ * init storm.
+ */
+const INITIAL_COMMAND_ENTER_DELAY_MS = 500;
+
+/**
+ * Gap between a follow-up send's text and the Enter that submits it. TUI
+ * agents treat bytes arriving together as one paste burst, so an Enter
+ * bundled with the text can be swallowed into the draft instead of
+ * submitting it when the session is busy or slow (#6243). The delay puts
+ * the Enter in its own read, where it can only be a keypress.
+ */
+const FOLLOW_UP_ENTER_DELAY_MS = 500;
+
+/**
+ * Byte ceiling for typing an initialCommand directly into the PTY. The
+ * shell-ready marker fires from precmd, before the line editor switches the
+ * TTY to raw mode; input written in that gap queues under the kernel's
+ * canonical-mode line discipline, which silently drops every byte past
+ * MAX_CANON (1024 on macOS). Long agent launches lost their closing quote
+ * and wedged the shell at `quote>` (#5092). Commands over this limit are
+ * staged as a temp script and only a short source line is typed; 512 leaves
+ * margin for platforms with tighter line-discipline limits.
+ */
+const MAX_TYPED_INITIAL_COMMAND_BYTES = 512;
 
 /**
  * Shell readiness lifecycle:
  * - `pending`     — shell initialising; scanner active
  * - `ready`       — OSC 133;A detected; scanner off
- * - `timed_out`   — marker never arrived within timeout; scanner off
- * - `unsupported` — shell has no marker (sh, ksh); scanner never started
+ * - `timed_out`   — marker never arrived in time; queued automation runs anyway
+ * - `unsupported` — launch config has no marker; scanner never started
+ * - `cancelled`   — session ended before readiness; queued automation cancelled
  */
-type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
+type ShellReadyState =
+	| "pending"
+	| "ready"
+	| "timed_out"
+	| "unsupported"
+	| "cancelled";
 
 interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
+	/** Handle for db writes from module-scope handlers (daemon disconnect). */
+	db: HostDb;
 	pty: DaemonPty;
 	cols: number;
 	rows: number;
@@ -213,12 +455,21 @@ interface TerminalSession {
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
 	/**
-	 * Buffered PTY output retained for replay on (re)attach. Bytes, not
-	 * strings — keeping this byte-aligned with the wire frees us from the
-	 * per-chunk UTF-8 decoding that used to mangle TUIs.
+	 * Legacy replay FIFO for clients that attach without `?seq=` (pre-seq
+	 * renderers, raw WS consumers): fills only while zero sockets are
+	 * attached, drained by replayBuffer(). Seq-aware clients are served from
+	 * the `retained` catch-up ring instead. Delete once the renderer floor
+	 * speaks seq. Bytes, not strings — byte-aligned with the wire so
+	 * per-chunk UTF-8 decoding can't mangle TUIs.
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
+	/**
+	 * Deliver SESSION_RESTORED_NOTICE ahead of the next replay. Kept out of
+	 * the FIFO so MAX_BUFFER_BYTES eviction can't drop it before a client
+	 * attaches. Cleared on first replay.
+	 */
+	restoredNoticePending: boolean;
 	createdAt: number;
 	exited: boolean;
 	exitCode: number;
@@ -226,6 +477,12 @@ interface TerminalSession {
 	listed: boolean;
 	title: string | null;
 	titleScanState: TerminalTitleScanState;
+	/**
+	 * Bus for lifecycle broadcasts. Kept on the session so dispose (which
+	 * unsubscribes daemon callbacks before the pty dies, muting onExit) can
+	 * still announce the exit to renderers.
+	 */
+	eventBus: EventBus | undefined;
 
 	// Shell readiness (OSC 133)
 	shellReadyState: ShellReadyState;
@@ -233,7 +490,34 @@ interface TerminalSession {
 	shellReadyPromise: Promise<void>;
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
+	/**
+	 * True when this launch's readiness timeout was the short learned grace
+	 * rather than the full fallback. A grace timeout types while startup may
+	 * still be consuming stdin, so that path must echo-verify what it typed.
+	 */
+	usedMissingMarkerGrace: boolean;
+	/**
+	 * True once a post-timeout OSC 133;A was seen and recorded as `delivered`
+	 * evidence, ending the late-marker scan for this session.
+	 */
+	lateMarkerRecorded: boolean;
+	/**
+	 * Active echo watcher for a grace-window initialCommand: fed every output
+	 * chunk so typeInitialCommandVerifyingEcho can see its text echo back.
+	 */
+	echoProbe: ((bytes: Uint8Array) => void) | null;
+	/**
+	 * Trailing bytes of the previous output chunk (up to 3), so a DSR cursor
+	 * query (`ESC[6n`) straddling a chunk boundary is still recognized.
+	 */
+	dsrCarry: Uint8Array;
 	initialCommandQueued: boolean;
+	/**
+	 * Basename of the launch shell. Picks the source keyword when a long
+	 * initialCommand is staged as a script (fish 4 removed `.`; sh/ksh
+	 * have no `source`).
+	 */
+	launchShellName: string;
 
 	/**
 	 * Side-channel UTF-8 decoder. portManager.checkOutputForHint takes a
@@ -250,6 +534,48 @@ interface TerminalSession {
 	 * paste, focus, mouse, etc. that the FIFO can't restore on its own.
 	 */
 	modeTracker: ModeTracker;
+
+	/**
+	 * Stream identity for seq-aware clients. Fresh per TerminalSession object
+	 * (create, adopt, respawn) — a client anchored to a different epoch has an
+	 * unknowable position (the byte counter restarted) and gets a reanchor.
+	 */
+	epoch: string;
+	/** Absolute count of PTY output bytes emitted since this session object was created. */
+	outputSeq: number;
+	/**
+	 * Catch-up ring: the retained tail of the output stream, so a reattaching
+	 * seq-aware client receives exactly the bytes it missed (exactly-once
+	 * delivery, Eternal-Terminal style) instead of a lossy tail dump. Unlike
+	 * the legacy FIFO (`buffer`), this retains regardless of attached sockets.
+	 */
+	retained: Uint8Array[];
+	retainedBytes: number;
+	/** Absolute seq of the first byte still in `retained`. */
+	retainedStartSeq: number;
+	/**
+	 * Armed on a reanchor attach: the client may have missed output we can't
+	 * re-deliver, so once its resize arrives (or the fallback timer fires),
+	 * force a SIGWINCH repaint so the running program redraws itself — the
+	 * only party that always knows the full screen truth.
+	 */
+	pendingRepaintNudge: ReturnType<typeof setTimeout> | null;
+	/** Bumped on every client resize; guards the nudge's delayed restore. */
+	resizeGeneration: number;
+	/**
+	 * Sockets whose client currently holds keyboard focus. The PTY receives
+	 * the AGGREGATE (any focused socket) — so an unfocused duplicate pane
+	 * attaching can't tell the program the focused pane lost focus (tmux's
+	 * client-focus ownership model).
+	 */
+	focusedSockets: Set<TerminalSocket>;
+
+	/**
+	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
+	 * Serializes text + delayed-Enter sequences so concurrent sends can't
+	 * interleave inside another send's Enter window.
+	 */
+	followUpWriteChain?: Promise<void>;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -264,13 +590,38 @@ const sessions = new Map<string, TerminalSession>();
 //
 // We also clear the in-memory sessions map so a stale subscription closure
 // doesn't keep firing for sessions that no longer match daemon state.
+/**
+ * Session ids a live daemon currently owns, or null when no daemon answers
+ * (still respawning, or gone for good). Read via the supervisor rather than
+ * the client singleton so a rebuilt connection isn't required.
+ */
+async function listDaemonAliveSessionIds(): Promise<Set<string> | null> {
+	const organizationId = process.env.ORGANIZATION_ID;
+	if (!organizationId) return null;
+	const list = await getSupervisor().listSessions(organizationId);
+	if (list === null) return null;
+	return new Set(list.filter((info) => info.alive).map((info) => info.id));
+}
+
 onDaemonDisconnect((err) => {
 	const sessionCount = sessions.size;
 	if (sessionCount === 0) return;
 	console.warn(
 		`[terminal] pty-daemon disconnected (${err?.message ?? "no message"}); closing ${sessionCount} terminal WS socket(s) to trigger renderer reconnect`,
 	);
+	// If the ptys died with the daemon, their agent bindings become resume
+	// candidates — but a disconnect can also be an upgrade handoff or socket
+	// blip with sessions surviving for adoption, so the sweep verifies
+	// against a live daemon before marking anything.
+	void sweepAgentBindingsAfterDaemonLoss({
+		candidates: [...sessions.values()].map((session) => ({
+			terminalId: session.terminalId,
+			db: session.db,
+		})),
+		listAliveSessionIds: listDaemonAliveSessionIds,
+	});
 	for (const session of sessions.values()) {
+		cancelShellReady(session);
 		for (const socket of session.sockets) {
 			try {
 				socket.close(1011, "pty-daemon disconnected");
@@ -306,6 +657,7 @@ onDaemonDisconnect((err) => {
  */
 export function __resetSessionsForTesting(): void {
 	for (const session of sessions.values()) {
+		cancelShellReady(session);
 		if (session.unsubscribeDaemon) {
 			try {
 				session.unsubscribeDaemon();
@@ -334,6 +686,22 @@ export function isLiveTerminalSession(terminalId: string): boolean {
 	return session !== undefined && !session.exited;
 }
 
+/**
+ * Whether a live session has a foreground command running (vs. sitting at an
+ * idle shell prompt). Drives the "close anyway?" confirm on pane close. Unknown
+ * sessions, idle prompts, and sessions owned by another workspace return false.
+ */
+export function sessionHasRunningProcess(
+	terminalId: string,
+	workspaceId: string,
+): boolean {
+	const session = sessions.get(terminalId);
+	if (!session || session.exited) return false;
+	// Ownership gate: don't let one workspace probe another's terminals.
+	if (session.workspaceId !== workspaceId) return false;
+	return hasRunningForegroundProcess(session.pty.pid);
+}
+
 function pruneAndCountOpenSockets(session: TerminalSession): number {
 	let openSockets = 0;
 	for (const socket of session.sockets) {
@@ -359,6 +727,49 @@ export interface TerminalSessionSummary {
 	title: string | null;
 }
 
+/**
+ * Why this session operation failed, as a value rather than as prose.
+ *
+ * Every session producer in this module returns one of these, and each
+ * consumer (tRPC, the HTTP attach route, the websocket) decides its own
+ * mapping by switching on `kind`. `error` stays the human-readable string
+ * those consumers already surface, so it can be reworded freely without
+ * changing anyone's behaviour.
+ */
+export type TerminalSessionErrorKind =
+	/** No session with this id, in memory or on the daemon. */
+	| "SESSION_NOT_FOUND"
+	/** The session exists but is owned by a different workspace. */
+	| "SESSION_WRONG_WORKSPACE"
+	/** The session existed and its process has already ended. */
+	| "SESSION_EXITED"
+	/** Adoption was requested but the daemon has no live session by that id. */
+	| "SESSION_NOT_ACTIVE"
+	/** No workspace row for the requested workspace id. */
+	| "WORKSPACE_NOT_FOUND"
+	/** The workspace row exists but its worktree is gone from disk. */
+	| "WORKTREE_GONE"
+	/**
+	 * The daemon could not be reached (stalled, restarting, bootstrap
+	 * pending). The supervisor heals these and the session may still come up
+	 * under the same id, so callers should retry rather than go dead.
+	 */
+	| "DAEMON_UNAVAILABLE"
+	/**
+	 * Bootstrap failed permanently (missing daemon binary, no socket path,
+	 * crash circuit open, handshake rejected) or the PTY would not open.
+	 * Retrying will fail the same way; this is the only kind that means "we
+	 * have a bug or a broken install".
+	 */
+	| "TERMINAL_START_FAILED";
+
+export type TerminalSessionError = {
+	kind: TerminalSessionErrorKind;
+	error: string;
+	/** Retained for the attach route and websocket, which branch on it. */
+	transient?: boolean;
+};
+
 export function listTerminalSessions(
 	options: { workspaceId?: string; includeExited?: boolean } = {},
 ): TerminalSessionSummary[] {
@@ -383,33 +794,89 @@ export function listTerminalSessions(
 		}));
 }
 
-export function countTerminalSessions(
-	options: {
-		workspaceId?: string;
-		includeExited?: boolean;
-		excludeTerminalIds?: Iterable<string>;
-	} = {},
-): number {
-	const includeExited = options.includeExited ?? true;
-	const excludedTerminalIds = options.excludeTerminalIds
-		? new Set(options.excludeTerminalIds)
-		: null;
-	let count = 0;
-
-	for (const session of sessions.values()) {
-		if (!session.listed) continue;
-		if (
-			options.workspaceId !== undefined &&
-			session.workspaceId !== options.workspaceId
-		) {
-			continue;
-		}
-		if (!includeExited && session.exited) continue;
-		if (excludedTerminalIds?.has(session.terminalId)) continue;
-		count += 1;
+/**
+ * Live session list sourced from truth, not from this process's memory —
+ * host-wide by default, narrowed to one workspace when `workspaceId` is set.
+ *
+ * The in-memory map is attachment plumbing: it empties on every host-service
+ * restart while the detached pty-daemon keeps PTYs alive, and it only
+ * repopulates when a renderer attaches. Reading it alone made every pane-less
+ * session (background agents) invisible to the session dropdown, the
+ * background-terminals dropdown, and pane auto-adoption after a restart.
+ *
+ * So: in-memory sessions first (they carry liveness, titles, attachment, and
+ * respect `listed` for hidden internal sessions), then every other alive
+ * daemon session joined to an active workspace-owned row. Dispose-stamped
+ * rows are scheduled kills awaiting the reaper — never resurfaced. A session
+ * only the daemon knows has never been attached in this process's lifetime,
+ * hence `attached: false, title: null`.
+ */
+export async function listLiveTerminalSessions(
+	db: HostDb,
+	options: { workspaceId?: string } = {},
+): Promise<TerminalSessionSummary[]> {
+	const { workspaceId } = options;
+	// `getDaemonClient` gates on the daemon bootstrap (waitForDaemonReady +
+	// supervisor.ensure), so a query racing a host-service restart blocks
+	// until the daemon is adopted instead of observing it as unreachable.
+	let daemonAliveIds: string[] | null;
+	try {
+		const daemon = await getDaemonClient();
+		daemonAliveIds = (await daemon.list())
+			.filter((session) => session.alive)
+			.map((session) => session.id);
+	} catch (error) {
+		// Daemon genuinely down — its PTYs died with it, so the in-memory
+		// view is the whole truth. The dropdowns' polls re-query, so a
+		// transient connection failure self-heals.
+		console.warn(
+			"[terminal] listLiveTerminalSessions: daemon unreachable, serving in-memory view",
+			{ workspaceId, error },
+		);
+		daemonAliveIds = null;
 	}
 
-	return count;
+	// Snapshot memory AFTER the daemon await so a session disposed while the
+	// lookup was in flight can't be returned with stale live state.
+	const known = listTerminalSessions({ workspaceId, includeExited: false });
+	if (daemonAliveIds === null) return known;
+
+	const daemonSessionIds = daemonAliveIds.filter((id) => !sessions.has(id));
+	if (daemonSessionIds.length === 0) return known;
+
+	const rows = db
+		.select({
+			id: terminalSessions.id,
+			originWorkspaceId: terminalSessions.originWorkspaceId,
+			status: terminalSessions.status,
+			createdAt: terminalSessions.createdAt,
+			disposeRequestedAt: terminalSessions.disposeRequestedAt,
+		})
+		.from(terminalSessions)
+		.where(inArray(terminalSessions.id, daemonSessionIds))
+		.all();
+
+	const merged = [...known];
+	for (const row of rows) {
+		// Orphaned rows (workspace deleted → origin nulled) have no home in a
+		// grouped listing and can't be attached through workspace-scoped IO.
+		if (row.originWorkspaceId == null) continue;
+		if (workspaceId !== undefined && row.originWorkspaceId !== workspaceId) {
+			continue;
+		}
+		if (row.status !== "active") continue;
+		if (row.disposeRequestedAt != null) continue;
+		merged.push({
+			terminalId: row.id,
+			workspaceId: row.originWorkspaceId,
+			createdAt: row.createdAt,
+			exited: false,
+			exitCode: 0,
+			attached: false,
+			title: null,
+		});
+	}
+	return merged;
 }
 
 export function writeInputToSession({
@@ -420,20 +887,205 @@ export function writeInputToSession({
 	terminalId: string;
 	workspaceId: string;
 	data: string;
-}): { success: true } | { error: string } {
+}): { success: true } | TerminalSessionError {
 	const session = sessions.get(terminalId);
 	if (!session) {
-		return { error: "Terminal session not found" };
+		return { kind: "SESSION_NOT_FOUND", error: "Terminal session not found" };
 	}
 	if (session.workspaceId !== workspaceId) {
-		return { error: "Terminal session does not belong to this workspace" };
+		return {
+			kind: "SESSION_WRONG_WORKSPACE",
+			error: "Terminal session does not belong to this workspace",
+		};
 	}
 	if (session.exited) {
-		return { error: "Terminal session has exited" };
+		return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
 	}
 
 	session.pty.write(data);
 	return { success: true };
+}
+
+// Ring-buffer replay after adoption arrives asynchronously over the daemon
+// socket, and it is what rebuilds the mode tracker (bracketed paste, screen
+// content). Protocol v2 has no replay-complete signal, so watch the replayed
+// bytes accumulate — they land in session.buffer, since no renderer is
+// attached right after adoption — and return once they quiesce.
+const ADOPTION_REPLAY_WAIT_MS = 500;
+
+async function waitForAdoptionReplay(session: TerminalSession): Promise<void> {
+	const deadline = Date.now() + ADOPTION_REPLAY_WAIT_MS;
+	let seen = -1;
+	while (Date.now() < deadline) {
+		const count = session.bufferBytes;
+		if (count > 0 && count === seen) return;
+		seen = count;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+}
+
+/**
+ * In-flight headless adoptions by terminal id. Concurrent callers racing an
+ * adoption would each build their own TerminalSession (independent
+ * followUpWriteChain, duplicate daemon subscriptions) — sharing the leader's
+ * attempt keeps session identity unique per terminal.
+ */
+const adoptionsInFlight = new Map<string, Promise<unknown>>();
+
+/**
+ * Resolve a session for headless IO. The in-memory map empties on every
+ * host-service restart while the detached daemon keeps PTYs alive, so a
+ * miss is not "gone" — recover it the same way pane auto-adoption does.
+ */
+async function getOrAdoptSession({
+	terminalId,
+	workspaceId,
+	db,
+	eventBus,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	db: HostDb;
+	eventBus?: EventBus;
+}): Promise<TerminalSession | TerminalSessionError> {
+	for (;;) {
+		const existing = sessions.get(terminalId);
+		if (existing) {
+			if (existing.workspaceId !== workspaceId) {
+				return {
+					kind: "SESSION_WRONG_WORKSPACE",
+					error: "Terminal session does not belong to this workspace",
+				};
+			}
+			return existing;
+		}
+
+		// Another caller is mid-adoption: wait it out, then re-resolve so
+		// this caller runs its own workspace check (or leads a fresh attempt
+		// if the leader failed).
+		const pending = adoptionsInFlight.get(terminalId);
+		if (pending) {
+			await pending.catch(() => {});
+			continue;
+		}
+
+		const attempt = (async () => {
+			const adopted = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				eventBus,
+				adoptOnly: true,
+			});
+			if ("error" in adopted) return adopted;
+
+			await waitForAdoptionReplay(adopted);
+			return adopted;
+		})();
+		adoptionsInFlight.set(terminalId, attempt);
+		try {
+			return await attempt;
+		} finally {
+			adoptionsInFlight.delete(terminalId);
+		}
+	}
+}
+
+/**
+ * Public "send a follow-up to whatever runs in this terminal" path. Frames
+ * the text as a bracketed paste when the running program has that mode on,
+ * so embedded newlines reach a TUI agent (claude/codex) as literal newlines
+ * rather than premature Enter presses.
+ */
+export async function writeFramedInputToSession({
+	terminalId,
+	workspaceId,
+	text,
+	submit,
+	db,
+	eventBus,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	text: string;
+	submit: boolean;
+	db: HostDb;
+	eventBus?: EventBus;
+}): Promise<{ success: true } | TerminalSessionError> {
+	const session = await getOrAdoptSession({
+		terminalId,
+		workspaceId,
+		db,
+		eventBus,
+	});
+	if ("error" in session) return session;
+	if (session.exited) {
+		return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
+	}
+
+	// Serialize sends per session: the delayed Enter opens a window where a
+	// concurrent send's text (even a submit: false draft) would land between
+	// this text and its Enter and get submitted by it.
+	const previous = session.followUpWriteChain ?? Promise.resolve();
+	const task = previous.then(
+		async (): Promise<{ success: true } | TerminalSessionError> => {
+			if (session.exited) {
+				return { kind: "SESSION_EXITED", error: "Terminal session has exited" };
+			}
+			const framed = session.modeTracker.isBracketedPasteActive()
+				? `\x1b[200~${text}\x1b[201~`
+				: text;
+			if (!submit) {
+				session.pty.write(framed);
+				return { success: true };
+			}
+			if (text.length > 0) {
+				session.pty.write(framed);
+				await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
+				if (session.exited) {
+					return {
+						kind: "SESSION_EXITED",
+						error: "Terminal session has exited",
+					};
+				}
+			}
+			session.pty.write("\r");
+			return { success: true };
+		},
+	);
+	session.followUpWriteChain = task.then(
+		() => undefined,
+		() => undefined,
+	);
+	return task;
+}
+
+/**
+ * Non-destructive read of the terminal's current screen (and recent
+ * scrollback) off the per-session headless emulator. For TUI agents this is
+ * the alt-screen the agent renders to — i.e. its visible output.
+ */
+export async function snapshotSession({
+	terminalId,
+	workspaceId,
+	maxLines,
+	db,
+	eventBus,
+}: {
+	terminalId: string;
+	workspaceId: string;
+	maxLines?: number;
+	db: HostDb;
+	eventBus?: EventBus;
+}): Promise<({ success: true } & TerminalSnapshot) | TerminalSessionError> {
+	const session = await getOrAdoptSession({
+		terminalId,
+		workspaceId,
+		db,
+		eventBus,
+	});
+	if ("error" in session) return session;
+	return { success: true, ...session.modeTracker.snapshot(maxLines) };
 }
 
 function sendMessage(
@@ -479,6 +1131,180 @@ function bufferOutput(session: TerminalSession, data: Uint8Array) {
 		const removed = session.buffer.shift();
 		if (removed) session.bufferBytes -= removed.byteLength;
 	}
+}
+
+function retainOutput(session: TerminalSession, data: Uint8Array) {
+	session.retained.push(data);
+	session.retainedBytes += data.byteLength;
+	session.outputSeq += data.byteLength;
+	while (
+		session.retainedBytes > CATCHUP_RING_CAP_BYTES &&
+		session.retained.length > 1
+	) {
+		const removed = session.retained.shift();
+		if (removed) {
+			session.retainedBytes -= removed.byteLength;
+			session.retainedStartSeq += removed.byteLength;
+		}
+	}
+}
+
+/** Concatenate the retained stream from absolute seq `from` to the present. */
+function readRetainedFrom(session: TerminalSession, from: number): Uint8Array {
+	let skip = from - session.retainedStartSeq;
+	const parts: Uint8Array[] = [];
+	let total = 0;
+	for (const chunk of session.retained) {
+		if (skip >= chunk.byteLength) {
+			skip -= chunk.byteLength;
+			continue;
+		}
+		const part = skip > 0 ? chunk.subarray(skip) : chunk;
+		skip = 0;
+		parts.push(part);
+		total += part.byteLength;
+	}
+	const out = new Uint8Array(total);
+	let offset = 0;
+	for (const part of parts) {
+		out.set(part, offset);
+		offset += part.byteLength;
+	}
+	return out;
+}
+
+/**
+ * Single choke point for PTY output: mode tracker, catch-up ring, then
+ * broadcast (falling back to the legacy zero-socket FIFO). Every byte that
+ * counts toward `outputSeq` MUST flow through here and nowhere else, or
+ * seq-aware clients drift out of sync.
+ */
+/** ESC [ 6 n — DSR cursor position report request. */
+const DSR_CURSOR_QUERY = new Uint8Array([0x1b, 0x5b, 0x36, 0x6e]);
+
+/**
+ * Count DSR cursor queries in this chunk (joined with the previous chunk's
+ * tail so boundary-straddling sequences still match) and update the carry.
+ */
+function scanForDsrCursorQueries(
+	session: TerminalSession,
+	chunk: Uint8Array,
+): number {
+	const joined = new Uint8Array(session.dsrCarry.length + chunk.length);
+	joined.set(session.dsrCarry, 0);
+	joined.set(chunk, session.dsrCarry.length);
+	let count = 0;
+	// Start where a match could involve carried bytes; matches wholly inside
+	// the carry were already counted last chunk.
+	for (
+		let i = Math.max(
+			0,
+			session.dsrCarry.length - (DSR_CURSOR_QUERY.length - 1),
+		);
+		i + DSR_CURSOR_QUERY.length <= joined.length;
+		i++
+	) {
+		let matched = true;
+		for (let j = 0; j < DSR_CURSOR_QUERY.length; j++) {
+			if (joined[i + j] !== DSR_CURSOR_QUERY[j]) {
+				matched = false;
+				break;
+			}
+		}
+		if (matched) count++;
+	}
+	session.dsrCarry = joined.slice(
+		Math.max(0, joined.length - (DSR_CURSOR_QUERY.length - 1)),
+	);
+	return count;
+}
+
+/**
+ * Answer a program's DSR cursor query when no renderer is attached to do it.
+ * reedline (nushell) asks `ESC[6n` after init and will not paint its prompt —
+ * or accept input — until the terminal answers; a preset launch into an
+ * unattached session therefore wedged forever (#6024). An attached renderer's
+ * xterm answers by itself (so we stay silent then, like tmux does for
+ * attached clients); for unattached sessions the mirrored headless screen is
+ * the truth and answers with the real cursor position.
+ */
+function answerDsrCursorQueries(session: TerminalSession, count: number) {
+	if (count === 0 || session.exited) return;
+	if (pruneAndCountOpenSockets(session) > 0) return;
+	const { x, y } = session.modeTracker.cursorPosition();
+	for (let i = 0; i < count; i++) {
+		session.pty.write(`\x1b[${y + 1};${x + 1}R`);
+	}
+}
+
+function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
+	session.modeTracker.feed(bytes);
+	retainOutput(session, bytes);
+	if (broadcastBytes(session, bytes) === 0) {
+		bufferOutput(session, bytes);
+	}
+}
+
+/**
+ * Force the running program to repaint by toggling the PTY one row smaller
+ * and back — two real SIGWINCHes (a same-dims resize emits none). Used after
+ * a reanchor attach, where the renderer may hold a stale frame that only the
+ * program itself can faithfully redraw (the v1 terminal-host's proven
+ * recipe; never synthesize screen content the tracker may not have — #6290).
+ */
+function nudgeRepaint(session: TerminalSession) {
+	if (!isCurrentLiveSession(session)) return;
+	const { cols, rows } = session;
+	// Shrink by a row, growing instead when already at the minimum.
+	const toggledRows = rows > MIN_TERMINAL_ROWS ? rows - 1 : rows + 1;
+	const generation = session.resizeGeneration;
+	session.pty.resize(cols, toggledRows);
+	setTimeout(() => {
+		// A real client resize landed mid-nudge; it owns the dims now.
+		if (!isCurrentLiveSession(session)) return;
+		if (session.resizeGeneration !== generation) return;
+		session.pty.resize(cols, rows);
+	}, REPAINT_NUDGE_RESTORE_MS);
+}
+
+/** False once the session exited or was disposed/replaced in the map —
+ * lets delayed nudge timers no-op instead of poking a dead PTY. */
+function isCurrentLiveSession(session: TerminalSession): boolean {
+	return !session.exited && sessions.get(session.terminalId) === session;
+}
+
+/**
+ * Write the aggregate client focus state to the PTY when the program asked
+ * for focus reports (mode 1004). Written unconditionally rather than
+ * edge-triggered: the program's belief can drift via in-band reports from
+ * individual xterms, so every focus event re-asserts the aggregate truth —
+ * a redundant \x1b[I is idempotent to the program.
+ */
+function syncPtyFocus(session: TerminalSession) {
+	if (session.exited) return;
+	if (!session.modeTracker.isFocusReportingActive()) return;
+	const aggregate = session.focusedSockets.size > 0;
+	session.pty.write(aggregate ? "\x1b[I" : "\x1b[O");
+}
+
+/**
+ * Arm the nudge after a reanchor attach. Wait for the client's own resize
+ * first: if its dims differ from the PTY's, that resize already delivers a
+ * natural SIGWINCH and the nudge is unnecessary; if they match, nudge. The
+ * fallback timer covers clients that never send a resize.
+ */
+function schedulePendingRepaintNudge(session: TerminalSession) {
+	if (session.pendingRepaintNudge !== null) return;
+	session.pendingRepaintNudge = setTimeout(() => {
+		session.pendingRepaintNudge = null;
+		nudgeRepaint(session);
+	}, REPAINT_NUDGE_FALLBACK_MS);
+}
+
+function clearPendingRepaintNudge(session: TerminalSession) {
+	if (session.pendingRepaintNudge === null) return;
+	clearTimeout(session.pendingRepaintNudge);
+	session.pendingRepaintNudge = null;
 }
 
 function normalizeTerminalDimension(
@@ -538,59 +1364,570 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	return sent;
 }
 
-function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// Preamble first, then FIFO. Mode-setting escapes (kitty keyboard,
-	// bracketed paste, focus, …) are typically emitted once at startup and
-	// broadcast away rather than buffered, so a fresh xterm needs them
-	// re-asserted on every attach — even when the FIFO is empty.
+/**
+ * Host-synthesized attach bytes: the mode preamble plus (at most once) the
+ * restored notice. Mode-setting escapes (kitty keyboard, bracketed paste,
+ * focus, …) are typically emitted once at program startup and broadcast away
+ * rather than buffered, so a fresh xterm needs them re-asserted on every
+ * attach. Consumes the pending notice — only call when actually delivering
+ * to an open socket. Returns null when there is nothing to synthesize.
+ */
+function takeSynthesizedAttachBytes(
+	session: TerminalSession,
+): Uint8Array | null {
 	const preamble = session.modeTracker.buildPreamble();
-	let bufferTotal = 0;
-	for (const b of session.buffer) bufferTotal += b.byteLength;
-	const preambleLen = preamble?.byteLength ?? 0;
-	if (preambleLen === 0 && bufferTotal === 0) return;
+	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
+	session.restoredNoticePending = false;
+	if (!preamble && !notice) return null;
+	const combined = new Uint8Array(
+		(preamble?.byteLength ?? 0) + (notice?.byteLength ?? 0),
+	);
+	if (preamble) combined.set(preamble, 0);
+	if (notice) combined.set(notice, preamble?.byteLength ?? 0);
+	return combined;
+}
 
-	const combined = new Uint8Array(preambleLen + bufferTotal);
-	let offset = 0;
-	if (preamble) {
-		combined.set(preamble, offset);
-		offset += preamble.byteLength;
-	}
-	for (const b of session.buffer) {
-		combined.set(b, offset);
-		offset += b.byteLength;
+export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
+	// Bail before consuming the notice/FIFO on a non-open socket so the next
+	// attach can still replay them.
+	if (socket.readyState !== SOCKET_OPEN) return;
+	const synthesized = takeSynthesizedAttachBytes(session);
+	if (synthesized) sendBytes(socket, synthesized);
+	if (session.bufferBytes > 0) {
+		const fifo = new Uint8Array(session.bufferBytes);
+		let offset = 0;
+		for (const b of session.buffer) {
+			fifo.set(b, offset);
+			offset += b.byteLength;
+		}
+		sendBytes(socket, fifo);
 	}
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendBytes(socket, combined);
 }
 
 /**
- * Transition out of `pending`. Flushes any partially-matched marker
- * bytes as terminal output (they weren't a real marker). Idempotent.
+ * Attach delivery for seq-aware clients. Wire order matters:
+ *   1. binary: host-synthesized bytes (mode preamble, restored notice) —
+ *      NOT part of the PTY stream, so they go out before the anchor and the
+ *      client does not count them;
+ *   2. json `synced`: sets the client's counter and arms counting;
+ *   3. binary: catch-up bytes — pure PTY-stream bytes the client counts.
+ * After this returns, live output broadcast keeps both counters in step.
  */
+function sendSeqAttach(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	request: Exclude<SeqAttachRequest, { kind: "legacy" }>,
+) {
+	if (socket.readyState !== SOCKET_OPEN) return;
+
+	const synthesized = takeSynthesizedAttachBytes(session);
+	if (synthesized) sendBytes(socket, synthesized);
+
+	const exact =
+		request.kind === "anchor" &&
+		request.epoch === session.epoch &&
+		request.seq >= session.retainedStartSeq &&
+		request.seq <= session.outputSeq;
+
+	if (exact) {
+		sendMessage(socket, {
+			type: "synced",
+			epoch: session.epoch,
+			seq: request.seq,
+			mode: "exact",
+		});
+		if (request.seq < session.outputSeq) {
+			sendBytes(socket, readRetainedFrom(session, request.seq));
+		}
+		return;
+	}
+
+	if (request.kind === "new") {
+		// Virgin client: best-effort scrollback restore from the ring tail.
+		sendMessage(socket, {
+			type: "synced",
+			epoch: session.epoch,
+			seq: session.retainedStartSeq,
+			mode: "tail",
+		});
+		if (session.retainedBytes > 0) {
+			sendBytes(socket, readRetainedFrom(session, session.retainedStartSeq));
+		}
+		return;
+	}
+
+	// Unknown/unrecoverable position ("none", epoch mismatch, gap beyond the
+	// ring). The client's existing screen beats anything we could synthesize —
+	// never overwrite it (#6290). Re-anchor at the live head and ask the
+	// program to repaint itself.
+	sendMessage(socket, {
+		type: "synced",
+		epoch: session.epoch,
+		seq: session.outputSeq,
+		mode: "reanchor",
+	});
+	if (!session.exited) {
+		schedulePendingRepaintNudge(session);
+	}
+}
+
+function clearShellReadyTimeout(session: TerminalSession): void {
+	if (session.shellReadyTimeoutId) {
+		clearTimeout(session.shellReadyTimeoutId);
+		session.shellReadyTimeoutId = null;
+	}
+}
+
+/** Transition out of `pending` on marker match or timeout expiry. */
 function resolveShellReady(
 	session: TerminalSession,
 	state: "ready" | "timed_out",
 ): void {
 	if (session.shellReadyState !== "pending") return;
 	session.shellReadyState = state;
-	if (session.shellReadyTimeoutId) {
-		clearTimeout(session.shellReadyTimeoutId);
-		session.shellReadyTimeoutId = null;
-	}
-	// Flush held marker bytes — they weren't part of a full marker
+	clearShellReadyTimeout(session);
+	// On timeout the scanner may be withholding a partial marker prefix that
+	// never completed — those bytes are real output and must be released.
 	if (session.scanState.heldBytes.length > 0) {
 		const heldBytes = Uint8Array.from(session.scanState.heldBytes);
-		session.modeTracker.feed(heldBytes);
-		bufferOutput(session, heldBytes);
 		session.scanState.heldBytes.length = 0;
+		session.scanState.matchPos = 0;
+		deliverOutput(session, heldBytes);
 	}
-	session.scanState.matchPos = 0;
+	if (state === "ready") {
+		recordShellReadyMarkerEvidence(session.launchShellName, "delivered");
+	} else if (session.outputSeq > 0) {
+		// The shell painted output but the marker never came — this machine's
+		// profile diverts it (exec tmux/another shell, cleared precmd hooks).
+		// Zero output means the shell may not have started at all (wedged
+		// daemon); that says nothing about the profile, so record nothing.
+		recordShellReadyMarkerEvidence(session.launchShellName, "missing");
+	}
 	if (session.shellReadyResolve) {
 		session.shellReadyResolve();
 		session.shellReadyResolve = null;
 	}
 }
+
+/** Release pending readiness waiters without allowing queued input to run. */
+function cancelShellReady(session: TerminalSession): void {
+	if (session.shellReadyState !== "pending") return;
+	session.shellReadyState = "cancelled";
+	clearShellReadyTimeout(session);
+	if (session.shellReadyResolve) {
+		session.shellReadyResolve();
+		session.shellReadyResolve = null;
+	}
+}
+
+/**
+ * A staged launch script normally lives well under a second (self-deletes on
+ * execution; unlinked on pre-Enter teardown), but a host-service crash inside
+ * that window skips both paths and leaves the prompt-bearing file behind.
+ * Sweep stale ones at boot — age-gated so a concurrently-running instance's
+ * just-staged script is never touched.
+ */
+const LAUNCH_SCRIPT_STALE_MS = 60 * 60 * 1000;
+void (async () => {
+	try {
+		const dir = tmpdir();
+		for (const name of await readdir(dir)) {
+			if (!name.startsWith("superset-launch-")) continue;
+			const scriptPath = join(dir, name);
+			try {
+				const { mtimeMs } = await stat(scriptPath);
+				if (Date.now() - mtimeMs > LAUNCH_SCRIPT_STALE_MS) {
+					await rm(scriptPath, { force: true });
+				}
+			} catch {
+				// raced another instance's sweep — skip
+			}
+		}
+	} catch (error) {
+		// Non-fatal, but this sweep is the only cleanup for crash-stranded
+		// prompt-bearing scripts — surface the miss instead of hiding it.
+		console.warn("[terminal] stale launch-script sweep failed", { error });
+	}
+})();
+
+/**
+ * Stage an oversized initialCommand as a temp script and return the short
+ * source line to type instead, keeping the typed input under MAX_CANON.
+ * Sourcing (not `sh <path>`) preserves the interactive shell context, so the
+ * command behaves exactly as if typed. The script deletes itself on its first
+ * line — the shell keeps reading from the already-open fd — so cleanup never
+ * waits on a long-running agent process. Returns null when the write fails;
+ * the caller falls back to typing the full text.
+ */
+function stageInitialCommandScript(
+	session: TerminalSession,
+	commandText: string,
+): { typedLine: string; scriptPath: string } | null {
+	const safeId = session.terminalId.replace(/[^\w-]/g, "_").slice(0, 60);
+	const scriptPath = join(
+		tmpdir(),
+		`superset-launch-${safeId}-${randomBytes(4).toString("hex")}.sh`,
+	);
+	// tmpdir paths never contain quotes, so this quoting is identical in
+	// POSIX shells and fish.
+	const quotedPath = `'${scriptPath.replaceAll("'", "'\\''")}'`;
+	const sourceKeyword = session.launchShellName === "fish" ? "source" : ".";
+	try {
+		writeFileSync(
+			scriptPath,
+			`command rm -f -- ${quotedPath}\n${commandText}\n`,
+			{ mode: 0o600, flag: "wx" },
+		);
+	} catch (error) {
+		console.warn("[terminal] failed to stage long initial command; typing it", {
+			terminalId: session.terminalId,
+			error,
+		});
+		return null;
+	}
+	return { typedLine: `${sourceKeyword} ${quotedPath}`, scriptPath };
+}
+
+/**
+ * Longest leading run of printable ASCII from the typed line, capped so the
+ * probe fits on one terminal row even after a prompt. The prefix is what a
+ * stdin eater mangles (it consumes from the front), so it's both the match
+ * target and the mangle detector (see judgeCommandEcho). Returns null when
+ * the command starts with bytes a terminal won't echo verbatim — those
+ * launches type blind, exactly as before.
+ */
+function commandEchoProbe(typedText: string): string | null {
+	let end = 0;
+	while (end < typedText.length && end < 32) {
+		const code = typedText.charCodeAt(end);
+		if (code < 0x20 || code > 0x7e) break;
+		end++;
+	}
+	const probe = typedText.slice(0, end);
+	return probe.length >= 6 ? probe : null;
+}
+
+/**
+ * Strip escape sequences and control bytes so echoed text can be matched
+ * regardless of prompt colors, syntax-highlight repaints, or line wraps
+ * (which only insert controls/CSI between the printable characters).
+ */
+function stripEchoDecorations(raw: string): string {
+	return (
+		raw
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping OSC sequences intentionally
+			.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping DCS/SOS/PM/APC sequences intentionally
+			.replace(/\x1b[PX^_][\s\S]*?(?:\x1b\\|\x07|$)/g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping CSI sequences intentionally
+			.replace(/\x1b\[[0-9;:?<=>]*[ -/]*[@-~]/g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping two-byte escapes intentionally
+			.replace(/\x1b./g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
+			.replace(/[\x00-\x1f\x7f]/g, "")
+	);
+}
+
+/**
+ * Judge the echoed stream against the typed probe. `intact` needs the full
+ * probe present with no orphan suffix after its last occurrence: a startup
+ * reader that stole leading byte(s) leaves the intact kernel echo in place
+ * and then re-echoes the surviving tail when the line editor drains the
+ * queue (`date +%s …` followed by `ate +%s …`), so a reappearing proper
+ * suffix means the editor holds a mangled copy. `mangled` is definitive —
+ * the caller retypes immediately instead of waiting out the window.
+ */
+function judgeCommandEcho(
+	cleaned: string,
+	probe: string,
+): "absent" | "intact" | "mangled" {
+	const lastFull = cleaned.lastIndexOf(probe);
+	if (lastFull === -1) return "absent";
+	const tail = cleaned.slice(lastFull + probe.length);
+	// Suffixes shorter than 3 chars collide with prompts/status text too easily.
+	for (let cut = 1; cut <= probe.length - 3; cut++) {
+		if (tail.includes(probe.slice(cut))) return "mangled";
+	}
+	return "intact";
+}
+
+/**
+ * The part of the echoed stream after the last full probe occurrence that the
+ * typed command itself cannot explain. The echo of a command longer than its
+ * probe legitimately continues past it, so the tail is only unexpected once
+ * it diverges from (or extends beyond) that remainder. Whitespace is ignored
+ * on both sides — editor repaints and line wraps shuffle it freely. A
+ * non-empty result after an intact echo is the reedline-flush signature: the
+ * kernel echoed the bytes at input time, the editor then finished starting
+ * up (painting a banner or prompt AFTER the echo) and flushed the typeahead,
+ * so the intact-looking command was never held by the line editor.
+ */
+function unexpectedEchoTail(tail: string, expectedRemainder: string): string {
+	const seen = tail.replace(/\s+/g, "");
+	const expected = expectedRemainder.replace(/\s+/g, "");
+	if (expected.startsWith(seen)) return "";
+	if (seen.startsWith(expected)) return seen.slice(expected.length);
+	return seen;
+}
+
+/**
+ * Resolve true once `probe` echoes back intact and the stream then stays
+ * quiet long enough for a mangle signature to have shown up; false on a
+ * detected mangle or when the window closes without an intact echo.
+ * `expectedRemainder` (ungated launches) additionally fails the wait when
+ * output after an intact echo isn't the typed command's own continuation —
+ * the flush signature described at unexpectedEchoTail.
+ */
+function waitForCommandEcho(
+	session: TerminalSession,
+	probe: string,
+	windowMs: number,
+	opts?: { quietMs?: number; expectedRemainder?: string },
+): Promise<boolean> {
+	const quietMs = opts?.quietMs ?? GRACE_ECHO_QUIET_MS;
+	return new Promise((resolve) => {
+		let raw = "";
+		let quietTimer: ReturnType<typeof setTimeout> | null = null;
+		const finish = (ok: boolean) => {
+			session.echoProbe = null;
+			clearTimeout(windowTimer);
+			if (quietTimer) clearTimeout(quietTimer);
+			resolve(ok);
+		};
+		const windowTimer = setTimeout(() => finish(false), windowMs);
+		session.echoProbe = (bytes) => {
+			raw += Buffer.from(
+				bytes.buffer,
+				bytes.byteOffset,
+				bytes.byteLength,
+			).toString("latin1");
+			// Keep the tail bounded; far more than enough overlap for the probe.
+			if (raw.length > 65_536) raw = raw.slice(-32_768);
+			// Every chunk re-opens the quiet window — whatever painted may have
+			// been the start of a mangle signature.
+			if (quietTimer) {
+				clearTimeout(quietTimer);
+				quietTimer = null;
+			}
+			const cleaned = stripEchoDecorations(raw);
+			const verdict = judgeCommandEcho(cleaned, probe);
+			if (verdict === "mangled") {
+				finish(false);
+			} else if (verdict === "intact") {
+				if (opts?.expectedRemainder !== undefined) {
+					const tail = cleaned.slice(cleaned.lastIndexOf(probe) + probe.length);
+					if (unexpectedEchoTail(tail, opts.expectedRemainder) !== "") {
+						finish(false);
+						return;
+					}
+				}
+				quietTimer = setTimeout(() => finish(true), quietMs);
+			}
+		};
+	});
+}
+
+/**
+ * Resolve once the PTY stream has been silent for `quietMs` (capped at
+ * `capMs` so streaming startups can't park the launch). Uses the same
+ * single-slot echoProbe channel as waitForCommandEcho — the two never run
+ * concurrently for a session.
+ */
+function waitForOutputQuiescence(
+	session: TerminalSession,
+	quietMs: number,
+	capMs: number,
+): Promise<void> {
+	return new Promise((resolve) => {
+		const finish = () => {
+			session.echoProbe = null;
+			clearTimeout(quietTimer);
+			clearTimeout(capTimer);
+			resolve();
+		};
+		let quietTimer = setTimeout(finish, quietMs);
+		const capTimer = setTimeout(finish, capMs);
+		session.echoProbe = () => {
+			clearTimeout(quietTimer);
+			quietTimer = setTimeout(finish, quietMs);
+		};
+	});
+}
+
+/**
+ * Deferred launch typing races session teardown: the daemon socket can drop
+ * before `isDefunct()` (registry/exited checks) observes the disposal, so a
+ * write can throw "socket not connected" from inside a floating promise or
+ * timer. A failed write means the session is gone — treat it as defunct and
+ * abort the launch quietly.
+ */
+function tryTypeToPty(session: TerminalSession, data: string): boolean {
+	try {
+		session.pty.write(data);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Grace-window typing (learned `missing` evidence, no observed prompt): a
+ * startup stdin reader can still be consuming the TTY when the grace fires —
+ * the oh-my-zsh-updater `read` of #3941 on a profile that also never delivers
+ * the marker — and a blindly typed command loses its leading byte(s) to it
+ * (`claude` runs as `laude`). So watch the stream for the command echoing
+ * back intact; when the echo doesn't appear, clear the line and retype.
+ * Ctrl-U is safe in every mode the TTY can be in here — kill-line for a live
+ * line editor, the canonical kill character for kernel-queued input, and a
+ * literal 0x15 the editor will treat as kill when it drains a raw queue — so
+ * a false-negative echo costs a retype, never a corrupted command. After the
+ * retry budget the command is typed blind, matching the old fallback path:
+ * it must eventually run.
+ */
+async function typeInitialCommandVerifyingEcho(
+	session: TerminalSession,
+	typedText: string,
+	probe: string,
+	dropStagedFiles: () => void,
+	isDefunct: () => boolean,
+): Promise<void> {
+	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
+		if (isDefunct()) return dropStagedFiles();
+		if (attempt > 0 && !tryTypeToPty(session, "\x15")) {
+			return dropStagedFiles();
+		}
+		if (!tryTypeToPty(session, typedText)) return dropStagedFiles();
+		if (await waitForCommandEcho(session, probe, GRACE_ECHO_WINDOW_MS)) break;
+	}
+	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
+	if (isDefunct()) return dropStagedFiles();
+	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+}
+
+/**
+ * Ungated typing (shellLaunchExpectsReadyMarker() false — unwrapped bash,
+ * sh/ksh, nushell): there is no marker and never will be, so before this the
+ * command was typed the instant the PTY opened. Two startup classes ate it:
+ * a profile `read` steals the leading byte(s) (#3941/#5712), and reedline
+ * (nushell) flushes ALL pending typeahead when it enables raw mode after
+ * init — the command vanishes with an intact-looking kernel echo (#6024).
+ *
+ * So: wait for the startup output to go quiet (a shell at prompt is quiet; a
+ * banner-printing one isn't), type, then verify the echo. Quiescence can't
+ * see a silent `read -t` window — the echo mangle signature catches that —
+ * and the echo can't distinguish kernel echo from editor echo — the
+ * unexpected-tail rule (output after the echo that isn't the command's own
+ * continuation) catches the flush class. Failures re-quiesce before the
+ * Ctrl-U retype so the retry lands on the now-live editor instead of inside
+ * the same init storm. The accept path requires a full Enter-delay of
+ * post-echo quiet, which already provides the text→Enter separation, so
+ * Enter goes out immediately on acceptance. After the retry budget the
+ * command falls back to a blind Enter, exactly like the gated paths.
+ *
+ * A null `probe` (command too short or non-ASCII start — commandEchoProbe)
+ * only disables the echo verification: the quiescence wait still applies, so
+ * short commands like `ls` don't regress into the blind-write reedline-flush
+ * loss (#6024). Those launches type once and send the delayed Enter.
+ */
+async function typeInitialCommandUngated(
+	session: TerminalSession,
+	typedText: string,
+	probe: string | null,
+	dropStagedFiles: () => void,
+	isDefunct: () => boolean,
+): Promise<void> {
+	const expectedRemainder = probe
+		? Buffer.from(typedText, "utf8").toString("latin1").slice(probe.length)
+		: "";
+	const maxRetypes = probe ? GRACE_ECHO_MAX_RETYPES : 0;
+	for (let attempt = 0; attempt <= maxRetypes; attempt++) {
+		await waitForOutputQuiescence(
+			session,
+			UNGATED_QUIESCENT_MS,
+			UNGATED_QUIESCENCE_CAP_MS,
+		);
+		if (isDefunct()) return dropStagedFiles();
+		// Ctrl-U after the re-quiesce, not before it — sent earlier, the same
+		// startup reader that ate the command swallows the kill char too and
+		// the retype appends to the leftover line.
+		if (attempt > 0 && !tryTypeToPty(session, "\x15")) {
+			return dropStagedFiles();
+		}
+		if (!tryTypeToPty(session, typedText)) return dropStagedFiles();
+		if (!probe) break;
+		const verified = await waitForCommandEcho(
+			session,
+			probe,
+			UNGATED_ECHO_WINDOW_MS,
+			{
+				quietMs: INITIAL_COMMAND_ENTER_DELAY_MS,
+				expectedRemainder,
+			},
+		);
+		if (verified) {
+			if (isDefunct()) return dropStagedFiles();
+			if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+			return;
+		}
+	}
+	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
+	if (isDefunct()) return dropStagedFiles();
+	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
+}
+
+/**
+ * Rewrite a bash-only heredoc prompt transport for a fish launch shell. fish
+ * has no heredocs, so the shared "$(cat <<'SUPERSET_PROMPT_…')" transport
+ * dies at parse and the agent never starts (#4705). The prompt bytes go to a
+ * staged temp file (the `superset-launch-` prefix keeps it under the boot
+ * sweep's crash cleanup) and the typed command becomes the fish equivalent,
+ * which deletes the file as soon as it's consumed. POSIX shells keep today's
+ * heredoc byte-for-byte — this runs only when the launch shell is fish.
+ * Returns null when staging fails; the caller must NOT fall back to typing
+ * the heredoc (fish dies parsing it — the very failure this rewrite exists
+ * to prevent) and surfaces a launch error instead.
+ */
+function stageFishPromptTransport(
+	session: TerminalSession,
+	parsed: ParsedPromptHeredocCommand,
+): { commandText: string; promptPath: string } | null {
+	const safeId = session.terminalId.replace(/[^\w-]/g, "_").slice(0, 60);
+	const promptPath = join(
+		tmpdir(),
+		`superset-launch-prompt-${safeId}-${randomBytes(4).toString("hex")}.txt`,
+	);
+	try {
+		// Trailing newline matches the heredoc body (`…\n` before the tag);
+		// both bash "$()" and fish `string collect` trim it back off.
+		writeFileSync(promptPath, `${parsed.prompt}\n`, {
+			mode: 0o600,
+			flag: "wx",
+		});
+	} catch (error) {
+		console.error(
+			"[terminal] failed to stage fish prompt file; aborting agent launch",
+			{ terminalId: session.terminalId, error },
+		);
+		return null;
+	}
+	return {
+		commandText: buildFishPromptCommandString({
+			command: parsed.command,
+			suffix: parsed.suffix,
+			transport: parsed.transport,
+			promptFilePath: promptPath,
+		}),
+		promptPath,
+	};
+}
+
+// Shown in the terminal when a fish prompt launch can't be staged — the
+// alternative (typing the bash heredoc into fish) is guaranteed garbage.
+const FISH_PROMPT_STAGE_FAILED_NOTICE = new TextEncoder().encode(
+	"\r\n\x1b[31m[superset] Failed to stage the agent prompt for fish — the agent was not started. Retry the launch; see host-service logs for the cause.\x1b[0m\r\n",
+);
 
 function queueInitialCommand(
 	session: TerminalSession,
@@ -598,12 +1935,113 @@ function queueInitialCommand(
 ): void {
 	if (session.initialCommandQueued || session.exited) return;
 	session.initialCommandQueued = true;
-	const cmd = initialCommand.endsWith("\n")
-		? initialCommand
-		: `${initialCommand}\n`;
-	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
-	// and gating turned broken/missing markers into a guaranteed stall.
-	session.pty.write(cmd);
+	const commandText = initialCommand.replace(/[\r\n]+$/, "");
+	// Marker-backed shells can run interactive startup hooks that read or flush
+	// PTY input before the first prompt (direnv/devenv is one example). Wait for
+	// that prompt so the command cannot be consumed as startup input. Launches
+	// without a verified marker resolve this promise immediately, and a missing
+	// marker resolves it via SHELL_READY_TIMEOUT_MS — the command must
+	// eventually run; only session teardown may cancel it.
+	// Dispose paths that never see onExit (daemon callbacks are unsubscribed
+	// first) leave `exited` false and a non-pending readyState untouched —
+	// only the registry reliably says the session is gone.
+	const isDefunct = () =>
+		session.exited ||
+		session.shellReadyState === "cancelled" ||
+		sessions.get(session.terminalId) !== session;
+	void session.shellReadyPromise.then(() => {
+		if (isDefunct()) return;
+		const stagedPaths: string[] = [];
+		// Enter never sent — a staged script/prompt file won't run or be
+		// consumed, so it can't self-delete.
+		const dropStagedFiles = () => {
+			for (const staged of stagedPaths) {
+				void rm(staged, { force: true }).catch(() => {});
+			}
+		};
+		// fish can't parse the heredoc prompt transport — swap it for the
+		// staged-file equivalent before any typing decisions are made. When
+		// staging fails there is no fish-parseable fallback; typing the bash
+		// heredoc guarantees a parse error, so surface the failure and stop.
+		let effectiveCommand = commandText;
+		if (session.launchShellName === "fish") {
+			const parsedTransport = parsePromptHeredocCommand(commandText);
+			if (parsedTransport) {
+				const fishStaged = stageFishPromptTransport(session, parsedTransport);
+				if (!fishStaged) {
+					deliverOutput(session, FISH_PROMPT_STAGE_FAILED_NOTICE);
+					return;
+				}
+				effectiveCommand = fishStaged.commandText;
+				stagedPaths.push(fishStaged.promptPath);
+			}
+		}
+		// Even after the marker, the TTY is still in canonical mode (the marker
+		// fires from precmd, before the line editor takes over), so whatever we
+		// type here rides the kernel's MAX_CANON line limit. Long commands go
+		// to disk; only a short source line is typed.
+		let typedText = effectiveCommand;
+		if (
+			Buffer.byteLength(effectiveCommand, "utf8") >
+			MAX_TYPED_INITIAL_COMMAND_BYTES
+		) {
+			const staged = stageInitialCommandScript(session, effectiveCommand);
+			if (staged) {
+				typedText = staged.typedLine;
+				stagedPaths.push(staged.scriptPath);
+			}
+		}
+		// A grace-window timeout typed on learned evidence alone — no marker, no
+		// observed prompt — so startup may still be reading stdin. That path
+		// must verify its own echo instead of trusting the write.
+		if (
+			session.shellReadyState === "timed_out" &&
+			session.usedMissingMarkerGrace
+		) {
+			const probe = commandEchoProbe(typedText);
+			if (probe) {
+				void typeInitialCommandVerifyingEcho(
+					session,
+					typedText,
+					probe,
+					dropStagedFiles,
+					isDefunct,
+				);
+				return;
+			}
+		}
+		// No marker was ever expected for this launch (unwrapped bash, sh/ksh,
+		// nushell): quiesce, type, and echo-verify instead of typing blind into
+		// whatever the startup is doing to stdin. A null probe only skips the
+		// echo verification — the quiescence wait still applies.
+		if (session.shellReadyState === "unsupported") {
+			void typeInitialCommandUngated(
+				session,
+				typedText,
+				commandEchoProbe(typedText),
+				dropStagedFiles,
+				isDefunct,
+			);
+			return;
+		}
+		// The OSC 133;A marker fires from precmd, which runs BEFORE the line
+		// editor starts reading input. Plugin init in that gap (vi-mode,
+		// syntax-highlighting) can flush the PTY input queue mid-read, eating a
+		// trailing newline sent in the same write: the command text survives in
+		// the editor's buffer but never executes. Send Enter as its own delayed
+		// write — and as `\r`, what a real Enter key sends, bound to accept-line
+		// in every keymap — so it lands after the init storm. One Enter total,
+		// so a double-run is impossible.
+		if (!tryTypeToPty(session, typedText)) {
+			dropStagedFiles();
+			return;
+		}
+		setTimeout(() => {
+			if (isDefunct() || !tryTypeToPty(session, "\r")) {
+				dropStagedFiles();
+			}
+		}, INITIAL_COMMAND_ENTER_DELAY_MS);
+	});
 }
 
 interface DaemonCloseResult {
@@ -693,14 +2131,24 @@ export async function disposeSessionAndWait(
 	terminalId: string,
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
+	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
+	// restart mid-kill), the reaper retries any stamped row — a one-shot
+	// renderer broadcast must not be the only chance to kill a session.
+	// First request time wins so retries don't look like fresh requests.
+	db.update(terminalSessions)
+		.set({ disposeRequestedAt: Date.now() })
+		.where(
+			and(
+				eq(terminalSessions.id, terminalId),
+				isNull(terminalSessions.disposeRequestedAt),
+			),
+		)
+		.run();
 	const session = sessions.get(terminalId);
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
-		if (session.shellReadyTimeoutId) {
-			clearTimeout(session.shellReadyTimeoutId);
-			session.shellReadyTimeoutId = null;
-		}
+		cancelShellReady(session);
 		for (const socket of session.sockets) {
 			socket.close(1000, "Session disposed");
 		}
@@ -750,10 +2198,26 @@ export async function disposeSessionAndWait(
 		: { attempted: false, succeeded: true };
 
 	if (closeResult.succeeded) {
+		const endedAt = Date.now();
 		db.update(terminalSessions)
-			.set({ status: "disposed", endedAt: Date.now() })
+			.set({ status: "disposed", endedAt })
 			.where(eq(terminalSessions.id, terminalId))
 			.run();
+
+		// Dispose unsubscribed the daemon callbacks above, so onExit will
+		// never fire for this session — announce the exit here (after the
+		// row flips to disposed, so refetching readers see it dead). Skip
+		// sessions whose pty already exited: onExit broadcast that one.
+		if (session && !session.exited) {
+			session.eventBus?.broadcastTerminalLifecycle({
+				workspaceId: session.workspaceId,
+				terminalId,
+				eventType: "exit",
+				exitCode: 0,
+				signal: 0,
+				occurredAt: endedAt,
+			});
+		}
 	}
 
 	return {
@@ -764,8 +2228,11 @@ export async function disposeSessionAndWait(
 }
 
 /**
- * Dispose every active session belonging to the given workspace.
- * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
+ * Dispose every active session belonging to the given workspace, then drop the
+ * confirmed-dead rows so the workspace's session index dies with it rather than
+ * lingering as `set null` orphans. A still-`active` row is a failed kill we keep
+ * reachable for the reaper. Returns counts so callers (e.g.
+ * workspaceCleanup.destroy) can surface warnings.
  */
 export async function disposeSessionsByWorkspaceId(
 	workspaceId: string,
@@ -796,6 +2263,41 @@ export async function disposeSessionsByWorkspaceId(
 			failed += 1;
 		}
 	}
+
+	db.delete(terminalSessions)
+		.where(
+			and(
+				eq(terminalSessions.originWorkspaceId, workspaceId),
+				ne(terminalSessions.status, "active"),
+			),
+		)
+		.run();
+
+	return { terminated, failed };
+}
+
+/**
+ * Dispose every active session for any workspace mapped to the given worktree
+ * path. Deleting a closed worktree has no workspace id, so we join through the
+ * workspaces table on the shared worktree path.
+ */
+export async function disposeSessionsByWorktreePath(
+	worktreePath: string,
+	db: HostDb,
+): Promise<{ terminated: number; failed: number }> {
+	const workspaceRows = db
+		.select({ id: workspaces.id })
+		.from(workspaces)
+		.where(eq(workspaces.worktreePath, worktreePath))
+		.all();
+
+	let terminated = 0;
+	let failed = 0;
+	for (const { id } of workspaceRows) {
+		const result = await disposeSessionsByWorkspaceId(id, db);
+		terminated += result.terminated;
+		failed += result.failed;
+	}
 	return { terminated, failed };
 }
 
@@ -820,6 +2322,12 @@ interface CreateTerminalSessionOptions {
 	 * the WS-down window are dropped (sub-second on a daemon swap).
 	 */
 	replayOnAdoption?: boolean;
+	/**
+	 * Deliver a "session restored" separator ahead of the first replay. Set on
+	 * the cold-restore respawn path, where the renderer paints stale scrollback
+	 * above a brand-new shell.
+	 */
+	restoredNotice?: boolean;
 }
 
 function resolveTerminalCwd(
@@ -854,6 +2362,8 @@ function getTerminalWorkspaceMismatchError({
 	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
 }
 
+type CreateSessionError = TerminalSessionError;
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -867,7 +2377,10 @@ export async function createTerminalSessionInternal({
 	rows: requestedRows,
 	adoptOnly = false,
 	replayOnAdoption = true,
-}: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
+	restoredNotice = false,
+}: CreateTerminalSessionOptions): Promise<
+	TerminalSession | CreateSessionError
+> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		const mismatchError = getTerminalWorkspaceMismatchError({
@@ -875,7 +2388,8 @@ export async function createTerminalSessionInternal({
 			ownerWorkspaceId: existing.workspaceId,
 			requestedWorkspaceId: workspaceId,
 		});
-		if (mismatchError) return { error: mismatchError };
+		if (mismatchError)
+			return { kind: "SESSION_WRONG_WORKSPACE", error: mismatchError };
 
 		if (listed) existing.listed = true;
 		if (initialCommand) queueInitialCommand(existing, initialCommand);
@@ -890,45 +2404,59 @@ export async function createTerminalSessionInternal({
 		ownerWorkspaceId: existingRecord?.originWorkspaceId,
 		requestedWorkspaceId: workspaceId,
 	});
-	if (recordMismatchError) return { error: recordMismatchError };
+	if (recordMismatchError)
+		return { kind: "SESSION_WRONG_WORKSPACE", error: recordMismatchError };
 
 	const workspace = db.query.workspaces
 		.findFirst({ where: eq(workspaces.id, workspaceId) })
 		.sync();
 
 	if (!workspace) {
-		return { error: "Workspace not found" };
+		return { kind: "WORKSPACE_NOT_FOUND", error: "Workspace not found" };
 	}
 	if (!existsSync(workspace.worktreePath)) {
 		return {
+			kind: "WORKTREE_GONE",
 			error: `Workspace worktree no longer exists: ${workspace.worktreePath}`,
 		};
 	}
 
-	// Derive root path from the workspace's project
+	// Derive root path from the workspace's project. Session workspaces
+	// (null projectId) have no main repo; the session dir is the only root.
 	let rootPath = "";
-	const project = db.query.projects
-		.findFirst({ where: eq(projects.id, workspace.projectId) })
-		.sync();
+	const project = workspace.projectId
+		? db.query.projects
+				.findFirst({ where: eq(projects.id, workspace.projectId) })
+				.sync()
+		: undefined;
 	if (project?.repoPath) {
 		rootPath = project.repoPath;
 	}
 
 	const cwd = resolveTerminalCwd(cwdOverride, workspace.worktreePath);
-	const cols = normalizeTerminalDimension(
+	// Adoption overrides these with the PTY's live dims below: the session's
+	// belief must match the kernel's, or the reanchor repaint logic misjudges
+	// whether a client resize will deliver a real SIGWINCH.
+	let cols = normalizeTerminalDimension(
 		requestedCols,
 		MIN_TERMINAL_COLS,
 		DEFAULT_TERMINAL_COLS,
 	);
-	const rows = normalizeTerminalDimension(
+	let rows = normalizeTerminalDimension(
 		requestedRows,
 		MIN_TERMINAL_ROWS,
 		DEFAULT_TERMINAL_ROWS,
 	);
 
-	// Use the preserved shell snapshot — never live process.env
+	// Use the preserved shell snapshot — never live process.env. Resolution
+	// runs in the background at startup so the server can listen immediately;
+	// wait for it here before the first PTY needs the snapshot.
+	await waitForTerminalBaseEnv();
 	const baseEnv = getTerminalBaseEnv();
-	const supersetHomeDir = process.env.SUPERSET_HOME_DIR || "";
+	// Fallback matters for hosts not spawned by the desktop (CLI/systemd):
+	// without it the wrapper paths, hook guard env, and shell bootstrap all
+	// silently disable (#6254).
+	const supersetHomeDir = resolveSupersetHomeDir();
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
 	const ptyEnv = buildV2TerminalEnv({
@@ -941,7 +2469,6 @@ export async function createTerminalSessionInternal({
 		workspaceId,
 		workspacePath: workspace.worktreePath,
 		rootPath,
-		hostServiceVersion: process.env.HOST_SERVICE_VERSION || "unknown",
 		supersetEnv:
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
@@ -950,21 +2477,39 @@ export async function createTerminalSessionInternal({
 	});
 
 	let daemon: DaemonClient;
+	try {
+		daemon = await getDaemonClient();
+	} catch (error) {
+		// Transient only for connection-level failures (DaemonClient's typed
+		// taxonomy): the supervisor heals those. Bootstrap failures (missing
+		// daemon binary, no socket path, crash circuit open, handshake
+		// rejection) are permanent — surfacing them beats silently retrying
+		// a bootstrap that will fail the same way forever.
+		const unreachable = error instanceof DaemonUnavailableError;
+		return {
+			kind: unreachable ? "DAEMON_UNAVAILABLE" : "TERMINAL_START_FAILED",
+			error:
+				error instanceof Error ? error.message : "Failed to start terminal",
+			transient: unreachable,
+		};
+	}
 	let openResult: { pid: number };
 	let isAdopted = false;
 	try {
-		daemon = await getDaemonClient();
 		if (adoptOnly) {
 			const found = (await daemon.list()).find(
 				(s) => s.id === terminalId && s.alive,
 			);
 			if (!found) {
 				return {
+					kind: "SESSION_NOT_ACTIVE",
 					error: `Terminal session "${terminalId}" is not active; create it before connecting.`,
 				};
 			}
 			openResult = { pid: found.pid };
 			isAdopted = true;
+			cols = normalizeTerminalDimension(found.cols, MIN_TERMINAL_COLS, cols);
+			rows = normalizeTerminalDimension(found.rows, MIN_TERMINAL_ROWS, rows);
 			console.log(
 				`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
 			);
@@ -991,6 +2536,16 @@ export async function createTerminalSessionInternal({
 					if (!found) throw err;
 					openResult = { pid: found.pid };
 					isAdopted = true;
+					cols = normalizeTerminalDimension(
+						found.cols,
+						MIN_TERMINAL_COLS,
+						cols,
+					);
+					rows = normalizeTerminalDimension(
+						found.rows,
+						MIN_TERMINAL_ROWS,
+						rows,
+					);
 					console.log(
 						`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
 					);
@@ -1000,9 +2555,12 @@ export async function createTerminalSessionInternal({
 			}
 		}
 	} catch (error) {
+		const unreachable = error instanceof DaemonUnavailableError;
 		return {
+			kind: unreachable ? "DAEMON_UNAVAILABLE" : "TERMINAL_START_FAILED",
 			error:
 				error instanceof Error ? error.message : "Failed to start terminal",
+			transient: unreachable,
 		};
 	}
 	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
@@ -1030,9 +2588,8 @@ export async function createTerminalSessionInternal({
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
 	// marker has already flown by and we don't want to gate writes on it.
-	const shellName = shell.split("/").pop() || shell;
 	const shellSupportsReady =
-		!isAdopted && SHELLS_WITH_READY_MARKER.has(shellName);
+		!isAdopted && shellLaunchExpectsReadyMarker({ shell, supersetHomeDir });
 
 	let shellReadyResolve: (() => void) | null = null;
 	const shellReadyPromise = shellSupportsReady
@@ -1044,6 +2601,7 @@ export async function createTerminalSessionInternal({
 	const session: TerminalSession = {
 		terminalId,
 		workspaceId,
+		db,
 		pty,
 		cols,
 		rows,
@@ -1051,6 +2609,8 @@ export async function createTerminalSessionInternal({
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		// Adopted sessions kept a live shell — nothing was restored.
+		restoredNoticePending: restoredNotice && !isAdopted,
 		createdAt,
 		exited: false,
 		exitCode: 0,
@@ -1058,6 +2618,7 @@ export async function createTerminalSessionInternal({
 		listed,
 		title: null,
 		titleScanState: createTerminalTitleScanState(),
+		eventBus,
 		shellReadyState: shellSupportsReady
 			? "pending"
 			: isAdopted
@@ -1067,21 +2628,42 @@ export async function createTerminalSessionInternal({
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
 		scanState: createScanState(),
+		usedMissingMarkerGrace: false,
+		lateMarkerRecorded: false,
+		echoProbe: null,
+		dsrCarry: new Uint8Array(0),
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
+		launchShellName: basename(shell),
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker: createModeTracker(cols, rows),
+		epoch: randomBytes(8).toString("hex"),
+		outputSeq: 0,
+		retained: [],
+		retainedBytes: 0,
+		retainedStartSeq: 0,
+		pendingRepaintNudge: null,
+		resizeGeneration: 0,
+		focusedSockets: new Set(),
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
 
-	// If the marker never arrives (broken wrapper, unsupported config),
-	// the timeout unblocks so the session degrades gracefully.
 	if (session.shellReadyState === "pending") {
-		session.shellReadyTimeoutId = setTimeout(() => {
-			resolveShellReady(session, "timed_out");
-		}, SHELL_READY_TIMEOUT_MS);
+		// Size the wait to observed reality: on machines whose profile never
+		// delivers the marker, the full wait *is* the launch latency.
+		const missingEvidence =
+			getShellReadyMarkerEvidence(session.launchShellName) === "missing";
+		session.usedMissingMarkerGrace = missingEvidence;
+		session.shellReadyTimeoutId = setTimeout(
+			() => {
+				resolveShellReady(session, "timed_out");
+			},
+			missingEvidence
+				? SHELL_READY_MISSING_MARKER_GRACE_MS
+				: SHELL_READY_TIMEOUT_MS,
+		);
 	}
 
 	session.unsubscribeDaemon = daemon.subscribe(
@@ -1107,8 +2689,26 @@ export async function createTerminalSessionInternal({
 					if (result.matched) {
 						resolveShellReady(session, "ready");
 					}
+				} else if (
+					session.shellReadyState === "timed_out" &&
+					!session.lateMarkerRecorded &&
+					Date.now() - session.createdAt < LATE_MARKER_OBSERVATION_MS
+				) {
+					// Evidence-only scan for a marker arriving after the (grace)
+					// timeout — output passes through untouched; a match flips a
+					// `missing` brand back to `delivered` (self-healing evidence).
+					const result = scanForShellReady(session.scanState, chunk);
+					if (result.matched) {
+						session.lateMarkerRecorded = true;
+						recordShellReadyMarkerEvidence(
+							session.launchShellName,
+							"delivered",
+						);
+					}
 				}
 				if (bytes.byteLength === 0) return;
+
+				session.echoProbe?.(bytes);
 
 				// portManager.checkOutputForHint runs URL/port regexes on
 				// strings; the per-session StringDecoder buffers partial
@@ -1119,18 +2719,19 @@ export async function createTerminalSessionInternal({
 						? bytes
 						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
 				);
-				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
+				// Runs even when the decoder buffers a partial codepoint into ""
+				// — the chunk is still output and must refresh the idle clock.
+				portManager.checkOutputForHint(terminalId, hintText);
 
-				// Feed the tracker on every byte — broadcast skips the FIFO,
-				// so this is the only path that catches startup mode escapes.
-				session.modeTracker.feed(bytes);
-
-				if (broadcastBytes(session, bytes) === 0) {
-					bufferOutput(session, bytes);
-				}
+				const dsrQueries = scanForDsrCursorQueries(session, bytes);
+				deliverOutput(session, bytes);
+				// After deliverOutput so the mirror has consumed this chunk and
+				// the reported cursor position is current.
+				answerDsrCursorQueries(session, dsrQueries);
 			},
 			onExit({ code, signal }) {
 				session.exited = true;
+				cancelShellReady(session);
 				session.exitCode = code ?? 0;
 				session.exitSignal = signal ?? 0;
 				const occurredAt = Date.now();
@@ -1141,6 +2742,22 @@ export async function createTerminalSessionInternal({
 					.set({ status: "exited", endedAt: occurredAt })
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
+
+				// The agent died with the pty; unless its SessionEnd hook already
+				// marked a clean detach, keep the binding as a resume candidate.
+				try {
+					markTerminalAgentBindingEnded(
+						db,
+						terminalId,
+						"terminal-exited",
+						occurredAt,
+					);
+				} catch (error) {
+					console.warn(
+						`[terminal] failed to mark agent binding ended for ${terminalId}`,
+						error,
+					);
+				}
 
 				broadcastMessage(session, {
 					type: "exit",
@@ -1166,6 +2783,13 @@ export async function createTerminalSessionInternal({
 
 	return session;
 }
+
+// Concurrent create-on-attach dials for the same brand-new terminalId must
+// share one spawn instead of racing createTerminalSessionInternal.
+const inflightCreates = new Map<
+	string,
+	Promise<TerminalSession | CreateSessionError>
+>();
 
 export function registerWorkspaceTerminalRoute({
 	app,
@@ -1201,7 +2825,8 @@ export function registerWorkspaceTerminalRoute({
 		});
 
 		if ("error" in result) {
-			return c.json({ error: result.error }, 500);
+			// 503 = daemon unreachable right now; callers may retry the same id.
+			return c.json({ error: result.error }, result.transient ? 503 : 500);
 		}
 
 		return c.json({ terminalId: result.terminalId, status: "active" });
@@ -1258,6 +2883,12 @@ export function registerWorkspaceTerminalRoute({
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
 			const requestedWorkspaceId = c.req.query("workspaceId") || null;
+			const seqRequest = parseSeqAttachParam(c.req.query("seq"));
+			// Optimistic pane creation: the renderer inserts the pane first and
+			// lets this attach create the session, so plain terminal creation
+			// never queues behind Chromium's 6-per-origin HTTP socket pool.
+			const createRequested = c.req.query("create") === "1";
+			const requestedThemeType = parseThemeType(c.req.query("themeType"));
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
@@ -1272,7 +2903,11 @@ export function registerWorkspaceTerminalRoute({
 					.run();
 
 				sendMessage(ws, { type: "title", title: session.title });
-				replayBuffer(session, ws);
+				if (seqRequest.kind === "legacy") {
+					replayBuffer(session, ws);
+				} else {
+					sendSeqAttach(session, ws, seqRequest);
+				}
 				if (session.exited) {
 					sendMessage(ws, {
 						type: "exit",
@@ -1283,7 +2918,8 @@ export function registerWorkspaceTerminalRoute({
 				return true;
 			};
 			const resolveSessionForAttach = async (): Promise<
-				TerminalSession | { error: string }
+				| TerminalSession
+				| { error: string; code?: "session-gone"; transient?: boolean }
 			> => {
 				const existing = sessions.get(terminalId);
 				if (existing) {
@@ -1302,15 +2938,53 @@ export function registerWorkspaceTerminalRoute({
 					.findFirst({ where: eq(terminalSessions.id, terminalId) })
 					.sync();
 				if (!record) {
+					// Only ids with no session row at all qualify for create-on-attach
+					// — exited/disposed records below keep their session-gone answer.
+					if (createRequested && requestedWorkspaceId) {
+						const inflight = inflightCreates.get(terminalId);
+						if (inflight) {
+							const shared = await inflight;
+							if ("error" in shared) return shared;
+							// The shared spawn was created for the FIRST dial's workspace —
+							// validate ownership like every other attach path.
+							const mismatchError = getTerminalWorkspaceMismatchError({
+								terminalId,
+								ownerWorkspaceId: shared.workspaceId,
+								requestedWorkspaceId,
+							});
+							if (mismatchError) return { error: mismatchError };
+							return shared;
+						}
+						const createPromise = createTerminalSessionInternal({
+							terminalId,
+							workspaceId: requestedWorkspaceId,
+							themeType: requestedThemeType,
+							db,
+							eventBus,
+						});
+						inflightCreates.set(terminalId, createPromise);
+						try {
+							return await createPromise;
+						} finally {
+							inflightCreates.delete(terminalId);
+						}
+					}
 					return {
 						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
+						code: "session-gone",
 					};
 				}
 				if (record.status === "disposed") {
-					return { error: `Terminal session "${terminalId}" is disposed.` };
+					return {
+						error: `Terminal session "${terminalId}" is disposed.`,
+						code: "session-gone",
+					};
 				}
 				if (record.status === "exited") {
-					return { error: `Terminal session "${terminalId}" has exited.` };
+					return {
+						error: `Terminal session "${terminalId}" has exited.`,
+						code: "session-gone",
+					};
 				}
 				if (!record.originWorkspaceId) {
 					return {
@@ -1326,32 +3000,50 @@ export function registerWorkspaceTerminalRoute({
 					if (mismatchError) return { error: mismatchError };
 				}
 
-				const themeType = parseThemeType(c.req.query("themeType"));
-
 				// Prefer adoption: if the daemon still owns the PTY across a
 				// host-service restart, we keep the live shell + ring buffer.
 				const adopted = await createTerminalSessionInternal({
 					terminalId,
 					workspaceId: record.originWorkspaceId,
-					themeType,
+					themeType: requestedThemeType,
 					db,
 					eventBus,
 					adoptOnly: true,
-					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
-					replayOnAdoption: c.req.query("replay") !== "0",
+					// Only a client with an empty xterm wants the daemon ring
+					// dumped at it. Anchored/reanchor clients keep their own
+					// (better) copy; legacy clients signal via `?replay=0`.
+					replayOnAdoption:
+						seqRequest.kind === "legacy"
+							? c.req.query("replay") !== "0"
+							: seqRequest.kind === "new",
 				});
 				if (!("error" in adopted)) return adopted;
+				// Daemon unreachable ≠ PTY lost: the shell may still be alive behind
+				// the stall, so don't end agent bindings or respawn — let the
+				// renderer retry until the daemon answers.
+				if (adopted.transient) return adopted;
 
 				// Active row but daemon no longer owns the PTY (laptop sleep,
 				// daemon restart, machine reboot). Respawn rather than dead-end
 				// the pane — the renderer's xterm scrollback stays painted above.
+				// Any agent bound to the old PTY died with it without a goodbye;
+				// mark its binding ended so it surfaces as a resume candidate.
 				console.log(`[terminal] respawning lost session ${terminalId}`);
+				try {
+					markTerminalAgentBindingEnded(db, terminalId, "terminal-exited");
+				} catch (error) {
+					console.warn(
+						`[terminal] failed to mark agent binding ended for ${terminalId}`,
+						error,
+					);
+				}
 				return createTerminalSessionInternal({
 					terminalId,
 					workspaceId: record.originWorkspaceId,
-					themeType,
+					themeType: requestedThemeType,
 					db,
 					eventBus,
+					restoredNotice: true,
 				});
 			};
 
@@ -1365,8 +3057,16 @@ export function registerWorkspaceTerminalRoute({
 					void (async () => {
 						const session = await resolveSessionForAttach();
 						if ("error" in session) {
-							sendMessage(ws, { type: "error", message: session.error });
-							ws.close(1011, session.error);
+							const transient = !session.code && session.transient;
+							sendMessage(ws, {
+								type: "error",
+								message: session.error,
+								code:
+									session.code ?? (transient ? "attach-retryable" : undefined),
+							});
+							// 1013 "try again later" for transient failures; the renderer
+							// keys off the JSON code, the close code is for log readers.
+							ws.close(transient ? 1013 : 1011, toWsCloseReason(session.error));
 							return;
 						}
 						if (ws.readyState !== SOCKET_OPEN) return;
@@ -1409,6 +3109,16 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
+					if (message.type === "focus") {
+						if (message.focused) {
+							session.focusedSockets.add(ws);
+						} else {
+							session.focusedSockets.delete(ws);
+						}
+						syncPtyFocus(session);
+						return;
+					}
+
 					if (message.type === "resize") {
 						const cols = normalizeTerminalDimension(
 							message.cols,
@@ -1420,21 +3130,37 @@ export function registerWorkspaceTerminalRoute({
 							MIN_TERMINAL_ROWS,
 							DEFAULT_TERMINAL_ROWS,
 						);
+						session.resizeGeneration += 1;
+						// A reanchor attach waits for this first client resize:
+						// changed dims deliver the repaint SIGWINCH naturally;
+						// unchanged dims need the forced nudge.
+						const needsForcedNudge =
+							session.pendingRepaintNudge !== null &&
+							cols === session.cols &&
+							rows === session.rows;
+						clearPendingRepaintNudge(session);
 						session.pty.resize(cols, rows);
 						session.modeTracker.resize(cols, rows);
 						session.cols = cols;
 						session.rows = rows;
+						if (needsForcedNudge) nudgeRepaint(session);
 					}
 				},
 
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (!session) return;
+					session.sockets.delete(ws);
+					// A departing focused client may hand focus-out to the program
+					// (unless another attached client still holds focus).
+					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (!session) return;
+					session.sockets.delete(ws);
+					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
 				},
 			};
 		}),

@@ -2,11 +2,13 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
+import { usePromptHistoryStore } from "renderer/stores/prompt-history";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
+import { CLOUD_HOST_ID } from "../../../components/DevicePicker/DevicePicker";
 import type { WorkspaceCreateAgent } from "../../types";
 import type { UseUploadAttachmentsApi } from "../useUploadAttachments";
 import { resolveNames } from "./resolveNames";
@@ -21,6 +23,7 @@ export function useSubmitWorkspace(
 	projectId: string | null,
 	selectedAgent: WorkspaceCreateAgent,
 	selectedModel: string | null,
+	selectedEffort: string | null,
 	uploadAttachments: UseUploadAttachmentsApi,
 	promptContext: NewWorkspacePromptContextApi,
 ) {
@@ -29,12 +32,19 @@ export function useSubmitWorkspace(
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
+	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	return useCallback(async () => {
-		if (!projectId) {
+	const isSession = draft.isSession;
+
+	const submitWorkspace = useCallback(async () => {
+		if (!projectId && !isSession) {
 			toast.error("Select a project first");
+			return;
+		}
+		if (isSession && draft.linkedPR !== null) {
+			toast.error("Checking out a PR requires a project");
 			return;
 		}
 		if (!activeOrganizationId) {
@@ -61,6 +71,37 @@ export function useSubmitWorkspace(
 		}
 
 		const { branchName, workspaceName } = resolveNames(draft);
+
+		// Cloud workspaces are provisioned by the API, not the local host, so
+		// they bypass the host `workspaces.create` path entirely.
+		if (hostId === CLOUD_HOST_ID) {
+			if (!projectId) {
+				toast.error("Cloud workspaces require a project");
+				return;
+			}
+			// Provisioning takes several seconds and the prompt has no progress
+			// affordance of its own, so the toast is the only signal the click
+			// registered.
+			try {
+				// A typed name wins; otherwise the API names it from the prompt,
+				// since nothing about a cloud workspace runs on this device.
+				await createCloudWorkspace.mutateAsync({
+					organizationId: activeOrganizationId,
+					projectId,
+					name: workspaceName ?? undefined,
+					prompt: draft.prompt.trim() || undefined,
+					branch: branchName ?? "main",
+				});
+				closeAndResetDraft();
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Could not create cloud workspace",
+				);
+			}
+			return;
+		}
 
 		const isPrCheckout = draft.linkedPR !== null;
 
@@ -91,35 +132,52 @@ export function useSubmitWorkspace(
 						prompt: finalPrompt ?? "",
 						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 						model: selectedModel ?? undefined,
+						effort: selectedEffort ?? undefined,
 					},
 				]
 			: undefined;
 
 		// PR path supplies a name (PR title) so the in-flight UI has
 		// something to show immediately. Branch path leaves both `name`
-		// and `branch` undefined when the user didn't type — the server
-		// generates a friendly random and AI-renames whichever side(s)
-		// the user didn't supply.
+		// and `branch` undefined when the user didn't type — a typed name
+		// seeds the branch slug; otherwise the server creates with a
+		// friendly random and AI-renames once names arrive.
 		const prName = isPrCheckout
 			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
 			: undefined;
 
 		const trimmedPrompt = draft.prompt.trim();
 		const workspaceId = crypto.randomUUID();
-		const snapshot = {
-			id: workspaceId,
-			projectId,
-			name: isPrCheckout ? prName : (workspaceName ?? undefined),
-			branch: isPrCheckout ? undefined : (branchName ?? undefined),
-			pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
-			baseBranch: draft.baseBranch ?? undefined,
-			taskId: linkedTaskId,
-			agents,
-			namingPrompt:
-				!isPrCheckout && !wantAgent && trimmedPrompt
-					? trimmedPrompt
-					: undefined,
-		};
+		const snapshot = isSession
+			? {
+					id: workspaceId,
+					projectId: null,
+					name: workspaceName ?? undefined,
+					agents,
+					namingPrompt: !wantAgent && trimmedPrompt ? trimmedPrompt : undefined,
+				}
+			: {
+					id: workspaceId,
+					projectId: projectId as string,
+					name: isPrCheckout ? prName : (workspaceName ?? undefined),
+					branch: isPrCheckout ? undefined : (branchName ?? undefined),
+					skipBranchPrefix:
+						!isPrCheckout && branchName !== null && draft.branchNameFromProvider
+							? true
+							: undefined,
+					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
+					baseBranch: draft.baseBranch ?? undefined,
+					taskId: linkedTaskId,
+					agents,
+					namingPrompt:
+						!isPrCheckout && !wantAgent && trimmedPrompt
+							? trimmedPrompt
+							: undefined,
+				};
+
+		if (trimmedPrompt) {
+			usePromptHistoryStore.getState().recordPrompt(trimmedPrompt);
+		}
 
 		closeAndResetDraft();
 		const { completed } = submit({ hostId, snapshot });
@@ -142,15 +200,6 @@ export function useSubmitWorkspace(
 		void completed.then((outcome) => {
 			if (!outcome.ok) return;
 
-			if (outcome.autoNameWarning) {
-				showWorkspaceAutoNameWarningToast({
-					description: outcome.autoNameWarning,
-					onOpenModelAuthSettings: () => {
-						void navigate({ to: "/settings/models" });
-					},
-				});
-			}
-
 			// The server can resolve the optimistic workspace to a different
 			// canonical id; follow it only if we're still on the optimistic route.
 			if (outcome.workspaceId === workspaceId) return;
@@ -169,7 +218,9 @@ export function useSubmitWorkspace(
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,
+		createCloudWorkspace,
 		draft,
+		isSession,
 		matchRoute,
 		machineId,
 		navigate,
@@ -177,7 +228,14 @@ export function useSubmitWorkspace(
 		promptContext,
 		selectedAgent,
 		selectedModel,
+		selectedEffort,
 		submit,
 		uploadAttachments,
 	]);
+
+	// Cloud creation is the one path the user waits on — a sandbox is
+	// provisioned before this resolves. Returned so the submit control can
+	// carry its own pending state, instead of progress appearing in a toast in
+	// the corner, detached from the button that was pressed.
+	return { submitWorkspace, isCreating: createCloudWorkspace.isPending };
 }

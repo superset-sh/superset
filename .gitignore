@@ -12,7 +12,10 @@ node_modules
 dist
 dist-ssr
 dist-electron
-release
+dist-types
+# electron-builder output (apps/desktop/electron-builder.ts: directories.output);
+# scoped so it can't silently ignore unrelated dirs named "release".
+/apps/desktop/release/
 *.local
 
 # Editor directories and files

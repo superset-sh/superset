@@ -99,6 +99,41 @@ describe("readFile", () => {
 		expect(result.exceededLimit).toEqual(false);
 	});
 
+	it("reads files outside the workspace root", async () => {
+		const rootPath = await createTempRoot();
+		const outsideRoot = await createTempRoot();
+		const absolutePath = path.join(outsideRoot, "outside.txt");
+		await fs.writeFile(absolutePath, "outside");
+
+		const result = await readFile({
+			rootPath,
+			absolutePath,
+			encoding: "utf-8",
+		});
+
+		expect(result.kind).toEqual("text");
+		if (result.kind === "text") {
+			expect(result.content).toEqual("outside");
+		}
+	});
+
+	it("rejects in-root symlinks that resolve outside the workspace root", async () => {
+		const rootPath = await createTempRoot();
+		const outsideRoot = await createTempRoot();
+		const targetPath = path.join(outsideRoot, "secret.txt");
+		await fs.writeFile(targetPath, "secret");
+		const linkPath = path.join(rootPath, "innocent.txt");
+		await fs.symlink(targetPath, linkPath);
+
+		await expect(
+			readFile({
+				rootPath,
+				absolutePath: linkPath,
+				encoding: "utf-8",
+			}),
+		).rejects.toThrow("outside workspace root");
+	});
+
 	it("reads small file without exceeding limit", async () => {
 		const rootPath = await createTempRoot();
 		const absolutePath = path.join(rootPath, "notes.txt");
@@ -118,6 +153,20 @@ describe("readFile", () => {
 });
 
 describe("writeFile", () => {
+	it("rejects paths outside the workspace root", async () => {
+		const rootPath = await createTempRoot();
+		const outsideRoot = await createTempRoot();
+		const absolutePath = path.join(outsideRoot, "escape.txt");
+
+		await expect(
+			writeFile({
+				rootPath,
+				absolutePath,
+				content: "should not exist",
+			}),
+		).rejects.toThrow("outside workspace root");
+	});
+
 	it("returns a conflict when revision does not match", async () => {
 		const rootPath = await createTempRoot();
 		const absolutePath = path.join(rootPath, "notes.txt");

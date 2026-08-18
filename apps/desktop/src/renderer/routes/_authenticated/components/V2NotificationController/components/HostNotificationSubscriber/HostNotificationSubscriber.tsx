@@ -3,10 +3,9 @@ import type {
 	AgentLifecyclePayload,
 	TerminalLifecyclePayload,
 } from "@superset/workspace-client";
-import { getEventBus } from "@superset/workspace-client";
 import { useEffect, useEffectEvent, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import type { PaneViewerData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import {
 	handleV2AgentLifecycleEvent,
@@ -57,15 +56,12 @@ export function HostNotificationSubscriber({
 		(workspaceId: string, payload: TerminalLifecyclePayload) => {
 			const workspace = workspacesById.get(workspaceId);
 			if (!workspace) return;
-			handleV2TerminalLifecycleEvent({
-				workspaceId,
-				payload,
-			});
+			handleV2TerminalLifecycleEvent({ payload });
 		},
 	);
 
 	useEffect(() => {
-		const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+		const bus = getHostEventBus(hostUrl);
 		const removeAgentListener = bus.on(
 			"agent:lifecycle",
 			"*",

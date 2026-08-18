@@ -70,7 +70,7 @@ describe("agentConfigsRouter", () => {
 			expect(claude?.args).toEqual(["--dangerously-skip-permissions"]);
 		});
 
-		it("seeds Codex with its most permissive flag", async () => {
+		it("seeds Codex with its most permissive flags", async () => {
 			const caller = createCaller();
 			const result = await caller.list();
 			const codex = result.find((row) => row.presetId === "codex");
@@ -80,9 +80,24 @@ describe("agentConfigsRouter", () => {
 			);
 			expect(codex?.args).toEqual([
 				"--dangerously-bypass-approvals-and-sandbox",
+				"--dangerously-bypass-hook-trust",
 			]);
 			expect(codex?.args).not.toContain("--sandbox");
 			expect(codex?.args).not.toContain("--ask-for-approval");
+		});
+
+		it("seeds resume args for agents with an id-based resume", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+
+			const claude = result.find((row) => row.presetId === "claude");
+			expect(claude?.resumeArgs).toEqual(["--resume"]);
+
+			const amp = result.find((row) => row.presetId === "amp");
+			expect(amp?.resumeArgs).toEqual(["threads", "continue"]);
+
+			const codex = result.find((row) => row.presetId === "codex");
+			expect(codex?.resumeArgs).toEqual(["resume"]);
 		});
 
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
@@ -157,6 +172,25 @@ describe("agentConfigsRouter", () => {
 			expect(created.command).toBe("my-agent");
 			expect(created.args).toEqual(["--flag"]);
 			expect(created.env).toEqual({ FOO: "bar" });
+			// Omitted resumeArgs default to "no id-based resume".
+			expect(created.resumeArgs).toEqual([]);
+		});
+
+		it("stores supplied resumeArgs", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const created = await caller.add({
+				label: "Resumable",
+				command: "resumable",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				resumeArgs: ["--resume"],
+				env: {},
+			});
+
+			expect(created.resumeArgs).toEqual(["--resume"]);
 		});
 
 		it("preserves an arbitrary presetId tag verbatim", async () => {
@@ -174,6 +208,74 @@ describe("agentConfigsRouter", () => {
 			});
 
 			expect(created.presetId).toBe("my-bespoke-tag");
+		});
+
+		it("defaults iconId to null and stores a supplied iconId", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const withoutIcon = await caller.add({
+				label: "No Icon",
+				command: "no-icon",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			expect(withoutIcon.iconId).toBeNull();
+
+			const withIcon = await caller.add({
+				label: "Iconic",
+				command: "iconic",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+				presetId: "custom",
+				iconId: "claude",
+			});
+			expect(withIcon.iconId).toBe("claude");
+		});
+
+		it("stores an uploaded data-URI icon", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANS";
+			const created = await caller.add({
+				label: "Uploaded",
+				command: "uploaded",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+				iconId: dataUrl,
+			});
+
+			expect(created.iconId).toBe(dataUrl);
+		});
+
+		it("rejects an oversized iconId", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			await expect(
+				caller.add({
+					label: "Too Big",
+					command: "too-big",
+					args: [],
+					promptTransport: "argv",
+					promptArgs: [],
+					env: {},
+					iconId: `data:image/png;base64,${"A".repeat(256 * 1024)}`,
+				}),
+			).rejects.toThrow();
+		});
+
+		it("seeds bundled defaults with a null iconId", async () => {
+			const caller = createCaller();
+			const rows = await caller.list();
+			expect(rows.every((row) => row.iconId === null)).toBe(true);
 		});
 
 		it("rejects empty label or command", async () => {
@@ -202,7 +304,7 @@ describe("agentConfigsRouter", () => {
 	});
 
 	describe("update()", () => {
-		it("persists label, command, args, promptTransport, promptArgs, env", async () => {
+		it("persists label, command, args, promptTransport, promptArgs, resumeArgs, env", async () => {
 			const caller = createCaller();
 			const first = await listFirst(caller);
 
@@ -214,6 +316,7 @@ describe("agentConfigsRouter", () => {
 					args: ["--mode", "fast"],
 					promptTransport: "stdin",
 					promptArgs: ["-X"],
+					resumeArgs: ["--continue-session"],
 					env: { ANTHROPIC_API_KEY: "test" },
 				},
 			});
@@ -223,7 +326,33 @@ describe("agentConfigsRouter", () => {
 			expect(updated.args).toEqual(["--mode", "fast"]);
 			expect(updated.promptTransport).toBe("stdin");
 			expect(updated.promptArgs).toEqual(["-X"]);
+			expect(updated.resumeArgs).toEqual(["--continue-session"]);
 			expect(updated.env).toEqual({ ANTHROPIC_API_KEY: "test" });
+		});
+
+		it("sets and clears iconId", async () => {
+			const caller = createCaller();
+			const created = await caller.add({
+				label: "Custom",
+				command: "custom",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			expect(created.iconId).toBeNull();
+
+			const set = await caller.update({
+				id: created.id,
+				patch: { iconId: "codex" },
+			});
+			expect(set.iconId).toBe("codex");
+
+			const cleared = await caller.update({
+				id: created.id,
+				patch: { iconId: null },
+			});
+			expect(cleared.iconId).toBeNull();
 		});
 
 		it("rejects invalid promptTransport", async () => {
@@ -294,6 +423,73 @@ describe("agentConfigsRouter", () => {
 			await expect(caller.remove({ id: "does-not-exist" })).rejects.toThrow(
 				/not found/i,
 			);
+		});
+	});
+
+	describe("restoreDefault()", () => {
+		it("repairs a malformed built-in config without replacing its row", async () => {
+			const caller = createCaller();
+			const configs = await caller.list();
+			const codex = configs.find((row) => row.presetId === "codex");
+			expect(codex).toBeDefined();
+			if (!codex) return;
+
+			await caller.update({
+				id: codex.id,
+				patch: {
+					label: "Broken Codex",
+					command: "codex",
+					args: [
+						"-c",
+						"model_reasoning_summary=detailed",
+						" ",
+						"--dangerously-bypass-approvals-and-sandbox",
+					],
+					promptTransport: "stdin",
+					promptArgs: ["--prompt"],
+					resumeArgs: ["--wrong-resume"],
+					env: { CODEX_HOME: "/tmp/old-codex" },
+					iconId: "claude",
+				},
+			});
+
+			const restored = await caller.restoreDefault({ id: codex.id });
+			const preset = getPresetById("codex");
+			expect(preset).toBeDefined();
+			if (!preset) return;
+
+			expect(restored).toMatchObject({
+				id: codex.id,
+				presetId: "codex",
+				iconId: null,
+				label: preset.label,
+				command: preset.command,
+				args: preset.args,
+				promptTransport: preset.promptTransport,
+				promptArgs: preset.promptArgs,
+				resumeArgs: preset.resumeArgs,
+				env: preset.env,
+				order: codex.order,
+			});
+		});
+
+		it("rejects custom agents and unknown ids", async () => {
+			const caller = createCaller();
+			const custom = await caller.add({
+				label: "Custom",
+				command: "custom",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+
+			await expect(caller.restoreDefault({ id: custom.id })).rejects.toThrow(
+				/no bundled default/i,
+			);
+			await expect(
+				caller.restoreDefault({ id: "does-not-exist" }),
+			).rejects.toThrow(/not found/i);
 		});
 	});
 

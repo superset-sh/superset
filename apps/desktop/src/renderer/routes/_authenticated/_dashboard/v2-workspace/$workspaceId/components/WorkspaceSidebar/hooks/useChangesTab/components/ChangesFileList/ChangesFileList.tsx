@@ -1,3 +1,4 @@
+import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { memo, useMemo } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import type { ChangesViewMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -19,7 +20,11 @@ interface ChangesFileListProps {
 	worktreePath?: string;
 	selectedFilePath?: string;
 	foldSignal: FoldSignal;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 }
@@ -82,7 +87,11 @@ export const ChangesFileList = memo(function ChangesFileList({
 	}
 
 	return (
-		<div className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-1">
+		<OverflowFadeContainer
+			fadeEdges={["top", "bottom"]}
+			className="relative min-h-0 flex-1 space-y-2 overflow-y-auto pt-1"
+			data-changes-scroll-container
+		>
 			{GROUP_ORDER.map((key) => {
 				const groupFiles = grouped[key];
 				if (groupFiles.length === 0) return null;
@@ -90,6 +99,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 				return (
 					<ChangesSection
 						key={key}
+						sectionKey={key}
 						title={GROUP_TITLES[key]}
 						count={groupFiles.length}
 						stagingActions={
@@ -124,6 +134,6 @@ export const ChangesFileList = memo(function ChangesFileList({
 					</ChangesSection>
 				);
 			})}
-		</div>
+		</OverflowFadeContainer>
 	);
 });

@@ -2,6 +2,7 @@ import {
 	index,
 	integer,
 	primaryKey,
+	real,
 	sqliteTable,
 	text,
 } from "drizzle-orm/sqlite-core";
@@ -205,10 +206,15 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
+	/** @deprecated Nothing reads this. Kept so builds <= 1.20.2 can still
+	 * select the column; drop it once those builds are out of circulation. */
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
 	autoApplyDefaultPreset: integer("auto_apply_default_preset", {
+		mode: "boolean",
+	}),
+	waitForSetupBeforeAgent: integer("wait_for_setup_before_agent", {
 		mode: "boolean",
 	}),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
@@ -225,8 +231,22 @@ export const settings = sqliteTable("settings", {
 	}),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
+	terminalLineHeight: real("terminal_line_height"),
+	terminalLetterSpacing: real("terminal_letter_spacing"),
+	terminalFontWeight: integer("terminal_font_weight"),
+	terminalLigatures: integer("terminal_ligatures", { mode: "boolean" }),
+	terminalMinimumContrast: real("terminal_minimum_contrast"),
+	terminalCursorStyle: text("terminal_cursor_style").$type<
+		"block" | "bar" | "underline"
+	>(),
+	terminalCursorBlink: integer("terminal_cursor_blink", { mode: "boolean" }),
+	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
+	editorLineHeight: real("editor_line_height"),
+	editorLetterSpacing: real("editor_letter_spacing"),
+	editorFontWeight: integer("editor_font_weight"),
+	editorLigatures: integer("editor_ligatures", { mode: "boolean" }),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
@@ -234,12 +254,20 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	disabledAgentHooks: text("disabled_agent_hooks", { mode: "json" }).$type<
+		string[]
+	>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;
 
-export type V1MigrationKind = "project" | "workspace" | "preset";
+export type V1MigrationKind =
+	| "project"
+	| "workspace"
+	| "preset"
+	| "settings"
+	| "terminal";
 export type V1MigrationStatus = "success" | "linked" | "error" | "skipped";
 
 export const v1MigrationState = sqliteTable(

@@ -1,0 +1,109 @@
+---
+title: "Superset vs T3 Code (2026): Comparing Coding Agent Control Planes"
+description: "Compare Superset and T3 Code for orchestrating AI coding agents in Git worktrees. See how a mature agent workspace differs from an early open-source control plane."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - t3-code
+keywords:
+  - superset vs t3 code
+  - t3 code alternative
+  - t3 code
+  - coding agent control plane
+  - agentic ide
+  - worktree agent workspace
+---
+
+Superset and T3 Code aim at the same idea: a single GUI that orchestrates multiple AI coding agents, each writing to its own branch in an isolated Git worktree. The main difference today is maturity and scope. T3 Code is a new, openly experimental control plane from the T3 team. Superset is a further-along workspace that wraps the same worktree model in review, browser, remote hosting, and automation surfaces.
+
+Note that T3 Code is a distinct product from T3 Chat, the AI chat app. For that comparison, see [Superset vs T3 Chat](/compare/superset-vs-t3-chat).
+
+---
+
+## At a Glance
+
+| | **Superset** | **T3 Code** |
+|---|---|---|
+| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, browser, and automation | A control plane that runs coding agents, each thread on its own branch/worktree |
+| **Isolation** | Automatic Git worktree per task | Git worktree per agent thread (worktree/local toggle) |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, Mistral Vibe, and more) | Claude Code, Codex, OpenCode, Cursor (more planned) |
+| **Maturity** | Established, with SOC 2 and remote/cloud workspaces | Very early alpha (expect rapid change) |
+| **Review tooling** | Built-in diff/file editor, staging, commit | Inline diff review, one-button commit/push/PR |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | Local desktop and CLI launcher |
+| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Windows, Linux) plus `npx` launcher |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces and can schedule agent sessions as automations. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is T3 Code?
+
+T3 Code is an open-source desktop and web GUI from Theo Browne's T3 team, described as a control plane for coding agents. It orchestrates multiple agents from one workspace, and every agent thread writes to its own branch, with a per-thread toggle between an isolated worktree and the local checkout. It wraps agents like Claude Code, Codex, OpenCode, and Cursor on a bring-your-own-subscription basis, adds inline diff review and one-button commit, push, and PR creation, and runs on macOS, Windows, and Linux (or via an `npx` launcher). It is MIT licensed and, by its maintainers' own description, very early alpha software.
+
+## Key Differences
+
+### Maturity and Scope
+
+The honest headline difference is maturity. T3 Code is new and openly labeled as early alpha, so features and stability are moving fast. Superset covers the same worktree-per-task idea but has grown a larger surface around it: remote and cloud workspaces, scheduled automations with a TypeScript SDK and Slack bot, an MCP server, and enterprise groundwork like a passed SOC 2 audit. If you want to experiment on the leading edge, T3 Code is appealing. If you want a workspace to rely on for daily multi-agent work, Superset is further along.
+
+### Same Isolation Idea, Different Surface Area
+
+Both make a per-task branch and worktree the unit of work, and both offer inline diff review with quick commit and PR flows. Around that shared core, Superset adds an in-app browser for docs and dev servers, port management, and one-click handoff into VS Code, Cursor, JetBrains, or Xcode. T3 Code keeps a tighter footprint as a front-end over your chosen agents. So the deciding question is less "does it use worktrees" -- both do -- and more how much surrounding workflow you want built in.
+
+### Agent Breadth
+
+T3 Code currently wraps Claude Code, Codex, OpenCode, and Cursor, with more planned. Superset runs those plus Copilot, Gemini, Mistral Vibe, and custom terminal agents you define with your own launch command. If your agent mix is broad or changes often, Superset gives you more room today; if you use the common four, T3 Code covers them.
+
+### Reach Beyond One Machine
+
+Superset extends past the local desktop with remote and cloud workspaces that run on your own network devices, plus CLI and MCP surfaces. T3 Code is a local desktop GUI with an `npx` launcher. If moving work across machines or scripting the orchestration matters, Superset has more of that built in.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. T3 Code is free and open source with a bring-your-own-subscription model -- no resold tokens and no quota caps. In both cases, you still pay the underlying providers for Claude Code, Codex, or any compatible API usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want a mature workspace with review, browser, and automation built in
+- Need remote, cloud, CLI, or MCP surfaces
+- Run a broad or changing set of agents
+- Care about enterprise readiness like SOC 2
+
+**Choose T3 Code if you:**
+
+- Want a free, MIT-licensed, openly experimental control plane
+- Use Claude Code, Codex, OpenCode, or Cursor and like the T3 approach
+- Are comfortable with early alpha software that changes quickly
+- Prefer the smallest possible front-end over your own agents
+
+**Verdict:** T3 Code and Superset share a philosophy: worktree-per-thread orchestration with bring-your-own agents. T3 Code is the choice if you want to ride an early, open, fast-moving project. Superset is the choice if you want the same model with more built-in workflow and the stability to depend on it day to day.
+
+---
+
+## Frequently Asked Questions
+
+### Is T3 Code the same as T3 Chat?
+
+No. T3 Chat is the AI chat app; T3 Code is a separate control plane for coding agents. For the chat comparison, see [Superset vs T3 Chat](/compare/superset-vs-t3-chat).
+
+### Do both use Git worktrees?
+
+Yes. Both give each agent thread its own branch and worktree (T3 Code offers a per-thread worktree-or-local toggle). The isolation model is shared; the products differ in maturity and surrounding features.
+
+### Is T3 Code production ready?
+
+Its maintainers describe it as very early alpha, so expect rapid change. Superset is further along and adds remote/cloud workspaces, automations, and a passed SOC 2 audit.
+
+### Can both run agents other than Claude Code?
+
+Yes. T3 Code supports Claude Code, Codex, OpenCode, and Cursor today. Superset runs those plus Copilot, Gemini, Mistral Vibe, and custom terminal agents.

@@ -1,30 +1,42 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/chat/server/desktop";
+import { ChatService } from "@superset/provider-auth/server";
+import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
+import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
-import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
-import { ChatRuntimeManager } from "./runtime/chat";
+import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
+import { registerBrowserCdpRoute } from "./runtime/browser-bridge/browser-cdp-route";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
-import { createGitFactory } from "./runtime/git";
+import { createGitEnvResolver, createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
+import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import {
+	readSandboxIdentity,
+	runSandboxSelfSeed,
+} from "./runtime/sandbox-self-seed";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
-import { TerminalAgentStore } from "./terminal-agents";
+import {
+	SqliteTerminalAgentBindingPersistence,
+	TerminalAgentStore,
+} from "./terminal-agents";
 import { appRouter } from "./trpc/router";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
-import type { ApiClient } from "./types";
+import type { ApiClient, BrowserBridgeConfig } from "./types";
+import { getHostWorkerPool } from "./workers/host-worker-pool";
+import { gitWorkspaceRefsTask } from "./workers/tasks/git";
 
 export interface CreateAppOptions {
 	config: {
@@ -33,26 +45,25 @@ export interface CreateAppOptions {
 		cloudApiUrl: string;
 		migrationsFolder: string;
 		allowedOrigins: string[];
+		/** Loopback surface for driving desktop browser panes; desktop-only. */
+		browserBridge?: BrowserBridgeConfig;
 	};
 	providers: {
 		auth: ApiAuthProvider;
 		hostAuth: HostAuthProvider;
 		credentials: GitCredentialProvider;
-		modelResolver: ModelProviderRuntimeResolver;
 	};
 	/**
 	 * Test-harness override hooks. Production never sets these — `createApp`
 	 * builds each subsystem itself when omitted. `db` is overridden so tests
 	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
-	 * prod uses it on bundled Node). `api`, `github`, `chatRuntime`, and
-	 * `chatService` are overridden to keep tests off the network and out of
-	 * mastra storage.
+	 * prod uses it on bundled Node). `api`, `github`, and `chatService` are
+	 * overridden to keep tests off the network and out of provider-auth storage.
 	 */
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
-	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
 }
 
@@ -61,6 +72,7 @@ export interface CreateAppResult {
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
 	db: HostDb;
+	eventBus: EventBus;
 	dispose: () => Promise<void>;
 }
 
@@ -71,15 +83,26 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ??
 		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
+	// A sandbox is provisioned for exactly one workspace, and the env says
+	// which. Seeding it here rather than from the API keeps the schema in one
+	// place and leaves provisioning with nothing to orchestrate.
+	const sandboxIdentity = readSandboxIdentity();
+	if (sandboxIdentity) runSandboxSelfSeed(db, sandboxIdentity);
 	const git = createGitFactory(providers.credentials);
 	const github =
 		options.github ??
 		(async () => {
 			const token = await providers.credentials.getToken("github.com");
 			if (!token) {
-				throw new Error(
-					"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
-				);
+				// Expected precondition failure (user has no GitHub auth), not an
+				// internal error — every procedure calling ctx.github() inherits
+				// this classification.
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
+					cause: { kind: "NO_GITHUB_TOKEN" },
+				});
 			}
 			return new Octokit({ auth: token });
 		});
@@ -91,28 +114,44 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// pull-requests runtime (event-driven branch sync) subscribe to it.
 	const gitWatcher = new GitWatcher(db, filesystem);
 	gitWatcher.start();
+	// Per-workspace branch/HEAD/upstream reads run in the worker pool: the
+	// PR-sync loop fires them for every workspace on each watcher event and
+	// 5-min sweep, which would otherwise spawn+drain git on the event loop.
+	const resolveGitEnv = createGitEnvResolver(providers.credentials);
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		execGh,
 		git,
 		github,
 		gitWatcher,
+		readWorkspaceRefs: async (worktreePath) => {
+			const gitEnv = await resolveGitEnv(worktreePath);
+			return getHostWorkerPool().run(
+				gitWorkspaceRefsTask,
+				{ worktreePath, gitEnv },
+				{
+					timeoutMs: 15_000,
+					strategy: "coalesce",
+					dedupeKey: `${worktreePath}:workspace-refs`,
+				},
+			);
+		},
 	});
 	pullRequestRuntime.start();
-	const chatRuntime =
-		options.chatRuntime ??
-		new ChatRuntimeManager({
-			db,
-			runtimeResolver: providers.modelResolver,
-		});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
-	// auth storage; the `host.auth.*` router proxies to it.
+	// per-workspace. ChatService is a long-lived singleton wrapping the
+	// provider auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
+
+	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
+	// the routes sit behind the same auth as every other host route, and the
+	// runtime is built on first request, so chat.db is never created on a host
+	// nobody chats with. Exposure is a client concern — the renderer gates the
+	// pane on the `chat-v3` PostHog flag.
+	const chatV3 = createChatV3Mount({ db, dbPath: config.dbPath });
 
 	const runtime = {
 		auth: chatService,
-		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
 	};
@@ -134,20 +173,73 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
+	// Post-construction wiring (the runtime is built before the EventBus):
+	// newly created workspaces get their first branch/upstream sync + PR link
+	// immediately instead of waiting for the 5-min safety net.
+	pullRequestRuntime.subscribeToWorkspaceEvents(eventBus);
 
-	const terminalAgentStore = new TerminalAgentStore();
-
-	// Backfill `kind='main'` v2 workspaces for projects already set up before
-	// this column shipped. Idempotent; runs in the background so it doesn't
-	// block server startup.
-	void runMainWorkspaceSweep({
-		api,
+	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
 		db,
-		git,
-		organizationId: config.organizationId,
-	}).catch((err) => {
-		console.warn("[host-service] main-workspace sweep failed:", err);
-	});
+	);
+	// Hygiene only — reads hide defunct bindings via the session-liveness
+	// join regardless, so a failure here must not block startup.
+	try {
+		terminalAgentPersistence.sweepDefunct();
+	} catch (error) {
+		console.warn(
+			"[terminal-agents] failed to sweep defunct binding rows",
+			error,
+		);
+	}
+	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
+
+	// Startup sweeps run in the background so they don't block server
+	// startup. Ordering matters: the project backfill fills identity fields
+	// on pre-existing rows before the main-workspace sweep touches them.
+	//
+	// None of them run in a sandbox. Every one repairs state a long-lived
+	// machine accumulates — rows that predate a column, a delete a previous
+	// process crashed out of — and a sandbox is provisioned fresh with exactly
+	// one project and one workspace, seeded by us, that no earlier build ever
+	// touched. There is nothing to recover, so the sweeps can only invent:
+	// the main-workspace sweep already added a phantom second workspace here
+	// before bootstrap started seeding `type='main'`.
+	void (async () => {
+		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
+		await runProjectBackfill({
+			db,
+			eventBus,
+		}).catch((err) => {
+			console.warn("[host-service] project backfill failed:", err);
+		});
+		// Backfill `kind='main'` workspaces for projects already set up before
+		// this column shipped. Idempotent — only does real work the first
+		// time after upgrade.
+		await runMainWorkspaceSweep({
+			db,
+			git,
+			eventBus,
+		}).catch((err) => {
+			console.warn("[host-service] main-workspace sweep failed:", err);
+		});
+		// Finish any delete the previous process crashed out of (archived row
+		// whose worktree still exists).
+		await runArchivedWorkspaceReconcile({
+			git,
+			credentials: providers.credentials,
+			github,
+			execGh,
+			api,
+			db,
+			runtime,
+			eventBus,
+			terminalAgentStore,
+			organizationId: config.organizationId,
+			isAuthenticated: true,
+		}).catch((err) => {
+			console.warn("[host-service] archived-workspace reconcile failed:", err);
+		});
+	})();
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
 		const token = c.req.query("token");
@@ -159,14 +251,22 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
+	app.use("/chat-v3/*", wsAuth);
+	app.use("/browser/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
+	registerBrowserCdpRoute({
+		app,
+		upgradeWebSocket,
+		getBridge: () => config.browserBridge,
+	});
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
 		eventBus,
 		upgradeWebSocket,
 	});
+	registerChatV3Routes({ app, db, mount: chatV3, upgradeWebSocket });
 
 	app.use(
 		"/trpc/*",
@@ -188,6 +288,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					isAuthenticated,
 					clientMachineId:
 						c.req.header("x-superset-client-machine-id") ?? undefined,
+					browserBridge: config.browserBridge,
 				} as Record<string, unknown>;
 			},
 		}),
@@ -202,6 +303,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			await chatV3.dispose();
+		} catch (err) {
+			console.warn("[host-service] chatV3.dispose failed:", err);
 		}
 		try {
 			eventBus.close();
@@ -222,5 +328,5 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, db, dispose };
+	return { app, injectWebSocket, api, db, eventBus, dispose };
 }

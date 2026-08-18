@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { UAParser } from "ua-parser-js";
 
 export const Platform = {
 	MacAppleSilicon: "mac-apple-silicon",
@@ -21,7 +20,7 @@ function detectMacArch():
 	| typeof Platform.MacIntel {
 	// Browser-side arch detection is unreliable: navigator.userAgent always
 	// reports "Intel Mac OS X" on Apple Silicon for compat. The most reliable
-	// signal that works in Safari is the WebGL renderer string — Apple GPUs
+	// signal that works in Safari is the WebGL renderer string: Apple GPUs
 	// expose "Apple GPU" / "Apple M*", Intel Macs expose Intel/AMD/Nvidia.
 	try {
 		const canvas = document.createElement("canvas");
@@ -48,21 +47,19 @@ function detectPlatform(): PlatformInfo {
 		return { platform: Platform.Unknown };
 	}
 
-	const parser = new UAParser(navigator.userAgent);
-	const osName = parser.getOS().name?.toLowerCase() ?? "";
-	const deviceType = parser.getDevice().type;
+	const userAgent = navigator.userAgent;
 
-	if (deviceType === "mobile" || deviceType === "tablet") {
+	if (/android|iphone|ipad|ipod|mobile|tablet/i.test(userAgent)) {
 		return { platform: Platform.Mobile };
 	}
 
-	if (osName.includes("mac")) {
+	if (/mac os x|macintosh/i.test(userAgent)) {
 		return { platform: detectMacArch() };
 	}
-	if (osName.includes("windows")) {
+	if (/windows/i.test(userAgent)) {
 		return { platform: Platform.Windows };
 	}
-	if (osName.includes("linux")) {
+	if (/linux|x11/i.test(userAgent)) {
 		return { platform: Platform.Linux };
 	}
 	return { platform: Platform.Unknown };

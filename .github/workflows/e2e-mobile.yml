@@ -1,0 +1,58 @@
+name: E2E Mobile
+
+# Expensive on-demand lane: EAS builds an iOS simulator app and runs the
+# Maestro flows against the PR's preview API. Trigger it by adding the
+# `e2e-mobile` label to the PR (remove and re-add to re-run). The preview
+# deployment from deploy-preview.yml must exist for the target PR.
+on:
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: e2e-mobile-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  EAS_CLI_VERSION: 20.5.1
+  API_ALIAS: api-pr-${{ github.event.pull_request.number }}-superset.vercel.app
+
+jobs:
+  e2e-mobile:
+    name: E2E Mobile (Maestro on EAS)
+    if: github.event.label.name == 'e2e-mobile'
+    runs-on: ubuntu-latest
+    environment: preview
+    timeout-minutes: 45
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Setup Bun
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen --ignore-scripts
+
+      - name: Install EAS CLI
+        run: npm install --global eas-cli@$EAS_CLI_VERSION
+
+      - name: Run EAS e2e workflow and wait
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas workflow:run e2e-ios.yml \
+            -F api_url=https://${{ env.API_ALIAS }} \
+            --non-interactive --wait

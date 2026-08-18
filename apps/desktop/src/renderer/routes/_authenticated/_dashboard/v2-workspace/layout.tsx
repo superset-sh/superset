@@ -1,15 +1,21 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import { StateScreenShell } from "./components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
+import { useWorkspaceMissVerdict } from "./hooks/useWorkspaceMissVerdict";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
@@ -30,17 +36,40 @@ function V2WorkspaceLayout() {
 	const pendingTransaction = useWorkspaceTransactionsStore((state) =>
 		workspaceId ? (state.byWorkspaceId[workspaceId] ?? null) : null,
 	);
-	const clearWorkspaceTransaction = useWorkspaceTransactionsStore(
-		(state) => state.clear,
-	);
+	// The create transaction clears when the workspaces.create mutation
+	// settles — not when the host-served row first arrives, which happens
+	// mid-create before agent/terminal panes are seeded.
 	const isCreatePending = pendingTransaction?.type === "insert";
 
-	const { data: workspaces, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ v2Workspaces: collections.v2Workspaces })
-				.where(({ v2Workspaces }) => eq(v2Workspaces.id, workspaceId ?? "")),
-		[collections, workspaceId],
+	const { toggleShowPresetsBar } = useV2UserPreferences();
+	electronTrpc.menu.subscribe.useSubscription(undefined, {
+		onData: (event) => {
+			if (event.type === "toggle-presets-bar") {
+				toggleShowPresetsBar();
+			}
+		},
+	});
+
+	const {
+		workspaces: hostWorkspaces,
+		isReady,
+		hostsSettled,
+		cache,
+	} = useHostWorkspaces();
+	const workspace = useMemo(
+		() =>
+			workspaceId != null
+				? (hostWorkspaces.find((candidate) => candidate.id === workspaceId) ??
+					null)
+				: null,
+		[hostWorkspaces, workspaceId],
+	);
+	// A sandbox joins the fan-out as its own host, so a cloud workspace is
+	// found the same way as any other — but it has no v2_hosts row for the
+	// remote version gate to check.
+	const { targets: sandboxes } = useSandboxAccess();
+	const isCloud = sandboxes.some(
+		(sandbox) => sandbox.workspaceId === workspaceId,
 	);
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
@@ -49,14 +78,7 @@ function V2WorkspaceLayout() {
 				.where(({ failed }) => eq(failed.id, workspaceId ?? "")),
 		[collections, workspaceId],
 	);
-	const workspace = workspaces?.[0] ?? null;
 	const failedEntry = failedEntries?.[0] ?? null;
-
-	useEffect(() => {
-		if (workspace?.$synced === true && pendingTransaction?.type === "insert") {
-			clearWorkspaceTransaction(workspace.id);
-		}
-	}, [clearWorkspaceTransaction, pendingTransaction, workspace]);
 
 	const lastEnsuredWorkspaceIdRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -66,40 +88,75 @@ function V2WorkspaceLayout() {
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
 
-	const hostStatus = useRemoteHostStatus(workspace);
+	// Sandboxes ship with the app's own host-service build, so the remote
+	// version gate has nothing to check and no host row to check it against.
+	const hostStatus = useRemoteHostStatus(isCloud ? null : workspace);
 
-	if (!workspaceId || !workspaces || (!workspace && !isReady)) {
-		return <div className="flex h-full w-full" />;
+	// "Not found" is a verdict, not a cache read: a CLI-created workspace can
+	// trail its own deep link (missed broadcast, second host-service instance,
+	// stale boot snapshot), so the route forces a refetch and waits for it —
+	// bounded — before declaring the id missing.
+	const missConfirmed = useWorkspaceMissVerdict(
+		{
+			workspaceId,
+			workspaceFound: workspace !== null,
+			suspended: pendingTransaction !== null || failedEntry !== null,
+			hostsEnumerated: hostsSettled,
+			hasLiveTargets: cache.hasLiveTargets,
+			mirrorSettled: isReady,
+		},
+		cache.refetchAll,
+	);
+
+	if (!workspaceId) {
+		return <StateScreenShell>{null}</StateScreenShell>;
 	}
 
 	if (!workspace) {
 		if (failedEntry) {
-			return <WorkspaceCreateErrorState entry={failedEntry} />;
+			return (
+				<StateScreenShell>
+					<WorkspaceCreateErrorState entry={failedEntry} />
+				</StateScreenShell>
+			);
 		}
-		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+		if (!missConfirmed) {
+			return <StateScreenShell>{null}</StateScreenShell>;
+		}
+		return (
+			<StateScreenShell>
+				<WorkspaceNotFoundState workspaceId={workspaceId} />
+			</StateScreenShell>
+		);
 	}
 
 	if (isCreatePending) {
 		return (
-			<WorkspaceCreatingState
-				name={workspace.name}
-				branch={workspace.branch}
-				startedAt={new Date(workspace.createdAt).getTime()}
-			/>
+			<StateScreenShell>
+				<WorkspaceCreatingState
+					name={workspace.name}
+					branch={workspace.branch}
+					startedAt={new Date(workspace.createdAt).getTime()}
+				/>
+			</StateScreenShell>
 		);
 	}
 
-	if (hostStatus.status === "incompatible") {
-		return (
-			<WorkspaceHostIncompatibleState
-				hostName={hostStatus.hostName}
-				hostVersion={hostStatus.hostVersion}
-				minVersion={hostStatus.minVersion}
-			/>
-		);
-	}
-	if (hostStatus.status === "loading") {
-		return <div className="flex h-full w-full" />;
+	if (!isCloud) {
+		if (hostStatus.status === "incompatible") {
+			return (
+				<StateScreenShell>
+					<WorkspaceHostIncompatibleState
+						hostName={hostStatus.hostName}
+						hostVersion={hostStatus.hostVersion}
+						minVersion={hostStatus.minVersion}
+					/>
+				</StateScreenShell>
+			);
+		}
+		if (hostStatus.status === "loading") {
+			return <StateScreenShell>{null}</StateScreenShell>;
+		}
 	}
 
 	return (

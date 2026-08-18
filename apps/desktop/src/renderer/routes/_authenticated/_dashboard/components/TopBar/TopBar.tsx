@@ -1,5 +1,6 @@
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
+import { ZoomStable } from "renderer/components/ZoomStable";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
@@ -11,7 +12,6 @@ import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
-import { V2WorkspaceOpenInButton } from "./components/V2WorkspaceOpenInButton";
 import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
 import { WindowControls } from "./components/WindowControls";
 
@@ -51,41 +51,41 @@ export function TopBar() {
 
 	return (
 		<div
-			className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 border-b border-border relative dark:bg-muted/35"
+			// Window-drag regions live on the empty leaf elements (traffic-light
+			// spacer + title filler), never on this container: `no-drag` carve-outs
+			// under a `drag` ancestor are lost inside zoomed/masked/scrollable
+			// wrappers, which makes the whole bar swallow clicks.
+			className="gap-2 h-12 w-full flex items-center justify-between bg-muted/45 relative dark:bg-muted/35"
 			style={barStyle}
 		>
-			<div
-				className="flex items-center gap-1.5 h-full"
-				style={{ paddingLeft: trafficLightInset }}
-			>
+			<div className="flex items-center h-full">
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: trafficLightInset }}
+				/>
 				{!sidebarHostsChrome && (
-					<>
+					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 						<SidebarToggle />
 						<NavigationControls />
 						{!isV2CloudEnabled && <ResourceConsumption surface="v1" />}
-					</>
+					</ZoomStable>
 				)}
 			</div>
 
-			<div className="flex min-w-0 flex-1 items-center justify-start">
+			<div className="drag flex h-full min-w-0 flex-1 items-center justify-start">
 				{isV2WorkspaceRoute && v2WorkspaceId && (
 					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
 				)}
 			</div>
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				{!sidebarHostsChrome && isV2CloudEnabled && (
-					<ResourceConsumption surface="v2" />
-				)}
 				{!isOnline && (
-					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+					<div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />
 						<span>Offline</span>
 					</div>
 				)}
-				{isV2WorkspaceRoute ? (
-					<V2WorkspaceOpenInButton workspaceId={v2WorkspaceId} />
-				) : workspace?.worktreePath ? (
+				{!isV2WorkspaceRoute && workspace?.worktreePath ? (
 					<OpenInMenuButton
 						worktreePath={workspace.worktreePath}
 						branch={workspace.worktree?.branch}

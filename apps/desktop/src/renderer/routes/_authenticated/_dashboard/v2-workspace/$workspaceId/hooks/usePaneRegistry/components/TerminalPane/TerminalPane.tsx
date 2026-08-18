@@ -13,10 +13,11 @@ import {
 import { useHotkey } from "renderer/hotkeys";
 import {
 	actionLabel,
-	folderIntentFor,
+	type FolderClickPolicy,
 	folderIntentLabel,
 	LinkHoverHint,
 	useTerminalFilePolicy,
+	useTerminalFolderPolicy,
 	useTerminalUrlPolicy,
 } from "renderer/lib/clickPolicy";
 import {
@@ -25,6 +26,7 @@ import {
 } from "renderer/lib/terminal/terminal-runtime-registry";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
+import { useRevealInFinder } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useRevealInFinder";
 import type {
 	PaneViewerData,
 	TerminalPaneData,
@@ -35,10 +37,17 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { isWithinWorkspacePath } from "shared/absolute-paths";
+import { TerminalAgentResumeBanner } from "./components/TerminalAgentResumeBanner";
+import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
 import { useTerminalInterruptClear } from "./hooks/useTerminalInterruptClear";
+import {
+	terminalRichInputOpenStore,
+	useTerminalRichInputOpen,
+} from "./richInputOpenStore";
 import { shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {
@@ -56,6 +65,7 @@ export function TerminalPane({
 }: TerminalPaneProps) {
 	const filePolicy = useTerminalFilePolicy();
 	const urlPolicy = useTerminalUrlPolicy();
+	const folderPolicy = useTerminalFolderPolicy();
 	const {
 		hoveredLink,
 		onHover: onLinkHover,
@@ -63,11 +73,24 @@ export function TerminalPane({
 	} = useLinkHoverState();
 	const { hint, showHint } = useLinkClickHint();
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const revealInFinder = useRevealInFinder(workspaceId);
+	// The "reveal" intent falls back to Finder for folders outside the
+	// worktree (revealPath's containment check); the hover label needs the
+	// same knowledge so it doesn't promise a sidebar reveal it can't do.
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const worktreePath = workspaceQuery.data?.worktreePath ?? undefined;
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
 	const terminalInstanceId = ctx.pane.id;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	// Open/closed is tracked per terminalId in a shared store so the header
+	// button and the ⌘I hotkey toggle the same overlay, and the state survives
+	// the mounted pane being re-pointed across terminals (tab switch, session
+	// dropdown).
+	const isRichInputOpen = useTerminalRichInputOpen();
 
 	const appearance = useTerminalAppearance();
 	const appearanceRef = useRef(appearance);
@@ -83,6 +106,9 @@ export function TerminalPane({
 	const themedUrl = new URL(baseWebsocketUrl);
 	themedUrl.searchParams.set("workspaceId", workspaceId);
 	themedUrl.searchParams.set("themeType", themeType);
+	if (paneData.createOnAttach) {
+		themedUrl.searchParams.set("create", "1");
+	}
 	const websocketUrl = themedUrl.toString();
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
@@ -91,10 +117,10 @@ export function TerminalPane({
 
 	const workspaceTrpcUtils = workspaceTrpc.useUtils();
 	const invalidateTerminalSessionsRef = useRef(
-		workspaceTrpcUtils.terminal.listSessions.invalidate,
+		workspaceTrpcUtils.terminal.list.invalidate,
 	);
 	invalidateTerminalSessionsRef.current =
-		workspaceTrpcUtils.terminal.listSessions.invalidate;
+		workspaceTrpcUtils.terminal.list.invalidate;
 
 	// useCallback so useSyncExternalStore doesn't re-subscribe every render —
 	// otherwise every keystroke-triggered re-render unsubscribes and
@@ -126,9 +152,10 @@ export function TerminalPane({
 	//      container back into the live tree, preserving the buffer.
 	//   2. connect() attaches the WebSocket to that terminalId. The socket is
 	//      transport only; it does not carry creation-time intent.
-	// The pane never calls createSession — that's useV2TerminalLauncher's job,
-	// awaited at the call site before the pane is added to the store. By the
-	// time this effect runs, the host-service session already exists.
+	// The pane never calls createSession over HTTP. Optimistically-inserted
+	// panes (`createOnAttach`) let the WS attach create the session; other
+	// panes' sessions were created by useV2TerminalLauncher before the pane
+	// landed in the store.
 	// Deps narrowed to the terminal identity so provider key remount churn
 	// (workspaceId/client briefly flipping while pane data catches up) doesn't
 	// re-run this effect. Mutable inputs are read through refs.
@@ -156,11 +183,13 @@ export function TerminalPane({
 
 	useEffect(() => {
 		if (!ctx.isActive) return;
+		// Don't pull focus back to xterm while the rich-input overlay owns it.
+		if (isRichInputOpen) return;
 
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();
-	}, [ctx.isActive, terminalId, terminalInstanceId]);
+	}, [ctx.isActive, terminalId, terminalInstanceId, isRichInputOpen]);
 
 	const lastInvalidatedOpenSessionRef = useRef<string | null>(null);
 	useEffect(() => {
@@ -245,7 +274,7 @@ export function TerminalPane({
 				},
 				onFileLinkClick: (event, link) => {
 					if (link.isDirectory) {
-						const intent = folderIntentFor(event);
+						const intent = folderPolicy.getIntent(event);
 						if (intent === null) {
 							showHint(event.clientX, event.clientY);
 							return;
@@ -253,6 +282,8 @@ export function TerminalPane({
 						event.preventDefault();
 						if (intent === "external") {
 							openInExternalEditor(link.resolvedPath);
+						} else if (intent === "finder") {
+							revealInFinder(link.resolvedPath, { isDirectory: true });
 						} else {
 							onRevealPath(link.resolvedPath, { isDirectory: true });
 						}
@@ -308,11 +339,13 @@ export function TerminalPane({
 		onOpenFile,
 		onRevealPath,
 		openInExternalEditor,
+		revealInFinder,
 		onLinkHover,
 		onLinkLeave,
 		showHint,
 		filePolicy,
 		urlPolicy,
+		folderPolicy,
 	]);
 
 	useTerminalInterruptClear({
@@ -343,6 +376,19 @@ export function TerminalPane({
 		preventDefault: true,
 	});
 
+	useHotkey(
+		"TOGGLE_TERMINAL_RICH_INPUT",
+		() => terminalRichInputOpenStore.toggle("hotkey"),
+		{ enabled: ctx.isActive, preventDefault: true },
+	);
+
+	const closeRichInput = useCallback(() => {
+		terminalRichInputOpenStore.close("escape");
+		terminalRuntimeRegistry
+			.getTerminal(terminalId, terminalInstanceId)
+			?.focus();
+	}, [terminalId, terminalInstanceId]);
+
 	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const terminal = useMemo(
@@ -365,7 +411,7 @@ export function TerminalPane({
 		if (files.length > 0) {
 			const paths = files
 				.map((file) => window.webUtils.getPathForFile(file))
-				.filter(Boolean);
+				.filter((path): path is string => Boolean(path));
 			return paths.length > 0 ? shellEscapePaths(paths) : null;
 		}
 		const plainText = dataTransfer.getData("text/plain");
@@ -426,20 +472,35 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
+				<TerminalAgentResumeBanner
+					key={terminalId}
+					workspaceId={workspaceId}
+					terminalId={terminalId}
+					connectionState={connectionState}
+					ctx={ctx}
+				/>
 			</div>
+			<TerminalRichInput
+				workspaceId={workspaceId}
+				terminalId={terminalId}
+				terminalInstanceId={terminalInstanceId}
+				isOpen={isRichInputOpen}
+				onClose={closeRichInput}
+			/>
 			<div
 				className={cn(
 					"pointer-events-none absolute inset-0 bg-primary/10 transition-opacity duration-100",
 					isDropActive ? "opacity-75" : "opacity-0",
 				)}
 			/>
-			{connectionState === "closed" && (
-				<div className="flex items-center gap-2 border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
-					<span>Disconnected</span>
-				</div>
-			)}
 			<LinkHoverHint
-				hoverLabel={resolveHoverLabel(hoveredLink, filePolicy, urlPolicy)}
+				hoverLabel={resolveHoverLabel(
+					hoveredLink,
+					filePolicy,
+					urlPolicy,
+					folderPolicy,
+					worktreePath,
+				)}
 				hoverPosition={hoveredLink}
 				clickHint={hint}
 			/>
@@ -448,13 +509,16 @@ export function TerminalPane({
 }
 
 // Compute "what would clicking right now do?" for the live link tooltip.
-// Folders use the hardcoded folderIntent rule; files/urls go through the
-// settings-driven policies. Returns null when no modifier is held or the
-// matching tier is unbound — the tooltip stays hidden in that case.
+// Files, URLs, and folders all resolve through their settings-driven
+// policies; folders additionally swap "reveal" for the Finder fallback when
+// the path sits outside the worktree. Returns null when the matching tier
+// is unbound — the tooltip stays hidden in that case.
 function resolveHoverLabel(
 	hovered: HoveredLink | null,
 	filePolicy: ReturnType<typeof useTerminalFilePolicy>,
 	urlPolicy: ReturnType<typeof useTerminalUrlPolicy>,
+	folderPolicy: FolderClickPolicy,
+	worktreePath: string | undefined,
 ): string | null {
 	if (!hovered) return null;
 	const event = {
@@ -467,7 +531,18 @@ function resolveHoverLabel(
 		return action ? actionLabel(action, "url") : null;
 	}
 	if (hovered.info.isDirectory) {
-		return folderIntentLabel(folderIntentFor(event));
+		const intent = folderPolicy.getIntent(event);
+		// A folder outside the worktree can't be revealed in the sidebar —
+		// clicking falls back to Finder (revealPath), so say that instead.
+		if (
+			intent === "reveal" &&
+			worktreePath &&
+			hovered.info.resolvedPath &&
+			!isWithinWorkspacePath(worktreePath, hovered.info.resolvedPath)
+		) {
+			return folderIntentLabel("finder");
+		}
+		return folderIntentLabel(intent);
 	}
 	const action = filePolicy.getAction(event);
 	return action ? actionLabel(action, "file") : null;

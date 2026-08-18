@@ -114,7 +114,9 @@ function headKey(
 	branch: string,
 ): string | null {
 	if (!owner || !repo) return null;
-	// GitHub owner/repo names are case-insensitive; branch names are not.
+	// Exact match on the branch: this filters the results of a per-head query,
+	// which GitHub already scopes case-sensitively server-side. Case drift is
+	// recovered separately by the repo-wide open-PR sweep in the runtime.
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
@@ -249,6 +251,66 @@ export async function fetchPullRequestByHead(
 	});
 
 	return normalizePullRequestCandidates(response.data, head);
+}
+
+// 100 full PR objects (bodies included) routinely exceed exec's stdout
+// buffer, so project down to exactly what normalizePullRequest reads before
+// the payload leaves gh. jq's null-indexing keeps absent nests as nulls,
+// which normalizePullRequest already rejects the same way as missing keys.
+const OPEN_PULL_REQUESTS_JQ =
+	'if type == "array" then [.[] | select(type == "object") | {number, title, html_url, state, merged_at, draft, updated_at, head: {ref: .head.ref, sha: .head.sha, repo: {name: .head.repo.name, owner: {login: .head.repo.owner.login}}, user: {login: .head.user.login}}, base: {repo: {full_name: .base.repo.full_name}}}] else . end';
+
+// GitHub's `head=` filter is case-sensitive on the branch (verified), so a
+// drifted-case lookup returns nothing. This repo-wide sweep lets the caller
+// match heads case-insensitively. Open PRs only — `state=all` is unbounded.
+export async function fetchOpenPullRequestsFromGh(
+	execGh: ExecGh,
+	repository: {
+		owner: string;
+		name: string;
+	},
+): Promise<GitHubPullRequestNode[]> {
+	const raw = await execGh([
+		"api",
+		"--method",
+		"GET",
+		`repos/${repository.owner}/${repository.name}/pulls`,
+		"-f",
+		"state=open",
+		"-f",
+		"sort=updated",
+		"-f",
+		"direction=desc",
+		"-f",
+		"per_page=100",
+		"--jq",
+		OPEN_PULL_REQUESTS_JQ,
+	]);
+
+	return asArray(raw)
+		.map((item) => normalizePullRequest(item))
+		.filter((node): node is GitHubPullRequestNode => node !== null);
+}
+
+export async function fetchOpenPullRequests(
+	octokit: Octokit,
+	repository: {
+		owner: string;
+		name: string;
+	},
+): Promise<GitHubPullRequestNode[]> {
+	const response = await octokit.rest.pulls.list({
+		owner: repository.owner,
+		repo: repository.name,
+		state: "open",
+		sort: "updated",
+		direction: "desc",
+		per_page: 100,
+	});
+
+	return response.data
+		.map((item) => normalizePullRequest(item))
+		.filter((node): node is GitHubPullRequestNode => node !== null);
 }
 
 // GitHub's REST PR payloads don't expose merge-queue membership, so detect it

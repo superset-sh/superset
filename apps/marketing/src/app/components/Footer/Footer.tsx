@@ -1,7 +1,7 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,10 +32,20 @@ interface FooterLink {
 	external?: boolean;
 }
 
+const PRODUCT_LINKS: FooterLink[] = [
+	{ href: "/download", label: "Download" },
+	{ href: "/#how-it-works", label: "How it works" },
+	{ href: "/#features", label: "Features" },
+	{ href: "/#security", label: "Security" },
+	{ href: "/mcp-install", label: "MCP" },
+	{ href: "/marketplace", label: "Marketplace" },
+	{ href: "/compare", label: "Compare" },
+];
+
 const COMPANY_LINKS: FooterLink[] = [
 	{ href: "/team", label: "About" },
 	{ href: "/contact", label: "Contact" },
-	{ href: COMPANY.CAREERS_URL, label: "Careers", external: true },
+	{ href: "/join-us", label: "Careers" },
 	{ href: COMPANY.STATUS_URL, label: "Status", external: true },
 ];
 
@@ -46,6 +56,7 @@ const RESOURCE_LINKS: FooterLink[] = [
 	{ href: "/community", label: "Community" },
 	{ href: "/enterprise", label: "Enterprise" },
 	{ href: "/changelog", label: "Changelog" },
+	{ href: "/roadmap", label: "Roadmap" },
 ];
 
 const LEGAL_LINKS: FooterLink[] = [
@@ -60,14 +71,14 @@ export function Footer() {
 
 	return (
 		<footer className="border-t border-border bg-background">
-			<motion.div
+			<m.div
 				initial={{ opacity: 0 }}
 				whileInView={{ opacity: 1 }}
 				viewport={{ once: true }}
 				transition={{ duration: 0.5 }}
 				className="max-w-7xl mx-auto px-6 sm:px-8 py-14 sm:py-20"
 			>
-				<div className="grid grid-cols-2 gap-10 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:gap-x-20">
+				<div className="grid grid-cols-2 gap-10 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] md:gap-x-16">
 					<div className="col-span-2 flex flex-col gap-6 md:col-span-1">
 						<Link
 							href="/"
@@ -81,11 +92,12 @@ export function Footer() {
 						</p>
 					</div>
 
+					<FooterColumn title="Product" links={PRODUCT_LINKS} />
 					<FooterColumn title="Company" links={COMPANY_LINKS} />
 					<FooterColumn title="Resources" links={RESOURCE_LINKS} />
 					<FooterColumn title="Legal" links={LEGAL_LINKS} />
 				</div>
-			</motion.div>
+			</m.div>
 		</footer>
 	);
 }

@@ -55,6 +55,9 @@
 	--highlight-active: rgba(224, 120, 80, 0.5);
 	--highlight: #e07850;
 	--highlight-foreground: #151110;
+	/* Sidebar row fills: low-opacity foreground washes so they track any theme */
+	--fill-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 10%, transparent);
 }
 
 /* Light theme fallback values - applied before hydration if user has light theme saved */
@@ -97,6 +100,8 @@
 	--highlight-active: rgba(255, 150, 50, 0.55);
 	--highlight: oklch(0.646 0.222 41.116);
 	--highlight-foreground: oklch(0.985 0 0);
+	--fill-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 6%, transparent);
 }
 
 @theme inline {
@@ -140,6 +145,9 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-highlight: var(--highlight);
 	--color-highlight-foreground: var(--highlight-foreground);
+	--color-highlight-match: var(--highlight-match);
+	--color-fill-hover: var(--fill-hover);
+	--color-fill-selected: var(--fill-selected);
 }
 
 @layer base {
@@ -287,9 +295,55 @@
 		background-color: var(--highlight-active);
 	}
 
-	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0);
+	/* UpdatesPill: checkmark draw-in on download-confirmed */
+	@keyframes check-draw {
+		from {
+			stroke-dashoffset: 26;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* UpdatesPill: countdown line tracing the border while the confirmation runs out */
+	@keyframes countdown-border-trace {
+		from {
+			stroke-dashoffset: 100;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* UpdatesPill: retro pixel-dissolve when the confirmation expires — a
+	   checkerboard mask flips on and coarsens in discrete steps (mask-image
+	   animates discretely, swapping at segment midpoints) until the pill
+	   crumbles away */
+	@keyframes pill-pixel-out {
+		0% {
+			opacity: 1;
+			mask-image: none;
+		}
+		30% {
+			opacity: 1;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 3px 3px;
+		}
+		55% {
+			opacity: 0.9;
+			mask-image: repeating-conic-gradient(transparent 0% 25%, #000 0% 50%);
+			mask-size: 5px 5px;
+		}
+		80% {
+			opacity: 0.75;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 8px 8px;
+		}
+		100% {
+			opacity: 0;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 12px 12px;
+		}
 	}
 
 	/* Tiptap chat input placeholder */

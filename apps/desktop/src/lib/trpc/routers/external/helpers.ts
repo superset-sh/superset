@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 
 /** Map of app IDs to their macOS application names */
 const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
@@ -10,7 +11,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	cursor: "Cursor",
 	antigravity: "Antigravity",
 	devin: "Devin",
-	zed: "Zed",
+	zed: null, // Multi-channel, uses bundle IDs (stable/preview/nightly/dev)
 	xcode: "Xcode",
 	iterm: "iTerm",
 	warp: "Warp",
@@ -33,13 +34,25 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 };
 
 /**
- * Bundle ID candidates for JetBrains IDEs with multiple editions.
- * `open -b <bundleId>` works regardless of the .app display name,
- * so "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ * Bundle ID candidates for apps with multiple installable variants — JetBrains
+ * editions and Zed release channels. `open -b <bundleId>` works regardless of
+ * the .app display name, so "IntelliJ IDEA Ultimate.app"/"IntelliJ IDEA CE.app"
+ * and "Zed.app"/"Zed Preview.app" all resolve correctly. Candidates are tried in
+ * order and the first installed one wins, so a user who has only a non-stable
+ * variant still launches — `open -a Zed` fails outright for someone whose only
+ * install is Zed Preview (its app is named "Zed Preview", not "Zed").
  */
 const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
+	// Zed release channels, most-common first. A user typically installs one
+	// channel; trying stable → preview → nightly → dev launches whichever exists.
+	zed: [
+		"dev.zed.Zed",
+		"dev.zed.Zed-Preview",
+		"dev.zed.Zed-Nightly",
+		"dev.zed.Zed-Dev",
+	],
 };
 
 /** Map of app IDs to their Linux CLI commands */
@@ -83,11 +96,37 @@ const LINUX_CLI_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 };
 
 /**
+ * IntelliJ-platform JetBrains IDEs. On macOS these must receive the target as
+ * a launcher CLI argument (`open -n ... --args <path>`) rather than as an
+ * "open document" Apple event (`open -a/-b <path>`); otherwise an already
+ * running instance just reopens its last project — e.g. the base repo instead
+ * of the git worktree (#5090). The native launcher detects a running instance
+ * and routes the open-project request to it, so `-n` doesn't spawn a duplicate
+ * IDE. Fleet is excluded — it ships a different launcher with its own CLI.
+ */
+const JETBRAINS_APPS = new Set<ExternalApp>([
+	"intellij",
+	"webstorm",
+	"pycharm",
+	"phpstorm",
+	"rubymine",
+	"goland",
+	"clion",
+	"rider",
+	"datagrip",
+	"appcode",
+	"rustrover",
+	"android-studio",
+]);
+
+/**
  * Get candidate commands to open a path in the specified app.
  * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
  * multiple candidates are returned so the caller can fall back if one isn't installed.
  *
  * macOS: Uses `open -b` (bundle ID) for multi-edition apps and `open -a` (app name) for others.
+ *        JetBrains IDEs additionally get `-n ... --args <path>` so the path is opened as a
+ *        project rather than ignored by an already-running instance (#5090).
  * Linux: Uses direct CLI commands (e.g. `code`, `cursor`, `zed`).
  */
 export function getAppCommand(
@@ -96,17 +135,28 @@ export function getAppCommand(
 	platform: NodeJS.Platform = process.platform,
 ): { command: string; args: string[] }[] | null {
 	if (platform === "darwin") {
+		const isJetBrains = JETBRAINS_APPS.has(app);
+
 		const bundleIds = BUNDLE_ID_CANDIDATES[app];
 		if (bundleIds) {
 			return bundleIds.map((id) => ({
 				command: "open",
-				args: ["-b", id, targetPath],
+				args: isJetBrains
+					? ["-n", "-b", id, "--args", targetPath]
+					: ["-b", id, targetPath],
 			}));
 		}
 
 		const appName = MACOS_APP_NAMES[app];
 		if (!appName) return null;
-		return [{ command: "open", args: ["-a", appName, targetPath] }];
+		return [
+			{
+				command: "open",
+				args: isJetBrains
+					? ["-n", "-a", appName, "--args", targetPath]
+					: ["-a", appName, targetPath],
+			},
+		];
 	}
 
 	// Linux (and other non-macOS platforms)
@@ -335,11 +385,21 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 		});
 
 		child.on("error", (error) => {
-			reject(
-				new Error(
-					`Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`,
-				),
-			);
+			const message = `Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`;
+			// ENOENT means the app's CLI launcher isn't installed / not on PATH —
+			// a user-environment condition, not a bug, so it must not surface as
+			// INTERNAL_SERVER_ERROR (which the Sentry middleware reports).
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+				reject(
+					new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message,
+						cause: { kind: "APP_NOT_INSTALLED", command },
+					}),
+				);
+				return;
+			}
+			reject(new Error(message));
 		});
 
 		child.on("exit", (code) => {

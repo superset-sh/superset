@@ -10,7 +10,9 @@ import { publicProcedure, router } from "..";
 type MenuEvent =
 	| { type: "open-settings"; data: OpenSettingsEvent }
 	| { type: "open-workspace"; data: OpenWorkspaceEvent }
-	| { type: "open-project" };
+	| { type: "open-project" }
+	| { type: "toggle-presets-bar" }
+	| { type: "check-resources" };
 
 export const createMenuRouter = () => {
 	return router({
@@ -28,14 +30,26 @@ export const createMenuRouter = () => {
 					emit.next({ type: "open-project" });
 				};
 
+				const onTogglePresetsBar = () => {
+					emit.next({ type: "toggle-presets-bar" });
+				};
+
+				const onCheckResources = () => {
+					emit.next({ type: "check-resources" });
+				};
+
 				menuEmitter.on("open-settings", onOpenSettings);
 				menuEmitter.on("open-workspace", onOpenWorkspace);
 				menuEmitter.on("open-project", onOpenProject);
+				menuEmitter.on("toggle-presets-bar", onTogglePresetsBar);
+				menuEmitter.on("check-resources", onCheckResources);
 
 				return () => {
 					menuEmitter.off("open-settings", onOpenSettings);
 					menuEmitter.off("open-workspace", onOpenWorkspace);
 					menuEmitter.off("open-project", onOpenProject);
+					menuEmitter.off("toggle-presets-bar", onTogglePresetsBar);
+					menuEmitter.off("check-resources", onCheckResources);
 				};
 			});
 		}),

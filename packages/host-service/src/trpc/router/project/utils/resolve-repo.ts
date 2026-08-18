@@ -1,4 +1,8 @@
-import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
+// Recursive deletes go through async `rm`: a failed clone/init rolls back an
+// entire repo directory, and rmSync would hold the event loop for the whole
+// walk.
+import { rm } from "node:fs/promises";
 import { join, resolve as resolvePath } from "node:path";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
@@ -75,11 +79,24 @@ function ensureParentDirectory(path: string): void {
 	}
 }
 
+/** Rollback delete inside catch blocks: must never throw, or it would
+ * replace the original error the caller is about to re-throw. */
+async function rollbackTargetDir(targetPath: string): Promise<void> {
+	try {
+		await rm(targetPath, { recursive: true, force: true });
+	} catch (cleanupErr) {
+		console.warn("[project] rollback cleanup failed", {
+			targetPath,
+			cleanupErr,
+		});
+	}
+}
+
 /**
  * Atomic claim: `mkdir` without `recursive` throws EEXIST when the path is
  * present, which avoids the TOCTOU window between an `existsSync` check
  * and the work that follows. If anything fails after this, the caller
- * created the dir and can rmSync it without risk of nuking someone else's.
+ * created the dir and can delete it without risk of nuking someone else's.
  */
 function claimEmptyTargetDir(targetPath: string): void {
 	try {
@@ -124,6 +141,28 @@ function asInitialCommitTrpcError(err: unknown): TRPCError {
 		message: `Failed to create initial commit: ${message}`,
 	});
 }
+
+/**
+ * Scaffolding commits are authored by us in repos we just created — the
+ * user's local git policy must not be able to reject them. Two bypasses,
+ * both per-invocation `-c` overrides that never touch stored config:
+ *
+ * - Hooks: `--no-verify` skips pre-commit/commit-msg; the empty
+ *   `core.hooksPath` override covers the rest (a failing
+ *   prepare-commit-msg still aborts a `--no-verify` commit).
+ * - Signing: `commit.gpgsign=false` — this is our scaffolding, not the
+ *   user's work, so it must not carry their signing identity, and a
+ *   signing key that git cannot load (absent, unreadable, or not in the
+ *   agent) must not fail the commit outright (HOST-SERVICE-22).
+ */
+const scaffoldCommitArgs = [
+	"-c",
+	"core.hooksPath=",
+	"-c",
+	"commit.gpgsign=false",
+	"commit",
+	"--no-verify",
+];
 
 /** `git init --initial-branch=main` with a fallback for older git versions. */
 async function gitInitMainBranch(targetPath: string): Promise<void> {
@@ -208,7 +247,7 @@ export async function initLocalRepoInPlace(
 	await gitInitMainBranch(repoPath);
 	try {
 		await createUserSimpleGit(repoPath).raw([
-			"commit",
+			...scaffoldCommitArgs,
 			"--allow-empty",
 			"-m",
 			"Initial commit",
@@ -284,7 +323,7 @@ export async function initEmptyRepo(
 		await gitInitMainBranch(targetPath);
 		try {
 			await createUserSimpleGit(targetPath).raw([
-				"commit",
+				...scaffoldCommitArgs,
 				"--allow-empty",
 				"-m",
 				"Initial commit",
@@ -294,7 +333,7 @@ export async function initEmptyRepo(
 		}
 		return { repoPath: targetPath, remoteName: null, parsed: null };
 	} catch (err) {
-		rmSync(targetPath, { recursive: true, force: true });
+		await rollbackTargetDir(targetPath);
 		throw err;
 	}
 }
@@ -330,19 +369,19 @@ export async function cloneTemplateInto(
 		await (env ? cloneGit.env(env) : cloneGit).clone(templateUrl, targetPath, [
 			"--depth=1",
 		]);
-		rmSync(join(targetPath, ".git"), { recursive: true, force: true });
+		await rm(join(targetPath, ".git"), { recursive: true, force: true });
 
 		await gitInitMainBranch(targetPath);
 		const git = createUserSimpleGit(targetPath);
 		await git.add(".");
 		try {
-			await git.raw(["commit", "-m", "Initial commit"]);
+			await git.raw([...scaffoldCommitArgs, "-m", "Initial commit"]);
 		} catch (err) {
 			throw asInitialCommitTrpcError(err);
 		}
 		return { repoPath: targetPath, remoteName: null, parsed: null };
 	} catch (err) {
-		rmSync(targetPath, { recursive: true, force: true });
+		await rollbackTargetDir(targetPath);
 		throw err;
 	}
 }
@@ -392,7 +431,7 @@ export async function cloneRepoInto(
 		const git = createUserSimpleGit();
 		await (env ? git.env(env) : git).clone(repoCloneUrl, targetPath);
 	} catch (err) {
-		rmSync(targetPath, { recursive: true, force: true });
+		await rollbackTargetDir(targetPath);
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Failed to clone repository: ${
@@ -407,7 +446,7 @@ export async function cloneRepoInto(
 		}
 		return await resolveLocalRepo(targetPath);
 	} catch (err) {
-		rmSync(targetPath, { recursive: true, force: true });
+		await rollbackTargetDir(targetPath);
 		throw err;
 	}
 }

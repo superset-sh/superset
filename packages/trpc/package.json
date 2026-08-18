@@ -15,17 +15,24 @@
 		"./automation-dispatch": {
 			"types": "./src/router/automation/dispatch.ts",
 			"default": "./src/router/automation/dispatch.ts"
+		},
+		"./insight-registry": {
+			"types": "./src/router/analytics/insight-registry.ts",
+			"default": "./src/router/analytics/insight-registry.ts"
 		}
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "0.78.0",
+		"@blaxel/core": "0.3.11",
 		"@linear/sdk": "68.1.1",
+		"@octokit/app": "16.1.2",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/server": "11.16.0",
@@ -36,9 +43,9 @@
 		"@vercel/kv": "3.0.0",
 		"drizzle-orm": "0.45.2",
 		"posthog-node": "5.28.8",
-		"resend": "4.8.0",
+		"resend": "6.18.0",
 		"superjson": "2.2.6",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

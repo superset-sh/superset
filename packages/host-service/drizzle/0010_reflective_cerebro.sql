@@ -1,0 +1,1 @@
+ALTER TABLE `terminal_sessions` ADD `dispose_requested_at` integer;

@@ -1,13 +1,19 @@
 import { db, dbWs } from "@superset/db/client";
 import { members, taskStatuses, tasks, users } from "@superset/db/schema";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
+import {
+	buildTaskListConditions,
+	buildTaskListOrderBy,
+	InvalidDueDateRangeError,
+	normalizeDueDateRange,
+} from "@superset/db/task-list-query";
 import { getCurrentTxid } from "@superset/db/utils";
 import {
 	generateBaseTaskSlug,
 	generateUniqueTaskSlug,
 } from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, lt, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -20,7 +26,9 @@ import {
 } from "../utils/org-resource-access";
 import {
 	createTaskSchema,
+	type TaskListFilterInput,
 	taskListInputSchema,
+	taskListPageInputSchema,
 	updateTaskSchema,
 } from "./schema";
 import { taskStatusesRouter } from "./statuses";
@@ -28,9 +36,6 @@ import { taskStatusesRouter } from "./statuses";
 const TASK_SLUG_CONSTRAINT = "tasks_org_slug_unique";
 const TASK_SLUG_RETRY_LIMIT = 5;
 
-function escapeLikePattern(value: string): string {
-	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
-}
 type DbWsTransaction = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
 type Executor = typeof dbWs | DbWsTransaction;
 
@@ -153,10 +158,12 @@ async function getScopedAssigneeId(
 					userId: members.userId,
 				})
 				.from(members)
+				.innerJoin(users, eq(members.userId, users.id))
 				.where(
 					and(
 						eq(members.organizationId, organizationId),
 						eq(members.userId, assigneeId),
+						isNull(users.deletionRequestedAt),
 					),
 				)
 				.limit(1);
@@ -265,6 +272,65 @@ async function createTask(
 	});
 }
 
+function selectTaskListRows() {
+	const assignee = alias(users, "assignee");
+	const creator = alias(users, "creator");
+	const status = alias(taskStatuses, "status");
+
+	return db
+		.select({
+			task: tasks,
+			assignee: {
+				id: assignee.id,
+				name: assignee.name,
+				image: assignee.image,
+			},
+			creator: {
+				id: creator.id,
+				name: creator.name,
+				image: creator.image,
+			},
+			statusName: status.name,
+		})
+		.from(tasks)
+		.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
+		.leftJoin(creator, eq(tasks.creatorId, creator.id))
+		.leftJoin(status, eq(tasks.statusId, status.id));
+}
+
+function buildTaskListFilters(
+	organizationId: string,
+	userId: string,
+	input: TaskListFilterInput | null | undefined,
+) {
+	let dueDateRange: { from?: Date; to?: Date };
+	try {
+		dueDateRange = normalizeDueDateRange(
+			input?.dueDateFrom ?? undefined,
+			input?.dueDateTo ?? undefined,
+		);
+	} catch (error) {
+		if (error instanceof InvalidDueDateRangeError) {
+			throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+		}
+		throw error;
+	}
+
+	return buildTaskListConditions({
+		organizationId,
+		statusId: input?.statusId ?? undefined,
+		priority: input?.priority ?? undefined,
+		assigneeId: input?.assigneeMe ? userId : (input?.assigneeId ?? undefined),
+		creatorId: input?.creatorMe ? userId : undefined,
+		search: input?.search ?? undefined,
+		externalProjectId: input?.externalProjectId ?? undefined,
+		externalProjectName: input?.externalProjectName ?? undefined,
+		externalCycleId: input?.externalCycleId ?? undefined,
+		dueDateFrom: dueDateRange.from,
+		dueDateTo: dueDateRange.to,
+	});
+}
+
 export const taskRouter = {
 	statuses: taskStatusesRouter,
 
@@ -305,53 +371,59 @@ export const taskRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 
-			const assignee = alias(users, "assignee");
-			const creator = alias(users, "creator");
-			const status = alias(taskStatuses, "status");
+			const filters = buildTaskListFilters(
+				organizationId,
+				ctx.session.user.id,
+				input,
+			);
 
-			const filters = [
-				eq(tasks.organizationId, organizationId),
-				isNull(tasks.deletedAt),
-			];
-			if (input?.priority) filters.push(eq(tasks.priority, input.priority));
-			if (input?.statusId) filters.push(eq(tasks.statusId, input.statusId));
-			if (input?.assigneeMe) {
-				filters.push(eq(tasks.assigneeId, ctx.session.user.id));
-			} else if (input?.assigneeId) {
-				filters.push(eq(tasks.assigneeId, input.assigneeId));
-			}
-			if (input?.creatorMe) {
-				filters.push(eq(tasks.creatorId, ctx.session.user.id));
-			}
-			if (input?.search) {
-				filters.push(
-					ilike(tasks.title, `%${escapeLikePattern(input.search)}%`),
-				);
-			}
-
-			return db
-				.select({
-					task: tasks,
-					assignee: {
-						id: assignee.id,
-						name: assignee.name,
-						image: assignee.image,
-					},
-					creator: {
-						id: creator.id,
-						name: creator.name,
-						image: creator.image,
-					},
-					statusName: status.name,
-				})
-				.from(tasks)
-				.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
-				.leftJoin(creator, eq(tasks.creatorId, creator.id))
-				.leftJoin(status, eq(tasks.statusId, status.id))
+			return selectTaskListRows()
 				.where(and(...filters))
-				.orderBy(desc(tasks.createdAt))
+				.orderBy(
+					...buildTaskListOrderBy(
+						input?.sortBy ?? undefined,
+						input?.sortOrder ?? undefined,
+					),
+				)
 				.limit(input?.limit ?? 50)
 				.offset(input?.offset ?? 0);
+		}),
+
+	listPage: protectedProcedure
+		.input(taskListPageInputSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+
+			const filters = buildTaskListFilters(
+				organizationId,
+				ctx.session.user.id,
+				input,
+			);
+
+			if (input.cursor) {
+				const { createdAt, id } = input.cursor;
+				const keyset = or(
+					lt(tasks.createdAt, createdAt),
+					and(eq(tasks.createdAt, createdAt), lt(tasks.id, id)),
+				);
+				if (keyset) {
+					filters.push(keyset);
+				}
+			}
+
+			const rows = await selectTaskListRows()
+				.where(and(...filters))
+				.orderBy(desc(tasks.createdAt), desc(tasks.id))
+				.limit(input.limit + 1);
+
+			const items = rows.slice(0, input.limit);
+			const last = items.at(-1);
+			const nextCursor =
+				rows.length > input.limit && last
+					? { createdAt: last.task.createdAt, id: last.task.id }
+					: null;
+
+			return { items, nextCursor };
 		}),
 
 	byOrganization: protectedProcedure
@@ -402,6 +474,112 @@ export const taskRouter = {
 	create: protectedProcedure
 		.input(createTaskSchema)
 		.mutation(({ ctx, input }) => createTask(ctx, input)),
+
+	/**
+	 * Moves a task to the organization's first "started"-type status (e.g.
+	 * "In Progress") when work begins on it — a workspace is created from it
+	 * or an agent starts working. No-op unless the task is currently in a
+	 * "backlog"/"unstarted" status, so it never regresses tasks that are
+	 * already in progress or done. An unassigned task is assigned to the
+	 * acting user; an existing assignee (internal or external snapshot) is
+	 * never overwritten. Changes are pushed to the external provider
+	 * (Linear) via the regular sync path.
+	 */
+	start: protectedProcedure
+		.input(z.object({ id: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const result = await dbWs.transaction(async (tx) => {
+				const taskAccess = await getTaskAccess(
+					tx,
+					ctx.session.user.id,
+					input.id,
+				);
+
+				const [current] = await tx
+					.select({
+						statusId: tasks.statusId,
+						statusType: taskStatuses.type,
+						statusProvider: taskStatuses.externalProvider,
+						assigneeId: tasks.assigneeId,
+						assigneeExternalId: tasks.assigneeExternalId,
+					})
+					.from(tasks)
+					.innerJoin(taskStatuses, eq(tasks.statusId, taskStatuses.id))
+					.where(and(eq(tasks.id, input.id), isNull(tasks.deletedAt)))
+					.limit(1);
+
+				if (
+					!current ||
+					(current.statusType !== "backlog" &&
+						current.statusType !== "unstarted")
+				) {
+					return { task: null, txid: null };
+				}
+
+				// Stay within the status set the task already lives in (Linear
+				// statuses vs local defaults) so the transition is meaningful
+				// to the provider that owns the task's workflow.
+				const [startedStatus] = await tx
+					.select({ id: taskStatuses.id })
+					.from(taskStatuses)
+					.where(
+						and(
+							eq(taskStatuses.organizationId, taskAccess.organizationId),
+							eq(taskStatuses.type, "started"),
+							current.statusProvider
+								? eq(taskStatuses.externalProvider, current.statusProvider)
+								: isNull(taskStatuses.externalProvider),
+						),
+					)
+					.orderBy(asc(taskStatuses.position))
+					.limit(1);
+
+				if (!startedStatus) {
+					return { task: null, txid: null };
+				}
+
+				const unassigned =
+					current.assigneeId === null && current.assigneeExternalId === null;
+
+				// Compare-and-set on the observed status so a concurrent move to
+				// completed/canceled between the read and this write is never
+				// dragged back to started. No row updated = no-op.
+				const [task] = await tx
+					.update(tasks)
+					.set({
+						statusId: startedStatus.id,
+						...(unassigned ? { assigneeId: ctx.session.user.id } : {}),
+					})
+					.where(
+						and(
+							eq(tasks.id, input.id),
+							eq(tasks.statusId, current.statusId),
+							isNull(tasks.deletedAt),
+						),
+					)
+					.returning();
+
+				if (!task) {
+					return { task: null, txid: null };
+				}
+
+				const txid = await getCurrentTxid(tx);
+
+				return { task, txid };
+			});
+
+			if (result.task) {
+				const startedTaskId = result.task.id;
+				void syncTask(startedTaskId).catch((err) => {
+					console.warn(
+						`[task.start] failed to queue provider sync for task ${startedTaskId}:`,
+						err,
+					);
+				});
+			}
+
+			return result;
+		}),
 
 	update: protectedProcedure
 		.input(updateTaskSchema)

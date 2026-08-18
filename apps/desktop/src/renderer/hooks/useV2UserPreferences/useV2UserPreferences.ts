@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
+	type FolderTierMap,
 	type LinkAction,
 	type LinkTierMap,
 	V2_USER_PREFERENCES_ID,
@@ -17,12 +18,15 @@ export interface V2UserPreferencesApi {
 	setFileLinks: (next: LinkTierMap) => void;
 	setUrlLinks: (next: LinkTierMap) => void;
 	setSidebarFileLinks: (next: LinkTierMap) => void;
+	setFolderLinks: (next: FolderTierMap) => void;
 	setPortOpenAction: (next: LinkAction) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarTab: (next: RightSidebarTab) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
-	setShowPresetsBar: (next: boolean) => void;
+	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
+	toggleShowPresetsBar: () => void;
+	setBuiltinPresetHidden: (presetId: string, hidden: boolean) => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -70,6 +74,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	const setSidebarFileLinks = useCallback(
 		(next: LinkTierMap) => upsertTierMap("sidebarFileLinks", next),
 		[upsertTierMap],
+	);
+
+	const setFolderLinks = useCallback(
+		(next: FolderTierMap) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					folderLinks: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.folderLinks = next;
+			});
+		},
+		[collections],
 	);
 
 	const setPortOpenAction = useCallback(
@@ -172,19 +195,58 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	);
 
 	const setShowPresetsBar = useCallback(
-		(next: boolean) => {
+		(next: boolean | ((prev: boolean) => boolean)) => {
 			const existing = collections.v2UserPreferences.get(
 				V2_USER_PREFERENCES_ID,
 			);
+			const prev =
+				existing?.showPresetsBar ?? DEFAULT_V2_USER_PREFERENCES.showPresetsBar;
+			const value = typeof next === "function" ? next(prev) : next;
 			if (!existing) {
 				collections.v2UserPreferences.insert({
 					...DEFAULT_V2_USER_PREFERENCES,
-					showPresetsBar: next,
+					showPresetsBar: value,
 				});
 				return;
 			}
 			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
-				draft.showPresetsBar = next;
+				draft.showPresetsBar = value;
+			});
+		},
+		[collections],
+	);
+
+	// Functional update reads the collection at write time, so back-to-back
+	// toggles can't act on a stale snapshot.
+	const toggleShowPresetsBar = useCallback(() => {
+		setShowPresetsBar((prev) => !prev);
+	}, [setShowPresetsBar]);
+
+	const setBuiltinPresetHidden = useCallback(
+		(presetId: string, hidden: boolean) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			const prev =
+				existing?.hiddenBuiltinPresetIds ??
+				DEFAULT_V2_USER_PREFERENCES.hiddenBuiltinPresetIds;
+			const next = hidden
+				? prev.includes(presetId)
+					? prev
+					: [...prev, presetId]
+				: prev.includes(presetId)
+					? prev.filter((id) => id !== presetId)
+					: prev;
+			if (next === prev) return;
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					hiddenBuiltinPresetIds: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.hiddenBuiltinPresetIds = next;
 			});
 		},
 		[collections],
@@ -195,11 +257,14 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setFileLinks,
 		setUrlLinks,
 		setSidebarFileLinks,
+		setFolderLinks,
 		setPortOpenAction,
 		setRightSidebarOpen,
 		setRightSidebarTab,
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
+		toggleShowPresetsBar,
+		setBuiltinPresetHidden,
 	};
 }

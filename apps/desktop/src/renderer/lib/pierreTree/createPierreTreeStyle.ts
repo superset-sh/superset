@@ -1,5 +1,24 @@
 import type { CSSProperties } from "react";
 
+/**
+ * `unsafeCSS` for the file trees. Pierre keeps an empty decoration lane
+ * (`flex: 1 1 0`) on every row whenever the git lane is active but the row has
+ * no custom decoration (every file in the Files-tab explorer, plus any change
+ * with no `+/−` summary). That empty lane grows to fill the row and starves the
+ * name column, so Pierre's truncation grid middle-truncates names that easily
+ * fit (`CLAUDE.md` → `CLAUD…d`). Let the name column take the free space and the
+ * decoration hug its own content instead. Pierre wraps this in `@layer unsafe`,
+ * which overrides its `@layer base` by cascade order — no `!important` needed.
+ */
+export const PIERRE_TREE_UNSAFE_CSS = `
+	[data-item-section="content"] {
+		flex: 1 1 auto;
+	}
+	[data-item-section="decoration"] {
+		flex: 0 1 auto;
+	}
+`;
+
 interface PierreTreeStyleOptions {
 	/** Row height in px — keep in sync with the model's `itemHeight`. */
 	rowHeight: number;

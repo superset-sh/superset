@@ -4,7 +4,9 @@ import {
 	generateCommandHelp,
 	generateGroupHelp,
 	generateRootHelp,
+	type HelpBranding,
 } from "./help";
+import { runInteractiveHelp } from "./interactive-help";
 import type { MiddlewareFn } from "./middleware";
 import type { GenericBuilderInternals, ProcessedBuilderConfig } from "./option";
 import { formatOutput } from "./output";
@@ -27,6 +29,7 @@ export interface RunOptions {
 	version: string;
 	tree: CommandTree;
 	globals?: Record<string, GenericBuilderInternals>;
+	help?: HelpBranding;
 }
 
 export async function run(opts: RunOptions): Promise<void> {
@@ -67,11 +70,13 @@ function formatZodIssues(message: string): string | null {
 	return lines.join("\n");
 }
 
-function handleError(error: unknown, cliName: string): never {
+/** Exported for tests. */
+export function formatError(
+	error: unknown,
+	cliName: string,
+): { message: string; hint?: string } {
 	if (error instanceof CLIError) {
-		process.stderr.write(`Error: ${error.message}\n`);
-		if (error.suggestion) process.stderr.write(`Hint: ${error.suggestion}\n`);
-		process.exit(1);
+		return { message: error.message, hint: error.suggestion };
 	}
 	if (error instanceof Error) {
 		const trpcError = error as Error & {
@@ -80,25 +85,33 @@ function handleError(error: unknown, cliName: string): never {
 		};
 		const code = trpcError.data?.code ?? trpcError.code;
 		if (code === "UNAUTHORIZED") {
-			process.stderr.write(
-				`Error: Session expired\nHint: Run: ${cliName} auth login\n`,
-			);
-		} else if (code === "NOT_FOUND") {
-			process.stderr.write("Error: Not found\n");
-		} else if (
-			code === "FETCH_ERROR" ||
-			error.message.includes("fetch failed")
-		) {
-			process.stderr.write(
-				"Error: Could not connect to API\nHint: Is the API running?\n",
-			);
-		} else {
-			const formatted = formatZodIssues(error.message);
-			process.stderr.write(`Error: ${formatted ?? error.message}\n`);
+			return {
+				message: "Session expired",
+				hint: `Run: ${cliName} auth login`,
+			};
 		}
-		process.exit(1);
+		if (code === "NOT_FOUND") {
+			// The server's message names the missing resource ("Host not
+			// found") — blanking it left users with no way to tell which of
+			// several ids a command resolves was rejected (issue #6415).
+			return { message: error.message || "Not found" };
+		}
+		if (code === "FETCH_ERROR" || error.message.includes("fetch failed")) {
+			return {
+				message: "Could not connect to API",
+				hint: "Is the API running?",
+			};
+		}
+		const formatted = formatZodIssues(error.message);
+		return { message: formatted ?? error.message };
 	}
-	process.stderr.write(`Error: ${String(error)}\n`);
+	return { message: String(error) };
+}
+
+function handleError(error: unknown, cliName: string): never {
+	const { message, hint } = formatError(error, cliName);
+	process.stderr.write(`Error: ${message}\n`);
+	if (hint) process.stderr.write(`Hint: ${hint}\n`);
 	process.exit(1);
 }
 
@@ -201,12 +214,40 @@ async function execute(
 	opts: RunOptions,
 	loaded: CommandTree,
 	signal: AbortSignal,
+	argsOverride?: string[],
 ): Promise<void> {
-	const args = process.argv.slice(2);
+	const args = argsOverride ?? process.argv.slice(2);
 	const { name, version } = opts;
 	const { middleware } = loaded;
 	const globalConfigs = processGlobals(opts.globals);
 	const { root, commandMap } = buildTree(loaded.groups, loaded.commands);
+
+	// EXPERIMENT: bare invocation on a TTY opens the interactive help browser
+	// instead of dumping static help. Agents/CI keep the static output.
+	if (
+		args.length === 0 &&
+		process.stdin.isTTY === true &&
+		process.stdout.isTTY === true &&
+		!isAgentMode()
+	) {
+		const result = await runInteractiveHelp({
+			name,
+			version,
+			root,
+			globals: globalConfigs,
+			branding: opts.help,
+			signal,
+			populateLeaf: (path, node) => {
+				const cmd = commandMap.get(path.join("/"));
+				if (cmd) populateNodeForHelp(node, cmd);
+			},
+		});
+		if (result.runArgs) {
+			console.log("");
+			return execute(opts, loaded, signal, result.runArgs);
+		}
+		return;
+	}
 
 	// Help
 	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
@@ -214,7 +255,9 @@ async function execute(
 		const { segments } = splitArgsForRouting(cleanArgs, globalConfigs);
 		const routeResult = routeCommand(root, segments);
 		if (routeResult.commandPath.length === 0) {
-			console.log(generateRootHelp(name, version, root, globalConfigs));
+			console.log(
+				generateRootHelp(name, version, root, globalConfigs, opts.help),
+			);
 			return;
 		}
 		const cmd = commandMap.get(routeResult.commandPath.join("/"));
@@ -251,7 +294,9 @@ async function execute(
 	}
 
 	if (commandPath.length === 0) {
-		console.log(generateRootHelp(name, version, root, globalConfigs));
+		console.log(
+			generateRootHelp(name, version, root, globalConfigs, opts.help),
+		);
 		return;
 	}
 

@@ -1,5 +1,4 @@
-import posthog from "posthog-js";
-
+import { withPosthog } from "./lazy";
 import { trackReddit } from "./reddit";
 
 /**
@@ -16,7 +15,7 @@ export function track(
 	event: string,
 	properties?: Record<string, unknown>,
 ): void {
-	posthog.capture(event, properties);
+	withPosthog((posthog) => posthog.capture(event, properties));
 
 	const redditEvent = REDDIT_EVENT_MAP[event];
 	if (redditEvent) {

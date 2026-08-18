@@ -19,7 +19,10 @@ export async function resolveAuth(
 ): Promise<ResolvedAuth> {
 	let config = readConfig();
 
-	const overrideKey = apiKeyOption?.trim();
+	// An explicit --api-key wins; otherwise SUPERSET_API_KEY env acts as an
+	// override for this invocation (headless/CI). Both beat stored config/OAuth.
+	const overrideKey =
+		apiKeyOption?.trim() || process.env.SUPERSET_API_KEY?.trim();
 	let bearer: string | undefined;
 	let authSource: AuthSource;
 
@@ -61,9 +64,14 @@ export async function resolveAuth(
 		);
 	}
 
-	const api = createApiClient({
-		bearer,
-		organizationId: config.organizationId,
-	});
-	return { config, api, bearer, authSource };
+	// SUPERSET_ORGANIZATION_ID overrides the stored org for this invocation
+	// (headless/CI, and dev where the CLI must target a specific local org),
+	// mirroring how SUPERSET_API_KEY overrides the stored credential. Not
+	// persisted to disk.
+	const organizationId =
+		process.env.SUPERSET_ORGANIZATION_ID?.trim() || config.organizationId;
+	const resolvedConfig: SupersetConfig = { ...config, organizationId };
+
+	const api = createApiClient({ bearer, organizationId });
+	return { config: resolvedConfig, api, bearer, authSource };
 }

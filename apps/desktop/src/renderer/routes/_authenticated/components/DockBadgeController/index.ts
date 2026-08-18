@@ -1,0 +1,1 @@
+export { DockBadgeController } from "./DockBadgeController";

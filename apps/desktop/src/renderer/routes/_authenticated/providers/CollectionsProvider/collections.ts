@@ -1,41 +1,5 @@
-import {
-	FetchError,
-	type ShapeStreamOptions,
-	snakeCamelMapper,
-} from "@electric-sql/client";
-import type {
-	SelectAgentCommand,
-	SelectAutomation,
-	SelectAutomationRun,
-	SelectChatSession,
-	SelectGithubPullRequest,
-	SelectGithubRepository,
-	SelectIntegrationConnection,
-	SelectInvitation,
-	SelectMember,
-	SelectOrganization,
-	SelectProject,
-	SelectSubscription,
-	SelectTask,
-	SelectTaskStatus,
-	SelectTeam,
-	SelectTeamMember,
-	SelectUser,
-	SelectV2Client,
-	SelectV2Host,
-	SelectV2Project,
-	SelectV2UsersHosts,
-	SelectV2Workspace,
-	SelectWorkspace,
-} from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
-import type { AppRouter } from "@superset/trpc";
 import { BasicIndex } from "@tanstack/db";
-import { electricCollectionOptions } from "@tanstack/electric-db-collection";
-import {
-	createElectronSQLitePersistence,
-	persistedCollectionOptions,
-} from "@tanstack/electron-db-sqlite-persistence";
 import type {
 	Collection,
 	LocalStorageCollectionUtils,
@@ -44,18 +8,9 @@ import {
 	createCollection,
 	localStorageCollectionOptions,
 } from "@tanstack/react-db";
-import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
-import { env } from "renderer/env.renderer";
-import {
-	authClient,
-	getAuthToken,
-	getJwt,
-	setJwt,
-} from "renderer/lib/auth-client";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import superjson from "superjson";
-import { z } from "zod";
+import { reclaimTerminalStateForQuota } from "renderer/lib/terminal/terminal-buffer-gc";
+import type { z } from "zod";
 import {
 	type DashboardSidebarProjectRow,
 	type DashboardSidebarSectionRow,
@@ -73,18 +28,10 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { evictInactiveOrgs } from "./evictInactiveOrgs";
+import { notifyQuotaExhausted } from "./notifyQuotaExhausted";
+import { withQuotaGuard } from "./withQuotaGuard";
 import { withReadHeal } from "./withReadHeal";
-
-const columnMapper = snakeCamelMapper();
-
-const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
-
-export const ELECTRIC_WRITE_SYNC_TIMEOUT_MS = 30_000;
-
-function electricTxidMatch(txid: unknown) {
-	if (typeof txid !== "number") return undefined;
-	return { txid, timeout: ELECTRIC_WRITE_SYNC_TIMEOUT_MS };
-}
 
 type HostWorkspacesCreateResult =
 	inferRouterOutputs<HostServiceAppRouter>["workspaces"]["create"];
@@ -95,10 +42,6 @@ export interface WorkspaceCreateMutationMetadata {
 	result?: HostWorkspacesCreateResult;
 	[key: string]: unknown;
 }
-
-const persistence = createElectronSQLitePersistence({
-	invoke: (channel, request) => window.ipcRenderer.invoke(channel, request),
-});
 
 const indexDefaults = {
 	autoIndex: "eager",
@@ -111,60 +54,34 @@ const createIndexedCollection = ((
 ) =>
 	createCollection({ ...config, ...indexDefaults })) as typeof createCollection;
 
-type ElectricSyncConfig = ReturnType<typeof electricCollectionOptions>;
-const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
-	const persisted = persistedCollectionOptions({
-		...config,
-		persistence,
-		schemaVersion: 1,
-		// biome-ignore lint/suspicious/noExplicitAny: forces sync-wrapped overload
-	} as any);
-	return createCollection({
-		...persisted,
-		...indexDefaults,
-		// biome-ignore lint/suspicious/noExplicitAny: persisted utils widen generics
-	} as any);
-}) as unknown as typeof createCollection;
-
-const apiKeyDisplaySchema = z.object({
-	id: z.string(),
-	name: z.string().nullable(),
-	start: z.string().nullable(),
-	createdAt: z.coerce.date(),
-	lastRequest: z.coerce.date().nullable(),
-});
-
-type ApiKeyDisplay = z.infer<typeof apiKeyDisplaySchema>;
-
-type IntegrationConnectionDisplay = Omit<
-	SelectIntegrationConnection,
-	"accessToken" | "refreshToken"
->;
+/**
+ * Applied to every localStorage-backed collection:
+ * - `startSync: true` + `gcTime: 0`: hydrate at construction, never GC. The
+ *   sidebar mutation helpers read `.state` non-reactively, and a write into a
+ *   not-yet-hydrated (or GC'd) collection rewrites the whole storage key from
+ *   empty memory — erasing every persisted row for the org.
+ * - `withReadHeal`: per-row tolerant reads — one malformed entry escaping to
+ *   the library's hydration catch-all would blank the entire store.
+ * - `withQuotaGuard`: an exhausted store drops the write instead of throwing,
+ *   which is what stops the rollback/retry loop that freezes the renderer.
+ */
+const hardenLocalCollection = <T>(
+	options: T,
+	heal?: (raw: unknown) => unknown,
+): T =>
+	withQuotaGuard(
+		withReadHeal({ ...options, startSync: true, gcTime: 0 } as T, heal),
+		{
+			// Oldest-first by the terminal GC's persisted-at index (24h pressure TTL)
+			// — survives relaunches, unlike registry membership.
+			reclaim: () => reclaimTerminalStateForQuota(),
+			// Not passed by reference: the guard's second argument is the error, which
+			// would land in the notice's optional `mode` slot.
+			onPersistFailed: (storageKey) => notifyQuotaExhausted(storageKey),
+		},
+	);
 
 export interface OrgCollections {
-	tasks: Collection<SelectTask>;
-	taskStatuses: Collection<SelectTaskStatus>;
-	projects: Collection<SelectProject>;
-	v2Hosts: Collection<SelectV2Host>;
-	v2Clients: Collection<SelectV2Client>;
-	v2UsersHosts: Collection<SelectV2UsersHosts>;
-	v2Projects: Collection<SelectV2Project>;
-	v2Workspaces: Collection<SelectV2Workspace>;
-	workspaces: Collection<SelectWorkspace>;
-	members: Collection<SelectMember>;
-	users: Collection<SelectUser>;
-	invitations: Collection<SelectInvitation>;
-	teams: Collection<SelectTeam>;
-	teamMembers: Collection<SelectTeamMember>;
-	agentCommands: Collection<SelectAgentCommand>;
-	integrationConnections: Collection<IntegrationConnectionDisplay>;
-	subscriptions: Collection<SelectSubscription>;
-	apiKeys: Collection<ApiKeyDisplay>;
-	chatSessions: Collection<SelectChatSession>;
-	githubRepositories: Collection<SelectGithubRepository>;
-	githubPullRequests: Collection<SelectGithubPullRequest>;
-	automations: Collection<SelectAutomation>;
-	automationRuns: Collection<SelectAutomationRun>;
 	v2SidebarProjects: Collection<
 		DashboardSidebarProjectRow,
 		string,
@@ -216,582 +133,19 @@ function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
 }
 
-// Singleton API client with dynamic auth headers
-const apiClient = createTRPCProxyClient<AppRouter>({
-	links: [
-		httpBatchLink({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-			headers: () => {
-				const token = getAuthToken();
-				return token ? { Authorization: `Bearer ${token}` } : {};
-			},
-			transformer: superjson,
-		}),
-	],
-});
-
-const electricHeaders = {
-	Authorization: () => {
-		const token = getJwt();
-		return token ? `Bearer ${token}` : "";
-	},
-};
-
-type ElectricSyncErrorHandler = NonNullable<ShapeStreamOptions["onError"]>;
-
-const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
-	if (error instanceof FetchError && error.status === 401) {
-		try {
-			const result = await authClient.token();
-			if (result.data?.token) {
-				setJwt(result.data.token);
-			}
-		} catch (refreshError) {
-			console.error("[collections] JWT refresh after 401 failed", refreshError);
-		}
-	} else {
-		console.error("[collections] Electric sync error", error);
-	}
-	return {};
-};
-
-const organizationsCollection = createPersistedElectricCollection(
-	electricCollectionOptions<SelectOrganization>({
-		id: "organizations",
-		shapeOptions: {
-			url: electricUrl,
-			params: { table: "auth.organizations" },
-			headers: electricHeaders,
-			columnMapper,
-			onError: handleElectricSyncError,
-		},
-		getKey: (item) => item.id,
-	}),
-);
-
 function createOrgCollections(organizationId: string): OrgCollections {
-	const tasks = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTask>({
-			id: `tasks-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "tasks",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const result = await apiClient.task.update.mutate({
-					...changes,
-					id: original.id,
-				});
-				return electricTxidMatch(result.txid);
-			},
-			onDelete: async ({ transaction }) => {
-				const item = transaction.mutations[0].original;
-				const result = await apiClient.task.delete.mutate(item.id);
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-
-	const taskStatuses = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTaskStatus>({
-			id: `task_statuses-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "task_statuses",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectProject>({
-			id: `projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const v2Projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Project>({
-			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const githubRepositoryId =
-					changes.githubRepositoryId === null &&
-					changes.repoCloneUrl !== undefined
-						? undefined
-						: changes.githubRepositoryId;
-				const result = await apiClient.v2Project.update.mutate({
-					id: original.id,
-					name: changes.name,
-					slug: changes.slug,
-					repoCloneUrl: changes.repoCloneUrl,
-					githubRepositoryId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2Projects.createIndex(
-		(project) => project.githubRepositoryId,
-		basicIndexConfig,
-	);
-
-	const v2Hosts = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Host>({
-			id: `v2_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			// Composite PK on (organization_id, machine_id); within an
-			// org-scoped collection, machineId alone is unique.
-			getKey: (item) => item.machineId,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				if (changes.name === undefined) {
-					throw new Error("Only name updates are supported on v2_hosts");
-				}
-				const result = await apiClient.v2Host.rename.mutate({
-					hostId: original.machineId,
-					name: changes.name,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2Hosts.createIndex((host) => host.machineId, basicIndexConfig);
-
-	const v2Clients = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Client>({
-			id: `v2_clients-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_clients",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			// Composite PK on (organization_id, user_id, machine_id); within
-			// an org-scoped collection, (user_id, machine_id) is unique.
-			getKey: (item) => `${item.userId}:${item.machineId}`,
-		}),
-	);
-
-	const v2UsersHosts = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2UsersHosts>({
-			id: `v2_users_hosts-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_users_hosts",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => `${item.userId}:${item.hostId}`,
-			onInsert: async ({ transaction }) => {
-				const item = transaction.mutations[0].modified;
-				const result = await apiClient.v2Host.addMember.mutate({
-					hostId: item.hostId,
-					userId: item.userId,
-					role: item.role,
-				});
-				return electricTxidMatch(result.txid);
-			},
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				if (changes.role === undefined) {
-					throw new Error("Only role updates are supported on v2_users_hosts");
-				}
-				const result = await apiClient.v2Host.setMemberRole.mutate({
-					hostId: original.hostId,
-					userId: original.userId,
-					role: changes.role,
-				});
-				return electricTxidMatch(result.txid);
-			},
-			onDelete: async ({ transaction }) => {
-				const item = transaction.mutations[0].original;
-				const result = await apiClient.v2Host.removeMember.mutate({
-					hostId: item.hostId,
-					userId: item.userId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2UsersHosts.createIndex((userHost) => userHost.hostId, basicIndexConfig);
-	v2UsersHosts.createIndex((userHost) => userHost.userId, basicIndexConfig);
-
-	const v2Workspaces = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Workspace>({
-			id: `v2_workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const metadata = transaction.mutations[0]
-					.metadata as WorkspaceCreateMutationMetadata;
-				const client = getHostServiceClientByUrl(metadata.hostUrl);
-				const result = await client.workspaces.create.mutate(metadata.input);
-				metadata.result = result;
-				return electricTxidMatch(result.txid);
-			},
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const { branch, hostId, name, taskId } = changes;
-				const result = await apiClient.v2Workspace.update.mutate({
-					id: original.id,
-					branch,
-					hostId,
-					name,
-					taskId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2Workspaces.createIndex((workspace) => workspace.hostId, basicIndexConfig);
-	v2Workspaces.createIndex(
-		(workspace) => workspace.projectId,
-		basicIndexConfig,
-	);
-	v2Workspaces.createIndex((workspace) => workspace.type, basicIndexConfig);
-
-	const workspaces = createPersistedElectricCollection(
-		electricCollectionOptions<SelectWorkspace>({
-			id: `workspaces-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "workspaces",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const members = createPersistedElectricCollection(
-		electricCollectionOptions<SelectMember>({
-			id: `members-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.members",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const users = createPersistedElectricCollection(
-		electricCollectionOptions<SelectUser>({
-			id: `users-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.users",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const invitations = createPersistedElectricCollection(
-		electricCollectionOptions<SelectInvitation>({
-			id: `invitations-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.invitations",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const teams = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTeam>({
-			id: `teams-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.teams",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const teamMembers = createPersistedElectricCollection(
-		electricCollectionOptions<SelectTeamMember>({
-			id: `team-members-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.team_members",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const agentCommands = createPersistedElectricCollection(
-		electricCollectionOptions<SelectAgentCommand>({
-			id: `agent_commands-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "agent_commands",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const result = await apiClient.agent.updateCommand.mutate({
-					...changes,
-					id: original.id,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-
-	const integrationConnections = createPersistedElectricCollection(
-		electricCollectionOptions<IntegrationConnectionDisplay>({
-			id: `integration_connections-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "integration_connections",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const subscriptions = createPersistedElectricCollection(
-		electricCollectionOptions<SelectSubscription>({
-			id: `subscriptions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "subscriptions",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const apiKeys = createPersistedElectricCollection(
-		electricCollectionOptions<ApiKeyDisplay>({
-			id: `apikeys-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "auth.apikeys",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const chatSessions = createPersistedElectricCollection(
-		electricCollectionOptions<SelectChatSession>({
-			id: `chat_sessions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "chat_sessions",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onDelete: async ({ transaction }) => {
-				const item = transaction.mutations[0].original;
-				const result = await apiClient.chat.deleteSession.mutate({
-					sessionId: item.id,
-				});
-				if (!result.deleted) {
-					throw new Error("Chat session was not deleted");
-				}
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-
-	const githubRepositories = createPersistedElectricCollection(
-		electricCollectionOptions<SelectGithubRepository>({
-			id: `github_repositories-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "github_repositories",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const githubPullRequests = createPersistedElectricCollection(
-		electricCollectionOptions<SelectGithubPullRequest>({
-			id: `github_pull_requests-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "github_pull_requests",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const automations = createPersistedElectricCollection(
-		electricCollectionOptions<SelectAutomation>({
-			id: `automations-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "automations",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
-	const automationRuns = createPersistedElectricCollection(
-		electricCollectionOptions<SelectAutomationRun>({
-			id: `automation_runs-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "automation_runs",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
 	const v2SidebarProjects = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_sidebar_projects-${organizationId}`,
-			storageKey: `v2-sidebar-projects-${organizationId}`,
-			schema: dashboardSidebarProjectSchema,
-			getKey: (item) => item.projectId,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_projects-${organizationId}`,
+				storageKey: `v2-sidebar-projects-${organizationId}`,
+				schema: dashboardSidebarProjectSchema,
+				// Explicit type for the same reason `withReadHeal` needs one: a
+				// passthrough generic drops the contextual typing that would
+				// otherwise narrow the key to string.
+				getKey: (item: DashboardSidebarProjectRow) => item.projectId,
+			}),
+		),
 	);
 	v2SidebarProjects.createIndex(
 		(sidebarProject) => sidebarProject.tabOrder,
@@ -800,7 +154,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 
 	const v2WorkspaceLocalState = createIndexedCollection(
 		localStorageCollectionOptions(
-			withReadHeal(
+			hardenLocalCollection(
 				{
 					id: `v2_workspace_local_state-${organizationId}`,
 					storageKey: `v2-workspace-local-state-${organizationId}`,
@@ -827,12 +181,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2SidebarSections = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_sidebar_sections-${organizationId}`,
-			storageKey: `v2-sidebar-sections-${organizationId}`,
-			schema: dashboardSidebarSectionSchema,
-			getKey: (item) => item.sectionId,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_sections-${organizationId}`,
+				storageKey: `v2-sidebar-sections-${organizationId}`,
+				schema: dashboardSidebarSectionSchema,
+				getKey: (item: DashboardSidebarSectionRow) => item.sectionId,
+			}),
+		),
 	);
 	v2SidebarSections.createIndex(
 		(section) => section.projectId,
@@ -844,17 +200,19 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2TerminalPresets = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_terminal_presets-${organizationId}`,
-			storageKey: `v2-terminal-presets-${organizationId}`,
-			schema: v2TerminalPresetSchema,
-			getKey: (item) => item.id,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_terminal_presets-${organizationId}`,
+				storageKey: `v2-terminal-presets-${organizationId}`,
+				schema: v2TerminalPresetSchema,
+				getKey: (item: V2TerminalPresetRow) => item.id,
+			}),
+		),
 	);
 
 	const v2UserPreferences = createCollection(
 		localStorageCollectionOptions(
-			withReadHeal(
+			hardenLocalCollection(
 				{
 					id: `v2_user_preferences-${organizationId}`,
 					storageKey: `v2-user-preferences-${organizationId}`,
@@ -871,38 +229,17 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const failedWorkspaceCreates = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `failed_workspace_creates-${organizationId}`,
-			storageKey: `failed-workspace-creates-${organizationId}`,
-			schema: failedWorkspaceCreateSchema,
-			getKey: (item) => item.id,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `failed_workspace_creates-${organizationId}`,
+				storageKey: `failed-workspace-creates-${organizationId}`,
+				schema: failedWorkspaceCreateSchema,
+				getKey: (item: FailedWorkspaceCreateRow) => item.id,
+			}),
+		),
 	);
 
 	return {
-		tasks,
-		taskStatuses,
-		projects,
-		v2Hosts,
-		v2Clients,
-		v2UsersHosts,
-		v2Projects,
-		v2Workspaces,
-		workspaces,
-		members,
-		users,
-		invitations,
-		teams,
-		teamMembers,
-		agentCommands,
-		integrationConnections,
-		subscriptions,
-		apiKeys,
-		chatSessions,
-		githubRepositories,
-		githubPullRequests,
-		automations,
-		automationRuns,
 		v2SidebarProjects,
 		v2WorkspaceLocalState,
 		v2SidebarSections,
@@ -913,32 +250,27 @@ function createOrgCollections(organizationId: string): OrgCollections {
 }
 
 /**
- * Preload collections for an organization by starting Electric sync.
- * Collections are lazy — they don't fetch data until subscribed or preloaded.
- * Call this eagerly so data is ready when the user switches orgs.
+ * Warm every collection of an organization. localStorage collections hydrate
+ * at construction (`startSync: true`); preload just surfaces failures early.
  */
 export async function preloadCollections(
 	organizationId: string,
 ): Promise<void> {
 	const collections = getCollections(organizationId);
-	const collectionsToPreload = Object.entries(collections)
-		.filter(([name]) => name !== "organizations")
-		.map(([, collection]) => collection as Collection<object>);
-
-	await Promise.allSettled(
-		collectionsToPreload.map((c) => (c as Collection<object>).preload()),
-	);
+	for (const [name, collection] of Object.entries(collections)) {
+		(collection as Collection<object>).preload().catch((error) => {
+			console.error(`[collections] Preload failed: ${name}`, error);
+		});
+	}
 }
 
 /**
  * Get collections for an organization, creating them if needed.
  * Collections are cached per org for instant switching.
- * Auth token is read dynamically via getAuthToken() - no need to pass it.
  */
 export function getCollections(organizationId: string) {
 	const cacheKey = getCollectionsCacheKey(organizationId);
 
-	// Get or create org-specific collections
 	if (!collectionsCache.has(cacheKey)) {
 		collectionsCache.set(cacheKey, createOrgCollections(organizationId));
 	}
@@ -948,10 +280,30 @@ export function getCollections(organizationId: string) {
 		throw new Error(`Collections not found for org: ${organizationId}`);
 	}
 
-	return {
-		...orgCollections,
-		organizations: organizationsCollection,
-	};
+	return { ...orgCollections };
+}
+
+/**
+ * Evict the collection sets of every cached org except `activeOrganizationId`,
+ * stopping their localStorage sync, clearing their in-memory rows, and
+ * dropping them from the cache. Call this when the active org changes so
+ * prior orgs stop holding their rows in the heap. Recovery is handled by
+ * `getCollections`, which rebuilds fresh instances (rehydrating from the
+ * untouched persisted rows) when an evicted org is re-entered.
+ */
+export function evictInactiveOrgCollections(
+	activeOrganizationId: string,
+): void {
+	evictInactiveOrgs(
+		collectionsCache as unknown as Map<string, Record<string, unknown>>,
+		getCollectionsCacheKey(activeOrganizationId),
+		(orgKey, collectionName, error) => {
+			console.error(
+				`[collections] Failed to clean up evicted collection ${collectionName} for org ${orgKey}`,
+				error,
+			);
+		},
+	);
 }
 
 export type AppCollections = ReturnType<typeof getCollections>;

@@ -52,17 +52,16 @@ export const NavigationMobile = () => {
 		>
 			<div
 				className={cn(
-					"px-4 min-h-0 overflow-y-auto max-h-[80vh] divide-y transition-all duration-300",
+					"px-5 min-h-0 overflow-y-auto max-h-[80vh] space-y-6 transition-all duration-300",
 					isOpen ? "py-5" : "invisible",
 				)}
 			>
 				{sections.map((section) => (
-					<div key={section.title} className="py-2">
-						<div className="flex items-center gap-2 mb-2">
-							<section.Icon style={{ width: "1.4em", height: "1.4em" }} />
-							<span className="font-medium">{section.title}</span>
-						</div>
-						<div className="pl-6 space-y-1">
+					<div key={section.title}>
+						<p className="mb-1 text-[13px] font-medium text-foreground">
+							{section.title}
+						</p>
+						<div className="space-y-0.5">
 							{section.items.map((item) => (
 								<Link
 									key={item.href}
@@ -70,7 +69,7 @@ export const NavigationMobile = () => {
 									onClick={toggleNavbar}
 									className={cn(
 										"block py-1.5 text-sm text-muted-foreground hover:text-foreground",
-										pathname === item.href && "text-foreground font-medium",
+										pathname === item.href && "text-foreground",
 									)}
 								>
 									{item.title}

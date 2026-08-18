@@ -1,4 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
+import { Spinner } from "@superset/ui/spinner";
 import type { inferRouterOutputs } from "@trpc/server";
 import { memo, useCallback, useState } from "react";
 import type {
@@ -10,6 +11,7 @@ import type { FoldSignal } from "../ChangesFileList";
 import { ChangesFileList } from "../ChangesFileList";
 import { ChangesHeader } from "../ChangesHeader";
 import { ChangesToolbar } from "../ChangesToolbar";
+import { shouldShowChangesLoading } from "./shouldShowChangesLoading";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
@@ -17,6 +19,7 @@ interface ChangesTabContentProps {
 	workspaceId: string;
 	status: {
 		data: RouterOutputs["git"]["getStatus"] | undefined;
+		isFetching: boolean;
 		isLoading: boolean;
 	};
 	commits: { data: RouterOutputs["git"]["listCommits"] | undefined };
@@ -31,11 +34,16 @@ interface ChangesTabContentProps {
 	totalDeletions: number;
 	worktreePath?: string;
 	selectedFilePath?: string;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 	onFilterChange: (filter: ChangesFilter) => void;
 	onViewModeChange: (viewMode: ChangesViewMode) => void;
+	onRefresh: () => void;
 	onBaseBranchChange: (branchName: string) => void;
 	onRenameBranch: (newName: string) => void;
 	canRenameBranch: boolean;
@@ -61,6 +69,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	onOpenInEditor,
 	onFilterChange,
 	onViewModeChange,
+	onRefresh,
 	onBaseBranchChange,
 	onRenameBranch,
 	canRenameBranch,
@@ -83,10 +92,11 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 		[],
 	);
 
-	if (status.isLoading) {
+	if (shouldShowChangesLoading(status)) {
 		return (
-			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Loading changes...
+			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+				<Spinner className="size-3.5" />
+				<span>Loading changes...</span>
 			</div>
 		);
 	}
@@ -101,30 +111,34 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
-			<ChangesHeader
-				currentBranch={status.data.currentBranch}
-				defaultBranchName={status.data.defaultBranch.name}
-				baseBranch={baseBranch}
-				branches={branches.data?.branches ?? []}
-				onBaseBranchChange={onBaseBranchChange}
-				onRenameBranch={onRenameBranch}
-				canRename={canRenameBranch}
-			/>
-			<ChangesToolbar
-				filter={filter}
-				onFilterChange={onFilterChange}
-				commits={commits.data?.commits ?? []}
-				uncommittedCount={
-					status.data.staged.length + status.data.unstaged.length
-				}
-				totalFiles={totalChanges}
-				totalAdditions={totalAdditions}
-				totalDeletions={totalDeletions}
-				viewMode={viewMode}
-				onViewModeChange={onViewModeChange}
-				collapsed={foldCollapsed}
-				onToggleFold={toggleFold}
-			/>
+			<div className="py-1.5">
+				<ChangesHeader
+					currentBranch={status.data.currentBranch}
+					defaultBranchName={status.data.defaultBranch.name}
+					baseBranch={baseBranch}
+					branches={branches.data?.branches ?? []}
+					onBaseBranchChange={onBaseBranchChange}
+					onRenameBranch={onRenameBranch}
+					canRename={canRenameBranch}
+				/>
+				<ChangesToolbar
+					filter={filter}
+					onFilterChange={onFilterChange}
+					commits={commits.data?.commits ?? []}
+					uncommittedCount={
+						status.data.staged.length + status.data.unstaged.length
+					}
+					totalFiles={totalChanges}
+					totalAdditions={totalAdditions}
+					totalDeletions={totalDeletions}
+					isRefreshing={status.isFetching}
+					viewMode={viewMode}
+					onViewModeChange={onViewModeChange}
+					onRefresh={onRefresh}
+					collapsed={foldCollapsed}
+					onToggleFold={toggleFold}
+				/>
+			</div>
 			<ChangesFileList
 				files={files}
 				workspaceId={workspaceId}

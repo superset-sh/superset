@@ -58,9 +58,7 @@ export function CommentPaneHeaderExtras({
 							<FaGithub className="size-3.5" />
 						</a>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Open on GitHub
-					</TooltipContent>
+					<TooltipContent side="bottom">Open on GitHub</TooltipContent>
 				</Tooltip>
 			)}
 			<Tooltip>
@@ -78,7 +76,7 @@ export function CommentPaneHeaderExtras({
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="bottom">
 					{copied ? "Copied" : "Copy comment"}
 				</TooltipContent>
 			</Tooltip>

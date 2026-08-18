@@ -1,22 +1,184 @@
-import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
-import { useDevicePresence } from "@/hooks/useDevicePresence";
-import { AuthenticatedTabBar } from "@/screens/(authenticated)/components/AuthenticatedTabBar";
-import { CollectionsProvider } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { isLiquidGlassAvailable } from "expo-glass-effect";
+import { Redirect, Stack, usePathname } from "expo-router";
+import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
+import { usePrimeRelayUrl } from "@/hooks/usePrimeRelayUrl";
+import { useSession } from "@/lib/auth/client";
+
+const settingsScreenOptions = (title: string) => ({
+	headerShown: true,
+	headerBackButtonDisplayMode: "minimal" as const,
+	headerShadowVisible: false,
+	title,
+});
+
+const glassHeaderOptions = {
+	headerShown: true,
+	headerTransparent: true,
+	headerLargeTitle: false,
+	headerBackButtonDisplayMode: "minimal",
+	headerShadowVisible: false,
+	...(isLiquidGlassAvailable()
+		? {}
+		: { headerBlurEffect: "systemUltraThinMaterial" as const }),
+	headerStyle: { backgroundColor: "transparent" },
+} as const;
 
 export default function AuthenticatedLayout() {
-	useDevicePresence();
+	usePrimeRelayUrl();
+
+	const { data: session } = useSession();
+	const pathname = usePathname();
+
+	// Unpaid sessions may only see home (which renders the paywall) and
+	// settings — App Review requires sign-out, org switching, and account
+	// deletion to stay reachable behind a gate.
+	const unpaid = !!session && !session.session.plan;
+	if (unpaid && pathname !== "/" && !pathname.startsWith("/settings")) {
+		return <Redirect href="/(authenticated)/(home)" />;
+	}
 
 	return (
-		<CollectionsProvider>
-			<Tabs>
-				<TabSlot style={{ flex: 1 }} />
-				<TabList style={{ display: "none" }}>
-					<TabTrigger name="(home)" href="/(home)" />
-					<TabTrigger name="(tasks)" href="/(tasks)" />
-					<TabTrigger name="(more)" href="/(more)" />
-				</TabList>
-				<AuthenticatedTabBar />
-			</Tabs>
-		</CollectionsProvider>
+		<PromptInputProvider>
+			<Stack screenOptions={{ headerShown: false }}>
+				{/* Root headers are hidden — `title` here only names routes in
+				    back-button long-press menus (otherwise raw route names leak,
+				    e.g. "(home)"). */}
+				<Stack.Screen name="(home)" options={{ title: "Home" }} />
+				{/* Sits above the home and workspace stacks alike — both composers
+				    open the same sheet into the shared PromptInputProvider tray. */}
+				<Stack.Screen
+					name="attachments"
+					options={{
+						presentation: "formSheet",
+						headerShown: false,
+						// Single detent: multi-detent resizes corrupt expo-image frames.
+						// Content (incl. the screenshots grid) is sized to fit 0.5.
+						sheetAllowedDetents: [0.5],
+						sheetGrabberVisible: true,
+					}}
+				/>
+				<Stack.Screen
+					name="settings/index"
+					options={settingsScreenOptions("Settings")}
+				/>
+				<Stack.Screen
+					name="settings/organization"
+					options={settingsScreenOptions("Organization")}
+				/>
+				<Stack.Screen
+					name="settings/hosts"
+					options={settingsScreenOptions("Hosts")}
+				/>
+				<Stack.Screen
+					name="settings/presets"
+					options={settingsScreenOptions("Agent presets")}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/chat/[sessionId]"
+					options={{ ...glassHeaderOptions, title: "Chat" }}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/index"
+					options={{
+						headerShown: true,
+						headerBackButtonDisplayMode: "minimal",
+						headerShadowVisible: false,
+						title: "Workspace",
+						fullScreenGestureEnabled: false,
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/diff"
+					options={{ ...glassHeaderOptions, title: "Changes" }}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/files-changed"
+					options={{
+						headerShown: true,
+						headerBackButtonDisplayMode: "minimal",
+						headerShadowVisible: false,
+						title: "Files changed",
+						fullScreenGestureEnabled: false,
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/file"
+					options={{
+						...glassHeaderOptions,
+						title: "",
+						fullScreenGestureEnabled: false,
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/commits"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.75],
+						sheetGrabberVisible: true,
+						...glassHeaderOptions,
+						title: "Commits",
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/line-comment"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.75],
+						sheetGrabberVisible: true,
+						...glassHeaderOptions,
+						title: "Add comment",
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/finish-review"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.75],
+						sheetGrabberVisible: true,
+						...glassHeaderOptions,
+						title: "Finish review",
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/actions"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.65],
+						sheetGrabberVisible: true,
+						headerShown: false,
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/sessions"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.5],
+						sheetGrabberVisible: true,
+						...glassHeaderOptions,
+						title: "Sessions",
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/new-session"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.5],
+						sheetGrabberVisible: true,
+						...glassHeaderOptions,
+						title: "New session",
+					}}
+				/>
+				<Stack.Screen
+					name="workspace/[id]/jump-to-file"
+					options={{
+						presentation: "formSheet",
+						sheetAllowedDetents: [0.75],
+						sheetGrabberVisible: true,
+						...glassHeaderOptions,
+						title: "Jump to file",
+					}}
+				/>
+			</Stack>
+		</PromptInputProvider>
 	);
 }

@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { getSearchIndex, invalidateAllSearchIndexes } from "./search";
+import {
+	getSearchIndex,
+	invalidateAllSearchIndexes,
+	invalidateSearchIndexesForRoot,
+} from "./search";
 
 /**
  * Verifies finding #2's fix from `plans/v2-paths-worktree-perf-fix-plan.md`:
@@ -155,5 +159,22 @@ describe("searchIndexCache LRU eviction", () => {
 		const after = await getSearchIndex({ rootPath, includeHidden: false });
 		expect(after).not.toBe(before);
 		expect(after.length).toBe(before.length);
+	});
+
+	it("invalidation during an in-flight build is not overwritten by the completing build", async () => {
+		const rootPath = await createTempWorktree(2);
+
+		// Start a build, then invalidate before it completes (as FSEvents
+		// overflow or root recovery would). The build must not cache its
+		// result — that index predates whatever triggered the invalidation.
+		const inFlight = getSearchIndex({ rootPath, includeHidden: false });
+		invalidateSearchIndexesForRoot(rootPath);
+		await inFlight;
+
+		// A file whose watcher event was "lost" (never patched into any index).
+		await fs.writeFile(path.join(rootPath, "post-overflow.ts"), "x");
+
+		const after = await getSearchIndex({ rootPath, includeHidden: false });
+		expect(after.map((item) => item.name)).toContain("post-overflow.ts");
 	});
 });

@@ -19,9 +19,9 @@ export function SidebarHeader({
 	const actions = tabs.find((t) => t.id === activeTab)?.actions;
 
 	return (
-		<div className="flex h-10 shrink-0 items-stretch border-b border-border">
-			<div className="flex min-w-0 items-center h-full overflow-hidden">
-				{tabs.map((tab) => {
+		<div className="flex h-10 shrink-0 items-stretch">
+			<div className="flex min-w-0 flex-1 items-center h-full overflow-hidden">
+				{tabs.map((tab, index) => {
 					const isActive = activeTab === tab.id;
 					const badge =
 						typeof tab.badge === "number" && tab.badge > 0
@@ -38,8 +38,11 @@ export function SidebarHeader({
 								getSidebarHeaderTabButtonClassName({
 									isActive,
 									compact,
+									inverted: true,
 								}),
-								"relative",
+								"relative flex-1 justify-center",
+								// The resizable panel already draws the sidebar's left edge.
+								index === 0 && "border-l-transparent",
 							)}
 						>
 							{tab.icon && <tab.icon className="size-3" />}
@@ -64,9 +67,7 @@ export function SidebarHeader({
 						return (
 							<Tooltip key={tab.id}>
 								<TooltipTrigger asChild>{btn}</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									{label}
-								</TooltipContent>
+								<TooltipContent side="bottom">{label}</TooltipContent>
 							</Tooltip>
 						);
 					}
@@ -74,7 +75,6 @@ export function SidebarHeader({
 					return btn;
 				})}
 			</div>
-			<div className="flex-1" />
 			{actions && (
 				<div className="flex shrink-0 items-center h-10 pr-2 gap-0.5">
 					{actions}

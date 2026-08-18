@@ -28,6 +28,7 @@ export type RowAction =
 			label: string;
 			candidates: ReadonlyArray<PickCandidate>;
 			onPick: (id: string) => void;
+			disabled?: boolean;
 	  }
 	| {
 			kind: "confirm";
@@ -36,6 +37,7 @@ export type RowAction =
 			cancelLabel?: string;
 			onConfirm: () => void;
 			onCancel: () => void;
+			disabled?: boolean;
 	  };
 
 interface ImportRowProps {
@@ -169,6 +171,7 @@ function RowActionView({ action }: { action: RowAction }) {
 						size="sm"
 						variant="ghost"
 						onClick={action.onCancel}
+						disabled={action.disabled}
 						className="h-7 px-2.5 text-[12px] font-medium"
 					>
 						{action.cancelLabel ?? "Cancel"}
@@ -178,6 +181,7 @@ function RowActionView({ action }: { action: RowAction }) {
 						size="sm"
 						variant="default"
 						onClick={action.onConfirm}
+						disabled={action.disabled}
 						className="h-7 px-2.5 text-[12px] font-medium"
 					>
 						{action.confirmLabel}
@@ -192,6 +196,7 @@ function RowActionView({ action }: { action: RowAction }) {
 							type="button"
 							size="sm"
 							variant="outline"
+							disabled={action.disabled}
 							className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
 						>
 							{action.label}

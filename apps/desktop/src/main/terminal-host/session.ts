@@ -12,16 +12,16 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import {
+	getCommandShellArgs,
+	getShellArgs,
+} from "@superset/agent-setup/shell-wrappers";
+import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
-import {
-	getCommandShellArgs,
-	getShellArgs,
-} from "../lib/agent-setup/shell-wrappers";
 import { raceWithAbort, throwIfAborted } from "../lib/terminal/abort";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { isTerminalAttachCanceledError } from "../lib/terminal/errors";
@@ -472,7 +472,13 @@ export class Session {
 
 		while (this.subprocessStdinQueue.length > 0) {
 			const buf = this.subprocessStdinQueue[0];
+			// write() buffers the chunk even when it returns false, so the chunk
+			// must leave our queue either way — re-sending it after 'drain'
+			// duplicates bytes and misaligns the frame stream (#6153).
 			const canWrite = this.subprocess.stdin.write(buf);
+			this.subprocessStdinQueue.shift();
+			this.subprocessStdinQueuedBytes -= buf.length;
+
 			if (!canWrite) {
 				if (!this.subprocessStdinDrainArmed) {
 					this.subprocessStdinDrainArmed = true;
@@ -483,9 +489,6 @@ export class Session {
 				}
 				return;
 			}
-
-			this.subprocessStdinQueue.shift();
-			this.subprocessStdinQueuedBytes -= buf.length;
 		}
 	}
 

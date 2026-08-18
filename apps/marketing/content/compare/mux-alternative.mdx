@@ -1,0 +1,100 @@
+---
+title: "Best Mux Alternatives in 2026"
+description: "The best alternatives to Mux (by Coder) for parallel agentic development, including Superset, Orca, Emdash, Sculptor, and Conductor."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "roundup"
+competitors:
+  - mux
+  - orca
+  - emdash
+  - sculptor
+  - conductor
+keywords:
+  - mux alternative
+  - mux alternatives
+  - coder mux alternative
+  - coding agent multiplexer
+  - parallel agentic development
+---
+
+Mux, from Coder, is an open-source "coding agent multiplexer": parallel sessions of its own agent loop across six isolation runtimes -- local, worktree, SSH, Docker, devcontainer, and Coder workspaces -- with budgets, best-of-N attempts, and headless runs. The catch is in "its own agent loop": Mux does not run Claude Code, Codex, or any external CLI agent, so adopting it means adopting its agent and API-key billing. If you want your existing agents and subscriptions, here are the best Mux alternatives in 2026.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Agents | License |
+|---|---|---|---|
+| **Superset** | Running the agents you already use, in one workspace | Any CLI agent | Source-available (ELv2) |
+| **Orca** | Free desktop ADE, 25+ agents, mobile apps | Any CLI agent | Open source (MIT) |
+| **Emdash** | Open-source ADE with tracker intake | 30+ providers | Open source (Apache-2.0) |
+| **Sculptor** | Container-isolated parallel agents | Claude Code | Open source |
+| **Conductor** | Focused Mac app | Claude Code, Codex, Cursor | Proprietary |
+
+## Why Look for a Mux Alternative?
+
+The main reason is agent lock-in: Mux's loop is capable, but it cannot run the vendor CLIs your team already uses, which also means Claude Max and ChatGPT subscription pricing does not apply -- everything bills as API tokens. Secondary reasons: review flows lean on manual git commands beyond the diff pane, there is no scheduled-automation product, remote access requires self-hosting a server, and the project is pre-1.0 under AGPL.
+
+## The Best Alternatives
+
+### Superset
+
+Superset is the agent-agnostic version of the same idea: Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, and any CLI agent, each in an automatic Git worktree with persistent terminals, a diff/file editor, an in-app browser, and port management. Your agents keep their configs, skills, and subscription billing. Orchestration is scriptable through a CLI, MCP server, and TypeScript SDK, automations run scheduled sessions, and remote and cloud workspaces extend across your devices.
+
+For the direct comparison, see [Superset vs Mux](/compare/superset-vs-mux).
+
+### Orca
+
+Orca (~39,000 stars, MIT) runs any CLI agent in parallel worktrees with split terminals, browser tabs, Design Mode, SSH/VPS worktrees, and mobile companions -- the biggest free alternative that preserves your agent choices.
+
+See [Superset vs Orca](/compare/superset-vs-orca).
+
+### Emdash
+
+Emdash (YC W26, Apache-2.0) auto-detects 30+ agent CLIs, isolates each task in a worktree, and adds diff review, CI monitoring, cron automations, and intake from a dozen issue trackers.
+
+See [Superset vs Emdash](/compare/superset-vs-emdash).
+
+### Sculptor
+
+If Mux's Docker runtime is what attracted you, Sculptor (from Imbue) runs each Claude Code agent in its own container -- container isolation with a mainstream agent instead of a proprietary loop.
+
+See [Superset vs Sculptor](/compare/superset-vs-sculptor).
+
+### Conductor
+
+Conductor is a polished, proprietary macOS app for Claude Code, Codex, and Cursor agents in parallel worktrees -- the simple choice if you want vendor agents with minimal machinery.
+
+See [Superset vs Conductor](/compare/superset-vs-conductor).
+
+## How To Choose
+
+- For any agent on its existing subscription, with a full workspace and automations, choose **Superset**.
+- For free and open source with the largest community, choose **Orca**.
+- For tracker-driven open source, choose **Emdash**.
+- For container isolation with Claude Code, choose **Sculptor**.
+- For a focused Mac app, choose **Conductor**.
+- If you specifically want Coder-governed infrastructure and are fine with Mux's own agent, Mux remains coherent.
+
+## Verdict
+
+Mux is well-engineered, and its budgets and runtime matrix are real contributions. But its structural choice -- its own agent loop instead of yours -- is the deciding factor for most teams. Superset is the strongest alternative that preserves your agents and subscriptions while adding the workspace, automations, and team surfaces around them, with Orca and Emdash as the open-source picks. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best Mux alternative?
+
+For most teams, Superset: parallel worktree isolation like Mux's worktree runtime, but running Claude Code, Codex, and any CLI agent on their existing subscriptions, with diff review, automations, and remote/cloud workspaces.
+
+### Can any alternative run agents in containers like Mux?
+
+Sculptor runs Claude Code agents in Docker containers. Herdr's Vercel Sandbox plugin runs agents in cloud microVMs. Superset and Orca isolate via worktrees on machines you control.
+
+### Is Mux open source?
+
+Yes, AGPL-3.0, free, from Coder Technologies. Orca (MIT), Emdash (Apache-2.0), and Sculptor are open source too; Superset is source-available under ELv2.
+
+### Why does the agent model matter for cost?
+
+Mux's built-in loop bills per API token. Vendor CLIs like Claude Code and Codex can run on flat-rate subscriptions (Claude Max, ChatGPT plans). Orchestrators that run vendor CLIs -- Superset, Orca, Emdash, Conductor -- inherit that pricing; Mux cannot.

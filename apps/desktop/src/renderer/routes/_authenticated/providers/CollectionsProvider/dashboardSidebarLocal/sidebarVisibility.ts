@@ -31,7 +31,7 @@ export function getVisibleSidebarWorkspaces<
  * "in the sidebar" means.
  */
 export function isAutoIncludedLocalMainWorkspace(
-	workspace: { id: string; hostId: string; projectId: string },
+	workspace: { id: string; hostId: string; projectId: string | null },
 	{
 		localStateWorkspaceIds,
 		sidebarProjectIds,
@@ -43,6 +43,7 @@ export function isAutoIncludedLocalMainWorkspace(
 	},
 ): boolean {
 	return (
+		workspace.projectId !== null &&
 		!localStateWorkspaceIds.has(workspace.id) &&
 		workspace.hostId === machineId &&
 		sidebarProjectIds.has(workspace.projectId)

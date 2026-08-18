@@ -5,6 +5,7 @@ import {
 } from "@dnd-kit/sortable";
 import type { SelectTaskStatus } from "@superset/db/schema";
 import { cn } from "@superset/ui/utils";
+import type { UIEvent } from "react";
 import {
 	StatusIcon,
 	type StatusType,
@@ -16,12 +17,14 @@ interface KanbanColumnProps {
 	status: SelectTaskStatus;
 	tasks: TaskWithStatus[];
 	onTaskClick: (task: TaskWithStatus) => void;
+	onScroll: (event: UIEvent<HTMLDivElement>) => void;
 }
 
 export function KanbanColumn({
 	status,
 	tasks,
 	onTaskClick,
+	onScroll,
 }: KanbanColumnProps) {
 	const { setNodeRef, isOver } = useDroppable({
 		id: `column-${status.id}`,
@@ -50,6 +53,7 @@ export function KanbanColumn({
 			{/* Drop zone */}
 			<div
 				ref={setNodeRef}
+				onScroll={onScroll}
 				className={cn(
 					"flex-1 flex flex-col gap-1 overflow-y-auto min-h-[60px] rounded-md p-0.5 transition-colors",
 					isOver && "bg-accent/20 ring-1 ring-accent/40",

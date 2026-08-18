@@ -1,7 +1,25 @@
+import { TRPCError } from "@trpc/server";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+// Full disks and permission walls on the user's state file are their
+// environment, not bugs.
+async function writeAppState(): Promise<void> {
+	try {
+		await appState.write();
+	} catch (error) {
+		const errno = (error as NodeJS.ErrnoException | null)?.code;
+		if (errno === "ENOSPC" || errno === "EACCES" || errno === "EPERM") {
+			throw new TRPCError({
+				code: errno === "ENOSPC" ? "PRECONDITION_FAILED" : "FORBIDDEN",
+				message: error instanceof Error ? error.message : String(error),
+			});
+		}
+		throw error;
+	}
+}
 
 /**
  * Zod schema for FileViewerState persistence.
@@ -20,23 +38,13 @@ const fileViewerStateSchema = z.object({
 	oldPath: z.string().optional(),
 });
 
-const chatLaunchConfigSchema = z.object({
-	initialPrompt: z.string().optional(),
-	metadata: z
-		.object({
-			model: z.string().optional(),
-		})
-		.optional(),
-	retryCount: z.number().int().min(0).optional(),
-});
-
 /**
  * Zod schema for Pane
  */
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
+	type: z.enum(["terminal", "webview", "file-viewer", "devtools"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -45,12 +53,6 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
-	chat: z
-		.object({
-			sessionId: z.string().nullable(),
-			launchConfig: chatLaunchConfigSchema.nullable().optional(),
-		})
-		.optional(),
 	browser: z
 		.object({
 			currentUrl: z.string(),
@@ -206,6 +208,19 @@ const terminalColorsSchema = z.object({
 });
 
 /**
+ * Zod schema for editor/diff color + syntax overrides (Theme.editor).
+ *
+ * Persisted faithfully via record() so imported custom themes keep their
+ * editor/diff syntax colors across reloads. Omitting this previously stripped
+ * `editor` on save (Zod drops unknown keys), so on reload getEditorTheme fell
+ * back to the derived terminal palette and diff/editor syntax lost its theme.
+ */
+const editorThemeSchema = z.object({
+	colors: z.record(z.string(), z.string()).optional(),
+	syntax: z.record(z.string(), z.string()).optional(),
+});
+
+/**
  * Zod schema for Theme
  */
 const themeSchema = z.object({
@@ -217,6 +232,7 @@ const themeSchema = z.object({
 	type: z.enum(["dark", "light"]),
 	ui: uiColorsSchema,
 	terminal: terminalColorsSchema,
+	editor: editorThemeSchema.optional(),
 	isBuiltIn: z.boolean().optional(),
 	isCustom: z.boolean().optional(),
 });
@@ -246,7 +262,7 @@ export const createUiStateRouter = () => {
 				.input(tabsStateSchema)
 				.mutation(async ({ input }) => {
 					appState.data.tabsState = input;
-					await appState.write();
+					await writeAppState();
 					return { success: true };
 				}),
 		}),
@@ -261,7 +277,7 @@ export const createUiStateRouter = () => {
 				.input(themeStateSchema)
 				.mutation(async ({ input }) => {
 					appState.data.themeState = input;
-					await appState.write();
+					await writeAppState();
 					return { success: true };
 				}),
 		}),

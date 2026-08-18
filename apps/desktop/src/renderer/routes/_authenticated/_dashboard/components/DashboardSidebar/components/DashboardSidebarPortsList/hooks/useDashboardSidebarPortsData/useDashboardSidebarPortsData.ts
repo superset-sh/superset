@@ -1,15 +1,12 @@
-import {
-	getEventBus,
-	type PortChangedPayload,
-} from "@superset/workspace-client";
-import { useLiveQuery } from "@tanstack/react-db";
+import type { PortChangedPayload } from "@superset/workspace-client";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	applyPortEventsToHostPortsResult,
@@ -34,38 +31,23 @@ export function useDashboardSidebarPortsData(): {
 	totalPortCount: number;
 	portLoadErrors: DashboardSidebarPortsLoadError[];
 } {
-	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
 
-	const { data: hosts = [] } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
-	);
+	const { hosts, organizationId: knownHostsOrgId } = useKnownHosts();
 
-	const { data: allWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					name: workspaces.name,
-					hostId: workspaces.hostId,
-				})),
-		[collections],
-	);
+	const { workspaces: allWorkspaces } = useHostWorkspaces();
 	const workspaces = useMemo(
 		() =>
-			allWorkspaces.filter((workspace) =>
-				visibleWorkspaceIds.has(workspace.id),
-			),
+			allWorkspaces
+				.filter((workspace) => visibleWorkspaceIds.has(workspace.id))
+				.map((workspace) => ({
+					id: workspace.id,
+					name: workspace.name,
+					hostId: workspace.hostId,
+				})),
 		[allWorkspaces, visibleWorkspaceIds],
 	);
 
@@ -77,8 +59,9 @@ export function useDashboardSidebarPortsData(): {
 				machineId,
 				relayUrl,
 				workspaces,
+				fallbackOrganizationId: knownHostsOrgId,
 			}),
-		[activeHostUrl, hosts, machineId, relayUrl, workspaces],
+		[activeHostUrl, hosts, knownHostsOrgId, machineId, relayUrl, workspaces],
 	);
 
 	const queries = useQueries({
@@ -129,9 +112,7 @@ export function useDashboardSidebarPortsData(): {
 					PORT_EVENT_CACHE_BATCH_DELAY_MS,
 				);
 			};
-			const bus = getEventBus(host.hostUrl, () =>
-				getHostServiceWsToken(host.hostUrl),
-			);
+			const bus = getHostEventBus(host.hostUrl);
 			const removeListener = bus.on(
 				"port:changed",
 				"*",

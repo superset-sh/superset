@@ -295,6 +295,48 @@
       "when": 1776928440569,
       "tag": "0041_v1_migration_state",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1784326143765,
+      "tag": "0042_overconfident_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1784479232424,
+      "tag": "0043_appearance_typography_controls",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1784905852439,
+      "tag": "0044_add_wait_for_setup_before_agent_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "6",
+      "when": 1785347262454,
+      "tag": "0045_add_disabled_agent_hooks_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "6",
+      "when": 1786597239253,
+      "tag": "0046_drop_dead_persist_terminal_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1786655483726,
+      "tag": "0047_restore_persist_terminal_column",
+      "breakpoints": true
     }
   ]
 }

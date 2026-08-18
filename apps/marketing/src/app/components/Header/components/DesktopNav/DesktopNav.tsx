@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/navigation-menu";
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
+import { useState } from "react";
 import {
 	type NavLink,
 	PRODUCT_LINKS,
@@ -20,15 +21,30 @@ import {
 
 const triggerClass = cn(
 	navigationMenuTriggerStyle(),
-	"h-8 bg-transparent px-3 text-sm font-normal text-muted-foreground hover:bg-accent/40 hover:text-foreground focus:bg-accent/40 focus:text-foreground data-[state=open]:bg-accent/40 data-[state=open]:text-foreground",
+	"h-8 rounded-none bg-transparent px-4 text-[13px] tracking-[0.01em] font-normal text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground focus:bg-transparent focus:text-foreground data-[state=open]:bg-transparent data-[state=open]:text-foreground",
 );
 
 export function DesktopNav() {
+	// Radix's NavigationMenu is uncontrolled by default, so a hover-opened
+	// trigger and a click on that same trigger both race to set its shared
+	// internal `value`. A click toggles, so clicking a menu that hover just
+	// opened immediately closes it again. Controlling `value` ourselves lets
+	// us make click idempotent (open-only) instead of toggling, so it can
+	// never fight with the hover-intent timers.
+	const [openMenu, setOpenMenu] = useState("");
+
+	const ignoreCloseClick = (menu: string) => (event: React.MouseEvent) => {
+		if (openMenu === menu) event.preventDefault();
+	};
+
 	return (
-		<NavigationMenu>
+		<NavigationMenu value={openMenu} onValueChange={setOpenMenu}>
 			<NavigationMenuList>
-				<NavigationMenuItem>
-					<NavigationMenuTrigger className={triggerClass}>
+				<NavigationMenuItem value="product">
+					<NavigationMenuTrigger
+						className={triggerClass}
+						onClick={ignoreCloseClick("product")}
+					>
 						Product
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
@@ -40,8 +56,11 @@ export function DesktopNav() {
 					</NavigationMenuContent>
 				</NavigationMenuItem>
 
-				<NavigationMenuItem>
-					<NavigationMenuTrigger className={triggerClass}>
+				<NavigationMenuItem value="resources">
+					<NavigationMenuTrigger
+						className={triggerClass}
+						onClick={ignoreCloseClick("resources")}
+					>
 						Resources
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>

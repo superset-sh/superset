@@ -4,12 +4,14 @@ description: Install the Superset CLI, sign in, and run your first commands.
 ---
 
 <Callout type="warn">
-The CLI is currently in Beta — commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
+The CLI is currently in Beta. Commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
 </Callout>
 
 The Superset CLI (`superset`) is a single static binary that drives the same
 backend as the desktop app. Use it to manage workspaces, tasks, automations,
 and the local host server from your terminal or from CI.
+
+<YouTubeVideo id="8g-l5kYEGBc" title="Superset CLI + Skills Demo" thumbnail="/images/cli-skills-demo.jpg" />
 
 ## Install
 
@@ -32,9 +34,9 @@ export PATH="$HOME/.superset/bin:$PATH"
 curl -fsSL https://superset.sh/cli/install.sh | sh
 ```
 
-The script auto-detects your platform (macOS Apple Silicon or Linux x86_64),
-installs Superset under `~/superset` by default, and adds `~/superset/bin`
-to your shell `PATH`.
+The script auto-detects your platform (macOS on Apple Silicon or Intel, Linux on
+x64 or arm64), installs Superset under `~/superset` by default, and adds
+`~/superset/bin` to your shell `PATH`.
 
 ### Homebrew
 
@@ -59,8 +61,8 @@ skip the prompt and pick directly:
 superset auth login --organization acme
 ```
 
-For CI or other non-interactive environments — where there's no browser to
-complete the OAuth flow — use an API key instead. You can either store it
+For CI or other non-interactive environments (where there's no browser to
+complete the OAuth flow), use an API key instead. You can either store it
 once with `auth login --api-key`:
 
 ```bash
@@ -89,6 +91,17 @@ Organization: Acme
 Auth: Session (expires in 32 min)
 ```
 
+## Explore interactively
+
+Bare `superset` in a terminal opens an interactive command browser:
+arrow-key through the commands, read their flags, and fill in required
+inputs with guided prompts. The confirmation screen shows the exact
+command before running it. `superset --help` prints the same catalog as
+static, grouped help. Agents and CI always get static help; the browser
+never opens there.
+
+![The interactive command browser](/images/cli-command-browser.png)
+
 ## Run your first commands
 
 List the projects in your organization:
@@ -97,7 +110,7 @@ List the projects in your organization:
 superset projects list
 ```
 
-If your repo isn't there yet, register it on this machine — clone from a
+If your repo isn't there yet, register it on this machine. Clone from a
 Git URL or import an existing checkout:
 
 ```bash
@@ -164,15 +177,15 @@ calls route through the cloud API and the relay.
 
 ```bash
 superset hosts list
-superset workspaces list
-superset workspaces list --host h_…
-superset workspaces list --local
+superset workspaces list              # this machine
+superset workspaces list --host h_…  # another host
 ```
 
-Mutating host commands (`projects create`, `projects setup`,
-`workspaces create`) require an explicit `--host` or `--local` — there's
-no default. `workspaces list` is organization-wide when neither `--host`
-nor `--local` is provided; pass `--local` to restrict it to this machine.
+Every host-scoped command targets exactly one host. Reads
+(`workspaces list`, `projects list`) default to this machine; mutating
+host commands (`projects create`, `projects setup`, `workspaces create`)
+require an explicit `--host` or `--local`; there's no default. There is
+no org-wide listing; the desktop app is the cross-host view.
 
 ## Where state lives
 

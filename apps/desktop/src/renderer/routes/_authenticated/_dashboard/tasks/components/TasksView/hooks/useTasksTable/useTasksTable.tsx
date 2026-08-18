@@ -1,12 +1,5 @@
-import type {
-	SelectTask,
-	SelectTaskStatus,
-	SelectUser,
-} from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
 import { Checkbox } from "@superset/ui/checkbox";
-import { eq, isNull } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
 	type ColumnFiltersState,
 	createColumnHelper,
@@ -23,23 +16,24 @@ import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
 import { getSlugColumnWidth } from "renderer/lib/slug-width";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { create } from "zustand";
 import {
 	StatusIcon,
 	type StatusType,
 } from "../../components/shared/StatusIcon";
 import type { TabValue } from "../../components/TasksTopBar";
-import { compareTasks } from "../../utils/sorting";
+import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
 import { useHybridSearch } from "../useHybridSearch";
+import {
+	type TasksPagination,
+	type TaskWithStatus,
+	useTasksJoinedWithStatuses,
+} from "../useTasksData";
 import { AssigneeCell } from "./components/AssigneeCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { StatusCell } from "./components/StatusCell";
 
-export type TaskWithStatus = SelectTask & {
-	status: SelectTaskStatus;
-	assignee: SelectUser | null;
-};
+export type { TaskWithStatus };
 
 const columnHelper = createColumnHelper<TaskWithStatus>();
 
@@ -63,13 +57,15 @@ interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearProjectFilter: string | null;
 }
 
 export function useTasksTable({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
-}: UseTasksTableParams): {
+	linearProjectFilter,
+}: UseTasksTableParams): TasksPagination & {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
 	rowSelection: RowSelectionState;
@@ -79,54 +75,36 @@ export function useTasksTable({
 			| ((prev: RowSelectionState) => RowSelectionState),
 	) => void;
 } {
-	const collections = useCollections();
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
 	const [expanded, setExpanded] = useState<ExpandedState>(true);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const rowSelection = useRowSelectionStore((s) => s.rowSelection);
 	const setRowSelection = useRowSelectionStore((s) => s.setRowSelection);
 
-	const { data: allData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tasks: collections.tasks })
-				.innerJoin({ status: collections.taskStatuses }, ({ tasks, status }) =>
-					eq(tasks.statusId, status.id),
-				)
-				.leftJoin({ assignee: collections.users }, ({ tasks, assignee }) =>
-					eq(tasks.assigneeId, assignee.id),
-				)
-				.select(({ tasks, status, assignee }) => ({
-					...tasks,
-					status,
-					assignee: assignee ?? null,
-				}))
-				.where(({ tasks }) => isNull(tasks.deletedAt)),
-		[collections],
-	);
+	const {
+		tasks: sortedData,
+		fetchNextTasksPage,
+		hasNextTasksPage,
+		isFetchingNextTasksPage,
+		isLoadingTasks,
+	} = useTasksJoinedWithStatuses();
 
-	const sortedData = useMemo(() => {
-		if (!allData) return [];
-		return allData
-			.map((task) => ({
-				...task,
-				assignee:
-					typeof task.assignee?.id === "string"
-						? (task.assignee as SelectUser)
-						: null,
-			}))
-			.sort(compareTasks);
-	}, [allData]);
+	const projectScopedData = useMemo(() => {
+		if (!linearProjectFilter) return sortedData;
+		return sortedData.filter(
+			(task) => task.externalProjectId === linearProjectFilter,
+		);
+	}, [sortedData, linearProjectFilter]);
 
-	const { search } = useHybridSearch(sortedData);
+	const { search } = useHybridSearch(projectScopedData);
 
 	const data = useMemo(() => {
 		if (!searchQuery.trim()) {
-			return sortedData;
+			return projectScopedData;
 		}
 		const results = search(searchQuery);
 		return results.map((r) => r.item);
-	}, [sortedData, searchQuery, search]);
+	}, [projectScopedData, searchQuery, search]);
 
 	const isFirstMount = useRef(true);
 	useEffect(() => {
@@ -163,13 +141,7 @@ export function useTasksTable({
 				header: "Status",
 				filterFn: (row, _columnId, filterValue: TabValue) => {
 					const statusType = row.original.status.type;
-					if (filterValue === "active") {
-						return statusType === "started" || statusType === "unstarted";
-					}
-					if (filterValue === "backlog") {
-						return statusType === "backlog";
-					}
-					return true;
+					return matchesTaskStatusFilter(statusType, filterValue);
 				},
 				cell: (info) => {
 					const { row, cell } = info;
@@ -347,5 +319,14 @@ export function useTasksTable({
 		autoResetExpanded: false,
 	});
 
-	return { table, slugColumnWidth, rowSelection, setRowSelection };
+	return {
+		table,
+		slugColumnWidth,
+		rowSelection,
+		setRowSelection,
+		fetchNextTasksPage,
+		hasNextTasksPage,
+		isFetchingNextTasksPage,
+		isLoadingTasks,
+	};
 }

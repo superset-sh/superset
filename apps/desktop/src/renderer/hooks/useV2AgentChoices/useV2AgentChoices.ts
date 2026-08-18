@@ -25,7 +25,10 @@ export function useV2AgentChoices(
 			(config) => ({
 				id: config.id,
 				label: config.label,
-				iconId: config.presetId,
+				// Prefer the user's icon override (built-in key or uploaded data
+				// URI); fall back to the preset-implied icon.
+				iconId: config.iconId ?? config.presetId,
+				presetId: config.presetId,
 			}),
 		);
 		return [...terminalAgents, SUPERSET_AGENT];

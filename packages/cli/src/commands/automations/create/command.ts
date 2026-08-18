@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
-import { string } from "@superset/cli-framework";
+import { CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { formatAutomationDate } from "../format";
+import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
 const DEFAULT_TIMEZONE =
 	Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -20,15 +21,15 @@ export default command({
 		timezone: string().desc(`IANA timezone (default: host TZ, else UTC)`),
 		dtstart: string().desc("ISO 8601 start anchor (default: now)"),
 		project: string().desc(
-			"v2 project id — required for new-workspace-per-run mode",
+			"v2 project id for new-workspace-per-run mode. Omit (with no --workspace) to create a project-less session per run",
 		),
 		workspace: string().desc("existing v2 workspace id — reuses it every run"),
-		host: string().desc("Target host id (default: owner's online host)"),
+		host: string().desc(
+			"Host the target project/workspace lives on (default: this machine)",
+		),
 		agent: string()
 			.default("claude")
-			.desc(
-				"Host agent instance id or presetId (claude, codex, ...). Use 'superset' for the built-in chat agent.",
-			),
+			.desc("Host agent instance id or presetId (claude, codex, ...)."),
 	},
 	run: async ({ ctx, options }) => {
 		const prompt = options.prompt
@@ -40,21 +41,29 @@ export default command({
 			throw new Error("Provide --prompt <text> or --prompt-file <path>");
 		}
 
-		if (!options.project && !options.workspace) {
-			throw new Error("Provide --project or --workspace");
+		const organizationId = ctx.config.organizationId;
+		if (!organizationId) {
+			throw new CLIError("No active organization", "Run: superset auth login");
 		}
+		const target = await resolveAutomationTarget({
+			organizationId,
+			userJwt: ctx.bearer,
+			api: ctx.api,
+			hostId: options.host ?? undefined,
+			workspaceId: options.workspace ?? undefined,
+			projectId: options.project ?? undefined,
+		});
 
 		const result = await ctx.api.automation.create.mutate({
 			name: options.name,
 			prompt,
 			agent: options.agent,
-			targetHostId: options.host ?? null,
-			v2ProjectId: options.project ?? undefined,
+			targetHostId: target.targetHostId,
+			v2ProjectId: target.v2ProjectId,
 			v2WorkspaceId: options.workspace ?? undefined,
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,
-			mcpScope: [],
 		});
 
 		return {

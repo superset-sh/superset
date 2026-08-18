@@ -19,7 +19,7 @@ This separation prevents multiple instances from interfering with each other.
 |------|---------|
 | `amp` | Wrapper for Amp CLI that preserves Superset terminal context |
 | `claude` | Wrapper for Claude Code CLI that injects notification hooks |
-| `codex` | Wrapper for Codex CLI that injects notification hooks |
+| `codex` | Wrapper for Codex CLI that enables native hooks and session-log signals |
 | `droid` | Wrapper for Factory Droid CLI that preserves Superset hook integration |
 | `opencode` | Wrapper for OpenCode CLI that sets `OPENCODE_CONFIG_DIR` |
 
@@ -46,10 +46,12 @@ its hook entries into these files while preserving user-defined entries:
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
 
 For Codex specifically, Superset now relies on native `~/.codex/hooks.json`
-registration for durable prompt/tool lifecycle events, while the wrapper in
-`~/.superset[-{workspace}]/bin/codex` still injects `notify` and keeps the
-session-log watcher as a best-effort compatibility bridge for older Codex
-releases. On startup, Superset rewrites only its own managed entries in
+registration for durable prompt/tool lifecycle events. The wrapper in
+`~/.superset[-{workspace}]/bin/codex` enables those hooks and keeps the
+session-log watcher as a best-effort compatibility bridge for Start and
+permission events on older Codex releases. It does not override the legacy
+`notify` callback because that callback cannot distinguish main-agent and
+subagent completions. On startup, Superset rewrites only its own managed entries in
 `~/.codex/hooks.json` to point at the current environment's `notify.sh`, while
 preserving any user-defined Codex hooks.
 

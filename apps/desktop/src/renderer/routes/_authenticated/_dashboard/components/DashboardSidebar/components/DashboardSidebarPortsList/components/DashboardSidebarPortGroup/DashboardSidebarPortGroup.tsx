@@ -1,10 +1,10 @@
-import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { LuLoaderCircle, LuX } from "react-icons/lu";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
+import { DashboardSidebarChipStrip } from "../../../DashboardSidebarChipStrip";
 import { useDashboardSidebarPortKill } from "../../hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPortGroup as DashboardSidebarPortGroupType } from "../../hooks/useDashboardSidebarPortsData";
 import { DashboardSidebarPortBadge } from "../DashboardSidebarPortBadge";
@@ -50,7 +50,7 @@ export function DashboardSidebarPortGroup({
 							aria-busy={isPending}
 							aria-label="Close all ports"
 							className={cn(
-								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-primary",
+								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-fill-hover hover:text-primary",
 								"disabled:pointer-events-none disabled:opacity-60",
 							)}
 						>
@@ -64,22 +64,19 @@ export function DashboardSidebarPortGroup({
 							)}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="top" sideOffset={4}>
+					<TooltipContent side="top">
 						<p className="text-xs">Close all ports</p>
 					</TooltipContent>
 				</Tooltip>
 			</div>
-			<OverflowFadeContainer
-				observeChildren
-				className="grid auto-cols-max grid-flow-col grid-rows-2 gap-1 overflow-x-auto px-3 pb-1 hide-scrollbar"
-			>
+			<DashboardSidebarChipStrip className="px-3 pb-1">
 				{group.ports.map((port) => (
 					<DashboardSidebarPortBadge
 						key={`${port.hostId}:${port.terminalId}:${port.port}`}
 						port={port}
 					/>
 				))}
-			</OverflowFadeContainer>
+			</DashboardSidebarChipStrip>
 		</div>
 	);
 }

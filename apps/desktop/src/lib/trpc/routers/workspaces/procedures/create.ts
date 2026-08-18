@@ -1,4 +1,5 @@
 import { projects, workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -26,7 +27,6 @@ import {
 	type ExternalWorktree,
 	generateBranchName,
 	getBranchWorktreePath,
-	getCurrentBranch,
 	getPrInfo,
 	getPrLocalBranchName,
 	getWorktreeCreatedAt,
@@ -34,10 +34,12 @@ import {
 	listExternalWorktrees,
 	type PullRequestInfo,
 	parsePrUrl,
+	readCurrentBranch,
 	safeCheckoutBranch,
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
 } from "../utils/git";
+import { GitEnvironmentError } from "../utils/git-errors";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
@@ -468,7 +470,10 @@ export const createCreateProcedures = () => {
 					.where(eq(projects.id, input.projectId))
 					.get();
 				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
 				}
 				const requestedCompareBaseBranch = input.compareBaseBranch;
 
@@ -731,17 +736,42 @@ export const createCreateProcedures = () => {
 					.where(eq(projects.id, input.projectId))
 					.get();
 				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
 				}
 
-				const branch =
-					input.branch || (await getCurrentBranch(project.mainRepoPath));
+				let branch = input.branch;
 				if (!branch) {
-					throw new Error("Could not determine current branch");
+					// readCurrentBranch throws for a repository we cannot read, so
+					// only a genuinely detached HEAD reaches the typed error below;
+					// anything else stays a reportable failure instead of being
+					// mislabelled as a HEAD problem.
+					const head = await readCurrentBranch(project.mainRepoPath);
+					if (head.kind === "detached") {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Cannot open this repository from detached HEAD. Please checkout a branch and try again.",
+							cause: { kind: "DETACHED_HEAD" },
+						});
+					}
+					branch = head.branch;
 				}
 
 				if (input.branch) {
-					await safeCheckoutBranch(project.mainRepoPath, input.branch);
+					try {
+						await safeCheckoutBranch(project.mainRepoPath, input.branch);
+					} catch (error) {
+						if (error instanceof GitEnvironmentError) {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: error.message,
+							});
+						}
+						throw error;
+					}
 				}
 
 				activateProject(project);
@@ -840,7 +870,10 @@ export const createCreateProcedures = () => {
 			.mutation(async ({ input }) => {
 				const worktree = getWorktree(input.worktreeId);
 				if (!worktree) {
-					throw new Error(`Worktree ${input.worktreeId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Worktree ${input.worktreeId} not found`,
+					});
 				}
 
 				const existingWorkspace = localDb
@@ -859,7 +892,10 @@ export const createCreateProcedures = () => {
 
 				const project = getProject(worktree.projectId);
 				if (!project) {
-					throw new Error(`Project ${worktree.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${worktree.projectId} not found`,
+					});
 				}
 
 				const exists = await worktreeExists(
@@ -867,7 +903,11 @@ export const createCreateProcedures = () => {
 					worktree.path,
 				);
 				if (!exists) {
-					throw new Error("Worktree no longer exists on disk");
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Worktree no longer exists on disk",
+						cause: { kind: "WORKTREE_MISSING", worktreePath: worktree.path },
+					});
 				}
 
 				const maxTabOrder = getMaxProjectChildTabOrder(worktree.projectId);
@@ -933,21 +973,37 @@ export const createCreateProcedures = () => {
 			.mutation(async ({ input }) => {
 				const project = getProject(input.projectId);
 				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
 				}
 
 				const parsed = parsePrUrl(input.prUrl);
 				if (!parsed) {
-					throw new Error(
-						"Invalid PR URL. Expected format: https://github.com/owner/repo/pull/123",
-					);
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Invalid PR URL. Expected format: https://github.com/owner/repo/pull/123",
+					});
 				}
 
-				const prInfo = await getPrInfo({
-					owner: parsed.owner,
-					repo: parsed.repo,
-					prNumber: parsed.number,
-				});
+				let prInfo: Awaited<ReturnType<typeof getPrInfo>>;
+				try {
+					prInfo = await getPrInfo({
+						owner: parsed.owner,
+						repo: parsed.repo,
+						prNumber: parsed.number,
+					});
+				} catch (error) {
+					if (error instanceof GitEnvironmentError) {
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: error.message,
+						});
+					}
+					throw error;
+				}
 
 				const localBranchName = getPrLocalBranchName(prInfo);
 				const workspaceName = getPrWorkspaceName(prInfo);
@@ -973,19 +1029,32 @@ export const createCreateProcedures = () => {
 					});
 				}
 
-				return handleNewWorktree({
-					project,
-					prInfo,
-					localBranchName,
-					workspaceName,
-				});
+				try {
+					return await handleNewWorktree({
+						project,
+						prInfo,
+						localBranchName,
+						workspaceName,
+					});
+				} catch (error) {
+					if (error instanceof GitEnvironmentError) {
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: error.message,
+						});
+					}
+					throw error;
+				}
 			}),
 		importAllWorktrees: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.mutation(async ({ input }) => {
 				const project = getProject(input.projectId);
 				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
 				}
 				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
 				const compareBaseBranch = resolveWorkspaceBaseBranch({
@@ -1062,7 +1131,10 @@ export const createCreateProcedures = () => {
 			.mutation(async ({ input }) => {
 				const project = getProject(input.projectId);
 				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.projectId} not found`,
+					});
 				}
 				const knownBranches = await getKnownBranchesSafe(project.mainRepoPath);
 				const compareBaseBranch = resolveWorkspaceBaseBranch({

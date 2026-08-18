@@ -1,9 +1,14 @@
 import { describe, expect, it } from "bun:test";
+import type { WorkspaceState } from "@superset/panes";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
+	sanitizePaneLayout,
+	workspaceLocalStateSchema,
 } from "./schema";
+
+type PaneLayout = WorkspaceState<unknown>;
 
 describe("healV2UserPreferences", () => {
 	it("returns full defaults for empty/non-object input", () => {
@@ -85,13 +90,55 @@ describe("healV2UserPreferences", () => {
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
 		);
 	});
+
+	it("migrates the legacy url link default to the current default", () => {
+		const healed = healV2UserPreferences({
+			urlLinks: {
+				plain: null,
+				shift: null,
+				meta: "pane",
+				metaShift: "external",
+			},
+		});
+
+		expect(healed.urlLinks).toEqual(DEFAULT_V2_USER_PREFERENCES.urlLinks);
+		expect(healed.urlLinks.shift).toBe("newTab");
+	});
+
+	it("keeps a customized url link map untouched", () => {
+		const customized = {
+			plain: "external",
+			shift: null,
+			meta: "pane",
+			metaShift: "external",
+		} as const;
+		const healed = healV2UserPreferences({ urlLinks: customized });
+
+		expect(healed.urlLinks).toEqual(customized);
+	});
 });
 
 describe("healWorkspaceLocalState", () => {
+	const validPaneLayout: PaneLayout = {
+		version: 1,
+		tabs: [
+			{
+				id: "tab-1",
+				createdAt: 0,
+				activePaneId: "pane-1",
+				layout: { type: "pane", paneId: "pane-1" },
+				panes: {
+					"pane-1": { id: "pane-1", kind: "terminal", data: {} },
+				},
+			},
+		],
+		activeTabId: "tab-1",
+	};
+
 	const baseStored = {
 		workspaceId: "11111111-1111-1111-1111-111111111111",
 		createdAt: new Date("2026-01-01T00:00:00.000Z"),
-		paneLayout: { panes: [], focusedPaneId: null },
+		paneLayout: validPaneLayout,
 		sidebarState: {
 			projectId: "22222222-2222-2222-2222-222222222222",
 			tabOrder: 3,
@@ -108,11 +155,9 @@ describe("healWorkspaceLocalState", () => {
 		const healed = healWorkspaceLocalState(baseStored);
 		expect(healed.workspaceId).toBe(baseStored.workspaceId);
 		expect(healed.createdAt).toBe(baseStored.createdAt);
-		// Reference equality — bun's strict toBe types reject the narrow stub,
-		// so compare via Object.is on a widened lhs and assert the boolean.
-		expect(Object.is(healed.paneLayout as unknown, baseStored.paneLayout)).toBe(
-			true,
-		);
+		// A valid layout survives the read-time heal structurally intact (heal
+		// rebuilds the object, so this is structural, not reference, equality).
+		expect(healed.paneLayout).toEqual(validPaneLayout);
 		expect(healed.sidebarState.projectId).toBe(
 			baseStored.sidebarState.projectId,
 		);
@@ -149,6 +194,18 @@ describe("healWorkspaceLocalState", () => {
 		expect(healed.sidebarState.changesFilter).toEqual({ kind: "all" });
 		expect(healed.sidebarState.activeTab).toBe("changes");
 		expect(healed.sidebarState.isHidden).toBe(false);
+		expect(healed.sidebarState.pinnedAt).toBeNull();
+	});
+
+	it("preserves a stored pinnedAt and defaults it on rows written before the field existed", () => {
+		expect(
+			healWorkspaceLocalState(baseStored).sidebarState.pinnedAt,
+		).toBeNull();
+		const healed = healWorkspaceLocalState({
+			...baseStored,
+			sidebarState: { ...baseStored.sidebarState, pinnedAt: 1753000000000 },
+		});
+		expect(healed.sidebarState.pinnedAt).toBe(1753000000000);
 	});
 
 	it("does not throw on null/non-object input (parser must never throw)", () => {
@@ -158,5 +215,140 @@ describe("healWorkspaceLocalState", () => {
 		expect(() => healWorkspaceLocalState(undefined)).not.toThrow();
 		expect(() => healWorkspaceLocalState("garbage")).not.toThrow();
 		expect(() => healWorkspaceLocalState(42)).not.toThrow();
+	});
+
+	it("heals a legacy-shaped persisted layout to an empty layout", () => {
+		// The pre-binary-tree shape `{ panes, focusedPaneId }` has no `tabs`;
+		// left as-is it fed an undefined node to the renderer and white-screened.
+		const healed = healWorkspaceLocalState({
+			...baseStored,
+			paneLayout: { panes: [], focusedPaneId: null },
+		});
+		expect(healed.paneLayout).toEqual({
+			version: 1,
+			tabs: [],
+			activeTabId: null,
+		});
+	});
+});
+
+describe("sanitizePaneLayout", () => {
+	const validTab: PaneLayout["tabs"][number] = {
+		id: "tab-1",
+		createdAt: 0,
+		activePaneId: "pane-1",
+		layout: { type: "pane", paneId: "pane-1" },
+		panes: { "pane-1": { id: "pane-1", kind: "terminal", data: {} } },
+	};
+
+	const EMPTY: PaneLayout = { version: 1, tabs: [], activeTabId: null };
+
+	it("resets non-object / legacy / versionless input to empty", () => {
+		expect(sanitizePaneLayout(null)).toEqual(EMPTY);
+		expect(sanitizePaneLayout("garbage")).toEqual(EMPTY);
+		expect(sanitizePaneLayout({ panes: [], focusedPaneId: null })).toEqual(
+			EMPTY,
+		);
+		expect(sanitizePaneLayout({ version: 1 })).toEqual(EMPTY);
+	});
+
+	it("keeps a valid layout intact", () => {
+		const layout: PaneLayout = {
+			version: 1,
+			tabs: [validTab],
+			activeTabId: "tab-1",
+		};
+		expect(sanitizePaneLayout(layout)).toEqual(layout);
+	});
+
+	it("keeps a valid split layout intact", () => {
+		const layout: PaneLayout = {
+			version: 1,
+			tabs: [
+				{
+					...validTab,
+					layout: {
+						type: "split",
+						direction: "horizontal",
+						first: { type: "pane", paneId: "pane-1" },
+						second: { type: "pane", paneId: "pane-2" },
+					},
+					panes: {
+						"pane-1": { id: "pane-1", kind: "terminal", data: {} },
+						"pane-2": { id: "pane-2", kind: "chat", data: {} },
+					},
+				},
+			],
+			activeTabId: "tab-1",
+		};
+		expect(sanitizePaneLayout(layout)).toEqual(layout);
+	});
+
+	it("drops a corrupt tab (split missing a child) but keeps valid tabs", () => {
+		const corruptTab = {
+			id: "tab-bad",
+			createdAt: 0,
+			activePaneId: null,
+			// split with `second` missing — the exact shape that crashed the
+			// renderer by feeding an undefined node to LayoutNodeView.
+			layout: {
+				type: "split",
+				direction: "horizontal",
+				first: { type: "pane", paneId: "x" },
+			},
+			panes: {},
+		};
+		const result = sanitizePaneLayout({
+			version: 1,
+			tabs: [corruptTab, validTab],
+			activeTabId: "tab-bad",
+		});
+		expect(result.tabs).toHaveLength(1);
+		expect(result.tabs[0]?.id).toBe("tab-1");
+		// activeTabId pointed at the dropped tab → repaired to a survivor.
+		expect(result.activeTabId).toBe("tab-1");
+	});
+
+	it("repairs activeTabId when it points at a dropped/absent tab", () => {
+		const result = sanitizePaneLayout({
+			version: 1,
+			tabs: [validTab],
+			activeTabId: "does-not-exist",
+		});
+		expect(result.activeTabId).toBe("tab-1");
+	});
+});
+
+describe("workspaceLocalStateSchema projectId nullability", () => {
+	const paneLayout: PaneLayout = { version: 1, tabs: [], activeTabId: null };
+	const row = (projectId: unknown) => ({
+		workspaceId: "11111111-1111-4111-8111-111111111111",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		paneLayout,
+		sidebarState: { projectId },
+	});
+
+	it("parses a pre-widening persisted row (string projectId) unchanged", () => {
+		const parsed = workspaceLocalStateSchema.parse(
+			row("22222222-2222-4222-8222-222222222222"),
+		);
+		expect(parsed.sidebarState.projectId).toBe(
+			"22222222-2222-4222-8222-222222222222",
+		);
+	});
+
+	it("parses a session row (null projectId)", () => {
+		const parsed = workspaceLocalStateSchema.parse(row(null));
+		expect(parsed.sidebarState.projectId).toBeNull();
+	});
+
+	it("still rejects a missing projectId — heal must not synthesize null", () => {
+		expect(workspaceLocalStateSchema.safeParse(row(undefined)).success).toBe(
+			false,
+		);
+		expect(
+			workspaceLocalStateSchema.safeParse({ ...row(null), sidebarState: {} })
+				.success,
+		).toBe(false);
 	});
 });

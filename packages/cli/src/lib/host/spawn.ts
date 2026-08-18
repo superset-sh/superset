@@ -1,11 +1,17 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { closeSync, existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
-import type { ApiClient } from "../api-client";
-import { env } from "../env";
 import {
+	MAX_HOST_LOG_BYTES,
+	openRotatingLogFd,
+} from "@superset/shared/rotating-log";
+import type { ApiClient } from "../api-client";
+import { SUPERSET_HOME_DIR } from "../config";
+import { env, isDesktopBundled } from "../env";
+import {
+	ensureManifestDir,
 	type HostServiceManifest,
 	hostDbPath,
 	writeManifest,
@@ -94,6 +100,11 @@ export async function spawnHostService(
 ): Promise<SpawnHostResult> {
 	const hostBin = resolveHostBinary();
 	if (!existsSync(hostBin)) {
+		if (isDesktopBundled()) {
+			throw new Error(
+				"`superset start` is not available in the CLI bundled with the Superset desktop app; the app runs the host service itself. For headless use, install the standalone CLI: curl -fsSL https://superset.sh/cli/install.sh | sh",
+			);
+		}
 		throw new Error(
 			`superset-host binary not found at ${hostBin}. Set SUPERSET_HOST_BIN to override.`,
 		);
@@ -104,8 +115,21 @@ export async function spawnHostService(
 	const migrationsFolder = resolveMigrationsFolder();
 	const relayUrl = await getRelayUrl(options.api);
 
+	// Daemon output goes to the same per-org host-service.log the desktop
+	// writes — with stdio ignored, a failed cloud registration was logged
+	// nowhere on CLI-only installs (issue #6415).
+	const logFd = options.daemon
+		? openRotatingLogFd(
+				join(ensureManifestDir(options.organizationId), "host-service.log"),
+				MAX_HOST_LOG_BYTES,
+			)
+		: -1;
 	const child = spawn(hostBin, [], {
-		stdio: options.daemon ? "ignore" : "inherit",
+		stdio: options.daemon
+			? logFd === -1
+				? "ignore"
+				: ["ignore", logFd, logFd]
+			: "inherit",
 		detached: options.daemon,
 		env: {
 			...process.env,
@@ -121,8 +145,19 @@ export async function spawnHostService(
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			// The desktop injects this into hosts it spawns
+			// (host-service-coordinator.ts); without it the host's PTYs get no
+			// SUPERSET_HOME_DIR and every managed agent hook self-disables on
+			// its own guard (#6254).
+			SUPERSET_HOME_DIR,
 		},
 	});
+
+	if (logFd !== -1) {
+		try {
+			closeSync(logFd);
+		} catch {}
+	}
 
 	if (!child.pid) {
 		throw new Error("Failed to spawn host-service");

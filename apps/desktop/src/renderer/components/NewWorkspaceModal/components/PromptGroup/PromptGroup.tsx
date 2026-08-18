@@ -52,7 +52,7 @@ import {
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuFolderGit, LuFolderOpen, LuGitPullRequest } from "react-icons/lu";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
+import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { PLATFORM } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -584,7 +584,7 @@ function PromptGroupInner({
 	const plusMenuRef = useRef<HTMLDivElement>(null);
 	const submitStartedRef = useRef(false);
 	const trimmedPrompt = prompt.trim();
-	const firstIssueSlug = linkedIssues[0]?.slug ?? null;
+	const _firstIssueSlug = linkedIssues[0]?.slug ?? null;
 
 	// AI branch name generation (on submit only)
 	const generateBranchNameMutation =
@@ -689,11 +689,10 @@ function PromptGroupInner({
 				selectedAgent,
 				prompt,
 				initialFiles: files,
-				taskSlug: firstIssueSlug || undefined,
 				configsById: agentConfigsById,
 			});
 		},
-		[agentConfigsById, firstIssueSlug, selectedAgent],
+		[agentConfigsById, selectedAgent],
 	);
 
 	const convertBlobUrlToDataUrl = useCallback(

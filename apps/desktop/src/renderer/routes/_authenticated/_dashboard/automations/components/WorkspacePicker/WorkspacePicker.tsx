@@ -1,4 +1,3 @@
-import type { SelectV2Host, SelectV2Workspace } from "@superset/db/schema";
 import {
 	Command,
 	CommandGroup,
@@ -8,19 +7,26 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
 import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface WorkspacePickerProps {
 	hostId: string | null;
-	projectId: string | null;
+	/**
+	 * Null = session mode (list session workspaces, offer "New session").
+	 * Undefined = no project chosen yet — render neutral "New workspace" copy
+	 * and list nothing, so the pre-default loading window never looks like
+	 * session mode.
+	 */
+	projectId: string | null | undefined;
 	value: string | null;
 	onChange: (workspaceId: string | null) => void;
 	className?: string;
+	disabled?: boolean;
 }
 
 export function WorkspacePicker({
@@ -29,30 +35,27 @@ export function WorkspacePicker({
 	value,
 	onChange,
 	className,
+	disabled,
 }: WorkspacePickerProps) {
 	const [open, setOpen] = useState(false);
-	const collections = useCollections();
 
-	const { data: allWorkspaces = [], isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ w: collections.v2Workspaces })
-				.orderBy(({ w }) => w.createdAt, "desc")
-				.select(({ w }) => ({ ...w })),
-		[collections.v2Workspaces],
+	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
+	const workspaceRows = useMemo(
+		() =>
+			[...hostWorkspaces].sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+			),
+		[hostWorkspaces],
 	);
 
-	const { data: allHosts = [] } = useLiveQuery(
-		(q) => q.from({ h: collections.v2Hosts }).select(({ h }) => ({ ...h })),
-		[collections.v2Hosts],
-	);
+	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined);
 
-	const workspaceRows = allWorkspaces as SelectV2Workspace[];
-	const hostRows = allHosts as SelectV2Host[];
-
+	// Null projectId = session mode: offer the host's session workspaces
+	// (projectId null) as pin targets.
 	const workspaces = useMemo(
 		() =>
-			hostId && projectId
+			hostId && projectId !== undefined
 				? workspaceRows.filter(
 						(w) => w.hostId === hostId && w.projectId === projectId,
 					)
@@ -77,19 +80,30 @@ export function WorkspacePicker({
 	// A pinned value we can't resolve yet (live query still hydrating) is loading,
 	// not an empty "New workspace" selection — don't flash the wrong label/warning.
 	const resolving = !!value && !selected && !isReady;
+	// Pinned to a workspace no host list resolves — deleted, or an unreachable
+	// host with no cached snapshot. Never render this as "New workspace": that
+	// hides the broken pin while dispatch keeps failing.
+	const missing = !!value && !selected && isReady;
 	const label = selected
 		? selected.name
 		: resolving
 			? "Loading…"
-			: "New workspace";
+			: missing
+				? "Workspace not found"
+				: projectId === null
+					? "New session"
+					: "New workspace";
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		// Guard the open state, not just the trigger: Radix opens on pointerdown,
+		// which Chromium still dispatches to fieldset-disabled buttons.
+		<Popover open={open} onOpenChange={(next) => !disabled && setOpen(next)}>
 			<PopoverTrigger asChild>
 				<PickerTrigger
-					className={cn(offScope && "text-amber-500", className)}
+					disabled={disabled}
+					className={cn((offScope || missing) && "text-amber-500", className)}
 					icon={
-						offScope ? (
+						offScope || missing ? (
 							<LuTriangleAlert className="size-4 shrink-0" />
 						) : selected || resolving ? (
 							<LuGitBranch className="size-4 shrink-0" />
@@ -118,11 +132,29 @@ export function WorkspacePicker({
 								}}
 							>
 								<LuSparkles className="size-4" />
-								<span>New workspace</span>
-								{!selected && !resolving && (
+								<span>
+									{projectId === null ? "New session" : "New workspace"}
+								</span>
+								{!selected && !resolving && !missing && (
 									<HiCheck className="ml-auto size-4" />
 								)}
 							</CommandItem>
+							{missing && (
+								<CommandItem
+									value="__deleted__"
+									onSelect={() => setOpen(false)}
+									className="text-amber-500"
+								>
+									<LuTriangleAlert className="size-4" />
+									<span className="flex min-w-0 flex-col select-text cursor-text">
+										<span className="truncate">Workspace not found</span>
+										<span className="truncate text-[10px] text-amber-500/70">
+											deleted or unavailable — pick another
+										</span>
+									</span>
+									<HiCheck className="ml-auto size-4" />
+								</CommandItem>
+							)}
 							{offScope && selected && (
 								<CommandItem
 									value={`__pinned__${selected.id}`}

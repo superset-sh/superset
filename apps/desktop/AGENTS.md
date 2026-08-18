@@ -1,56 +1,18 @@
-# Implementation details
-For Electron interprocess communication, ALWAYS use trpc as defined in `src/lib/trpc`
-Please use alias as defined in `tsconfig.json` when possible
 
-## Error text must be selectable
+## Server-driven announcements (desktop notices)
 
-The renderer sets `user-select: none` on `body`, so rendered errors need explicit `select-text cursor-text` classes — otherwise users can't copy them into bug reports. (Sonner toasts are exempt; they manage selection themselves.)
+To show an announcement/warning popup in the app without shipping a release, insert a row in the `desktop_notices` table (served by `GET /api/desktop/version`). Authoring guide — markdown-only body, severities, triggers, targeting, QA previews: `docs/DESKTOP_NOTICES.md`.
 
-## tRPC Subscriptions (trpc-electron)
+## Persisted renderer state (localStorage) policy
 
-**Important:** While standard tRPC recommends async generators for subscriptions, `trpc-electron` (used for Electron IPC) **only supports observables**. The library explicitly checks `isObservable(result)` and throws an error otherwise. Use the `observable` pattern:
+Renderer localStorage has one ~10 MB quota, loads synchronously at boot, and keys outlive the code that wrote them — unbounded growth has frozen the renderer before (23.7 MB profile, GH #5496). Every writer must be allowlisted in `src/renderer/lib/persisted-keys/persisted-key-registry.test-data.ts` (CI fails on unregistered writers), and code review must answer three questions:
 
-```typescript
-// CORRECT for trpc-electron - use observable pattern
-import { observable } from "@trpc/server/observable";
+1. **What bounds it?** A cap/LRU, a TTL, reconciliation against an owning entity, or "fixed-size singleton". "It's small per write" is not a bound.
+2. **Who deletes it?** New entity-keyed data belongs in SQLite; existing stores must document their deletion path or sunset plan because deletes from CLIs or other machines can bypass UI cleanup. One-shot payloads must be cleared by their consumer. Deleting a map entry means removing the key, never writing `null`.
+3. **What happens when the feature dies?** Move the keys to `DEAD_KEYS` in the same PR that removes the writer; the boot sweep cleans existing profiles. Deleting the writer without registering the key strands it on user profiles forever.
 
-export const createMyRouter = () => {
-  return router({
-    subscribe: publicProcedure.subscription(() => {
-      return observable<MyEvent>((emit) => {
-        const handler = (data: MyData) => {
-          emit.next({ type: "my-event", data });
-        };
-
-        myEmitter.on("my-event", handler);
-
-        return () => {
-          myEmitter.off("my-event", handler);
-        };
-      });
-    }),
-  });
-};
-
-// WRONG for trpc-electron - async generators don't work with IPC transport
-export const createMyRouter = () => {
-  return router({
-    subscribe: publicProcedure.subscription(async function* () {
-      // This will NOT work - the generator never gets invoked
-      while (true) {
-        yield await getNextEvent();
-      }
-    }),
-  });
-};
-```
+Guardrail: localStorage is for small singleton UI state. Anything entity-scoped with unbounded cardinality, or payloads beyond a few KB, belongs in host-side SQLite (`@superset/local-db` schema, reached over `electronTrpc`) — localStorage collections re-serialize the whole org blob on every mutation. Since #6328 removed SQLite-backed collection persistence, every TanStack DB collection in `CollectionsProvider` is localStorage-backed, so the ~10 MB quota is shared by all of them; `withQuotaGuard`, `notifyQuotaExhausted`, and `evictInactiveOrgs` exist to absorb that pressure and are not a licence to store more.
 
 ## Verifying renderer changes via CDP
 
-To check a change end-to-end against the real API/DB, drive the running dev app over CDP. Launch with `RENDERER_REMOTE_DEBUG_PORT=9222 bun dev` (full stack; the app restores a signed-in session), attach via the page target's `webSocketDebuggerUrl` from `localhost:9222/json` over a WebSocket (Bun built-in, no deps). Example: `scripts/cdp-smoke-integrations.ts`.
-
-**Use `Runtime.evaluate` (`awaitPromise`, `returnByValue`), not `Network.*` interception** — sniffing misses React-Query-cached responses, and `refetchInterval` is paused while the window is backgrounded. Run an in-renderer `fetch(url, { credentials: "include" })` (the bearer token is in a closure, but the session cookie works). `API` below is the dev backend origin (`NEXT_PUBLIC_API_URL`, e.g. `http://localhost:5881`):
-
-- Active org: `fetch(API + "/api/auth/get-session", {credentials:"include"})` → `.session.activeOrganizationId`.
-- A tRPC query (bypasses the cache): GET `API + "/api/trpc/<proc>?batch=1&input=" + encodeURIComponent(JSON.stringify({"0":{json:<input>}}))`; response is `[{result:{data:{json:...}}}]`.
-- `window.location.hash` nav may not remount the route — call the endpoint directly instead.
+Read `.agents/skills/cdp-verification/SKILL.md`: attaching to the right renderer, repairing auth, and what counts as end-to-end evidence.

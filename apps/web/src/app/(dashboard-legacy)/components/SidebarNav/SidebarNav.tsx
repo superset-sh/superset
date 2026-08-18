@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 const navItems = [
 	{ href: "/", label: "Home" },
 	{ href: "/integrations", label: "Integrations" },
+	{ href: "/settings/account", label: "Account" },
 ];
 
 export function SidebarNav() {

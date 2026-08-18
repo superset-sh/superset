@@ -1,14 +1,25 @@
-import { readFileSync } from "node:fs";
-import { buildAgentModelArgs } from "@superset/shared/agent-models";
+import {
+	buildAgentEffortArgs,
+	buildAgentModelArgs,
+	buildAgentModelEnv,
+	getAgentEffortSupport,
+} from "@superset/shared/agent-models";
+import {
+	buildArgvCommand,
+	buildPromptCommandString,
+	envOverlayPrefix,
+	sanitizePromptForPty,
+} from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { hostAgentConfigs } from "../../../db/schema";
+import { hostAgentConfigs, workspaces } from "../../../db/schema";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
+import { toTerminalSessionError } from "../terminal/errors";
 
 interface ResolvedHostAgentConfig {
 	id: string;
@@ -18,6 +29,7 @@ interface ResolvedHostAgentConfig {
 	args: string[];
 	promptTransport: "argv" | "stdin";
 	promptArgs: string[];
+	resumeArgs: string[];
 	env: Record<string, string>;
 }
 
@@ -64,6 +76,7 @@ function rowToConfig(
 		args: parseArgv(row.argsJson),
 		promptTransport: row.promptTransport as "argv" | "stdin",
 		promptArgs: parseArgv(row.promptArgsJson),
+		resumeArgs: parseArgv(row.resumeArgsJson),
 		env: parseEnv(row.envJson),
 	};
 }
@@ -95,58 +108,55 @@ export function resolveHostAgentConfig(
 	return null;
 }
 
-function quoteSingleShell(value: string): string {
-	return `'${value.replaceAll("'", "'\\''")}'`;
-}
-
-function buildArgvCommand(argv: string[]): string {
-	return argv.map(quoteSingleShell).join(" ");
-}
-
 /**
  * Build a shell command string that runs the resolved agent config with the
- * given prompt. argv transport appends the prompt as the final positional;
- * stdin transport pipes the prompt via a heredoc so the agent can read from
- * fd 0.
+ * given prompt. argv transport appends the prompt as a quoted positional;
+ * stdin transport delegates heredoc assembly and delimiter collision handling
+ * to the shared prompt-launch pipeline.
  *
- * Empty prompts drop `promptArgs` so codex/opencode/copilot don't get stray
- * prompt-mode flags during promptless launches.
+ * Prompts that sanitize to empty drop `promptArgs` and the prompt payload so
+ * codex/opencode/copilot don't get stray prompt-mode flags during promptless
+ * launches — emptiness is only knowable after sanitization, so the check
+ * lives here rather than in the router's zod schema.
+ *
+ * `resumeSessionId` splices the config's `resumeArgs` plus the session id
+ * after the base args (e.g. "claude … --resume <id>"), restoring a previous
+ * session instead of starting a fresh one. A prompt may still follow it.
  */
 export function buildAgentCommandString(
 	config: ResolvedHostAgentConfig,
-	prompt: string,
+	rawPrompt: string,
 	modelArgs: string[] = [],
+	options: { resumeSessionId?: string; randomId?: string } = {},
 ): string {
+	const randomId = options.randomId ?? crypto.randomUUID();
+	const prompt = sanitizePromptForPty(rawPrompt);
+	const resumeArgv = options.resumeSessionId
+		? [...config.resumeArgs, sanitizePromptForPty(options.resumeSessionId)]
+		: [];
 	const baseArgv = [
 		config.command,
 		...config.args,
 		...modelArgs,
-		...config.promptArgs,
+		...resumeArgv,
 	];
 
+	if (prompt === "") {
+		return buildArgvCommand(baseArgv);
+	}
+
 	if (config.promptTransport === "argv") {
-		return buildArgvCommand([...baseArgv, prompt]);
+		// Plain quoted positional, not the shared "$(cat <<…)" form: the command
+		// is typed into the user's configured shell, and fish has no heredocs.
+		return buildArgvCommand([...baseArgv, ...config.promptArgs, prompt]);
 	}
 
-	// stdin: pipe the prompt to the spawned process via heredoc. Delimiter is
-	// constructed to avoid collision with any line in the prompt content.
-	const baseDelimiter = "SUPERSET_PROMPT";
-	let delimiter = baseDelimiter;
-	let counter = 0;
-	while (prompt.split("\n").some((line) => line === delimiter)) {
-		counter += 1;
-		delimiter = `${baseDelimiter}_${counter}`;
-	}
-	return `${buildArgvCommand(baseArgv)} <<'${delimiter}'\n${prompt}\n${delimiter}`;
-}
-
-function envOverlayPrefix(env: Record<string, string>): string {
-	const entries = Object.entries(env);
-	if (entries.length === 0) return "";
-	const assignments = entries
-		.map(([key, value]) => `${key}=${quoteSingleShell(value)}`)
-		.join(" ");
-	return `${assignments} `;
+	return buildPromptCommandString({
+		command: buildArgvCommand([...baseArgv, ...config.promptArgs]),
+		transport: "stdin",
+		prompt,
+		randomId,
+	});
 }
 
 function buildAttachmentBlock(
@@ -165,84 +175,113 @@ export interface AgentRunInput {
 	prompt: string;
 	attachmentIds?: string[];
 	model?: string;
+	effort?: string;
+	/** Session id of a previous run of this agent to restore (e.g. a killed
+	 * session's `agentSessionId`). The prompt may be empty when resuming. */
+	resumeSessionId?: string;
 }
 
-export type AgentRunResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
+export type AgentRunResult = {
+	kind: "terminal";
+	sessionId: string;
+	label: string;
+};
 
-const SUPERSET_AGENT_ID = "superset";
-const SUPERSET_AGENT_LABEL = "Superset";
-
-async function resolveAttachmentsAsFiles(
-	attachmentIds: string[],
-): Promise<Array<{ data: string; mediaType: string; filename?: string }>> {
-	return attachmentIds.map((attachmentId) => {
-		const resolved = resolveAttachmentPath(attachmentId);
-		if (!resolved) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: `Attachment not found: ${attachmentId}`,
-			});
-		}
-		const bytes = readFileSync(resolved.path);
-		const data = `data:${resolved.metadata.mediaType};base64,${bytes.toString("base64")}`;
-		return {
-			data,
-			mediaType: resolved.metadata.mediaType,
-			...(resolved.metadata.originalFilename
-				? { filename: resolved.metadata.originalFilename }
-				: {}),
-		};
-	});
-}
-
-async function runChatAgent(
-	ctx: HostServiceContext,
-	input: AgentRunInput,
+/**
+ * Validate an explicit effort override before launch. Omitting effort always
+ * delegates to the underlying agent's own default.
+ */
+export function validateAgentEffortSelection(
+	presetId: string,
 	label: string,
-): Promise<AgentRunResult> {
-	const sessionId = crypto.randomUUID();
-	const files = await resolveAttachmentsAsFiles(input.attachmentIds ?? []);
+	effort: string | undefined,
+): void {
+	if (!effort) return;
 
-	await ctx.api.chat.createSession.mutate({
-		sessionId,
-		v2WorkspaceId: input.workspaceId,
-	});
-
-	// Errors surface via `getSnapshot.displayState.errorMessage` when a
-	// chat pane attaches.
-	void ctx.runtime.chat
-		.sendMessage({
-			sessionId,
-			workspaceId: input.workspaceId,
-			payload: {
-				content: input.prompt,
-				...(files.length > 0 ? { files } : {}),
-			},
-			...(input.model ? { metadata: { model: input.model } } : {}),
-		})
-		.catch((error) => {
-			console.error(
-				`[runChatAgent] sendMessage failed for ${sessionId}:`,
-				error,
-			);
+	const support = getAgentEffortSupport(presetId);
+	if (!support) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${label} does not support a reasoning effort override. Omit effort to use the agent default.`,
 		});
+	}
 
-	return { kind: "chat", sessionId, label };
+	if (!support.efforts.some((option) => option.id === effort)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Unsupported reasoning effort "${effort}" for ${label}. Choose one of: ${support.efforts.map((option) => option.id).join(", ")}.`,
+		});
+	}
 }
 
-async function runTerminalAgent(
-	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
-	input: AgentRunInput,
-): Promise<AgentRunResult> {
-	const config = resolveHostAgentConfig(ctx.db, input.agent);
+/**
+ * Validate an explicit resume request before launch. Resumability is a
+ * per-config capability: configs without `resumeArgs` have no id-based
+ * resume form to splice the session id into.
+ */
+export function validateAgentResumeSelection(
+	config: Pick<ResolvedHostAgentConfig, "label" | "resumeArgs">,
+	resumeSessionId: string | undefined,
+): void {
+	if (resumeSessionId === undefined) return;
+
+	if (config.resumeArgs.length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${config.label} does not support resuming a session by id. Omit resumeSessionId to start a new session.`,
+		});
+	}
+
+	if (sanitizePromptForPty(resumeSessionId).trim() === "") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid resume session id for ${config.label}.`,
+		});
+	}
+}
+
+/**
+ * Preflight a host-scoped launch before any larger workflow (such as
+ * workspace creation) performs side effects.
+ */
+export function validateAgentLaunchEffort(
+	db: HostDb,
+	input: Pick<AgentRunInput, "agent" | "effort">,
+): void {
+	if (!input.effort) return;
+
+	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: `No host agent config matching '${input.agent}' (tried instance id then preset id).`,
 		});
 	}
+	validateAgentEffortSelection(config.presetId, config.label, input.effort);
+}
+
+/**
+ * Resolve a terminal agent launch to the shell command that runs it, without
+ * creating a terminal. Used by `runTerminalAgent` and by the workspace-create
+ * wait-for-setup gate, which chains this command behind the setup commands in
+ * the setup terminal. Throws NOT_FOUND for unknown agents or attachments.
+ */
+export function buildTerminalAgentLaunch(
+	db: HostDb,
+	input: AgentRunInput,
+): { fullCommand: string; label: string } {
+	const config = resolveHostAgentConfig(db, input.agent);
+	if (!config) {
+		// Worded for end users (automation run errors show this verbatim), but
+		// keep "No host agent config matching" — the desktop matches on it to
+		// attach re-select guidance.
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `No host agent config matching '${input.agent}' — the agent may have been removed or this host's agents were reset. Re-select an agent (or use a preset id like "claude").`,
+		});
+	}
+	validateAgentEffortSelection(config.presetId, config.label, input.effort);
+	validateAgentResumeSelection(config, input.resumeSessionId);
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
@@ -258,8 +297,25 @@ async function runTerminalAgent(
 
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
-	const command = buildAgentCommandString(config, prompt, modelArgs);
-	const fullCommand = `${envOverlayPrefix(config.env)}${command}`;
+	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
+	const command = buildAgentCommandString(
+		config,
+		prompt,
+		[...modelArgs, ...effortArgs],
+		{ resumeSessionId: input.resumeSessionId },
+	);
+	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
+	return {
+		fullCommand: `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`,
+		label: config.label,
+	};
+}
+
+async function runTerminalAgent(
+	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
+	input: AgentRunInput,
+): Promise<AgentRunResult> {
+	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -271,16 +327,13 @@ async function runTerminalAgent(
 	});
 
 	if ("error" in result) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: result.error,
-		});
+		throw toTerminalSessionError(result);
 	}
 
 	return {
 		kind: "terminal",
 		sessionId: result.terminalId,
-		label: config.label,
+		label,
 	};
 }
 
@@ -288,8 +341,16 @@ export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
-	if (input.agent === SUPERSET_AGENT_ID) {
-		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
+	const workspace = ctx.db.query.workspaces
+		.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+		.sync();
+	if (!workspace) {
+		// NOT_FOUND (not a 500) so callers like automation dispatch can tell a
+		// dead workspace pin apart from a host-side failure.
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
+		});
 	}
 	return runTerminalAgent(ctx, input);
 }
@@ -300,9 +361,13 @@ export const agentsRouter = router({
 			z.object({
 				workspaceId: z.string().uuid(),
 				agent: z.string().min(1),
-				prompt: z.string().min(1),
+				// Optional: an empty prompt launches the bare agent (the builder
+				// drops promptArgs).
+				prompt: z.string().default(""),
 				attachmentIds: z.array(z.string().uuid()).optional(),
 				model: z.string().min(1).optional(),
+				effort: z.string().min(1).optional(),
+				resumeSessionId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),

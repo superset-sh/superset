@@ -27,10 +27,6 @@ export const integrationProviderValues = ["linear", "github", "slack"] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
 
-export const deviceTypeValues = ["desktop", "mobile", "web"] as const;
-export const deviceTypeEnum = z.enum(deviceTypeValues);
-export type DeviceType = z.infer<typeof deviceTypeEnum>;
-
 export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
 export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
 export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;
@@ -48,21 +44,19 @@ export const commandStatusValues = [
 export const commandStatusEnum = z.enum(commandStatusValues);
 export type CommandStatus = z.infer<typeof commandStatusEnum>;
 
-export const sandboxStatusValues = [
-	"pending",
-	"spawning",
-	"connecting",
-	"warming",
-	"syncing",
+/**
+ * No sleep/wake states: the provider wakes a sandbox on the first inbound
+ * connection, so "asleep" is invisible to callers and could only ever be
+ * reported stale. `ready` means addressable, awake or not.
+ */
+export const cloudWorkspaceStatusValues = [
+	"provisioning",
 	"ready",
-	"running",
-	"stale",
-	"snapshotting",
-	"stopped",
 	"failed",
+	"deleted",
 ] as const;
-export const sandboxStatusEnum = z.enum(sandboxStatusValues);
-export type SandboxStatus = z.infer<typeof sandboxStatusEnum>;
+export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
+export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
 
 export const workspaceTypeValues = ["local", "cloud"] as const;
 export const workspaceTypeEnum = z.enum(workspaceTypeValues);
@@ -77,6 +71,8 @@ export const automationRunStatusValues = [
 	"dispatched",
 	"skipped_offline",
 	"dispatch_failed",
+	"debounced",
+	"rejected",
 ] as const;
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);
 export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
@@ -92,3 +88,31 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+export const automationTriggerKindValues = [
+	"schedule",
+	"webhook",
+	"github",
+	"slack",
+	"linear",
+	"sentry",
+] as const;
+export const automationTriggerKindEnum = z.enum(automationTriggerKindValues);
+export type AutomationTriggerKind = z.infer<typeof automationTriggerKindEnum>;
+
+// pgEnum columns; the wire/validation zod lives in @superset/shared/desktop-notices.
+// platforms/channels are stored as text[] (no enum needed).
+export const desktopNoticeSeverityValues = [
+	"info",
+	"warning",
+	"blocking",
+] as const;
+export const desktopNoticeTriggerValues = [
+	"immediate",
+	"pre-update",
+	"post-update",
+] as const;
+export const desktopNoticeCtaActionValues = [
+	"install-update",
+	"open-url",
+] as const;

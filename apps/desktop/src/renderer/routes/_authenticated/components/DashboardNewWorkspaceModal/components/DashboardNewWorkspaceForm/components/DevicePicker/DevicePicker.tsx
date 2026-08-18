@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -9,9 +10,11 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiCheck,
 	HiChevronUpDown,
+	HiOutlineCloud,
 	HiOutlineComputerDesktop,
 	HiOutlineServer,
 } from "react-icons/hi2";
@@ -39,7 +42,24 @@ interface DevicePickerProps {
 	hostId: string | null;
 	onSelectHostId: (hostId: string | null) => void;
 	className?: string;
+	/**
+	 * Also show relay connectivity for the local device. Cloud-dispatched work
+	 * (automations) goes through the relay, so "local" is not inherently online.
+	 */
+	showLocalOnlineState?: boolean;
+	/**
+	 * Disables opening via the Radix trigger itself. A button disabled only
+	 * through an enclosing <fieldset> still receives pointerdown in Chrome —
+	 * the event that opens a DropdownMenu.
+	 */
+	disabled?: boolean;
 }
+
+/**
+ * Sentinel host id for "run this in a cloud sandbox". Not a machine id: a
+ * sandbox is created per workspace and has no host row to point at.
+ */
+export const CLOUD_HOST_ID = "cloud";
 
 function getSelectedLabel(
 	hostId: string | null,
@@ -47,6 +67,7 @@ function getSelectedLabel(
 	currentDeviceName: string | null,
 	otherHosts: WorkspaceHostOption[],
 ) {
+	if (hostId === CLOUD_HOST_ID) return "Cloud";
 	if (hostId === null || hostId === machineId) {
 		return currentDeviceName ?? "Local Device";
 	}
@@ -54,6 +75,9 @@ function getSelectedLabel(
 }
 
 function getSelectedIcon(hostId: string | null, machineId: string | null) {
+	if (hostId === CLOUD_HOST_ID) {
+		return <HiOutlineCloud className="size-4 shrink-0" />;
+	}
 	if (hostId === null || hostId === machineId) {
 		return <HiOutlineComputerDesktop className="size-4 shrink-0" />;
 	}
@@ -64,9 +88,13 @@ export function DevicePicker({
 	hostId,
 	onSelectHostId,
 	className,
+	showLocalOnlineState = false,
+	disabled,
 }: DevicePickerProps) {
 	const { machineId } = useLocalHostService();
-	const { currentDeviceName, otherHosts } = useWorkspaceHostOptions();
+	const cloudEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
+	const { currentDeviceName, localHostIsOnline, otherHosts } =
+		useWorkspaceHostOptions();
 	const isLocal = hostId === null || hostId === machineId;
 	const selectedLabel = getSelectedLabel(
 		hostId,
@@ -74,15 +102,20 @@ export function DevicePicker({
 		currentDeviceName,
 		otherHosts,
 	);
-	// Only remote hosts have a meaningful online indicator — the app itself
-	// is the local host, so it's tautologically online.
-	const selectedRemoteOnline = isLocal
-		? null
-		: (otherHosts.find((host) => host.id === hostId)?.isOnline ?? false);
+	// For direct (local) use the app itself is the host, so it's tautologically
+	// online and gets no indicator. Relay-dispatched contexts opt into showing
+	// the local device's relay connectivity instead.
+	const localOnline = showLocalOnlineState ? localHostIsOnline : null;
+	const isCloud = hostId === CLOUD_HOST_ID;
+	const selectedOnline = isLocal
+		? localOnline
+		: isCloud
+			? null
+			: (otherHosts.find((host) => host.id === hostId)?.isOnline ?? false);
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger asChild disabled={disabled}>
 				<FormPickerTrigger
 					className={cn("max-w-[140px]", className)}
 					aria-label={`Device: ${selectedLabel}`}
@@ -90,9 +123,7 @@ export function DevicePicker({
 				>
 					{getSelectedIcon(hostId, machineId)}
 					<span className="truncate">{selectedLabel}</span>
-					{selectedRemoteOnline !== null && (
-						<OnlineDot online={selectedRemoteOnline} />
-					)}
+					{selectedOnline !== null && <OnlineDot online={selectedOnline} />}
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</FormPickerTrigger>
 			</DropdownMenuTrigger>
@@ -100,8 +131,16 @@ export function DevicePicker({
 				<DropdownMenuItem onSelect={() => onSelectHostId(machineId)}>
 					<HiOutlineComputerDesktop className="size-4" />
 					<span className="flex-1">Local Device</span>
+					{localOnline !== null && <OnlineDot online={localOnline} />}
 					{isLocal && <HiCheck className="size-4" />}
 				</DropdownMenuItem>
+				{cloudEnabled && (
+					<DropdownMenuItem onSelect={() => onSelectHostId(CLOUD_HOST_ID)}>
+						<HiOutlineCloud className="size-4" />
+						<span className="flex-1">Cloud</span>
+						{hostId === CLOUD_HOST_ID && <HiCheck className="size-4" />}
+					</DropdownMenuItem>
+				)}
 				{otherHosts.length > 0 && (
 					<>
 						<DropdownMenuSeparator />

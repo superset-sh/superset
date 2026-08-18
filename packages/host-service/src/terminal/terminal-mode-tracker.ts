@@ -23,7 +23,19 @@ export interface ModeTracker {
 	feed(bytes: Uint8Array): void;
 	resize(cols: number, rows: number): void;
 	buildPreamble(): Uint8Array | null;
+	isBracketedPasteActive(): boolean;
+	isFocusReportingActive(): boolean;
+	/** Current cursor position on the mirrored screen, 0-based viewport coords. */
+	cursorPosition(): { x: number; y: number };
+	snapshot(maxLines?: number): TerminalSnapshot;
 	dispose(): void;
+}
+
+export interface TerminalSnapshot {
+	cols: number;
+	rows: number;
+	/** Plain text of the emulator buffer (alt-screen for TUI agents). */
+	text: string;
 }
 
 // Reaches into private xterm internals: synchronous parsing and kitty
@@ -44,8 +56,10 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	const term = new HeadlessTerminal({
 		cols,
 		rows,
-		// Tracker reads modes, never cells — keep scrollback minimal.
-		scrollback: 1,
+		// Retains recent scrollback so `snapshot()` can serve line-mode history,
+		// not just the visible screen. Irrelevant to alt-screen TUIs (no
+		// scrollback), but cheap insurance for plain shell output.
+		scrollback: 1000,
 		allowProposedApi: true,
 	});
 	const internals = term as unknown as HeadlessInternals;
@@ -118,6 +132,19 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 		return new TextEncoder().encode(parts.join(""));
 	};
 
+	const snapshot = (maxLines?: number): TerminalSnapshot => {
+		const buffer = term.buffer.active;
+		const total = buffer.length;
+		const start = maxLines && maxLines > 0 ? Math.max(0, total - maxLines) : 0;
+		const lines: string[] = [];
+		for (let y = start; y < total; y++) {
+			lines.push(buffer.getLine(y)?.translateToString(true) ?? "");
+		}
+		// Trim trailing blank rows so the snapshot ends at real content.
+		while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+		return { cols: term.cols, rows: term.rows, text: lines.join("\n") };
+	};
+
 	return {
 		feed(bytes) {
 			writeBuffer.writeSync(bytes);
@@ -127,6 +154,17 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 			term.resize(nextCols, nextRows);
 		},
 		buildPreamble,
+		isBracketedPasteActive() {
+			return term.modes.bracketedPasteMode;
+		},
+		isFocusReportingActive() {
+			return term.modes.sendFocusMode;
+		},
+		cursorPosition() {
+			const buffer = term.buffer.active;
+			return { x: buffer.cursorX, y: buffer.cursorY };
+		},
+		snapshot,
 		dispose() {
 			term.dispose();
 		},

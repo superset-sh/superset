@@ -37,12 +37,19 @@ export function CategorySection({
 		return null;
 	}
 
+	const liveWorkBadgeClass: Partial<Record<ChangeCategory, string>> = {
+		unstaged: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+		staged: "bg-green-500/15 text-green-700 dark:text-green-400",
+	};
+	const countBadgeClass = liveWorkBadgeClass[id];
+	const isLiveWork = countBadgeClass !== undefined;
+
 	return (
 		<Collapsible
 			open={isExpanded}
 			onOpenChange={onToggle}
 			className={cn(
-				"min-w-0 overflow-hidden transition-opacity",
+				"min-w-0 overflow-hidden border-t border-border/40 transition-opacity first:border-t-0",
 				isDragging && "opacity-45",
 			)}
 		>
@@ -65,8 +72,25 @@ export function CategorySection({
 							isExpanded && "rotate-90",
 						)}
 					/>
-					<span className="text-xs font-medium truncate">{title}</span>
-					<span className="text-[10px] text-muted-foreground shrink-0">
+					<span
+						className={cn(
+							"text-xs truncate",
+							isLiveWork ? "font-semibold" : "font-medium",
+						)}
+					>
+						{title}
+					</span>
+					<span
+						className={cn(
+							"shrink-0 text-[10px] tabular-nums",
+							isLiveWork
+								? cn(
+										"rounded-full px-1.5 py-0.5 font-medium leading-none",
+										countBadgeClass,
+									)
+								: "text-muted-foreground",
+						)}
+					>
 						{count}
 					</span>
 				</CollapsibleTrigger>
