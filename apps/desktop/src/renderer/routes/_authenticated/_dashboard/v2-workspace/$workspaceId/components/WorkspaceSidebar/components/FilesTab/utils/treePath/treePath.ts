@@ -35,6 +35,26 @@ export function basename(rel: string): string {
 	return i < 0 ? trimmed : trimmed.slice(i + 1);
 }
 
+/** Resolve a watcher deletion to Pierre's canonical path and entry type. */
+export function resolveDeleteTreePath(
+	known: Set<string>,
+	rel: string,
+	isDirectory: boolean | undefined,
+): { treePath: string; isDirectory: boolean } {
+	const directoryPath = `${rel}/`;
+	const treePath = known.has(rel)
+		? rel
+		: known.has(directoryPath)
+			? directoryPath
+			: isDirectory
+				? directoryPath
+				: rel;
+	return {
+		treePath,
+		isDirectory: isDirectory ?? treePath.endsWith("/"),
+	};
+}
+
 // Pierre's `isDirectory()` is typed as `() => true | false` (literal returns
 // per branch) but isn't a TS predicate, so the union doesn't narrow. This
 // helper turns it into one.

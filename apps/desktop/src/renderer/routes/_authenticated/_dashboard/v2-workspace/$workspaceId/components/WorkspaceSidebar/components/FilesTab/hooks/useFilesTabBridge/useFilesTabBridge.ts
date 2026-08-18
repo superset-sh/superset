@@ -7,6 +7,7 @@ import type { TreeBookkeeping } from "../../utils/treeBookkeeping";
 import { purgeDirectory, rekeyDirectory } from "../../utils/treeBookkeeping";
 import {
 	asDirectoryHandle,
+	resolveDeleteTreePath,
 	stripTrailingSlash,
 	toAbs,
 	toRel,
@@ -74,9 +75,9 @@ export interface FilesTabBridge {
  *   - Row removal: mirror Pierre's `remove` mutations into our bookkeeping
  *     (the Files tab's own cancel handling lives in useFilesTabActions)
  *
- * Workspace-switch races: every async listing captures a `versionRef` snapshot
- * and aborts its mutations if `versionRef` advanced (i.e. workspace/root
- * changed) before the await resolved.
+ * Async-listing races: every listing captures both the workspace version and a
+ * tree revision. It aborts if the workspace changes or if a destructive tree
+ * mutation (rename or removal) happens before the await resolves.
  */
 export function useFilesTabBridge({
 	model,
@@ -101,6 +102,9 @@ export function useFilesTabBridge({
 	// Bumped on workspace/root change so async listings started against an
 	// old workspace can detect they're stale and bail out before mutating.
 	const versionRef = useRef(0);
+	// Bumped on structural changes within the current workspace so a delayed
+	// listing cannot restore paths that were renamed or removed after it began.
+	const treeRevisionRef = useRef(0);
 
 	// Track directories that are known but haven't been loaded yet. When
 	// Pierre fires model.subscribe (on expansion, selection, etc.) we only
@@ -119,21 +123,33 @@ export function useFilesTabBridge({
 		[],
 	);
 
+	const invalidateTreeListings = useCallback(() => {
+		treeRevisionRef.current += 1;
+	}, []);
+
 	const fetchDir = useCallback(
-		async (relDir: string): Promise<void> => {
+		async function fetchDirectory(relDir: string): Promise<void> {
 			if (!rootPath || !workspaceId) return;
 			if (loadedDirsRef.current.has(relDir)) return;
 			const existing = inflightDirsRef.current.get(relDir);
 			if (existing) return existing;
 
 			const startVersion = versionRef.current;
+			const startTreeRevision = treeRevisionRef.current;
+			let shouldRetry = false;
 			const promise = (async () => {
 				try {
 					const result = await utils.filesystem.listDirectory.fetch({
 						workspaceId,
 						absolutePath: toAbs(rootPath, relDir),
 					});
-					if (versionRef.current !== startVersion) return;
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						shouldRetry = versionRef.current === startVersion;
+						return;
+					}
 					const ops: { type: "add"; path: string }[] = [];
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
@@ -153,7 +169,13 @@ export function useFilesTabBridge({
 					loadedDirsRef.current.add(relDir);
 					unloadedDirCandidatesRef.current.delete(relDir);
 				} catch (error) {
-					if (versionRef.current !== startVersion) return;
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						shouldRetry = versionRef.current === startVersion;
+						return;
+					}
 					console.error("[v2 FilesTab] listDirectory failed", {
 						relDir,
 						error,
@@ -169,6 +191,18 @@ export function useFilesTabBridge({
 				if (inflightDirsRef.current.get(relDir) === promise) {
 					inflightDirsRef.current.delete(relDir);
 				}
+				if (!shouldRetry || versionRef.current !== startVersion) return;
+				// Root is always relevant. Nested directories are retried only when
+				// they still exist at the same path and remain expanded; a renamed or
+				// removed directory must not produce a request against its old path.
+				if (relDir === "") {
+					void fetchDirectory(relDir);
+					return;
+				}
+				const dirKey = `${relDir}/`;
+				if (!knownPathsRef.current.has(dirKey)) return;
+				const handle = asDirectoryHandle(model.getItem(dirKey));
+				if (handle?.isExpanded()) void fetchDirectory(relDir);
 			});
 			return promise;
 		},
@@ -179,37 +213,59 @@ export function useFilesTabBridge({
 		if (!rootPath || !workspaceId) return;
 		setIsRefreshing(true);
 		const startVersion = versionRef.current;
+		const startTreeRevision = treeRevisionRef.current;
 		try {
 			const dirsToReload = Array.from(loadedDirsRef.current).sort(
 				(a, b) => a.split("/").length - b.split("/").length,
 			);
-			loadedDirsRef.current.clear();
-
 			// Collect fresh listings into a flat set then resetPaths so what
-			// Pierre shows can't drift from what we think we know.
+			// Pierre shows can't drift from what we think we know. Keep the live
+			// loaded-dir set untouched until commit so a stale refresh can abort
+			// without partially clearing current bookkeeping.
 			const freshPaths = new Set<string>();
+			const freshLoadedDirs = new Set<string>();
 			for (const dir of dirsToReload) {
 				try {
 					const result = await utils.filesystem.listDirectory.fetch(
 						{ workspaceId, absolutePath: toAbs(rootPath, dir) },
 						{ staleTime: 0 },
 					);
-					if (versionRef.current !== startVersion) return;
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						return;
+					}
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
 						freshPaths.add(entry.kind === "directory" ? `${rel}/` : rel);
 					}
-					loadedDirsRef.current.add(dir);
+					freshLoadedDirs.add(dir);
 				} catch (error) {
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						return;
+					}
 					console.error("[v2 FilesTab] refresh listDirectory failed", {
 						dir,
 						error,
 					});
 				}
 			}
-			if (versionRef.current !== startVersion) return;
+			if (
+				versionRef.current !== startVersion ||
+				treeRevisionRef.current !== startTreeRevision
+			) {
+				return;
+			}
 			knownPathsRef.current.clear();
+			loadedDirsRef.current.clear();
 			unloadedDirCandidatesRef.current.clear();
+			for (const dir of freshLoadedDirs) {
+				loadedDirsRef.current.add(dir);
+			}
 			for (const path of freshPaths) {
 				knownPathsRef.current.add(path);
 				if (path.endsWith("/")) {
@@ -230,13 +286,14 @@ export function useFilesTabBridge({
 	useEffect(() => {
 		if (!rootPath || !workspaceId) return;
 		versionRef.current += 1;
+		invalidateTreeListings();
 		knownPathsRef.current.clear();
 		loadedDirsRef.current.clear();
 		inflightDirsRef.current.clear();
 		unloadedDirCandidatesRef.current.clear();
 		model.resetPaths([]);
 		void fetchDir("");
-	}, [model, rootPath, workspaceId, fetchDir]);
+	}, [model, rootPath, workspaceId, fetchDir, invalidateTreeListings]);
 
 	// On every model change, check only unloaded directory candidates for
 	// expansion. Pierre doesn't surface an explicit "expand" event, so we
@@ -264,6 +321,7 @@ export function useFilesTabBridge({
 	// listener; Pierre supports several per mutation type.)
 	useEffect(() => {
 		return model.onMutation("remove", (event) => {
+			invalidateTreeListings();
 			knownPathsRef.current.delete(event.path);
 			if (event.path.endsWith("/")) {
 				const dir = stripTrailingSlash(event.path);
@@ -271,7 +329,7 @@ export function useFilesTabBridge({
 				purgeDirectory(bookkeeping(), dir);
 			}
 		});
-	}, [model, bookkeeping]);
+	}, [model, bookkeeping, invalidateTreeListings]);
 
 	useWorkspaceEvent(
 		"fs:events",
@@ -310,6 +368,7 @@ export function useFilesTabBridge({
 			}
 
 			if (event.kind === "rename" && event.oldAbsolutePath) {
+				invalidateTreeListings();
 				const oldRel = toRel(rootPath, event.oldAbsolutePath);
 				const oldKey = matchKnown(knownPathsRef.current, oldRel);
 				const isFolder = event.isDirectory ?? oldKey?.endsWith("/") ?? false;
@@ -344,15 +403,26 @@ export function useFilesTabBridge({
 					}
 					addKnownPath(model, knownPathsRef.current, newKey);
 				}
+				if (isFolder) {
+					const newDir = stripTrailingSlash(newKey);
+					if (!loadedDirsRef.current.has(newDir)) {
+						unloadedDirCandidatesRef.current.add(newDir);
+					}
+					const handle = asDirectoryHandle(model.getItem(newKey));
+					if (handle?.isExpanded()) void fetchDir(newDir);
+				}
 				return;
 			}
 
 			if (event.kind === "delete") {
-				const isFolder = event.isDirectory ?? false;
-				const key = isFolder ? `${rel}/` : rel;
-				const matched = matchKnown(knownPathsRef.current, rel) ?? key;
+				invalidateTreeListings();
+				const { treePath: matched, isDirectory } = resolveDeleteTreePath(
+					knownPathsRef.current,
+					rel,
+					event.isDirectory,
+				);
 				removeKnownPath(model, knownPathsRef.current, matched);
-				if (isFolder) {
+				if (isDirectory) {
 					purgeDirectory(bookkeeping(), stripTrailingSlash(matched));
 				}
 				return;
@@ -375,9 +445,13 @@ export function useFilesTabBridge({
 
 	const rekeyDescendantsBound = useCallback(
 		(oldDir: string, newDir: string) => {
+			invalidateTreeListings();
 			rekeyDirectory(bookkeeping(), oldDir, newDir);
+			const newKey = `${newDir}/`;
+			const handle = asDirectoryHandle(model.getItem(newKey));
+			if (handle?.isExpanded()) void fetchDir(newDir);
 		},
-		[bookkeeping],
+		[bookkeeping, fetchDir, invalidateTreeListings, model],
 	);
 
 	const getVersion = useCallback(() => versionRef.current, []);
@@ -413,6 +487,9 @@ export function useFilesTabBridge({
 
 	const removePath = useCallback(
 		(treePath: string): void => {
+			if (knownPathsRef.current.has(treePath)) {
+				invalidateTreeListings();
+			}
 			removeKnownPath(model, knownPathsRef.current, treePath);
 			if (treePath.endsWith("/")) {
 				const dirRel = stripTrailingSlash(treePath);
@@ -421,7 +498,7 @@ export function useFilesTabBridge({
 				purgeDirectory(bookkeeping(), dirRel);
 			}
 		},
-		[model, bookkeeping],
+		[model, bookkeeping, invalidateTreeListings],
 	);
 
 	return {

@@ -220,6 +220,7 @@ describe("filesystem router integration", () => {
 					kind: "file",
 				});
 			expect(created.ok).toBe(true);
+			expect(created.ok && created.revision).toBeTruthy();
 			if (!created.ok || created.revision === undefined) return;
 
 			// Someone wrote to it after we created it — cancelling must not delete it.

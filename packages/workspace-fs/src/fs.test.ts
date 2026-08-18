@@ -549,6 +549,7 @@ describe("removeFileIfUnchanged", () => {
 			kind: "file",
 		});
 		expect(created.ok).toEqual(true);
+		expect(created.ok && created.revision).toBeTruthy();
 		if (!created.ok || created.revision === undefined) return;
 
 		expect(

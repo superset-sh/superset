@@ -300,7 +300,7 @@ export function useFilesTabActions({
 			// openFilePaneFromTreeClick's "clicked the active row" branch and pin
 			// the pane — so cancelling would delete the file and strand a pinned
 			// pane pointing at it.
-			provisionalRef.current = entry;
+			dispatchProvisional({ type: "created", entry });
 		},
 		[
 			model,
@@ -309,6 +309,7 @@ export function useFilesTabActions({
 			bridge,
 			createUniqueEntry,
 			discardProvisional,
+			dispatchProvisional,
 		],
 	);
 
