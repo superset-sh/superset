@@ -247,6 +247,7 @@ export function useDashboardSidebarData() {
 					isCollapsed: sidebarSections.isCollapsed,
 					tabOrder: sidebarSections.tabOrder,
 					color: sidebarSections.color,
+					tagBinding: sidebarSections.tagBinding,
 				})),
 		[collections],
 	);
@@ -304,6 +305,7 @@ export function useDashboardSidebarData() {
 						pinnedAt: localState.pinnedAt,
 						parentWorkspaceId: workspace.parentWorkspaceId ?? null,
 						lineageCollapsed: localState.lineageCollapsed ?? false,
+						tags: workspace.tags ?? [],
 					},
 				];
 			}),
@@ -357,6 +359,7 @@ export function useDashboardSidebarData() {
 					parentWorkspaceId: workspace.parentWorkspaceId ?? null,
 					// Auto-included mains have no local-state row to collapse with.
 					lineageCollapsed: false,
+					tags: workspace.tags ?? [],
 				})),
 		[hostWorkspaces],
 	);

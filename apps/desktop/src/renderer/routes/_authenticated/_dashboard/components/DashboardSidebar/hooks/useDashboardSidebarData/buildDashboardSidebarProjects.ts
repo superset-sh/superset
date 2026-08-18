@@ -33,6 +33,8 @@ export interface SidebarSectionInput {
 	isCollapsed: boolean;
 	tabOrder: number;
 	color: string | null;
+	/** Non-null = smart section: membership also derives from this tag. */
+	tagBinding: string | null;
 }
 
 export interface SidebarWorkspaceInput {
@@ -55,6 +57,8 @@ export interface SidebarWorkspaceInput {
 	parentWorkspaceId: string | null;
 	/** True when the user collapsed this workspace's child subtree. */
 	lineageCollapsed: boolean;
+	/** Normalized host-side labels. */
+	tags: string[];
 }
 
 /**
@@ -114,6 +118,7 @@ function decorateSidebarWorkspace(
 		lineageDepth: 0,
 		lineageChildCount: 0,
 		lineageCollapsed: workspace.lineageCollapsed,
+		tags: workspace.tags,
 	};
 }
 
@@ -286,6 +291,30 @@ export function buildDashboardSidebarProjects({
 			project.orphanedWorkspaces.push({
 				tabOrder: workspace.tabOrder,
 				workspace: sidebarWorkspace,
+			});
+			continue;
+		}
+
+		// Tag-derived membership: an unsectioned workspace joins the matching
+		// tag-bound section with the lowest tab order. Explicit sectionId
+		// always wins above, and single-match keeps the "a workspace renders
+		// in exactly one container" invariant that ordering, DnD, and
+		// selection assume. Sorted here rather than trusting input order so
+		// the rule holds for any caller.
+		const tagSection =
+			workspace.tags.length > 0
+				? [...project.sectionMap.values()]
+						.filter(
+							(section) =>
+								section.tagBinding !== null &&
+								workspace.tags.includes(section.tagBinding),
+						)
+						.sort((left, right) => left.tabOrder - right.tabOrder)[0]
+				: undefined;
+		if (tagSection) {
+			tagSection.workspaces.push({
+				...sidebarWorkspace,
+				accentColor: tagSection.color,
 			});
 			continue;
 		}

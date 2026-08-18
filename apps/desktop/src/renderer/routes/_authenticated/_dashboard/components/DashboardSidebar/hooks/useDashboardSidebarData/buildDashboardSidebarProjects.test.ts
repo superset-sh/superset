@@ -40,6 +40,7 @@ function makeSection(
 		isCollapsed: false,
 		tabOrder: 1,
 		color: "#abcdef",
+		tagBinding: null,
 		...overrides,
 	};
 }
@@ -64,6 +65,7 @@ function makeWorkspace(
 		pendingTransaction: null,
 		parentWorkspaceId: null,
 		lineageCollapsed: false,
+		tags: [],
 		...overrides,
 	};
 }
@@ -195,6 +197,221 @@ describe("buildDashboardSidebarProjects", () => {
 			"orphan-late",
 			"section:section-1",
 		]);
+	});
+});
+
+describe("tag-derived section membership", () => {
+	it("places a tagged workspace into the matching tag-bound section", () => {
+		const [project] = build({
+			sidebarSections: [
+				makeSection({ id: "smart", tagBinding: "perf", tabOrder: 1 }),
+			],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "tagged", tags: ["perf"], sectionId: null }),
+				makeWorkspace({ id: "untagged", sectionId: null, tabOrder: 2 }),
+			],
+		});
+
+		const section = project.children.find((child) => child.type === "section");
+		if (section?.type !== "section") throw new Error("expected section");
+		expect(section.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["tagged"],
+		);
+		const topLevel = project.children.flatMap((child) =>
+			child.type === "workspace" ? [child.workspace.id] : [],
+		);
+		expect(topLevel).toEqual(["untagged"]);
+	});
+
+	it("lets explicit sectionId beat tag membership", () => {
+		const [project] = build({
+			sidebarSections: [
+				makeSection({ id: "manual", tagBinding: null, tabOrder: 1 }),
+				makeSection({ id: "smart", tagBinding: "perf", tabOrder: 2 }),
+			],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "ws", tags: ["perf"], sectionId: "manual" }),
+			],
+		});
+
+		const bySection = Object.fromEntries(
+			project.children.flatMap((child) =>
+				child.type === "section"
+					? [
+							[
+								child.section.id,
+								child.section.workspaces.map((workspace) => workspace.id),
+							],
+						]
+					: [],
+			),
+		);
+		expect(bySection).toEqual({ manual: ["ws"], smart: [] });
+	});
+
+	it("renders a multi-tag workspace in exactly one section (first by tab order)", () => {
+		const [project] = build({
+			sidebarSections: [
+				makeSection({ id: "second", tagBinding: "b", tabOrder: 2 }),
+				makeSection({ id: "first", tagBinding: "a", tabOrder: 1 }),
+			],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "ws", tags: ["b", "a"], sectionId: null }),
+			],
+		});
+
+		const bySection = Object.fromEntries(
+			project.children.flatMap((child) =>
+				child.type === "section"
+					? [
+							[
+								child.section.id,
+								child.section.workspaces.map((workspace) => workspace.id),
+							],
+						]
+					: [],
+			),
+		);
+		expect(bySection).toEqual({ first: ["ws"], second: [] });
+	});
+
+	it("resolves two sections bound to the same tag to the lower tab order", () => {
+		const [project] = build({
+			sidebarSections: [
+				makeSection({ id: "late", tagBinding: "perf", tabOrder: 5 }),
+				makeSection({ id: "early", tagBinding: "perf", tabOrder: 1 }),
+			],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "ws", tags: ["perf"], sectionId: null }),
+			],
+		});
+
+		const bySection = Object.fromEntries(
+			project.children.flatMap((child) =>
+				child.type === "section"
+					? [
+							[
+								child.section.id,
+								child.section.workspaces.map((workspace) => workspace.id),
+							],
+						]
+					: [],
+			),
+		);
+		expect(bySection).toEqual({ early: ["ws"], late: [] });
+	});
+
+	it("never leaks a tagged workspace into another project's tag-bound section", () => {
+		const projects = buildDashboardSidebarProjects({
+			sidebarProjects: [
+				makeProject({ id: "p-with-section" }),
+				makeProject({ id: "p-of-workspace" }),
+			],
+			sidebarSections: [
+				makeSection({
+					id: "smart",
+					projectId: "p-with-section",
+					tagBinding: "perf",
+				}),
+			],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({
+					id: "ws",
+					projectId: "p-of-workspace",
+					tags: ["perf"],
+					sectionId: null,
+				}),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		const home = projects.find((project) => project.id === "p-of-workspace");
+		expect(
+			home?.children.flatMap((child) =>
+				child.type === "workspace" ? [child.workspace.id] : [],
+			),
+		).toEqual(["ws"]);
+		const other = projects.find((project) => project.id === "p-with-section");
+		const smart = other?.children.find((child) => child.type === "section");
+		if (smart?.type !== "section") throw new Error("expected section");
+		expect(smart.section.workspaces).toEqual([]);
+	});
+
+	it("keeps a pinned workspace out of tag-bound sections", () => {
+		const { pinned, unpinned } = partitionSidebarWorkspacesByPinned([
+			makeWorkspace({ id: "ws", tags: ["perf"], pinnedAt: 1000 }),
+		]);
+		expect(pinned.map((workspace) => workspace.id)).toEqual(["ws"]);
+		const [project] = build({
+			sidebarSections: [makeSection({ id: "smart", tagBinding: "perf" })],
+			visibleSidebarWorkspaces: unpinned,
+		});
+		const smart = project.children.find((child) => child.type === "section");
+		if (smart?.type !== "section") throw new Error("expected section");
+		expect(smart.section.workspaces).toEqual([]);
+	});
+
+	it("re-roots an untagged child whose parent moved into a tag-bound section", () => {
+		const [project] = build({
+			sidebarSections: [makeSection({ id: "smart", tagBinding: "perf" })],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", tags: ["perf"], tabOrder: 1 }),
+				makeWorkspace({
+					id: "child",
+					parentWorkspaceId: "parent",
+					tabOrder: 2,
+				}),
+			],
+		});
+
+		const topLevel = project.children.flatMap((child) =>
+			child.type === "workspace"
+				? [`${child.workspace.id}:${child.workspace.lineageDepth}`]
+				: [],
+		);
+		expect(topLevel).toEqual(["child:0"]);
+		const smart = project.children.find((child) => child.type === "section");
+		if (smart?.type !== "section") throw new Error("expected section");
+		expect(
+			smart.section.workspaces.map(
+				(workspace) => `${workspace.id}:${workspace.lineageDepth}`,
+			),
+		).toEqual(["parent:0"]);
+	});
+
+	it("nests lineage inside a tag-derived section and re-roots cross-container children", () => {
+		const [project] = build({
+			sidebarSections: [
+				makeSection({ id: "smart", tagBinding: "perf", tabOrder: 1 }),
+			],
+			visibleSidebarWorkspaces: [
+				// Parent stays top-level; both children land in the tag section
+				// and nest against each other there, re-rooting off the absent
+				// parent.
+				makeWorkspace({ id: "parent", tabOrder: 1 }),
+				makeWorkspace({
+					id: "child",
+					tags: ["perf"],
+					parentWorkspaceId: "parent",
+					tabOrder: 2,
+				}),
+				makeWorkspace({
+					id: "grandchild",
+					tags: ["perf"],
+					parentWorkspaceId: "child",
+					tabOrder: 3,
+				}),
+			],
+		});
+
+		const section = project.children.find((child) => child.type === "section");
+		if (section?.type !== "section") throw new Error("expected section");
+		expect(
+			section.section.workspaces.map(
+				(workspace) => `${workspace.id}:${workspace.lineageDepth}`,
+			),
+		).toEqual(["child:0", "grandchild:1"]);
 	});
 });
 

@@ -216,6 +216,11 @@ export const dashboardSidebarSectionSchema = z.object({
 	tabOrder: z.number().int().default(0),
 	isCollapsed: z.boolean().default(false),
 	color: z.string().nullable().default(null),
+	// Non-null = a "smart" section: membership derives from workspaces
+	// carrying this (normalized) tag, in addition to explicit sectionId
+	// members. Tags live host-side, so agents/CLI/automations can move
+	// workspaces into the group by tagging them.
+	tagBinding: z.string().nullable().default(null),
 });
 
 const v2ExecutionModeSchema = z.enum([
