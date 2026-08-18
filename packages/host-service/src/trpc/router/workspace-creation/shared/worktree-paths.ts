@@ -51,9 +51,17 @@ export function isInsideProjectWorktreesRoot(
 	projectId: string,
 	worktreeBaseDir?: string | null,
 ): boolean {
+	// Both prefixes are canonicalised: a `<base>/<projectId>` entry that is a
+	// symlink out of the base would otherwise let a path beneath it pass.
+	const base = normalizePath(worktreeBaseDir ?? defaultWorktreesRoot());
 	const root = normalizePath(projectWorktreesRoot(projectId, worktreeBaseDir));
 	const resolved = normalizePath(path);
-	return resolved !== root && resolved.startsWith(root + sep);
+	return (
+		root !== base &&
+		root.startsWith(base + sep) &&
+		resolved !== root &&
+		resolved.startsWith(root + sep)
+	);
 }
 
 function normalizePath(p: string): string {
