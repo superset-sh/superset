@@ -21,7 +21,9 @@ import type {
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
+import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
+import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
 
@@ -446,19 +448,52 @@ async function runDestroyPhases(
 	}
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
-		try {
-			repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			if (!worktreeRemoved) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to open project repo at ${project.repoPath}: ${message}`,
-				});
+		if (!worktreeRemoved && !existsSync(project.repoPath)) {
+			// The project repo was moved or deleted outside Superset: there is
+			// no repository to run `git worktree remove` in, and the worktree's
+			// gitdir pointer is already dead, so no retry can ever succeed.
+			// Delete the folder directly under the same root guard the
+			// sessions branch uses — anything outside the project's managed
+			// worktrees root is left on disk (warned) while the delete proceeds.
+			const worktreeBaseDir =
+				project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+			if (
+				!isInsideProjectWorktreesRoot(
+					local.worktreePath,
+					project.id,
+					worktreeBaseDir,
+				)
+			) {
+				warnings.push(
+					`Skipped worktree removal at ${local.worktreePath}: project repo at ${project.repoPath} is missing and the folder is outside the managed worktrees root`,
+				);
+			} else {
+				try {
+					await rm(local.worktreePath, { recursive: true, force: true });
+					worktreeRemoved = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to remove worktree at ${local.worktreePath}: ${message}`,
+					});
+				}
 			}
-			warnings.push(
-				`Failed to open project repo at ${project.repoPath}: ${message}`,
-			);
+		} else {
+			try {
+				repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				if (!worktreeRemoved) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to open project repo at ${project.repoPath}: ${message}`,
+					});
+				}
+				warnings.push(
+					`Failed to open project repo at ${project.repoPath}: ${message}`,
+				);
+			}
 		}
 
 		if (repoGitEnv) {

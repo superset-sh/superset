@@ -371,6 +371,102 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
+	test("missing project repo: worktree inside the managed root is deleted directly", async () => {
+		// The project repo was moved or deleted outside Superset. There is no
+		// repository to run `git worktree remove` in, so the saga must delete
+		// the (dangling) worktree folder itself and still complete — every
+		// retry used to 500 on "Failed to open project repo" (HOST-SERVICE-3A).
+		await scenario.dispose();
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		const worktreeBaseDir = mkdtempSync(
+			join(tmpdir(), "host-service-worktrees-"),
+		);
+		const { id: projectId } = seedProject(host, {
+			repoPath: repo.repoPath,
+			worktreeBaseDir,
+		});
+		const worktreePath = join(worktreeBaseDir, projectId, "feature-gone");
+		mkdirSync(join(worktreeBaseDir, projectId), { recursive: true });
+		await repo.git.raw(["worktree", "add", "-b", "feature/gone", worktreePath]);
+		const { id: workspaceId } = seedWorkspace(host, {
+			projectId,
+			worktreePath,
+			branch: "feature/gone",
+		});
+		rmSync(repo.repoPath, { recursive: true, force: true });
+
+		try {
+			const result = await host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId,
+				deleteBranch: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(result.branchDeleted).toBe(false);
+			expect(result.warnings).toEqual([]);
+			expect(existsSync(worktreePath)).toBe(false);
+
+			const remaining = host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, workspaceId))
+				.all();
+			expect(remaining[0]?.archivedAt).not.toBeNull();
+		} finally {
+			await host.dispose();
+			repo.dispose();
+			rmSync(worktreeBaseDir, { recursive: true, force: true });
+		}
+	});
+
+	test("missing project repo: worktree outside the managed root is left on disk with a warning", async () => {
+		// An adopted (or corrupt) worktreePath outside the project's managed
+		// worktrees root must never be rm -rf'd — the delete still succeeds,
+		// the folder stays, and the caller is told why.
+		await scenario.dispose();
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		const outside = mkdtempSync(join(tmpdir(), "host-service-adopted-"));
+		const worktreeBaseDir = mkdtempSync(
+			join(tmpdir(), "host-service-worktrees-"),
+		);
+		const { id: projectId } = seedProject(host, {
+			repoPath: repo.repoPath,
+			worktreeBaseDir,
+		});
+		const worktreePath = join(outside, "feature-adopted");
+		await repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/adopted",
+			worktreePath,
+		]);
+		const { id: workspaceId } = seedWorkspace(host, {
+			projectId,
+			worktreePath,
+			branch: "feature/adopted",
+		});
+		rmSync(repo.repoPath, { recursive: true, force: true });
+
+		try {
+			const result = await host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(false);
+			expect(result.warnings).toHaveLength(1);
+			expect(result.warnings[0]).toMatch(/outside the managed worktrees root/);
+			expect(existsSync(worktreePath)).toBe(true);
+		} finally {
+			await host.dispose();
+			repo.dispose();
+			rmSync(outside, { recursive: true, force: true });
+			rmSync(worktreeBaseDir, { recursive: true, force: true });
+		}
+	});
+
 	test("opted-in branch delete runs after the local commit point", async () => {
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
