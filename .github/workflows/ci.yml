@@ -32,6 +32,20 @@ jobs:
       - name: Sherif
         run: bunx sherif
 
+  vale:
+    name: Vale prose lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install Vale
+        run: brew install vale
+
+      - name: Lint marketing content
+        working-directory: apps/marketing
+        run: vale --config=vale.ini content
+
   version-sync:
     name: Version Sync
     runs-on: ubuntu-latest

@@ -1,0 +1,7 @@
+extends: existence
+message: "No em dashes in marketing copy; rewrite with a colon, comma, period, or parentheses."
+link: https://github.com/superset-sh/superset/blob/main/apps/marketing/docs/copywriting-references.md
+level: error
+nonword: true
+tokens:
+  - '—'

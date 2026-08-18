@@ -2,6 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 
 const MD_TWIN_PATTERN = /^\/(blog|compare|changelog)\/([^/]+)\.md$/;
 
+// Top-level category guide pages (content/category/*.mdx). Proxy runs on the
+// edge without fs access, so the slugs are duplicated here; keep in sync.
+const CATEGORY_SLUGS = ["parallel-coding-agents", "agent-orchestration"];
+
 function acceptsMarkdown(request: NextRequest): boolean {
 	const accept = request.headers.get("accept") ?? "";
 	return accept.includes("text/markdown");
@@ -31,6 +35,16 @@ export default function proxy(request: NextRequest) {
 		return NextResponse.next();
 	}
 
+	// Category guide pages: /parallel-coding-agents(.md) -> markdown twin.
+	for (const slug of CATEGORY_SLUGS) {
+		if (pathname === `/${slug}.md`) {
+			return rewriteTo(request, `/md/category/${slug}`);
+		}
+		if (pathname === `/${slug}` && acceptsMarkdown(request)) {
+			return rewriteTo(request, `/md/category/${slug}`);
+		}
+	}
+
 	// .md twins for content pages: /blog/foo.md -> markdown source.
 	const twinMatch = pathname.match(MD_TWIN_PATTERN);
 	if (twinMatch) {
@@ -50,5 +64,14 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ["/", "/blog/:slug", "/compare/:slug", "/changelog/:slug"],
+	matcher: [
+		"/",
+		"/blog/:slug",
+		"/compare/:slug",
+		"/changelog/:slug",
+		"/parallel-coding-agents",
+		"/parallel-coding-agents.md",
+		"/agent-orchestration",
+		"/agent-orchestration.md",
+	],
 };
