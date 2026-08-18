@@ -121,7 +121,7 @@ export function WorkspaceRow({
 					<Text className="font-medium text-[15px]" numberOfLines={1}>
 						{workspace.name}
 					</Text>
-					<View className="flex-row items-center gap-2">
+					<View className="flex-row items-center gap-1">
 						{/* A workspace named after its branch says it twice otherwise —
 						    common now that every project shows its `main`. */}
 						{workspace.branch === workspace.name ? null : (
@@ -136,7 +136,7 @@ export function WorkspaceRow({
 						(diffStats.additions > 0 || diffStats.deletions > 0) ? (
 							<>
 								{workspace.branch === workspace.name ? null : (
-									<Text className="text-muted-foreground text-xs">·</Text>
+									<Text className="text-muted-foreground text-xs">•</Text>
 								)}
 								<Text className="text-muted-foreground font-mono text-xs">
 									+{diffStats.additions} −{diffStats.deletions}
