@@ -244,6 +244,7 @@ app.get("/hosts/:hostId/*", async (c) => {
 	const hostId = c.get("hostId");
 	const url = new URL(c.req.url);
 	const path = pathAfterHost(c) || "/";
+	if (path.startsWith("//")) return c.json({ error: "Invalid path" }, 400);
 	const query = url.search.slice(1);
 	const ticket = crypto.randomUUID();
 
