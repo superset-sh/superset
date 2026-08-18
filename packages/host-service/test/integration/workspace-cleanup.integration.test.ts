@@ -474,7 +474,8 @@ describe("workspaceCleanup.destroy integration", () => {
 		// cannot read (macOS privacy protection, a permissions accident) must not
 		// take the direct-delete branch — the worktree may hold uncommitted work
 		// and the repo is intact. The old "failed to open" throw stays.
-		if (process.getuid?.() === 0) return; // root ignores mode bits
+		// root ignores mode bits; Windows has neither getuid nor POSIX traversal denial
+		if (process.platform === "win32" || process.getuid?.() === 0) return;
 		await scenario.dispose();
 		const host = await createTestHost();
 		const repo = await createGitFixture();
