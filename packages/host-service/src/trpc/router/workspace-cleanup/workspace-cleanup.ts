@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -355,6 +355,16 @@ async function runDestroy(
 
 /** "merged" when the linked PR was observed merged; every other delete —
  * open/closed/draft PR or none at all — is a plain "deleted". */
+/** existsSync also answers false for a path that exists but cannot be read;
+ * this answers true only when the path is really absent. */
+function isMissingDirectory(path: string): boolean {
+	try {
+		return statSync(path, { throwIfNoEntry: false }) === undefined;
+	} catch {
+		return false;
+	}
+}
+
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
@@ -448,10 +458,13 @@ async function runDestroyPhases(
 	}
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
-		if (!worktreeRemoved && !existsSync(project.repoPath)) {
+		if (!worktreeRemoved && isMissingDirectory(project.repoPath)) {
 			// The project repo was moved or deleted outside Superset: there is
 			// no repository to run `git worktree remove` in, and the worktree's
 			// gitdir pointer is already dead, so no retry can ever succeed.
+			// Only a genuine ENOENT takes this branch — a repo this process
+			// merely cannot read (EPERM/EACCES) is not gone, and keeps the
+			// "failed to open" throw below rather than losing its worktree.
 			// Delete the folder directly under the same root guard the
 			// sessions branch uses — anything outside the project's managed
 			// worktrees root is left on disk (warned) while the delete proceeds.

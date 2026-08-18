@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	renameSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -463,6 +465,57 @@ describe("workspaceCleanup.destroy integration", () => {
 			await host.dispose();
 			repo.dispose();
 			rmSync(outside, { recursive: true, force: true });
+			rmSync(worktreeBaseDir, { recursive: true, force: true });
+		}
+	});
+
+	test("unreadable project repo is not treated as missing: destroy still throws and the worktree stays", async () => {
+		// existsSync says false for EPERM/EACCES too. A repo this process merely
+		// cannot read (macOS privacy protection, a permissions accident) must not
+		// take the direct-delete branch — the worktree may hold uncommitted work
+		// and the repo is intact. The old "failed to open" throw stays.
+		if (process.getuid?.() === 0) return; // root ignores mode bits
+		await scenario.dispose();
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		const worktreeBaseDir = mkdtempSync(
+			join(tmpdir(), "host-service-worktrees-"),
+		);
+		const lockedParent = mkdtempSync(join(tmpdir(), "host-service-locked-"));
+		const lockedRepo = join(lockedParent, "repo");
+		const { id: projectId } = seedProject(host, {
+			repoPath: lockedRepo,
+			worktreeBaseDir,
+		});
+		const worktreePath = join(worktreeBaseDir, projectId, "feature-locked");
+		mkdirSync(join(worktreeBaseDir, projectId), { recursive: true });
+		await repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/locked",
+			worktreePath,
+		]);
+		const { id: workspaceId } = seedWorkspace(host, {
+			projectId,
+			worktreePath,
+			branch: "feature/locked",
+		});
+		// Park the repo under a parent this process cannot traverse, so
+		// stat(repoPath) fails with EACCES rather than ENOENT.
+		renameSync(repo.repoPath, lockedRepo);
+		chmodSync(lockedParent, 0o000);
+
+		try {
+			await expect(
+				host.trpc.workspaceCleanup.destroy.mutate({ workspaceId, force: true }),
+			).rejects.toThrow(/Failed to open project repo/);
+			expect(existsSync(worktreePath)).toBe(true);
+		} finally {
+			chmodSync(lockedParent, 0o755);
+			await host.dispose();
+			rmSync(lockedParent, { recursive: true, force: true });
+			repo.dispose();
 			rmSync(worktreeBaseDir, { recursive: true, force: true });
 		}
 	});
