@@ -13,7 +13,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { Separator } from "@superset/ui/separator";
-import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
 import { type ProviderOptions, TRIGGER_PROVIDERS } from "../providers";
@@ -76,16 +76,19 @@ export function TriggersEditor({
 	const shownProblems = submitted ? problems : [];
 	const banner = submitted ? summarizeTriggerProblems(problems) : null;
 
-	const eventTriggersEnabled = useFeatureFlagEnabled(
+	const enabledKinds = useFeatureFlagPayload(
 		FEATURE_FLAGS.AUTOMATION_EVENT_TRIGGERS,
 	);
-	const providers = useMemo(
-		() =>
-			eventTriggersEnabled
-				? TRIGGER_PROVIDERS
-				: TRIGGER_PROVIDERS.filter((provider) => provider.kind === "schedule"),
-		[eventTriggersEnabled],
-	);
+	const providers = useMemo(() => {
+		const kinds = new Set(
+			Array.isArray(enabledKinds)
+				? enabledKinds.filter((kind) => typeof kind === "string")
+				: [],
+		);
+		return TRIGGER_PROVIDERS.filter(
+			(provider) => provider.kind === "schedule" || kinds.has(provider.kind),
+		);
+	}, [enabledKinds]);
 
 	const [query, setQuery] = useState("");
 	const leaves = useMemo(() => flattenTriggerMenu(providers), [providers]);

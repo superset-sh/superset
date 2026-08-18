@@ -138,9 +138,11 @@ export const FEATURE_FLAGS = {
 	/** Shows the "Star Superset on GitHub" sidebar card once a user crosses the workspace-count threshold. Lets us kill the nag instantly without a release if it reads as annoying. */
 	STAR_NAG_CARD: "star-nag-card",
 	/**
-	 * Shows every trigger provider in the Add Trigger menu. Off, unloaded, or
-	 * offline all mean Scheduled only — the event providers exist on main
-	 * ahead of their credentials being provisioned.
+	 * Which trigger providers the Add Trigger menu offers. Payload is a JSON
+	 * array of provider kinds, e.g. `["github", "slack"]`; Scheduled is always
+	 * offered. Off, unloaded, offline, or a payload that isn't an array all
+	 * mean Scheduled only — the event providers exist on main ahead of their
+	 * credentials being provisioned, and each is exposed by adding its kind.
 	 */
 	AUTOMATION_EVENT_TRIGGERS: "automation-event-triggers",
 	/**
