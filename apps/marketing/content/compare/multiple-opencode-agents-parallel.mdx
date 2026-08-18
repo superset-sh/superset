@@ -26,6 +26,8 @@ Running one OpenCode agent is easy. Running several on the same repository is wh
 
 There are four practical approaches, in rough order of isolation.
 
+![How parallel agents stay isolated: one repository fans out into a Git worktree per task, each agent on its own branch with an independent diff](/images/guides/worktree-isolation.svg)
+
 ## The Approaches
 
 ### 1. OpenCode's built-in multi-session

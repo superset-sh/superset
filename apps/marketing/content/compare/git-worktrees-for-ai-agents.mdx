@@ -40,6 +40,8 @@ AI coding agents edit files and run commands autonomously. Run two agents in the
 - **Reviewability:** each worktree produces its own diff you can review independently
 - **Safety:** a bad run is contained to one worktree, not your main checkout
 
+![One repository fanning out into a Git worktree per agent, each on its own branch, producing independent diffs that converge into review and merge](/images/guides/worktree-isolation.svg)
+
 This is why the strongest tools for running multiple agents, from [Conductor](/compare/superset-vs-conductor) to [Orca](/compare/superset-vs-orca) to [Superset](/compare/superset-vs-cursor), are built around a worktree per task. Even [Cursor 2.0](/compare/superset-vs-cursor) adopted local worktrees for its parallel agents.
 
 ## The Parallel Agent Workflow

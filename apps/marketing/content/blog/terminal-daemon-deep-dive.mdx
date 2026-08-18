@@ -154,6 +154,10 @@ A session goes through well-defined states:
 CREATED ──► ALIVE ──► (clients attach/detach) ──► TERMINATING ──► EXIT
 ```
 
+What surviving looks like in practice:
+
+![An interrupted Claude Code session offering a one-click Resume after the client died: the daemon kept the session alive](/changelog/2026-08-09-resume-banner.png)
+
 The magic is in **attachment semantics**:
 
 ```typescript
