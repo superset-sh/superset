@@ -137,15 +137,14 @@ export function TerminalAgentAutoResume({
 					aria-hidden="true"
 					className="size-3.5 shrink-0 text-muted-foreground"
 				/>
-				<span
-					role="status"
+				<output
 					aria-live="polite"
 					className="whitespace-nowrap text-xs text-muted-foreground"
 				>
 					{failed
 						? `Failed to resume ${candidate.agentLabel}`
 						: `Resuming ${candidate.agentLabel}…`}
-				</span>
+				</output>
 				{failed && (
 					<>
 						<Button

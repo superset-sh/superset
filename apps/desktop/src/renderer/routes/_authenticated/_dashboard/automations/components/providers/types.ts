@@ -47,6 +47,12 @@ export type TriggerMenuEntry<
  * for this provider.
  */
 export type SentenceContext = {
+	/**
+	 * The saved trigger's id, absent until first save. Providers whose row
+	 * shows something keyed on the row itself — a webhook URL, a per-trigger
+	 * secret — need it; everything else ignores it.
+	 */
+	triggerId?: string;
 	set: (patch: Record<string, unknown>) => void;
 	mark: (field: string) => string | undefined;
 	options: ProviderOptions;
@@ -56,10 +62,17 @@ export type SentenceContext = {
 };
 
 /**
- * Pickable values, keyed by what they are rather than by provider — a Slack
- * channel list and a GitHub repo list are both `ScopeOption[]`, and the chip
- * that renders them does not care which.
+ * Pickable values, namespaced by provider: `options.github.repositories`,
+ * `options.slack.channels`. Each provider declares its own keys and never
+ * touches this type again.
+ *
+ * Not a flat "kind of thing" namespace — that was tried, and it doesn't hold:
+ * `people` for GitHub is numeric GitHub ids while `people` for Slack is Slack
+ * user ids, and `projects` means different things to Linear and Sentry. A flat
+ * key either clobbers on merge or forces every provider to invent a prefixed
+ * key and edit this file to add it, which is the merge collision the seam
+ * exists to prevent.
  */
-export type ProviderOptions = Partial<Record<OptionKey, ScopeOption[]>>;
-
-export type OptionKey = "repositories" | "people" | "channels" | "teams";
+export type ProviderOptions = Partial<
+	Record<string, Record<string, ScopeOption[] | undefined>>
+>;

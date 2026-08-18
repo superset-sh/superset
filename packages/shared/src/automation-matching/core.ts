@@ -9,24 +9,32 @@ import type { TriggerActor, TriggerScope } from "../automation-triggers";
  * allowed to dispatch.
  */
 
-/** The normalized event, as recorded. */
-export type MatchableEvent = {
+/**
+ * The fields every provider's event carries. A provider's own event type
+ * extends this with what its filters compare against — see
+ * `GithubMatchableEvent`. Matchers receive their provider's type, never this
+ * base; the `provider` discriminant is what narrows the union in
+ * `triggerMatches`.
+ */
+export type BaseMatchableEvent = {
+	provider: string;
 	/** Qualified with its action, e.g. `pull_request.opened`. */
 	eventType: string;
-	repositoryId: string | null;
-	ref: string | null;
-	/** GitHub's numeric id; what people filters compare against. */
+	/** The provider's id for whoever caused the event; what people filters compare against. */
 	actorId: string | null;
-	/** Display only — a login can be renamed, the id cannot. */
+	/** Display only — a handle can be renamed, the id cannot. */
 	actorLogin: string | null;
-	actorIsExternal: boolean | null;
-	labels: string[];
-	/** Comment or review body, when the event carries one. */
+	/** Comment, message, or review body when the event carries one. */
 	body: string | null;
-	/** Fork pull requests carry attacker-controlled content into a checkout. */
-	isFork: boolean;
-	/** Who opened the thing being commented on. */
-	subjectAuthorId: string | null;
+};
+
+/**
+ * What matchers need beyond the event: the automation owner's linked ids for
+ * this provider, so `me` resolves. One shape for every provider — anything
+ * provider-specific belongs on that provider's event type, not here.
+ */
+export type MatchContext = {
+	ownerIds: string[];
 };
 
 export type MatchResult =

@@ -17,11 +17,13 @@ export function useGithubOptions(organizationId: string): ProviderOptions {
 
 	return useMemo(
 		() => ({
-			repositories: (repos.data ?? []).map((repo) => ({
-				id: repo.repoId,
-				label: repo.fullName,
-			})),
-			people: people.data ?? [],
+			github: {
+				repositories: (repos.data ?? []).map((repo) => ({
+					id: repo.repoId,
+					label: repo.fullName,
+				})),
+				people: people.data ?? [],
+			},
 		}),
 		[repos.data, people.data],
 	);

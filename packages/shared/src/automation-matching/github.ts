@@ -5,12 +5,28 @@ import type {
 } from "../automation-triggers";
 import {
 	actorAllows,
+	type BaseMatchableEvent,
 	bodyMatches,
-	type MatchableEvent,
+	type MatchContext,
 	type MatchResult,
 	scopeAllows,
 	scopeAllowsAny,
 } from "./core";
+
+/** A GitHub delivery, normalized to what GitHub triggers filter on. */
+export type GithubMatchableEvent = BaseMatchableEvent & {
+	provider: "github";
+	repositoryId: string | null;
+	ref: string | null;
+	actorIsExternal: boolean | null;
+	labels: string[];
+	/** Fork pull requests carry attacker-controlled content into a checkout. */
+	isFork: boolean;
+	/** Who opened the thing being commented on. */
+	subjectAuthorId: string | null;
+	/** The product-level names this delivery maps to; see githubEventNames. */
+	names: GithubTriggerEvent[];
+};
 
 const no = (reason: string): MatchResult => ({ matches: false, reason });
 
@@ -90,10 +106,10 @@ export function githubTriggerMatches(
 		commentFilter?: { pattern: string; isRegex: boolean } | null;
 		includeForks: boolean;
 	},
-	event: MatchableEvent,
-	context: { names: GithubTriggerEvent[]; ownerIds: string[] },
+	event: GithubMatchableEvent,
+	context: MatchContext,
 ): MatchResult {
-	if (!context.names.includes(config.event as GithubTriggerEvent)) {
+	if (!event.names.includes(config.event as GithubTriggerEvent)) {
 		return no("event");
 	}
 	if (!scopeAllows(config.repositories, event.repositoryId)) {

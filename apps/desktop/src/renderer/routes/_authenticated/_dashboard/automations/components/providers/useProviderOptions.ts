@@ -7,7 +7,8 @@ import type { ProviderOptions } from "./types";
  *
  * Hooks cannot be called from a registry loop, so each provider's hook is
  * called here by name. Adding a provider with options means adding its hook to
- * this list; the keys they fill are disjoint, so the merge is a spread.
+ * this list. Each hook returns its own top-level key (`{ github: {...} }`), so
+ * the merge is a spread and cannot clobber.
  */
 export function useProviderOptions(organizationId: string): ProviderOptions {
 	const github = useGithubOptions(organizationId);

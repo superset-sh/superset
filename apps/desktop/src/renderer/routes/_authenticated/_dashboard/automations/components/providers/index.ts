@@ -5,7 +5,6 @@ import type { TriggerProvider } from "./types";
 import { webhookProvider } from "./webhook/webhook";
 
 export type {
-	OptionKey,
 	ProviderOptions,
 	SentenceContext,
 	TriggerMenuEntry,

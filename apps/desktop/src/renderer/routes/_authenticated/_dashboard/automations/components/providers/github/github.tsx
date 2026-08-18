@@ -38,7 +38,7 @@ function renderPart(
 					scope={c.repositories}
 					onChange={(v) => set({ repositories: v })}
 					className={mark("repositories")}
-					options={options.repositories ?? []}
+					options={options.github?.repositories ?? []}
 					emptyLabel="Select repos"
 					anyLabel="Any repo"
 					disabled={disabled}
@@ -77,7 +77,7 @@ function renderPart(
 					actor={c.actor}
 					onChange={(v) => set({ actor: v })}
 					className={mark("actor")}
-					people={options.people ?? []}
+					people={options.github?.people ?? []}
 					disabled={disabled}
 				/>
 			);
@@ -88,7 +88,7 @@ function renderPart(
 					actor={c.subjectAuthor}
 					onChange={(v) => set({ subjectAuthor: v })}
 					className={mark("subjectAuthor")}
-					people={options.people ?? []}
+					people={options.github?.people ?? []}
 					disabled={disabled}
 				/>
 			);

@@ -50,6 +50,7 @@ export function TriggerSentence({
 			<Icon className="size-4 shrink-0 text-muted-foreground" />
 
 			{provider.renderSentence(config, {
+				triggerId: trigger.id,
 				set: (patch) =>
 					onChange({ ...trigger, config: { ...config, ...patch } as never }),
 				mark: (field) => (invalid.has(field) ? CHIP_INVALID : undefined),
