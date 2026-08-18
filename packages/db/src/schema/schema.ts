@@ -489,6 +489,13 @@ export const cloudWorkspaces = pgTable(
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
+		// A per-sandbox secret, stored hashed, that the sandbox's host-service
+		// presents to prove which sandbox it is. It exists so a sandbox can ask
+		// the API for a git credential and the API can answer "for whose repo,
+		// on whose behalf" without the sandbox holding anything durable — the
+		// same role Coder's agent token plays. Null on rows provisioned before
+		// this shipped; those cannot broker credentials and must be recreated.
+		sandboxSecretHash: text("sandbox_secret_hash"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),

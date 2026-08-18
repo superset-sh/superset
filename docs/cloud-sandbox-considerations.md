@@ -50,6 +50,31 @@ keys by using the egress proxy, left open for a credential that can write to the
 repo. Either strip the remote after cloning and supply credentials per
 operation, or route git through the proxy the same way.
 
+**The sandbox secret is a durable mint capability, and it is readable from
+inside. gated** A sandbox proves itself to the credential broker with a secret
+in host-service's environment. Anything with a shell in the sandbox — an agent
+following a prompt injection — can read it, and from then on can mint fresh
+GitHub tokens *from anywhere*, with no session or preview token, until the
+workspace is deleted. The credential it mints is bounded (one repo, one hour,
+never persisted); the *ability to obtain one* is not. That is strictly longer-
+lived than the provision-time token it replaced, which died in an hour on its
+own. Accepted while creation is gated to the team, because the exposure is
+"our own agent, in our own sandbox, against our own repos". Before that gate
+comes off: either inject the git credential at the egress proxy the way the
+model keys already are — the sandbox can use it and never export it — or bound
+the secret (re-issue per boot, expire with activity) and record last-use so
+remote minting from a sleeping sandbox is detectable.
+
+**Push scope is an accident guard; branch protection is the control.** The
+broker refuses to mint when the helper reports a push to the default branch
+from a workspace not created on it — but the branch is inferred by the helper
+from the checkout, git's credential protocol carries no refspec, and
+`git push origin HEAD:main` sidesteps it. A prompt-injected agent with a
+push-capable token is held off `main` by branch protection on the repo, or
+not at all. Treat rulesets on the default branch as a prerequisite for cloud
+workspaces on a repo, and check that neither the App nor the user is on the
+bypass list.
+
 **A sandbox has exactly one gate. gated** The shared host-service secret this
 entry used to describe is gone: host-service in a sandbox trusts the provider's
 edge and checks nothing itself (`EdgeGuardedHostAuthProvider`). That removed a

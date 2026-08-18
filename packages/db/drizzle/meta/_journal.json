@@ -589,6 +589,13 @@
       "when": 1787013109543,
       "tag": "0083_add_trigger_provider_enum_values",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1787026465923,
+      "tag": "0084_cloud_workspaces_sandbox_secret",
+      "breakpoints": true
     }
   ]
 }

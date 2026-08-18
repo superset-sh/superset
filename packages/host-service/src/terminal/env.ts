@@ -50,6 +50,15 @@ let cachedMacosSystemCertAvailable: boolean | null = null;
  */
 const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
 
+/**
+ * Also forwarded in sandbox mode. Git in a sandbox brokers its credential per
+ * operation; when the broker refuses, git's next move is an interactive
+ * prompt, which an agent's non-interactive shell would sit on forever. This
+ * makes it fail loudly instead — the same setting every other git credential
+ * path in host-service sets for the same reason.
+ */
+const SANDBOX_GIT_KEYS = ["GIT_TERMINAL_PROMPT"];
+
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
 		return cachedMacosSystemCertAvailable;
@@ -267,7 +276,7 @@ export function buildV2TerminalEnv(
 	}
 
 	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
-		for (const key of SANDBOX_AGENT_CREDENTIAL_KEYS) {
+		for (const key of [...SANDBOX_AGENT_CREDENTIAL_KEYS, ...SANDBOX_GIT_KEYS]) {
 			const value = process.env[key];
 			if (value) env[key] = value;
 		}

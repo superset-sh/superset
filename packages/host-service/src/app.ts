@@ -24,6 +24,7 @@ import {
 	readSandboxIdentity,
 	runSandboxSelfSeed,
 } from "./runtime/sandbox-self-seed";
+import { registerGitCredentialRoute } from "./sandbox/git-credential-route";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
@@ -255,6 +256,17 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	app.use("/browser/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
+	// Only in a sandbox: it is the in-sandbox end of the git credential broker,
+	// and it needs the identity the sandbox was provisioned with. A machine
+	// someone owns has its own git credentials and no reason for this to exist.
+	if (sandboxIdentity && process.env.SUPERSET_SANDBOX_SECRET) {
+		registerGitCredentialRoute({
+			app,
+			apiUrl: config.cloudApiUrl,
+			workspaceId: sandboxIdentity.workspaceId,
+			sandboxSecret: process.env.SUPERSET_SANDBOX_SECRET,
+		});
+	}
 	registerBrowserCdpRoute({
 		app,
 		upgradeWebSocket,

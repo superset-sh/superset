@@ -54,6 +54,32 @@ if [ -n "$REPO_URL" ]; then
   fi
   unset GIT_ASKPASS
 fi
+# The provision-time token exists for that first fetch only. It expires in
+# ~1h regardless, but every git operation from here on brokers its own
+# credential, so it has no further job — and a token that no longer needs to
+# exist is one an agent shouldn't be able to read from this process.
+unset SUPERSET_SANDBOX_GIT_TOKEN
+
+# From here on git brokers its credential per operation through host-service
+# rather than holding one. Scoped to github.com in the config itself, so git
+# never even consults it for another host. Set globally because every git
+# invocation in the sandbox — a terminal, an agent, a hook — should get the
+# same answer, and none of them should have a token in their environment.
+git config --global credential.https://github.com.helper /app/git-credential-helper.sh
+git config --global credential.useHttpPath false
+
+# Identity and prompt policy go in the same place, for the same reason: a
+# terminal's environment is rebuilt from a snapshot plus an explicit allowlist
+# and never inherits this process's env, so an env var set here would reach
+# git run from a process.exec but not git run from a Superset terminal — the
+# surface people actually use. /root/.gitconfig reaches both.
+if [ -n "${GIT_AUTHOR_NAME:-}" ]; then
+  git config --global user.name "$GIT_AUTHOR_NAME"
+fi
+if [ -n "${GIT_AUTHOR_EMAIL:-}" ]; then
+  git config --global user.email "$GIT_AUTHOR_EMAIL"
+fi
+
 
 cd /app
 exec node host-service.js

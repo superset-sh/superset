@@ -186,7 +186,13 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	)
 	.addLocalFile("scripts/sandbox/start.sh", "/app/start.sh")
 	.addLocalFile("scripts/sandbox/git-askpass.sh", "/app/git-askpass.sh")
-	.runCommands("chmod +x /app/start.sh /app/git-askpass.sh")
+	.addLocalFile(
+		"scripts/sandbox/git-credential-helper.sh",
+		"/app/git-credential-helper.sh",
+	)
+	.runCommands(
+		"chmod +x /app/start.sh /app/git-askpass.sh /app/git-credential-helper.sh",
+	)
 	.env({ NODE_ENV: "production", PORT: String(HOST_SERVICE_PORT) })
 	.expose(HOST_SERVICE_PORT);
 // No .entrypoint(): the SDK only appends

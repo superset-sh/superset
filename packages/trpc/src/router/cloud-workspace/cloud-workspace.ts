@@ -11,7 +11,8 @@ import {
 	mintPreviewAccess,
 	repoForProject,
 } from "../../lib/blaxel";
-import { jwtProcedure } from "../../trpc";
+import { jwtProcedure, publicProcedure } from "../../trpc";
+import { mintGitCredential } from "./git-credential";
 import {
 	FALLBACK_NAME,
 	provisionCloudWorkspace,
@@ -244,6 +245,23 @@ export const cloudWorkspaceRouter = {
 	 * TTL, and hence the checks above running before it is minted rather than
 	 * anywhere later.
 	 */
+	/**
+	 * Called by a sandbox's host-service, not a user: it authenticates with
+	 * the secret the sandbox was handed at provision, which is why this is a
+	 * public procedure with its own check rather than a jwt one. What comes
+	 * back is minted for one operation and expires; nothing durable leaves.
+	 */
+	gitCredential: publicProcedure
+		.input(
+			z.object({
+				workspaceId: z.string().uuid(),
+				sandboxSecret: z.string().min(32),
+				host: z.string().min(1),
+				branch: z.string().min(1).optional(),
+			}),
+		)
+		.mutation(({ input }) => mintGitCredential(input)),
+
 	access: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {

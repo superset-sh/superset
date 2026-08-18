@@ -1,0 +1,1 @@
+ALTER TABLE "cloud_workspaces" ADD COLUMN "sandbox_secret_hash" text;

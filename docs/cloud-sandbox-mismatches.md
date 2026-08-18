@@ -88,6 +88,18 @@ env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
 *set* — an unset key reads as "not logged in" and produces no request for the
 proxy to rewrite.
 
+**The preview edge validates `Host` — measured, since the provider doesn't
+document it.** host-service serves both loopback and the preview URL from one
+Hono app, and the git-credential route is meant to be loopback-only. Probed
+from outside with a valid preview token: an honest `Host` reaches the route
+and is refused by its own check (`403 "forbidden"`); a spoofed
+`Host: 127.0.0.1` never reaches host-service at all — Blaxel's edge answers
+`403` with its own HTML page. So the edge does not forward a client-supplied
+`Host`. Worth knowing because a proxy that *rewrote* `Host` to the upstream
+address would pass a header-based loopback check for everything; ours doesn't,
+but that is a fact about the provider, not a guarantee. The structural fix is
+a second listener bound to 127.0.0.1 on a port the preview doesn't expose.
+
 **Credentials are fixed at creation, so a sandbox can't gain one later.** The
 routing rules that carry them are part of the create call, which is the
 property that stops a sandbox being re-pointed at a different secret mid-life.
@@ -163,6 +175,19 @@ Note that the *image tag* is a deploy-time env var (`BLAXEL_SANDBOX_IMAGE`),
 so new sandboxes pick up a rebuilt image for free. It is only existing ones
 that strand — which is why this reads as fine right up until the first
 long-lived workspace.
+
+**Commits from a sandbox are unsigned, and users with vigilant mode see
+"Unverified" on every one.** Attribution mostly works — GitHub links a commit
+to the account that has its author email verified, so a workspace commit shows
+as the creating user regardless of which token pushed it. "Mostly" because the
+email is `users.email` from sign-in, and only a GitHub sign-in guarantees that
+address is verified on the user's GitHub account; a user who signed in another
+way and never added that email to GitHub gets an unlinked grey avatar instead.
+There is no validation of this today. But nothing in the sandbox signs, so
+there is no "Verified" badge; and for a user who has enabled vigilant mode
+that absence renders as a red "Unverified" instead of no badge at all. It hits
+exactly the security-conscious people most likely to notice. Cursor's cloud
+agents sign with an HSM-backed key for this reason. **Open.**
 
 ## Provider constraints
 
