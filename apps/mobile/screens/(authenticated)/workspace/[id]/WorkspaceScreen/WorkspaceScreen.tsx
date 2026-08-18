@@ -236,9 +236,16 @@ export function WorkspaceScreen() {
 		[hostUrl, activeTerminalId, id],
 	);
 
-	const handleQuickKey = useCallback((key: TerminalQuickKey) => {
-		if (key.data) terminalRef.current?.sendInput(key.data);
-	}, []);
+	const handleQuickKey = useCallback(
+		(key: TerminalQuickKey) => {
+			if (key.submits) {
+				void handleSubmit("").catch(() => undefined);
+				return;
+			}
+			if (key.data) terminalRef.current?.sendInput(key.data);
+		},
+		[handleSubmit],
+	);
 
 	const banner = STATE_BANNERS[connectionState];
 	const showComposer = activeTerminalId !== null && routingKey !== null;

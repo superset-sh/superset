@@ -154,18 +154,6 @@ export const GlassComposer = forwardRef<
 		setHasText(text.trim().length > 0);
 	};
 
-	// Appends to the draft and leaves the caret after it. The field never
-	// reports where its cursor actually is — both onSelectionChange and a
-	// `selection` state read back {0,0} once you've typed — so the end is the
-	// only position an insert can be sure of. Setting the caret does work.
-	const appendToDraft = (insert: string) => {
-		const next = draftRef.current + insert;
-		writeDraft(next);
-		void fieldRef.current
-			?.setText(next)
-			.then(() => fieldRef.current?.setSelection(next.length, next.length));
-	};
-
 	const attachments = showAttachments
 		? controller.attachments.attachments
 		: NO_ATTACHMENTS;
@@ -300,31 +288,6 @@ export const GlassComposer = forwardRef<
 		</Button>
 	);
 
-	// Explicit line break for multi-line messages: expo-ui's TextField exposes
-	// nothing for the soft keyboard's return key, so this is the only way to
-	// put a newline in a draft. Lives in the terminal's quick-key row, shaped
-	// like the keys beside it; the home composer has no such row and no button.
-	const newlineChip = (
-		<Button
-			onPress={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				appendToDraft("\n");
-			}}
-			modifiers={[
-				buttonStyle("bordered"),
-				buttonBorderShape("roundedRectangle", 10),
-				tint(FOREGROUND),
-				accessibilityLabel("New line"),
-			]}
-		>
-			<Image
-				systemName="return"
-				size={13}
-				modifiers={[frame({ width: 24, height: 17 })]}
-			/>
-		</Button>
-	);
-
 	const voiceControl = <VoiceControl dictation={dictation} />;
 
 	// Inserted beside the mic when a draft exists: the animated layout change
@@ -372,7 +335,6 @@ export const GlassComposer = forwardRef<
 				>
 					{above ? (
 						<HStack spacing={8} modifiers={[padding({ horizontal: 2 })]}>
-							{newlineChip}
 							{above}
 						</HStack>
 					) : null}

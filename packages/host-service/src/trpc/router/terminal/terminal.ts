@@ -171,12 +171,16 @@ export const terminalRouter = router({
 	// is framed as a bracketed paste server-side.
 	send: protectedProcedure
 		.input(
-			z.object({
-				terminalId: z.string(),
-				workspaceId: z.string(),
-				text: z.string().min(1),
-				submit: z.boolean().default(true),
-			}),
+			z
+				.object({
+					terminalId: z.string(),
+					workspaceId: z.string(),
+					text: z.string(),
+					submit: z.boolean().default(true),
+				})
+				.refine((input) => input.submit || input.text.length > 0, {
+					message: "Nothing to send",
+				}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const result = await writeFramedInputToSession({
