@@ -5,7 +5,7 @@ import {
 	userIdentities,
 } from "@superset/db/schema";
 import { NOTION_VERSION } from "@superset/trpc/integrations/notion";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
@@ -125,6 +125,9 @@ export async function GET(request: Request) {
 				integrationConnections.organizationId,
 				integrationConnections.provider,
 			],
+			// The org-scoped uniqueness is a partial index (Google connections
+			// are per user); Postgres only infers it when the predicate is named.
+			targetWhere: sql`${integrationConnections.provider} <> 'google'`,
 			set: {
 				accessToken: token.access_token,
 				refreshToken: token.refresh_token ?? null,
