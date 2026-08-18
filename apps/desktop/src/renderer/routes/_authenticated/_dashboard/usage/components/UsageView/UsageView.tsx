@@ -8,11 +8,18 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { LuEllipsis, LuPlus, LuRefreshCw } from "react-icons/lu";
+import {
+	LuCheck,
+	LuCopy,
+	LuEllipsis,
+	LuPlus,
+	LuRefreshCw,
+} from "react-icons/lu";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type {
 	UsageAccount,
 	UsageQuotaWindow,
@@ -25,6 +32,7 @@ import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
+import { signInCommand } from "./utils/signInCommand";
 
 type Provider = UsageAccount["provider"];
 
@@ -93,6 +101,7 @@ function AccountCard({
 	isSwitching: boolean;
 }) {
 	const credits = creditsLine(account);
+	const { copyToClipboard, copied } = useCopyToClipboard();
 	return (
 		<div className="group rounded-lg border bg-card/40 p-2.5">
 			<div className="flex items-baseline gap-1.5">
@@ -167,12 +176,27 @@ function AccountCard({
 						<QuotaWindowRow key={window.id} window={window} />
 					))}
 				</div>
+			) : account.status === "token_expired" ? (
+				<div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted-foreground">
+					<span>Sign-in expired — run</span>
+					<button
+						type="button"
+						className="inline-flex max-w-full items-center gap-1 rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground transition-colors hover:bg-muted/70"
+						title="Copy command"
+						onClick={() => void copyToClipboard(signInCommand(account))}
+					>
+						<span className="truncate">{signInCommand(account)}</span>
+						{copied ? (
+							<LuCheck className="size-2.5 shrink-0 text-green-500" />
+						) : (
+							<LuCopy className="size-2.5 shrink-0" />
+						)}
+					</button>
+					<span>in a terminal on this host.</span>
+				</div>
 			) : (
 				<div className="mt-1.5 text-[11px] text-muted-foreground">
-					{account.statusDetail ??
-						(account.status === "token_expired"
-							? "Token expired."
-							: "Usage unavailable.")}
+					{account.statusDetail ?? "Usage unavailable."}
 				</div>
 			)}
 		</div>
