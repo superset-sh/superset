@@ -50,5 +50,7 @@ export const DESCRIPTION_MARKDOWN_STYLE: MarkdownStyle = {
 		borderColor: THEME.dark.border,
 		headerBackgroundColor: THEME.dark.secondary,
 		headerTextColor: THEME.dark.foreground,
+		rowEvenBackgroundColor: THEME.dark.background,
+		rowOddBackgroundColor: THEME.dark.background,
 	},
 };
