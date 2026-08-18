@@ -37,6 +37,7 @@ export const COMPANY = {
 	FOUNDERS_MAIL_TO: `mailto:founders@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
+	APP_STORE_URL: "https://apps.apple.com/app/id6788926383",
 	STATUS_URL: `https://status.${ROOT_DOMAIN}`,
 	TRUST_URL: `https://trust.${ROOT_DOMAIN}`,
 	JOIN_US_URL: `${MARKETING_URL}/join-us`,

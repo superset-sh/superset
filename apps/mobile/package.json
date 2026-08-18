@@ -95,6 +95,7 @@
 		"expo-secure-store": "56.0.4",
 		"expo-speech-recognition": "56.0.1",
 		"expo-status-bar": "56.0.4",
+		"expo-store-review": "56.0.3",
 		"expo-system-ui": "56.0.5",
 		"expo-web-browser": "56.0.6",
 		"katex": "0.17.0",

@@ -21,6 +21,7 @@ import { SettingsSection } from "./components/SettingsSection";
 import { UserAvatar } from "./components/UserAvatar";
 
 const BILLING_URL = `${env.EXPO_PUBLIC_WEB_URL ?? COMPANY.MARKETING_URL}/settings/billing`;
+const WRITE_REVIEW_URL = `${COMPANY.APP_STORE_URL}?action=write-review`;
 
 function openUrl(url: string) {
 	Linking.openURL(url).catch(() => {
@@ -229,6 +230,18 @@ export function SettingsScreen() {
 				<ListRow
 					icon={
 						<Ionicons
+							name="logo-discord"
+							size={20}
+							color={theme.mutedForeground}
+						/>
+					}
+					label="Community"
+					trailing={<ExternalIcon color={theme.mutedForeground} />}
+					onPress={() => openUrl(COMPANY.DISCORD_URL)}
+				/>
+				<ListRow
+					icon={
+						<Ionicons
 							name="mail-outline"
 							size={20}
 							color={theme.mutedForeground}
@@ -241,14 +254,14 @@ export function SettingsScreen() {
 				<ListRow
 					icon={
 						<Ionicons
-							name="logo-discord"
+							name="star-outline"
 							size={20}
 							color={theme.mutedForeground}
 						/>
 					}
-					label="Community"
+					label="Rate Superset"
 					trailing={<ExternalIcon color={theme.mutedForeground} />}
-					onPress={() => openUrl(COMPANY.DISCORD_URL)}
+					onPress={() => openUrl(WRITE_REVIEW_URL)}
 					isLast
 				/>
 			</SettingsSection>

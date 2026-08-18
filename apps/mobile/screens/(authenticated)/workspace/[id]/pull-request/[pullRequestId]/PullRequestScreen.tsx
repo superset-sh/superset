@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { HeaderNotice } from "./components/HeaderNotice";
 import { PullRequestCard } from "./components/PullRequestCard";
 import { PullRequestDescription } from "./components/PullRequestDescription";
@@ -38,12 +39,16 @@ export function PullRequestScreen() {
 		repo,
 	} = usePullRequestRoute();
 
+	const requestAppReview = useAppReviewPrompt();
 	const merge = useMergePullRequest({
 		workspaceId,
 		owner,
 		repo,
 		pullNumber,
-		onMerged: refetch,
+		onMerged: () => {
+			void refetch();
+			requestAppReview("pr_merged");
+		},
 	});
 
 	const [notice, setNotice] = useState<string | null>(null);

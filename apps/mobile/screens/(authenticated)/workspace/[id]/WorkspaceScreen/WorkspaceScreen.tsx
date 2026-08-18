@@ -25,6 +25,7 @@ import {
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import type { GlassComposerHandle } from "@/screens/(authenticated)/components/GlassComposer";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
+import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
 import { PullRequestsButton } from "../components/PullRequestsButton";
@@ -127,12 +128,14 @@ export function WorkspaceScreen() {
 	const markTerminalSeen = useTerminalSeenStore(
 		(state) => state.markTerminalSeen,
 	);
+	const requestAppReview = useAppReviewPrompt();
 	const activeRow = rows.find((row) => row.terminalId === activeTerminalId);
 	useEffect(() => {
 		if (activeRow?.attention !== "review") return;
 		if (activeRow.lastEventAt === null) return;
 		markTerminalSeen(activeRow.terminalId, activeRow.lastEventAt);
-	}, [activeRow, markTerminalSeen]);
+		requestAppReview("session_completed");
+	}, [activeRow, markTerminalSeen, requestAppReview]);
 
 	const invalidateTerminals = useCallback(() => {
 		if (!host) return;
