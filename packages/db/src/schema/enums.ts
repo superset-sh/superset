@@ -23,7 +23,17 @@ export const taskPriorityValues = [
 export const taskPriorityEnum = z.enum(taskPriorityValues);
 export type TaskPriority = z.infer<typeof taskPriorityEnum>;
 
-export const integrationProviderValues = ["linear", "github", "slack"] as const;
+export const integrationProviderValues = [
+	"linear",
+	"github",
+	"slack",
+	// Added ahead of their connection flows so every provider agent branches
+	// off one migration rather than each generating its own.
+	"sentry",
+	"microsoft_teams",
+	"google",
+	"notion",
+] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
 
@@ -96,6 +106,13 @@ export const automationTriggerKindValues = [
 	"slack",
 	"linear",
 	"sentry",
+	// Same reason as integrationProviderValues: one additive migration up
+	// front, then every provider is a code-only change on top of it.
+	"microsoft_teams",
+	"google_calendar",
+	"gmail",
+	"notion",
+	"circleback",
 ] as const;
 export const automationTriggerKindEnum = z.enum(automationTriggerKindValues);
 export type AutomationTriggerKind = z.infer<typeof automationTriggerKindEnum>;

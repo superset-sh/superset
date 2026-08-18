@@ -582,6 +582,13 @@
       "when": 1786989576969,
       "tag": "0082_allow_multiple_schedule_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1787013109543,
+      "tag": "0083_add_trigger_provider_enum_values",
+      "breakpoints": true
     }
   ]
 }
