@@ -64,6 +64,8 @@ Recurring prompts on a schedule: nightly dependency bumps, morning triage of new
 
 An API for the whole loop, so scripts and other agents can create workspaces, launch agents with a prompt, read terminals, and collect results. The emerging standard here is [MCP](https://docs.superset.sh/mcp-server) (Model Context Protocol): expose orchestration as tools, and any MCP-capable agent can drive it. This is how agent-managing-agents setups work in practice, and Superset ships an MCP server, a [CLI](https://docs.superset.sh/cli/getting-started), and a [TypeScript SDK](https://docs.superset.sh/sdk/getting-started) for exactly this.
 
+![The superset CLI menu: agents, automations, hosts, projects, tasks, terminals, and workspaces, all scriptable from any shell](/changelog/2026-08-09-cli-browser.png)
+
 ## Common patterns
 
 **Fan-out.** Split a large task into independent subtasks, launch an agent per subtask, review the diffs as they land. The default pattern, and the reason isolation is non-negotiable.
