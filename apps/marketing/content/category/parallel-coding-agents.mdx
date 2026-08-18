@@ -35,6 +35,8 @@ Two agents editing the same checkout will overwrite each other's work, fight ove
 
 The standard mechanism is the [Git worktree](/compare/git-worktrees-for-ai-agents): multiple directories, one repository, every agent on its own branch with shared history. Containers and full clones also work, but worktrees are the cheapest isolation that preserves a normal Git workflow, which is why most parallel-agent tools are built on them.
 
+![How parallel coding agents stay isolated: one repository fans out into a Git worktree per task, each running its own agent (Claude Code, Codex, OpenCode) on its own branch, producing independent diffs that you review and merge](/images/guides/worktree-isolation.svg)
+
 ### 2. Session sprawl
 
 Terminal tabs don't scale. Around four or five concurrent sessions, you start losing track of which agent is doing what, which ones are blocked on a question, and which ones finished an hour ago. The failure mode is not dramatic; it is quiet waste. An agent sits idle waiting for input while you babysit a different one.
