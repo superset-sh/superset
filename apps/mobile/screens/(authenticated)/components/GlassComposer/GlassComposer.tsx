@@ -302,30 +302,8 @@ export const GlassComposer = forwardRef<
 
 	// Explicit line break for multi-line messages: expo-ui's TextField exposes
 	// nothing for the soft keyboard's return key, so this is the only way to
-	// put a newline in a draft.
-	const newlineButton = (
-		<Button
-			onPress={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				appendToDraft("\n");
-			}}
-			modifiers={[
-				buttonStyle("bordered"),
-				buttonBorderShape("circle"),
-				tint(FOREGROUND),
-				accessibilityLabel("New line"),
-			]}
-		>
-			<Image
-				systemName="return"
-				size={16}
-				modifiers={[frame({ width: 16, height: 16 })]}
-			/>
-		</Button>
-	);
-
-	// Same chip shape as the quick keys it sits beside, rather than the circular
-	// bottom-row buttons — it belongs to that row visually, not to send/mic.
+	// put a newline in a draft. Lives in the terminal's quick-key row, shaped
+	// like the keys beside it; the home composer has no such row and no button.
 	const newlineChip = (
 		<Button
 			onPress={() => {
@@ -564,7 +542,6 @@ export const GlassComposer = forwardRef<
 							>
 								{plusButton}
 							</HStack>
-							{above ? null : newlineButton}
 							{toolbarLeading}
 							<Spacer />
 							{/* Bordered buttons carry ~6pt of invisible tap-target inset
