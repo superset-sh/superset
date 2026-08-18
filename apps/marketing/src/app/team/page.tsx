@@ -22,7 +22,7 @@ const micro5 = Micro_5({
 export const metadata: Metadata = {
 	title: "About",
 	description:
-		"What Superset is, who builds it, and who it's for. A San Francisco team of three ex YC CTOs building the workspace for parallel coding agents.",
+		"What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents.",
 	alternates: {
 		canonical: "/team",
 	},
@@ -61,7 +61,7 @@ export default function TeamPage() {
 					</h1>
 
 					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mb-8">
-						Superset is built by a team of 3 ex YC CTOs. We want to create the
+						Superset is built by a team of 3 ex-YC CTOs. We want to create the
 						best team that has fun working together.
 						<br />
 						Success will be a lagging indicator.
@@ -87,15 +87,14 @@ export default function TeamPage() {
 							agents. Every task gets its own isolated Git worktree and a
 							persistent terminal session, so Claude Code, Codex, OpenCode, or
 							any other CLI agent can work on many branches of one repository at
-							once without collisions. Around that core sit a diff review
-							surface, an in-app browser, port management, scheduled
-							automations, and an MCP server so scripts and other agents can
-							orchestrate the fleet programmatically.
+							once without collisions. Around that core: review diffs, preview
+							dev servers in an in-app browser, schedule recurring runs, and
+							script the whole fleet over MCP.
 						</p>
 						<p>
 							It's built for developers who have outgrown a single agent
 							session: solo builders dispatching a handful of tasks in parallel,
-							and engineering teams making agent fleets part of how they ship.
+							and engineering teams running dozens of agent tasks a day.
 							Superset is the orchestration layer, not the agent; you bring your
 							own agents and API keys, and nothing is proxied through us.
 						</p>
@@ -103,9 +102,9 @@ export default function TeamPage() {
 
 					<dl className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6 max-w-2xl text-sm">
 						<div>
-							<dt className="text-foreground font-medium mb-1">Founded</dt>
+							<dt className="text-foreground font-medium mb-1">Team</dt>
 							<dd className="text-muted-foreground">
-								San Francisco, by three ex YC CTOs
+								Three ex-YC CTOs in San Francisco
 							</dd>
 						</div>
 						<div>

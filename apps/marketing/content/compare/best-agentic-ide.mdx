@@ -37,13 +37,13 @@ Both are legitimately "agentic." But if your bottleneck is running several codin
 |---|---|---|---|---|
 | **Superset** | Running many agents in parallel on one repo | Bring your own (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | Git worktree per task, local plus remote/cloud | Not a single-editor autocomplete experience |
 | **Cursor** | AI-first editing with parallel agents | Built-in models plus Composer; agent mode | Local git worktrees (up to 8) and cloud VMs | Editor-centric; less agent-agnostic |
-| **Zed** | Fast editor with native parallel agent threads | Built-in agent, ACP agents (Claude Code, Codex, Gemini, OpenCode), CLI agents as Terminal Threads | Threads Sidebar; optional Git worktree per thread | Isolation is opt-in per thread; merge is manual Git |
+| **Zed** | Fast editor with native parallel agent threads | Built-in agent, ACP agents, CLI agents as Terminal Threads | Threads Sidebar; optional Git worktree per thread | Isolation is opt-in per thread; merge is manual Git |
 | **Devin Desktop** | Managing local and cloud agents on a board | Devin Local plus ACP agents | Cloud isolated; local mechanism unspecified | Newer rebrand of Windsurf; in transition |
 | **VS Code + Copilot** | Broadest ecosystem and cloud coding agent | Copilot plus delegation to Claude/Codex | Cloud branch-to-PR; in-editor edits working copy | In-editor parallelism is limited |
 | **JetBrains + Junie** | Agentic coding inside JetBrains IDEs | Junie plus ACP agents | Cloud sandbox (in testing); no local worktrees | Tied to the JetBrains ecosystem |
 | **Conductor** | Focused Mac app for a few agents | Claude Code, Codex, Cursor | Git worktree per task | macOS only; narrow agent set |
-| **Orca** | Free desktop workspace for parallel agents | Agent-agnostic (25+) | Git worktree per task | Fewer remote/automation surfaces |
 | **Augment Intent** | Spec-driven, coordinator-managed features | Auggie or BYOA (Claude Code, Codex, OpenCode) | Git worktree per workspace; implementors on own branches | macOS Apple Silicon beta; best for PR-sized features |
+| **Orca** | Free desktop workspace for parallel agents | Agent-agnostic (25+) | Git worktree per task | Fewer remote/automation surfaces |
 
 ## Two Kinds of Agentic IDE
 
@@ -51,11 +51,11 @@ Both are legitimately "agentic." But if your bottleneck is running several codin
 
 These start as editors and add autonomous agents. You get familiar editing plus an agent that can plan, edit across files, run the terminal, and iterate on errors. Cursor, Zed, VS Code with Copilot, JetBrains with Junie, and Devin Desktop (the product formerly known as Windsurf) all fit here.
 
-An important 2026 update: several of these now isolate parallel work too. Cursor 2.0 can run multiple agents in local Git worktrees, Zed's Parallel Agents (April 2026) manages many agent threads in a sidebar with optional worktree isolation per thread, and Cursor, Copilot, and Devin all offer cloud agents that work on a separate branch and hand back a pull request. So "editors just edit one working copy" is no longer universally true. The nuance is where and how isolation happens, and whether it is automatic or something you must remember per task.
+Several of these now isolate parallel work too. Cursor 2.0 can run multiple agents in local Git worktrees, Zed's Parallel Agents (April 2026) manages many agent threads in a sidebar with optional worktree isolation per thread, and Cursor, Copilot, and Devin all offer cloud agents that work on a separate branch and hand back a pull request. So "editors just edit one working copy" is no longer universally true. The nuance is where and how isolation happens, and whether it is automatic or something you must remember per task.
 
 ### 2. Agent workspaces
 
-These treat the agent as the primary unit. The product is built around launching many agents, isolating each task in its own Git worktree, and reviewing and merging results. Superset, Conductor, Orca, Parallel Code, Augment Intent, and Crystal (now Nimbalyst) fit here. They are less about typing code yourself and more about directing a fleet of agents and reviewing what they produce.
+These treat the agent as the primary unit. The product is built around launching many agents, isolating each task in its own Git worktree, and reviewing and merging results. Superset, Conductor, Orca, [Parallel Code](/compare/superset-vs-parallel-code), Augment Intent, and Crystal (now Nimbalyst) fit here. They are less about typing code yourself and more about directing a fleet of agents and reviewing what they produce.
 
 Many developers end up using one of each: an editor for hands-on work and an agent workspace for larger parallel runs.
 
@@ -123,7 +123,7 @@ Pick based on your primary bottleneck:
 
 - If your bottleneck is hands-on editing with an agent assist, use Cursor, Zed, VS Code + Copilot, or JetBrains + Junie.
 - If your bottleneck is hosting external CLI agents inside an editor, Zed, JetBrains, and Devin Desktop lead on ACP support.
-- If your bottleneck is running many agents on one repository without collisions, use an agent workspace: Superset, Conductor, or Orca.
+- If your bottleneck is running many agents on one repository without collisions, use an agent workspace: Superset, Conductor, Orca, or (for spec-driven features) Augment Intent.
 
 The more agent-heavy your workflow, the more the winning criterion shifts from editing experience to isolation, review, and orchestration.
 
@@ -157,6 +157,7 @@ There is no single "best agentic IDE" in the abstract. There is a best tool for 
 - Zed if you want a fast editor that hosts external CLI agents
 - VS Code + Copilot if you want the broadest ecosystem
 - JetBrains + Junie if you live in JetBrains IDEs
+- Augment Intent if you want a coordinator agent to plan, decompose, and verify PR-sized features
 - Superset if you want to orchestrate many agents in parallel on one repo, with isolation and review as the core
 
 As soon as you are running more than one agent on the same codebase, worktree isolation and review matter more than editor polish. If that is your world, Superset is the agentic IDE to optimize around.
@@ -167,11 +168,11 @@ For a broader tool comparison, see [Best AI Coding Tools and Agents (2026)](/com
 
 ### What is an agentic IDE?
 
-An agentic IDE is a development environment where AI agents can autonomously plan and execute multi-step coding tasks -- editing files, running commands, and iterating -- rather than only autocompleting code. Some are editors with an agent mode; others are workspaces built around running many agents in parallel.
+An agentic IDE is a development environment where AI agents can autonomously plan and execute multi-step coding tasks (editing files, running commands, iterating) rather than only autocompleting code. Some are editors with an agent mode; others are workspaces built around running many agents in parallel.
 
 ### What is a multi-agent IDE?
 
-A multi-agent IDE runs several coding agents at once. The safest versions give each agent its own isolated Git worktree so parallel work does not collide. Superset, Orca, and Conductor are built around this; Cursor 2.0 also runs multiple agents in local worktrees.
+A multi-agent IDE runs several coding agents at once. The safest versions give each agent its own isolated Git worktree so parallel work does not collide. Superset, Orca, Conductor, and Augment Intent are built around this; Cursor 2.0 also runs multiple agents in local worktrees.
 
 ### Which agentic IDE is best for running Claude Code?
 

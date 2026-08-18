@@ -13,7 +13,7 @@ keywords:
   - mcp agent control
 ---
 
-Agent orchestration is everything around the coding agents: creating isolated workspaces, launching agents into them, keeping sessions alive, watching status, reviewing output, scheduling recurring runs, and letting programs (including other agents) do all of the above without a human clicking. The agents write the code. Orchestration decides where, when, and under what supervision they run.
+Agent orchestration is everything around the coding agents: where they run, how they stay alive, who watches them, and how their output gets reviewed and merged. The agents write the code. Orchestration decides where, when, and under what supervision they run.
 
 If [parallel coding agents](/parallel-coding-agents) is the workflow, orchestration is the infrastructure that makes the workflow repeatable.
 
@@ -30,11 +30,11 @@ You do not need orchestration to run one agent, and you barely need it for two. 
 - More than one person (or agent) needs to see what the fleet is doing.
 - Losing a session's state (a laptop sleep, an app restart) costs real work.
 
-The test is simple: if your agents stop the moment you close your laptop lid, you have sessions, not orchestration.
+If your agents stop the moment you close your laptop lid, you have sessions, not orchestration.
 
 ## The primitives
 
-Every serious orchestration setup, homegrown or product, ends up with the same six pieces.
+Homegrown or product, orchestration setups end up with the same six pieces.
 
 ### Isolated workspaces
 
@@ -46,7 +46,7 @@ Agent sessions need to survive the app restarting, the terminal closing, and the
 
 ### Status and monitoring
 
-A fleet view: which agents are running, which are waiting for input, which finished, what changed. This is the piece that turns "check every tab in rotation" into "get pulled in only when needed", and it matters more than any other UI decision in the category.
+A fleet view: which agents are running, which are waiting for input, which finished, what changed. This is the piece that turns "check every tab in rotation" into "get pulled in only when needed".
 
 ![An agent finishing its task and the workspace status flipping from working to done in the sidebar](/images/readme/agent-monitoring.gif)
 
@@ -86,11 +86,11 @@ Tools in this category split on one design question: who decomposes the work?
 
 **Developer-led** tools keep decomposition with you and make dispatch, isolation, monitoring, and review as fast as possible. Superset, [Conductor](/compare/superset-vs-conductor), and [Zed's Parallel Agents](/compare/superset-vs-zed) are in this school. It matches how senior engineers already split work, and it degrades gracefully: when a task is fuzzy, you scope it, not a planning agent.
 
-Neither is strictly better. Coordinator-led shines on PR-sized features with clear requirements; developer-led wins when task boundaries need judgment, which, in most real codebases, is most of the time.
+Neither is strictly better. Coordinator-led shines on PR-sized features with clear requirements. Developer-led wins when task boundaries need judgment: legacy code, fuzzy specs, work that touches shared modules.
 
 ## When you don't need orchestration
 
-Honest scoping saves you a tool migration later:
+Some setups don't need it:
 
 - One agent, watched interactively: your terminal is fine.
 - Two or three simultaneous tasks, rarely: worktrees by hand and a little discipline work.

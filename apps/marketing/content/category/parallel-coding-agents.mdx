@@ -23,7 +23,7 @@ This guide covers what the workflow actually looks like, the problems that show 
 
 The first time you use a serious coding agent like Claude Code or Codex, the loop is conversational: prompt, watch, correct, repeat. That loop has a hidden cost. While the agent works, you wait. While you review, the agent waits. Neither of you is saturated.
 
-The fix everyone converges on is the same: stop watching one agent and start dispatching several. One agent writes tests for the module you just finished. Another chases a flaky CI failure. A third updates dependencies. You switch from operator to reviewer, and your throughput is no longer capped by any single session.
+The fix is boring: stop watching one agent and dispatch several. One agent writes tests for the module you just finished. Another chases a flaky CI failure. A third updates dependencies. You switch from operator to reviewer, and your throughput is no longer capped by any single session.
 
 Then the practical problems start.
 
@@ -55,7 +55,7 @@ The habit that makes this manageable: decompose work into tasks that do not over
 
 ### 4. Lifecycle
 
-Sessions die when laptops sleep. Worktrees accumulate until your disk complains. Dev servers collide on ports. Each of these is small, and together they are the tax that determines whether the workflow sticks. Persistent sessions, automatic worktree cleanup, and per-workspace port handling are the difference between a demo and a daily driver.
+Sessions die when laptops sleep. Worktrees accumulate until your disk complains. Dev servers collide on ports. Each of these is small, and together they are the tax that determines whether the workflow sticks. Handling them automatically is the difference between a demo and a daily driver.
 
 ![An interrupted Claude Code session offering a one-click Resume: persistent sessions survive sleeps and restarts instead of losing the conversation](/changelog/2026-08-09-resume-banner.png)
 
@@ -70,7 +70,7 @@ Teams that run this at scale add two more layers: [orchestration](/agent-orchest
 
 ## How many agents is realistic?
 
-Most developers who adopt the workflow settle between three and ten concurrent agents; that is where isolation and a decent dashboard already pay for themselves. Past a few dozen, new things break: machine resources, review bandwidth, and task decomposition itself become the constraints. We wrote up what changes at the high end in [The Roadmap to 100 Agents](/blog/roadmap-to-100-agents), based on running Superset's own development this way.
+You do not need dozens of agents for the workflow to pay off; at three concurrent tasks, isolation and a decent dashboard already earn their keep. Past a few dozen, new things break: machine resources, review bandwidth, and task decomposition itself become the constraints. We wrote up what changes at the high end in [The Roadmap to 100 Agents](/blog/roadmap-to-100-agents), based on running Superset's own development this way.
 
 The honest answer for most teams: the ceiling that matters is not how many agents your tooling can run, it is how many independent, well-scoped tasks you can produce and review.
 
@@ -82,7 +82,7 @@ Three kinds of tools support parallel coding agents today, and they compose rath
 
 **Editors with parallel modes.** [Cursor](/compare/superset-vs-cursor) runs multiple agents in local worktrees, and [Zed's Parallel Agents](/compare/superset-vs-zed) manages agent threads in a sidebar with optional worktree isolation. Strong choices when you want parallelism inside the editor you already type in.
 
-**Dedicated orchestration workspaces.** Tools built around the fleet rather than the file: [Superset](/), [Conductor](/compare/superset-vs-conductor), [Parallel Code](/compare/superset-vs-parallel-code), and [others](/compare). Worktree-per-task by default, every session visible in one place, diffs reviewed centrally. This is the layer to reach for when parallel agents stop being an experiment and become how you ship.
+**Dedicated orchestration workspaces.** Tools built around the fleet rather than the file: [Superset](/), [Conductor](/compare/superset-vs-conductor), [Parallel Code](/compare/superset-vs-parallel-code), and [others](/compare). Worktree-per-task by default, every session visible in one place, diffs reviewed centrally. Reach for this layer once you are running parallel agents most days, not once a month.
 
 For a full comparison across all three layers, see [Best AI Coding Tools and Agents](/compare/best-ai-coding-agents-2026).
 
@@ -106,7 +106,7 @@ Isolation. Each agent works in its own Git worktree on its own branch, so edits 
 
 ### How many coding agents can I run at once?
 
-Tooling-wise, dozens to hundreds locally; Superset is built to handle 100+ workspaces. Practically, the limit is how many independent tasks you can define and how much review you can absorb. Most people run three to ten concurrently and scale up as their decomposition and review habits improve.
+Tooling-wise, dozens to hundreds locally; Superset is built to handle 100+ workspaces, and [The Roadmap to 100 Agents](/blog/roadmap-to-100-agents) shows what that takes in practice. The real limit is how many independent tasks you can define and how much review you can absorb. Start with a few concurrent agents and scale as your decomposition and review habits improve.
 
 ### Which coding agents work in parallel setups?
 

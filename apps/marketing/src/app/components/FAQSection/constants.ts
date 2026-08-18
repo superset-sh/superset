@@ -31,10 +31,10 @@ export const FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "How does the parallel agent system work?",
 		answer:
-			"Each agent runs in its own isolated Git worktree, which means they can work on different branches or features simultaneously without conflicts. You can monitor all agents in real-time and switch between them instantly.",
+			"Every agent runs in its own Git worktree, so ten agents can work on ten branches of one repo without conflicts. You watch, review, and merge them all from one window.",
 		link: {
 			href: "/parallel-coding-agents",
-			label: "Read the complete guide to parallel coding agents",
+			label: "Read the guide to parallel coding agents",
 		},
 	},
 	{
@@ -60,6 +60,6 @@ export const FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Is Superset just a wrapper around Claude Code?",
 		answer:
-			"No. The agents stay the agents; Superset is the orchestration layer around them: isolated Git worktrees per task, persistent terminal sessions, a diff review surface, scheduled automations, and an MCP server for programmatic control. It's the difference between one session in a terminal tab and a fleet you can actually manage.",
+			"No. The agents stay the agents; Superset is the orchestration layer around them: an isolated Git worktree per task, sessions that survive restarts, diff review, and scheduled runs. It's the difference between one session in a terminal tab and a fleet with a manager.",
 	},
 ];

@@ -51,7 +51,7 @@ Intent is Augment Code's multi-agent workspace, announced in February 2026 as th
 
 ### Who Decomposes the Work
 
-Intent's bet is that an AI coordinator should plan: it drafts the spec, splits the tasks, and reconciles overlapping files at merge time. That buys real hands-off breadth on well-scoped features, and the living spec keeps agents aligned as code changes. Superset's bet is that decomposition is where engineering judgment lives: you scope the tasks (or let your own coordinating agent do it over MCP), and the product makes everything after that instant. Augment's own guidance says Intent is best for PR-sized, multi-file features and performs poorly on single-file hotfixes, urgent production fixes, and 50+ file refactors; developer-led orchestration has no such envelope because the envelope is your judgment.
+Intent's bet is that an AI coordinator should plan: it drafts the spec, splits the tasks, and reconciles overlapping files at merge time. That buys real hands-off breadth on well-scoped features, and the living spec keeps agents aligned as code changes. Superset's bet is that decomposition is where engineering judgment lives: you scope the tasks (or let your own coordinating agent do it over MCP), and the product makes everything after that instant. Augment's own guidance says Intent is best for PR-sized, multi-file features and performs poorly on single-file hotfixes, urgent production fixes, and 50+ file refactors; Superset doesn't constrain task shape: a one-line hotfix and a 50-file refactor dispatch the same way.
 
 ### Ceremony vs Throughput
 
@@ -67,7 +67,7 @@ Intent's public beta is macOS on Apple Silicon only, with Windows waitlisted, no
 
 ### Automations and Being Driven by Other Agents
 
-Superset schedules recurring agent runs and exposes its whole orchestration surface (workspaces, agents, terminals, tasks) over an MCP server, CLI, and SDK. Intent exposes Augment's Context Engine over MCP, which is useful context plumbing, but no scheduling or orchestration API is documented. If you want agents launching agents, or nightly runs that happen without you, that layer exists in one product.
+Superset schedules recurring agent runs and exposes its whole orchestration surface (workspaces, agents, terminals, tasks) over an MCP server, CLI, and SDK. Intent exposes Augment's Context Engine over MCP, which is useful context plumbing, but no scheduling or orchestration API is documented. If you want agents launching agents, or nightly runs that happen without you, Intent documents neither and Superset ships both.
 
 ---
 
@@ -93,7 +93,7 @@ Superset has a free tier and paid seats; it never proxies model calls, so your a
 - Already use Augment's Context Engine or Auggie
 - Work mostly in the 3-to-15-file feature band their workflow targets
 
-**Verdict:** Intent is the most complete coordinator-led orchestrator shipping today, and for well-scoped features its spec-checkpoint-verify loop is genuinely novel. Superset is the better daily driver when orchestration needs to match the full shape of real work: small fixes and big refactors, any agent, scheduled runs, and other software driving the fleet. Decide by whether you want to delegate decomposition or keep it.
+**Verdict:** Intent's spec-checkpoint-verify loop has no equivalent in anything else on this page, and on well-scoped features it earns its ceremony. Superset is the better daily driver when orchestration needs to match the full shape of real work: small fixes and big refactors, any agent, scheduled runs, and other software driving the fleet. Decide by whether you want to delegate decomposition or keep it.
 
 ---
 

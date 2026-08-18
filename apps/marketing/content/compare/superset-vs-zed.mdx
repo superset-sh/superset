@@ -27,7 +27,7 @@ Zed added Parallel Agents in April 2026, and it is the strongest answer yet to r
 | **Isolation** | Git worktree per task, always | Optional Git worktree per thread; shared working copy by default |
 | **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Gemini, Copilot, more) | Zed's built-in agent, ACP external agents (Claude, Codex, Gemini, OpenCode, more), any CLI agent as a Terminal Thread |
 | **Review and merge** | Central diff review per workspace, merge or discard each task | Hunk-level accept/reject in the Agent Panel; worktree threads merge via your normal Git workflow |
-| **Automations** | Scheduled recurring agent runs built in | Not offered |
+| **Automations** | Scheduled recurring agent runs built in | Not documented |
 | **Programmatic control** | MCP server, CLI, TypeScript SDK | Not documented |
 | **Platform** | macOS (experimental Linux AppImage); source-available ELv2 | macOS, Windows, Linux; open source |
 
@@ -55,7 +55,7 @@ This is the biggest practical difference. In Superset, every task gets its own w
 
 ### Editor-Centered vs Fleet-Centered
 
-Zed's model shines when you live in the editor: threads sit beside your code, you watch an agent's edits land in buffers you can immediately touch, and review is hunk-by-hunk in place. Superset's model shines when the fleet is the unit of work: a dashboard of every workspace and session status, diffs reviewed per task, and agents you check on rather than watch. Around three to five concurrent agents the two feel similar; past that, a sidebar of threads inside one editor window works harder and harder.
+Zed's model shines when you live in the editor: threads sit beside your code, you watch an agent's edits land in buffers you can immediately touch, and review is hunk-by-hunk in place. Superset's model shines when the fleet is the unit of work: a dashboard of every workspace and session status, diffs reviewed per task, and agents you check on rather than watch. With a few threads the two feel similar. Past that, one editor window shows you one agent at a time, and there is no single view of every session's status.
 
 ### What Happens After the Agents Finish
 
@@ -67,7 +67,7 @@ Superset runs scheduled automations (recurring prompts on a cron-like schedule i
 
 ### Openness and Platforms
 
-Credit where due: Zed is fully open source, runs on macOS, Windows, and Linux, supports local models, and its free tier is genuinely unlimited with your own keys or external agents. Superset is source-available (ELv2) and macOS-first with an experimental Linux AppImage. If Windows or OSI-approved licensing is a hard requirement, Zed wins that row outright.
+Zed is fully open source and runs on macOS, Windows, and Linux. It supports local models, and with your own keys or external agents the free tier has no limits. Superset is source-available (ELv2) and macOS-first with an experimental Linux AppImage. If Windows or OSI-approved licensing is a hard requirement, Zed wins that row outright.
 
 ---
 
@@ -93,7 +93,7 @@ Both are free to start. Zed's Personal plan is free forever, with paid tiers ($1
 - Run a few threads at a time and are happy managing worktrees per thread yourself
 - Want hunk-level in-buffer review as your primary flow
 
-**Verdict:** Zed built the best editor-native version of parallel agents, and if the editor is your center of gravity it is an easy recommendation. Superset is the better fit when parallel agents stop being a feature you use inside the editor and become the workflow itself: always-isolated tasks, a monitored fleet, scheduled runs, and orchestration other software can drive. Plenty of developers use both, Zed for the hands-on thread, Superset for the fleet.
+**Verdict:** Zed built the best editor-native version of parallel agents, and if the editor is your center of gravity it is an easy recommendation. Superset is the better fit when parallel agents stop being a feature you use inside the editor and become the workflow itself: always-isolated tasks, a monitored fleet, scheduled runs, and orchestration other software can drive. The two also pair: Zed for the hands-on thread, Superset for the fleet.
 
 ---
 
