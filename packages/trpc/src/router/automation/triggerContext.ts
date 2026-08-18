@@ -20,10 +20,10 @@ type TriggerEvent = Pick<
 >;
 
 /**
- * The prompt the agent runs is the automation's prompt verbatim, followed by a
- * machine-readable block describing what fired it. The block, not the prompt,
- * carries the event: users write "review the PR" and the agent finds which PR
- * here. Schedule runs have no event and get the prompt alone.
+ * The prompt the agent runs opens with a machine-readable block describing
+ * what fired it, then the automation's prompt verbatim. The block, not the
+ * prompt, carries the event: users write "review the PR" and the agent finds
+ * which PR here. Schedule runs have no event and get the prompt alone.
  */
 export function promptWithTriggerContext(
 	prompt: string,
@@ -57,12 +57,12 @@ export function promptWithTriggerContext(
 	};
 
 	return [
-		prompt,
-		"",
 		"<automation_trigger_info>",
 		JSON.stringify(info, null, 2),
 		"</automation_trigger_info>",
 		`<timestamp>${new Date().toUTCString()}</timestamp>`,
+		"",
+		prompt,
 	].join("\n");
 }
 
