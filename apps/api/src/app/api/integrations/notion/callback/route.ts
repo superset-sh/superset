@@ -127,7 +127,7 @@ export async function GET(request: Request) {
 			],
 			// The org-scoped uniqueness is a partial index (Google connections
 			// are per user); Postgres only infers it when the predicate is named.
-			targetWhere: sql`${integrationConnections.provider} <> 'google'`,
+			targetWhere: sql`${integrationConnections.provider}<> 'google'`,
 			set: {
 				accessToken: token.access_token,
 				refreshToken: token.refresh_token ?? null,
