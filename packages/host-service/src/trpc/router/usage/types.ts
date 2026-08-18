@@ -37,5 +37,11 @@ export interface UsageAccount {
 	creditsBalance: number | null;
 	/** Claude extra-usage spend, in cents, when present. */
 	extraUsage: { usedCents: number; limitCents: number } | null;
+	/** Profile dir to inject into agent launches (CLAUDE_CONFIG_DIR /
+	 * CODEX_HOME) to run on this account. Null for the system-default login,
+	 * which needs no override. */
+	selection: string | null;
+	/** Whether newly launched agents use this account (host-wide default). */
+	isDefault: boolean;
 	fetchedAt: Date;
 }

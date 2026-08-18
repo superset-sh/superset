@@ -129,6 +129,19 @@ export function removeClaudeManagedHooks(): void {
 	removeManagedJsonHooks(claudeHooksSpec(getNotifyScriptPath()));
 }
 
+/**
+ * Merges Superset hooks into `<configDir>/settings.json` for a secondary
+ * Claude profile (CLAUDE_CONFIG_DIR account). Without this, agents launched
+ * on a non-default account would lose lifecycle/status hooks — Claude reads
+ * settings exclusively from the active config dir.
+ */
+export function ensureClaudeManagedHooksAt(configDir: string): void {
+	ensureManagedJsonHooks({
+		...claudeHooksSpec(getNotifyScriptPath()),
+		getFilePath: () => path.join(configDir, "settings.json"),
+	});
+}
+
 // ---------------------------------------------------------------------------
 // Codex ~/.codex/hooks.json direct merge
 // ---------------------------------------------------------------------------
@@ -207,6 +220,17 @@ export function createCodexHooksJson(): void {
  */
 export function removeCodexManagedHooks(): void {
 	removeManagedJsonHooks(codexHooksSpec(getNotifyScriptPath()));
+}
+
+/**
+ * Merges Superset hooks into `<codexHome>/hooks.json` for a secondary Codex
+ * home (CODEX_HOME account) — same rationale as ensureClaudeManagedHooksAt.
+ */
+export function ensureCodexManagedHooksAt(codexHome: string): void {
+	ensureManagedJsonHooks({
+		...codexHooksSpec(getNotifyScriptPath()),
+		getFilePath: () => path.join(codexHome, "hooks.json"),
+	});
 }
 
 // ---------------------------------------------------------------------------

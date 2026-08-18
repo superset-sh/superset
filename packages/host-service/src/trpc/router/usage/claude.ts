@@ -29,6 +29,9 @@ interface ClaudeOauthCredential {
 	subscriptionType: string | null;
 	accountKey: string;
 	sourceLabel: string;
+	/** Config dir to inject as CLAUDE_CONFIG_DIR to run on this login; null
+	 * for the system-default login. */
+	selection: string | null;
 	/** Identity from the profile's own state file, when known. */
 	email?: string | null;
 }
@@ -45,6 +48,7 @@ function parseCredential(
 	raw: string,
 	accountKey: string,
 	sourceLabel: string,
+	selection: string | null,
 ): ClaudeOauthCredential | null {
 	try {
 		const parsed: ClaudeCredentialFile = JSON.parse(raw);
@@ -59,6 +63,7 @@ function parseCredential(
 					: null,
 			accountKey,
 			sourceLabel,
+			selection,
 		};
 	} catch {
 		return null;
@@ -68,10 +73,11 @@ function parseCredential(
 async function readCredentialFile(
 	path: string,
 	sourceLabel: string,
+	selection: string | null,
 ): Promise<ClaudeOauthCredential | null> {
 	try {
 		const raw = await readFile(path, "utf-8");
-		return parseCredential(raw, path, sourceLabel);
+		return parseCredential(raw, path, sourceLabel, selection);
 	} catch {
 		return null;
 	}
@@ -89,6 +95,7 @@ async function readKeychainCredential(): Promise<ClaudeOauthCredential | null> {
 			stdout.trim(),
 			"keychain:Claude Code-credentials",
 			"Keychain",
+			null,
 		);
 	} catch {
 		return null;
@@ -120,7 +127,7 @@ function pickFreshest(
 }
 
 /** Identity of the default login, readable even when its token is expired. */
-async function readDefaultLoginEmail(): Promise<string | null> {
+export async function readDefaultLoginEmail(): Promise<string | null> {
 	try {
 		const parsed = JSON.parse(
 			await readFile(join(homedir(), ".claude.json"), "utf-8"),
@@ -155,13 +162,18 @@ async function discoverClaudeCredentials(): Promise<ClaudeOauthCredential[]> {
 			sourceLabel: "~/.config/claude",
 		},
 	];
-	const explicitCandidates: Array<{ path: string; sourceLabel: string }> = [];
+	const explicitCandidates: Array<{
+		path: string;
+		sourceLabel: string;
+		configDir: string;
+	}> = [];
 	for (const dir of (process.env.CLAUDE_CONFIG_DIR ?? "").split(",")) {
 		const configDir = dir.trim();
 		if (!configDir) continue;
 		explicitCandidates.push({
 			path: join(configDir, ".credentials.json"),
 			sourceLabel: configDir.replace(home, "~"),
+			configDir,
 		});
 	}
 
@@ -171,6 +183,7 @@ async function discoverClaudeCredentials(): Promise<ClaudeOauthCredential[]> {
 		const fromFile = await readCredentialFile(
 			profile.credentialsPath,
 			profile.sourceLabel,
+			profile.configDir,
 		);
 		if (fromFile) return { ...fromFile, email: profile.email };
 		for (const service of profile.keychainServices) {
@@ -180,6 +193,7 @@ async function discoverClaudeCredentials(): Promise<ClaudeOauthCredential[]> {
 				secret,
 				profile.configDir,
 				profile.sourceLabel,
+				profile.configDir,
 			);
 			if (parsed) return { ...parsed, email: profile.email };
 		}
@@ -193,12 +207,12 @@ async function discoverClaudeCredentials(): Promise<ClaudeOauthCredential[]> {
 			readKeychainCredential(),
 			Promise.all(
 				defaultCandidates.map(({ path, sourceLabel }) =>
-					readCredentialFile(path, sourceLabel),
+					readCredentialFile(path, sourceLabel, null),
 				),
 			),
 			Promise.all(
-				explicitCandidates.map(({ path, sourceLabel }) =>
-					readCredentialFile(path, sourceLabel),
+				explicitCandidates.map(({ path, sourceLabel, configDir }) =>
+					readCredentialFile(path, sourceLabel, configDir),
 				),
 			),
 			Promise.all(profiles.map(readProfileCredential)),
@@ -319,6 +333,9 @@ async function fetchClaudeAccount(
 		sourceLabel: credential.sourceLabel,
 		plan: credential.subscriptionType,
 		creditsBalance: null,
+		selection: credential.selection,
+		// Decorated per-query from host settings; the quota cache outlives it.
+		isDefault: false,
 		fetchedAt: new Date(),
 	};
 

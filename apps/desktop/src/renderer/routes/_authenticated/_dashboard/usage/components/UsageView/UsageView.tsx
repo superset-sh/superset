@@ -1,7 +1,14 @@
 import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { LuRefreshCw } from "react-icons/lu";
+import { LuEllipsis, LuPlus, LuRefreshCw } from "react-icons/lu";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
@@ -11,7 +18,12 @@ import type {
 	UsageQuotaWindow,
 } from "../../hooks/useHostUsageQuota";
 import { useHostUsageQuota } from "../../hooks/useHostUsageQuota";
+import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
+import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
 import { UsageHistorySection } from "../UsageHistorySection";
+import type { SwitchSignInTarget } from "./components/AddAccountDialog";
+import { AddAccountDialog } from "./components/AddAccountDialog";
+import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
 
 const PROVIDER_LABELS: Record<UsageAccount["provider"], string> = {
@@ -62,12 +74,25 @@ function creditsLine(account: UsageAccount): string | null {
 	return null;
 }
 
-function AccountCard({ account }: { account: UsageAccount }) {
+function AccountCard({
+	account,
+	onUseForAgents,
+	onSwitchSignIn,
+	onRemove,
+	isSwitching,
+}: {
+	account: UsageAccount;
+	onUseForAgents: () => void;
+	onSwitchSignIn: () => void;
+	/** Null on the system-default card — the main login is never removable. */
+	onRemove: (() => void) | null;
+	isSwitching: boolean;
+}) {
 	const isDark = useIsDarkTheme();
 	const icon = getPresetIcon(account.provider, isDark);
 	const credits = creditsLine(account);
 	return (
-		<div className="rounded-lg border bg-card/40 p-2.5">
+		<div className="group rounded-lg border bg-card/40 p-2.5">
 			<div className="flex items-baseline gap-1.5">
 				{icon && <img src={icon} alt="" className="size-3.5 self-center" />}
 				<span className="truncate text-xs font-medium">
@@ -78,9 +103,45 @@ function AccountCard({ account }: { account: UsageAccount }) {
 						{account.plan}
 					</span>
 				)}
+				{account.isDefault && (
+					<span
+						className="rounded bg-primary/15 px-1 text-[9px] font-medium uppercase tracking-wide text-primary"
+						title="New terminals and agents use this account. Existing ones keep theirs."
+					>
+						Default
+					</span>
+				)}
 				<span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-					{credits ?? account.sourceLabel}
+					{/* Source label always shows — it is the only thing that tells two
+					    profiles of the same account apart. */}
+					{credits ? `${credits} · ${account.sourceLabel}` : account.sourceLabel}
 				</span>
+				<DropdownMenu modal={false}>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-4 shrink-0 self-center opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+						>
+							<LuEllipsis className="size-3" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						{!account.isDefault && (
+							<DropdownMenuItem disabled={isSwitching} onClick={onUseForAgents}>
+								Use for new agents
+							</DropdownMenuItem>
+						)}
+						<DropdownMenuItem onClick={onSwitchSignIn}>
+							Switch sign-in…
+						</DropdownMenuItem>
+						{onRemove && (
+							<DropdownMenuItem variant="destructive" onClick={onRemove}>
+								Remove…
+							</DropdownMenuItem>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 			{account.status === "ok" ? (
 				<div className="mt-2 flex flex-col gap-1.5">
@@ -102,10 +163,31 @@ function AccountCard({ account }: { account: UsageAccount }) {
 
 export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const quotaQuery = useHostUsageQuota(hostUrl);
+	const setDefault = useSetDefaultUsageAccount(hostUrl);
+	const removeAccount = useRemoveUsageAccount(hostUrl);
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
+	const [switchTarget, setSwitchTarget] = useState<SwitchSignInTarget | null>(
+		null,
+	);
+	const [removeTarget, setRemoveTarget] = useState<UsageAccount | null>(null);
 
 	const accounts = quotaQuery.data ?? [];
 	const isBusy = quotaQuery.isFetching || isRefreshing;
+
+	const makeDefaultAccount = (account: UsageAccount) => {
+		setDefault.mutate(
+			{ provider: account.provider, selection: account.selection },
+			{
+				onSuccess: () => {
+					toast.success(
+						`New ${PROVIDER_LABELS[account.provider]} terminals and agents will use ${account.email ?? account.sourceLabel}.`,
+					);
+				},
+				onError: (error) => toast.error(error.message),
+			},
+		);
+	};
 
 	return (
 		<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-3 px-6 py-4">
@@ -113,6 +195,16 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				<span className="ml-auto text-[10px] text-muted-foreground">
 					Official quota · refreshes every 5 min
 				</span>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-6 gap-1 px-1.5 text-[10px]"
+					disabled={!hostUrl}
+					onClick={() => setIsAddAccountOpen(true)}
+				>
+					<LuPlus className="size-3" />
+					Add account
+				</Button>
 				<Button
 					variant="ghost"
 					size="icon"
@@ -143,10 +235,74 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			) : (
 				<div className="grid gap-2 md:grid-cols-2">
 					{accounts.map((account) => (
-						<AccountCard key={account.accountKey} account={account} />
+						<AccountCard
+							key={account.accountKey}
+							account={account}
+							onUseForAgents={() => makeDefaultAccount(account)}
+							onSwitchSignIn={() => {
+								setSwitchTarget({
+									provider: account.provider,
+									selection: account.selection,
+									label:
+										account.selection === null
+											? (account.email ?? account.sourceLabel)
+											: account.sourceLabel,
+								});
+								setIsAddAccountOpen(true);
+							}}
+							onRemove={
+								account.selection === null
+									? null
+									: () => setRemoveTarget(account)
+							}
+							isSwitching={setDefault.isPending}
+						/>
 					))}
 				</div>
 			)}
+
+			<RemoveAccountDialog
+				account={removeTarget}
+				onOpenChange={(open) => {
+					if (!open) setRemoveTarget(null);
+				}}
+				isRemoving={removeAccount.isPending}
+				onConfirm={() => {
+					if (!removeTarget || removeTarget.selection === null) return;
+					removeAccount.mutate(
+						{
+							provider: removeTarget.provider,
+							selection: removeTarget.selection,
+						},
+						{
+							onSuccess: () => {
+								toast.success(
+									`Removed ${removeTarget.email ?? removeTarget.sourceLabel}.`,
+								);
+								setRemoveTarget(null);
+							},
+							onError: (error) => toast.error(error.message),
+						},
+					);
+				}}
+			/>
+
+			<AddAccountDialog
+				open={isAddAccountOpen}
+				onOpenChange={(open) => {
+					setIsAddAccountOpen(open);
+					if (!open) setSwitchTarget(null);
+				}}
+				switchTarget={switchTarget}
+				hostUrl={hostUrl}
+				onAccountAdded={() => {
+					setIsRefreshing(true);
+					void quotaQuery
+						.refresh()
+						.catch(() => {})
+						.finally(() => setIsRefreshing(false));
+				}}
+			/>
 
 			<UsageHistorySection hostUrl={hostUrl} />
 		</div>
