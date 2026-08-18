@@ -15,6 +15,11 @@
 // (src/vs/platform/terminal/node/ptyService.ts).
 
 import { createRequire } from "node:module";
+import {
+	createLeakedInputModeReclaimer,
+	SHELL_READY_MARKER_PAYLOAD,
+	SHELL_READY_OSC_ID,
+} from "@superset/shared/leaked-input-mode-reclaim";
 
 const require = createRequire(import.meta.url);
 const { Terminal: HeadlessTerminal } =
@@ -32,6 +37,20 @@ export interface ModeTracker {
 	dispose(): void;
 }
 
+export interface ModeTrackerOptions {
+	/**
+	 * Called with disarm bytes when a shell prompt marker (OSC 777) flows
+	 * through the stream while TUI-only input-reporting modes (kitty keyboard,
+	 * mouse tracking, focus reporting) are still armed — the signature of a TUI
+	 * killed uncleanly (#4949's host-side surface). Without this, the tracker
+	 * believes the dead TUI's modes are live forever, so every attach preamble
+	 * re-arms fresh renderers and each scroll/keypress sprays reports into the
+	 * shell prompt as garbage. The callback should deliver the bytes into the
+	 * session's output stream (which also feeds them back to this tracker).
+	 */
+	onLeakedInputModeDisarm?: (bytes: Uint8Array) => void;
+}
+
 export interface TerminalSnapshot {
 	cols: number;
 	rows: number;
@@ -47,13 +66,20 @@ type HeadlessInternals = {
 	_core?: {
 		_writeBuffer?: { writeSync(data: string | Uint8Array): void };
 		coreService?: { kittyKeyboard?: { flags: number } };
+		mouseStateService?: { activeEncoding?: string };
+		// Pre-rename alias of mouseStateService in older engine builds.
+		coreMouseService?: { activeEncoding?: string };
 		optionsService?: {
 			rawOptions: { vtExtensions?: { kittyKeyboard?: boolean } };
 		};
 	};
 };
 
-export function createModeTracker(cols: number, rows: number): ModeTracker {
+export function createModeTracker(
+	cols: number,
+	rows: number,
+	options: ModeTrackerOptions = {},
+): ModeTracker {
 	const term = new HeadlessTerminal({
 		cols,
 		rows,
@@ -83,6 +109,76 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	// key). Without this, kitty handlers early-return and `\x1b[>7u` is a
 	// no-op. Set it on rawOptions directly.
 	optionsRaw.vtExtensions = { kittyKeyboard: true };
+
+	// Host-side leaked-input-mode reclaim (#4949): observe mode arming and the
+	// OSC 777 shell-ready marker through this mirror's parser — the same
+	// adapter shape as the renderer's terminalInputModeReclaimer, but acting at
+	// the source. A TUI killed uncleanly (SIGKILL, sleep/wake casualty) never
+	// writes its mode restores; when the reclaiming shell's prompt marker flows
+	// while those modes are still armed, hand disarm bytes to the session so
+	// every attached renderer AND this tracker converge on the truth. The
+	// microtask defer lets a TUI that re-arms right after the marker (fg after
+	// ^Z) keep its modes — same mark-then-recheck as the renderer surface.
+	if (options.onLeakedInputModeDisarm) {
+		const onDisarm = options.onLeakedInputModeDisarm;
+		const reclaimer = createLeakedInputModeReclaimer();
+		const parser = term.parser;
+		let flushScheduled = false;
+
+		parser.registerCsiHandler({ prefix: ">", final: "u" }, () => {
+			reclaimer.noteArm("kitty", true);
+			return false;
+		});
+		parser.registerCsiHandler({ prefix: "=", final: "u" }, (params) => {
+			const raw = params[0];
+			const flags = typeof raw === "number" ? raw : (raw?.[0] ?? 0);
+			reclaimer.noteArm("kitty", flags !== 0);
+			return false;
+		});
+		parser.registerCsiHandler({ prefix: "<", final: "u" }, () => {
+			reclaimer.noteArm("kitty", false);
+			return false;
+		});
+
+		const applyDecMode = (
+			params: (number | number[])[],
+			armed: boolean,
+		): void => {
+			for (const param of params) {
+				const primary = typeof param === "number" ? param : param[0];
+				if (primary === 1000 || primary === 1002 || primary === 1003) {
+					reclaimer.noteArm("mouse", armed);
+				} else if (primary === 1004) {
+					reclaimer.noteArm("focus", armed);
+				}
+			}
+		};
+		parser.registerCsiHandler({ prefix: "?", final: "h" }, (params) => {
+			applyDecMode(params, true);
+			return false;
+		});
+		parser.registerCsiHandler({ prefix: "?", final: "l" }, (params) => {
+			applyDecMode(params, false);
+			return false;
+		});
+
+		parser.registerOscHandler(SHELL_READY_OSC_ID, (data) => {
+			// Exact match: OSC 777 is also urxvt's notification channel.
+			if (data !== SHELL_READY_MARKER_PAYLOAD) return false;
+			reclaimer.noteShellReady();
+			if (!flushScheduled) {
+				flushScheduled = true;
+				queueMicrotask(() => {
+					flushScheduled = false;
+					if (disposed) return;
+					const disarm = reclaimer.collectDisarm();
+					if (disarm) onDisarm(new TextEncoder().encode(disarm));
+				});
+			}
+			return false;
+		});
+	}
+	let disposed = false;
 
 	// `Terminal.write` is async-buffered, so `term.modes` lags behind feeds.
 	// Pump synchronously through the internal WriteBuffer so the preamble can
@@ -140,6 +236,19 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 				break;
 		}
 
+		// Mouse report encoding (?1006 SGR). Not on the public modes API, so
+		// read the engine's mouse service directly (same private-surface bet as
+		// kitty below). Asserted both ways: a rebuilt renderer (persisted
+		// SerializeAddon snapshots don't capture ?1006) would otherwise fall
+		// back to legacy X10 reports for a live TUI — and the full-fidelity
+		// wheel handler refuses to synthesize non-SGR reports.
+		const mouseService =
+			internals._core?.mouseStateService ?? internals._core?.coreMouseService;
+		const encoding = mouseService?.activeEncoding;
+		if (typeof encoding === "string") {
+			parts.push(encoding === "SGR" ? "\x1b[?1006h" : "\x1b[?1006l");
+		}
+
 		const kittyFlags = internals._core?.coreService?.kittyKeyboard?.flags ?? 0;
 		// `=N;1u` sets flags directly — restoring effective state to the
 		// peer, not modeling the program's push/pop stack. `=0;1u` likewise
@@ -183,6 +292,7 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 		},
 		snapshot,
 		dispose() {
+			disposed = true;
 			term.dispose();
 		},
 	};

@@ -1,3 +1,4 @@
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
 import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
@@ -323,6 +324,16 @@ export function createRuntime(
 		if (options.initialBuffer.length > 0) initialContent = "seeded";
 	} else if (restoreBuffer(terminalId, terminal)) {
 		initialContent = "restored";
+	}
+	if (initialContent !== "none") {
+		// SerializeAddon snapshots bake in whatever input-reporting modes were
+		// active at capture (?1002/?1003 mouse tracking, ?1h app cursor, …).
+		// Replaying them arms this fresh xterm before it has seen a single
+		// prompt marker, so the reclaimer above brands them shell-owned and can
+		// never reclaim them if the TUI turns out to be dead. Reset them now:
+		// the attach preamble re-asserts the session's real modes moments
+		// later, so a live TUI loses nothing.
+		terminal.write(FRESH_SHELL_INPUT_MODE_RESET);
 	}
 
 	const disposeImagePasteFallback = installImagePasteFallback(

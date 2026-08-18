@@ -37,6 +37,24 @@ export const SHELL_READY_MARKER_PAYLOAD = "superset-shell-ready";
  */
 export const KITTY_KEYBOARD_DISARM_SEQUENCE = `${ESC}[<255u${ESC}[=0;1u`;
 
+/**
+ * Full input-mode reset for an xterm that is about to host a brand-new shell
+ * over stale content (cold-restore "Start shell", terminal restart). The
+ * replayed scrollback of the old session can contain a TUI's arming sequences
+ * (mouse tracking, kitty keyboard, app cursor, bracketed paste), and the fresh
+ * PTY knows nothing about them — every scroll would spray SGR mouse reports
+ * and every keypress CSI-u codes into the new shell as garbage text. Unlike
+ * the marker-based reclaimer below, this is unconditional: at this moment the
+ * shell is known to be new, so any armed input mode is stale by definition.
+ */
+export const FRESH_SHELL_INPUT_MODE_RESET =
+	KITTY_KEYBOARD_DISARM_SEQUENCE +
+	`${ESC}[?1003l` + // mouse tracking (any level's reset clears the protocol)
+	`${ESC}[?1006l` + // SGR mouse encoding
+	`${ESC}[?1004l` + // focus reporting
+	`${ESC}[?2004l` + // bracketed paste
+	`${ESC}[?1l`; // application cursor keys
+
 /** TUI-only input-reporting modes a killed TUI can leak into a shell prompt. */
 export type LeakableInputMode = "kitty" | "mouse" | "focus";
 

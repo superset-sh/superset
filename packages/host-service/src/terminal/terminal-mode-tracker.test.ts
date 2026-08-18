@@ -18,7 +18,7 @@ function preambleString(tracker: ReturnType<typeof createModeTracker>): string {
  */
 const DEFAULT_SYNC =
 	"\x1b[?1l\x1b[?66l\x1b[?2004l\x1b[4l\x1b[?45l\x1b[?1004l" +
-	"\x1b[?25h\x1b[?7h\x1b[?2026l\x1b[?1003l\x1b[=0;1u";
+	"\x1b[?25h\x1b[?7h\x1b[?2026l\x1b[?1003l\x1b[?1006l\x1b[=0;1u";
 
 describe("createModeTracker", () => {
 	test("default state emits the full both-directions sync", () => {
@@ -74,11 +74,6 @@ describe("createModeTracker", () => {
 	});
 
 	test("focus reporting and mouse tracking are captured", () => {
-		// `?1002h` is button-tracking, NOT SGR encoding (`?1006h`). xterm.js's
-		// public IModes doesn't expose mouse encoding format, so the preamble
-		// can't restore it — clients reattaching mid-session keep the default
-		// X10 encoding. Acceptable today; revisit if a TUI relying on SGR
-		// breaks on reattach.
 		const t = createModeTracker(120, 32);
 		t.feed(enc.encode("\x1b[?1004h\x1b[?1002h"));
 		const preamble = preambleString(t);
@@ -86,6 +81,19 @@ describe("createModeTracker", () => {
 		expect(preamble).toContain("\x1b[?1002h");
 		expect(preamble).not.toContain("\x1b[?1004l");
 		expect(preamble).not.toContain("\x1b[?1003l");
+		t.dispose();
+	});
+
+	test("SGR mouse encoding is asserted in both directions", () => {
+		// A rebuilt renderer (persisted SerializeAddon snapshots don't capture
+		// ?1006) falls back to legacy X10 reports for a live TUI without this —
+		// and the full-fidelity wheel handler refuses to synthesize non-SGR
+		// reports.
+		const t = createModeTracker(120, 32);
+		t.feed(enc.encode("\x1b[?1002h\x1b[?1006h"));
+		expect(preambleString(t)).toContain("\x1b[?1006h");
+		t.feed(enc.encode("\x1b[?1006l"));
+		expect(preambleString(t)).toContain("\x1b[?1006l");
 		t.dispose();
 	});
 
@@ -174,6 +182,94 @@ describe("createModeTracker", () => {
 		t.feed(enc.encode(">7"));
 		t.feed(enc.encode("u"));
 		expect(preambleString(t)).toContain("\x1b[=7;1u");
+		t.dispose();
+	});
+});
+
+describe("host-side leaked-input-mode reclaim", () => {
+	const MARKER = "\x1b]777;superset-shell-ready\x07";
+	const flush = () => new Promise<void>((r) => queueMicrotask(r));
+
+	function makeTracker() {
+		const disarms: string[] = [];
+		const t = createModeTracker(120, 32, {
+			onLeakedInputModeDisarm(bytes) {
+				disarms.push(dec.decode(bytes));
+				// Mirror terminal.ts: deliverOutput feeds the disarm back in.
+				t.feed(bytes);
+			},
+		});
+		return { t, disarms };
+	}
+
+	test("disarms a dead TUI's modes at the reclaiming shell's prompt", async () => {
+		const { t, disarms } = makeTracker();
+		t.feed(enc.encode(MARKER)); // session's first prompt
+		t.feed(enc.encode("\x1b[?1003h\x1b[?1006h\x1b[?1004h\x1b[>7u")); // TUI arms
+		t.feed(enc.encode(MARKER)); // shell reprompts after an unclean kill
+		await flush();
+		const out = disarms.join("");
+		expect(out).toContain("\x1b[?1003l");
+		expect(out).toContain("\x1b[?1004l");
+		expect(out).toContain("\x1b[=0;1u");
+		// The fed-back disarm converges the tracker: the next attach preamble
+		// no longer re-arms fresh renderers.
+		const preamble = preambleString(t);
+		expect(preamble).toContain("\x1b[?1003l");
+		expect(preamble).toContain("\x1b[=0;1u");
+		t.dispose();
+	});
+
+	test("leaves modes armed before the first marker alone (shell-owned)", async () => {
+		const { t, disarms } = makeTracker();
+		t.feed(enc.encode("\x1b[?1003h")); // armed before any prompt marker
+		t.feed(enc.encode(MARKER));
+		await flush();
+		expect(disarms).toHaveLength(0);
+		t.dispose();
+	});
+
+	test("does not disarm modes a TUI restored on clean exit", async () => {
+		const { t, disarms } = makeTracker();
+		t.feed(enc.encode(MARKER));
+		t.feed(enc.encode("\x1b[?1003h\x1b[>7u"));
+		t.feed(enc.encode("\x1b[?1003l\x1b[<u")); // clean restore
+		t.feed(enc.encode(MARKER));
+		await flush();
+		expect(disarms).toHaveLength(0);
+		t.dispose();
+	});
+
+	test("a TUI re-arming right after the marker keeps its modes", async () => {
+		const { t, disarms } = makeTracker();
+		t.feed(enc.encode(MARKER));
+		t.feed(enc.encode("\x1b[?1003h"));
+		// Marker and re-arm land in the same chunk (fg after ^Z): the deferred
+		// flush must see the re-arm and stand down.
+		t.feed(enc.encode(`${MARKER}\x1b[?1003h`));
+		await flush();
+		expect(disarms).toHaveLength(0);
+		t.dispose();
+	});
+
+	test("ignores urxvt-style OSC 777 payloads", async () => {
+		const { t, disarms } = makeTracker();
+		t.feed(enc.encode(MARKER));
+		t.feed(enc.encode("\x1b[?1003h"));
+		t.feed(enc.encode("\x1b]777;notify;title;body\x07"));
+		await flush();
+		expect(disarms).toHaveLength(0);
+		t.dispose();
+	});
+
+	test("no callback wiring means no reclaim side effects", async () => {
+		const t = createModeTracker(120, 32);
+		t.feed(enc.encode(MARKER));
+		t.feed(enc.encode("\x1b[?1003h"));
+		t.feed(enc.encode(MARKER));
+		await flush();
+		// Tracker still reports the armed state untouched.
+		expect(preambleString(t)).toContain("\x1b[?1003h");
 		t.dispose();
 	});
 });

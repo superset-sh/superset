@@ -2607,6 +2607,20 @@ export async function createTerminalSessionInternal({
 			})
 		: Promise.resolve();
 
+	// The tracker's leaked-mode reclaim needs the session to broadcast disarm
+	// bytes, but the session literal below needs the tracker — close over a
+	// ref assigned right after construction.
+	let reclaimSession: TerminalSession | null = null;
+	const modeTracker = createModeTracker(cols, rows, {
+		onLeakedInputModeDisarm(bytes) {
+			const s = reclaimSession;
+			if (!s || !isCurrentLiveSession(s)) return;
+			// deliverOutput feeds the tracker too, so its modes (and the next
+			// attach preamble) converge with what clients were just told.
+			deliverOutput(s, bytes);
+		},
+	});
+
 	const session: TerminalSession = {
 		terminalId,
 		workspaceId,
@@ -2646,7 +2660,7 @@ export async function createTerminalSessionInternal({
 		initialCommandQueued: isAdopted,
 		launchShellName: basename(shell),
 		portHintDecoder: new StringDecoder("utf8"),
-		modeTracker: createModeTracker(cols, rows),
+		modeTracker,
 		adoptionReplaySettled: Promise.resolve(),
 		epoch: randomBytes(8).toString("hex"),
 		outputSeq: 0,
@@ -2657,6 +2671,7 @@ export async function createTerminalSessionInternal({
 		resizeGeneration: 0,
 		focusedSockets: new Set(),
 	};
+	reclaimSession = session;
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
 

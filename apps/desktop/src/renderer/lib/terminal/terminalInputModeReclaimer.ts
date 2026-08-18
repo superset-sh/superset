@@ -1,9 +1,9 @@
-import type { IDisposable, Terminal } from "@xterm/xterm";
 import {
 	createLeakedInputModeReclaimer,
 	SHELL_READY_MARKER_PAYLOAD,
 	SHELL_READY_OSC_ID,
-} from "shared/leaked-input-mode-reclaim";
+} from "@superset/shared/leaked-input-mode-reclaim";
+import type { IDisposable, Terminal } from "@xterm/xterm";
 
 /**
  * Renderer adapter that wires xterm's parser to the shared leaked-input-mode
