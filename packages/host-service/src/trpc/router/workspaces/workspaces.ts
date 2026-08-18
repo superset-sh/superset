@@ -49,7 +49,10 @@ import {
 	parseSparseCheckoutPaths,
 } from "../workspace-creation/shared/sparse-checkout";
 import type { GitClient } from "../workspace-creation/shared/types";
-import { safeResolveWorktreePath } from "../workspace-creation/shared/worktree-paths";
+import {
+	projectDirName,
+	safeResolveWorktreePath,
+} from "../workspace-creation/shared/worktree-paths";
 import { generateBranchNameFromPrompt } from "../workspace-creation/utils/ai-branch-name";
 import {
 	applyAiWorkspaceRename,
@@ -672,7 +675,7 @@ export const workspacesRouter = router({
 							alreadyExists = result.alreadyExists;
 						} else {
 							worktreePath = safeResolveWorktreePath(
-								localProject.id,
+								projectDirName(localProject),
 								resolvedBranch,
 								worktreeBaseDir,
 							);
@@ -942,7 +945,7 @@ export const workspacesRouter = router({
 						alreadyExists = result.alreadyExists;
 					} else {
 						worktreePath = safeResolveWorktreePath(
-							localProject.id,
+							projectDirName(localProject),
 							resolvedBranch,
 							worktreeBaseDir,
 						);
