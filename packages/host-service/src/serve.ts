@@ -121,9 +121,10 @@ async function main(): Promise<void> {
 		// Install only after the server is listening so startup throws still
 		// reach `main().catch(...)` and exit with a non-zero code.
 		installProcessSafetyNet();
-		console.log(
-			`[host-service] listening on http://${hostname ?? "0.0.0.0"}:${info.port}`,
-		);
+		const address = info.address.includes(":")
+			? `[${info.address}]`
+			: info.address;
+		console.log(`[host-service] listening on http://${address}:${info.port}`);
 
 		startTerminalReaper(db);
 
