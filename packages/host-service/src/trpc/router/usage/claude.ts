@@ -150,7 +150,10 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
  * only the freshest of the three surfaces (a stale sibling would otherwise
  * render as a phantom expired account).
  */
-async function discoverClaudeCredentials(): Promise<ClaudeOauthCredential[]> {
+async function discoverClaudeCredentials(): Promise<{
+	credentials: ClaudeOauthCredential[];
+	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
+}> {
 	const home = homedir();
 	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
 		{
@@ -229,7 +232,13 @@ async function discoverClaudeCredentials(): Promise<ClaudeOauthCredential[]> {
 			byToken.set(credential.accessToken, credential);
 		}
 	}
-	return [...byToken.values()];
+	// Profiles with an identity but no readable credential (logged out, or a
+	// login that died half-way) still surface so the UI can offer re-sign-in
+	// and removal — otherwise the dir exists but nothing shows it.
+	const signedOutProfiles = profiles.filter(
+		(_profile, index) => profiled[index] === null,
+	);
+	return { credentials: [...byToken.values()], signedOutProfiles };
 }
 
 interface ClaudeUsageWindow {
@@ -428,6 +437,25 @@ async function fetchClaudeAccount(
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
-	const credentials = await discoverClaudeCredentials();
-	return Promise.all(credentials.map(fetchClaudeAccount));
+	const { credentials, signedOutProfiles } = await discoverClaudeCredentials();
+	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
+	for (const profile of signedOutProfiles) {
+		accounts.push({
+			provider: "claude",
+			accountKey: profile.configDir,
+			sourceLabel: profile.sourceLabel,
+			email: profile.email,
+			plan: null,
+			status: "signed_out",
+			statusDetail:
+				"Signed out — use Switch sign-in to reconnect, or Remove to delete this profile.",
+			windows: [],
+			creditsBalance: null,
+			extraUsage: null,
+			selection: profile.configDir,
+			isDefault: false,
+			fetchedAt: new Date(),
+		});
+	}
+	return accounts;
 }

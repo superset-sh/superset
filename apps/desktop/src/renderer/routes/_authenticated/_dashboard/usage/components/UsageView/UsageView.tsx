@@ -108,7 +108,9 @@ function AccountCard({
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
 						{account.status === "token_expired"
 							? "Sign-in expired"
-							: "Unavailable"}
+							: account.status === "signed_out"
+								? "Signed out"
+								: "Unavailable"}
 					</span>
 				)}
 				{account.isDefault ? (

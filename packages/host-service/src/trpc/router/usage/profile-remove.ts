@@ -27,7 +27,7 @@ function protectedDirs(): Set<string> {
 	return dirs;
 }
 
-function assertRemovableProfileDir(dir: string): string {
+export function assertRemovableProfileDir(dir: string): string {
 	const resolved = resolve(dir);
 	const home = homedir();
 	if (!resolved.startsWith(home + sep)) {
