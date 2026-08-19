@@ -419,16 +419,27 @@ class BrowserManager extends EventEmitter {
 				// The renderer-side `Page.captureScreenshot` waits for the guest's
 				// next BeginFrame, which a hidden (parked) pane may never produce —
 				// the field failure mode was 2-minute hangs. `capturePage` from the
-				// main process forces a frame reliably, so serve the common no-clip
-				// case through it. A `clip` request keeps the native path (and its
-				// caveat) since capturePage can't honor it.
+				// main process forces a frame reliably, so serve the common case
+				// (default viewport capture as png/jpeg) through it. Requests
+				// capturePage can't honor faithfully — `clip`, `captureBeyondViewport`
+				// (puppeteer full-page), or another format — keep the native path
+				// rather than silently returning the wrong image.
+				const shotParams = params as
+					| {
+							clip?: unknown;
+							captureBeyondViewport?: unknown;
+							format?: unknown;
+							quality?: unknown;
+					  }
+					| undefined;
+				const format = shotParams?.format;
 				if (
 					method === "Page.captureScreenshot" &&
-					(params as { clip?: unknown } | undefined)?.clip == null
+					shotParams?.clip == null &&
+					shotParams?.captureBeyondViewport !== true &&
+					(format == null || format === "png" || format === "jpeg")
 				) {
-					const format = (params as { format?: unknown } | undefined)?.format;
-					const quality = (params as { quality?: unknown } | undefined)
-						?.quality;
+					const quality = shotParams?.quality;
 					this.capturePageImage(paneId)
 						.then((image) => {
 							if (closed) return;

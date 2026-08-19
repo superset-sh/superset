@@ -199,6 +199,36 @@ describe("forced CDP detach", () => {
 		).toBe("png");
 	});
 
+	test("captureScreenshot requests capturePage can't honor keep the native path", async () => {
+		const wc = register("pane-shim-passthrough");
+		const messages: unknown[] = [];
+		const session = browserManager.attachCdp(
+			"pane-shim-passthrough",
+			"ws-1",
+			(payload) => messages.push(JSON.parse(payload)),
+			() => {},
+		);
+		const sendCommand = mock(async () => ({}));
+		wc.debugger.sendCommand = sendCommand;
+
+		for (const params of [
+			{ clip: { x: 0, y: 0, width: 10, height: 10, scale: 1 } },
+			{ captureBeyondViewport: true },
+			{ format: "webp" },
+		]) {
+			session.send(
+				JSON.stringify({ id: 1, method: "Page.captureScreenshot", params }),
+			);
+		}
+		for (let i = 0; i < 50 && messages.length < 3; i++) {
+			await new Promise((r) => setTimeout(r, 10));
+		}
+		session.detach();
+
+		expect(sendCommand).toHaveBeenCalledTimes(3);
+		expect(wc.capturePage).not.toHaveBeenCalled();
+	});
+
 	test("agent-active events track attach and detach", () => {
 		register("pane-state");
 		const states: string[][] = [];
