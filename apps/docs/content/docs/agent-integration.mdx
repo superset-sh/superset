@@ -66,7 +66,7 @@ The setting is remembered between sessions.
 
 ## Resume Interrupted Sessions
 
-If an agent's terminal dies under it (a crash, a reboot, a killed process), Superset resumes the session automatically: the pane relaunches the agent with its resume command (e.g. `claude --resume <session-id>`) and re-points itself at the new session, showing a passive "Resuming…" pill while it happens. Exactly one session is resumed no matter how many panes or windows are watching. Only unexpected deaths qualify: sessions you close or kill deliberately, and agents that exited cleanly, stay down.
+If an agent's terminal dies under it (a crash, a reboot, a killed process), Superset resumes the session automatically: the pane relaunches the agent with its resume command (e.g. `claude --resume <session-id>`) and shows a "Resuming…" pill while it happens. Only unexpected deaths qualify: sessions you close or kill deliberately, and agents that exited cleanly, stay down.
 
 If the resume fails, the pill turns into "Failed to resume" with a **Retry** button and a dismiss control.
 

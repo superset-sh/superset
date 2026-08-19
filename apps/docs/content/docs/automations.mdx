@@ -36,7 +36,7 @@ Click **Automations → New automation** and fill in:
 
 ## Triggers and Schedules
 
-On the automation's detail page, schedules live in a **Triggers** list. Each trigger is a row reading like a sentence (e.g. *Daily at 09:00 PDT*), with the next run shown inline. **Add Trigger** adds another schedule: one automation can fire on several cadences, and every automation needs at least one trigger. Hover a row for the remove button. Edits are drafts until you press **Save triggers** (or **Discard**).
+On the automation's detail page, schedules live in a **Triggers** list; each row shows its cadence and next run inline. **Add Trigger** adds another schedule: one automation can fire on several cadences, and every automation needs at least one trigger. Hover a row to remove it. Edits are drafts until you press **Save triggers** (or **Discard**).
 
 Schedules are stored as [RFC 5545 RRules](https://datatracker.ietf.org/doc/html/rfc5545#section-3.8.5). The picker has presets for common cadences (Hourly, Daily, Weekdays, Weekly); use **Custom** for anything else. Custom rules are validated inline: invalid rules, rules with no upcoming runs, and one-shot rules (`COUNT`/`UNTIL`) are rejected before saving.
 

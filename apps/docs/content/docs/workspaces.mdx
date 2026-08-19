@@ -57,12 +57,12 @@ Keep active workspaces at the top of the sidebar:
 
 ## List and Board Views
 
-The workspaces page toggles between **List** and **Board** layouts; Board is the default. Board columns follow workspace state, derived from agent status and PR state: **Idle**, **Working**, **Needs attention**, **Needs review**, **Merged**, and **Deleted**. Merged and Deleted are history: deleted workspaces keep a card instead of vanishing. Both lanes hide themselves while they're empty and the Archived window is **Hidden** (the default).
+The workspaces page toggles between **List** and **Board** layouts; Board is the default. Board columns follow workspace state, derived from agent status and PR state: **Idle**, **Working**, **Needs attention**, **Needs review**, **Merged**, and **Deleted**. Merged and Deleted are history: deleted workspaces keep a card instead of vanishing, and both auto-hide while empty when Archived is **Hidden** (the default).
 
-The toolbar collapses everything into two menus, shared by both layouts:
+Toolbar controls live in two menus, shared by both layouts:
 
-- **Filter** - Project, PR state, Agent, Pinned, and Device. **Pinned** narrows to **All workspaces**, **Pinned**, or **Unpinned**. Active filters show a count badge and sync to the URL.
-- **Display** - **Sort by** (Last activity, Created, Diff size, Name), the **Archived** window (Hidden, Past week, Past month, All), and, in Board view, **Lanes**: a checkbox per column to hide or show it. Hidden lanes come back by re-checking them; lane visibility is board-only, stays out of the URL, and resets on restart.
+- **Filter** - Project, PR state, Agent, Pinned (All workspaces / Pinned / Unpinned), and Device. Active filters show a count badge and sync to the URL.
+- **Display** - **Sort by**, the **Archived** window (Hidden, Past week, Past month, All), and, in Board view, **Lanes**: a checkbox per column to hide or show it. Lane visibility stays out of the URL and resets on restart.
 
 ## Ahead/Behind Status
 
