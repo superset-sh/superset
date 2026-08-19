@@ -126,16 +126,25 @@ function getPrByNumber(db: HostDb, prNumber: number) {
 		.get();
 }
 
-// Answers only the origin/HEAD symref (default branch); every other git call
-// throws, asserting the refresh path never depends on live git.
+// Answers the origin/HEAD symref and the existence check that validates it;
+// every other git call throws, asserting the refresh path never depends on
+// live git.
 function defaultBranchGit(defaultBranch: string) {
+	const remoteRef = `refs/remotes/origin/${defaultBranch}`;
+	const remoteRev = `${remoteRef}^{commit}`;
 	return (async () => ({
 		raw: async (args: string[]) => {
 			if (
 				args[0] === "symbolic-ref" &&
 				args.includes("refs/remotes/origin/HEAD")
 			) {
-				return `origin/${defaultBranch}\n`;
+				// Full refname, as the reader asks for it without `--short`.
+				return `${remoteRef}\n`;
+			}
+			// The symref is only trusted while the branch it names resolves.
+			if (args[0] === "rev-parse" && args[1] === "--verify") {
+				if (args[2] === remoteRev) return `${"0".repeat(40)}\n`;
+				throw new Error("fatal: Needed a single revision");
 			}
 			throw new Error(`unexpected git raw: ${args.join(" ")}`);
 		},

@@ -19,10 +19,19 @@ function createMockGit(existingFullRefs: Set<string>, defaultBranch?: string) {
 				args[0] === "symbolic-ref" &&
 				args[1] === "refs/remotes/origin/HEAD"
 			) {
-				if (defaultBranch) return `origin/${defaultBranch}`;
+				// Full refname, as the reader asks for it without `--short`.
+				if (defaultBranch) return `refs/remotes/origin/${defaultBranch}`;
 				throw new Error(
 					"fatal: ref refs/remotes/origin/HEAD is not a symbolic ref",
 				);
+			}
+			// Fallback path once origin/HEAD can't answer: enumerate branches,
+			// then ask which one HEAD is on.
+			if (args[0] === "for-each-ref") {
+				return `${[...existingFullRefs].join("\n")}\n`;
+			}
+			if (args[0] === "symbolic-ref" && args[2] === "HEAD") {
+				throw new Error("fatal: ref HEAD is not a symbolic ref");
 			}
 			throw new Error(`Unexpected raw args: ${args.join(" ")}`);
 		}),

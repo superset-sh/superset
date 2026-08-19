@@ -47,6 +47,10 @@ export const searchBranches = protectedProcedure
 			markRefetchRemote(input.projectId);
 			try {
 				await git.fetch(["--prune", "--quiet", "--no-tags"]);
+				// `fetch` never updates `origin/HEAD`, so ask the remote what its
+				// default branch is while we have the network. Without this the
+				// stale ref is worked around on every read, never corrected.
+				await git.raw(["remote", "set-head", "origin", "--auto"]);
 			} catch {
 				// offline — proceed with cached refs
 			}
