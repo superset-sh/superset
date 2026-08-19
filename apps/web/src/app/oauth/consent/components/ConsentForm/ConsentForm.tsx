@@ -108,7 +108,7 @@ export function ConsentForm({
 			// instead of leaving the page stuck on "Authorizing..." (GH #6609).
 			if (!data?.url) {
 				throw new Error(
-					"The authorization server did not return a redirect URL. Return to your terminal and try again.",
+					"The authorization server did not return a redirect URL. Return to the application that started authorization and try again.",
 				);
 			}
 			window.location.href = data.url;

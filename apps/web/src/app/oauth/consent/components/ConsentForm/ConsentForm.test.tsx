@@ -14,6 +14,9 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 // into other suites.
 const alreadyRegistered = GlobalRegistrator.isRegistered;
 if (!alreadyRegistered) GlobalRegistrator.register();
+// beforeEach replaces window.location; keep the original descriptor so
+// afterAll can restore it even when this suite doesn't own the registration.
+const originalLocation = Object.getOwnPropertyDescriptor(window, "location");
 (
 	globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
 ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -72,6 +75,11 @@ beforeEach(() => {
 
 afterEach(cleanup);
 afterAll(async () => {
+	if (originalLocation) {
+		Object.defineProperty(window, "location", originalLocation);
+	} else {
+		Reflect.deleteProperty(window, "location");
+	}
 	if (!alreadyRegistered) await GlobalRegistrator.unregister();
 });
 
