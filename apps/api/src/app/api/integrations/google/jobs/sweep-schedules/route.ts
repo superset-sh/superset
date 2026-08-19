@@ -6,7 +6,7 @@ import {
 	listUpcomingInstances,
 } from "@superset/trpc/integrations/google";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { verifyQstashRequest } from "@/lib/verifyQstash";
+import { verifyCronRequest } from "@/lib/verifyCron";
 import {
 	loadFirePlan,
 	scheduleFires,
@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
 	const body = await request.text();
-	const rejected = await verifyQstashRequest(
+	const rejected = await verifyCronRequest(
 		request,
 		body,
 		"/api/integrations/google/jobs/sweep-schedules",

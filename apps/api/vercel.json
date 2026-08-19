@@ -1,0 +1,9 @@
+{
+	"crons": [
+		{ "path": "/api/automations/evaluate", "schedule": "* * * * *" },
+		{ "path": "/api/integrations/google/jobs/renew-watches", "schedule": "0 6 * * *" },
+		{ "path": "/api/integrations/google/jobs/sweep-schedules", "schedule": "*/15 * * * *" },
+		{ "path": "/api/integrations/microsoft-teams/jobs/renew-subscriptions", "schedule": "0 * * * *" },
+		{ "path": "/api/integrations/linear/jobs/refresh-tokens", "schedule": "*/30 * * * *" }
+	]
+}

@@ -2,11 +2,11 @@ import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { refreshLinearToken } from "@superset/trpc/integrations/linear";
 import { and, eq, isNotNull, isNull, lt, sql } from "drizzle-orm";
-import { verifyQstashRequest } from "@/lib/verifyQstash";
+import { verifyCronRequest } from "@/lib/verifyCron";
 
 export async function POST(request: Request) {
 	const body = await request.text();
-	const rejected = await verifyQstashRequest(
+	const rejected = await verifyCronRequest(
 		request,
 		body,
 		"/api/integrations/linear/jobs/refresh-tokens",
