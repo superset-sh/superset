@@ -3,7 +3,7 @@ import { integrationConnections } from "@superset/db/schema";
 import { ensureTeamsSubscriptions } from "@superset/trpc/integrations/microsoft-teams";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { verifyCronRequest } from "@/lib/verifyCron";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -19,7 +19,7 @@ export const maxDuration = 60;
  */
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const rejected = await verifyCronRequest(
+	const rejected = await verifyQstashRequest(
 		request,
 		body,
 		"/api/integrations/microsoft-teams/jobs/renew-subscriptions",

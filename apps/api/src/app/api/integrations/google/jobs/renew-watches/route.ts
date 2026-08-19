@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { verifyCronRequest } from "@/lib/verifyCron";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { reconcileWatches } from "../../lib/reconcileWatches";
 
 export const maxDuration = 300;
@@ -16,7 +16,7 @@ const bodySchema = z.object({ connectionId: z.string().uuid().optional() });
  */
 export async function POST(request: Request) {
 	const body = await request.text();
-	const rejected = await verifyCronRequest(
+	const rejected = await verifyQstashRequest(
 		request,
 		body,
 		"/api/integrations/google/jobs/renew-watches",

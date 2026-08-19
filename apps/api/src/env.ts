@@ -44,8 +44,6 @@ export const env = createEnv({
 		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		ANTHROPIC_API_KEY: z.string(),
 		QSTASH_TOKEN: z.string().min(1),
-		// Vercel Cron sends this as the bearer on scheduled invocations.
-		CRON_SECRET: z.string().min(1).optional(),
 		QSTASH_URL: z.string().url(),
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
 		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),

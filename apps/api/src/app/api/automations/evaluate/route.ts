@@ -9,7 +9,7 @@ import { Client } from "@upstash/qstash";
 import { and, eq, lte } from "drizzle-orm";
 import { env } from "@/env";
 import { redispatchUndispatched } from "@/lib/automations/redispatchUndispatched";
-import { verifyCronRequest } from "@/lib/verifyCron";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ function scheduleFromConfig(
 
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const rejected = await verifyCronRequest(
+	const rejected = await verifyQstashRequest(
 		request,
 		body,
 		"/api/automations/evaluate",
