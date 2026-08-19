@@ -277,9 +277,11 @@ describe("Shell Environment", () => {
 	}, 10_000);
 
 	test("getProcessEnvWithShellPath applies shell PATH and preserves string vars", async () => {
-		const { getProcessEnvWithShellPath, getShellEnvironment } = await import(
-			"./shell-env"
-		);
+		const {
+			augmentPathForMacOS,
+			getProcessEnvWithShellPath,
+			getShellEnvironment,
+		} = await import("./shell-env");
 
 		const shellEnv = await getShellEnvironment();
 		const env = await getProcessEnvWithShellPath({
@@ -293,7 +295,13 @@ describe("Shell Environment", () => {
 
 		const shellPath = shellEnv.PATH || shellEnv.Path;
 		if (shellPath) {
-			expect(env.PATH).toBe(shellPath);
+			// getProcessEnvWithShellPath augments the login-shell PATH with common
+			// macOS dirs, so the expectation must apply the same augmentation — a
+			// literal shellPath comparison only holds on machines whose login shell
+			// already has all of them.
+			const expected = { PATH: shellPath };
+			augmentPathForMacOS(expected);
+			expect(env.PATH).toBe(expected.PATH);
 			if (process.platform === "win32" || "Path" in shellEnv) {
 				expect(env.Path).toBe(shellPath);
 			}
