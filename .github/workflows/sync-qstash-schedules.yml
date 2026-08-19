@@ -17,10 +17,18 @@ jobs:
       - name: Create missing schedules
         env:
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+          QSTASH_URL: ${{ secrets.QSTASH_URL }}
           API_URL: https://api.superset.sh
         run: |
           set -euo pipefail
-          existing=$(curl -sf -H "Authorization: Bearer $QSTASH_TOKEN" https://qstash.upstash.io/v2/schedules)
+          base="${QSTASH_URL:-https://qstash.upstash.io}"
+          base="${base%/}"
+          status=$(curl -s -o /tmp/schedules.json -w "%{http_code}" -H "Authorization: Bearer $QSTASH_TOKEN" "$base/v2/schedules")
+          if [ "$status" != "200" ]; then
+            echo "listing schedules failed: HTTP $status from $base"
+            exit 1
+          fi
+          existing=$(cat /tmp/schedules.json)
 
           ensure() {
             local path="$1" cron="$2"
@@ -29,7 +37,7 @@ jobs:
               echo "exists: $path"
               return
             fi
-            curl -sf -X POST "https://qstash.upstash.io/v2/schedules/$destination" \
+            curl -sf -X POST "$base/v2/schedules/$destination" \
               -H "Authorization: Bearer $QSTASH_TOKEN" \
               -H "Upstash-Cron: $cron" \
               -H "Content-Type: application/json" \
