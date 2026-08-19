@@ -211,22 +211,53 @@ describe("forced CDP detach", () => {
 		const sendCommand = mock(async () => ({}));
 		wc.debugger.sendCommand = sendCommand;
 
-		for (const params of [
+		const passthroughCases = [
 			{ clip: { x: 0, y: 0, width: 10, height: 10, scale: 1 } },
 			{ captureBeyondViewport: true },
 			{ format: "webp" },
-		]) {
+			{ fromSurface: false },
+			{ optimizeForSpeed: true },
+		];
+		for (const params of passthroughCases) {
 			session.send(
 				JSON.stringify({ id: 1, method: "Page.captureScreenshot", params }),
 			);
 		}
-		for (let i = 0; i < 50 && messages.length < 3; i++) {
+		for (let i = 0; i < 50 && messages.length < passthroughCases.length; i++) {
 			await new Promise((r) => setTimeout(r, 10));
 		}
 		session.detach();
 
-		expect(sendCommand).toHaveBeenCalledTimes(3);
+		expect(sendCommand).toHaveBeenCalledTimes(passthroughCases.length);
 		expect(wc.capturePage).not.toHaveBeenCalled();
+	});
+
+	test("a stale capture release cannot drop a wake acquired after re-registration", async () => {
+		const wc1 = register("pane-stale");
+		let resolveCapture!: (image: FakeImage) => void;
+		wc1.capturePage.mockImplementationOnce(
+			() => new Promise<FakeImage>((r) => (resolveCapture = r)),
+		);
+		const capture = browserManager.capturePng("pane-stale", "ws-1");
+
+		// The pane dies and comes back while the capture is still in flight,
+		// and a new CDP session acquires a fresh wake on the reincarnation.
+		browserManager.unregister("pane-stale");
+		const wc2 = register("pane-stale");
+		const session = browserManager.attachCdp(
+			"pane-stale",
+			"ws-1",
+			() => {},
+			() => {},
+		);
+
+		resolveCapture(PNG_IMAGE);
+		await capture;
+
+		// The stale release must not clear the new session's wake.
+		expect(browserManager.getAgentActivePaneIds()).toEqual(["pane-stale"]);
+		expect(wc2.throttlingCalls[wc2.throttlingCalls.length - 1]).toBe(false);
+		session.detach();
 	});
 
 	test("agent-active events track attach and detach", () => {

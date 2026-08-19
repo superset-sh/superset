@@ -149,9 +149,10 @@ class BrowserManager extends EventEmitter {
 	private navigationListeners = new Map<string, () => void>();
 	private cdpDetachers = new Map<string, () => void>();
 	// Ref-count of in-flight agent work per pane (a live CDP session, a
-	// screenshot capture). While non-zero the guest renderer stays
-	// un-throttled — see acquireAgentWake.
-	private agentWakes = new Map<string, number>();
+	// screenshot capture). While present the guest renderer stays
+	// un-throttled — see acquireAgentWake. The entry object's identity ties
+	// releases to the registration generation they were acquired under.
+	private agentWakes = new Map<string, { count: number }>();
 	// Canonical chords to suppress in the focused guest and forward for the
 	// renderer to replay. Kept override/layout-aware by the renderer.
 	private forwardableChords = new Set<string>();
@@ -223,7 +224,9 @@ class BrowserManager extends EventEmitter {
 		this.cdpDetachers.get(paneId)?.();
 		this.panes.delete(paneId);
 		this.consoleLogs.delete(paneId);
-		this.agentWakes.delete(paneId);
+		// Tell subscribers when a live wake dies with the pane, so the renderer
+		// doesn't keep a stale pane id in its exemption set.
+		if (this.agentWakes.delete(paneId)) this.emitAgentActive();
 	}
 
 	/**
@@ -235,12 +238,19 @@ class BrowserManager extends EventEmitter {
 	 * visibility-hidden webview stops getting compositor frames entirely, so
 	 * `capturePage`/`Page.captureScreenshot` hang or fail ("UnknownVizError").
 	 * Ref-counted so overlapping work (a CDP session plus a screenshot)
-	 * doesn't drop the wake early. Returns an idempotent release.
+	 * doesn't drop the wake early. Each release is bound to the wake entry it
+	 * incremented: unregister() discards the entry, so a release held by
+	 * work that outlived the pane (a capture can run up to 15 s) cannot
+	 * decrement a wake acquired after the pane re-registered. Returns an
+	 * idempotent release.
 	 */
 	private acquireAgentWake(paneId: string): () => void {
-		const count = this.agentWakes.get(paneId) ?? 0;
-		this.agentWakes.set(paneId, count + 1);
-		if (count === 0) {
+		let entry = this.agentWakes.get(paneId);
+		if (entry) {
+			entry.count += 1;
+		} else {
+			entry = { count: 1 };
+			this.agentWakes.set(paneId, entry);
 			const wc = this.getWebContents(paneId);
 			if (wc) this.applyThrottling(paneId, wc);
 			this.emitAgentActive();
@@ -249,16 +259,15 @@ class BrowserManager extends EventEmitter {
 		return () => {
 			if (released) return;
 			released = true;
-			const current = this.agentWakes.get(paneId);
-			// unregister() may have already cleared the pane's wake state.
-			if (current == null) return;
-			if (current <= 1) {
+			// A different (or missing) entry means the pane's wake state was
+			// reset since this wake was acquired — this release is stale.
+			if (this.agentWakes.get(paneId) !== entry) return;
+			entry.count -= 1;
+			if (entry.count <= 0) {
 				this.agentWakes.delete(paneId);
 				const wc = this.getWebContents(paneId);
 				if (wc) this.applyThrottling(paneId, wc);
 				this.emitAgentActive();
-			} else {
-				this.agentWakes.set(paneId, current - 1);
 			}
 		};
 	}
@@ -491,6 +500,8 @@ class BrowserManager extends EventEmitter {
 							captureBeyondViewport?: unknown;
 							format?: unknown;
 							quality?: unknown;
+							fromSurface?: unknown;
+							optimizeForSpeed?: unknown;
 					  }
 					| undefined;
 				const format = shotParams?.format;
@@ -498,6 +509,8 @@ class BrowserManager extends EventEmitter {
 					method === "Page.captureScreenshot" &&
 					shotParams?.clip == null &&
 					shotParams?.captureBeyondViewport !== true &&
+					shotParams?.fromSurface !== false &&
+					shotParams?.optimizeForSpeed !== true &&
 					(format == null || format === "png" || format === "jpeg")
 				) {
 					const quality = shotParams?.quality;
