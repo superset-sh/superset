@@ -7,8 +7,8 @@ import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { AgentMark } from "@/screens/(authenticated)/(home)/new-session/agent";
@@ -25,7 +25,7 @@ export function NewSessionSheet() {
 	const queryClient = useQueryClient();
 	const { workspace, host } = useWorkspaceHost(id ?? null);
 	const hostUrl = host
-		? buildRelayHostUrl(host.organizationId, host.machineId)
+		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 
 	const presetsQuery = useQuery({

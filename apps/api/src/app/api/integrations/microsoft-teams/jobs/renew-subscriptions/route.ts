@@ -1,18 +1,12 @@
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { ensureTeamsSubscriptions } from "@superset/trpc/integrations/microsoft-teams";
-import { Receiver } from "@upstash/qstash";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 /**
  * Keeps every Teams connection's Graph subscriptions alive.
@@ -25,18 +19,12 @@ const receiver = new Receiver({
  */
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-	const valid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/microsoft-teams/jobs/renew-subscriptions`,
-	});
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		"/api/integrations/microsoft-teams/jobs/renew-subscriptions",
+	);
+	if (rejected) return rejected;
 
 	const connections = await db
 		.select({ id: integrationConnections.id })

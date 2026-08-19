@@ -1,27 +1,22 @@
+import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiSentry } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
+import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
 	SENTRY_MENU,
 	SENTRY_SENTENCES,
-	type SentencePart,
 	type SentryConfig,
+	type Slot,
 } from "./grammar";
 
-function renderPart(
+function renderSlot(
 	config: SentryConfig,
-	part: SentencePart,
+	slot: Slot,
 	index: number,
 	{ set, mark, options, disabled }: SentenceContext,
 ) {
-	if ("text" in part) {
-		return (
-			<span key={index} className="text-[13px] text-muted-foreground">
-				{part.text}
-			</span>
-		);
-	}
-	switch (part.slot) {
+	switch (slot) {
 		case "projects":
 			return (
 				<ScopeChip
@@ -41,8 +36,11 @@ function renderPart(
 					key={index}
 					scope={config.level}
 					// Clearing an optional filter means "any", not "none": the chip
-					// says "Any level" either way, and null would make that a lie.
-					onChange={(v) => set({ level: v ?? { mode: "any" } })}
+					// says "Any level" either way, and an empty list would make that
+					// a lie.
+					onChange={(v) =>
+						set({ level: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={options.sentry?.levels ?? []}
 					emptyLabel="Any level"
 					anyLabel="Any level"
@@ -54,20 +52,15 @@ function renderPart(
 
 export const sentryProvider: TriggerProvider<SentryConfig> = {
 	kind: "sentry",
+	optionGroup: "sentry",
 	label: "Sentry",
 	icon: SiSentry,
 	menu: SENTRY_MENU,
-	renderSentence: (config, ctx) => {
-		// A persisted config whose event has since been renamed must still
-		// render, so an unknown event reads as its raw name rather than as nothing.
-		const parts = SENTRY_SENTENCES[config.event];
-		if (!parts) {
-			return (
-				<span className="text-[13px] text-muted-foreground">
-					{config.event}
-				</span>
-			);
-		}
-		return parts.map((part, index) => renderPart(config, part, index, ctx));
-	},
+	renderSentence: (config, ctx) => (
+		<Sentence
+			parts={SENTRY_SENTENCES[config.event]}
+			fallback={config.event}
+			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+		/>
+	),
 };

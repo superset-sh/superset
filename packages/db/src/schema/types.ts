@@ -1,8 +1,25 @@
+import type { MatchableEvent } from "@superset/shared/automation-matching";
 import type {
-	TriggerActor as TriggerConfigActor,
 	TriggerConfigInput,
 	TriggerScope as TriggerConfigScope,
 } from "@superset/shared/automation-triggers";
+
+/**
+ * Everything `dispatchMatchingTriggers` needs for one automation_events row:
+ * the provider-normalized event, and the narrowing for inbound URLs that
+ * address one automation (raw webhook) or one trigger (Circleback).
+ */
+export type AutomationEventDispatchInput = {
+	event: MatchableEvent;
+	automationId?: string;
+	triggerId?: string;
+	/**
+	 * Restricts matching to one member's automations. Set by providers whose
+	 * connection is per member (Google): a member's calendar and mail events
+	 * must fire only that member's automations, never fan across the org.
+	 */
+	ownerUserId?: string;
+};
 
 export type LinearConfig = {
 	provider: "linear";
@@ -99,7 +116,6 @@ export type IntegrationConfig =
  */
 export type TriggerConfig = TriggerConfigInput;
 export type TriggerScope = TriggerConfigScope;
-export type TriggerActor = TriggerConfigActor;
 
 export type ScheduleTriggerConfig = Extract<
 	TriggerConfig,

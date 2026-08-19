@@ -3,10 +3,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { Cloud } from "lucide-react-native";
 import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import {
+	type CloudWorkspaceStatus,
+	useCloudWorkspaceItems,
+} from "@/hooks/useCloudWorkspaceItems";
 import { useHostProjects } from "@/hooks/useHostProjects";
 import {
 	type HostWorkspaceItem,
@@ -28,7 +34,11 @@ import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherShee
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
-import { useHostTerminals } from "./hooks/useHostTerminals";
+import { useCloudRepoPrefixes } from "./hooks/useCloudRepoPrefixes";
+import {
+	type TerminalsHost,
+	useHostsTerminals,
+} from "./hooks/useHostTerminals";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import {
 	collapsedProjectKey,
@@ -48,6 +58,14 @@ const MAX_VISIBLE_DIFF_STATS = 20;
 
 const NAVIGATION_BAR_HEIGHT = 44;
 
+/**
+ * Cloud workspaces sit in their own section above the projects. They belong
+ * to no host and, since a sandbox's project row is fabricated, to no project
+ * the selected host knows — so they neither scope to the host filter nor
+ * group under a project header. Same shape as desktop's sidebar.
+ */
+const CLOUD_SECTION_ID = "__cloud";
+
 type HomeListItem =
 	| {
 			kind: "projectHeader";
@@ -57,8 +75,13 @@ type HomeListItem =
 			count: number;
 			collapsed: boolean;
 	  }
-	| { kind: "workspace"; workspace: HostWorkspaceItem }
-	| { kind: "note"; label: string };
+	| {
+			kind: "workspace";
+			workspace: HostWorkspaceItem;
+			cloudStatus?: CloudWorkspaceStatus;
+	  }
+	| { kind: "note"; label: string }
+	| { kind: "hostOffline"; hostName: string };
 
 function homeListItemKey(item: HomeListItem): string {
 	switch (item.kind) {
@@ -66,6 +89,8 @@ function homeListItemKey(item: HomeListItem): string {
 			return `project:${item.projectId}`;
 		case "workspace":
 			return `ws:${item.workspace.id}`;
+		case "hostOffline":
+			return "host-offline";
 		default:
 			return `note:${item.label}`;
 	}
@@ -93,8 +118,32 @@ export function HomeScreen() {
 	const selectedHost = useSelectedHost();
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
+	const {
+		items: cloudItems,
+		targets: sandboxes,
+		cache: cloudCache,
+		isReady: cloudReady,
+	} = useCloudWorkspaceItems();
+	// Every addressed sandbox is a host of its own for the terminal fan-out,
+	// so cloud rows get session marks and attention like any other row. Lazier
+	// than the machine host on purpose: each sandbox is its own request, and a
+	// phone paying N requests every 5s for list decoration is the mistake
+	// desktop just walked back (#6570). Opening a workspace speeds up its own
+	// host via the shared query key.
+	const terminalHosts = useMemo<TerminalsHost[]>(
+		() => [
+			...(selectedHost ? [selectedHost] : []),
+			...sandboxes.map((sandbox) => ({
+				organizationId: sandbox.organizationId,
+				machineId: sandbox.workspaceId,
+				isOnline: true,
+				refetchIntervalMs: 30_000,
+			})),
+		],
+		[selectedHost, sandboxes],
+	);
 	const { terminalsByWorkspace, attentionByWorkspace } =
-		useHostTerminals(selectedHost);
+		useHostsTerminals(terminalHosts);
 
 	// Projects are fully local — served by the selected host, not the cloud.
 	const { projects } = useHostProjects(selectedHost);
@@ -175,6 +224,39 @@ export function HomeScreen() {
 
 	const listItems = useMemo<HomeListItem[]>(() => {
 		const items: HomeListItem[] = [];
+
+		const cloudPool = searching ? cloudItems.filter(matchesQuery) : cloudItems;
+		if (cloudPool.length > 0) {
+			const isCollapsed =
+				!searching &&
+				collapseHydrated &&
+				!!collapsed[collapsedProjectKey(CLOUD_SECTION_ID, CLOUD_SECTION_ID)];
+			items.push({
+				kind: "projectHeader",
+				projectId: CLOUD_SECTION_ID,
+				name: "Cloud",
+				count: cloudPool.length,
+				collapsed: isCollapsed,
+			});
+			if (!isCollapsed) {
+				for (const workspace of [...cloudPool].sort(byPinThenActivity)) {
+					items.push({
+						kind: "workspace",
+						workspace,
+						cloudStatus: workspace.cloud.status,
+					});
+				}
+			}
+		}
+
+		// The selected machine's rows follow. When it is offline the section
+		// gives way to the offline placeholder, but the cloud rows above it stay
+		// — a sandbox doesn't care which of your machines is awake.
+		if (selectedHost && !selectedHost.isOnline) {
+			items.push({ kind: "hostOffline", hostName: selectedHost.name });
+			return items;
+		}
+
 		const onThisHost = liveWorkspaces.filter(
 			(workspace) => workspace.hostId === selectedHost?.machineId,
 		);
@@ -268,6 +350,7 @@ export function HomeScreen() {
 		return items;
 	}, [
 		liveWorkspaces,
+		cloudItems,
 		selectedHost,
 		projects,
 		searching,
@@ -278,9 +361,14 @@ export function HomeScreen() {
 		collapseHydrated,
 	]);
 
+	const composerWorkspaces = useMemo(
+		() => [...workspaces, ...cloudItems],
+		[workspaces, cloudItems],
+	);
 	const workspacesById = useMemo(
-		() => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
-		[workspaces],
+		() =>
+			new Map(composerWorkspaces.map((workspace) => [workspace.id, workspace])),
+		[composerWorkspaces],
 	);
 
 	const pullRequestsByRepoBranch = useMemo(() => {
@@ -317,10 +405,15 @@ export function HomeScreen() {
 		return byRepoBranch;
 	}, [pullRequests]);
 
+	const resolveAnyHostUrl = useCallback(
+		(hostId: string) =>
+			cache.resolveHostUrl(hostId) ?? cloudCache.resolveHostUrl(hostId),
+		[cache, cloudCache],
+	);
 	const diffStats = useVisibleDiffStats({
 		visibleIds,
 		workspacesById,
-		resolveHostUrl: cache.resolveHostUrl,
+		resolveHostUrl: resolveAnyHostUrl,
 	});
 
 	const onViewableItemsChanged = useCallback(
@@ -365,17 +458,20 @@ export function HomeScreen() {
 
 	// Projects are fully local: PR rows are matched by repo coordinates
 	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
+	// Cloud rows' projects come from the API instead.
+	const cloudRepoPrefixes = useCloudRepoPrefixes(cloudItems);
 	const repoPrefixesByProject = useMemo(
 		() =>
-			new Map(
-				projects.map((project) => [
+			new Map<string, string | null>([
+				...cloudRepoPrefixes,
+				...projects.map((project): [string, string | null] => [
 					project.id,
 					project.repoOwner && project.repoName
 						? `https://github.com/${project.repoOwner}/${project.repoName}/`.toLowerCase()
 						: null,
 				]),
-			),
-		[projects],
+			]),
+		[projects, cloudRepoPrefixes],
 	);
 
 	const renderItem = useCallback(
@@ -387,21 +483,43 @@ export function HomeScreen() {
 					</Text>
 				);
 			}
+			if (item.kind === "hostOffline") {
+				return (
+					<View className="py-16">
+						<HostOfflineView hostName={item.hostName} />
+					</View>
+				);
+			}
 			if (item.kind === "projectHeader") {
+				const isCloudSection = item.projectId === CLOUD_SECTION_ID;
 				return (
 					<ProjectSectionHeader
 						name={item.name}
 						iconUrl={item.iconUrl}
+						icon={
+							isCloudSection ? (
+								<Icon
+									as={Cloud}
+									className="text-muted-foreground size-5"
+									strokeWidth={1.75}
+								/>
+							) : undefined
+						}
 						count={item.count}
 						collapsed={item.collapsed}
 						onToggle={() => {
 							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-							toggleProject(selectedHost?.machineId ?? "", item.projectId);
+							toggleProject(
+								isCloudSection
+									? CLOUD_SECTION_ID
+									: (selectedHost?.machineId ?? ""),
+								item.projectId,
+							);
 						}}
 					/>
 				);
 			}
-			const { workspace } = item;
+			const { workspace, cloudStatus } = item;
 			const repoPrefix = workspace.projectId
 				? repoPrefixesByProject.get(workspace.projectId)
 				: undefined;
@@ -416,9 +534,10 @@ export function HomeScreen() {
 							: undefined
 					}
 					diffStats={diffStats.get(workspace.id) ?? null}
-					cache={cache}
+					cache={cloudStatus === undefined ? cache : cloudCache}
 					attention={attentionByWorkspace.get(workspace.id) ?? null}
 					sessions={terminalsByWorkspace.get(workspace.id) ?? []}
+					cloudStatus={cloudStatus}
 				/>
 			);
 		},
@@ -427,6 +546,7 @@ export function HomeScreen() {
 			repoPrefixesByProject,
 			diffStats,
 			cache,
+			cloudCache,
 			attentionByWorkspace,
 			terminalsByWorkspace,
 			toggleProject,
@@ -483,7 +603,10 @@ export function HomeScreen() {
 				onChangeText={(event) => setSearchQuery(event.nativeEvent.text)}
 				onCancelButtonPress={() => setSearchQuery("")}
 			/>
-			{selectedHost && !selectedHost.isOnline ? (
+			{selectedHost &&
+			!selectedHost.isOnline &&
+			cloudReady &&
+			cloudItems.length === 0 ? (
 				<View
 					className="bg-background flex-1"
 					style={{
@@ -515,7 +638,7 @@ export function HomeScreen() {
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
 					ListEmptyComponent={
-						isReady && hasHydrated && !isLoadingOrganizations ? (
+						isReady && cloudReady && hasHydrated && !isLoadingOrganizations ? (
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
 									{searching
@@ -527,7 +650,10 @@ export function HomeScreen() {
 					}
 				/>
 			)}
-			<NewChatWidget workspaces={workspaces} />
+			{/* Cloud rows included: the row's "+" targets a workspace by id, and
+			    the composer has to find a sandbox workspace as readily as a
+			    machine's to start an agent in it. */}
+			<NewChatWidget workspaces={composerWorkspaces} />
 			<OrganizationSwitcherSheet
 				isPresented={sheetOpen}
 				onIsPresentedChange={setSheetOpen}

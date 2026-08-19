@@ -18,7 +18,6 @@ function scopeLabel(
 	emptyLabel: string,
 	anyLabel: string,
 ): string {
-	if (scope === null) return emptyLabel;
 	if (scope.mode === "any") return anyLabel;
 	if (scope.ids.length === 0) return emptyLabel;
 	if (scope.ids.length === 1) {
@@ -57,16 +56,16 @@ export function ScopeChip({
 	disabled?: boolean;
 	className?: string;
 }) {
-	const selected = scope !== null && scope.mode === "list" ? scope.ids : [];
-	const isAny = scope !== null && scope.mode === "any";
-	const empty = scope === null || (scope.mode === "list" && !scope.ids.length);
+	const selected = scope.mode === "list" ? scope.ids : [];
+	const isAny = scope.mode === "any";
+	const empty = scope.mode === "list" && !scope.ids.length;
 	const [custom, setCustom] = useState("");
 
 	const toggle = (id: string) => {
 		const next = selected.includes(id)
 			? selected.filter((s) => s !== id)
 			: [...selected, id];
-		onChange(next.length ? { mode: "list", ids: next } : null);
+		onChange({ mode: "list", ids: next });
 	};
 
 	const addCustom = () => {
@@ -98,7 +97,9 @@ export function ScopeChip({
 			<DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
 				<DropdownMenuCheckboxItem
 					checked={isAny}
-					onCheckedChange={() => onChange(isAny ? null : { mode: "any" })}
+					onCheckedChange={() =>
+						onChange(isAny ? { mode: "list", ids: [] } : { mode: "any" })
+					}
 				>
 					{anyLabel}
 				</DropdownMenuCheckboxItem>

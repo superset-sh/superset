@@ -1,29 +1,23 @@
+import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiLinear } from "react-icons/si";
-import { ActorChip } from "../../TriggerSentence/components/ActorChip";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
+import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
 	LINEAR_MENU,
 	LINEAR_SENTENCES,
 	type LinearConfig,
-	type SentencePart,
+	type Slot,
 } from "./grammar";
 
 /** Renders one slot of a Linear sentence; each slot edits the field it names. */
-function renderPart(
+function renderSlot(
 	config: LinearConfig,
-	part: SentencePart,
+	slot: Slot,
 	index: number,
 	{ set, mark, options, disabled }: SentenceContext,
 ) {
-	if ("text" in part) {
-		return (
-			<span key={index} className="text-[13px] text-muted-foreground">
-				{part.text}
-			</span>
-		);
-	}
-	switch (part.slot) {
+	switch (slot) {
 		case "teams":
 			return (
 				<ScopeChip
@@ -43,8 +37,11 @@ function renderPart(
 					key={index}
 					scope={config.projects}
 					// Clearing an optional filter means "any", not "none": the chip
-					// says "Any project" either way, and null would make that a lie.
-					onChange={(v) => set({ projects: v ?? { mode: "any" } })}
+					// says "Any project" either way, and an empty list would make
+					// that a lie.
+					onChange={(v) =>
+						set({ projects: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={options.linear?.projects ?? []}
 					emptyLabel="Any project"
 					anyLabel="Any project"
@@ -56,7 +53,9 @@ function renderPart(
 				<ScopeChip
 					key={index}
 					scope={config.labels}
-					onChange={(v) => set({ labels: v ?? { mode: "any" } })}
+					onChange={(v) =>
+						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={options.linear?.labels ?? []}
 					emptyLabel="Any label"
 					anyLabel="Any label"
@@ -68,7 +67,9 @@ function renderPart(
 				<ScopeChip
 					key={index}
 					scope={config.toStatus}
-					onChange={(v) => set({ toStatus: v ?? { mode: "any" } })}
+					onChange={(v) =>
+						set({ toStatus: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={options.linear?.statuses ?? []}
 					emptyLabel="Any status"
 					anyLabel="Any status"
@@ -77,12 +78,14 @@ function renderPart(
 			);
 		case "assignee":
 			return (
-				<ActorChip
+				<ScopeChip
 					key={index}
-					actor={config.assignee}
+					scope={config.assignee}
 					onChange={(v) => set({ assignee: v })}
 					className={mark("assignee")}
-					people={options.linear?.people ?? []}
+					options={options.linear?.people ?? []}
+					emptyLabel="Select people"
+					anyLabel="Anyone"
 					disabled={disabled}
 				/>
 			);
@@ -91,21 +94,15 @@ function renderPart(
 
 export const linearProvider: TriggerProvider<LinearConfig> = {
 	kind: "linear",
+	optionGroup: "linear",
 	label: "Linear",
 	icon: SiLinear,
 	menu: LINEAR_MENU,
-	renderSentence: (config, ctx) => {
-		// A persisted config whose event has since been renamed must still
-		// render, so an unknown event reads as its raw name rather than as
-		// nothing.
-		const parts = LINEAR_SENTENCES[config.event];
-		if (!parts) {
-			return (
-				<span className="text-[13px] text-muted-foreground">
-					{config.event}
-				</span>
-			);
-		}
-		return parts.map((part, index) => renderPart(config, part, index, ctx));
-	},
+	renderSentence: (config, ctx) => (
+		<Sentence
+			parts={LINEAR_SENTENCES[config.event]}
+			fallback={config.event}
+			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+		/>
+	),
 };

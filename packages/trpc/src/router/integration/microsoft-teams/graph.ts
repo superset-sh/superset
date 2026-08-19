@@ -1,8 +1,9 @@
+import { AuthError, ConfidentialClientApplication } from "@azure/msal-node";
+import { Client, GraphError } from "@microsoft/microsoft-graph-client";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { withConnectionLock } from "@superset/db/utils";
 import { and, eq } from "drizzle-orm";
-import { z } from "zod";
 import { env } from "../../../env";
 
 /**
@@ -15,27 +16,16 @@ import { env } from "../../../env";
  * in on the Microsoft side.
  */
 
-export const GRAPH_URL = "https://graph.microsoft.com/v1.0";
-const REQUEST_TIMEOUT_MS = 15_000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
-const MAX_PAGES = 20;
+const GRAPH_SCOPES = ["https://graph.microsoft.com/.default"];
 
-export class GraphError extends Error {
-	constructor(
-		public readonly status: number,
-		public readonly code: string | null,
-		message: string,
-	) {
-		super(message);
-		this.name = "GraphError";
-	}
-}
+export { GraphError };
 
 /** The failures that mean the app can no longer act in this tenant at all. */
 export function isGraphAuthError(error: unknown): boolean {
 	return (
 		error instanceof GraphError &&
-		(error.status === 401 || error.status === 403)
+		(error.statusCode === 401 || error.statusCode === 403)
 	);
 }
 
@@ -52,67 +42,44 @@ export function microsoftCredentials(): {
 	};
 }
 
-const tokenResponseSchema = z.object({
-	access_token: z.string().min(1),
-	expires_in: z.number(),
-});
-
-const tokenErrorSchema = z.object({
-	error: z.string(),
-	error_description: z.string().optional(),
-});
-
-async function fetchWithTimeout(
-	input: string,
-	init: RequestInit,
-): Promise<Response> {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-	try {
-		return await fetch(input, { ...init, signal: controller.signal });
-	} finally {
-		clearTimeout(timeout);
-	}
-}
-
 /**
  * Asks Entra for an app-only token in `tenantId`. Fails when the tenant has
  * not consented (the app has no service principal there) or the secret is
- * wrong; both surface as a GraphError so callers can tell them from outages.
+ * wrong; both surface as an MSAL AuthError so callers can tell them from
+ * outages.
  */
 export async function acquireAppToken(
 	tenantId: string,
 ): Promise<{ accessToken: string; expiresAt: Date }> {
 	const { clientId, clientSecret } = microsoftCredentials();
-	const response = await fetchWithTimeout(
-		`https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`,
-		{
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: new URLSearchParams({
-				client_id: clientId,
-				client_secret: clientSecret,
-				scope: "https://graph.microsoft.com/.default",
-				grant_type: "client_credentials",
-			}),
+	const application = new ConfidentialClientApplication({
+		auth: {
+			clientId,
+			clientSecret,
+			authority: `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}`,
 		},
-	);
-	const json: unknown = await response.json().catch(() => null);
-	if (!response.ok) {
-		const parsed = tokenErrorSchema.safeParse(json);
-		throw new GraphError(
-			response.status,
-			parsed.success ? parsed.data.error : null,
-			parsed.success
-				? (parsed.data.error_description ?? parsed.data.error)
-				: `Token request failed with ${response.status}`,
-		);
+	});
+	const result = await application.acquireTokenByClientCredential({
+		scopes: GRAPH_SCOPES,
+	});
+	if (!result?.accessToken) {
+		throw new Error("Entra returned no token for the tenant");
 	}
-	const token = tokenResponseSchema.parse(json);
 	return {
-		accessToken: token.access_token,
-		expiresAt: new Date(Date.now() + token.expires_in * 1000),
+		accessToken: result.accessToken,
+		expiresAt: result.expiresOn ?? new Date(Date.now() + 60 * 60 * 1000),
 	};
+}
+
+/** The tenant admin removed the app, or the secret rotated: no amount of
+ * retrying gets a token. */
+function isTenantRevokedError(error: unknown): error is AuthError {
+	return (
+		error instanceof AuthError &&
+		(error.errorCode === "unauthorized_client" ||
+			error.errorCode === "invalid_client" ||
+			error.errorCode === "invalid_grant")
+	);
 }
 
 /**
@@ -156,19 +123,12 @@ export async function getGraphAccessToken(
 				.where(eq(integrationConnections.id, connectionId));
 			return token.accessToken;
 		} catch (error) {
-			// The tenant admin removed the app, or the secret rotated: no amount
-			// of retrying gets a token, so stop pretending the connection works.
-			if (
-				error instanceof GraphError &&
-				(error.code === "unauthorized_client" ||
-					error.code === "invalid_client" ||
-					error.code === "invalid_grant")
-			) {
+			if (isTenantRevokedError(error)) {
 				await tx
 					.update(integrationConnections)
 					.set({
 						disconnectedAt: new Date(),
-						disconnectReason: error.code,
+						disconnectReason: error.errorCode,
 						updatedAt: new Date(),
 					})
 					.where(eq(integrationConnections.id, connectionId));
@@ -191,59 +151,18 @@ export async function findTeamsConnection(organizationId: string) {
 	return connection;
 }
 
-const graphErrorSchema = z.object({
-	error: z.object({
-		code: z.string().optional(),
-		message: z.string().optional(),
-	}),
-});
-
-/** One Graph call. Throws GraphError on a non-2xx; undefined on 204. */
-export async function graphRequest<T>(
-	accessToken: string,
-	path: string,
-	init: { method?: string; body?: unknown } = {},
-): Promise<T> {
-	const url = path.startsWith("https://") ? path : `${GRAPH_URL}${path}`;
-	const response = await fetchWithTimeout(url, {
-		method: init.method ?? "GET",
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-			Accept: "application/json",
-			...(init.body !== undefined
-				? { "Content-Type": "application/json" }
-				: {}),
-		},
-		body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+/**
+ * A Graph client over a token from `getGraphAccessToken`. The SDK's default
+ * middleware retries 429/503/504 honouring Retry-After.
+ */
+export function graphClient(accessToken: string): Client {
+	return Client.initWithMiddleware({
+		authProvider: { getAccessToken: async () => accessToken },
 	});
-	if (response.status === 204) return undefined as T;
-	const json: unknown = await response.json().catch(() => null);
-	if (!response.ok) {
-		const parsed = graphErrorSchema.safeParse(json);
-		throw new GraphError(
-			response.status,
-			parsed.success ? (parsed.data.error.code ?? null) : null,
-			parsed.success
-				? (parsed.data.error.message ?? `Graph ${response.status}`)
-				: `Graph ${response.status} on ${path}`,
-		);
-	}
-	return json as T;
 }
 
-/** A collection, following `@odata.nextLink` up to a page cap or `limit` items. */
-export async function graphList<T>(
-	accessToken: string,
-	path: string,
-	limit = Number.POSITIVE_INFINITY,
-): Promise<T[]> {
-	const items: T[] = [];
-	let next: string | undefined = path;
-	for (let page = 0; next && page < MAX_PAGES && items.length < limit; page++) {
-		const body: { value?: T[]; "@odata.nextLink"?: string } =
-			await graphRequest(accessToken, next);
-		items.push(...(body.value ?? []));
-		next = body["@odata.nextLink"];
-	}
-	return items;
+/** One Graph GET, for callers that hold a raw token. Throws the SDK's
+ * GraphError on a non-2xx. */
+export function graphRequest<T>(accessToken: string, path: string): Promise<T> {
+	return graphClient(accessToken).api(path).get();
 }

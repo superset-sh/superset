@@ -280,6 +280,11 @@ export function buildV2TerminalEnv(
 			const value = process.env[key];
 			if (value) env[key] = value;
 		}
+		// The sandbox runs as root, and Claude refuses
+		// `--dangerously-skip-permissions` under root unless told it is inside a
+		// sandbox — which is exactly what this is. Without it the builtin Claude
+		// agent exits on launch with "cannot be used with root/sudo privileges".
+		env.IS_SANDBOX = "1";
 	}
 
 	// Electron child processes can't access macOS Keychain for TLS cert verification,

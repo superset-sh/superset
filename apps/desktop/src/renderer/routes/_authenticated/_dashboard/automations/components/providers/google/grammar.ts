@@ -135,17 +135,17 @@ function leaf(label: string, event: GoogleCalendarTriggerEvent) {
 }
 
 /**
- * A new calendar trigger: the calendar still to be chosen (null matches
- * nothing, and the form refuses to save until one is picked), every optional
- * narrowing wide open.
+ * A new calendar trigger: the calendar still to be chosen (an empty list
+ * matches nothing, and the form refuses to save until one is picked), every
+ * optional narrowing wide open.
  */
 export function createCalendarConfig(
 	event: GoogleCalendarTriggerEvent,
 ): GoogleCalendarConfig {
 	const base = {
 		kind: "google_calendar" as const,
-		calendars: null,
-		attendee: "anyone" as const,
+		calendars: { mode: "list" as const, ids: [] as string[] },
+		attendee: { mode: "any" as const },
 		titleFilter: null,
 	};
 	// Branching rather than spreading conditionally: the config is a union on
@@ -170,7 +170,7 @@ export function createGmailConfig(): GmailConfig {
 	return {
 		kind: "gmail",
 		event: "message.received",
-		from: null,
+		from: { mode: "list", ids: [] },
 		to: { mode: "any" },
 		subjectFilter: null,
 		labels: { mode: "any" },

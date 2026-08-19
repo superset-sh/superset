@@ -11,7 +11,6 @@ import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProject
 import type { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
-import { useProviderOptions } from "../../../components/providers/useProviderOptions";
 import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { TriggersEditor } from "../../../components/TriggersEditor";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
@@ -43,7 +42,6 @@ export function TriggersCard({
 	onSaveTriggers,
 }: TriggersCardProps) {
 	const recentProjects = useRecentProjects();
-	const options = useProviderOptions(automation.organizationId);
 	const selectedProject = recentProjects.find(
 		(p) => p.id === automation.v2ProjectId,
 	);
@@ -55,28 +53,21 @@ export function TriggersCard({
 		// The zone travels with the date: schedules on one automation can sit in
 		// different timezones, so formatting them all in the automation-level one
 		// would label the tooltip wrongly for every schedule but the soonest.
-		const entries = new Map<
-			string,
-			{ at: Date; timezone: string; exhausted: boolean }
-		>();
+		const entries = new Map<string, { at: Date; timezone: string }>();
 
 		for (const trigger of automation.triggers) {
 			const config = trigger.config as DraftTrigger["config"];
 			if (config.kind !== "schedule") continue;
 
-			// The evaluator disables a schedule once its last occurrence fires
-			// (COUNT/UNTIL) and leaves nextRunAt at that final time — so a
-			// disabled trigger's nextRunAt is when it last ran, not when it will.
+			// The saved nextRunAt is the dispatcher's truth; the computed one
+			// covers a paused automation, whose stored value is stale.
 			if (automation.enabled && trigger.nextRunAt) {
 				entries.set(trigger.id, {
 					at: new Date(trigger.nextRunAt),
 					timezone: config.timezone,
-					exhausted: !trigger.enabled,
 				});
 				continue;
 			}
-			// A paused automation keeps a stale nextRunAt, so compute what this
-			// schedule would fire next — the row is previewable before resuming.
 			try {
 				const next = nextOccurrenceAfter({
 					rrule: config.rrule,
@@ -85,11 +76,7 @@ export function TriggersCard({
 					after: new Date(),
 				});
 				if (next)
-					entries.set(trigger.id, {
-						at: next,
-						timezone: config.timezone,
-						exhausted: false,
-					});
+					entries.set(trigger.id, { at: next, timezone: config.timezone });
 			} catch (error) {
 				console.warn(
 					`[TriggersCard] failed to compute next occurrence for trigger ${trigger.id}`,
@@ -116,11 +103,7 @@ export function TriggersCard({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<span>
-						{run.exhausted
-							? "Ran "
-							: automation.enabled
-								? "Next run "
-								: "Would run "}
+						{automation.enabled ? "Next run " : "Would run "}
 						{formatDistanceStrict(run.at, new Date(), { addSuffix: true })}
 					</span>
 				</TooltipTrigger>
@@ -136,11 +119,10 @@ export function TriggersCard({
 			<TriggersEditor
 				triggers={automation.triggers.map((t) => ({
 					id: t.id,
-					enabled: t.enabled,
 					config: t.config as DraftTrigger["config"],
 				}))}
 				onChange={onSaveTriggers}
-				options={options}
+				organizationId={automation.organizationId}
 				renderNextRun={renderNextRun}
 				readOnly={readOnly}
 			/>

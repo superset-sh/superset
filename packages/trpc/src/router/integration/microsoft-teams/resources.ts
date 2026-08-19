@@ -1,97 +1,83 @@
-import { graphList, graphRequest } from "./graph";
+import {
+	type Client,
+	type PageCollection,
+	PageIterator,
+} from "@microsoft/microsoft-graph-client";
+import type {
+	Channel,
+	ChatMessage,
+	Team,
+	User,
+} from "@microsoft/microsoft-graph-types";
 
 /**
- * The Graph resources the Teams provider reads, typed down to the fields it
- * uses. Graph returns far more; the rest is carried in the recorded payload
- * as-is and never named here.
+ * The Graph resources the Teams provider reads. Graph returns far more fields
+ * than the matcher uses; the rest is carried in the recorded payload as-is.
  */
 
-export type GraphTeam = { id: string; displayName: string | null };
-export type GraphChannel = {
-	id: string;
-	displayName: string | null;
-	webUrl?: string | null;
-	membershipType?: string | null;
-	createdDateTime?: string | null;
-};
+/** Graph throttles per app per tenant; no picker needs an unbounded walk. */
+const LIST_CAP = 1000;
 
-export type GraphChatMessage = {
-	id: string;
-	replyToId?: string | null;
-	messageType?: string | null;
-	createdDateTime?: string | null;
-	subject?: string | null;
-	webUrl?: string | null;
-	from?: {
-		user?: { id?: string | null; displayName?: string | null } | null;
-		application?: { id?: string | null; displayName?: string | null } | null;
-	} | null;
-	body?: { contentType?: string | null; content?: string | null } | null;
-	channelIdentity?: {
-		teamId?: string | null;
-		channelId?: string | null;
-	} | null;
-};
-
-export function listTeams(accessToken: string): Promise<GraphTeam[]> {
-	return graphList<GraphTeam>(accessToken, "/teams?$select=id,displayName");
+async function listCollection<T>(client: Client, path: string): Promise<T[]> {
+	const items: T[] = [];
+	const firstPage: PageCollection = await client.api(path).get();
+	const iterator = new PageIterator(client, firstPage, (item) => {
+		items.push(item as T);
+		return items.length < LIST_CAP;
+	});
+	await iterator.iterate();
+	return items;
 }
 
-const MAX_PEOPLE = 1000;
-
-export type GraphUser = {
-	id: string;
-	displayName: string | null;
-	mail?: string | null;
-	userPrincipalName?: string | null;
-};
+export function listTeams(client: Client): Promise<Team[]> {
+	return listCollection<Team>(client, "/teams?$select=id,displayName");
+}
 
 /**
  * The tenant's people, as Entra object ids — what a channel message's
  * `from.user.id` carries. Needs the User.ReadBasic.All application permission.
  */
-export function listUsers(accessToken: string): Promise<GraphUser[]> {
-	return graphList<GraphUser>(
-		accessToken,
+export function listUsers(client: Client): Promise<User[]> {
+	return listCollection<User>(
+		client,
 		"/users?$select=id,displayName,mail,userPrincipalName&$top=999",
-		MAX_PEOPLE,
 	);
 }
 
 export function listChannels(
-	accessToken: string,
+	client: Client,
 	teamId: string,
-): Promise<GraphChannel[]> {
-	return graphList<GraphChannel>(
-		accessToken,
+): Promise<Channel[]> {
+	return listCollection<Channel>(
+		client,
 		`/teams/${encodeURIComponent(teamId)}/channels?$select=id,displayName,membershipType`,
 	);
 }
 
 export function getChannel(
-	accessToken: string,
+	client: Client,
 	teamId: string,
 	channelId: string,
-): Promise<GraphChannel> {
-	return graphRequest<GraphChannel>(
-		accessToken,
-		`/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}`,
-	);
+): Promise<Channel> {
+	return client
+		.api(
+			`/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}`,
+		)
+		.get();
 }
 
 /** A channel message, or a reply to one when `replyId` is set. */
 export function getChannelMessage(
-	accessToken: string,
+	client: Client,
 	teamId: string,
 	channelId: string,
 	messageId: string,
 	replyId?: string,
-): Promise<GraphChatMessage> {
+): Promise<ChatMessage> {
 	const base = `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages/${encodeURIComponent(messageId)}`;
-	return graphRequest<GraphChatMessage>(
-		accessToken,
-		replyId ? `${base}/replies/${encodeURIComponent(replyId)}` : base,
-	);
+	return client
+		.api(replyId ? `${base}/replies/${encodeURIComponent(replyId)}` : base)
+		.get();
 }
 
 /**
@@ -99,7 +85,7 @@ export function getChannelMessage(
  * tags are dropped and the handful of entities Teams emits are decoded so
  * "contains" means what the person typing the pattern sees.
  */
-export function plainTextOf(body: GraphChatMessage["body"]): string | null {
+export function plainTextOf(body: ChatMessage["body"]): string | null {
 	const content = body?.content;
 	if (!content) return null;
 	if (body?.contentType !== "html") return content;

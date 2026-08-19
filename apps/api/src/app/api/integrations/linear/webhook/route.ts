@@ -23,13 +23,13 @@ import {
 } from "@superset/trpc/integrations/linear";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import {
 	type LinearDelivery,
 	matchableFrom,
-	recordLinearEvent,
-} from "./recordLinearEvent";
+	normalizeLinearDelivery,
+} from "./normalizeLinearDelivery";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -187,9 +187,9 @@ async function processForConnection(
 
 	if (isEntityDelivery(payload)) {
 		try {
-			await recordAndDispatch(payload, deliveryId, connection, webhookEvent.id);
+			await ingest(payload, deliveryId, connection, webhookEvent.id);
 		} catch (error) {
-			console.error("[linear/webhook] recordAndDispatch failed:", error);
+			console.error("[linear/webhook] automation event failed:", error);
 			failures.push(errorMessage(error));
 		}
 	}
@@ -225,7 +225,7 @@ function isEntityDelivery(payload: unknown): payload is LinearDelivery {
 	return typeof data?.id === "string";
 }
 
-async function recordAndDispatch(
+async function ingest(
 	delivery: LinearDelivery,
 	deliveryHeader: string | null,
 	connection: SelectIntegrationConnection,
@@ -242,31 +242,16 @@ async function recordAndDispatch(
 		deliveryHeader ??
 		`${delivery.type}:${delivery.data.id}:${delivery.webhookTimestamp}`;
 
-	const recorded = await recordLinearEvent({
-		delivery,
-		deliveryId,
-		connection,
-		webhookEventId,
-	});
-	if (!recorded) {
-		console.log(
-			"[linear/webhook] Not recorded as automation event (duplicate delivery):",
+	await ingestAutomationEvent(
+		db,
+		normalizeLinearDelivery({
+			delivery,
+			event,
 			deliveryId,
-		);
-		return;
-	}
-
-	const result = await dispatchMatchingTriggers({
-		organizationId: connection.organizationId,
-		eventId: recorded.id,
-		event,
-	});
-	if (result.matched > 0) {
-		console.log(
-			`[linear/webhook] ${result.matched}/${result.considered} triggers matched:`,
-			deliveryId,
-		);
-	}
+			connection,
+			webhookEventId,
+		}),
+	);
 }
 
 // `branchName` is derived by Linear from the identifier + title and is not

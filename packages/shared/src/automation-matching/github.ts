@@ -1,14 +1,9 @@
-import type {
-	GithubTriggerEvent,
-	TriggerActor,
-	TriggerScope,
-} from "../automation-triggers";
+import type { GithubTriggerEvent, TriggerScope } from "../automation-triggers";
 import {
-	actorAllows,
 	type BaseMatchableEvent,
 	bodyMatches,
-	type MatchContext,
 	type MatchResult,
+	no,
 	scopeAllows,
 	scopeAllowsAny,
 } from "./core";
@@ -27,8 +22,6 @@ export type GithubMatchableEvent = BaseMatchableEvent & {
 	/** The product-level names this delivery maps to; see githubEventNames. */
 	names: GithubTriggerEvent[];
 };
-
-const no = (reason: string): MatchResult => ({ matches: false, reason });
 
 /**
  * Maps a GitHub delivery to the event a trigger names. GitHub's wire events are
@@ -104,13 +97,12 @@ export function githubTriggerMatches(
 		repositories: TriggerScope;
 		branches: TriggerScope;
 		labels: TriggerScope;
-		actor: TriggerActor;
-		subjectAuthor?: TriggerActor;
+		actor: TriggerScope;
+		subjectAuthor?: TriggerScope;
 		commentFilter?: { pattern: string; isRegex: boolean } | null;
 		includeForks: boolean;
 	},
 	event: GithubMatchableEvent,
-	context: MatchContext,
 ): MatchResult {
 	if (!event.names.includes(config.event as GithubTriggerEvent)) {
 		return no("event");
@@ -118,20 +110,18 @@ export function githubTriggerMatches(
 	if (!scopeAllows(config.repositories, event.repositoryId)) {
 		return no("repository");
 	}
-	// Branches and labels only narrow when configured; null means the trigger
-	// author did not choose to filter on them, which for these is "any".
-	if (config.branches !== null && !scopeAllows(config.branches, event.ref)) {
+	if (!scopeAllows(config.branches, event.ref)) {
 		return no("branch");
 	}
-	if (config.labels !== null && !scopeAllowsAny(config.labels, event.labels)) {
+	if (!scopeAllowsAny(config.labels, event.labels)) {
 		return no("label");
 	}
-	if (!actorAllows(config.actor, event.actorId, context.ownerIds)) {
+	if (!scopeAllows(config.actor, event.actorId)) {
 		return no("actor");
 	}
 	if (
 		config.subjectAuthor !== undefined &&
-		!actorAllows(config.subjectAuthor, event.subjectAuthorId, context.ownerIds)
+		!scopeAllows(config.subjectAuthor, event.subjectAuthorId)
 	) {
 		return no("subjectAuthor");
 	}

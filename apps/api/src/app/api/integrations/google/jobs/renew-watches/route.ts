@@ -2,8 +2,8 @@ import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { reconcileWatches } from "../../lib/reconcileWatches";
-import { verifyQstashRequest } from "../../lib/verifyQstash";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";

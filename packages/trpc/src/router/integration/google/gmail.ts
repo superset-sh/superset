@@ -1,48 +1,39 @@
-import { GMAIL_WATCH_TTL_MS } from "./constants";
-import { GoogleApiError, googleFetch } from "./refresh";
+import { gmail, type gmail_v1 } from "@googleapis/gmail";
+import { googleAuthFor, googleErrorStatus } from "./auth";
+import { GMAIL_WATCH_TTL_MS, GOOGLE_API_TIMEOUT_MS } from "./constants";
 
-const GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me";
-
-export type GmailLabel = {
-	id: string;
-	name: string;
-	type?: "system" | "user" | string;
-};
-
-export type GmailHeader = { name: string; value: string };
-
-export type GmailMessagePart = {
-	partId?: string;
-	mimeType?: string;
-	filename?: string;
-	headers?: GmailHeader[];
-	body?: { attachmentId?: string; size?: number; data?: string };
-	parts?: GmailMessagePart[];
-};
-
-export type GmailMessage = {
+/** The SDK's resources, narrowed to what Gmail always sends. */
+export type GmailLabel = gmail_v1.Schema$Label & { id: string; name: string };
+export type GmailMessage = gmail_v1.Schema$Message & {
 	id: string;
 	threadId: string;
-	labelIds?: string[];
-	snippet?: string;
-	historyId?: string;
-	internalDate?: string;
-	sizeEstimate?: number;
-	payload?: GmailMessagePart;
 };
 
+async function gmailFor(connectionId: string): Promise<gmail_v1.Gmail> {
+	return gmail({
+		version: "v1",
+		auth: await googleAuthFor(connectionId),
+		timeout: GOOGLE_API_TIMEOUT_MS,
+	});
+}
+
 export async function listLabels(connectionId: string): Promise<GmailLabel[]> {
-	const result = await googleFetch<{ labels?: GmailLabel[] }>(
-		connectionId,
-		`${GMAIL_API}/labels`,
+	const client = await gmailFor(connectionId);
+	const { data } = await client.users.labels.list({ userId: "me" });
+	return (data.labels ?? []).filter(
+		(label): label is GmailLabel => !!label.id && !!label.name,
 	);
-	return result.labels ?? [];
 }
 
 export async function getProfile(
 	connectionId: string,
 ): Promise<{ emailAddress: string; historyId: string }> {
-	return googleFetch(connectionId, `${GMAIL_API}/profile`);
+	const client = await gmailFor(connectionId);
+	const { data } = await client.users.getProfile({ userId: "me" });
+	if (!data.emailAddress || !data.historyId) {
+		throw new Error("Gmail profile returned no email or history id");
+	}
+	return { emailAddress: data.emailAddress, historyId: data.historyId };
 }
 
 /**
@@ -61,6 +52,7 @@ export async function listAddedMessages(
 			messages: Array<{ id: string; threadId: string; labelIds: string[] }>;
 	  }
 > {
+	const client = await gmailFor(connectionId);
 	const byId = new Map<
 		string,
 		{ id: string; threadId: string; labelIds: string[] }
@@ -68,25 +60,17 @@ export async function listAddedMessages(
 	let pageToken: string | undefined;
 	let historyId: string | undefined;
 	do {
-		const params = new URLSearchParams({
-			startHistoryId,
-			historyTypes: "messageAdded",
-			maxResults: "500",
-		});
-		if (pageToken) params.set("pageToken", pageToken);
-		let page: {
-			history?: Array<{
-				messagesAdded?: Array<{
-					message?: { id?: string; threadId?: string; labelIds?: string[] };
-				}>;
-			}>;
-			historyId?: string;
-			nextPageToken?: string;
-		};
+		let page: gmail_v1.Schema$ListHistoryResponse;
 		try {
-			page = await googleFetch(connectionId, `${GMAIL_API}/history?${params}`);
+			({ data: page } = await client.users.history.list({
+				userId: "me",
+				startHistoryId,
+				historyTypes: ["messageAdded"],
+				maxResults: 500,
+				pageToken,
+			}));
 		} catch (error) {
-			if (error instanceof GoogleApiError && error.status === 404) {
+			if (googleErrorStatus(error) === 404) {
 				return { expired: true };
 			}
 			throw error;
@@ -105,7 +89,7 @@ export async function listAddedMessages(
 			}
 		}
 		historyId = page.historyId ?? historyId;
-		pageToken = page.nextPageToken;
+		pageToken = page.nextPageToken ?? undefined;
 	} while (pageToken);
 	if (!historyId) {
 		throw new Error("Gmail history.list returned no history id");
@@ -133,17 +117,17 @@ export async function getMessage(
 	connectionId: string,
 	messageId: string,
 ): Promise<GmailMessage | null> {
+	const client = await gmailFor(connectionId);
 	try {
-		const params = new URLSearchParams({
+		const { data } = await client.users.messages.get({
+			userId: "me",
+			id: messageId,
 			format: "full",
 			fields: MESSAGE_FIELDS,
 		});
-		return await googleFetch<GmailMessage>(
-			connectionId,
-			`${GMAIL_API}/messages/${encodeURIComponent(messageId)}?${params}`,
-		);
+		return data.id && data.threadId ? (data as GmailMessage) : null;
 	} catch (error) {
-		if (error instanceof GoogleApiError && error.status === 404) return null;
+		if (googleErrorStatus(error) === 404) return null;
 		throw error;
 	}
 }
@@ -156,21 +140,23 @@ export async function watchMailbox(
 	connectionId: string,
 	topicName: string,
 ): Promise<{ historyId: string; expiration: number }> {
-	const result = await googleFetch<{ historyId: string; expiration?: string }>(
-		connectionId,
-		`${GMAIL_API}/watch`,
-		{ method: "POST", body: JSON.stringify({ topicName }) },
-	);
+	const client = await gmailFor(connectionId);
+	const { data } = await client.users.watch({
+		userId: "me",
+		requestBody: { topicName },
+	});
+	if (!data.historyId) {
+		throw new Error("Gmail watch returned no history id");
+	}
 	return {
-		historyId: result.historyId,
-		expiration: Number(result.expiration ?? Date.now() + GMAIL_WATCH_TTL_MS),
+		historyId: data.historyId,
+		expiration: Number(data.expiration ?? Date.now() + GMAIL_WATCH_TTL_MS),
 	};
 }
 
 export async function stopMailboxWatch(connectionId: string): Promise<void> {
-	await googleFetch<undefined>(connectionId, `${GMAIL_API}/stop`, {
-		method: "POST",
-	});
+	const client = await gmailFor(connectionId);
+	await client.users.stop({ userId: "me" });
 }
 
 export function headerValue(
@@ -179,7 +165,7 @@ export function headerValue(
 ): string | null {
 	const wanted = name.toLowerCase();
 	const header = message.payload?.headers?.find(
-		(h) => h.name.toLowerCase() === wanted,
+		(h) => h.name?.toLowerCase() === wanted,
 	);
 	return header?.value ?? null;
 }
@@ -196,7 +182,7 @@ export function parseAddresses(header: string | null): string[] {
 
 /** A part with a filename or an attachment id is an attachment. */
 export function messageHasAttachment(message: GmailMessage): boolean {
-	const walk = (part: GmailMessagePart | undefined): boolean => {
+	const walk = (part: gmail_v1.Schema$MessagePart | undefined): boolean => {
 		if (!part) return false;
 		if (part.filename || part.body?.attachmentId) return true;
 		return (part.parts ?? []).some(walk);

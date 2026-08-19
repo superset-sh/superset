@@ -1,3 +1,5 @@
+import type { Client } from "@microsoft/microsoft-graph-client";
+import type { Subscription } from "@microsoft/microsoft-graph-types";
 import { db } from "@superset/db/client";
 import {
 	integrationConnections,
@@ -7,7 +9,7 @@ import {
 import { withConnectionLock } from "@superset/db/utils";
 import { eq } from "drizzle-orm";
 import { env } from "../../../env";
-import { GraphError, getGraphAccessToken, graphRequest } from "./graph";
+import { GraphError, getGraphAccessToken, graphClient } from "./graph";
 
 /**
  * Graph change-notification subscriptions for a Teams connection.
@@ -50,51 +52,46 @@ export function teamsNotificationUrls() {
 	};
 }
 
-type GraphSubscription = { id: string; expirationDateTime: string };
+function storedSubscription(
+	subscription: Subscription,
+): MicrosoftTeamsSubscription {
+	if (!subscription.id || !subscription.expirationDateTime) {
+		throw new Error("Graph subscription response carries no id or expiry");
+	}
+	return { id: subscription.id, expiresAt: subscription.expirationDateTime };
+}
 
 async function createSubscription(
-	accessToken: string,
+	graph: Client,
 	key: SubscriptionKey,
 	clientState: string,
 ): Promise<MicrosoftTeamsSubscription> {
 	const { resource, changeType } = TEAMS_SUBSCRIPTION_RESOURCES[key];
-	const created = await graphRequest<GraphSubscription>(
-		accessToken,
-		"/subscriptions",
-		{
-			method: "POST",
-			body: {
-				changeType,
-				resource,
-				...teamsNotificationUrls(),
-				expirationDateTime: new Date(
-					Date.now() + SUBSCRIPTION_LIFETIME_MS,
-				).toISOString(),
-				clientState,
-				includeResourceData: false,
-			},
-		},
-	);
-	return { id: created.id, expiresAt: created.expirationDateTime };
+	const created: Subscription = await graph.api("/subscriptions").post({
+		changeType,
+		resource,
+		...teamsNotificationUrls(),
+		expirationDateTime: new Date(
+			Date.now() + SUBSCRIPTION_LIFETIME_MS,
+		).toISOString(),
+		clientState,
+		includeResourceData: false,
+	});
+	return storedSubscription(created);
 }
 
 async function renewSubscription(
-	accessToken: string,
+	graph: Client,
 	subscriptionId: string,
 ): Promise<MicrosoftTeamsSubscription> {
-	const renewed = await graphRequest<GraphSubscription>(
-		accessToken,
-		`/subscriptions/${encodeURIComponent(subscriptionId)}`,
-		{
-			method: "PATCH",
-			body: {
-				expirationDateTime: new Date(
-					Date.now() + SUBSCRIPTION_LIFETIME_MS,
-				).toISOString(),
-			},
-		},
-	);
-	return { id: renewed.id, expiresAt: renewed.expirationDateTime };
+	const renewed: Subscription = await graph
+		.api(`/subscriptions/${encodeURIComponent(subscriptionId)}`)
+		.patch({
+			expirationDateTime: new Date(
+				Date.now() + SUBSCRIPTION_LIFETIME_MS,
+			).toISOString(),
+		});
+	return storedSubscription(renewed);
 }
 
 export type EnsureResult = {
@@ -119,6 +116,7 @@ export async function ensureTeamsSubscriptions(
 ): Promise<EnsureResult | null> {
 	const accessToken = await getGraphAccessToken(connectionId);
 	if (!accessToken) return null;
+	const graph = graphClient(accessToken);
 
 	return withConnectionLock(connectionId, async (tx) => {
 		const [connection] = await tx
@@ -145,21 +143,18 @@ export async function ensureTeamsSubscriptions(
 			try {
 				if (existing) {
 					try {
-						subscriptions[key] = await renewSubscription(
-							accessToken,
-							existing.id,
-						);
+						subscriptions[key] = await renewSubscription(graph, existing.id);
 						continue;
 					} catch (error) {
 						// Graph forgot it — it expired, or the tenant removed it. A new
 						// one is the only way forward.
-						if (!(error instanceof GraphError && error.status === 404)) {
+						if (!(error instanceof GraphError && error.statusCode === 404)) {
 							throw error;
 						}
 					}
 				}
 				subscriptions[key] = await createSubscription(
-					accessToken,
+					graph,
 					key,
 					config.clientState,
 				);
@@ -200,17 +195,16 @@ export async function deleteTeamsSubscriptions(
 		return;
 	}
 	if (!accessToken) return;
+	const graph = graphClient(accessToken);
 
 	await Promise.all(
 		Object.values(config.subscriptions).map(async (subscription) => {
 			try {
-				await graphRequest(
-					accessToken,
-					`/subscriptions/${encodeURIComponent(subscription.id)}`,
-					{ method: "DELETE" },
-				);
+				await graph
+					.api(`/subscriptions/${encodeURIComponent(subscription.id)}`)
+					.delete();
 			} catch (error) {
-				if (error instanceof GraphError && error.status === 404) return;
+				if (error instanceof GraphError && error.statusCode === 404) return;
 				console.error(
 					"[microsoft-teams] failed to delete subscription",
 					subscription.id,

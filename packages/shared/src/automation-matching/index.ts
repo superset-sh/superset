@@ -3,7 +3,7 @@ import {
 	type CirclebackMatchableEvent,
 	circlebackTriggerMatches,
 } from "./circleback";
-import type { BaseMatchableEvent, MatchContext, MatchResult } from "./core";
+import type { BaseMatchableEvent, MatchResult } from "./core";
 import { type GithubMatchableEvent, githubTriggerMatches } from "./github";
 import {
 	type GmailMatchableEvent,
@@ -38,8 +38,7 @@ export * from "./webhook";
  * Adding a provider: define `<Name>MatchableEvent = BaseMatchableEvent & {
  * provider: "<kind>"; …fields its filters compare against }` in its own module,
  * add it to this union, and add a `case` below. Provider-specific fields live
- * on the event, never on `MatchContext` — a Slack matcher must not need to
- * know that a GitHub context key exists.
+ * on the event — a Slack matcher must not need to know a GitHub field exists.
  */
 export type MatchableEvent =
 	| GithubMatchableEvent
@@ -65,7 +64,6 @@ export type MatchableEvent =
 export function triggerMatches(
 	config: TriggerConfigInput,
 	event: MatchableEvent,
-	context: MatchContext,
 ): MatchResult {
 	if (config.kind !== event.provider) {
 		return {
@@ -81,13 +79,11 @@ export function triggerMatches(
 			return githubTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "github" }>,
 				event,
-				context,
 			);
 		case "sentry":
 			return sentryTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "sentry" }>,
 				event,
-				context,
 			);
 		case "webhook":
 			return webhookTriggerMatches();
@@ -95,43 +91,36 @@ export function triggerMatches(
 			return notionTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "notion" }>,
 				event,
-				context,
 			);
 		case "linear":
 			return linearTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "linear" }>,
 				event,
-				context,
 			);
 		case "slack":
 			return slackTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "slack" }>,
 				event,
-				context,
 			);
 		case "circleback":
 			return circlebackTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "circleback" }>,
 				event,
-				context,
 			);
 		case "microsoft_teams":
 			return microsoftTeamsTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "microsoft_teams" }>,
 				event,
-				context,
 			);
 		case "google_calendar":
 			return googleCalendarTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "google_calendar" }>,
 				event,
-				context,
 			);
 		case "gmail":
 			return gmailTriggerMatches(
 				config as Extract<TriggerConfigInput, { kind: "gmail" }>,
 				event,
-				context,
 			);
 	}
 	// Reached only when a provider is in the union but has no case above.

@@ -1,39 +1,46 @@
+import type { DraftTrigger } from "@superset/shared/automation-triggers";
+import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { useGithubOptions } from "./github/useGithubOptions";
-import { useGoogleOptions } from "./google/useGoogleOptions";
-import { useLinearOptions } from "./linear/useLinearOptions";
-import { useTeamsOptions } from "./microsoftTeams/useTeamsOptions";
-import { useNotionOptions } from "./notion/useNotionOptions";
-import { useSentryOptions } from "./sentry/useSentryOptions";
-import { useSlackOptions } from "./slack/useSlackOptions";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { providerFor } from "./index";
 import type { ProviderOptions } from "./types";
 
+const STALE_MS = 5 * 60_000;
+
 /**
- * Every provider's pickable values, merged into one map for the editor.
- *
- * Hooks cannot be called from a registry loop, so each provider's hook is
- * called here by name. Adding a provider with options means adding its hook to
- * this list. Each hook returns its own top-level key (`{ github: {...} }`), so
- * the merge is a spread and cannot clobber.
+ * The pickable values for the providers that are actually on screen, one
+ * round trip per option group. A page holding a single schedule trigger asks
+ * for nothing; adding a Slack row asks for Slack's lists and nothing else.
  */
-export function useProviderOptions(organizationId: string): ProviderOptions {
-	const github = useGithubOptions(organizationId);
-	const sentry = useSentryOptions(organizationId);
-	const linear = useLinearOptions(organizationId);
-	const notion = useNotionOptions(organizationId);
-	const slack = useSlackOptions(organizationId);
-	const teams = useTeamsOptions(organizationId);
-	const google = useGoogleOptions(organizationId);
-	return useMemo(
-		() => ({
-			...github,
-			...sentry,
-			...linear,
-			...notion,
-			...slack,
-			...teams,
-			...google,
-		}),
-		[github, sentry, linear, notion, slack, teams, google],
-	);
+export function useProviderOptions(
+	organizationId: string,
+	drafts: DraftTrigger[],
+): ProviderOptions {
+	const groups = useMemo(() => {
+		const seen = new Set<string>();
+		for (const draft of drafts) {
+			const provider = providerFor(draft.config);
+			if (provider.optionGroup) seen.add(provider.optionGroup);
+		}
+		return [...seen].sort();
+	}, [drafts]);
+
+	const trpc = cloudTrpc.useUtils();
+	const results = useQueries({
+		queries: groups.map((group) => ({
+			queryKey: ["integration.triggerOptions", organizationId, group],
+			queryFn: () =>
+				trpc.integration.triggerOptions.fetch({ organizationId, group }),
+			enabled: Boolean(organizationId),
+			staleTime: STALE_MS,
+		})),
+	});
+
+	return useMemo(() => {
+		const options: ProviderOptions = {};
+		groups.forEach((group, index) => {
+			options[group] = results[index]?.data ?? {};
+		});
+		return options;
+	}, [groups, results]);
 }

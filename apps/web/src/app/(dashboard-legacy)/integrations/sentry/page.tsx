@@ -10,8 +10,21 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiSentry } from "react-icons/si";
 import { api } from "@/trpc/server";
+import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
+
+const CALLBACK_MESSAGES = {
+	not_configured:
+		"Sentry isn't available yet — the Superset app hasn't been registered with Sentry.",
+	oauth_denied: "The install was cancelled. Please try again.",
+	missing_params: "Invalid response from Sentry. Please try again.",
+	invalid_state: "Your session expired. Start the connection again.",
+	unauthorized: "You are not authorized to perform this action.",
+	token_exchange_failed:
+		"Failed to complete the Sentry install. Please try again.",
+	organization_lookup_failed:
+		"Connected, but couldn't read your Sentry organization. Please reconnect.",
+};
 
 export default async function SentryIntegrationPage() {
 	const trpc = await api();
@@ -34,7 +47,7 @@ export default async function SentryIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler provider="sentry" messages={CALLBACK_MESSAGES} />
 
 			<Link
 				href="/integrations"

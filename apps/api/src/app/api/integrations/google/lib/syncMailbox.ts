@@ -12,8 +12,10 @@ import {
 	parseAddresses,
 	patchGmailState,
 } from "@superset/trpc/integrations/google";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
-import { recordAutomationEvent } from "@/lib/automations/recordAutomationEvent";
+import {
+	ingestAutomationEvent,
+	type NormalizedDelivery,
+} from "@/lib/automations/ingestAutomationEvent";
 
 /** Labels that mean the message left this mailbox rather than arrived in it. */
 const OUTGOING_LABELS = new Set(["SENT", "DRAFT"]);
@@ -60,10 +62,13 @@ export async function syncMailbox(
 		if ((message.labelIds ?? []).some((label) => OUTGOING_LABELS.has(label))) {
 			continue;
 		}
-		const outcome = await recordMessage(connection, message);
-		if (!outcome) continue;
+		const outcome = await ingestAutomationEvent(
+			db,
+			normalizeMessage(connection, message),
+		);
+		if (outcome.status === "duplicate") continue;
 		recorded += 1;
-		matched += outcome.matched;
+		if (outcome.status === "dispatched") matched += outcome.matched;
 	}
 
 	await patchGmailState(connection.id, { historyId: result.historyId });
@@ -79,10 +84,10 @@ export async function syncMailbox(
  * Headers and label ids are all a trigger filters on, and all that is stored:
  * the body stays in the mailbox.
  */
-export async function recordMessage(
+export function normalizeMessage(
 	connection: SelectIntegrationConnection,
 	message: GmailMessage,
-): Promise<{ matched: number } | null> {
+): NormalizedDelivery {
 	const from = headerValue(message, "From");
 	const to = headerValue(message, "To");
 	const cc = headerValue(message, "Cc");
@@ -90,9 +95,7 @@ export async function recordMessage(
 	const fromAddress = parseAddresses(from)[0] ?? null;
 	const matchable: GmailMatchableEvent = {
 		provider: "gmail",
-		identityProvider: "google",
 		eventType: "message.received",
-		accountEmail: (connection.externalOrgId ?? "").toLowerCase(),
 		actorId: fromAddress,
 		actorLogin: fromAddress,
 		// The body stays in the mailbox; the subject is the filterable text.
@@ -104,40 +107,37 @@ export async function recordMessage(
 		hasAttachment: messageHasAttachment(message),
 	};
 
-	const inserted = await recordAutomationEvent(db, {
-		organizationId: connection.organizationId,
-		integrationConnectionId: connection.id,
-		provider: "gmail",
-		eventType: "message.received",
-		externalEventId: message.id,
-		resourceKey: `gmail:${connection.id}:${message.threadId}`,
-		title: subject ?? "(no subject)",
-		url: `https://mail.google.com/mail/#all/${message.threadId}`,
-		actorLogin: matchable.fromAddress,
-		actorIsExternal: null,
-		payload: {
-			id: message.id,
-			threadId: message.threadId,
-			historyId: message.historyId ?? null,
-			internalDate: message.internalDate ?? null,
-			labelIds: matchable.labelIds,
-			from,
-			fromAddress: matchable.fromAddress,
-			to,
-			cc,
-			toAddresses: matchable.toAddresses,
-			subject,
-			date: headerValue(message, "Date"),
-			messageId: headerValue(message, "Message-ID"),
-			hasAttachment: matchable.hasAttachment,
+	return {
+		event: {
+			organizationId: connection.organizationId,
+			integrationConnectionId: connection.id,
+			provider: "gmail",
+			eventType: "message.received",
+			externalEventId: message.id,
+			resourceKey: `gmail:${connection.id}:${message.threadId}`,
+			title: subject ?? "(no subject)",
+			url: `https://mail.google.com/mail/#all/${message.threadId}`,
+			actorLogin: matchable.fromAddress,
+			actorIsExternal: null,
+			payload: {
+				id: message.id,
+				threadId: message.threadId,
+				historyId: message.historyId ?? null,
+				internalDate: message.internalDate ?? null,
+				labelIds: matchable.labelIds,
+				from,
+				fromAddress: matchable.fromAddress,
+				to,
+				cc,
+				toAddresses: matchable.toAddresses,
+				subject,
+				date: headerValue(message, "Date"),
+				messageId: headerValue(message, "Message-ID"),
+				hasAttachment: matchable.hasAttachment,
+			},
 		},
-	});
-	if (!inserted) return null;
-
-	const { matched } = await dispatchMatchingTriggers({
-		organizationId: connection.organizationId,
-		eventId: inserted.id,
-		event: matchable,
-	});
-	return { matched };
+		// The connection is one member's mailbox, so only that member's
+		// automations may match its messages.
+		dispatch: { event: matchable, ownerUserId: connection.connectedByUserId },
+	};
 }

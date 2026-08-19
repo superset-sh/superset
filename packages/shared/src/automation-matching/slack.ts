@@ -1,14 +1,9 @@
-import type {
-	SlackTriggerEvent,
-	TriggerActor,
-	TriggerScope,
-} from "../automation-triggers";
+import type { SlackTriggerEvent, TriggerScope } from "../automation-triggers";
 import {
-	actorAllows,
 	type BaseMatchableEvent,
 	bodyMatches,
-	type MatchContext,
 	type MatchResult,
+	no,
 	scopeAllows,
 } from "./core";
 
@@ -28,8 +23,6 @@ export type SlackMatchableEvent = BaseMatchableEvent & {
 	/** The product-level names this delivery maps to; see slackEventNames. */
 	names: SlackTriggerEvent[];
 };
-
-const no = (reason: string): MatchResult => ({ matches: false, reason });
 
 /**
  * One spelling of an emoji name for both sides of an emoji filter: `bug`,
@@ -65,12 +58,11 @@ export function slackTriggerMatches(
 		event: string;
 		channels: TriggerScope;
 		emoji: TriggerScope;
-		actor: TriggerActor;
+		actor: TriggerScope;
 		messageFilter?: { pattern: string; isRegex: boolean } | null;
 		topLevelOnly?: boolean;
 	},
 	event: SlackMatchableEvent,
-	context: MatchContext,
 ): MatchResult {
 	if (!event.names.includes(config.event as SlackTriggerEvent)) {
 		return no("event");
@@ -86,7 +78,7 @@ export function slackTriggerMatches(
 	if (
 		config.event === "reaction_added" &&
 		!scopeAllows(
-			config.emoji?.mode === "list"
+			config.emoji.mode === "list"
 				? { ...config.emoji, ids: config.emoji.ids.map(slackEmojiName) }
 				: config.emoji,
 			event.reaction,
@@ -102,7 +94,7 @@ export function slackTriggerMatches(
 	) {
 		return no("threadReply");
 	}
-	if (!actorAllows(config.actor, event.actorId, context.ownerIds)) {
+	if (!scopeAllows(config.actor, event.actorId)) {
 		return no("actor");
 	}
 	if (!bodyMatches(config.messageFilter ?? null, event.body)) {

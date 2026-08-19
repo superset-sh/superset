@@ -70,10 +70,6 @@ export default function AuthenticatedLayout() {
 					options={settingsScreenOptions("Hosts")}
 				/>
 				<Stack.Screen
-					name="settings/presets"
-					options={settingsScreenOptions("Agent presets")}
-				/>
-				<Stack.Screen
 					name="workspace/[id]/index"
 					options={{
 						headerShown: true,

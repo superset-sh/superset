@@ -64,15 +64,16 @@ export function createSlackConfig(event: SlackTriggerEvent): SlackConfig {
 	return {
 		kind: "slack",
 		event,
-		// Null matches nothing, which is the safety property for channels: an
-		// unfinished trigger must not fire on every channel, and the form refuses
-		// to save until one is chosen. A created channel is not "in" one, so that
-		// event has no channel to choose and the field stays null.
-		channels: null,
-		// The reaction is an optional narrowing, so it starts at "any". Null
-		// here would render as "Any reaction" while matching nothing.
-		emoji: event === "reaction_added" ? { mode: "any" } : null,
-		actor: "anyone",
+		// An empty list matches nothing, which is the safety property for
+		// channels: an unfinished trigger must not fire on every channel, and
+		// the form refuses to save until one is chosen. A created channel is not
+		// "in" one, so that event has no channel to choose and stays wide open.
+		channels:
+			event === "channel_created" ? { mode: "any" } : { mode: "list", ids: [] },
+		// The reaction is an optional narrowing, so it starts at "any" — an
+		// empty list would render as "Any reaction" while matching nothing.
+		emoji: { mode: "any" },
+		actor: { mode: "any" },
 		messageFilter: null,
 		// A busy thread would otherwise fire once per reply.
 		topLevelOnly: true,

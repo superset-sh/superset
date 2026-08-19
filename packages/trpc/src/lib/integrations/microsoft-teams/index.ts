@@ -3,15 +3,12 @@ export {
 	findTeamsConnection,
 	GraphError,
 	getGraphAccessToken,
-	graphList,
+	graphClient,
 	graphRequest,
 	isGraphAuthError,
 	microsoftCredentials,
 } from "../../../router/integration/microsoft-teams/graph";
 export {
-	type GraphChannel,
-	type GraphChatMessage,
-	type GraphTeam,
 	getChannel,
 	getChannelMessage,
 	plainTextOf,

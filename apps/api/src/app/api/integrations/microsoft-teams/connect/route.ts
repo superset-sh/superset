@@ -1,8 +1,5 @@
-import { auth } from "@superset/auth/server";
-import { findOrgMembership } from "@superset/db/utils";
-
 import { env } from "@/env";
-import { createSignedState } from "@/lib/oauth-state";
+import { requireOrgMember } from "@/lib/integrations/requireOrgMember";
 
 /**
  * Starts the Teams connection: an Entra admin-consent flow, not a user
@@ -12,15 +9,6 @@ import { createSignedState } from "@/lib/oauth-state";
  * supported for tenant-wide message notifications.
  */
 export async function GET(request: Request) {
-	const url = new URL(request.url);
-	const organizationId = url.searchParams.get("organizationId");
-	if (!organizationId) {
-		return Response.json(
-			{ error: "Missing organizationId parameter" },
-			{ status: 400 },
-		);
-	}
-
 	if (!env.MICROSOFT_CLIENT_ID) {
 		return Response.json(
 			{ error: "Microsoft Teams integration is not configured" },
@@ -28,23 +16,8 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const session = await auth.api.getSession({ headers: request.headers });
-	if (!session?.user) {
-		return Response.json({ error: "Unauthorized" }, { status: 401 });
-	}
-
-	const membership = await findOrgMembership({
-		userId: session.user.id,
-		organizationId,
-	});
-	if (!membership) {
-		return Response.json(
-			{ error: "User is not a member of this organization" },
-			{ status: 403 },
-		);
-	}
-
-	const state = createSignedState({ organizationId, userId: session.user.id });
+	const member = await requireOrgMember(request);
+	if (member instanceof Response) return member;
 
 	// `organizations`, not `common`: personal accounts cannot grant admin
 	// consent, and Microsoft's own guidance says not to use common here.
@@ -59,7 +32,7 @@ export async function GET(request: Request) {
 		"redirect_uri",
 		`${env.NEXT_PUBLIC_API_URL}/api/integrations/microsoft-teams/callback`,
 	);
-	consentUrl.searchParams.set("state", state);
+	consentUrl.searchParams.set("state", member.state);
 
 	return Response.redirect(consentUrl.toString());
 }

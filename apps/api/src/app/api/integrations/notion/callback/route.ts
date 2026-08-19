@@ -1,15 +1,10 @@
-import { db } from "@superset/db/client";
-import {
-	integrationConnections,
-	members,
-	userIdentities,
-} from "@superset/db/schema";
 import { NOTION_VERSION } from "@superset/trpc/integrations/notion";
-import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
-import { verifySignedState } from "@/lib/oauth-state";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
+import { upsertConnection } from "@/lib/integrations/upsertConnection";
+import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 /**
  * What Notion returns for an authorization code. `owner` is the person who
@@ -35,41 +30,16 @@ const tokenResponseSchema = z.object({
 const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/notion`;
 
 export async function GET(request: Request) {
-	const url = new URL(request.url);
-	const code = url.searchParams.get("code");
-	const state = url.searchParams.get("state");
-	const error = url.searchParams.get("error");
-
-	if (error) {
-		return Response.redirect(`${settingsUrl}?error=oauth_denied`);
-	}
-	if (!code || !state) {
-		return Response.redirect(`${settingsUrl}?error=missing_params`);
-	}
 	if (!env.NOTION_CLIENT_ID || !env.NOTION_CLIENT_SECRET) {
 		return Response.redirect(`${settingsUrl}?error=not_configured`);
 	}
 
-	const stateData = verifySignedState(state);
-	if (!stateData) {
-		return Response.redirect(`${settingsUrl}?error=invalid_state`);
-	}
-	const { organizationId, userId } = stateData;
-
-	// Re-verify membership at callback time (state was signed earlier).
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
-		),
+	const callback = await resolveCallback(request, {
+		params: ["code"],
+		redirect: (error) => Response.redirect(`${settingsUrl}?error=${error}`),
 	});
-	if (!membership) {
-		console.error("[notion/callback] Membership verification failed:", {
-			organizationId,
-			userId,
-		});
-		return Response.redirect(`${settingsUrl}?error=unauthorized`);
-	}
+	if (callback instanceof Response) return callback;
+	const { organizationId, userId, params } = callback;
 
 	const basic = Buffer.from(
 		`${env.NOTION_CLIENT_ID}:${env.NOTION_CLIENT_SECRET}`,
@@ -83,7 +53,7 @@ export async function GET(request: Request) {
 		},
 		body: JSON.stringify({
 			grant_type: "authorization_code",
-			code,
+			code: params.code,
 			redirect_uri: `${env.NEXT_PUBLIC_API_URL}/api/integrations/notion/callback`,
 		}),
 		signal: AbortSignal.timeout(15_000),
@@ -109,59 +79,30 @@ export async function GET(request: Request) {
 	}
 	const token = parsed.data;
 
-	await db
-		.insert(integrationConnections)
-		.values({
-			organizationId,
-			connectedByUserId: userId,
-			provider: "notion",
-			accessToken: token.access_token,
-			refreshToken: token.refresh_token ?? null,
-			externalOrgId: token.workspace_id,
-			externalOrgName: token.workspace_name ?? null,
-		})
-		.onConflictDoUpdate({
-			target: [
-				integrationConnections.organizationId,
-				integrationConnections.provider,
-			],
-			// The org-scoped uniqueness is a partial index (Google connections
-			// are per user); Postgres only infers it when the predicate is named.
-			targetWhere: sql`${integrationConnections.provider}<> 'google'`,
-			set: {
-				accessToken: token.access_token,
-				refreshToken: token.refresh_token ?? null,
-				externalOrgId: token.workspace_id,
-				externalOrgName: token.workspace_name ?? null,
-				connectedByUserId: userId,
-				disconnectedAt: null,
-				disconnectReason: null,
-				updatedAt: new Date(),
-			},
-		});
+	const result = await upsertConnection({
+		organizationId,
+		userId,
+		provider: "notion",
+		accessToken: token.access_token,
+		refreshToken: token.refresh_token ?? null,
+		externalOrgId: token.workspace_id,
+		externalOrgName: token.workspace_name ?? null,
+	});
+	if (result.conflict) {
+		return Response.redirect(`${settingsUrl}?error=workspace_already_linked`);
+	}
 
 	// The authorizing member's Notion user id, so `me` in a mention trigger
 	// resolves for them. Notion user ids are per workspace, hence the scope.
 	if (token.owner.user) {
-		await db
-			.insert(userIdentities)
-			.values({
-				userId,
-				organizationId,
-				provider: "notion",
-				externalId: token.owner.user.id,
-				externalScopeId: token.workspace_id,
-				displayName: token.owner.user.name ?? null,
-			})
-			.onConflictDoUpdate({
-				target: [
-					userIdentities.organizationId,
-					userIdentities.provider,
-					userIdentities.externalScopeId,
-					userIdentities.externalId,
-				],
-				set: { userId, displayName: token.owner.user.name ?? null },
-			});
+		await upsertIdentity({
+			userId,
+			organizationId,
+			provider: "notion",
+			externalId: token.owner.user.id,
+			externalScopeId: token.workspace_id,
+			displayName: token.owner.user.name ?? null,
+		});
 	}
 
 	return Response.redirect(settingsUrl);

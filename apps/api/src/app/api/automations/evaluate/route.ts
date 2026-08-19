@@ -5,10 +5,11 @@ import {
 	type TriggerConfig,
 } from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
-import { Client, Receiver } from "@upstash/qstash";
+import { Client } from "@upstash/qstash";
 import { and, eq, lte } from "drizzle-orm";
-
 import { env } from "@/env";
+import { redispatchUndispatched } from "@/lib/automations/redispatchUndispatched";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,6 @@ const qstash = new Client({
 	token: env.QSTASH_TOKEN,
 	baseUrl: env.QSTASH_URL,
 });
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
-
 const BATCH_SIZE = 2000;
 
 function bucketToMinute(d: Date): Date {
@@ -45,19 +41,12 @@ function scheduleFromConfig(
 
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
-	const valid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/automations/evaluate`,
-	});
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		"/api/automations/evaluate",
+	);
+	if (rejected) return rejected;
 
 	const now = new Date();
 
@@ -73,7 +62,6 @@ export async function POST(request: Request): Promise<Response> {
 		.where(
 			and(
 				eq(automationTriggers.kind, "schedule"),
-				eq(automationTriggers.enabled, true),
 				eq(automations.enabled, true),
 				lte(automationTriggers.nextRunAt, now),
 			),
@@ -129,7 +117,13 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	if (planned.length === 0) {
-		return Response.json({ enqueued: 0, unusable: unusable.length });
+		// The event-handoff sweep still runs on a tick with no due schedules.
+		const redispatched = await redispatchUndispatched();
+		return Response.json({
+			enqueued: 0,
+			unusable: unusable.length,
+			redispatched,
+		});
 	}
 
 	await qstash.batchJSON(
@@ -150,7 +144,10 @@ export async function POST(request: Request): Promise<Response> {
 		planned.map(async ({ triggerId, next }) => {
 			await dbWs
 				.update(automationTriggers)
-				.set(next ? { nextRunAt: next } : { enabled: false })
+				// Always a date for rules the product accepts (finite recurrences
+				// are refused at save); legacy finite data writes null and simply
+				// leaves the select, which reads only set next_run_at.
+				.set({ nextRunAt: next })
 				.where(eq(automationTriggers.id, triggerId));
 		}),
 	);
@@ -175,9 +172,13 @@ export async function POST(request: Request): Promise<Response> {
 		);
 	}
 
+	// The same tick retries event handoffs that never reached QStash.
+	const redispatched = await redispatchUndispatched();
+
 	return Response.json({
 		enqueued: planned.length,
 		advanceFailed: advanceFailures.length,
 		unusable: unusable.length,
+		redispatched,
 	});
 }

@@ -10,8 +10,21 @@ import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { FaGoogle } from "react-icons/fa";
 import { api } from "@/trpc/server";
+import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
+
+const CALLBACK_MESSAGES = {
+	oauth_denied: "Authorization was denied. Please try again.",
+	missing_params: "Invalid OAuth response. Please try again.",
+	invalid_state: "Invalid state parameter. Please try again.",
+	token_exchange_failed: "Failed to connect to Google. Please try again.",
+	missing_scopes:
+		"Both Calendar and Gmail access are required. Please allow both when asked.",
+	no_refresh_token:
+		"Google did not grant lasting access. Remove Superset from your Google account's third-party access and try again.",
+	userinfo_failed: "Could not read the Google account. Please try again.",
+	unauthorized: "You are not authorized to perform this action.",
+};
 
 export default async function GoogleIntegrationPage() {
 	const trpc = await api();
@@ -35,7 +48,7 @@ export default async function GoogleIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler provider="google" messages={CALLBACK_MESSAGES} />
 
 			<Link
 				href="/integrations"

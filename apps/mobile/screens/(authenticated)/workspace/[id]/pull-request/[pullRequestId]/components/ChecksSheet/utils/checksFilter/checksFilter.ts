@@ -1,11 +1,16 @@
-import type { PullRequestCheck } from "../../../../../../utils/pullRequest";
 import {
+	type EffectiveCheck,
 	effectiveCheckStatus,
 	tallyChecks,
-} from "../../../../../../utils/pullRequest";
-import { CHECK_OUTCOME } from "../../../../utils/checkOutcome";
+} from "../../../../../../utils/pullRequest/checks";
+import type { PullRequestCheck } from "../../../../../../utils/pullRequest/types";
 
-export type ChecksFilterValue = "all" | "running" | "failed" | "passed";
+export type ChecksFilterValue =
+	| "all"
+	| "running"
+	| "failed"
+	| "passed"
+	| "skipped";
 
 const GROUPS: {
 	filter: Exclude<ChecksFilterValue, "all">;
@@ -15,7 +20,19 @@ const GROUPS: {
 	{ filter: "running", title: "In Progress", segment: "Running" },
 	{ filter: "failed", title: "Failed", segment: "Failed" },
 	{ filter: "passed", title: "Passed", segment: "Passed" },
+	{ filter: "skipped", title: "Skipped", segment: "Skipped" },
 ];
+
+const CHECK_FILTER: Record<
+	EffectiveCheck,
+	Exclude<ChecksFilterValue, "all">
+> = {
+	failed: "failed",
+	"needs-action": "failed",
+	running: "running",
+	passed: "passed",
+	ignored: "skipped",
+};
 
 /** Segments to offer and groups to show; "Failed" is offered even at zero. */
 export function checksFilterState(
@@ -28,6 +45,7 @@ export function checksFilterState(
 		running: tally.running,
 		failed: tally.failed + tally.needsAction,
 		passed: tally.passed,
+		skipped: tally.ignored,
 	};
 
 	const options = [
@@ -47,7 +65,7 @@ export function checksFilterState(
 	const groups = GROUPS.map((group) => ({
 		...group,
 		members: checks.filter(
-			(check) => CHECK_OUTCOME[effectiveCheckStatus(check)] === group.filter,
+			(check) => CHECK_FILTER[effectiveCheckStatus(check)] === group.filter,
 		),
 	})).filter(
 		(group) =>

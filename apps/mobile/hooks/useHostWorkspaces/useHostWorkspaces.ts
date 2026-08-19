@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
 	type HostWorkspaceRow,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 
 export type { HostWorkspaceRow } from "@/lib/host-service/client";
@@ -62,7 +62,7 @@ export function useHostWorkspaces(
 	const queryClient = useQueryClient();
 
 	const hostUrl = host?.isOnline
-		? buildRelayHostUrl(host.organizationId, host.machineId)
+		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 	const machineId = host?.machineId ?? null;
 	const queryKey = getHostWorkspacesQueryKey(machineId, hostUrl);

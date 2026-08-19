@@ -2,20 +2,14 @@ import {
 	ensureTeamsSubscriptions,
 	type SubscriptionKey,
 } from "@superset/trpc/integrations/microsoft-teams";
-import { Receiver } from "@upstash/qstash";
 
-import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { handleNotification } from "../notify/handleNotification";
 import { loadConnection } from "../notify/notifications";
-import { PROCESS_URL, teamsWorkSchema } from "../notify/queue";
+import { PROCESS_PATH, teamsWorkSchema } from "../notify/queue";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 /**
  * The slow half of a Teams notification, run by QStash after the notify or
@@ -28,14 +22,8 @@ const receiver = new Receiver({
  */
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-	const valid = await receiver.verify({ body, signature, url: PROCESS_URL });
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+	const rejected = await verifyQstashRequest(request, body, PROCESS_PATH);
+	if (rejected) return rejected;
 
 	const parsed = teamsWorkSchema.safeParse(JSON.parse(body));
 	if (!parsed.success) {
@@ -52,7 +40,7 @@ export async function POST(request: Request): Promise<Response> {
 
 	if (work.kind === "change") {
 		const outcome = await handleNotification(connection, work.notification);
-		if (outcome.outcome === "recorded" && outcome.matched > 0) {
+		if (outcome.status === "dispatched" && outcome.matched > 0) {
 			console.log(
 				`[microsoft-teams/process] ${outcome.matched}/${outcome.considered} triggers matched:`,
 				outcome.eventId,

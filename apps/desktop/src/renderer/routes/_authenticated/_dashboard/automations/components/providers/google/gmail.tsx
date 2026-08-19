@@ -1,7 +1,9 @@
+import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiGmail } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { SelectChip } from "../../TriggerSentence/components/SelectChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
+import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
 	ATTACHMENT_OPTIONS,
@@ -9,23 +11,15 @@ import {
 	GMAIL_SENTENCE,
 	type GmailConfig,
 	type GmailSlot,
-	type SentencePart,
 } from "./grammar";
 
-function renderPart(
+function renderSlot(
 	config: GmailConfig,
-	part: SentencePart<GmailSlot>,
+	slot: GmailSlot,
 	index: number,
 	{ set, mark, options, disabled }: SentenceContext,
 ) {
-	if ("text" in part) {
-		return (
-			<span key={index} className="text-[13px] text-muted-foreground">
-				{part.text}
-			</span>
-		);
-	}
-	switch (part.slot) {
+	switch (slot) {
 		case "from":
 			return (
 				<ScopeChip
@@ -46,7 +40,7 @@ function renderPart(
 					key={index}
 					scope={config.to}
 					// Clearing an optional filter means "any", not "none".
-					onChange={(v) => set({ to: v ?? { mode: "any" } })}
+					onChange={(v) => set({ to: isEmptyScope(v) ? { mode: "any" } : v })}
 					options={[]}
 					emptyLabel="Any recipient"
 					anyLabel="Any recipient"
@@ -70,8 +64,10 @@ function renderPart(
 				<ScopeChip
 					key={index}
 					scope={config.labels}
-					onChange={(v) => set({ labels: v ?? { mode: "any" } })}
-					options={options.google?.gmailLabels ?? []}
+					onChange={(v) =>
+						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
+					}
+					options={options.google?.labels ?? []}
 					emptyLabel="Any label"
 					anyLabel="Any label"
 					disabled={disabled}
@@ -92,9 +88,14 @@ function renderPart(
 
 export const gmailProvider: TriggerProvider<GmailConfig> = {
 	kind: "gmail",
+	optionGroup: "google",
 	label: "Gmail",
 	icon: SiGmail,
 	menu: GMAIL_MENU,
-	renderSentence: (config, ctx) =>
-		GMAIL_SENTENCE.map((part, index) => renderPart(config, part, index, ctx)),
+	renderSentence: (config, ctx) => (
+		<Sentence
+			parts={GMAIL_SENTENCE}
+			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+		/>
+	),
 };

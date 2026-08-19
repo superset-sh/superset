@@ -1,8 +1,8 @@
 import { SiGooglecalendar } from "react-icons/si";
-import { ActorChip } from "../../TriggerSentence/components/ActorChip";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { SelectChip } from "../../TriggerSentence/components/SelectChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
+import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
 	CALENDAR_MENU,
@@ -11,26 +11,18 @@ import {
 	EXTERNAL_ATTENDEE_OPTIONS,
 	type GoogleCalendarConfig,
 	MINUTES_BEFORE_OPTIONS,
-	type SentencePart,
 } from "./grammar";
 
-function renderPart(
+function renderSlot(
 	config: GoogleCalendarConfig,
-	part: SentencePart<CalendarSlot>,
+	slot: CalendarSlot,
 	index: number,
 	{ set, mark, options, disabled }: SentenceContext,
 ) {
-	if ("text" in part) {
-		return (
-			<span key={index} className="text-[13px] text-muted-foreground">
-				{part.text}
-			</span>
-		);
-	}
 	// The slot list is derived from this event, so the fields it names are
 	// present on this config member even where the union type cannot say so.
 	const c = config as unknown as Record<string, never>;
-	switch (part.slot) {
+	switch (slot) {
 		case "calendars":
 			return (
 				<ScopeChip
@@ -46,12 +38,14 @@ function renderPart(
 			);
 		case "attendee":
 			return (
-				<ActorChip
+				<ScopeChip
 					key={index}
-					actor={c.attendee}
+					scope={c.attendee}
 					onChange={(v) => set({ attendee: v })}
 					className={mark("attendee")}
-					people={options.google?.people ?? []}
+					options={options.google?.people ?? []}
+					emptyLabel="Select people"
+					anyLabel="Anyone"
 					allowCustom={{ placeholder: "Type an email, press Enter" }}
 					disabled={disabled}
 				/>
@@ -92,18 +86,15 @@ function renderPart(
 
 export const googleCalendarProvider: TriggerProvider<GoogleCalendarConfig> = {
 	kind: "google_calendar",
+	optionGroup: "google",
 	label: "Google Calendar",
 	icon: SiGooglecalendar,
 	menu: CALENDAR_MENU,
-	renderSentence: (config, ctx) => {
-		const parts = CALENDAR_SENTENCES[config.event];
-		if (!parts) {
-			return (
-				<span className="text-[13px] text-muted-foreground">
-					{config.event}
-				</span>
-			);
-		}
-		return parts.map((part, index) => renderPart(config, part, index, ctx));
-	},
+	renderSentence: (config, ctx) => (
+		<Sentence
+			parts={CALENDAR_SENTENCES[config.event]}
+			fallback={config.event}
+			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+		/>
+	),
 };

@@ -1,3 +1,4 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import {
 	forwardRef,
 	useCallback,
@@ -10,6 +11,7 @@ import { AppState } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { withUniwind } from "uniwind";
 import { getHostAuthToken, getRelayUrl } from "@/lib/host/client";
+import { ensureSandboxAccess, isSandboxHost } from "@/lib/sandbox-access";
 
 const StyledWebView = withUniwind(WebView);
 
@@ -38,10 +40,16 @@ export interface TerminalWebViewHandle {
 	retry: () => void;
 }
 
+export interface TerminalHost {
+	organizationId: string;
+	/** A machine id, or a cloud workspace's id when its sandbox is the host. */
+	machineId: string;
+}
+
 interface TerminalWebViewProps {
 	workspaceId: string;
 	terminalId: string;
-	routingKey: string;
+	host: TerminalHost;
 	onStateChange: (state: TerminalConnectionState) => void;
 	onControl: (message: TerminalControlMessage) => void;
 }
@@ -62,7 +70,7 @@ export const TerminalWebView = forwardRef<
 	TerminalWebViewHandle,
 	TerminalWebViewProps
 >(function TerminalWebView(
-	{ workspaceId, terminalId, routingKey, onStateChange, onControl },
+	{ workspaceId, terminalId, host, onStateChange, onControl },
 	ref,
 ) {
 	const webViewRef = useRef<WebView>(null);
@@ -89,19 +97,34 @@ export const TerminalWebView = forwardRef<
 		webViewRef.current?.postMessage(JSON.stringify(message));
 	}, []);
 
+	// Signed per attempt, never cached: the relay wants a fresh JWT and a
+	// sandbox's edge token expires, so a redial after a long background must
+	// re-mint rather than reuse the URL that worked last time.
 	const buildDialUrl = useCallback(
 		async (replay: "0" | "1"): Promise<string> => {
 			const token = await getHostAuthToken();
-			const base = getRelayUrl().replace(/^http/, "ws");
 			const query = [
 				`workspaceId=${encodeURIComponent(workspaceId)}`,
 				"themeType=dark",
 				...(replay === "0" ? ["replay=0"] : []),
 				`token=${encodeURIComponent(token)}`,
-			].join("&");
-			return `${base}/hosts/${routingKey}/terminal/${encodeURIComponent(terminalId)}?${query}`;
+			];
+			const path = `/terminal/${encodeURIComponent(terminalId)}`;
+			if (isSandboxHost(host.machineId)) {
+				// A browser can't put a header on a WebSocket upgrade, so the
+				// provider's edge reads its token from the query string here.
+				const access = await ensureSandboxAccess(host.machineId);
+				query.push(`bl_preview_token=${encodeURIComponent(access.token)}`);
+				return `${access.url.replace(/^http/, "ws")}${path}?${query.join("&")}`;
+			}
+			const base = getRelayUrl().replace(/^http/, "ws");
+			const routingKey = buildHostRoutingKey(
+				host.organizationId,
+				host.machineId,
+			);
+			return `${base}/hosts/${routingKey}${path}?${query.join("&")}`;
 		},
-		[routingKey, terminalId, workspaceId],
+		[host.machineId, host.organizationId, terminalId, workspaceId],
 	);
 
 	const handleMessage = useCallback(

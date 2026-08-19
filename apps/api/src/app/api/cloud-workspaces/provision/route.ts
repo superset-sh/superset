@@ -1,18 +1,11 @@
 import { provisionCloudWorkspace } from "@superset/trpc/cloud-workspace-provision";
-import { Receiver } from "@upstash/qstash";
 import { z } from "zod";
-
-import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 // Provisioning is a second or two warm, but the first sandboxes after an image
 // rebuild pull the image and take tens of seconds.
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 const payloadSchema = z
 	.object({
@@ -29,28 +22,12 @@ const payloadSchema = z
  */
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
-	// `verify` throws rather than returning false on a signature it can't even
-	// parse, so a malformed header answered 500 — reported as a server fault,
-	// noisy in Sentry, and a different answer than a well-formed wrong
-	// signature gets. Both are the same refusal.
-	let valid = false;
-	try {
-		valid = await receiver.verify({
-			body,
-			signature,
-			url: `${env.NEXT_PUBLIC_API_URL}/api/cloud-workspaces/provision`,
-		});
-	} catch {
-		valid = false;
-	}
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+	const rejected = await verifyQstashRequest(
+		request,
+		body,
+		"/api/cloud-workspaces/provision",
+	);
+	if (rejected) return rejected;
 
 	const parsed = payloadSchema.safeParse(JSON.parse(body));
 	if (!parsed.success) {

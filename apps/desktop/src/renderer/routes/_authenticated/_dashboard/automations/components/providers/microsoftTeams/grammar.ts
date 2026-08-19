@@ -53,8 +53,9 @@ function leaf(label: string, event: MicrosoftTeamsTriggerEvent) {
 
 /**
  * A new trigger of this event: the team still to be chosen, and for a message
- * the channel too. Null for both, so a half-built trigger matches nothing
- * until someone picks — the same safety property as GitHub's repositories.
+ * the channel too. Empty lists for both, so a half-built trigger matches
+ * nothing until someone picks — the same safety property as GitHub's
+ * repositories.
  */
 export function createTeamsConfig(
 	event: MicrosoftTeamsTriggerEvent,
@@ -62,11 +63,14 @@ export function createTeamsConfig(
 	return {
 		kind: "microsoft_teams",
 		event,
-		teams: null,
+		teams: { mode: "list", ids: [] },
 		// A created channel has no channel to filter on; the slot is absent from
 		// its sentence and the matcher ignores the field.
-		channels: event === "message_in_channel" ? null : { mode: "any" },
-		actor: "anyone",
+		channels:
+			event === "message_in_channel"
+				? { mode: "list", ids: [] }
+				: { mode: "any" },
+		actor: { mode: "any" },
 		messageFilter: null,
 	};
 }

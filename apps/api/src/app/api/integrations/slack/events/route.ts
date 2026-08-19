@@ -97,10 +97,10 @@ export async function POST(request: Request) {
 		};
 		if (isAutomationEvent(envelope)) {
 			try {
-				const result = await processAutomationEvent(envelope);
-				if (result.recorded && result.matched > 0) {
+				const outcome = await processAutomationEvent(envelope);
+				if (outcome.status === "dispatched" && outcome.matched > 0) {
 					console.log(
-						`[slack/events] ${result.matched}/${result.considered} triggers matched:`,
+						`[slack/events] ${outcome.matched}/${outcome.considered} triggers matched:`,
 						event_id,
 					);
 				}

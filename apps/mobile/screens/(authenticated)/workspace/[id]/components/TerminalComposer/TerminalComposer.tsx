@@ -100,6 +100,7 @@ export const TerminalComposer = forwardRef<
 				above={<QuickKeysRow onKey={onQuickKey} />}
 				isSending={writeAttachments.isPending || isSubmitting}
 				showAttachments={allowAttachments}
+				textInputAutocapitalization="never"
 				onActiveChange={onActiveChange}
 				onSubmit={submit}
 				placeholder={placeholder}

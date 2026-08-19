@@ -4,8 +4,8 @@ import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { getHostTerminalsQueryKey } from "../../../../hooks/useHostTerminals";
 import type { ChatTarget } from "../../../../stores/chatTargetStore";
@@ -40,10 +40,7 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 					"Attachments are not supported in terminal sessions yet",
 				);
 			}
-			const hostUrl = buildRelayHostUrl(
-				workspace.organizationId,
-				target.hostId,
-			);
+			const hostUrl = hostServiceUrl(workspace.organizationId, target.hostId);
 			const client = getHostServiceClientByUrl(hostUrl);
 			const text = message.text.trim();
 

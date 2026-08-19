@@ -4,8 +4,8 @@ import { useCallback, useMemo } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import {
 	getHostTerminalsQueryKey,
@@ -30,7 +30,7 @@ export function SessionsSheet() {
 	const { workspace, host } = useWorkspaceHost(id ?? null);
 	const { terminalsByWorkspace } = useHostTerminals(host);
 	const hostUrl = host
-		? buildRelayHostUrl(host.organizationId, host.machineId)
+		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 
 	const savedOrder = useTerminalTabOrderStore((state) =>

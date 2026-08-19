@@ -369,6 +369,15 @@ export function nextOccurrenceAfter(args: {
 	return next ? rruleDateToUtc(next, args.timezone) : null;
 }
 
+/**
+ * True when the rule ends (COUNT or UNTIL). Schedules are repeating only —
+ * a rule that runs out is refused at save so no trigger ever needs retiring.
+ */
+export function hasFiniteRecurrence(rrule: string): boolean {
+	const parts = parseRruleParts(rrule);
+	return parts !== null && ("COUNT" in parts || "UNTIL" in parts);
+}
+
 /** Parses + validates an RRule body, returning the next occurrence. */
 export function parseRrule(args: {
 	rrule: string;

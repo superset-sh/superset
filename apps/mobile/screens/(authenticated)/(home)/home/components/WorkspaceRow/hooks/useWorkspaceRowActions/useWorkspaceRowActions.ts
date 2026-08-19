@@ -2,6 +2,8 @@ import { prompt } from "@superset/alert-prompt";
 import * as Clipboard from "expo-clipboard";
 import { useState } from "react";
 import { Alert, Share } from "react-native";
+import { useCloudWorkspaceActions } from "@/hooks/useCloudWorkspaceActions";
+import type { CloudWorkspaceStatus } from "@/hooks/useCloudWorkspaceItems";
 import type {
 	HostWorkspaceItem,
 	HostWorkspacesCacheOps,
@@ -20,12 +22,16 @@ interface DestroyOptions {
 export function useWorkspaceRowActions(
 	workspace: HostWorkspaceItem,
 	cache: HostWorkspacesCacheOps,
+	/** Set for a cloud workspace, whose name and lifetime the API owns. */
+	cloudStatus?: CloudWorkspaceStatus,
 ) {
 	const [isDeleting, setIsDeleting] = useState(false);
+	const cloud = useCloudWorkspaceActions();
+	const isCloud = cloudStatus !== undefined;
 
 	const renameWorkspace = async () => {
-		const hostUrl = cache.resolveHostUrl(workspace.hostId);
-		if (!hostUrl) {
+		const hostUrl = isCloud ? null : cache.resolveHostUrl(workspace.hostId);
+		if (!isCloud && !hostUrl) {
 			Alert.alert("Host is not online");
 			return;
 		}
@@ -38,14 +44,42 @@ export function useWorkspaceRowActions(
 		const trimmed = name?.trim();
 		if (!trimmed || trimmed === workspace.name) return;
 		try {
-			await getHostServiceClientByUrl(hostUrl).workspace.update.mutate({
-				id: workspace.id,
-				name: trimmed,
-			});
+			if (isCloud) {
+				// The cloud row owns the name; the sandbox's copy is scratch.
+				await cloud.rename(workspace.id, trimmed);
+				return;
+			}
+			if (hostUrl) {
+				await getHostServiceClientByUrl(hostUrl).workspace.update.mutate({
+					id: workspace.id,
+					name: trimmed,
+				});
+			}
 		} catch {
 			Alert.alert("Rename failed");
 		}
 		cache.invalidateHost(workspace.hostId);
+	};
+
+	const deleteCloudWorkspace = () => {
+		Alert.alert(
+			"Delete cloud workspace",
+			`Delete "${workspace.name}"? This shuts down its sandbox and everything in it.`,
+			[
+				{ style: "cancel", text: "Cancel" },
+				{
+					onPress: () => {
+						setIsDeleting(true);
+						void cloud
+							.remove(workspace.id)
+							.catch(() => Alert.alert("Delete failed"))
+							.finally(() => setIsDeleting(false));
+					},
+					style: "destructive",
+					text: "Delete",
+				},
+			],
+		);
 	};
 
 	const destroyWorkspace = async ({ force, skipTeardown }: DestroyOptions) => {
@@ -104,6 +138,12 @@ export function useWorkspaceRowActions(
 
 	const deleteWorkspace = () => {
 		if (isDeleting) return;
+		if (isCloud) {
+			// Deleting through the sandbox would remove the row inside it and
+			// leave the sandbox running — and billing. Only the API can destroy.
+			deleteCloudWorkspace();
+			return;
+		}
 		if (!cache.resolveHostUrl(workspace.hostId)) {
 			Alert.alert("Host is not online");
 			return;

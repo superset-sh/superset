@@ -53,27 +53,30 @@ function leaf(label: string, event: NotionTriggerEvent) {
  * optional filter wide open.
  */
 export function createNotionConfig(event: NotionTriggerEvent): NotionConfig {
-	// Null matches nothing, so an unfinished trigger cannot fire on every data
-	// source; the form refuses to save until one is chosen.
-	const base = { kind: "notion" as const, dataSources: null };
+	// An empty list matches nothing, so an unfinished trigger cannot fire on
+	// every data source; the form refuses to save until one is chosen.
+	const base = {
+		kind: "notion" as const,
+		dataSources: { mode: "list" as const, ids: [] as string[] },
+	};
 	switch (event) {
 		case "data_source.content_updated":
 			return { ...base, event };
 		case "comment.created":
-			// Pages are an optional narrowing, so they start at "any" — null here
-			// would read as "Any page" while matching nothing.
+			// Pages are an optional narrowing, so they start at "any" — an empty
+			// list here would read as "Any page" while matching nothing.
 			return {
 				...base,
 				event,
 				pages: { mode: "any" as const },
-				actor: "anyone" as const,
+				actor: { mode: "any" as const },
 			};
 		case "comment.mentioned":
 			return {
 				...base,
 				event,
 				pages: { mode: "any" as const },
-				mentionedUser: "me" as const,
+				mentionedUser: { mode: "any" as const },
 			};
 	}
 }

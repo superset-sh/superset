@@ -1,10 +1,13 @@
-import { db } from "@superset/db/client";
-import { integrationConnections, type SentryConfig } from "@superset/db/schema";
-import { withConnectionLock } from "@superset/db/utils";
+import type { SentryConfig } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
+import {
+	markDisconnected,
+	type RefreshedToken,
+	TokenRefreshError,
+	withRefreshedToken,
+} from "../token-refresh";
 
 /**
  * The public Sentry integration's REST surface, as far as this provider needs
@@ -16,9 +19,6 @@ import { env } from "../../../env";
  * go to that organization's region URL.
  */
 export const SENTRY_URL = "https://sentry.io";
-
-/** Refresh a token this many ms before it actually expires. */
-const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 export type SentryProject = { id: string; slug: string; name: string };
 
@@ -127,98 +127,62 @@ export async function verifySentryInstall(
 	}
 }
 
-/** A revoked or already-used refresh token comes back as 400 invalid_grant. */
-async function isInvalidGrant(response: Response): Promise<boolean> {
-	try {
-		const body = (await response.json()) as { error?: unknown };
-		return body?.error === "invalid_grant";
-	} catch {
-		return false;
-	}
-}
-
-type TokenResult =
-	| { disconnected: true }
-	| { disconnected: false; accessToken: string };
-
 /**
  * A usable access token for a connection, refreshing it first when it is within
  * the buffer of expiry. Public-app tokens live ~8h, so anything cached longer
- * than a session needs this. Serialized per connection so two callers do not
- * both burn the one-time refresh token.
+ * than a session needs this.
  */
 export async function getSentryAccessToken(
 	connectionId: string,
-): Promise<TokenResult> {
-	return withConnectionLock(connectionId, async (tx) => {
-		const [connection] = await tx
-			.select({
-				accessToken: integrationConnections.accessToken,
-				refreshToken: integrationConnections.refreshToken,
-				tokenExpiresAt: integrationConnections.tokenExpiresAt,
-				disconnectedAt: integrationConnections.disconnectedAt,
-				config: integrationConnections.config,
-			})
-			.from(integrationConnections)
-			.where(eq(integrationConnections.id, connectionId))
-			.limit(1);
-
-		if (!connection || connection.disconnectedAt) return { disconnected: true };
-		if (
-			connection.tokenExpiresAt &&
-			connection.tokenExpiresAt.getTime() > Date.now() + REFRESH_BUFFER_MS
-		) {
-			return { disconnected: false, accessToken: connection.accessToken };
-		}
-		if (!connection.refreshToken || !env.SENTRY_CLIENT_ID) {
-			return { disconnected: false, accessToken: connection.accessToken };
-		}
-
-		// The install uuid is the token endpoint's path segment; without it there
-		// is nothing to refresh against, so the current token is all there is.
-		const installationUuid = (connection.config as SentryConfig | null)
-			?.installationUuid;
-		if (!installationUuid) {
-			return { disconnected: false, accessToken: connection.accessToken };
-		}
-
-		const response = await fetch(authorizationsUrl(installationUuid), {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				grant_type: "refresh_token",
-				refresh_token: connection.refreshToken,
-				client_id: env.SENTRY_CLIENT_ID,
-				client_secret: env.SENTRY_CLIENT_SECRET,
-			}),
-		});
-		if (!response.ok) {
-			if (
-				response.status === 401 ||
-				response.status === 403 ||
-				(response.status === 400 && (await isInvalidGrant(response)))
-			) {
-				await tx
-					.update(integrationConnections)
-					.set({
-						disconnectedAt: new Date(),
-						disconnectReason: "invalid_grant",
-					})
-					.where(eq(integrationConnections.id, connectionId));
-				return { disconnected: true };
+): Promise<RefreshedToken> {
+	return withRefreshedToken(connectionId, {
+		exchange: async (connection) => {
+			if (!connection.refreshToken || !env.SENTRY_CLIENT_ID) {
+				return { keep: true };
 			}
-			throw new Error(`Sentry token refresh failed: ${response.status}`);
-		}
-		const data = sentryTokenResponseSchema.parse(await response.json());
-		await tx
-			.update(integrationConnections)
-			.set({
+
+			// The install uuid is the token endpoint's path segment; without it
+			// there is nothing to refresh against, so the current token is all
+			// there is.
+			const installationUuid = (connection.config as SentryConfig | null)
+				?.installationUuid;
+			if (!installationUuid) return { keep: true };
+
+			const response = await fetch(authorizationsUrl(installationUuid), {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					grant_type: "refresh_token",
+					refresh_token: connection.refreshToken,
+					client_id: env.SENTRY_CLIENT_ID,
+					client_secret: env.SENTRY_CLIENT_SECRET,
+				}),
+			});
+			if (!response.ok) {
+				throw new TokenRefreshError(
+					response.status,
+					await response.json().catch(() => null),
+					`Sentry token refresh failed: ${response.status}`,
+				);
+			}
+			const data = sentryTokenResponseSchema.parse(await response.json());
+			return {
 				accessToken: data.token,
 				refreshToken: data.refreshToken,
 				tokenExpiresAt: new Date(data.expiresAt),
-			})
-			.where(eq(integrationConnections.id, connectionId));
-		return { disconnected: false, accessToken: data.token };
+			};
+		},
+		// A revoked or already-used refresh token comes back as 400 invalid_grant.
+		revokedWhen: (error) => {
+			if (!(error instanceof TokenRefreshError)) return null;
+			const invalidGrant =
+				(error.body as { error?: unknown } | null)?.error === "invalid_grant";
+			return error.status === 401 ||
+				error.status === 403 ||
+				(error.status === 400 && invalidGrant)
+				? "invalid_grant"
+				: null;
+		},
 	});
 }
 
@@ -274,13 +238,5 @@ export async function disconnectSentry(
 	connectionId: string,
 	reason: string,
 ): Promise<void> {
-	await db
-		.update(integrationConnections)
-		.set({
-			disconnectedAt: new Date(),
-			disconnectReason: reason,
-			accessToken: "",
-			refreshToken: null,
-		})
-		.where(eq(integrationConnections.id, connectionId));
+	await markDisconnected(connectionId, reason, { clearTokens: true });
 }

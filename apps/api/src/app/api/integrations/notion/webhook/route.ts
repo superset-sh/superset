@@ -1,22 +1,20 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { db } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import { integrationConnections, webhookEvents } from "@superset/db/schema";
-import type { NotionMatchableEvent } from "@superset/shared/automation-matching";
-import { NotionApiError } from "@superset/trpc/integrations/notion";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import { env } from "@/env";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
-import { recordAutomationEvent } from "@/lib/automations/recordAutomationEvent";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { stripNullChars } from "@/lib/strip-null-chars";
+import { cappedBody, parseJson } from "@/lib/webhooks/body";
+import { hmacHex, timingSafeHex, unauthorized } from "@/lib/webhooks/verify";
 import {
-	type FetchedNotionEvent,
-	fetchNotionEvent,
 	HANDLED_EVENT_TYPES,
 	type NotionWebhookEvent,
+	normalizeNotionDelivery,
 	notionWebhookEventSchema,
-} from "./fetchNotionEvent";
+} from "./normalizeNotionDelivery";
 
 export const maxDuration = 60;
 
@@ -24,22 +22,14 @@ export const maxDuration = 60;
  * Notion signs every delivery with the verification token it sent when the
  * subscription was created: `sha256=` + HMAC-SHA256(token, raw body).
  */
-function signatureValid(body: string, signature: string, token: string) {
-	const expected = `sha256=${createHmac("sha256", token).update(body).digest("hex")}`;
-	const a = Buffer.from(expected);
-	const b = Buffer.from(signature);
-	return a.length === b.length && timingSafeEqual(a, b);
-}
+const SIGNATURE_PREFIX = "sha256=";
 
 export async function POST(request: Request) {
-	const body = await request.text();
+	const body = await cappedBody(request);
+	if (body instanceof Response) return body;
 
-	let json: unknown;
-	try {
-		json = JSON.parse(body);
-	} catch {
-		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
-	}
+	const json = parseJson<unknown>(body);
+	if (json instanceof Response) return json;
 
 	const token = env.NOTION_WEBHOOK_VERIFICATION_TOKEN;
 
@@ -81,8 +71,14 @@ export async function POST(request: Request) {
 		);
 	}
 	const signature = request.headers.get("x-notion-signature");
-	if (!signature || !signatureValid(body, signature, token)) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	if (
+		!signature?.startsWith(SIGNATURE_PREFIX) ||
+		!timingSafeHex(
+			signature.slice(SIGNATURE_PREFIX.length),
+			hmacHex(body, token),
+		)
+	) {
+		return unauthorized("Invalid signature");
 	}
 
 	const parsed = notionWebhookEventSchema.safeParse(json);
@@ -189,69 +185,35 @@ async function processForConnection(
 	}
 
 	try {
-		let fetched: FetchedNotionEvent;
-		try {
-			fetched = await fetchNotionEvent(connection.accessToken, event);
-		} catch (error) {
-			// The entity is not shared with this connection, or the token no
-			// longer works. Retrying will not change that, so acknowledge it.
-			if (error instanceof NotionApiError && error.permanent) {
-				await db
-					.update(webhookEvents)
-					.set({
-						status: "skipped",
-						error: `${error.status} ${error.code}: ${error.message}`,
-						processedAt: new Date(),
-					})
-					.where(eq(webhookEvents.id, webhookEvent.id));
-				return { connectionId: connection.id, outcome: "skipped" };
-			}
-			throw error;
+		const outcome = await ingestAutomationEvent(
+			db,
+			await normalizeNotionDelivery({
+				organizationId: connection.organizationId,
+				connectionId: connection.id,
+				accessToken: connection.accessToken,
+				event,
+				webhookEventId: webhookEvent.id,
+			}),
+		);
+
+		if (outcome.status === "skipped") {
+			await db
+				.update(webhookEvents)
+				.set({
+					status: "skipped",
+					error: outcome.reason,
+					processedAt: new Date(),
+				})
+				.where(eq(webhookEvents.id, webhookEvent.id));
+			return { connectionId: connection.id, outcome: "skipped" };
 		}
 
-		// A redelivery of the same Notion event id is the same event.
-		const inserted = await recordAutomationEvent(db, {
-			organizationId: connection.organizationId,
-			integrationConnectionId: connection.id,
-			provider: "notion",
-			eventType: event.type,
-			externalEventId: event.id,
-			resourceKey: fetched.resourceKey,
-			title: fetched.title,
-			url: fetched.url,
-			payload: fetched.payload,
-			webhookEventId: webhookEvent.id,
-		});
-
-		// Not inside the failure path: the event row above already dedupes a
-		// redelivery, so failing the delivery here would make Notion retry
-		// something that can no longer dispatch. Same tradeoff as GitHub.
-		if (inserted) {
-			try {
-				const matchable: NotionMatchableEvent = {
-					provider: "notion",
-					eventType: event.type,
-					actorId: fetched.actorId,
-					actorLogin: null,
-					body: fetched.body,
-					dataSourceId: fetched.dataSourceId,
-					pageId: fetched.pageId,
-					mentionedUserIds: fetched.mentionedUserIds,
-				};
-				const result = await dispatchMatchingTriggers({
-					organizationId: connection.organizationId,
-					eventId: inserted.id,
-					event: matchable,
-				});
-				console.log(
-					`[notion/webhook] ${result.matched}/${result.considered} triggers matched:`,
-					event.id,
-				);
-			} catch (error) {
-				console.error("[notion/webhook] dispatch failed:", event.id, error);
-			}
+		if (outcome.status === "dispatched") {
+			console.log(
+				`[notion/webhook] ${outcome.matched}/${outcome.considered} triggers matched:`,
+				event.id,
+			);
 		}
-
 		await db
 			.update(webhookEvents)
 			.set({ status: "processed", processedAt: new Date() })

@@ -3,16 +3,18 @@ import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
-import { recordAutomationEvent } from "@/lib/automations/recordAutomationEvent";
+import {
+	type IngestOutcome,
+	ingestAutomationEvent,
+} from "@/lib/automations/ingestAutomationEvent";
 import {
 	isChannelMessage,
 	isMessageReaction,
-	normalizeSlackEvent,
+	normalizeSlackDelivery,
 	type SlackAutomationEnvelope,
-} from "./normalize";
+} from "./normalizeSlackDelivery";
 
-export type { SlackAutomationEnvelope } from "./normalize";
+export type { SlackAutomationEnvelope } from "./normalizeSlackDelivery";
 
 /**
  * Whether this delivery is one triggers can name. Narrows the envelope so the
@@ -47,10 +49,7 @@ export function isAutomationEvent(envelope: {
  */
 export async function processAutomationEvent(
 	envelope: SlackAutomationEnvelope,
-): Promise<
-	| { recorded: false; reason: string }
-	| { recorded: true; eventId: string; matched: number; considered: number }
-> {
+): Promise<IngestOutcome> {
 	const connection = await db.query.integrationConnections.findFirst({
 		where: and(
 			eq(integrationConnections.provider, "slack"),
@@ -59,30 +58,14 @@ export async function processAutomationEvent(
 		),
 		columns: { id: true, organizationId: true },
 	});
-	if (!connection) return { recorded: false, reason: "unknown workspace" };
+	if (!connection) return { status: "skipped", reason: "unknown workspace" };
 
-	const normalized = normalizeSlackEvent(envelope.event);
-	// Idempotent on Slack's event_id: a retried delivery is the same event.
-	const recorded = await recordAutomationEvent(db, {
-		organizationId: connection.organizationId,
-		integrationConnectionId: connection.id,
-		provider: "slack",
-		eventType: normalized.event.eventType,
-		externalEventId: envelope.event_id,
-		resourceKey: normalized.resourceKey,
-		title: normalized.title,
-		url: normalized.url,
-		actorLogin: normalized.event.actorLogin,
-		payload: envelope,
-	});
-	if (!recorded) {
-		return { recorded: false, reason: "duplicate delivery" };
-	}
-
-	const result = await dispatchMatchingTriggers({
-		organizationId: connection.organizationId,
-		eventId: recorded.id,
-		event: normalized.event,
-	});
-	return { recorded: true, eventId: recorded.id, ...result };
+	return ingestAutomationEvent(
+		db,
+		normalizeSlackDelivery({
+			organizationId: connection.organizationId,
+			connectionId: connection.id,
+			envelope,
+		}),
+	);
 }

@@ -6,8 +6,8 @@ import { CodeBlockContent } from "@/components/ai-elements/code-block";
 import { Text } from "@/components/ui/text";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import type { ChangesetSource } from "../hooks/useWorkspaceChangeset";
 import { languageForPath } from "../utils/languageForPath";
@@ -21,7 +21,7 @@ export function FileViewerScreen() {
 	const { host } = useWorkspaceHost(id ?? null);
 	const hostUrl =
 		host?.isOnline === true
-			? buildRelayHostUrl(host.organizationId, host.machineId)
+			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
 
 	const category = (source ?? "unstaged") as ChangesetSource;

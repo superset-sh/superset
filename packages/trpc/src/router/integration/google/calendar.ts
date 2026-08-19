@@ -1,69 +1,43 @@
-import { CALENDAR_CHANNEL_TTL_MS } from "./constants";
-import { GoogleApiError, googleFetch } from "./refresh";
+import { calendar, type calendar_v3 } from "@googleapis/calendar";
+import { googleAuthFor, googleErrorStatus } from "./auth";
+import { CALENDAR_CHANNEL_TTL_MS, GOOGLE_API_TIMEOUT_MS } from "./constants";
 
-const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
-
-export type GoogleCalendarListEntry = {
+/** The SDK's resources, narrowed to the id Google always sends. */
+export type GoogleCalendarEvent = calendar_v3.Schema$Event & { id: string };
+export type GoogleCalendarListEntry = calendar_v3.Schema$CalendarListEntry & {
 	id: string;
-	summary?: string;
-	primary?: boolean;
-	accessRole?: string;
-	deleted?: boolean;
-	timeZone?: string;
 };
 
-export type GoogleCalendarPerson = {
-	email?: string;
-	displayName?: string;
-	self?: boolean;
-	organizer?: boolean;
-	responseStatus?: string;
-};
+function hasId<T extends { id?: string | null }>(
+	item: T,
+): item is T & { id: string } {
+	return typeof item.id === "string" && item.id.length > 0;
+}
 
-export type GoogleCalendarEvent = {
-	id: string;
-	status?: "confirmed" | "tentative" | "cancelled" | string;
-	etag?: string;
-	htmlLink?: string;
-	summary?: string;
-	description?: string;
-	location?: string;
-	created?: string;
-	updated?: string;
-	start?: { date?: string; dateTime?: string; timeZone?: string };
-	end?: { date?: string; dateTime?: string; timeZone?: string };
-	recurrence?: string[];
-	recurringEventId?: string;
-	organizer?: GoogleCalendarPerson;
-	creator?: GoogleCalendarPerson;
-	attendees?: GoogleCalendarPerson[];
-	hangoutLink?: string;
-	eventType?: string;
-};
-
-type EventsPage = {
-	items?: GoogleCalendarEvent[];
-	nextPageToken?: string;
-	nextSyncToken?: string;
-};
+async function calendarFor(
+	connectionId: string,
+): Promise<calendar_v3.Calendar> {
+	return calendar({
+		version: "v3",
+		auth: await googleAuthFor(connectionId),
+		timeout: GOOGLE_API_TIMEOUT_MS,
+	});
+}
 
 export async function listCalendars(
 	connectionId: string,
 ): Promise<GoogleCalendarListEntry[]> {
+	const client = await calendarFor(connectionId);
 	const items: GoogleCalendarListEntry[] = [];
 	let pageToken: string | undefined;
 	do {
-		const params = new URLSearchParams({
-			maxResults: "250",
-			showDeleted: "false",
+		const { data } = await client.calendarList.list({
+			maxResults: 250,
+			showDeleted: false,
+			pageToken,
 		});
-		if (pageToken) params.set("pageToken", pageToken);
-		const page = await googleFetch<{
-			items?: GoogleCalendarListEntry[];
-			nextPageToken?: string;
-		}>(connectionId, `${CALENDAR_API}/users/me/calendarList?${params}`);
-		items.push(...(page.items ?? []));
-		pageToken = page.nextPageToken;
+		items.push(...(data.items ?? []).filter(hasId));
+		pageToken = data.nextPageToken ?? undefined;
 	} while (pageToken);
 	return items;
 }
@@ -85,33 +59,29 @@ export async function listEventChanges(
 	| { expired: true }
 	| { expired: false; items: GoogleCalendarEvent[]; nextSyncToken: string }
 > {
+	const client = await calendarFor(connectionId);
 	const items: GoogleCalendarEvent[] = [];
 	let pageToken: string | undefined;
 	let nextSyncToken: string | undefined;
 	do {
-		const params = new URLSearchParams({
-			showDeleted: "true",
-			maxResults: syncToken ? "250" : "2500",
-		});
-		if (syncToken) params.set("syncToken", syncToken);
-		if (pageToken) params.set("pageToken", pageToken);
-		let page: EventsPage;
+		let page: calendar_v3.Schema$Events;
 		try {
-			page = await googleFetch<EventsPage>(
-				connectionId,
-				`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-			);
+			({ data: page } = await client.events.list({
+				calendarId,
+				showDeleted: true,
+				maxResults: syncToken ? 250 : 2500,
+				syncToken,
+				pageToken,
+			}));
 		} catch (error) {
 			// 410 Gone: the token is too old to diff from. Google's protocol is to
 			// drop it and start over with a full sync.
-			if (error instanceof GoogleApiError && error.status === 410) {
-				return { expired: true };
-			}
+			if (googleErrorStatus(error) === 410) return { expired: true };
 			throw error;
 		}
-		items.push(...(page.items ?? []));
-		pageToken = page.nextPageToken;
-		nextSyncToken = page.nextSyncToken;
+		items.push(...(page.items ?? []).filter(hasId));
+		pageToken = page.nextPageToken ?? undefined;
+		nextSyncToken = page.nextSyncToken ?? undefined;
 	} while (pageToken);
 	if (!nextSyncToken) {
 		throw new Error(`Calendar sync of ${calendarId} returned no sync token`);
@@ -128,23 +98,21 @@ export async function listUpcomingInstances(
 	calendarId: string,
 	window: { from: Date; to: Date },
 ): Promise<GoogleCalendarEvent[]> {
+	const client = await calendarFor(connectionId);
 	const items: GoogleCalendarEvent[] = [];
 	let pageToken: string | undefined;
 	do {
-		const params = new URLSearchParams({
-			singleEvents: "true",
+		const { data } = await client.events.list({
+			calendarId,
+			singleEvents: true,
 			orderBy: "startTime",
 			timeMin: window.from.toISOString(),
 			timeMax: window.to.toISOString(),
-			maxResults: "250",
+			maxResults: 250,
+			pageToken,
 		});
-		if (pageToken) params.set("pageToken", pageToken);
-		const page = await googleFetch<EventsPage>(
-			connectionId,
-			`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-		);
-		items.push(...(page.items ?? []));
-		pageToken = page.nextPageToken;
+		items.push(...(data.items ?? []).filter(hasId));
+		pageToken = data.nextPageToken ?? undefined;
 	} while (pageToken);
 	return items;
 }
@@ -156,21 +124,20 @@ export async function listEventInstances(
 	eventId: string,
 	window: { from: Date; to: Date },
 ): Promise<GoogleCalendarEvent[]> {
+	const client = await calendarFor(connectionId);
 	const items: GoogleCalendarEvent[] = [];
 	let pageToken: string | undefined;
 	do {
-		const params = new URLSearchParams({
+		const { data } = await client.events.instances({
+			calendarId,
+			eventId,
 			timeMin: window.from.toISOString(),
 			timeMax: window.to.toISOString(),
-			maxResults: "250",
+			maxResults: 250,
+			pageToken,
 		});
-		if (pageToken) params.set("pageToken", pageToken);
-		const page = await googleFetch<EventsPage>(
-			connectionId,
-			`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}/instances?${params}`,
-		);
-		items.push(...(page.items ?? []));
-		pageToken = page.nextPageToken;
+		items.push(...(data.items ?? []).filter(hasId));
+		pageToken = data.nextPageToken ?? undefined;
 	} while (pageToken);
 	return items;
 }
@@ -181,13 +148,12 @@ export async function getEvent(
 	calendarId: string,
 	eventId: string,
 ): Promise<GoogleCalendarEvent | null> {
+	const client = await calendarFor(connectionId);
 	try {
-		return await googleFetch<GoogleCalendarEvent>(
-			connectionId,
-			`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
-		);
+		const { data } = await client.events.get({ calendarId, eventId });
+		return hasId(data) ? data : null;
 	} catch (error) {
-		if (error instanceof GoogleApiError && error.status === 404) return null;
+		if (googleErrorStatus(error) === 404) return null;
 		throw error;
 	}
 }
@@ -202,25 +168,23 @@ export async function watchCalendar(
 	calendarId: string,
 	channel: { id: string; token: string; address: string },
 ): Promise<{ resourceId: string; expiration: number }> {
-	const result = await googleFetch<{ resourceId: string; expiration?: string }>(
-		connectionId,
-		`${CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
-		{
-			method: "POST",
-			body: JSON.stringify({
-				id: channel.id,
-				type: "web_hook",
-				address: channel.address,
-				token: channel.token,
-				expiration: String(Date.now() + CALENDAR_CHANNEL_TTL_MS),
-			}),
+	const client = await calendarFor(connectionId);
+	const { data } = await client.events.watch({
+		calendarId,
+		requestBody: {
+			id: channel.id,
+			type: "web_hook",
+			address: channel.address,
+			token: channel.token,
+			expiration: String(Date.now() + CALENDAR_CHANNEL_TTL_MS),
 		},
-	);
+	});
+	if (!data.resourceId) {
+		throw new Error(`Calendar watch on ${calendarId} returned no resource id`);
+	}
 	return {
-		resourceId: result.resourceId,
-		expiration: Number(
-			result.expiration ?? Date.now() + CALENDAR_CHANNEL_TTL_MS,
-		),
+		resourceId: data.resourceId,
+		expiration: Number(data.expiration ?? Date.now() + CALENDAR_CHANNEL_TTL_MS),
 	};
 }
 
@@ -229,17 +193,11 @@ export async function stopChannel(
 	connectionId: string,
 	channel: { id: string; resourceId: string },
 ): Promise<void> {
+	const client = await calendarFor(connectionId);
 	try {
-		await googleFetch<undefined>(
-			connectionId,
-			`${CALENDAR_API}/channels/stop`,
-			{
-				method: "POST",
-				body: JSON.stringify(channel),
-			},
-		);
+		await client.channels.stop({ requestBody: channel });
 	} catch (error) {
-		if (error instanceof GoogleApiError && error.status === 404) return;
+		if (googleErrorStatus(error) === 404) return;
 		throw error;
 	}
 }

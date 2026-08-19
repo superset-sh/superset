@@ -1,13 +1,12 @@
 import { db } from "@superset/db/client";
-import { webhookEvents } from "@superset/db/schema";
+import { githubInstallations, webhookEvents } from "@superset/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { stripNullChars } from "@/lib/strip-null-chars";
-import { dispatchMatchingTriggers } from "./dispatchMatchingTriggers";
 import {
 	type GithubPayload,
-	qualifiedEventType,
-	recordGithubEvent,
-} from "./recordGithubEvent";
+	normalizeGithubDelivery,
+} from "./normalizeGithubDelivery";
 import { webhooks } from "./webhooks";
 
 export const maxDuration = 60;
@@ -88,50 +87,39 @@ export async function POST(request: Request) {
 			// biome-ignore lint/suspicious/noExplicitAny: GitHub webhook event types are complex unions
 		} as any);
 
-		// Recorded after processing and deliberately not inside the try above:
-		// nothing reads these rows yet, so a failure here must not fail a
-		// delivery GitHub would then retry.
-		try {
-			const recorded = await recordGithubEvent({
-				eventType: eventType ?? "unknown",
-				deliveryId: eventId,
-				payload,
-				webhookEventId: webhookEvent.id,
-			});
-			if (recorded.recorded) {
-				const result = await dispatchMatchingTriggers({
-					organizationId: recorded.organizationId,
-					eventId: recorded.eventId,
-					eventType: qualifiedEventType(
-						eventType ?? "unknown",
-						payload as GithubPayload,
-					),
-					repositoryId: recorded.repositoryId,
-					ref: recorded.ref,
-					payload: payload as GithubPayload,
-				});
-				if (result.matched > 0) {
-					console.log(
-						`[github/webhook] ${result.matched}/${result.considered} triggers matched:`,
-						eventId,
-					);
-				}
-			} else {
-				console.log(
-					`[github/webhook] Not recorded as automation event (${recorded.reason}):`,
-					eventId,
-				);
-			}
-		} catch (error) {
-			console.error("[github/webhook] recordGithubEvent failed:", error);
-		}
+		// Pings and a few org-level events carry no installation, and an
+		// installation this deployment never saw has no organization: neither
+		// is recorded as an automation event.
+		const installationId = (payload as GithubPayload).installation?.id;
+		const installation =
+			installationId === undefined
+				? undefined
+				: await db.query.githubInstallations.findFirst({
+						where: eq(
+							githubInstallations.installationId,
+							String(installationId),
+						),
+						columns: { organizationId: true },
+					});
+		const outcome = installation
+			? await ingestAutomationEvent(
+					db,
+					normalizeGithubDelivery({
+						organizationId: installation.organizationId,
+						eventType: eventType ?? "unknown",
+						deliveryId: eventId,
+						payload: payload as GithubPayload,
+						webhookEventId: webhookEvent.id,
+					}),
+				)
+			: null;
 
 		await db
 			.update(webhookEvents)
 			.set({ status: "processed", processedAt: new Date() })
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
-		return Response.json({ success: true });
+		return Response.json({ success: true, outcome });
 	} catch (error) {
 		console.error("[github/webhook] Webhook processing error:", error);
 

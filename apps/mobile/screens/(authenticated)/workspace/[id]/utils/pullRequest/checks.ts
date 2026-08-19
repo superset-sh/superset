@@ -38,7 +38,7 @@ export interface ChecksTally {
 	needsAction: number;
 	/** Skipped and cancelled runs: they ran to no verdict, so they neither pass nor fail. */
 	ignored: number;
-	/** Counts ignored runs too, so 17 passing of 19 can include a skip. */
+	/** Counts ignored runs too, so the All tab can expose skipped runs separately. */
 	total: number;
 	failing: PullRequestCheck[];
 }

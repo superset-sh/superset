@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import type { CloudWorkspaceStatus } from "@/hooks/useCloudWorkspaceItems";
 import type {
 	HostWorkspaceItem,
 	HostWorkspacesCacheOps,
@@ -38,6 +39,7 @@ export function WorkspaceRow({
 	cache,
 	attention,
 	sessions,
+	cloudStatus,
 }: {
 	workspace: HostWorkspaceItem;
 	pullRequest?: SelectGithubPullRequest;
@@ -45,6 +47,8 @@ export function WorkspaceRow({
 	cache: HostWorkspacesCacheOps;
 	attention?: TerminalAttention | null;
 	sessions: TerminalRowData[];
+	/** Set for a cloud workspace; drives the row's pending/failed treatment. */
+	cloudStatus?: CloudWorkspaceStatus;
 }) {
 	const router = useRouter();
 	const theme = useTheme();
@@ -55,18 +59,30 @@ export function WorkspaceRow({
 	const targeted = useChatTargetStore(
 		(state) => state.target?.workspaceId === workspace.id,
 	);
-	const canChat = workspace.hostReachable && workspace.worktreeExists !== false;
+	const canChat =
+		workspace.hostReachable &&
+		workspace.worktreeExists !== false &&
+		(cloudStatus === undefined || cloudStatus === "ready");
 	const {
 		isDeleting,
 		renameWorkspace,
 		deleteWorkspace,
 		copyId,
 		shareWorkspace,
-	} = useWorkspaceRowActions(workspace, cache);
+	} = useWorkspaceRowActions(workspace, cache, cloudStatus);
 
 	return (
 		<WorkspaceRowMenu
-			canDelete={workspace.type !== "main"}
+			// A sandbox that doesn't exist yet has nothing to rename or delete; a
+			// failed one only needs disposing of. Cloud rows are served as `main`
+			// because the checkout is the repo, but deleting one kills the
+			// sandbox, not a base checkout.
+			canRename={cloudStatus === undefined || cloudStatus === "ready"}
+			canDelete={
+				cloudStatus === undefined
+					? workspace.type !== "main"
+					: cloudStatus !== "provisioning"
+			}
 			onRename={() => void renameWorkspace()}
 			onDelete={deleteWorkspace}
 			onCopyId={copyId}
@@ -93,7 +109,7 @@ export function WorkspaceRow({
 					<View className="size-6 items-center justify-center">
 						<ActivityIndicator size="small" color={theme.mutedForeground} />
 					</View>
-				) : attention === "working" ? (
+				) : attention === "working" || cloudStatus === "provisioning" ? (
 					<View className="size-6 items-center justify-center">
 						<AsciiSpinner />
 					</View>
@@ -129,7 +145,7 @@ export function WorkspaceRow({
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#eab308" size={7} />
 							</View>
-						) : attention === "failed" ? (
+						) : attention === "failed" || cloudStatus === "failed" ? (
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#ef4444" size={7} />
 							</View>

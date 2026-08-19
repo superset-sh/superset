@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@superset/db/client";
 import type { MicrosoftTeamsConfig } from "@superset/db/schema";
-import { integrationConnections, members, users } from "@superset/db/schema";
+import { integrationConnections } from "@superset/db/schema";
 import {
 	acquireAppToken,
 	deleteTeamsSubscriptions,
@@ -9,11 +9,16 @@ import {
 	graphRequest,
 	microsoftCredentials,
 } from "@superset/trpc/integrations/microsoft-teams";
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
-import { createSignedState, verifySignedState } from "@/lib/oauth-state";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
+import {
+	connectionConflict,
+	upsertConnection,
+} from "@/lib/integrations/upsertConnection";
+import { createSignedState } from "@/lib/oauth-state";
 import {
 	IDENTITY_REDIRECT_URI,
 	IDENTITY_SCOPES,
@@ -56,31 +61,21 @@ async function tenantDisplayName(
  */
 export async function GET(request: Request) {
 	const url = new URL(request.url);
-	const state = url.searchParams.get("state");
-	const tenantId = url.searchParams.get("tenant");
-	const error = url.searchParams.get("error");
-
-	if (error) {
+	if (url.searchParams.get("error")) {
 		console.error("[microsoft-teams/callback] consent refused:", {
-			error,
+			error: url.searchParams.get("error"),
 			description: url.searchParams.get("error_description"),
 		});
 		return fail("oauth_denied");
 	}
-	if (!state || !tenantId) return fail("missing_params");
 
-	const stateData = verifySignedState(state);
-	if (!stateData) return fail("invalid_state");
-	const { organizationId, userId } = stateData;
-
-	// Re-verify membership at callback time (state was signed earlier)
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
-		),
+	const callback = await resolveCallback(request, {
+		params: ["tenant"],
+		redirect: fail,
 	});
-	if (!membership) return fail("unauthorized");
+	if (callback instanceof Response) return callback;
+	const { organizationId, userId, params } = callback;
+	const tenantId = params.tenant;
 
 	let token: Awaited<ReturnType<typeof acquireAppToken>>;
 	try {
@@ -96,22 +91,16 @@ export async function GET(request: Request) {
 		);
 	}
 
-	// One tenant, one organization: a second organization claiming the same
-	// tenant would receive that tenant's messages too.
-	const [conflict] = await db
-		.select({ email: users.email })
-		.from(integrationConnections)
-		.innerJoin(users, eq(users.id, integrationConnections.connectedByUserId))
-		.where(
-			and(
-				eq(integrationConnections.provider, "microsoft_teams"),
-				eq(integrationConnections.externalOrgId, tenantId),
-				isNull(integrationConnections.disconnectedAt),
-				ne(integrationConnections.organizationId, organizationId),
-			),
-		)
-		.limit(1);
-	if (conflict) return fail("tenant_already_linked", conflict.email);
+	// One tenant, one organization — checked before touching the previous
+	// connection's subscriptions, so a refused reconnect leaves them running.
+	const conflict = await connectionConflict(
+		"microsoft_teams",
+		tenantId,
+		organizationId,
+	);
+	if (conflict) {
+		return fail("tenant_already_linked", conflict.ownerEmail ?? undefined);
+	}
 
 	// A reconnect replaces the clientState below, so whatever subscriptions the
 	// previous connection held would only ever be refused. Remove them from
@@ -135,40 +124,22 @@ export async function GET(request: Request) {
 	};
 	const externalOrgName = await tenantDisplayName(token.accessToken, tenantId);
 
-	const [connection] = await db
-		.insert(integrationConnections)
-		.values({
-			organizationId,
-			connectedByUserId: userId,
-			provider: "microsoft_teams",
-			accessToken: token.accessToken,
-			tokenExpiresAt: token.expiresAt,
-			externalOrgId: tenantId,
-			externalOrgName,
-			config,
-		})
-		.onConflictDoUpdate({
-			target: [
-				integrationConnections.organizationId,
-				integrationConnections.provider,
-			],
-			// The org-scoped uniqueness is a partial index (Google connections
-			// are per user); Postgres only infers it when the predicate is named.
-			targetWhere: sql`${integrationConnections.provider} <> 'google'`,
-			set: {
-				accessToken: token.accessToken,
-				tokenExpiresAt: token.expiresAt,
-				externalOrgId: tenantId,
-				externalOrgName,
-				connectedByUserId: userId,
-				config,
-				disconnectedAt: null,
-				disconnectReason: null,
-				updatedAt: new Date(),
-			},
-		})
-		.returning({ id: integrationConnections.id });
-	if (!connection) return fail("token_exchange_failed");
+	const result = await upsertConnection({
+		organizationId,
+		userId,
+		provider: "microsoft_teams",
+		accessToken: token.accessToken,
+		tokenExpiresAt: token.expiresAt,
+		externalOrgId: tenantId,
+		externalOrgName,
+		config,
+	});
+	if (result.conflict) {
+		return fail(
+			"tenant_already_linked",
+			result.conflict.ownerEmail ?? undefined,
+		);
+	}
 
 	posthog.capture({
 		distinctId: userId,
@@ -179,7 +150,7 @@ export async function GET(request: Request) {
 	// The connection is saved either way; the renew job retries subscriptions
 	// that could not be created here. But the person who just consented is the
 	// one who can fix a permission Graph refused, so tell them now.
-	const ensured = await ensureTeamsSubscriptions(connection.id);
+	const ensured = await ensureTeamsSubscriptions(result.connectionId);
 	const failure = ensured
 		? Object.values(ensured.failures).find(Boolean)
 		: "no access token";

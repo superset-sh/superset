@@ -64,9 +64,9 @@ export function createSentryConfig(event: SentryTriggerEvent): SentryConfig {
 	return {
 		kind: "sentry",
 		event,
-		// Null matches nothing: an unfinished trigger must not fire on every
-		// project, and the form refuses to save until one is chosen.
-		projects: null,
+		// An empty list matches nothing: an unfinished trigger must not fire on
+		// every project, and the form refuses to save until one is chosen.
+		projects: { mode: "list", ids: [] },
 		// An optional narrowing, so it starts at "any" — shown or not.
 		level: { mode: "any" },
 	};

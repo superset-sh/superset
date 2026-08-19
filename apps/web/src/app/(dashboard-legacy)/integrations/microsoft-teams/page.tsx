@@ -10,8 +10,42 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { BsMicrosoftTeams } from "react-icons/bs";
 import { api } from "@/trpc/server";
+import {
+	type CallbackMessage,
+	IntegrationErrorHandler,
+} from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
+
+// Graph's own words are the useful part of a refused subscription — they name
+// the missing permission or the protected-API approval.
+function withDetail(text: string): CallbackMessage {
+	return { param: "detail", withParam: `${text} {detail}`, withoutParam: text };
+}
+
+const CALLBACK_MESSAGES = {
+	oauth_denied:
+		"Consent was not granted. A tenant administrator has to approve.",
+	missing_params: "Invalid consent response. Please try again.",
+	invalid_state: "Invalid state parameter. Please try again.",
+	token_exchange_failed: withDetail(
+		"Consent finished but Microsoft did not issue a token for the tenant.",
+	),
+	subscription_failed: withDetail(
+		"Connected, but Microsoft Graph refused the notification subscriptions.",
+	),
+	tenant_already_linked: {
+		param: "detail",
+		withParam:
+			"This Microsoft tenant is already connected by {detail}. Ask them to disconnect first.",
+		withoutParam:
+			"This Microsoft tenant is already connected by another Superset organization.",
+	},
+	identity_denied:
+		'Connected. Sign-in was cancelled, so triggers by "Me" will not match your Teams account until you reconnect.',
+	identity_failed:
+		'Connected, but your Microsoft account could not be linked. Triggers by "Me" will not match until you reconnect.',
+	unauthorized: "You are not authorized to perform this action.",
+};
 
 export default async function MicrosoftTeamsIntegrationPage() {
 	const trpc = await api();
@@ -37,7 +71,10 @@ export default async function MicrosoftTeamsIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler
+				provider="microsoft-teams"
+				messages={CALLBACK_MESSAGES}
+			/>
 
 			<Link
 				href="/integrations"

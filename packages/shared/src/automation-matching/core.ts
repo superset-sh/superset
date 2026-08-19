@@ -1,4 +1,4 @@
-import type { TriggerActor, TriggerScope } from "../automation-triggers";
+import type { TriggerScope } from "../automation-triggers";
 
 /**
  * Decides whether a recorded event satisfies a trigger's config.
@@ -18,13 +18,6 @@ import type { TriggerActor, TriggerScope } from "../automation-triggers";
  */
 export type BaseMatchableEvent = {
 	provider: string;
-	/**
-	 * Which `user_identities.provider` resolves `me` for this event, when it
-	 * differs from `provider`. Google Calendar and Gmail are two trigger kinds
-	 * behind one Google identity, so both set this to "google". Defaults to
-	 * `provider`; every other provider leaves it unset.
-	 */
-	identityProvider?: string;
 	/** Qualified with its action, e.g. `pull_request.opened`. */
 	eventType: string;
 	/** The provider's id for whoever caused the event; what people filters compare against. */
@@ -35,55 +28,32 @@ export type BaseMatchableEvent = {
 	body: string | null;
 };
 
-/**
- * What matchers need beyond the event: the automation owner's linked ids for
- * this provider, so `me` resolves. One shape for every provider — anything
- * provider-specific belongs on that provider's event type, not here.
- */
-export type MatchContext = {
-	ownerIds: string[];
-};
-
 export type MatchResult =
 	| { matches: true }
 	| { matches: false; reason: string };
 
+/** The non-match every matcher builds its refusals from. */
+export const no = (reason: string): MatchResult => ({ matches: false, reason });
+
 /**
- * `null` matches nothing — an unconfigured filter should never fire. That is the
- * opposite of the usual "empty means unrestricted" convention, and deliberate:
- * a half-built trigger silently matching every repository is the worst
- * available failure.
+ * An empty list matches nothing — an unconfigured filter should never fire.
+ * That is the opposite of the usual "empty means unrestricted" convention, and
+ * deliberate: a half-built trigger silently matching every repository is the
+ * worst available failure. `{mode:"any"}` is how wide open is said.
  */
 export function scopeAllows(
 	scope: TriggerScope,
 	value: string | null,
 ): boolean {
-	if (scope === null) return false;
 	if (scope.mode === "any") return true;
 	if (value === null) return false;
 	return scope.ids.includes(value);
 }
 
-/** Same, but for filters that are only meaningful on some events. */
+/** Same, over the event's list of values — labels, attendees. */
 export function scopeAllowsAny(scope: TriggerScope, values: string[]): boolean {
-	if (scope === null) return false;
 	if (scope.mode === "any") return true;
 	return values.some((v) => scope.ids.includes(v));
-}
-
-/**
- * `ownerIds` is a set: a person may link both a work and a personal account, and
- * a pull request opened from either is still theirs.
- */
-export function actorAllows(
-	actor: TriggerActor,
-	actorId: string | null,
-	ownerIds: string[],
-): boolean {
-	if (actor === "anyone") return true;
-	if (actorId === null) return false;
-	if (actor === "me") return ownerIds.includes(actorId);
-	return actor.ids.includes(actorId);
 }
 
 /**

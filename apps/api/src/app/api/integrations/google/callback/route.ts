@@ -1,16 +1,13 @@
-import { db } from "@superset/db/client";
-import {
-	integrationConnections,
-	members,
-	userIdentities,
-} from "@superset/db/schema";
+import { integrationConnections } from "@superset/db/schema";
 import { googleTokenResponseSchema } from "@superset/trpc/integrations/google";
 import { Client } from "@upstash/qstash";
-import { and, eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
-import { verifySignedState } from "@/lib/oauth-state";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
+import { upsertConnection } from "@/lib/integrations/upsertConnection";
+import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN, baseUrl: env.QSTASH_URL });
 
@@ -34,29 +31,12 @@ function fail(reason: string): Response {
 }
 
 export async function GET(request: Request) {
-	const url = new URL(request.url);
-	const code = url.searchParams.get("code");
-	const state = url.searchParams.get("state");
-	if (url.searchParams.get("error")) return fail("oauth_denied");
-	if (!code || !state) return fail("missing_params");
-
-	const stateData = verifySignedState(state);
-	if (!stateData) return fail("invalid_state");
-	const { organizationId, userId } = stateData;
-
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
-		),
+	const callback = await resolveCallback(request, {
+		params: ["code"],
+		redirect: fail,
 	});
-	if (!membership) {
-		console.error("[google/callback] membership verification failed", {
-			organizationId,
-			userId,
-		});
-		return fail("unauthorized");
-	}
+	if (callback instanceof Response) return callback;
+	const { organizationId, userId, params } = callback;
 
 	const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
 		method: "POST",
@@ -67,7 +47,7 @@ export async function GET(request: Request) {
 			client_id: env.GOOGLE_CLIENT_ID,
 			client_secret: env.GOOGLE_CLIENT_SECRET,
 			redirect_uri: `${env.NEXT_PUBLIC_API_URL}/api/integrations/google/callback`,
-			code,
+			code: params.code,
 		}),
 	});
 	if (!tokenResponse.ok) {
@@ -108,80 +88,39 @@ export async function GET(request: Request) {
 	const info = parsedInfo.data;
 	const email = info.email.toLowerCase();
 
-	const tokenExpiresAt = new Date(Date.now() + tokens.expires_in * 1000);
-	const [connection] = await db
-		.insert(integrationConnections)
-		.values({
-			organizationId,
-			connectedByUserId: userId,
-			provider: "google",
-			accessToken: tokens.access_token,
-			refreshToken: tokens.refresh_token,
-			tokenExpiresAt,
-			// The account's address, not an organization: Calendar and Gmail are
-			// one person's, and everything downstream treats them as theirs.
-			externalOrgId: email,
-			externalOrgName: email,
-			config: { provider: "google" },
-		})
-		.onConflictDoUpdate({
-			// One Google connection per member: the partial index on
-			// (org, provider, connected_by_user_id) WHERE provider = 'google'.
-			target: [
-				integrationConnections.organizationId,
-				integrationConnections.provider,
-				integrationConnections.connectedByUserId,
-			],
-			targetWhere: sql`${integrationConnections.provider} = 'google'`,
-			set: {
-				accessToken: tokens.access_token,
-				refreshToken: tokens.refresh_token,
-				tokenExpiresAt,
-				disconnectedAt: null,
-				disconnectReason: null,
-				externalOrgId: email,
-				externalOrgName: email,
-				// Reconnecting the same account keeps its sync tokens and channels;
-				// a different account starts over. The old account's channels are
-				// then unknown to the push route and expire within a week.
-				config: sql`CASE WHEN ${integrationConnections.externalOrgId} = ${email} THEN ${integrationConnections.config} ELSE '{"provider":"google"}'::jsonb END`,
-				updatedAt: new Date(),
-			},
-		})
-		.returning({ id: integrationConnections.id });
+	const result = await upsertConnection({
+		organizationId,
+		userId,
+		provider: "google",
+		accessToken: tokens.access_token,
+		refreshToken: tokens.refresh_token,
+		tokenExpiresAt: new Date(Date.now() + tokens.expires_in * 1000),
+		// The account's address, not an organization: Calendar and Gmail are
+		// one person's, and everything downstream treats them as theirs.
+		externalOrgId: email,
+		externalOrgName: email,
+		config: { provider: "google" },
+		// Reconnecting the same account keeps its sync tokens and channels;
+		// a different account starts over. The old account's channels are
+		// then unknown to the push route and expire within a week.
+		configOnUpdate: sql`CASE WHEN ${integrationConnections.externalOrgId} = ${email} THEN ${integrationConnections.config} ELSE '{"provider":"google"}'::jsonb END`,
+	});
+	if (result.conflict) return fail("account_already_linked");
 
-	// The linked identity is what lets an attendee filter of "me" resolve to
-	// this person. Its external id is the address rather than Google's subject
-	// id because the matcher compares owner ids against what events carry, and
-	// calendar events name people by address.
-	await db
-		.insert(userIdentities)
-		.values({
-			provider: "google",
-			externalId: email,
-			externalScopeId: null,
-			userId,
-			organizationId,
-			handle: email,
-			displayName: info.name ?? null,
-			metadata: { provider: "google", sub: info.sub },
-		})
-		.onConflictDoUpdate({
-			target: [
-				userIdentities.organizationId,
-				userIdentities.provider,
-				userIdentities.externalScopeId,
-				userIdentities.externalId,
-			],
-			set: {
-				userId,
-				handle: email,
-				displayName: info.name ?? null,
-				metadata: { provider: "google", sub: info.sub },
-			},
-		});
+	// The identity's external id is the address rather than Google's subject
+	// id, because calendar events and mail headers name people by address.
+	await upsertIdentity({
+		userId,
+		organizationId,
+		provider: "google",
+		externalId: email,
+		externalScopeId: null,
+		handle: email,
+		displayName: info.name ?? null,
+		metadata: { provider: "google", sub: info.sub },
+	});
 
-	if (connection) await enqueueWatchSetup(connection.id);
+	await enqueueWatchSetup(result.connectionId);
 
 	return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/google`);
 }

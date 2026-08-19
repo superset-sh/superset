@@ -1,39 +1,26 @@
 import { dbWs } from "@superset/db/client";
 import { automations } from "@superset/db/schema";
 import { dispatchAutomation } from "@superset/trpc/automation-dispatch";
-import { Receiver } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
-import { env } from "@/env";
 import { getRelayUrl } from "@/lib/relay-url";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import { runPayloadSchema } from "../../runPayloadSchema";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
 	const { id } = await params;
-	const valid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${id}`,
-	});
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		`/api/automations/dispatch/${id}`,
+	);
+	if (rejected) return rejected;
 
 	const parsed = runPayloadSchema.safeParse(JSON.parse(body));
 	if (!parsed.success) {

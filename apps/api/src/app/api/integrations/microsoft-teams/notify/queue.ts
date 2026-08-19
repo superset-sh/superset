@@ -22,7 +22,8 @@ const qstash = new Client({
 	baseUrl: env.QSTASH_URL,
 });
 
-export const PROCESS_URL = `${env.NEXT_PUBLIC_API_URL}/api/integrations/microsoft-teams/process`;
+export const PROCESS_PATH = "/api/integrations/microsoft-teams/process";
+const PROCESS_URL = `${env.NEXT_PUBLIC_API_URL}${PROCESS_PATH}`;
 
 export const teamsWorkSchema = z.discriminatedUnion("kind", [
 	z.object({

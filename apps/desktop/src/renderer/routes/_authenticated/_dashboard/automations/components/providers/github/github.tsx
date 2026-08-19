@@ -1,36 +1,30 @@
+import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { FaGithub } from "react-icons/fa";
-import { ActorChip } from "../../TriggerSentence/components/ActorChip";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
+import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import {
 	GITHUB_MENU,
 	GITHUB_SENTENCES,
 	type GithubConfig,
-	type SentencePart,
+	type Slot,
 } from "./grammar";
 
 /**
  * Renders one slot of a GitHub sentence. Each slot names the config field it
  * edits, so `set` patches by that name and `mark` finds it in the problems.
  */
-function renderPart(
+function renderSlot(
 	config: GithubConfig,
-	part: SentencePart,
+	slot: Slot,
 	index: number,
 	{ set, mark, options, disabled }: SentenceContext,
 ) {
-	if ("text" in part) {
-		return (
-			<span key={index} className="text-[13px] text-muted-foreground">
-				{part.text}
-			</span>
-		);
-	}
 	// The slot list is derived from this event, so the fields it names are
 	// present on this config member even where the union type cannot say so.
 	const c = config as unknown as Record<string, never>;
-	switch (part.slot) {
+	switch (slot) {
 		case "repositories":
 			return (
 				<ScopeChip
@@ -50,8 +44,11 @@ function renderPart(
 					key={index}
 					scope={c.branches}
 					// Clearing an optional filter means "any", not "none": the chip
-					// says "Any branch" either way, and null would make that a lie.
-					onChange={(v) => set({ branches: v ?? { mode: "any" } })}
+					// says "Any branch" either way, and an empty list would make that
+					// a lie.
+					onChange={(v) =>
+						set({ branches: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={[]}
 					emptyLabel="Any branch"
 					anyLabel="Any branch"
@@ -63,7 +60,9 @@ function renderPart(
 				<ScopeChip
 					key={index}
 					scope={c.labels}
-					onChange={(v) => set({ labels: v ?? { mode: "any" } })}
+					onChange={(v) =>
+						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={[]}
 					emptyLabel="Any label"
 					anyLabel="Any label"
@@ -72,23 +71,27 @@ function renderPart(
 			);
 		case "actor":
 			return (
-				<ActorChip
+				<ScopeChip
 					key={index}
-					actor={c.actor}
+					scope={c.actor}
 					onChange={(v) => set({ actor: v })}
 					className={mark("actor")}
-					people={options.github?.people ?? []}
+					options={options.github?.people ?? []}
+					emptyLabel="Select people"
+					anyLabel="Anyone"
 					disabled={disabled}
 				/>
 			);
 		case "subjectAuthor":
 			return (
-				<ActorChip
+				<ScopeChip
 					key={index}
-					actor={c.subjectAuthor}
+					scope={c.subjectAuthor}
 					onChange={(v) => set({ subjectAuthor: v })}
 					className={mark("subjectAuthor")}
-					people={options.github?.people ?? []}
+					options={options.github?.people ?? []}
+					emptyLabel="Select people"
+					anyLabel="Anyone"
 					disabled={disabled}
 				/>
 			);
@@ -108,22 +111,15 @@ function renderPart(
 
 export const githubProvider: TriggerProvider<GithubConfig> = {
 	kind: "github",
+	optionGroup: "github",
 	label: "GitHub",
 	icon: FaGithub,
 	menu: GITHUB_MENU,
-	renderSentence: (config, ctx) => {
-		// The event comes from a persisted config. If its grammar entry is ever
-		// removed or renamed, the row must still render — a thrown error here
-		// takes the whole editor down with it — so an unknown event reads as
-		// its raw name rather than as nothing.
-		const parts = GITHUB_SENTENCES[config.event];
-		if (!parts) {
-			return (
-				<span className="text-[13px] text-muted-foreground">
-					{config.event}
-				</span>
-			);
-		}
-		return parts.map((part, index) => renderPart(config, part, index, ctx));
-	},
+	renderSentence: (config, ctx) => (
+		<Sentence
+			parts={GITHUB_SENTENCES[config.event]}
+			fallback={config.event}
+			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+		/>
+	),
 };

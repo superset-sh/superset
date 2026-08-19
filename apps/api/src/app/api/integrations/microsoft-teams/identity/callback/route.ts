@@ -1,11 +1,9 @@
-import { db } from "@superset/db/client";
-import { members, userIdentities } from "@superset/db/schema";
 import { microsoftCredentials } from "@superset/trpc/integrations/microsoft-teams";
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
-import { verifySignedState } from "@/lib/oauth-state";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
+import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 import { IDENTITY_REDIRECT_URI, IDENTITY_SCOPES } from "../identityFlow";
 
@@ -35,23 +33,13 @@ const idTokenClaims = z.object({
  * declining here costs only "Me", not the integration.
  */
 export async function GET(request: Request) {
-	const url = new URL(request.url);
-	const state = url.searchParams.get("state");
-	const code = url.searchParams.get("code");
-	if (url.searchParams.get("error")) return back("identity_denied");
-	if (!state || !code) return back("missing_params");
-
-	const stateData = verifySignedState(state);
-	if (!stateData) return back("invalid_state");
-	const { organizationId, userId } = stateData;
-
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
-		),
+	const callback = await resolveCallback(request, {
+		params: ["code"],
+		redirect: back,
+		denied: "identity_denied",
 	});
-	if (!membership) return back("unauthorized");
+	if (callback instanceof Response) return callback;
+	const { organizationId, userId, params } = callback;
 
 	const { clientId, clientSecret } = microsoftCredentials();
 	const response = await fetch(
@@ -63,7 +51,7 @@ export async function GET(request: Request) {
 				client_id: clientId,
 				client_secret: clientSecret,
 				grant_type: "authorization_code",
-				code,
+				code: params.code,
 				redirect_uri: IDENTITY_REDIRECT_URI,
 				scope: IDENTITY_SCOPES,
 			}),
@@ -88,32 +76,16 @@ export async function GET(request: Request) {
 		return back("identity_failed");
 	}
 
-	await db
-		.insert(userIdentities)
-		.values({
-			provider: "microsoft_teams",
-			externalId: claims.data.oid,
-			// Entra object ids are only meaningful within their tenant.
-			externalScopeId: claims.data.tid,
-			userId,
-			organizationId,
-			handle: claims.data.preferred_username ?? null,
-			displayName: claims.data.name ?? null,
-		})
-		// Re-linking claims the Entra account for whoever linked it last.
-		.onConflictDoUpdate({
-			target: [
-				userIdentities.organizationId,
-				userIdentities.provider,
-				userIdentities.externalScopeId,
-				userIdentities.externalId,
-			],
-			set: {
-				userId,
-				handle: claims.data.preferred_username ?? null,
-				displayName: claims.data.name ?? null,
-			},
-		});
+	await upsertIdentity({
+		userId,
+		organizationId,
+		provider: "microsoft_teams",
+		externalId: claims.data.oid,
+		// Entra object ids are only meaningful within their tenant.
+		externalScopeId: claims.data.tid,
+		handle: claims.data.preferred_username ?? null,
+		displayName: claims.data.name ?? null,
+	});
 
 	return back();
 }

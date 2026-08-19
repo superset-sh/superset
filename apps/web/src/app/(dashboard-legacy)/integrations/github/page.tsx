@@ -10,9 +10,31 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
 import { api } from "@/trpc/server";
+import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
 import { RepositoryList } from "./components/RepositoryList";
+
+const CALLBACK_MESSAGES = {
+	installation_cancelled: "GitHub App installation was cancelled.",
+	missing_params: "Invalid installation response. Please try again.",
+	invalid_state: "Invalid state parameter. Please try again.",
+	installation_fetch_failed:
+		"Failed to fetch installation details. Please try again.",
+	save_failed: "Failed to save installation. Please try again.",
+	already_connected:
+		"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
+	unauthorized: "You are not authorized to perform this action.",
+	unexpected: "Something went wrong. Please try again.",
+};
+
+const CALLBACK_WARNINGS = {
+	sync_queue_failed:
+		"GitHub connected, but initial sync failed to start. Please try reconnecting.",
+};
+
+const CALLBACK_SUCCESSES = {
+	github_installed: "GitHub App installed successfully!",
+};
 
 export default async function GitHubIntegrationPage() {
 	const trpc = await api();
@@ -35,7 +57,12 @@ export default async function GitHubIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler
+				provider="github"
+				messages={CALLBACK_MESSAGES}
+				warnings={CALLBACK_WARNINGS}
+				successes={CALLBACK_SUCCESSES}
+			/>
 
 			<Link
 				href="/integrations"

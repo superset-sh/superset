@@ -1,3 +1,4 @@
+import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import { z } from "zod";
 
 export const taskStatusEnumValues = [
@@ -99,6 +100,11 @@ export const automationPromptSourceValues = [
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
 
+/**
+ * Must list exactly the config kinds in `@superset/shared/automation-triggers`
+ * — the `satisfies` below and the `_EveryKindHasEnumValue` check make either
+ * direction of drift a compile error instead of a runtime cast.
+ */
 export const automationTriggerKindValues = [
 	"schedule",
 	"webhook",
@@ -113,7 +119,17 @@ export const automationTriggerKindValues = [
 	"gmail",
 	"notion",
 	"circleback",
-] as const;
+] as const satisfies readonly TriggerConfigInput["kind"][];
+
+export type _EveryKindHasEnumValue = [
+	Exclude<
+		TriggerConfigInput["kind"],
+		(typeof automationTriggerKindValues)[number]
+	>,
+] extends [never]
+	? true
+	: never;
+
 export const automationTriggerKindEnum = z.enum(automationTriggerKindValues);
 export type AutomationTriggerKind = z.infer<typeof automationTriggerKindEnum>;
 

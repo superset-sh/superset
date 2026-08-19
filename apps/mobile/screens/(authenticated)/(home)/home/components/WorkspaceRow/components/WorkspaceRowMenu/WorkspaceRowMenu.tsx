@@ -2,6 +2,7 @@ import { Link } from "expo-router";
 import type { ReactNode } from "react";
 
 export function WorkspaceRowMenu({
+	canRename,
 	canDelete,
 	onRename,
 	onDelete,
@@ -9,6 +10,7 @@ export function WorkspaceRowMenu({
 	onShare,
 	children,
 }: {
+	canRename: boolean;
 	canDelete: boolean;
 	onRename: () => void;
 	onDelete: () => void;
@@ -26,9 +28,13 @@ export function WorkspaceRowMenu({
 		>
 			<Link.Trigger>{children}</Link.Trigger>
 			<Link.Menu>
-				<Link.MenuAction icon="pencil" onPress={onRename}>
-					Rename
-				</Link.MenuAction>
+				{/* Each action is its own direct child: Link.Menu drops anything
+				    wrapped in a Fragment. */}
+				{canRename ? (
+					<Link.MenuAction icon="pencil" onPress={onRename}>
+						Rename
+					</Link.MenuAction>
+				) : null}
 				{canDelete ? (
 					<Link.MenuAction icon="trash" destructive onPress={onDelete}>
 						Delete

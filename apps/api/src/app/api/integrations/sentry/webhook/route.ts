@@ -1,16 +1,22 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { disconnectSentry } from "@superset/trpc/integrations/sentry";
 import { and, eq, sql } from "drizzle-orm";
 
 import { env } from "@/env";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { cappedBody, parseJson } from "@/lib/webhooks/body";
+import {
+	freshTimestamp,
+	hmacHex,
+	timingSafeHex,
+	unauthorized,
+} from "@/lib/webhooks/verify";
 import {
 	matchableFrom,
-	recordSentryEvent,
+	normalizeSentryDelivery,
 	type SentryIssuePayload,
-} from "./recordSentryEvent";
+} from "./normalizeSentryDelivery";
 
 /**
  * Webhooks from the public Sentry integration.
@@ -25,27 +31,6 @@ import {
 /** How far a delivery's `sentry-hook-timestamp` may sit from our clock. */
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
 
-/** Sentry sends unix seconds; a stale or future timestamp is a replay. */
-function timestampFresh(header: string | null): boolean {
-	if (!header) return false;
-	const seconds = Number(header);
-	if (!Number.isFinite(seconds)) return false;
-	return Math.abs(Date.now() - seconds * 1000) <= TIMESTAMP_TOLERANCE_MS;
-}
-
-/** Constant-time compare of Sentry's hex HMAC-SHA256 against ours. */
-function signatureMatches(
-	body: string,
-	signature: string,
-	secret: string,
-): boolean {
-	const expected = createHmac("sha256", secret).update(body, "utf8").digest();
-	const received = Buffer.from(signature, "hex");
-	return (
-		received.length === expected.length && timingSafeEqual(received, expected)
-	);
-}
-
 /** The connection an installation uuid belongs to, active or not. */
 async function connectionByInstallation(installationUuid: string) {
 	return db.query.integrationConnections.findFirst({
@@ -58,27 +43,31 @@ async function connectionByInstallation(installationUuid: string) {
 }
 
 export async function POST(request: Request) {
-	const body = await request.text();
-	const signature = request.headers.get("sentry-hook-signature");
-	const timestamp = request.headers.get("sentry-hook-timestamp");
-	const resource = request.headers.get("sentry-hook-resource");
-	const requestId = request.headers.get("request-id");
+	const body = await cappedBody(request);
+	if (body instanceof Response) return body;
 
 	const secret = env.SENTRY_CLIENT_SECRET;
-	if (!secret || !signature || !signatureMatches(body, signature, secret)) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	const signature = request.headers.get("sentry-hook-signature");
+	if (
+		!secret ||
+		!signature ||
+		!timingSafeHex(signature, hmacHex(body, secret))
+	) {
+		return unauthorized("Invalid signature");
 	}
-	if (!timestampFresh(timestamp)) {
-		return Response.json({ error: "Stale timestamp" }, { status: 401 });
+	if (
+		!freshTimestamp(
+			request.headers.get("sentry-hook-timestamp"),
+			TIMESTAMP_TOLERANCE_MS,
+		)
+	) {
+		return unauthorized("Stale timestamp");
 	}
 
-	let payload: SentryIssuePayload;
-	try {
-		payload = JSON.parse(body);
-	} catch {
-		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
-	}
+	const payload = parseJson<SentryIssuePayload>(body);
+	if (payload instanceof Response) return payload;
 
+	const resource = request.headers.get("sentry-hook-resource");
 	const installationUuid =
 		payload.installation?.uuid ?? payload.data?.installation?.uuid ?? null;
 
@@ -95,7 +84,6 @@ export async function POST(request: Request) {
 		// Superset org, is what writes the connection.
 		return Response.json({ success: true });
 	}
-
 	if (resource !== "issue" || !payload.action) {
 		return Response.json({ success: true, message: "Ignored" });
 	}
@@ -103,51 +91,31 @@ export async function POST(request: Request) {
 	const connection = installationUuid
 		? await connectionByInstallation(installationUuid)
 		: null;
-
-	// No active connection for this install: nothing to attribute the event to.
-	// 200 so Sentry does not retry what can never resolve.
+	// No active connection for this install: nothing to attribute the event
+	// to, and nothing a retry could resolve.
 	if (!connection || connection.disconnectedAt) {
 		return Response.json({ success: true, message: "No connection" });
 	}
 
 	const event = matchableFrom(payload, `issue.${payload.action}`);
-	const deliveryId = requestId ?? `sentry-${crypto.randomUUID()}`;
-
-	const recorded = await recordSentryEvent({
-		organizationId: connection.organizationId,
-		connectionId: connection.id,
-		event,
-		deliveryId,
-		payload,
-	});
-	if (!recorded) {
-		console.log(
-			"[sentry/webhook] Not recorded as automation event (duplicate delivery):",
-			deliveryId,
-		);
-		return Response.json({ success: true, message: "duplicate delivery" });
-	}
-
-	// Nothing in the product names this action, so there is nothing to match.
+	const deliveryId =
+		request.headers.get("request-id") ?? `sentry-${crypto.randomUUID()}`;
 	if (event.names.length === 0) {
 		console.log(
-			`[sentry/webhook] Unhandled action ${resource}.${payload.action}, recorded only:`,
-			deliveryId,
-		);
-		return Response.json({ success: true, message: "Recorded" });
-	}
-
-	const result = await dispatchMatchingTriggers({
-		organizationId: connection.organizationId,
-		eventId: recorded.id,
-		event,
-	});
-	if (result.matched > 0) {
-		console.log(
-			`[sentry/webhook] ${result.matched}/${result.considered} triggers matched:`,
+			`[sentry/webhook] Unhandled action issue.${payload.action}, recorded only:`,
 			deliveryId,
 		);
 	}
 
-	return Response.json({ success: true });
+	const outcome = await ingestAutomationEvent(
+		db,
+		normalizeSentryDelivery({
+			organizationId: connection.organizationId,
+			connectionId: connection.id,
+			event,
+			deliveryId,
+			payload,
+		}),
+	);
+	return Response.json({ success: true, outcome });
 }

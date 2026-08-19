@@ -3,11 +3,12 @@ import { cloudWorkspaces, v2Projects } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { Client } from "@upstash/qstash";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, isNotNull, ne, or } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import {
 	deleteSandbox,
+	listRemoteBranches,
 	mintPreviewAccess,
 	repoForProject,
 } from "../../lib/blaxel";
@@ -78,6 +79,69 @@ export const cloudWorkspaceRouter = {
 		}),
 
 	/**
+	 * INTERIM until the environments entity replaces `project_id` — see
+	 * docs/cloud-sandbox-considerations.md ("Model"). The projects a cloud
+	 * workspace can be created from: the `v2_projects` rows that still carry
+	 * a repo to clone. Desktop reads projects from the local host instead;
+	 * a phone has no host, and this is its only source.
+	 */
+	listProjects: jwtProcedure
+		.input(z.object({ organizationId: z.string().uuid() }))
+		.query(async ({ ctx, input }) => {
+			assertInternal(ctx.email);
+			assertMember(ctx.organizationIds, input.organizationId);
+			return db
+				.select({
+					id: v2Projects.id,
+					name: v2Projects.name,
+					iconUrl: v2Projects.iconUrl,
+				})
+				.from(v2Projects)
+				.where(
+					and(
+						eq(v2Projects.organizationId, input.organizationId),
+						// Without either there is no repo to resolve and create
+						// would refuse the project anyway.
+						or(
+							isNotNull(v2Projects.githubRepositoryId),
+							isNotNull(v2Projects.repoCloneUrl),
+						),
+					),
+				)
+				.orderBy(v2Projects.name);
+		}),
+
+	/**
+	 * Branches from the GitHub remote via the App installation — the hostless
+	 * counterpart of the desktop's local-`gh` listing.
+	 */
+	listBranches: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				projectId: z.string().uuid(),
+				query: z.string().max(200).optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			assertInternal(ctx.email);
+			assertMember(ctx.organizationIds, input.organizationId);
+			const project = await db.query.v2Projects.findFirst({
+				where: and(
+					eq(v2Projects.id, input.projectId),
+					eq(v2Projects.organizationId, input.organizationId),
+				),
+			});
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project not found in this organization",
+				});
+			}
+			return listRemoteBranches(input.projectId, input.query);
+		}),
+
+	/**
 	 * The repo a cloud workspace would clone. Branch listing itself runs
 	 * through the local host's `gh`, so this only resolves the coordinates.
 	 */
@@ -114,7 +178,9 @@ export const cloudWorkspaceRouter = {
 				/** Omitted when the user didn't type one; then `prompt` names it. */
 				name: z.string().min(1).max(200).optional(),
 				prompt: z.string().max(20000).optional(),
-				branch: z.string().min(1).max(300),
+				/** Omitted = the repo's default branch, resolved here — a client
+				 * whose branch query hadn't answered must not guess "main". */
+				branch: z.string().min(1).max(300).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -134,6 +200,11 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
+			const branch =
+				input.branch ??
+				(await repoForProject(input.projectId))?.defaultBranch ??
+				"main";
+
 			// The id is generated here rather than by the database so the sandbox
 			// name can be derived before the insert. A placeholder would briefly
 			// leave two rows sharing ("blaxel", ""), which the unique constraint
@@ -147,7 +218,7 @@ export const cloudWorkspaceRouter = {
 					organizationId: input.organizationId,
 					projectId: input.projectId,
 					name: input.name ?? FALLBACK_NAME,
-					branch: input.branch,
+					branch,
 					provider: "blaxel",
 					providerSandboxId,
 					status: "provisioning",

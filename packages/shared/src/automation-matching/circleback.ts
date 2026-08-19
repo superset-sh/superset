@@ -2,8 +2,8 @@ import type { TextFilter, TriggerScope } from "../automation-triggers";
 import {
 	type BaseMatchableEvent,
 	bodyMatches,
-	type MatchContext,
 	type MatchResult,
+	no,
 	scopeAllowsAny,
 } from "./core";
 
@@ -20,18 +20,13 @@ export type CirclebackMatchableEvent = BaseMatchableEvent & {
 	attendeeEmails: string[];
 };
 
-const no = (reason: string): MatchResult => ({ matches: false, reason });
-
 function lower(values: string[]): string[] {
 	return values.map((v) => v.trim().toLowerCase());
 }
 
-/**
- * Same null semantics as GitHub's branches and labels: null means the trigger
- * author never chose to narrow on this, which for an optional filter is "any".
- */
+/** `scopeAllowsAny`, with both sides folded to one case first. */
 function narrows(scope: TriggerScope, values: string[]): boolean {
-	if (scope === null || scope.mode === "any") return true;
+	if (scope.mode === "any") return true;
 	return scopeAllowsAny({ mode: "list", ids: lower(scope.ids) }, lower(values));
 }
 
@@ -44,7 +39,6 @@ export function circlebackTriggerMatches(
 		nameFilter?: TextFilter | null;
 	},
 	event: CirclebackMatchableEvent,
-	_context: MatchContext,
 ): MatchResult {
 	if (config.event !== event.eventType) return no("event");
 	if (!narrows(config.tags, event.tags)) return no("tags");

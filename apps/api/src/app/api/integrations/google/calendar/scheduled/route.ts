@@ -1,21 +1,24 @@
 import { db } from "@superset/db/client";
+import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	eventEnd,
 	eventStart,
 	findGoogleConnectionById,
+	type GoogleCalendarEvent,
 	getEvent,
 } from "@superset/trpc/integrations/google";
 import { z } from "zod";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
-import { recordAutomationEvent } from "@/lib/automations/recordAutomationEvent";
+import {
+	ingestAutomationEvent,
+	type NormalizedDelivery,
+} from "@/lib/automations/ingestAutomationEvent";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import {
 	accountDomain,
-	accountEmail,
 	calendarPayload,
 	matchableCalendarEvent,
 	resourceKeyFor,
 } from "../../lib/calendarEvents";
-import { verifyQstashRequest } from "../../lib/verifyQstash";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -68,39 +71,50 @@ export async function POST(request: Request) {
 		return Response.json({ ok: true, skipped: "moved" });
 	}
 
+	const outcome = await ingestAutomationEvent(
+		db,
+		normalizeFire(connection, fire, event),
+	);
+	if (outcome.status === "duplicate") {
+		return Response.json({ ok: true, skipped: "duplicate" });
+	}
+	return Response.json({ ok: true, ...outcome });
+}
+
+function normalizeFire(
+	connection: SelectIntegrationConnection,
+	fire: z.infer<typeof fireSchema>,
+	event: GoogleCalendarEvent,
+): NormalizedDelivery {
 	const eventType =
 		fire.fire === "starting_soon" ? "event.starting_soon" : "event.ended";
 	const matchable = matchableCalendarEvent({
 		eventType,
-		accountEmail: accountEmail(connection),
 		calendarId: fire.calendarId,
 		event,
 		domain: accountDomain(connection),
 		minutesBefore: fire.minutesBefore ?? undefined,
 	});
-	const inserted = await recordAutomationEvent(db, {
-		organizationId: connection.organizationId,
-		integrationConnectionId: connection.id,
-		provider: "google_calendar",
-		eventType,
-		externalEventId: `${fire.calendarId}:${fire.eventId}:${fire.expectedAt}:${fire.fire}:${fire.minutesBefore ?? ""}`,
-		resourceKey: resourceKeyFor(connection.id, fire.calendarId, fire.eventId),
-		title: event.summary ?? fire.eventId,
-		url: event.htmlLink ?? null,
-		actorLogin: event.organizer?.email?.toLowerCase() ?? null,
-		actorIsExternal: matchable.hasExternalAttendee,
-		payload: calendarPayload(fire.calendarId, event, matchable, {
-			fire: fire.fire,
-			minutesBefore: fire.minutesBefore,
-			expectedAt: fire.expectedAt,
-		}),
-	});
-	if (!inserted) return Response.json({ ok: true, skipped: "duplicate" });
-
-	const result = await dispatchMatchingTriggers({
-		organizationId: connection.organizationId,
-		eventId: inserted.id,
-		event: matchable,
-	});
-	return Response.json({ ok: true, eventId: inserted.id, ...result });
+	return {
+		event: {
+			organizationId: connection.organizationId,
+			integrationConnectionId: connection.id,
+			provider: "google_calendar",
+			eventType,
+			externalEventId: `${fire.calendarId}:${fire.eventId}:${fire.expectedAt}:${fire.fire}:${fire.minutesBefore ?? ""}`,
+			resourceKey: resourceKeyFor(connection.id, fire.calendarId, fire.eventId),
+			title: event.summary ?? fire.eventId,
+			url: event.htmlLink ?? null,
+			actorLogin: event.organizer?.email?.toLowerCase() ?? null,
+			actorIsExternal: matchable.hasExternalAttendee,
+			payload: calendarPayload(fire.calendarId, event, matchable, {
+				fire: fire.fire,
+				minutesBefore: fire.minutesBefore,
+				expectedAt: fire.expectedAt,
+			}),
+		},
+		// The connection is one member's calendar, so only that member's
+		// automations may match its events.
+		dispatch: { event: matchable, ownerUserId: connection.connectedByUserId },
+	};
 }

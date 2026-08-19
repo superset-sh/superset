@@ -138,6 +138,40 @@ spinner, disabled in flight — and only failures toast. Kept here as the
 reasoning, since the same argument applies to any other await we add to this
 flow.
 
+## Model
+
+**A cloud workspace is tied to a `v2_projects` row, and that table is already
+retired. Open.** #6436 decoupled the app from cloud `v2_projects` and dropped
+the FKs that pointed at it "ahead of the table's removal"; nothing writes a row
+there any more. Three days later `cloud_workspaces.project_id` landed as a
+cascade FK into it, and `create` / provisioning resolve the repo to clone from
+that row. So only projects that still have a legacy row can get a cloud
+workspace, the desktop picker offers projects the API then rejects, and
+dropping the table would cascade-delete every cloud workspace. The mobile port
+lists the rows that resolve to a repo through an interim
+`cloudWorkspace.listProjects`, fenced as such.
+
+The row was never the point — provisioning only ever wanted a repo to clone, a
+credential to fetch it with, and a display name. What it should hang off is an
+**environment**: an org-scoped definition of what a sandbox contains — repos
+(0..n, one primary), setup commands, env var names, base image/version, and
+later a provider snapshot per version (SUPER-1892). `cloud_workspaces` then
+references the environment plus the primary repo's branch. Keep v1 of that
+entity to exactly one primary GitHub repo, enforced by validation rather than
+schema: host-service assumes one workspace is one git root, and multi-repo or
+no-repo sandboxes push into every git-shaped feature (status, diff, PRs,
+files-changed) before they can degrade gracefully.
+
+**Clients must not orchestrate a create.** Creating a cloud workspace is one
+API call; the sandbox does the rest on boot (self-seed, fetch, start). Two
+follow-ups fall out of holding that line rather than compensating in the app:
+the sandbox should launch the agent from the typed prompt itself (today the
+prompt only feeds the auto-name and nothing runs it — desktop and mobile both
+open to an empty workspace), and attachments for a sandbox belong in blob
+storage rather than written to the host, so a create can carry them before the
+sandbox exists. Neither should be done by having a client wait for `ready` and
+call `agents.run`.
+
 ## Provider
 
 **Proxy secret injection depends on a workspace entitlement.** Routing rules send

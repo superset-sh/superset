@@ -13,11 +13,13 @@ import {
 	patchCalendarState,
 } from "@superset/trpc/integrations/google";
 import { and, desc, eq } from "drizzle-orm";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
-import { recordAutomationEvent } from "@/lib/automations/recordAutomationEvent";
+import {
+	type IngestOutcome,
+	ingestAutomationEvent,
+	type NormalizedDelivery,
+} from "@/lib/automations/ingestAutomationEvent";
 import {
 	accountDomain,
-	accountEmail,
 	calendarPayload,
 	matchableCalendarEvent,
 	resourceKeyFor,
@@ -137,9 +139,9 @@ export async function applyCalendarChanges(
 			watchedSince: options.watchedSince,
 			domain,
 		});
-		if (!outcome) continue;
+		if (outcome.status === "duplicate") continue;
 		recorded += 1;
-		matched += outcome.matched;
+		if (outcome.status === "dispatched") matched += outcome.matched;
 
 		// A change inside the horizon may move a fire; the sweep would catch it
 		// eventually, but a meeting created for twenty minutes from now needs
@@ -178,10 +180,8 @@ export async function applyCalendarChanges(
 /**
  * Created, updated or cancelled, decided from what we already recorded.
  *
- * "Created" needs two things: no prior row for this event on this calendar,
- * and Google's `created` timestamp after we started watching. Without the
- * second, editing an event that predates the connection would read as its
- * creation; without the first, every later edit of a new event would.
+ * Reads the previous row before writing, so changes to one calendar must be
+ * applied in order: a later change's kind depends on this one being recorded.
  */
 async function recordChange(params: {
 	connection: SelectIntegrationConnection;
@@ -189,7 +189,7 @@ async function recordChange(params: {
 	item: GoogleCalendarEvent;
 	watchedSince: Date;
 	domain: string | null;
-}): Promise<{ matched: number } | null> {
+}): Promise<IngestOutcome> {
 	const { connection, calendarId, item } = params;
 	const resourceKey = resourceKeyFor(connection.id, calendarId, item.id);
 
@@ -206,15 +206,45 @@ async function recordChange(params: {
 		.orderBy(desc(automationEvents.receivedAt))
 		.limit(1);
 
+	return ingestAutomationEvent(
+		db,
+		normalizeChange({
+			...params,
+			resourceKey,
+			previous: previous
+				? (previous.payload as { event?: GoogleCalendarEvent })
+				: undefined,
+		}),
+	);
+}
+
+/**
+ * "Created" needs two things: no prior row for this event on this calendar,
+ * and Google's `created` timestamp after we started watching. Without the
+ * second, editing an event that predates the connection would read as its
+ * creation; without the first, every later edit of a new event would.
+ */
+function normalizeChange(params: {
+	connection: SelectIntegrationConnection;
+	calendarId: string;
+	item: GoogleCalendarEvent;
+	watchedSince: Date;
+	domain: string | null;
+	resourceKey: string;
+	/** The prior row's payload, when this event was recorded before. */
+	previous: { event?: GoogleCalendarEvent } | undefined;
+}): NormalizedDelivery {
+	const { connection, calendarId, item, previous } = params;
+
 	let eventType: GoogleCalendarTriggerEvent;
 	// A cancellation in an incremental sync carries little more than the id and
 	// status; the title and attendees come from what was recorded before it.
 	let event = item;
 	if (item.status === "cancelled") {
 		eventType = "event.cancelled";
-		const before = (previous?.payload as { event?: GoogleCalendarEvent } | null)
-			?.event;
-		if (before) event = { ...before, ...item, status: "cancelled" };
+		if (previous?.event) {
+			event = { ...previous.event, ...item, status: "cancelled" };
+		}
 	} else if (
 		!previous &&
 		item.created &&
@@ -227,32 +257,28 @@ async function recordChange(params: {
 
 	const matchable = matchableCalendarEvent({
 		eventType,
-		accountEmail: accountEmail(connection),
 		calendarId,
 		event,
 		domain: params.domain,
 	});
-	const inserted = await recordAutomationEvent(db, {
-		organizationId: connection.organizationId,
-		integrationConnectionId: connection.id,
-		provider: "google_calendar",
-		eventType,
-		// A stable key: an item carrying neither `updated` nor `etag` collapses
-		// onto one row per status rather than one per delivery.
-		externalEventId: `${calendarId}:${item.id}:${item.updated ?? item.etag ?? item.status ?? "unknown"}`,
-		resourceKey,
-		title: event.summary ?? item.id,
-		url: event.htmlLink ?? null,
-		actorLogin: event.organizer?.email?.toLowerCase() ?? null,
-		actorIsExternal: matchable.hasExternalAttendee,
-		payload: calendarPayload(calendarId, event, matchable),
-	});
-	if (!inserted) return null;
-
-	const { matched } = await dispatchMatchingTriggers({
-		organizationId: connection.organizationId,
-		eventId: inserted.id,
-		event: matchable,
-	});
-	return { matched };
+	return {
+		event: {
+			organizationId: connection.organizationId,
+			integrationConnectionId: connection.id,
+			provider: "google_calendar",
+			eventType,
+			// A stable key: an item carrying neither `updated` nor `etag` collapses
+			// onto one row per status rather than one per delivery.
+			externalEventId: `${calendarId}:${item.id}:${item.updated ?? item.etag ?? item.status ?? "unknown"}`,
+			resourceKey: params.resourceKey,
+			title: event.summary ?? item.id,
+			url: event.htmlLink ?? null,
+			actorLogin: event.organizer?.email?.toLowerCase() ?? null,
+			actorIsExternal: matchable.hasExternalAttendee,
+			payload: calendarPayload(calendarId, event, matchable),
+		},
+		// The connection is one member's calendar, so only that member's
+		// automations may match its events.
+		dispatch: { event: matchable, ownerUserId: connection.connectedByUserId },
+	};
 }

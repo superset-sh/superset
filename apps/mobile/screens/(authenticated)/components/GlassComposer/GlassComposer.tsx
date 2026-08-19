@@ -33,6 +33,7 @@ import {
 	padding,
 	resizable,
 	shapes,
+	textInputAutocapitalization,
 	tint,
 	truncationMode,
 } from "@expo/ui/swift-ui/modifiers";
@@ -73,6 +74,10 @@ const GLASS_BLEED = 10;
 /** Stable identity so `showAttachments={false}` doesn't churn effect deps. */
 const NO_ATTACHMENTS: PromptInputAttachmentItem[] = [];
 
+type TextInputAutocapitalization = Parameters<
+	typeof textInputAutocapitalization
+>[0];
+
 export interface GlassComposerHandle {
 	focus: () => void;
 	blur: () => void;
@@ -94,6 +99,8 @@ export interface GlassComposerProps {
 	toolbarLeading?: ReactNode;
 	/** Keeps the composer expanded while the field isn't focused. */
 	keepExpanded?: boolean;
+	/** Overrides the native keyboard's autocapitalization behavior. */
+	textInputAutocapitalization?: TextInputAutocapitalization;
 	/** A submit is in flight: send stays visible but disabled. */
 	isSending?: boolean;
 	/**
@@ -132,6 +139,7 @@ export const GlassComposer = forwardRef<
 		header,
 		toolbarLeading,
 		keepExpanded = false,
+		textInputAutocapitalization: inputAutocapitalization,
 		isSending = false,
 		showAttachments = true,
 		onActiveChange,
@@ -510,6 +518,9 @@ export const GlassComposer = forwardRef<
 									frame({ minHeight: expanded ? 56 : 38 }),
 									lineLimit(expanded ? 12 : 1),
 									truncationMode("tail"),
+									...(inputAutocapitalization
+										? [textInputAutocapitalization(inputAutocapitalization)]
+										: []),
 								]}
 							/>
 							<HStack

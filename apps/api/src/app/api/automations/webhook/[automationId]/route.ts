@@ -1,11 +1,6 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { db } from "@superset/db/client";
-import {
-	automationEvents,
-	automations,
-	automationTriggers,
-} from "@superset/db/schema";
-import type { WebhookMatchableEvent } from "@superset/shared/automation-matching";
+import { automations, automationTriggers } from "@superset/db/schema";
 import {
 	bearerToken,
 	WEBHOOK_TOKEN_PREFIX,
@@ -17,8 +12,9 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
-import { dispatchMatchingTriggers } from "@/lib/automations/dispatchMatchingTriggers";
-import { recordAutomationEvent } from "@/lib/automations/recordAutomationEvent";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { cappedBody } from "@/lib/webhooks/body";
+import { normalizeWebhookDelivery } from "./normalizeWebhookDelivery";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +26,6 @@ const rateLimit = new Ratelimit({
 	limiter: Ratelimit.slidingWindow(300, "1 m"),
 	prefix: "ratelimit:automations:webhook",
 });
-
-const EVENT_TYPE = "webhook.received";
-const MAX_BODY_BYTES = 1024 * 1024;
 
 function parseBody(body: string): Record<string, unknown> | unknown[] {
 	if (body.trim() === "") return {};
@@ -75,11 +68,6 @@ export async function POST(
 		return Response.json({ error: "Rate limit exceeded" }, { status: 429 });
 	}
 
-	const contentLength = Number(request.headers.get("content-length"));
-	if (contentLength > MAX_BODY_BYTES) {
-		return Response.json({ error: "Body too large" }, { status: 413 });
-	}
-
 	const triggers = await db
 		.select({
 			secretHash: automationTriggers.secretHash,
@@ -92,7 +80,6 @@ export async function POST(
 			and(
 				eq(automationTriggers.automationId, automationId),
 				eq(automationTriggers.kind, "webhook"),
-				eq(automationTriggers.enabled, true),
 			),
 		);
 
@@ -110,10 +97,8 @@ export async function POST(
 		);
 	}
 
-	const body = await request.text();
-	if (Buffer.byteLength(body) > MAX_BODY_BYTES) {
-		return Response.json({ error: "Body too large" }, { status: 413 });
-	}
+	const body = await cappedBody(request);
+	if (body instanceof Response) return body;
 	let payload: Record<string, unknown> | unknown[];
 	try {
 		payload = parseBody(body);
@@ -124,53 +109,13 @@ export async function POST(
 		);
 	}
 
-	const inserted = await recordAutomationEvent(db, {
-		organizationId,
-		integrationConnectionId: null,
-		provider: "webhook",
-		eventType: EVENT_TYPE,
-		externalEventId: randomUUID(),
-		title: "Webhook",
-		payload,
-	});
-
-	if (!inserted) {
-		return Response.json({ error: "Failed to record event" }, { status: 500 });
-	}
-
-	const event: WebhookMatchableEvent = {
-		provider: "webhook",
-		eventType: EVENT_TYPE,
-		actorId: null,
-		actorLogin: null,
-		body: null,
-	};
-	let result: { matched: number; considered: number };
-	try {
-		result = await dispatchMatchingTriggers({
-			organizationId,
-			eventId: inserted.id,
-			event,
-			automationId,
-		});
-	} catch (error) {
-		console.error(
-			`[automations/webhook] dispatch failed for event ${inserted.id}:`,
-			error,
-		);
-		await db
-			.delete(automationEvents)
-			.where(eq(automationEvents.id, inserted.id));
-		return Response.json({ error: "Dispatch failed" }, { status: 500 });
-	}
-
-	console.log(
-		`[automations/webhook] ${result.matched}/${result.considered} triggers matched:`,
-		inserted.id,
+	const outcome = await ingestAutomationEvent(
+		db,
+		normalizeWebhookDelivery({ organizationId, automationId, payload }),
 	);
 	return Response.json({
 		ok: true,
-		eventId: inserted.id,
-		runs: result.matched,
+		eventId: "eventId" in outcome ? outcome.eventId : null,
+		runs: outcome.status === "dispatched" ? outcome.matched : 0,
 	});
 }

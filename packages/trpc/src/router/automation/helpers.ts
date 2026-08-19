@@ -46,7 +46,6 @@ export async function syncScheduleTrigger(
 		dtstart: Date;
 		timezone: string;
 		nextRunAt: Date | null;
-		enabled: boolean;
 	},
 ) {
 	const config: ScheduleTriggerConfig = {
@@ -80,7 +79,6 @@ export async function syncScheduleTrigger(
 			organizationId: params.organizationId,
 			kind: "schedule",
 			config,
-			enabled: params.enabled,
 			nextRunAt: params.nextRunAt,
 		});
 		return;
@@ -88,7 +86,7 @@ export async function syncScheduleTrigger(
 
 	await tx
 		.update(automationTriggers)
-		.set({ config, enabled: params.enabled, nextRunAt: params.nextRunAt })
+		.set({ config, nextRunAt: params.nextRunAt })
 		.where(eq(automationTriggers.id, keep.id));
 
 	if (extra.length > 0) {

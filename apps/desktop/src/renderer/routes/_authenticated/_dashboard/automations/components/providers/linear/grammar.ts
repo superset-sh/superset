@@ -68,18 +68,18 @@ function leaf(label: string, event: LinearTriggerEvent) {
 
 /**
  * A new trigger of this event: the team still to be chosen, every optional
- * filter wide open. Null teams matches nothing, so an unfinished trigger cannot
- * fire on every team; the optional narrowings start at "any" because null
- * would read as "Any project" while matching nothing.
+ * filter wide open. An empty team list matches nothing, so an unfinished
+ * trigger cannot fire on every team; the optional narrowings start at "any"
+ * because an empty list would read as "Any project" while matching nothing.
  */
 export function createLinearConfig(event: LinearTriggerEvent): LinearConfig {
 	return {
 		kind: "linear",
 		event,
-		teams: null,
+		teams: { mode: "list", ids: [] },
 		projects: { mode: "any" },
 		labels: { mode: "any" },
 		toStatus: { mode: "any" },
-		assignee: "anyone",
+		assignee: { mode: "any" },
 	};
 }

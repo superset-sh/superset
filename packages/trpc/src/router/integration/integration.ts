@@ -11,6 +11,7 @@ import { microsoftTeamsRouter } from "./microsoft-teams";
 import { notionRouter } from "./notion";
 import { sentryRouter } from "./sentry";
 import { slackRouter } from "./slack";
+import { triggerOptionsRouter } from "./trigger-options";
 import { verifyOrgMembership } from "./utils";
 
 export const integrationRouter = {
@@ -21,6 +22,7 @@ export const integrationRouter = {
 	notion: notionRouter,
 	sentry: sentryRouter,
 	slack: slackRouter,
+	...triggerOptionsRouter,
 
 	list: protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))

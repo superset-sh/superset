@@ -6,12 +6,12 @@ import {
 	listUpcomingInstances,
 } from "@superset/trpc/integrations/google";
 import { and, eq, inArray, sql } from "drizzle-orm";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 import {
 	loadFirePlan,
 	scheduleFires,
 	sweepWindow,
 } from "../../lib/scheduleCalendarFires";
-import { verifyQstashRequest } from "../../lib/verifyQstash";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -42,7 +42,6 @@ export async function POST(request: Request) {
 		.where(
 			and(
 				eq(automationTriggers.kind, "google_calendar"),
-				eq(automationTriggers.enabled, true),
 				eq(automations.enabled, true),
 				inArray(sql`${automationTriggers.config}->>'event'`, [
 					"event.starting_soon",

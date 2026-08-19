@@ -1,43 +1,39 @@
+import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { LuMic } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
 import { EndpointChip } from "../../TriggerSentence/components/EndpointChip";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
+import { Sentence } from "../components/Sentence";
 import type { SentenceContext, TriggerProvider } from "../types";
 import { SigningSecretChip } from "./components/SigningSecretChip";
 import {
 	CIRCLEBACK_MENU,
 	CIRCLEBACK_SENTENCE,
 	type CirclebackConfig,
-	type SentencePart,
+	type Slot,
 } from "./grammar";
 
 export function circlebackWebhookUrl(triggerId: string): string {
 	return `${env.NEXT_PUBLIC_API_URL}/api/integrations/circleback/webhook/${triggerId}`;
 }
 
-function renderPart(
+function renderSlot(
 	config: CirclebackConfig,
-	part: SentencePart,
+	slot: Slot,
 	index: number,
 	{ set, disabled, triggerId }: SentenceContext,
 ) {
-	if ("text" in part) {
-		return (
-			<span key={index} className="text-[13px] text-muted-foreground">
-				{part.text}
-			</span>
-		);
-	}
-	switch (part.slot) {
+	switch (slot) {
 		case "tags":
 			return (
 				<ScopeChip
 					key={index}
 					scope={config.tags}
 					// Clearing an optional filter means "any", not "none": the chip
-					// says "Any tag" either way, and null would make that a lie.
-					onChange={(v) => set({ tags: v ?? { mode: "any" } })}
+					// says "Any tag" either way, and an empty list would make that a
+					// lie.
+					onChange={(v) => set({ tags: isEmptyScope(v) ? { mode: "any" } : v })}
 					options={[]}
 					emptyLabel="Any tag"
 					anyLabel="Any tag"
@@ -50,7 +46,9 @@ function renderPart(
 				<ScopeChip
 					key={index}
 					scope={config.attendees}
-					onChange={(v) => set({ attendees: v ?? { mode: "any" } })}
+					onChange={(v) =>
+						set({ attendees: isEmptyScope(v) ? { mode: "any" } : v })
+					}
 					options={[]}
 					emptyLabel="Any attendee"
 					anyLabel="Any attendee"
@@ -94,8 +92,10 @@ export const circlebackProvider: TriggerProvider<CirclebackConfig> = {
 	label: "Circleback",
 	icon: LuMic,
 	menu: CIRCLEBACK_MENU,
-	renderSentence: (config, ctx) =>
-		CIRCLEBACK_SENTENCE.map((part, index) =>
-			renderPart(config, part, index, ctx),
-		),
+	renderSentence: (config, ctx) => (
+		<Sentence
+			parts={CIRCLEBACK_SENTENCE}
+			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
+		/>
+	),
 };

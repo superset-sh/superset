@@ -3,13 +3,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { Alert, Share } from "react-native";
+import { useCloudWorkspaceActions } from "@/hooks/useCloudWorkspaceActions";
 import type { HostWorkspaceRow } from "@/hooks/useHostWorkspaces";
 import type { OrgHost } from "@/hooks/useOrgHosts";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { isTrpcErrorWithData } from "@/lib/host-service/errors";
+import { isSandboxHost } from "@/lib/sandbox-access";
 import { workspaceShareUrl } from "@/lib/web-links";
 
 export function useWorkspaceHeaderActions(
@@ -18,6 +20,11 @@ export function useWorkspaceHeaderActions(
 ) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
+	const cloud = useCloudWorkspaceActions();
+	// A sandbox is its own host, keyed by the workspace's id; its name and its
+	// lifetime belong to the cloud row, not to anything the sandbox serves.
+	const isCloud = host !== null && isSandboxHost(host.machineId);
+
 	const renameWorkspace = async () => {
 		if (!workspace) return;
 		if (!host) {
@@ -33,11 +40,15 @@ export function useWorkspaceHeaderActions(
 		const trimmed = name?.trim();
 		if (!trimmed || trimmed === workspace.name) return;
 		try {
-			const hostUrl = buildRelayHostUrl(host.organizationId, host.machineId);
-			await getHostServiceClientByUrl(hostUrl).workspace.update.mutate({
-				id: workspace.id,
-				name: trimmed,
-			});
+			if (isCloud) {
+				await cloud.rename(workspace.id, trimmed);
+			} else {
+				const hostUrl = hostServiceUrl(host.organizationId, host.machineId);
+				await getHostServiceClientByUrl(hostUrl).workspace.update.mutate({
+					id: workspace.id,
+					name: trimmed,
+				});
+			}
 		} catch {
 			Alert.alert("Rename failed");
 		}
@@ -56,7 +67,7 @@ export function useWorkspaceHeaderActions(
 		skipTeardown: boolean;
 	}) => {
 		if (!workspace || !host) return;
-		const hostUrl = buildRelayHostUrl(host.organizationId, host.machineId);
+		const hostUrl = hostServiceUrl(host.organizationId, host.machineId);
 		try {
 			await getHostServiceClientByUrl(hostUrl).workspaceCleanup.destroy.mutate({
 				workspaceId: workspace.id,
@@ -104,6 +115,25 @@ export function useWorkspaceHeaderActions(
 		if (!workspace) return;
 		if (!host) {
 			Alert.alert("Host is not online");
+			return;
+		}
+		if (isCloud) {
+			Alert.alert(
+				"Delete cloud workspace",
+				`Delete "${workspace.name}"? This shuts down its sandbox and everything in it.`,
+				[
+					{ style: "cancel", text: "Cancel" },
+					{
+						onPress: () =>
+							void cloud
+								.remove(workspace.id)
+								.then(() => router.back())
+								.catch(() => Alert.alert("Delete failed")),
+						style: "destructive",
+						text: "Delete",
+					},
+				],
+			);
 			return;
 		}
 		Alert.alert(

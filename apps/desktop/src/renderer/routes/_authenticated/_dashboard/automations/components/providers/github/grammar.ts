@@ -212,17 +212,17 @@ const COMMENT_EVENTS = new Set<GithubTriggerEvent>([
 export function createGithubConfig(event: GithubTriggerEvent) {
 	const base = {
 		kind: "github" as const,
-		// Null matches nothing, which is the safety property for repositories: an
-		// unfinished trigger must not fire on every repo, and the form refuses to
-		// save until one is chosen.
-		repositories: null,
+		// An empty list matches nothing, which is the safety property for
+		// repositories: an unfinished trigger must not fire on every repo, and
+		// the form refuses to save until one is chosen.
+		repositories: { mode: "list" as const, ids: [] as string[] },
 		// Branches and labels are optional narrowings, so they start at "any" —
-		// shown or not. Null here would render as "Any branch" while matching
-		// nothing, and nothing validates them, so the trigger would look complete
-		// and never fire.
+		// shown or not. An empty list here would render as "Any branch" while
+		// matching nothing, and nothing validates them, so the trigger would
+		// look complete and never fire.
 		branches: { mode: "any" as const },
 		labels: { mode: "any" as const },
-		actor: "anyone" as const,
+		actor: { mode: "any" as const },
 		includeForks: false as const,
 	};
 
@@ -232,7 +232,7 @@ export function createGithubConfig(event: GithubTriggerEvent) {
 		return {
 			...base,
 			event: event as "comment_added" | "issue_comment",
-			subjectAuthor: "anyone" as const,
+			subjectAuthor: { mode: "any" as const },
 			commentFilter: null,
 		};
 	}

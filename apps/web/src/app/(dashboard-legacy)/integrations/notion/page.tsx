@@ -10,8 +10,17 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiNotion } from "react-icons/si";
 import { api } from "@/trpc/server";
+import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
+
+const CALLBACK_MESSAGES = {
+	oauth_denied: "Authorization was denied. Please try again.",
+	missing_params: "Invalid OAuth response. Please try again.",
+	invalid_state: "Invalid state parameter. Please try again.",
+	token_exchange_failed: "Failed to connect to Notion. Please try again.",
+	not_configured: "Notion is not configured for this environment.",
+	unauthorized: "You are not authorized to perform this action.",
+};
 
 export default async function NotionIntegrationPage() {
 	const trpc = await api();
@@ -34,7 +43,7 @@ export default async function NotionIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler provider="notion" messages={CALLBACK_MESSAGES} />
 
 			<Link
 				href="/integrations"

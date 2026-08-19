@@ -27,6 +27,13 @@ export type TriggerProvider<
 	menu: TriggerMenuEntry<Config>[];
 	/** Renders the editable sentence for a config of this kind. */
 	renderSentence: (config: Config, ctx: SentenceContext) => ReactNode;
+	/**
+	 * The key this provider's pickable lists live under (`options.slack`),
+	 * fetched from `integration.triggerOptions` when a row of this kind is on
+	 * screen. Absent for providers with nothing to fetch (Scheduled, Webhook).
+	 * Two kinds can share one group — Calendar and Gmail both read `google`.
+	 */
+	optionGroup?: string;
 };
 
 /**

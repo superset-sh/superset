@@ -16,7 +16,8 @@ import { Separator } from "@superset/ui/separator";
 import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
-import { type ProviderOptions, TRIGGER_PROVIDERS } from "../providers";
+import { TRIGGER_PROVIDERS } from "../providers";
+import { useProviderOptions } from "../providers/useProviderOptions";
 import { TriggerSentence } from "../TriggerSentence";
 import { TriggerMenuItems } from "./TriggerMenuItems";
 import { flattenTriggerMenu, matchesQuery } from "./triggerMenu";
@@ -25,8 +26,8 @@ interface TriggersEditorProps {
 	triggers: DraftTrigger[];
 	/** Resolves once the set is written; rejects if it was refused. */
 	onChange: (next: DraftTrigger[]) => undefined | Promise<unknown>;
-	/** Pickable values per provider, fetched by the card. */
-	options: ProviderOptions;
+	/** Whose integrations the pickable lists come from. */
+	organizationId: string;
 	/** Trailing "Next run ..." text for one schedule row, by trigger id. */
 	renderNextRun?: (triggerId?: string) => ReactNode;
 	readOnly?: boolean;
@@ -43,7 +44,7 @@ interface TriggersEditorProps {
 export function TriggersEditor({
 	triggers,
 	onChange,
-	options,
+	organizationId,
 	renderNextRun,
 	readOnly,
 }: TriggersEditorProps) {
@@ -55,6 +56,7 @@ export function TriggersEditor({
 	// silently once it happened to become valid is no better: nothing tells you
 	// which edit crossed the line, or that anything was written at all.
 	const [drafts, setDrafts] = useState(triggers);
+	const options = useProviderOptions(organizationId, drafts);
 	const [dirty, setDirty] = useState(false);
 	const savedKey = JSON.stringify(triggers);
 	const [prevSavedKey, setPrevSavedKey] = useState(savedKey);
@@ -128,8 +130,7 @@ export function TriggersEditor({
 		setSubmitted(false);
 	};
 
-	const add = (config: DraftTrigger["config"]) =>
-		edit([...drafts, { enabled: true, config }]);
+	const add = (config: DraftTrigger["config"]) => edit([...drafts, { config }]);
 
 	return (
 		<div className="flex flex-col gap-1">

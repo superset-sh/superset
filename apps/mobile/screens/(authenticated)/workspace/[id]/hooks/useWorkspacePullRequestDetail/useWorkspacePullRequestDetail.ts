@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import type {
 	MergeableState,
@@ -39,7 +39,7 @@ export function useWorkspacePullRequestDetail({
 	const { host } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
-			? buildRelayHostUrl(host.organizationId, host.machineId)
+			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
 	const ready =
 		hostUrl !== null && owner !== null && repo !== null && pullNumber !== null;

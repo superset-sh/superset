@@ -1,13 +1,8 @@
-import type {
-	LinearTriggerEvent,
-	TriggerActor,
-	TriggerScope,
-} from "../automation-triggers";
+import type { LinearTriggerEvent, TriggerScope } from "../automation-triggers";
 import {
-	actorAllows,
 	type BaseMatchableEvent,
-	type MatchContext,
 	type MatchResult,
+	no,
 	scopeAllows,
 	scopeAllowsAny,
 } from "./core";
@@ -26,8 +21,6 @@ export type LinearMatchableEvent = BaseMatchableEvent & {
 	/** The product-level names this delivery maps to; see linearEventNames. */
 	names: LinearTriggerEvent[];
 };
-
-const no = (reason: string): MatchResult => ({ matches: false, reason });
 
 /**
  * Maps a Linear delivery to the events a trigger names. Linear's wire events
@@ -83,10 +76,9 @@ export function linearTriggerMatches(
 		projects: TriggerScope;
 		labels: TriggerScope;
 		toStatus: TriggerScope;
-		assignee: TriggerActor;
+		assignee: TriggerScope;
 	},
 	event: LinearMatchableEvent,
-	context: MatchContext,
 ): MatchResult {
 	if (!event.names.includes(config.event as LinearTriggerEvent)) {
 		return no("event");
@@ -94,27 +86,16 @@ export function linearTriggerMatches(
 	if (!scopeAllows(config.teams, event.teamId)) {
 		return no("team");
 	}
-	// Projects, labels and status only narrow when configured; null means the
-	// trigger author did not choose to filter on them, which for these is "any".
-	if (
-		config.projects !== null &&
-		!scopeAllows(config.projects, event.projectId)
-	) {
+	if (!scopeAllows(config.projects, event.projectId)) {
 		return no("project");
 	}
-	if (
-		config.labels !== null &&
-		!scopeAllowsAny(config.labels, event.labelIds)
-	) {
+	if (!scopeAllowsAny(config.labels, event.labelIds)) {
 		return no("label");
 	}
-	if (
-		config.toStatus !== null &&
-		!scopeAllows(config.toStatus, event.stateId)
-	) {
+	if (!scopeAllows(config.toStatus, event.stateId)) {
 		return no("status");
 	}
-	if (!actorAllows(config.assignee, event.assigneeId, context.ownerIds)) {
+	if (!scopeAllows(config.assignee, event.assigneeId)) {
 		return no("assignee");
 	}
 	return { matches: true };

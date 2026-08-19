@@ -413,6 +413,59 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(rows[0]?.archiveReason).toBe("deleted");
 	});
 
+	test("create() after delete() on the same branch creates a fresh workspace instead of reusing the tombstone", async () => {
+		// Regress #6383: deletes tombstone the row (archivedAt) instead of
+		// removing it, so the create-time idempotency lookup must not match
+		// the archived row — otherwise create returns the dead workspace id
+		// with no worktree and the app lands on "Workspace not found".
+		const scenario = await createFeatureWorktreeScenario({
+			hostOptions: {
+				apiOverrides: {
+					...cloudFlows.workspaceDeleteOk(),
+					...cloudFlows.workspaceCreateOk(),
+				},
+			},
+		});
+		dispose = scenario.dispose;
+
+		await scenario.host.trpc.workspace.delete.mutate({
+			id: scenario.featureWorkspaceId,
+		});
+		const tombstone = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.get();
+		expect(tombstone?.archivedAt).not.toBeNull();
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "recreated",
+			branch: scenario.branch,
+		});
+
+		expect(result.alreadyExists).toBe(false);
+		expect(result.workspace.id).not.toBe(scenario.featureWorkspaceId);
+		expect(result.workspace.branch).toBe(scenario.branch);
+
+		const fresh = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result.workspace.id))
+			.get();
+		expect(fresh?.archivedAt).toBeNull();
+		expect(existsSync(fresh?.worktreePath ?? "")).toBe(true);
+
+		// The tombstone keeps its history untouched.
+		const archivedAfter = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.get();
+		expect(archivedAfter?.archivedAt).not.toBeNull();
+		expect(archivedAfter?.archiveReason).toBe("deleted");
+	});
+
 	test("delete() requires authentication", async () => {
 		const scenario = await createBasicScenario();
 		dispose = scenario.dispose;

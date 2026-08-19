@@ -71,7 +71,7 @@ export async function reconcileWatches(
 				result.baselined += 1;
 			}
 			await patchCalendarState(connectionId, calendar.id, {
-				summary: calendar.summary,
+				summary: calendar.summary ?? undefined,
 			});
 
 			const expiresSoon =
