@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
 import type { ServerMessage } from "../../src/events";
@@ -130,6 +130,26 @@ describe("workspaces.createEnqueued integration", () => {
 				branch: "feature/no-id",
 			}),
 		).rejects.toThrow(/requires a client-minted/);
+	});
+
+	test("rejects with NOT_FOUND before enqueueing when the project directory is missing from disk", async () => {
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+		const settled = captureSettled(scenario.host.eventBus);
+		rmSync(scenario.repo.repoPath, { recursive: true, force: true });
+
+		await expect(
+			scenario.host.trpc.workspaces.createEnqueued.mutate({
+				projectId: scenario.projectId,
+				branch: "feature/gone-repo",
+				id: randomUUID(),
+			}),
+		).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
+		// Cheap validation rejected the call, so no background create ran and
+		// nothing settles later.
+		expect(settled.length).toBe(0);
 	});
 
 	test("a create that fails after enqueue broadcasts ok:false with the error", async () => {
