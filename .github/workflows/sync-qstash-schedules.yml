@@ -12,6 +12,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Create missing schedules
         env:
