@@ -37,6 +37,7 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	type TerminalExitListener,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -672,6 +673,19 @@ class TerminalRuntimeRegistryImpl {
 		entry.transport.logListeners.add(listener);
 		return () => {
 			entry.transport.logListeners.delete(listener);
+		};
+	}
+
+	/** Fires when the PTY behind this terminal exits (not on transport drops). */
+	onExit(
+		terminalId: string,
+		listener: TerminalExitListener,
+		instanceId = terminalId,
+	): () => void {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.transport.exitListeners.add(listener);
+		return () => {
+			entry.transport.exitListeners.delete(listener);
 		};
 	}
 }
