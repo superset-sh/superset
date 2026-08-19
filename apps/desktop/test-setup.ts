@@ -171,6 +171,9 @@ mock.module("electron", () => ({
 		handle: mock(),
 		on: mock(),
 	},
+	webContents: {
+		fromId: mock(() => null),
+	},
 	shell: {
 		openExternal: mock(() => Promise.resolve()),
 		openPath: mock(() => Promise.resolve("")),

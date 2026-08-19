@@ -62,6 +62,12 @@ class BrowserRuntimeRegistryImpl {
 	private globalListenersInstalled = false;
 	private windowDragPassthrough = false;
 	private shellInteractionPassthrough = false;
+	// Panes an agent is driving (live CDP session or in-flight capture, fed
+	// by the main process). Parked presentable instead of hidden — a
+	// visibility-hidden webview gets no compositor frames, so CDP
+	// screenshots hang and input hit-testing goes stale — and exempt from
+	// hidden-webview eviction so the guest isn't destroyed mid-session.
+	private agentActivePaneIds = new Set<string>();
 
 	private getListeners(paneId: string): Set<() => void> {
 		let set = this.listenersByPaneId.get(paneId);
@@ -126,6 +132,37 @@ class BrowserRuntimeRegistryImpl {
 				if (entry.placeholder) this.updateLayout(entry);
 			}
 		});
+
+		electronTrpcClient.browser.onAgentActivePanes.subscribe(undefined, {
+			onData: ({ paneIds }: { paneIds: string[] }) => {
+				this.agentActivePaneIds = new Set(paneIds);
+				for (const [paneId, entry] of this.entries) {
+					if (!entry.visible) this.applyParkedStyle(paneId, entry);
+				}
+				// A session ending can leave more hidden webviews than the cap
+				// allows (they were exempt while attached) — sweep again.
+				this.scheduleHiddenEviction();
+			},
+		});
+	}
+
+	/**
+	 * Style for a parked (detached) webview. Default parking is
+	 * `visibility: hidden` — cheap, the guest compositor idles. While an
+	 * agent drives the pane it must stay presentable (frames keep flowing
+	 * for CDP screenshots and input hit-testing), so park it transparent and
+	 * click-through instead.
+	 */
+	private applyParkedStyle(paneId: string, entry: RegistryEntry): void {
+		const style = entry.webview.style;
+		if (this.agentActivePaneIds.has(paneId)) {
+			style.visibility = "visible";
+			style.opacity = "0";
+			style.pointerEvents = "none";
+		} else {
+			style.visibility = "hidden";
+			style.opacity = "";
+		}
 	}
 
 	private setWindowDragPassthrough(passthrough: boolean) {
@@ -433,6 +470,7 @@ class BrowserRuntimeRegistryImpl {
 
 		this.updateLayout(entry);
 		entry.webview.style.visibility = "visible";
+		entry.webview.style.opacity = "";
 		this.applyPointerPassthrough();
 	}
 
@@ -446,7 +484,7 @@ class BrowserRuntimeRegistryImpl {
 		entry.resizeObserver?.disconnect();
 		entry.resizeObserver = null;
 		entry.visible = false;
-		entry.webview.style.visibility = "hidden";
+		this.applyParkedStyle(paneId, entry);
 		entry.lastUsedAt = ++this.useSeq;
 		this.scheduleHiddenEviction();
 	}
@@ -472,6 +510,7 @@ class BrowserRuntimeRegistryImpl {
 		for (const victim of selectRuntimesToEvict(
 			candidates,
 			MAX_HIDDEN_WEBVIEWS,
+			(candidate) => this.agentActivePaneIds.has(candidate.paneId),
 		)) {
 			this.destroy(victim.paneId);
 		}
