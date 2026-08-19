@@ -37,13 +37,13 @@ import {
 	type GlassComposerHandle,
 	MUTED,
 } from "@/screens/(authenticated)/components/GlassComposer";
+import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import {
 	type ChatTarget,
 	useChatTargetStore,
 } from "../../stores/chatTargetStore";
 import { useAgentIconUri } from "./hooks/useAgentIconUri";
 import { useCreateCloudWorkspace } from "./hooks/useCreateCloudWorkspace";
-import { useCreateTerminalWorkspace } from "./hooks/useCreateTerminalWorkspace";
 import { useNewChatTargets } from "./hooks/useNewChatTargets";
 import { useStartWorkspaceTerminal } from "./hooks/useStartWorkspaceTerminal";
 import { useNewSessionPreferencesStore } from "./stores/newSessionPreferencesStore";
@@ -184,9 +184,15 @@ export function NewChatWidget({
 			return;
 		}
 		createTerminalWorkspace
-			.mutateAsync({ target: selectedTarget, baseBranch, agentId, message })
-			.then((result) => {
-				if (!result.agents[0]?.ok) return;
+			.mutateAsync({
+				target: selectedTarget,
+				baseBranch,
+				branchLabel,
+				agentId,
+				agentLabel: selectedAgent?.label ?? "Claude",
+				message,
+			})
+			.then(() => {
 				setBaseBranch(null);
 				composerRef.current?.clear();
 			})
