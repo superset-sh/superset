@@ -392,11 +392,16 @@ class BrowserManager extends EventEmitter {
 			cleanup();
 			onDetach(reason);
 		};
+		// Once the webContents is destroyed, any wc.debugger touch throws
+		// synchronously ("Object has been destroyed") — so every path below
+		// checks isDestroyed() before reaching for it.
 		const cleanup = () => {
 			if (closed) return;
 			closed = true;
-			wc.debugger.off("message", handleMessage);
-			wc.debugger.off("detach", handleDetach);
+			if (!wc.isDestroyed()) {
+				wc.debugger.off("message", handleMessage);
+				wc.debugger.off("detach", handleDetach);
+			}
 			this.cdpDetachers.delete(paneId);
 			releaseWake();
 		};
@@ -405,10 +410,11 @@ class BrowserManager extends EventEmitter {
 
 		const detach = () => {
 			cleanup();
+			if (wc.isDestroyed()) return;
 			try {
 				wc.debugger.detach();
 			} catch {
-				// webContents may be destroyed
+				// debugger may already be detached
 			}
 		};
 		// The forced path (pane unregistered while a client is attached) must
@@ -422,6 +428,17 @@ class BrowserManager extends EventEmitter {
 
 		return {
 			send: (rawMessage: string) => {
+				if (closed) return;
+				// A bridge message can arrive after the guest was torn down (pane
+				// closed while an agent's CDP client was mid-session). Close the
+				// session the way the forced-detach path does instead of letting
+				// the synchronous destroyed-webContents throw escape the ws
+				// message handler and take down the main process (DESKTOP-ZS).
+				if (wc.isDestroyed()) {
+					detach();
+					onDetach("pane closed");
+					return;
+				}
 				let parsed: {
 					id?: number;
 					method?: string;

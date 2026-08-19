@@ -260,6 +260,93 @@ describe("forced CDP detach", () => {
 		session.detach();
 	});
 
+	test("a live session forwards commands to the guest debugger", async () => {
+		const wc = register("pane-live");
+		const messages: Array<{ id?: number; result?: unknown }> = [];
+		const session = browserManager.attachCdp(
+			"pane-live",
+			"ws-1",
+			(payload) => messages.push(JSON.parse(payload)),
+			() => {},
+		);
+		const sendCommand = mock(async () => ({ value: 1 }));
+		wc.debugger.sendCommand = sendCommand;
+
+		session.send(
+			JSON.stringify({
+				id: 3,
+				method: "Runtime.evaluate",
+				params: { expression: "1" },
+			}),
+		);
+		for (let i = 0; i < 50 && messages.length === 0; i++) {
+			await new Promise((r) => setTimeout(r, 10));
+		}
+		session.detach();
+
+		expect(sendCommand).toHaveBeenCalledWith(
+			"Runtime.evaluate",
+			{ expression: "1" },
+			undefined,
+		);
+		expect(messages).toEqual([{ id: 3, result: { value: 1 } }]);
+	});
+
+	test("a send after the guest is destroyed detaches instead of throwing", () => {
+		const wc = register("pane-destroyed");
+		const onDetach = mock((_reason: string) => {});
+		const session = browserManager.attachCdp(
+			"pane-destroyed",
+			"ws-1",
+			() => {},
+			onDetach,
+		);
+		// Guest teardown mid-session: every wc.debugger touch now throws the way
+		// Electron's destroyed-WebContents binding does.
+		wc.isDestroyed = () => true;
+		const destroyedThrow = () => {
+			throw new TypeError("Object has been destroyed");
+		};
+		wc.debugger.off = destroyedThrow;
+		wc.debugger.detach = destroyedThrow;
+		wc.debugger.sendCommand = mock(destroyedThrow);
+
+		expect(() =>
+			session.send(JSON.stringify({ id: 1, method: "Runtime.enable" })),
+		).not.toThrow();
+		expect(onDetach).toHaveBeenCalledWith("pane closed");
+		expect(wc.debugger.sendCommand).not.toHaveBeenCalled();
+		expect(browserManager.getAgentActivePaneIds()).toEqual([]);
+
+		// The session is closed now — a second late message is a no-op.
+		expect(() =>
+			session.send(JSON.stringify({ id: 2, method: "Runtime.enable" })),
+		).not.toThrow();
+		expect(onDetach).toHaveBeenCalledTimes(1);
+	});
+
+	test("forced detach after the guest is destroyed does not throw", () => {
+		const wc = register("pane-destroyed-force");
+		const onDetach = mock((_reason: string) => {});
+		browserManager.attachCdp(
+			"pane-destroyed-force",
+			"ws-1",
+			() => {},
+			onDetach,
+		);
+		wc.isDestroyed = () => true;
+		const destroyedThrow = () => {
+			throw new TypeError("Object has been destroyed");
+		};
+		wc.debugger.off = destroyedThrow;
+		wc.debugger.detach = destroyedThrow;
+
+		expect(() =>
+			browserManager.unregister("pane-destroyed-force"),
+		).not.toThrow();
+		expect(onDetach).toHaveBeenCalledWith("pane closed");
+	});
+
 	test("agent-active events track attach and detach", () => {
 		register("pane-state");
 		const states: string[][] = [];
