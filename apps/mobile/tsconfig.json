@@ -6,6 +6,9 @@
 		"paths": {
 			"@/*": ["./*"],
 			"@superset/alert-prompt": ["./modules/alert-prompt/src/index.ts"],
+			"@superset/attachments-sheet": [
+				"./modules/attachments-sheet/src/index.ts"
+			],
 			"@superset/paste-input": ["./modules/paste-input/src/index.tsx"]
 		}
 	},

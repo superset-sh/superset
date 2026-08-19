@@ -69,13 +69,6 @@ export default ({ config }: ConfigContext) => ({
 		],
 		"expo-document-picker",
 		[
-			"expo-media-library",
-			{
-				photosPermission:
-					"Superset shows your recent photos so you can attach them to chats.",
-			},
-		],
-		[
 			"expo-speech-recognition",
 			{
 				microphonePermission:

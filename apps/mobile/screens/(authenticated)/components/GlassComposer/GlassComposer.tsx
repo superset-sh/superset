@@ -40,7 +40,6 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { type PasteImagesEvent, PasteInputView } from "@superset/paste-input";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import {
 	forwardRef,
 	type ReactNode,
@@ -58,6 +57,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { VoiceControl } from "./components/VoiceControl";
 import { FOREGROUND, PILL_RADIUS } from "./constants";
+import { useAttachmentsSheet } from "./hooks/useAttachmentsSheet";
 import { useVoiceDictation } from "./hooks/useVoiceDictation";
 
 const EXPAND_SPRING = Animation.spring({ duration: 0.35 });
@@ -149,7 +149,7 @@ export const GlassComposer = forwardRef<
 	},
 	ref,
 ) {
-	const router = useRouter();
+	const openAttachmentsSheet = useAttachmentsSheet();
 	const controller = usePromptInputController();
 	const fieldRef = useRef<TextFieldRef>(null);
 
@@ -293,7 +293,7 @@ export const GlassComposer = forwardRef<
 		<Button
 			onPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				router.push("/(authenticated)/attachments");
+				openAttachmentsSheet();
 			}}
 			modifiers={[
 				buttonStyle("bordered"),
