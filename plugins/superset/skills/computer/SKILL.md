@@ -18,10 +18,12 @@ targeted input without making the agent guess at stale screen coordinates.
 
 ## Set up Cua Driver
 
-1. Require `command -v cua-driver` and inspect `cua-driver --version`. Do not
-   silently install or upgrade it. If it is missing, ask the user to authorize
-   an installer from the [Cua Driver installation guide](https://cua.ai/docs/how-to-guides/driver/install).
-   On macOS or Linux, use:
+1. Confirm the installed executable with `command -v cua-driver` on macOS or
+   Linux, or `Get-Command cua-driver` in Windows PowerShell, then inspect
+   `cua-driver --version`. Do not silently install or upgrade it. If it is
+   missing, ask the user to authorize an installer from the [Cua Driver
+   installation guide](https://cua.ai/docs/how-to-guides/driver/install). On
+   macOS or Linux, use:
 
    ```bash
    /bin/bash -c "$(curl -fsSL https://cua.ai/driver/install.sh)"
@@ -31,6 +33,7 @@ targeted input without making the agent guess at stale screen coordinates.
 
    ```powershell
    irm https://cua.ai/driver/install.ps1 | iex
+   cua-driver autostart enable
    cua-driver autostart kick
    ```
 
@@ -99,12 +102,18 @@ the same window, navigation, modal transition, or substantial repaint.
 - Use `set_value` or `type_text` for accessible fields and `press_key` or
   `hotkey` for non-text keys.
 - Use `set_window_frame` for window geometry and verify it with `list_windows`.
-- For Chromium or Electron page content, bind the exact native window with
-  `get_browser_state`, then use `browser_click`, `browser_type`,
-  `browser_navigate`, and `browser_pointer` with fresh page refs.
-- Use pixel coordinates only for canvas, video, WebGL, or custom-drawn controls
-  absent from the accessibility tree. Coordinates must come from the same fresh
-  window snapshot used by the action.
+- For Chromium or Electron page content, discover the exact browser PID and
+  window ID, then call `get_browser_state`. If it reports
+  `browser_requires_setup`, call `browser_prepare` under its approval rules.
+  After preparation, use its returned PID to rediscover the window and call
+  `get_browser_state` again. Use the returned `target_id` and `tab_id` with
+  `browser_click`, `browser_type`, `browser_navigate`, and `browser_pointer`,
+  refreshing the page snapshot before each later browser action.
+- For browser pixel actions, `browser_click` and `browser_pointer` coordinates
+  must be viewport CSS pixels from the latest `get_browser_state` page
+  snapshot. For native pixel actions, use coordinates only for canvas, video,
+  WebGL, or custom-drawn controls absent from the accessibility tree, and take
+  them from the same fresh `get_window_state` snapshot used by the action.
 
 ## Handle failures conservatively
 
