@@ -1,13 +1,17 @@
 ---
 name: computer
-description: "Drive native desktop apps and system browser windows on macOS, Windows, or Linux with Cua Driver. Use when asked to open or operate a real app, click or type in a desktop UI, inspect a window, use a signed-in system-browser session, or verify an end-to-end GUI flow. Not for Superset's in-app browser pane, headless scraping, or tasks an API or CLI can complete directly."
+description: "Drive native desktop apps and system browser windows on macOS, Windows, or Linux through an accessibility-first driver (Cua Driver by default; Peekaboo supported on macOS). Use when asked to open or operate a real app, click or type in a desktop UI, inspect a window, use a signed-in system-browser session, or verify an end-to-end GUI flow. Not for Superset's in-app browser pane, headless scraping, or tasks an API or CLI can complete directly."
 ---
 
 # Superset Computer Control
 
-Operate the user's real desktop with the `cua-driver` CLI. Cua Driver exposes
-accessibility snapshots, exact window screenshots, native menu operations, and
-targeted input without making the agent guess at stale screen coordinates.
+Operate the user's real desktop through an accessibility-first driver: a local
+CLI that exposes accessibility snapshots, exact window screenshots, native menu
+operations, and targeted input without making the agent guess at stale screen
+coordinates. The contract in this skill — preflight, task-scoped session,
+snapshot → act → verify, semantic operations first, conservative failure
+handling, clean teardown — is driver-agnostic. The command reference below is
+for Cua Driver, the default.
 
 ## Choose the right surface
 
@@ -16,7 +20,21 @@ targeted input without making the agent guess at stale screen coordinates.
 - Prefer an application API, purpose-built CLI, or direct filesystem operation
   when the requested result does not require GUI interaction.
 
-## Set up Cua Driver
+## Choose a driver
+
+- If the user names a driver, use that one.
+- Otherwise use whichever supported driver is already installed:
+  [Cua Driver](https://cua.ai/docs/cua-driver) (`cua-driver`, cross-platform,
+  the default) or [Peekaboo](https://peekaboo.sh) (`peekaboo`, macOS only). If
+  both are installed, use Cua Driver and mention the alternative once.
+- If neither is installed, ask the user which to install before installing
+  anything; recommend Cua Driver unless the user is macOS-only and prefers
+  Peekaboo.
+- With a driver other than Cua Driver, apply this skill's contract through that
+  driver's own command surface — discover it with the driver's help output and
+  documentation rather than assuming the Cua command shapes below.
+
+## Set up Cua Driver (default)
 
 1. Confirm the installed executable with `command -v cua-driver` on macOS or
    Linux, or `Get-Command cua-driver` in Windows PowerShell, then inspect
