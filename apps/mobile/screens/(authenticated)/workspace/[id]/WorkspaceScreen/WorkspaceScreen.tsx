@@ -1,6 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { CloudOff, Plus, SquareTerminal } from "lucide-react-native";
+import {
+	CloudOff,
+	Plus,
+	SquareTerminal,
+	TriangleAlert,
+} from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
@@ -43,6 +48,7 @@ import {
 	TerminalWebView,
 	type TerminalWebViewHandle,
 } from "../components/TerminalWebView";
+import { useHostCompatibility } from "../hooks/useHostCompatibility";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
 import { orderTerminalRows } from "../utils/orderTerminalRows";
 import { WorkspaceCreateFailedState } from "./components/WorkspaceCreateFailedState";
@@ -210,6 +216,7 @@ export function WorkspaceScreen() {
 	const hostUrl = host
 		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
+	const hostCompatibility = useHostCompatibility(hostUrl);
 
 	// The + sheet lands back here via dismissTo with the new session in
 	// ?tab= — adopt it over any manual pick so the fresh tab activates.
@@ -343,7 +350,10 @@ export function WorkspaceScreen() {
 	}, []);
 
 	const banner = STATE_BANNERS[connectionState];
-	const showComposer = activeTerminalId !== null && host !== null;
+	const showComposer =
+		activeTerminalId !== null &&
+		host !== null &&
+		!hostCompatibility.incompatible;
 
 	const attachmentTarget = useMemo(
 		() =>
@@ -442,7 +452,15 @@ export function WorkspaceScreen() {
 					marginBottom: showComposer ? composerHeight + composerBottom : 0,
 				}}
 			>
-				{activeTerminalId && host && id ? (
+				{hostCompatibility.incompatible ? (
+					<WorkspacePlaceholder
+						body={`${host?.name ?? "This host"} is running host service ${hostCompatibility.hostVersion} — this app needs ${hostCompatibility.minVersion} or newer. Update Superset on that machine.`}
+						icon={TriangleAlert}
+						onRefresh={onRefresh}
+						refreshing={refreshing}
+						title="This host needs an update"
+					/>
+				) : activeTerminalId && host && id ? (
 					<>
 						<TerminalWebView
 							ref={terminalRef}
