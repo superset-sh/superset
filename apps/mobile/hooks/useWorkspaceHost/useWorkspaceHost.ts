@@ -1,19 +1,30 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { sandboxWorkspacesQuery } from "@/hooks/useCloudWorkspaceItems";
+import {
+	type CloudWorkspaceRow,
+	useCloudWorkspaces,
+} from "@/hooks/useCloudWorkspaces";
 import { useHostsPresence } from "@/hooks/useHostsPresence";
 import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
 import { NO_HOSTS, type OrgHost, useOrgHostsQuery } from "@/hooks/useOrgHosts";
+import { useSandboxAccess } from "@/hooks/useSandboxAccess";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 
 export interface WorkspaceHostResult {
 	workspace: HostWorkspaceRow | null;
 	host: OrgHost | null;
+	/**
+	 * The cloud row when the id names a cloud workspace — present from the
+	 * moment it is created, long before a sandbox serves it. Null otherwise.
+	 */
+	cloud: CloudWorkspaceRow | null;
 	/** True while no host has answered yet. */
 	isResolving: boolean;
 }
@@ -22,6 +33,10 @@ export interface WorkspaceHostResult {
  * Locate a workspace's row (and owning host) by asking each online host.
  * Query keys match useHostWorkspaces, so navigating from the list resolves
  * straight from cache.
+ *
+ * A cloud workspace has no host row: its sandbox is its own host, keyed by
+ * the workspace's id and addressed through a brokered token, so it is looked
+ * up in the cloud list first and asked directly.
  */
 export function useWorkspaceHost(
 	workspaceId: string | null,
@@ -30,34 +45,76 @@ export function useWorkspaceHost(
 	const hosts = hostsQuery.data ?? NO_HOSTS;
 	const presence = useHostsPresence(hosts);
 
+	const { workspaces: cloudRows, isReady: cloudReady } = useCloudWorkspaces();
+	const cloud = useMemo(
+		() => cloudRows.find((row) => row.id === workspaceId) ?? null,
+		[cloudRows, workspaceId],
+	);
+	const cloudTargets = useMemo(() => (cloud ? [cloud] : []), [cloud]);
+	const { targets: sandboxes, isReady: sandboxReady } =
+		useSandboxAccess(cloudTargets);
+	const sandbox = sandboxes[0] ?? null;
+
 	const targets = useMemo(
 		() =>
-			hosts
-				.map((host) => ({
-					...host,
-					isOnline: presence?.get(host.machineId) ?? host.isOnline,
-				}))
-				.filter((host) => host.isOnline)
-				.map((host) => ({
-					host,
-					hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
-				})),
-		[hosts, presence],
+			cloud
+				? []
+				: hosts
+						.map((host) => ({
+							...host,
+							isOnline: presence?.get(host.machineId) ?? host.isOnline,
+						}))
+						.filter((host) => host.isOnline)
+						.map((host) => ({
+							host,
+							hostUrl: hostServiceUrl(host.organizationId, host.machineId),
+						})),
+		[cloud, hosts, presence],
 	);
 
 	const queries = useQueries({
-		queries: targets.map(({ host, hostUrl }) => ({
-			queryKey: getHostWorkspacesQueryKey(host.machineId, hostUrl),
-			enabled: workspaceId !== null,
-			staleTime: 30_000,
-			retry: 1,
-			networkMode: "always" as const,
-			queryFn: async (): Promise<HostWorkspaceRow[]> =>
-				getHostServiceClientByUrl(hostUrl).workspace.list.query(),
-		})),
+		queries: [
+			...(sandbox ? [sandboxWorkspacesQuery(sandbox)] : []),
+			...targets.map(({ host, hostUrl }) => ({
+				queryKey: getHostWorkspacesQueryKey(host.machineId, hostUrl),
+				enabled: workspaceId !== null,
+				staleTime: 30_000,
+				retry: 1,
+				networkMode: "always" as const,
+				queryFn: async (): Promise<HostWorkspaceRow[]> =>
+					getHostServiceClientByUrl(hostUrl).workspace.list.query(),
+			})),
+		],
 	});
 
 	return useMemo(() => {
+		if (cloud) {
+			const served = sandbox ? queries[0] : undefined;
+			const servedRow =
+				served?.data?.find((row) => row.id === workspaceId) ?? null;
+			// The cloud row owns the name — it is what created, named and lists
+			// the workspace; the sandbox's own row is scratch that a rename
+			// never reaches. Live git state still comes from the sandbox.
+			const workspace = servedRow ? { ...servedRow, name: cloud.name } : null;
+			return {
+				workspace,
+				host: workspace
+					? {
+							organizationId: cloud.organizationId,
+							machineId: cloud.id,
+							name: "Cloud",
+							// A sandbox is reachable or it isn't; there is no offline
+							// device behind it to report on.
+							isOnline: true,
+						}
+					: null,
+				cloud,
+				isResolving:
+					!workspace &&
+					cloud.status === "ready" &&
+					(!sandboxReady || served?.isLoading === true),
+			};
+		}
 		let workspace: HostWorkspaceRow | null = null;
 		let host: OrgHost | null = null;
 		targets.forEach(({ host: target }, index) => {
@@ -70,7 +127,18 @@ export function useWorkspaceHost(
 		});
 		const isResolving =
 			!workspace &&
-			(hostsQuery.isLoading || queries.some((query) => query.isLoading));
-		return { workspace, host, isResolving };
-	}, [targets, queries, workspaceId, hostsQuery.isLoading]);
+			(hostsQuery.isLoading ||
+				!cloudReady ||
+				queries.some((query) => query.isLoading));
+		return { workspace, host, cloud: null, isResolving };
+	}, [
+		cloud,
+		sandbox,
+		sandboxReady,
+		targets,
+		queries,
+		workspaceId,
+		hostsQuery.isLoading,
+		cloudReady,
+	]);
 }

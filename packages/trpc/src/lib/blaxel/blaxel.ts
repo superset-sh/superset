@@ -178,7 +178,25 @@ export async function deleteSandbox(providerSandboxId: string): Promise<void> {
 	try {
 		await SandboxInstance.delete(providerSandboxId);
 	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		if (!/not found|404/i.test(message)) throw error;
+		if (!isSandboxNotFound(error)) throw error;
 	}
+}
+
+/**
+ * The SDK's not-found error carries the status on the object, not in the
+ * message — its `message` is empty — so a text match alone lets a workspace
+ * whose sandbox never came up (a failed provision, or one already torn down)
+ * refuse deletion forever.
+ */
+function isSandboxNotFound(error: unknown): boolean {
+	if (typeof error === "object" && error !== null) {
+		const { code, error: reason } = error as {
+			code?: unknown;
+			error?: unknown;
+		};
+		if (code === 404) return true;
+		if (typeof reason === "string" && /not found/i.test(reason)) return true;
+	}
+	const message = error instanceof Error ? error.message : String(error);
+	return /not found|404/i.test(message);
 }

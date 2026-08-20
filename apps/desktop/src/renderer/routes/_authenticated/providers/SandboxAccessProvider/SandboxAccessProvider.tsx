@@ -1,10 +1,7 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useQueries } from "@tanstack/react-query";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { authClient } from "renderer/lib/auth-client";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { setSandboxCredentials } from "renderer/lib/host-service-auth";
 
 /** Re-mint with time to spare; the provider's token is short-lived. */
@@ -37,13 +34,14 @@ const SandboxAccessContext = createContext<SandboxAccessValue | null>(null);
  * one they light up with no cloud-specific code.
  */
 export function SandboxAccessProvider({ children }: { children: ReactNode }) {
-	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const { workspaces: cloudWorkspaces, organizationId } = useCloudWorkspaces();
 
-	const { data: workspaces = [] } = cloudTrpc.cloudWorkspace.list.useQuery(
-		{ organizationId: organizationId ?? "" },
-		{ enabled: Boolean(enabled && organizationId), refetchInterval: 30_000 },
+	// Only a `ready` row has a sandbox to address: `access` refuses anything
+	// else, and a provisioning workspace asking for a token every few seconds
+	// would be a retry loop against a guaranteed rejection.
+	const workspaces = useMemo(
+		() => cloudWorkspaces.filter((workspace) => workspace.status === "ready"),
+		[cloudWorkspaces],
 	);
 
 	const results = useQueries({

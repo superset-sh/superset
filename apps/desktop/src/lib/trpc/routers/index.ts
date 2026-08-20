@@ -5,7 +5,6 @@ import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
 import { createBrowserRouter } from "./browser/browser";
 import { createBrowserHistoryRouter } from "./browser-history";
-import { createCacheRouter } from "./cache";
 import { createChangesRouter } from "./changes";
 import { createChatServiceRouter } from "./chat-service";
 import { createConfigRouter } from "./config";
@@ -38,7 +37,6 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		browserHistory: createBrowserHistoryRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
-		cache: createCacheRouter(),
 		window: createWindowRouter(getWindow),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),

@@ -9,20 +9,30 @@ Uniwind.setTheme("dark");
 
 const preview: Preview = {
 	decorators: [
-		(Story) => (
-			<GestureHandlerRootView style={{ flex: 1 }}>
-				<View className="bg-background flex-1">
-					<ScrollView
-						className="flex-1"
-						contentContainerClassName="grow items-center justify-center gap-4 p-6"
-						alwaysBounceVertical
-					>
-						<Story />
-					</ScrollView>
-					<PortalHost />
-				</View>
-			</GestureHandlerRootView>
-		),
+		(Story, context) => {
+			// Screen-width components own their own margins, so the usual preview
+			// padding would render them narrower than they ever are on device —
+			// and every gap read off them would be wrong.
+			const fullBleed = context.parameters.fullBleed === true;
+			return (
+				<GestureHandlerRootView style={{ flex: 1 }}>
+					<View className="bg-background flex-1">
+						<ScrollView
+							alwaysBounceVertical
+							className="flex-1"
+							contentContainerClassName={
+								fullBleed
+									? "grow justify-center py-6"
+									: "grow items-center justify-center gap-4 p-6"
+							}
+						>
+							<Story />
+						</ScrollView>
+						<PortalHost />
+					</View>
+				</GestureHandlerRootView>
+			);
+		},
 	],
 	parameters: {},
 };

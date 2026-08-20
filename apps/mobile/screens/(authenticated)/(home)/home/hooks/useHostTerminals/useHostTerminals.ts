@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 
@@ -10,6 +10,13 @@ export interface TerminalsHost {
 	organizationId: string;
 	machineId: string;
 	isOnline: boolean;
+	/**
+	 * Poll cadence override. Session marks on a list can be lazier than the
+	 * tab strip of an open workspace — and the query key is shared, so when a
+	 * workspace screen also observes this host, its faster interval wins for
+	 * as long as it is open.
+	 */
+	refetchIntervalMs?: number;
 }
 
 export type TerminalAttention = "working" | "permission" | "failed" | "review";
@@ -79,81 +86,94 @@ export interface UseHostTerminalsResult {
 }
 
 /**
- * Live terminals served by one host over the relay — the host-wide
- * `terminal.list` joined with `terminalAgents.list` by terminalId. Terminals
- * are the rows (they're the attachable unit and outlive their agent);
- * bindings supply what terminals can't: agent identity and attention.
+ * Live terminals served by a set of hosts — the host-wide `terminal.list`
+ * joined with `terminalAgents.list` by terminalId, merged across hosts.
+ * Terminals are the rows (they're the attachable unit and outlive their
+ * agent); bindings supply what terminals can't: agent identity and attention.
+ * Home passes the selected machine plus every addressed sandbox, so cloud
+ * rows carry session marks the same way.
  */
-export function useHostTerminals(
-	host: TerminalsHost | null,
+export function useHostsTerminals(
+	hosts: TerminalsHost[],
 ): UseHostTerminalsResult {
-	const hostUrl = host?.isOnline
-		? buildRelayHostUrl(host.organizationId, host.machineId)
-		: null;
 	const terminalSeenAt = useTerminalSeenStore((state) => state.terminalSeenAt);
 
-	const query = useQuery({
-		queryKey: getHostTerminalsQueryKey(host?.machineId ?? null),
-		enabled: hostUrl !== null,
-		refetchInterval: TERMINALS_REFETCH_INTERVAL_MS,
-		refetchIntervalInBackground: false,
-		refetchOnWindowFocus: false,
-		retry: 1,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!hostUrl) return { sessions: [], bindings: [] };
-			const client = getHostServiceClientByUrl(hostUrl);
-			const [listed, bindings] = await Promise.all([
-				client.terminal.list.query({}),
-				client.terminalAgents.list.query(),
-			]);
-			return { sessions: listed.sessions, bindings };
-		},
+	const online = useMemo(
+		() =>
+			hosts
+				.filter((host) => host.isOnline)
+				.map((host) => ({
+					machineId: host.machineId,
+					hostUrl: hostServiceUrl(host.organizationId, host.machineId),
+					refetchIntervalMs:
+						host.refetchIntervalMs ?? TERMINALS_REFETCH_INTERVAL_MS,
+				})),
+		[hosts],
+	);
+
+	const queries = useQueries({
+		queries: online.map((host) => ({
+			queryKey: getHostTerminalsQueryKey(host.machineId),
+			refetchInterval: host.refetchIntervalMs,
+			refetchIntervalInBackground: false,
+			refetchOnWindowFocus: false,
+			retry: 1,
+			networkMode: "always" as const,
+			queryFn: async () => {
+				const client = getHostServiceClientByUrl(host.hostUrl);
+				const [listed, bindings] = await Promise.all([
+					client.terminal.list.query({}),
+					client.terminalAgents.list.query(),
+				]);
+				return { sessions: listed.sessions, bindings };
+			},
+		})),
 	});
 
 	return useMemo(() => {
 		const terminalsByWorkspace = new Map<string, TerminalRowData[]>();
 		const attentionByWorkspace = new Map<string, TerminalAttention>();
-		const online = host?.isOnline ?? false;
-		const bindingsByTerminal = new Map(
-			(online ? (query.data?.bindings ?? []) : []).map((binding) => [
-				binding.terminalId,
-				binding,
-			]),
-		);
 
-		for (const session of online ? (query.data?.sessions ?? []) : []) {
-			if (session.exited) continue;
-			const binding = bindingsByTerminal.get(session.terminalId);
-			const attention = binding
-				? attentionFromEvent(
-						binding.lastEventType,
-						binding.lastEventAt,
-						terminalSeenAt[session.terminalId],
-					)
-				: null;
-			const row: TerminalRowData = {
-				terminalId: session.terminalId,
-				workspaceId: session.workspaceId,
-				title: session.title ?? (binding ? binding.agentId : "Terminal"),
-				ts: binding?.lastEventAt ?? session.createdAt,
-				createdAt: session.createdAt,
-				lastEventAt: binding?.lastEventAt ?? null,
-				agentId: binding?.agentId ?? null,
-				attention,
-			};
-			const group = terminalsByWorkspace.get(session.workspaceId);
-			if (group) group.push(row);
-			else terminalsByWorkspace.set(session.workspaceId, [row]);
+		for (const query of queries) {
+			const bindingsByTerminal = new Map(
+				(query.data?.bindings ?? []).map((binding) => [
+					binding.terminalId,
+					binding,
+				]),
+			);
+			for (const session of query.data?.sessions ?? []) {
+				if (session.exited) continue;
+				const binding = bindingsByTerminal.get(session.terminalId);
+				const attention = binding
+					? attentionFromEvent(
+							binding.lastEventType,
+							binding.lastEventAt,
+							terminalSeenAt[session.terminalId],
+						)
+					: null;
+				const row: TerminalRowData = {
+					terminalId: session.terminalId,
+					workspaceId: session.workspaceId,
+					title: session.title ?? (binding ? binding.agentId : "Terminal"),
+					ts: binding?.lastEventAt ?? session.createdAt,
+					createdAt: session.createdAt,
+					lastEventAt: binding?.lastEventAt ?? null,
+					agentId: binding?.agentId ?? null,
+					attention,
+				};
+				const group = terminalsByWorkspace.get(session.workspaceId);
+				if (group) group.push(row);
+				else terminalsByWorkspace.set(session.workspaceId, [row]);
 
-			// Stale statuses are worse than none: attention only from live data.
-			if (attention) {
-				const existing = attentionByWorkspace.get(session.workspaceId);
-				if (
-					!existing ||
-					ATTENTION_PRIORITY[attention] > ATTENTION_PRIORITY[existing]
-				) {
-					attentionByWorkspace.set(session.workspaceId, attention);
+				// Stale statuses are worse than none: attention only from live data.
+				if (attention) {
+					const existing = attentionByWorkspace.get(session.workspaceId);
+					if (
+						!existing ||
+						ATTENTION_PRIORITY[attention] > ATTENTION_PRIORITY[existing]
+					) {
+						attentionByWorkspace.set(session.workspaceId, attention);
+					}
 				}
 			}
 		}
@@ -163,14 +183,15 @@ export function useHostTerminals(
 		return {
 			terminalsByWorkspace,
 			attentionByWorkspace,
-			isReady: hostUrl === null || query.isSuccess || query.isError,
+			isReady: queries.every((query) => query.isSuccess || query.isError),
 		};
-	}, [
-		query.data,
-		query.isSuccess,
-		query.isError,
-		host?.isOnline,
-		hostUrl,
-		terminalSeenAt,
-	]);
+	}, [queries, terminalSeenAt]);
+}
+
+/** One host's terminals — see `useHostsTerminals`. */
+export function useHostTerminals(
+	host: TerminalsHost | null,
+): UseHostTerminalsResult {
+	const hosts = useMemo(() => (host ? [host] : []), [host]);
+	return useHostsTerminals(hosts);
 }

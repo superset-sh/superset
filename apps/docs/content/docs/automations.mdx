@@ -31,12 +31,14 @@ Click **Automations → New automation** and fill in:
 - **Prompt**: the instructions the agent will receive at dispatch time. Supports markdown, `@file/path` mentions (scoped to the selected project), `:emoji:` shortcodes, and `/` slash commands.
 - **Device**: which host runs the session. Defaults to this device.
 - **Project**: the v2 project the session runs against, or **No project** for a session per run.
-- **Schedule**: pick a preset or enter a custom RRule. All times are in your local timezone.
+- **Schedule**: pick a preset or enter a custom RRule. Times use your timezone at creation.
 - **Agent**: Claude, Codex, Amp, or anything else you've set up under **Settings → Agents**.
 
-## Schedules
+## Triggers and Schedules
 
-Schedules are stored as [RFC 5545 RRules](https://datatracker.ietf.org/doc/html/rfc5545#section-3.8.5). The schedule picker has presets for common cadences; use **Custom RRule…** for anything else. Custom rules are validated before saving; invalid ones show an inline error.
+On the automation's detail page, schedules live in a **Triggers** list; each row shows its cadence and next run inline. **Add Trigger** adds another schedule: one automation can fire on several cadences, and every automation needs at least one trigger. Hover a row to remove it. Edits are drafts until you press **Save triggers** (or **Discard**).
+
+Schedules are stored as [RFC 5545 RRules](https://datatracker.ietf.org/doc/html/rfc5545#section-3.8.5). The picker has presets for common cadences (Hourly, Daily, Weekdays, Weekly); use **Custom** for anything else. Custom rules are validated inline: invalid rules, rules with no upcoming runs, and one-shot rules (`COUNT`/`UNTIL`) are rejected before saving.
 
 Examples:
 
@@ -60,7 +62,7 @@ When a run dispatches in "new workspace" mode, a fresh workspace is created from
 
 From the automation's detail page (**Settings** tab):
 
-- **Pause**: flip the Active switch. Runs are kept, and a paused automation still shows when it *would* next run, so schedule edits are previewable.
+- **Pause**: flip the Active switch. Runs are kept, and each schedule row on a paused automation still shows when it *would* next run, so schedule edits are previewable.
 - **Run now**: dispatches immediately. The run appears under **Run History** within seconds.
 - **Delete**: in the ⋯ overflow menu; removes the automation and its run history.
 
@@ -73,7 +75,7 @@ On the **Mine** tab, **Retry all** appears in the header when any of your automa
 - **At-least-once delivery**: Automations may dispatch more than once in rare cases (e.g. dispatcher retries). Design prompts that are safe to re-run.
 - **No agent-outcome tracking**: a successful run means its workspace was created; the detail page doesn't show whether the agent's work succeeded. Open the workspace to see what happened.
 - **Offline hosts fail the run**: if the target device is offline at fire time, the run records as failed and the next occurrence is scheduled normally. Use **Retry all** once the device is back.
-- **One prompt per automation**: Each automation has one prompt. To run multiple prompts on a schedule, create multiple automations.
+- **One prompt per automation**: Each automation has one prompt (though it can have several schedule triggers). To run multiple prompts on a schedule, create multiple automations.
 
 ## CLI
 

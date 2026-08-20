@@ -37,6 +37,8 @@ You can also right-click a project in the sidebar and choose **Import untracked 
 
 A **session** is a workspace without a project. Pick **No project** in the new-workspace picker, or click **+** on the sidebar's **Sessions** section. Each session gets its own git-initialized folder under `~/.superset/sessions`. Terminals, agents, chat, and the Changes panel work as usual; there's no branch or PR link.
 
+Sessions created outside the app (by the CLI or a session-mode automation) appear in the sidebar's **Sessions** section automatically. Placement happens once: if you later remove one from the sidebar, it stays removed.
+
 From the CLI, omit `--project`:
 
 ```bash
@@ -55,7 +57,12 @@ Keep active workspaces at the top of the sidebar:
 
 ## List and Board Views
 
-The workspaces page toggles between a list and a kanban board. Board columns follow workspace state, derived from agent status and PR state: **Idle**, **Working**, **Needs attention**, **Needs review**, **Merged**, and **Deleted**. Merged and Deleted are history: deleted workspaces keep a card instead of vanishing. Filters are shared between both layouts and sync to the URL.
+The workspaces page toggles between **List** and **Board** layouts; Board is the default. Board columns follow workspace state, derived from agent status and PR state: **Idle**, **Working**, **Needs attention**, **Needs review**, **Merged**, and **Deleted**. Merged and Deleted are history: deleted workspaces keep a card instead of vanishing, and both auto-hide while empty when Archived is **Hidden** (the default).
+
+Toolbar controls live in two menus, shared by both layouts:
+
+- **Filter** - Project, PR state, Agent, Pinned (All workspaces / Pinned / Unpinned), and Device. Active filters show a count badge and sync to the URL.
+- **Display** - **Sort by**, the **Archived** window (Hidden, Past week, Past month, All), and, in Board view, **Lanes**: a checkbox per column to hide or show it. Lane visibility stays out of the URL and resets on restart.
 
 ## Ahead/Behind Status
 

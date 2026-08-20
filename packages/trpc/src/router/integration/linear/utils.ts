@@ -2,7 +2,7 @@ import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
-import { REFRESH_BUFFER_MS } from "./constants";
+import { markDisconnected, REFRESH_BUFFER_MS } from "../token-refresh";
 import { isLinearAuthError, refreshLinearToken } from "./refresh";
 
 type Priority = "urgent" | "high" | "medium" | "low" | "none";
@@ -57,7 +57,7 @@ export async function getLinearClient(
 
 	if (expiresSoon) {
 		if (!connection.refreshToken) {
-			await markConnectionDisconnected(connection.id, "no_refresh_token");
+			await markDisconnected(connection.id, "no_refresh_token");
 			return null;
 		}
 		try {
@@ -76,14 +76,4 @@ export async function getLinearClient(
 	}
 
 	return new LinearClient({ accessToken: connection.accessToken });
-}
-
-export async function markConnectionDisconnected(
-	connectionId: string,
-	reason: string,
-): Promise<void> {
-	await db
-		.update(integrationConnections)
-		.set({ disconnectedAt: new Date(), disconnectReason: reason })
-		.where(eq(integrationConnections.id, connectionId));
 }

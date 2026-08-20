@@ -3,8 +3,6 @@ import { execWithShellEnv } from "../workspaces/utils/shell-env";
 
 export type GithubStarState = "starred" | "not_starred" | "unknown";
 
-// Matches COMPANY.GITHUB_URL ("https://github.com/superset-sh/superset") in
-// packages/shared/src/constants.ts, used by the renderer for the browser fallback.
 const STARRED_REPO_PATH = "user/starred/superset-sh/superset";
 // A hung `gh` process must not leave the query/mutation pending forever —
 // both callers already treat any failure as a safe "unknown"/false outcome.
@@ -17,8 +15,9 @@ const GH_CALL_TIMEOUT_MS = 10_000;
  * Checks whether the signed-in `gh` CLI user has starred superset-sh/superset.
  * GitHub returns 204 for "starred", 404 for "not starred". Every other
  * outcome (gh missing/unauthenticated, network error, rate limit) collapses
- * to "unknown" so callers always have a safe web-fallback state instead of
- * an error to handle.
+ * to "unknown" so callers always have a safe fallback value instead of an
+ * error to handle — renderer surfaces treat "unknown" as "not actionable"
+ * and hide/disable their star button rather than offering a distinct CTA.
  */
 export async function checkGithubStarred(): Promise<GithubStarState> {
 	try {

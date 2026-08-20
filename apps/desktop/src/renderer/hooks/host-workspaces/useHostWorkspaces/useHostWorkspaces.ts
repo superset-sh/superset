@@ -26,6 +26,13 @@ export interface HostWorkspacesCacheOps {
 	/** Resolve the URL to reach the host owning `hostId` (null = unreachable). */
 	resolveHostUrl: (hostId: string) => string | null;
 	/**
+	 * Whether `hostId` is a cloud sandbox. Callers that hold a socket per host
+	 * ask this before subscribing: the provider counts a held connection as
+	 * activity, so a background subscription keeps a sandbox's VM awake for as
+	 * long as the app is open. Connect to a sandbox only while it is in view.
+	 */
+	isSandboxHost: (hostId: string) => boolean;
+	/**
 	 * Optimistically upsert a row into a host's cached list. The host's
 	 * `workspace:changed` broadcast (or the next refetch) converges the
 	 * cache onto the real row.
@@ -217,10 +224,20 @@ export function useHostWorkspacesSource(
 
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list without a refetch.
+	//
+	// Not for sandboxes. The provider counts a held connection as activity, so
+	// subscribing here would keep every cloud workspace's VM awake for as long
+	// as the app is open — ten in the sidebar, ten warm machines, whether or not
+	// anyone is looking at them. And there is nothing to be gained: a sandbox
+	// holds exactly one workspace whose identity the cloud row owns; the only
+	// field read off its served row is the branch, which has a fallback and can
+	// only change while someone is inside it — when the open workspace's own
+	// subscribers hold a socket anyway. Sandboxes are polled, and connected to
+	// only while open.
 	useEffect(() => {
 		const cleanups: Array<() => void> = [];
 		for (const target of targets) {
-			if (!target.hostUrl) continue;
+			if (!target.hostUrl || target.isSandbox) continue;
 			const hostUrl = target.hostUrl;
 			const bus = getHostEventBus(hostUrl);
 			const removeListener = bus.on(
@@ -366,6 +383,7 @@ export function useHostWorkspacesSource(
 			targets.find((target) => target.machineId === hostId);
 		return {
 			resolveHostUrl: (hostId) => targetFor(hostId)?.hostUrl ?? null,
+			isSandboxHost: (hostId) => targetFor(hostId)?.isSandbox === true,
 			upsertWorkspace: (row) => {
 				const target = targetFor(row.hostId);
 				if (!target) return;

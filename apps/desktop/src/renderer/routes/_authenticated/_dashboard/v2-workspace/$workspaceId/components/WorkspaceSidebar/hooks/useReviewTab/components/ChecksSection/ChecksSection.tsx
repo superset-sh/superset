@@ -40,11 +40,11 @@ export function ChecksSection({
 }: ChecksSectionProps) {
 	const [open, setOpen] = useState(true);
 
+	// Mirrors computeChecksRollup: a cancelled check is a relevant failure, not
+	// excluded like a skipped one — otherwise this list (and the passing-count
+	// text below) can quietly hide the very check that made checksStatus red.
 	const relevantChecks = useMemo(
-		() =>
-			checks.filter(
-				(check) => check.status !== "skipped" && check.status !== "cancelled",
-			),
+		() => checks.filter((check) => check.status !== "skipped"),
 		[checks],
 	);
 

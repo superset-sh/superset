@@ -1,5 +1,5 @@
-import { Heading, Section, Text } from "@react-email/components";
-import { EmailLayout } from "../../components";
+import { Heading, Hr, Text } from "@react-email/components";
+import { DetailRow, EmailLayout } from "../../components";
 
 interface MemberAddedBillingEmailProps {
 	ownerName?: string | null;
@@ -24,45 +24,30 @@ export function MemberAddedBillingEmail({
 		<EmailLayout
 			preview={`Billing update: ${newMemberName} was added to ${organizationName}`}
 		>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
-				New member added to <strong>{organizationName}</strong>
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
+				New member added to {organizationName}
 			</Heading>
 
-			<Text className="text-base leading-[26px] mb-4 text-foreground">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				Hi {ownerName ?? "there"},
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				{addedByName} added a new member to <strong>{organizationName}</strong>:
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-2">
+				{addedByName} added <strong>{newMemberName}</strong> ({newMemberEmail})
+				to <strong>{organizationName}</strong>. Your subscription has been
+				updated:
 			</Text>
 
-			<Section className="bg-[#f9fafb] rounded-lg p-4 mb-4">
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>{newMemberName}</strong>
-				</Text>
-				<Text className="text-sm leading-5 text-muted m-0">
-					{newMemberEmail}
-				</Text>
-			</Section>
+			<Hr className="border-border my-4" />
+			<DetailRow label="Seats" value={String(newSeatCount)} />
+			<DetailRow label="New monthly total" value={newMonthlyTotal} />
+			<Hr className="border-border my-4" />
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				Your subscription has been updated:
+			<Text className="text-[13px] leading-5 text-muted m-0 mb-4">
+				Your next invoice will include the prorated amount.
 			</Text>
 
-			<Section className="bg-[#f9fafb] rounded-lg p-4 mb-4">
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>Seats:</strong> {newSeatCount}
-				</Text>
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>New monthly total:</strong> {newMonthlyTotal}
-				</Text>
-			</Section>
-
-			<Text className="text-sm leading-5 text-muted mb-4">
-				The prorated amount will be reflected in your next invoice.
-			</Text>
-
-			<Text className="text-xs leading-5 text-muted">
+			<Text className="text-[13px] leading-5 text-muted m-0">
 				You're receiving this because you're an owner of {organizationName}.
 			</Text>
 		</EmailLayout>

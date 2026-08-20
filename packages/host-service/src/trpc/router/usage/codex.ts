@@ -100,8 +100,13 @@ function mapWindows(usage: CodexUsageResponse): UsageQuotaWindow[] {
 
 export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 	const homes = await discoverCodexHomes();
+	// The first discovered home is what codex uses with no CODEX_HOME override
+	// (see discoverCodexHomes) — running on it needs no env injection.
+	const defaultHome = homes[0]?.home ?? null;
 	const accounts = await Promise.all(
-		homes.map((home) => fetchCodexAccountForHome(home.home)),
+		homes.map((home) =>
+			fetchCodexAccountForHome(home.home, home.home === defaultHome),
+		),
 	);
 	// Dedupe by account email — one login used from several homes is one
 	// account; keep the first (default home wins).
@@ -116,6 +121,7 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 
 async function fetchCodexAccountForHome(
 	codexHome: string,
+	isDefaultHome: boolean,
 ): Promise<UsageAccount[]> {
 	const authPath = join(codexHome, "auth.json");
 
@@ -133,6 +139,9 @@ async function fetchCodexAccountForHome(
 		accountKey: authPath,
 		sourceLabel: codexHome.replace(homedir(), "~"),
 		extraUsage: null,
+		selection: isDefaultHome ? null : codexHome,
+		// Decorated per-query from host settings; the quota cache outlives it.
+		isDefault: false,
 		fetchedAt: new Date(),
 	};
 

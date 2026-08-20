@@ -1,0 +1,23 @@
+extends: existence
+message: "'%s' is on the AI-tell vocabulary ban list (Kiet's voice doc); use a plainer word."
+link: https://app.notion.com/p/399b9d5bf61680db9841f6126d1c1ab4
+level: error
+ignorecase: true
+tokens:
+  - 'delv(?:e|es|ed|ing)'
+  # verb forms only; the noun ("high leverage") is legitimate patio11 register
+  - 'leverag(?:es|ed|ing)'
+  - 'leverage (?:the|your|our|its|their|existing|AI)'
+  - robust
+  - 'seamless(?:ly)?'
+  - crucial
+  - pivotal
+  - comprehensive
+  - 'streamlin(?:e|es|ed|ing)'
+  - ever-evolving
+  - tapestry
+  - furthermore
+  - moreover
+  - additionally
+  - efficiently
+  - effectively

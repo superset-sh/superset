@@ -68,6 +68,10 @@ const showAlertMock = mock(async () => ({
 	checkboxChecked: false,
 }));
 
+// Keep every electron export name other suite files link against (e.g.
+// browser-manager's webContents/clipboard/Menu): bun's mock.module can swap
+// export values but cannot add names to an already-instantiated module
+// record, so a narrower shape here breaks later files' imports.
 mock.module("electron", () => ({
 	app: {
 		getVersion: () => APP_VERSION,
@@ -76,6 +80,16 @@ mock.module("electron", () => ({
 	},
 	dialog: {
 		showMessageBox: showAlertMock,
+	},
+	webContents: {
+		fromId: mock(() => null),
+	},
+	clipboard: {
+		writeText: mock(() => {}),
+		writeImage: mock(() => {}),
+	},
+	Menu: {
+		buildFromTemplate: mock(() => ({ popup: mock(() => {}) })),
 	},
 }));
 

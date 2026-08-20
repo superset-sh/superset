@@ -84,4 +84,24 @@ export const browserRouter = router({
 		.query(({ ctx, input }) =>
 			requireBridge(ctx).console(input.workspaceId, input.paneId),
 		),
+
+	importSources: protectedProcedure.query(({ ctx }) =>
+		requireBridge(ctx).importSources(),
+	),
+
+	importCookies: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				paneId: z.string(),
+				sourceId: z.string(),
+			}),
+		)
+		.mutation(({ ctx, input }) =>
+			requireBridge(ctx).importCookies(
+				input.workspaceId,
+				input.paneId,
+				input.sourceId,
+			),
+		),
 });

@@ -15,10 +15,22 @@ export const env = createEnv({
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GH_CLIENT_ID: z.string().min(1),
 		GH_CLIENT_SECRET: z.string().min(1),
+		// Gmail push: the Pub/Sub topic `users.watch` publishes to, and the
+		// shared secret the push subscription appends to our URL. Absent means
+		// Gmail triggers are configured but never watched.
+		GOOGLE_PUBSUB_TOPIC: z.string().min(1).optional(),
+		GOOGLE_PUBSUB_PUSH_TOKEN: z.string().min(1).optional(),
 		BETTER_AUTH_SECRET: z.string(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		LINEAR_WEBHOOK_SECRET: z.string().min(1),
+		// Optional until the Notion integration is provisioned per environment;
+		// the Notion routes answer 503 while any of these is unset.
+		NOTION_CLIENT_ID: z.string().min(1).optional(),
+		NOTION_CLIENT_SECRET: z.string().min(1).optional(),
+		// The verification token Notion sends when the webhook subscription is
+		// created; it is also the HMAC key every later delivery is signed with.
+		NOTION_WEBHOOK_VERIFICATION_TOKEN: z.string().min(1).optional(),
 		GH_APP_SLUG: z.string().min(1),
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
@@ -26,6 +38,10 @@ export const env = createEnv({
 		SLACK_CLIENT_ID: z.string().min(1),
 		SLACK_CLIENT_SECRET: z.string().min(1),
 		SLACK_SIGNING_SECRET: z.string(),
+		// Optional: the Teams integration is off wherever these are unset, and
+		// every other environment keeps booting.
+		MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
+		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		ANTHROPIC_API_KEY: z.string(),
 		QSTASH_TOKEN: z.string().min(1),
 		QSTASH_URL: z.string().url(),
@@ -41,6 +57,12 @@ export const env = createEnv({
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
 		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
+		// Public Sentry integration (OAuth app). Optional: unset where the app
+		// is not registered yet, in which case the connect flow 400s.
+		SENTRY_CLIENT_ID: z.string().optional(),
+		SENTRY_CLIENT_SECRET: z.string().optional(),
+		// The published app's slug, used to build the install URL.
+		SENTRY_APP_SLUG: z.string().optional(),
 		RELAY_URL: z.string().url(),
 	},
 	client: {

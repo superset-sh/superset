@@ -33,6 +33,7 @@ export function useSubmitWorkspace(
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
 	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
+	const utils = cloudTrpc.useUtils();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -79,13 +80,12 @@ export function useSubmitWorkspace(
 				toast.error("Cloud workspaces require a project");
 				return;
 			}
-			// Provisioning takes several seconds and the prompt has no progress
-			// affordance of its own, so the toast is the only signal the click
-			// registered.
 			try {
 				// A typed name wins; otherwise the API names it from the prompt,
 				// since nothing about a cloud workspace runs on this device.
-				await createCloudWorkspace.mutateAsync({
+				// Returns as soon as the row exists — the sandbox is still being
+				// provisioned behind it, which the workspace screen renders.
+				const created = await createCloudWorkspace.mutateAsync({
 					organizationId: activeOrganizationId,
 					projectId,
 					name: workspaceName ?? undefined,
@@ -93,6 +93,31 @@ export function useSubmitWorkspace(
 					branch: branchName ?? "main",
 				});
 				closeAndResetDraft();
+				// The cloud list is what both the sidebar and the workspace route
+				// read, and nothing used to tell it a workspace had been created —
+				// the row appeared whenever the poll next came round, which is why
+				// creating one felt like nothing had happened. Seeded rather than
+				// only invalidated because the route we're about to open decides
+				// between "provisioning" and "doesn't exist" off this list, and
+				// even one refetch round trip is long enough to flash the wrong
+				// one. Cancelled first so an in-flight fetch from before the
+				// create can't land on top of the patch.
+				const listInput = { organizationId: activeOrganizationId };
+				await utils.cloudWorkspace.list.cancel(listInput);
+				utils.cloudWorkspace.list.setData(listInput, (rows) =>
+					rows ? [created, ...rows] : [created],
+				);
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: created.id },
+				}).catch((error) => {
+					console.error(
+						"[useSubmitWorkspace] failed to open cloud workspace",
+						error,
+					);
+				});
+				// Server truth on top of the patch — the generated name lands here.
+				void utils.cloudWorkspace.list.invalidate();
 			} catch (error) {
 				toast.error(
 					error instanceof Error
@@ -231,11 +256,12 @@ export function useSubmitWorkspace(
 		selectedEffort,
 		submit,
 		uploadAttachments,
+		utils,
 	]);
 
-	// Cloud creation is the one path the user waits on — a sandbox is
-	// provisioned before this resolves. Returned so the submit control can
-	// carry its own pending state, instead of progress appearing in a toast in
-	// the corner, detached from the button that was pressed.
+	// Cloud creation is the one path the user waits on, now only for as long as
+	// it takes to record the workspace — the sandbox comes up behind the
+	// workspace screen. Returned so the submit control can carry its own
+	// pending state for that moment rather than looking inert.
 	return { submitWorkspace, isCreating: createCloudWorkspace.isPending };
 }

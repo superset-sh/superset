@@ -1,4 +1,5 @@
 import type { RendererContext } from "@superset/panes";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import "@xterm/xterm/css/xterm.css";
@@ -33,12 +34,14 @@ import type {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { isWithinWorkspacePath } from "shared/absolute-paths";
-import { TerminalAgentResumeBanner } from "./components/TerminalAgentResumeBanner";
+import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
@@ -48,6 +51,7 @@ import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "./richInputOpenStore";
+import { PasteUploadLimitError, uploadPastedFiles } from "./uploadPastedFiles";
 import { shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {
@@ -348,6 +352,91 @@ export function TerminalPane({
 		folderPolicy,
 	]);
 
+	// --- Remote image paste ---
+	// The default paste path forwards Ctrl+V and lets the TUI read the OS
+	// clipboard — which only exists on the machine the PTY runs on. When the
+	// workspace lives on another host (relay-reached machine, cloud sandbox),
+	// ship the clipboard bytes there via filesystem.writeFile and paste the
+	// resulting paths instead. Local workspaces keep the Ctrl+V forward, which
+	// lets TUIs attach the image natively.
+	const { machineId } = useLocalHostService();
+	const hostWorkspaces = useHostWorkspaces();
+	const workspaceHostId = hostWorkspaces.workspaces.find(
+		(w) => w.id === workspaceId,
+	)?.hostId;
+	// A cloud sandbox workspace has no host row, so "known list is ready and
+	// the workspace isn't in it" also means remote. Until the list is ready
+	// the override stays unset and paste falls back to the local behavior.
+	const isRemoteHost =
+		hostWorkspaces.isReady &&
+		Boolean(machineId) &&
+		workspaceHostId !== machineId;
+
+	const writeFileMutation = workspaceTrpc.filesystem.writeFile.useMutation();
+	const createDirectoryMutation =
+		workspaceTrpc.filesystem.createDirectory.useMutation();
+	const writeFileRef = useRef(writeFileMutation.mutateAsync);
+	writeFileRef.current = writeFileMutation.mutateAsync;
+	const createDirectoryRef = useRef(createDirectoryMutation.mutateAsync);
+	createDirectoryRef.current = createDirectoryMutation.mutateAsync;
+
+	// Fire-and-forget: ship files to the workspace, then paste the paths.
+	const uploadAndPasteFiles = useCallback(
+		(files: File[], worktree: string) => {
+			void (async () => {
+				try {
+					const paths = await uploadPastedFiles({
+						deps: {
+							createDirectory: (input) => createDirectoryRef.current(input),
+							writeFile: (input) => writeFileRef.current(input),
+						},
+						workspaceId,
+						worktreePath: worktree,
+						files,
+					});
+					terminalRuntimeRegistry.paste(
+						terminalId,
+						shellEscapePaths(paths),
+						terminalInstanceId,
+					);
+				} catch (error) {
+					console.error("[v2 Terminal] remote file upload failed", error);
+					toast.error(
+						error instanceof PasteUploadLimitError
+							? error.message
+							: files.length === 1
+								? "Failed to send the file to the remote workspace"
+								: "Failed to send the files to the remote workspace",
+					);
+				}
+			})();
+		},
+		[terminalId, terminalInstanceId, workspaceId],
+	);
+
+	useEffect(() => {
+		if (!isRemoteHost || !worktreePath) return;
+
+		terminalRuntimeRegistry.setImagePasteOverride(
+			terminalId,
+			(files) => uploadAndPasteFiles(files, worktreePath),
+			terminalInstanceId,
+		);
+		return () => {
+			terminalRuntimeRegistry.setImagePasteOverride(
+				terminalId,
+				null,
+				terminalInstanceId,
+			);
+		};
+	}, [
+		terminalId,
+		terminalInstanceId,
+		worktreePath,
+		isRemoteHost,
+		uploadAndPasteFiles,
+	]);
+
 	useTerminalInterruptClear({
 		terminalId,
 		terminalInstanceId,
@@ -443,6 +532,31 @@ export function TerminalPane({
 		dragCounterRef.current = 0;
 		setIsDropActive(false);
 		if (connectionState === "closed") return;
+
+		// Dropped OS paths are local paths — meaningless on the machine a
+		// remote workspace's PTY runs on. When every dropped entry is a plain
+		// file, ship the bytes instead. Folders keep the path flow (their File
+		// entries carry no content), which at least preserves today's behavior.
+		if (isRemoteHost && worktreePath) {
+			const items = Array.from(event.dataTransfer.items);
+			const allPlainFiles =
+				items.length > 0 &&
+				items.every(
+					(item) =>
+						item.kind === "file" &&
+						typeof item.webkitGetAsEntry === "function" &&
+						item.webkitGetAsEntry()?.isFile === true,
+				);
+			const files = Array.from(event.dataTransfer.files);
+			if (allPlainFiles && files.length > 0) {
+				terminalRuntimeRegistry
+					.getTerminal(terminalId, terminalInstanceId)
+					?.focus();
+				uploadAndPasteFiles(files, worktreePath);
+				return;
+			}
+		}
+
 		const text = resolveDroppedText(event.dataTransfer);
 		if (!text) return;
 		terminalRuntimeRegistry
@@ -472,7 +586,7 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
-				<TerminalAgentResumeBanner
+				<TerminalAgentAutoResume
 					key={terminalId}
 					workspaceId={workspaceId}
 					terminalId={terminalId}

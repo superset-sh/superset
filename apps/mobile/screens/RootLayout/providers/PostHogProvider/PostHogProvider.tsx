@@ -42,6 +42,7 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 			options={{
 				host: posthogConfig.host,
 				enableSessionReplay: posthogConfig.options.enableSessionReplay,
+				sessionReplayConfig: posthogConfig.options.sessionReplayConfig,
 			}}
 			autocapture={{
 				captureTouches: true,

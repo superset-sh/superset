@@ -1,17 +1,11 @@
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { useRouter } from "expo-router";
-import {
-	FolderGit2,
-	GitMerge,
-	GitPullRequest,
-	GitPullRequestClosed,
-	GitPullRequestDraft,
-	Plus,
-} from "lucide-react-native";
-import { Pressable, View } from "react-native";
+import { FolderGit2, Plus } from "lucide-react-native";
+import { ActivityIndicator, Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import type { CloudWorkspaceStatus } from "@/hooks/useCloudWorkspaceItems";
 import type {
 	HostWorkspaceItem,
 	HostWorkspacesCacheOps,
@@ -21,27 +15,21 @@ import { cn } from "@/lib/utils";
 import { AgentMark } from "@/screens/(authenticated)/(home)/new-session/agent";
 import { AsciiSpinner } from "@/screens/(authenticated)/components/AsciiSpinner";
 import { PingDot } from "@/screens/(authenticated)/components/PingDot";
+import {
+	PULL_REQUEST_STATUS,
+	pullRequestStatus,
+} from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
 import type {
 	TerminalAttention,
 	TerminalRowData,
 } from "../../hooks/useHostTerminals";
 import type { DiffStats } from "../../hooks/useVisibleDiffStats";
 import { useChatTargetStore } from "../../stores/chatTargetStore";
-import { type PrBadgeState, prStateFor } from "../../utils/prStateFor";
 import { WorkspaceRowMenu } from "./components/WorkspaceRowMenu";
+import { useWorkspaceRowActions } from "./hooks/useWorkspaceRowActions";
 
 // PR state replaces the host icon in the icon slot — same treatment as
 // desktop's DashboardSidebarWorkspaceIcon.
-const PR_ICON_CONFIG: Record<
-	PrBadgeState,
-	{ icon: typeof GitMerge; iconClassName: string }
-> = {
-	closed: { icon: GitPullRequestClosed, iconClassName: "text-destructive" },
-	draft: { icon: GitPullRequestDraft, iconClassName: "text-muted-foreground" },
-	merged: { icon: GitMerge, iconClassName: "text-purple-500" },
-	open: { icon: GitPullRequest, iconClassName: "text-emerald-500" },
-};
-
 const MAX_SESSION_MARKS = 3;
 
 export function WorkspaceRow({
@@ -51,6 +39,7 @@ export function WorkspaceRow({
 	cache,
 	attention,
 	sessions,
+	cloudStatus,
 }: {
 	workspace: HostWorkspaceItem;
 	pullRequest?: SelectGithubPullRequest;
@@ -58,33 +47,69 @@ export function WorkspaceRow({
 	cache: HostWorkspacesCacheOps;
 	attention?: TerminalAttention | null;
 	sessions: TerminalRowData[];
+	/** Set for a cloud workspace; drives the row's pending/failed treatment. */
+	cloudStatus?: CloudWorkspaceStatus;
 }) {
 	const router = useRouter();
 	const theme = useTheme();
-	const prIcon = pullRequest ? PR_ICON_CONFIG[prStateFor(pullRequest)] : null;
+	const prIcon = pullRequest
+		? PULL_REQUEST_STATUS[pullRequestStatus(pullRequest)]
+		: null;
 	const setTarget = useChatTargetStore((state) => state.setTarget);
 	const targeted = useChatTargetStore(
 		(state) => state.target?.workspaceId === workspace.id,
 	);
-	const canChat = workspace.hostReachable && workspace.worktreeExists !== false;
+	const canChat =
+		workspace.hostReachable &&
+		workspace.worktreeExists !== false &&
+		(cloudStatus === undefined || cloudStatus === "ready");
+	const {
+		isDeleting,
+		renameWorkspace,
+		deleteWorkspace,
+		copyId,
+		shareWorkspace,
+	} = useWorkspaceRowActions(workspace, cache, cloudStatus);
 
 	return (
-		<WorkspaceRowMenu workspace={workspace} cache={cache}>
+		<WorkspaceRowMenu
+			// A sandbox that doesn't exist yet has nothing to rename or delete; a
+			// failed one only needs disposing of. Cloud rows are served as `main`
+			// because the checkout is the repo, but deleting one kills the
+			// sandbox, not a base checkout.
+			canRename={cloudStatus === undefined || cloudStatus === "ready"}
+			canDelete={
+				cloudStatus === undefined
+					? workspace.type !== "main"
+					: cloudStatus !== "provisioning"
+			}
+			onRename={() => void renameWorkspace()}
+			onDelete={deleteWorkspace}
+			onCopyId={copyId}
+			onShare={shareWorkspace}
+		>
 			{/* Default press behavior on purpose: the system context-menu lift
 			    owns the hold animation, and custom press feedback fights it. */}
 			<Pressable
 				className={cn(
 					"flex-row items-center gap-3 rounded-xl py-2 pl-10 pr-3",
 					targeted ? "bg-foreground/5" : "bg-background",
+					isDeleting && "opacity-40",
 				)}
+				disabled={isDeleting}
 				onPress={() =>
 					router.push(`/(authenticated)/workspace/${workspace.id}`)
 				}
 			>
 				{/* Desktop WorkspaceIcon semantics: working replaces the icon with
 				    the braille spinner; other statuses overlay a corner ping on the
-				    base icon (PR state when one exists, else the workspace mark). */}
-				{attention === "working" ? (
+				    base icon (PR state when one exists, else the workspace mark).
+				    A delete in flight takes the slot over everything else. */}
+				{isDeleting ? (
+					<View className="size-6 items-center justify-center">
+						<ActivityIndicator size="small" color={theme.mutedForeground} />
+					</View>
+				) : attention === "working" || cloudStatus === "provisioning" ? (
 					<View className="size-6 items-center justify-center">
 						<AsciiSpinner />
 					</View>
@@ -98,12 +123,14 @@ export function WorkspaceRow({
 								className="size-6"
 								hitSlop={8}
 								onPress={() =>
-									router.push(`/(authenticated)/workspace/${workspace.id}/diff`)
+									router.push(
+										`/(authenticated)/workspace/${workspace.id}/pull-request/${pullRequest.prNumber}`,
+									)
 								}
 							>
 								<Icon
 									as={prIcon.icon}
-									className={`size-5 ${prIcon.iconClassName}`}
+									className={`size-5 ${prIcon.ink}`}
 									strokeWidth={1.75}
 								/>
 							</Button>
@@ -118,7 +145,7 @@ export function WorkspaceRow({
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#eab308" size={7} />
 							</View>
-						) : attention === "failed" ? (
+						) : attention === "failed" || cloudStatus === "failed" ? (
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#ef4444" size={7} />
 							</View>
@@ -131,7 +158,7 @@ export function WorkspaceRow({
 					<Text className="font-medium text-[15px]" numberOfLines={1}>
 						{workspace.name}
 					</Text>
-					<View className="flex-row items-center gap-2">
+					<View className="flex-row items-center gap-1">
 						{/* A workspace named after its branch says it twice otherwise —
 						    common now that every project shows its `main`. */}
 						{workspace.branch === workspace.name ? null : (
@@ -146,7 +173,7 @@ export function WorkspaceRow({
 						(diffStats.additions > 0 || diffStats.deletions > 0) ? (
 							<>
 								{workspace.branch === workspace.name ? null : (
-									<Text className="text-muted-foreground text-xs">·</Text>
+									<Text className="text-muted-foreground text-xs">•</Text>
 								)}
 								<Text className="text-muted-foreground font-mono text-xs">
 									+{diffStats.additions} −{diffStats.deletions}
@@ -185,7 +212,7 @@ export function WorkspaceRow({
 					accessibilityLabel={`New agent in ${workspace.name}`}
 					variant="ghost"
 					size="icon"
-					disabled={!canChat}
+					disabled={!canChat || isDeleting}
 					onPress={() =>
 						setTarget({
 							workspaceId: workspace.id,

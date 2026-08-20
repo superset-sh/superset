@@ -2,7 +2,10 @@ import { toast } from "@superset/ui/sonner";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { AnimatedStarButton } from "renderer/components/AnimatedStarButton";
-import { useGithubStarAction } from "renderer/hooks/useGithubStarAction";
+import {
+	canActivateStarAction,
+	useGithubStarAction,
+} from "renderer/hooks/useGithubStarAction";
 import { track } from "renderer/lib/analytics";
 import { useStarNagStore } from "renderer/stores/star-nag";
 
@@ -17,9 +20,12 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 	}, [state, toastId]);
 
 	function handleAction() {
-		track(state === "unknown" ? "star_nag_opened_web" : "star_nag_starred", {
-			surface: "toast",
-		});
+		// A click during the post-star celebration window (state === "starred")
+		// reaches this handler but activate() no-ops for it — don't record a
+		// "starred" event for a click that didn't actually do anything.
+		if (canActivateStarAction(state)) {
+			track("star_nag_starred", { surface: "toast" });
+		}
 		activate();
 	}
 
@@ -48,13 +54,22 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 				If you're enjoying Superset so far, a GitHub star helps other developers
 				discover it.
 			</p>
-			<AnimatedStarButton
-				state={state}
-				busy={isBusy}
-				onActivate={handleAction}
-				className="mt-3 w-full justify-center"
-				compact
-			/>
+			{/* A "loading" or "unknown" read isn't trustworthy enough to act on —
+			same rule as every other star-nag surface — so the button just doesn't
+			render for those; the toast itself still auto-dismisses/closes normally.
+			Unlike GitHubStarPill/StarNagCard, "starred" isn't time-boxed via
+			useJustStarredWindow here — the effect above already dismisses the
+			whole toast 2s after a real star, so there's no separate window to
+			bound. */}
+			{(canActivateStarAction(state) || state === "starred") && (
+				<AnimatedStarButton
+					state={state}
+					busy={isBusy}
+					onActivate={handleAction}
+					className="mt-3 w-full justify-center"
+					compact
+				/>
+			)}
 		</div>
 	);
 }

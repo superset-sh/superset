@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { apiClient } from "@/lib/trpc/client";
 import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 
@@ -50,17 +52,40 @@ export function BranchPickerScreen() {
 
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
+	const isCloud = selectedTarget?.kind === "cloud";
 	const hostUrl = selectedTarget?.hostUrl ?? null;
 	const projectId = selectedTarget?.projectId ?? null;
+	const { data: session } = useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
 
 	const trimmedQuery = query.trim();
 	const { data, isLoading } = useQuery({
-		queryKey: ["host-service", "branches", hostUrl, projectId, trimmedQuery],
-		enabled: hostUrl !== null && projectId !== null,
+		queryKey: [
+			isCloud ? "cloud-branches" : "host-service",
+			"branches",
+			hostUrl,
+			projectId,
+			trimmedQuery,
+		],
+		enabled: projectId !== null && (isCloud ? !!organizationId : !!hostUrl),
 		placeholderData: (previous) => previous,
 		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!hostUrl || !projectId) return null;
+		queryFn: async (): Promise<{
+			defaultBranch: string | null;
+			items: Array<{ name: string }>;
+		} | null> => {
+			if (!projectId) return null;
+			// A cloud target has no host holding a checkout; branches come from
+			// the GitHub remote through the API's App installation instead.
+			if (isCloud) {
+				if (!organizationId) return null;
+				return apiClient.cloudWorkspace.listBranches.query({
+					organizationId,
+					projectId,
+					query: trimmedQuery || undefined,
+				});
+			}
+			if (!hostUrl) return null;
 			return getHostServiceClientByUrl(
 				hostUrl,
 			).workspaceCreation.searchBranches.query({

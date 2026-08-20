@@ -1,5 +1,7 @@
 # Where cloud sandboxes don't fit the app
 
+**Tickets live in the Linear "Sandboxes" project** (https://linear.app/superset-sh/project/sandboxes-a52055bc936e). This file is the reasoning — what a sandbox is and why it differs from a machine someone owns — and stays the thing to read before changing this code. When you find something new, write it here and file the ticket there; when an item is fixed, say so here rather than deleting it, so the next person can see the shape of the trap.
+
 A cloud workspace runs host-service inside a provider sandbox, which lets it
 reuse the whole v2 stack — panes, terminals, git, agents — for free. The price
 is a set of places where the app's assumptions were written for *a machine a
@@ -59,6 +61,18 @@ allowlist, CORS on the provider's edge (set via the preview's
 browser and so takes the preview token as a `bl_preview_token` query param.
 Testing from Node proves nothing about the renderer here.
 
+**The edge sets a cookie, and the desktop's terminal socket depends on it
+without saying so.** Any request that presents the preview token — header or
+query param — comes back with `Set-Cookie: bl_preview_token=…; HttpOnly;
+SameSite=None; Secure; Max-Age=86400`. Only the `/events` dial puts the token
+on its URL; the `/terminal/<id>` dial (`useWorkspaceWsUrl`) sends `token=<jwt>`
+and nothing for the edge, and works because Electron replays that cookie on
+the upgrade. So terminals on desktop authenticate through a cookie the event
+bus happened to earn first. Mobile can't inherit that — its terminal socket
+lives in a WKWebView with its own cookie store — so it signs every terminal
+dial with `bl_preview_token` explicitly. The desktop should too rather than
+rely on ordering.
+
 **The host-service secret does not apply, and a sandbox says so instead of
 pretending otherwise.** Locally the secret stops anything else on the machine
 from talking to a host-service bound to loopback; desktop and service share
@@ -108,9 +122,35 @@ confirmations no one is there to answer. The image bakes `/root/.claude.json`.
 Note that a headless `-p` run writes none of those keys, so a smoke test passes
 while the interactive TUI still blocks.
 
+**Claude refuses its own launch flags under root. Open until the image is
+rebuilt.** The builtin agent runs `claude --dangerously-skip-permissions`, and
+a sandbox runs as root, so picking Claude in a cloud workspace printed
+"--dangerously-skip-permissions cannot be used with root/sudo privileges" and
+exited — found from the mobile app, but the desktop launches the same
+command. Claude allows the flag under root when `IS_SANDBOX=1` is in its
+environment (verified from a sandbox terminal), and then asks once to accept
+Bypass Permissions mode, another dialog a headless smoke test never reaches.
+host-service now sets `IS_SANDBOX=1` in sandbox-mode PTY env and the image
+bakes `bypassPermissionsModeAccepted: true` into `/root/.claude.json`; neither
+reaches an existing sandbox, and neither reaches a new one until the image is
+rebuilt.
+
 **The checkout is the workspace.** No worktrees, no base repo, no branch
 creation — anything assuming a worktree can be created or discarded next to a
 main checkout has nothing to work with.
+
+**There is no clipboard where the PTY runs.** Pasting an image into a terminal
+forwards Ctrl+V and lets the TUI (Claude Code, Codex) read the image from the
+OS clipboard — of the machine the PTY runs on. A sandbox (or any
+relay-reached host) never holds the user's local screenshot, so the paste
+silently did nothing or surfaced "Failed to paste image". Fixed renderer-side:
+for non-local hosts the desktop ships the clipboard bytes over
+`filesystem.writeFile` into the shared `.superset/attachments/` worktree dir
+(the same convention the agent-launch terminal adapter and the mobile
+composer use — mobile proved the pattern) and pastes the worktree-relative
+path instead (`setImagePasteOverride` in the terminal runtime registry).
+Chosen over a new host endpoint because deployed sandboxes never update
+their baked host-service.
 
 ## Lifecycle
 

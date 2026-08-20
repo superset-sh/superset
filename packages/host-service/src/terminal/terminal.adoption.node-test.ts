@@ -728,14 +728,16 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
-	test("replayOnAdoption: false suppresses ring-buffer replay on reconnect", async () => {
-		// Regression for the duplicated-output-on-daemon-swap bug: when the
-		// renderer's xterm scrollback survives the WS reconnect (which it
-		// does), replaying the daemon's ring buffer rewrites bytes the user
-		// has already seen and the conversation appears doubled. This test
-		// drives the createTerminalSessionInternal layer that the WS upgrade
-		// handler maps to.
-		const terminalId = `e2e-noreplay-${randomUUID().slice(0, 8)}`;
+	test("adoption always replays the ring so the mode tracker is rebuilt", async () => {
+		// Regression for the blind-tracker bug: adopting without the daemon's
+		// ring replay left the fresh ModeTracker at defaults, so it never
+		// learned the running program's modes — attach preambles asserted the
+		// wrong state and host-side focus forwarding (gated on
+		// isFocusReportingActive) silently died until the program happened to
+		// re-arm. Client-side double-paint protection now lives at the attach
+		// layer (seq reanchor accounting; legacy `?replay=0` FIFO drop), not
+		// by starving the tracker.
+		const terminalId = `e2e-trackerreplay-${randomUUID().slice(0, 8)}`;
 
 		const first = await createTerminalSessionInternal({
 			terminalId,
@@ -746,11 +748,14 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.ok(!("error" in first));
 		if ("error" in first) return;
 
-		// Seed the daemon's ring buffer with a sentinel — that's what would
-		// be replayed on a normal adoption.
-		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
-		first.pty.write(`echo ${SENTINEL}\n`);
+		// Make the "program" arm modes and hide the cursor — bytes that only
+		// exist in the daemon's ring by the time we adopt.
+		const SENTINEL = `tracker-sentinel-${randomUUID().slice(0, 6)}`;
+		first.pty.write(
+			`printf '\\033[?2004h\\033[?1004h\\033[?25l'; echo ${SENTINEL}\n`,
+		);
 		await waitForOutput(first.pty, SENTINEL, 3000);
+		await waitFor(() => first.modeTracker.isBracketedPasteActive(), 3000);
 
 		// Simulate onDaemonDisconnect: host-service drops its in-memory
 		// sessions; the daemon (and its ring buffer) survives.
@@ -762,7 +767,6 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			workspaceId,
 			db,
 			listed: true,
-			replayOnAdoption: false,
 		});
 		assert.ok(!("error" in second));
 		if ("error" in second) return;
@@ -772,18 +776,33 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adopted session should have same shell pid",
 		);
 
-		// The shell may still produce live prompt bytes after reconnect, but
-		// the daemon ring-buffer sentinel from the previous host lifetime must
-		// not be replayed when replayOnAdoption=false.
-		await new Promise((r) => setTimeout(r, 500));
+		// The attach path awaits this before building any preamble.
+		await second.adoptionReplaySettled;
 
-		const bufferedAfterAdoption = Buffer.concat(
+		const replayed = Buffer.concat(
 			second.buffer.map((b) => Buffer.from(b)),
 		).toString("utf8");
 		assert.equal(
-			bufferedAfterAdoption.includes(SENTINEL),
-			false,
-			`adopted session replayed prior output despite replayOnAdoption=false: ${JSON.stringify(bufferedAfterAdoption.slice(0, 200))}`,
+			replayed.includes(SENTINEL),
+			true,
+			"daemon ring must be replayed into the adopted session",
+		);
+		assert.equal(
+			second.modeTracker.isBracketedPasteActive(),
+			true,
+			"rebuilt mode tracker must have learned bracketed paste from the ring",
+		);
+		assert.equal(
+			second.modeTracker.isFocusReportingActive(),
+			true,
+			"rebuilt mode tracker must have learned focus reporting from the ring",
+		);
+		const preamble = new TextDecoder().decode(
+			second.modeTracker.buildPreamble() ?? new Uint8Array(),
+		);
+		assert.ok(
+			preamble.includes("\x1b[?25l"),
+			"preamble must re-hide the cursor the program hid before the restart",
 		);
 
 		// Sanity check: live output still flows post-reattach.

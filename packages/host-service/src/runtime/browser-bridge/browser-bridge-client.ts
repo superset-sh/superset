@@ -107,4 +107,21 @@ export class BrowserBridgeClient {
 			`/panes/${encodeURIComponent(paneId)}/console?workspaceId=${encodeURIComponent(workspaceId)}`,
 		);
 	}
+
+	importSources() {
+		return this.request<{
+			sources: { id: string; browserName: string; profileName: string }[];
+		}>("GET", "/import-sources");
+	}
+
+	importCookies(workspaceId: string, paneId: string, sourceId: string) {
+		return this.request<{
+			imported: number;
+			skipped: number;
+			keyUnavailable: boolean;
+		}>("POST", `/panes/${encodeURIComponent(paneId)}/import-cookies`, {
+			workspaceId,
+			sourceId,
+		});
+	}
 }

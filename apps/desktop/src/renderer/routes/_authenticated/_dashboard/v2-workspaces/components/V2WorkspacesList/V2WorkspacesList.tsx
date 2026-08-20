@@ -110,6 +110,7 @@ export function V2WorkspacesList({
 	const agentStatusFilters = useV2WorkspacesFilterStore(
 		(state) => state.agentStatusFilters,
 	);
+	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 	const archivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.archivedWindow,
@@ -127,9 +128,10 @@ export function V2WorkspacesList({
 		projectFilters.length > 0 ||
 		prStateFilters.length > 0 ||
 		agentStatusFilters.length > 0 ||
+		pinFilter !== "all" ||
 		// A narrowed archive window can hide every row (e.g. all tombstones
 		// with "Hide archived") — that's a filter, not an empty account.
-		archivedWindow !== "week";
+		archivedWindow !== "none";
 
 	// Sections, not the input rows: the archived window can drop everything.
 	if (sections.length === 0) {

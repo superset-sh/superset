@@ -1,5 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
 import { getBlogPost } from "@/lib/blog";
+import { getCategoryPage } from "@/lib/category";
 import { getChangelogEntry } from "@/lib/changelog";
 import { getComparisonPage } from "@/lib/compare";
 import { MARKDOWN_HEADERS, stripMdxSyntax } from "@/lib/llms";
@@ -33,6 +34,17 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 		return {
 			title: page.title,
 			url: `${baseUrl}/compare/${page.slug}`,
+			date: page.lastUpdated ?? page.date,
+			description: page.description,
+			content: page.content,
+		};
+	}
+	if (section === "category") {
+		const page = getCategoryPage(slug);
+		if (!page) return undefined;
+		return {
+			title: page.title,
+			url: `${baseUrl}${page.url}`,
 			date: page.lastUpdated ?? page.date,
 			description: page.description,
 			content: page.content,

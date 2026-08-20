@@ -1,0 +1,270 @@
+import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
+import { getBrowserLogo } from "@superset/ui/icons/browser-icons";
+import { Label } from "@superset/ui/label";
+import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
+import { toast } from "@superset/ui/sonner";
+import { useCallback, useEffect, useState } from "react";
+import type { IconType } from "react-icons";
+import { SiArc } from "react-icons/si";
+import { TbWorld } from "react-icons/tb";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+
+interface ImportSource {
+	id: string;
+	browserKey: string;
+	browserName: string;
+	profileName: string;
+}
+
+/**
+ * Fallback glyph for browsers without a bundled full-color logo. Arc has an
+ * official monochrome mark (tinted below); everything else gets a globe.
+ */
+const BROWSER_ICONS: Record<string, IconType> = { arc: SiArc };
+const BROWSER_ICON_COLORS: Record<string, string> = { arc: "#F45D7F" };
+
+interface ImportHistoryDialogProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}
+
+type LoadState =
+	| { status: "loading" }
+	| { status: "needs-full-disk-access" }
+	| { status: "ready"; sources: ImportSource[] };
+
+const isMac = navigator.platform.toUpperCase().includes("MAC");
+
+export function ImportHistoryDialog({
+	open,
+	onOpenChange,
+}: ImportHistoryDialogProps) {
+	const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
+	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [importHistory, setImportHistory] = useState(true);
+	// Logins (cookies) currently only decryptable on macOS.
+	const [importLogins, setImportLogins] = useState(isMac);
+	const [isImporting, setIsImporting] = useState(false);
+
+	const loadSources = useCallback(() => {
+		setLoadState({ status: "loading" });
+		electronTrpcClient.browserHistory.getImportSources
+			.query()
+			.then((result) => {
+				if (result.needsFullDiskAccess) {
+					setLoadState({ status: "needs-full-disk-access" });
+					return;
+				}
+				setLoadState({ status: "ready", sources: result.sources });
+				setSelectedId(result.sources[0]?.id ?? null);
+			})
+			.catch(() => {
+				setLoadState({ status: "ready", sources: [] });
+			});
+	}, []);
+
+	useEffect(() => {
+		if (open) loadSources();
+	}, [open, loadSources]);
+
+	const handleOpenSettings = () => {
+		electronTrpcClient.permissions.requestFullDiskAccess
+			.mutate()
+			.catch(() => {});
+	};
+
+	const handleImport = async () => {
+		if (!selectedId) return;
+		setIsImporting(true);
+		const messages: string[] = [];
+		try {
+			if (importHistory) {
+				const result =
+					await electronTrpcClient.browserHistory.importFromSource.mutate({
+						sourceId: selectedId,
+					});
+				messages.push(
+					result.imported === 0
+						? "no history"
+						: `${result.imported.toLocaleString()} history ${
+								result.imported === 1 ? "item" : "items"
+							}`,
+				);
+			}
+
+			if (importLogins) {
+				const result =
+					await electronTrpcClient.browserHistory.importCookiesFromSource.mutate(
+						{ sourceId: selectedId },
+					);
+				if (result.keyUnavailable) {
+					messages.push("logins skipped (Keychain access denied)");
+				} else {
+					messages.push(
+						result.imported === 0
+							? "no logins"
+							: `${result.imported.toLocaleString()} ${
+									result.imported === 1 ? "login" : "logins"
+								}`,
+					);
+				}
+			}
+
+			toast.success(`Imported ${messages.join(" and ")}`);
+			onOpenChange(false);
+		} catch (error: unknown) {
+			toast.error("Could not import from browser", {
+				description: error instanceof Error ? error.message : undefined,
+			});
+		} finally {
+			setIsImporting(false);
+		}
+	};
+
+	const canImport =
+		loadState.status === "ready" &&
+		loadState.sources.length > 0 &&
+		!!selectedId &&
+		(importHistory || importLogins);
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Import settings from another browser</DialogTitle>
+					<DialogDescription>
+						Copy your browsing history and logins from another browser into
+						Superset. Your original browser isn't changed.
+					</DialogDescription>
+				</DialogHeader>
+
+				{loadState.status === "loading" && (
+					<p className="py-4 text-sm text-muted-foreground">
+						Looking for installed browsers…
+					</p>
+				)}
+
+				{loadState.status === "needs-full-disk-access" && (
+					<div className="flex flex-col gap-3 py-2 text-sm">
+						<p className="text-muted-foreground">
+							Superset needs Full Disk Access to read another browser's data.
+							Grant it in System Settings, then check again.
+						</p>
+						<div className="flex gap-2">
+							<Button variant="outline" size="sm" onClick={handleOpenSettings}>
+								Open System Settings
+							</Button>
+							<Button variant="ghost" size="sm" onClick={loadSources}>
+								Check again
+							</Button>
+						</div>
+					</div>
+				)}
+
+				{loadState.status === "ready" && loadState.sources.length === 0 && (
+					<p className="py-4 text-sm text-muted-foreground">
+						No Chrome, Brave, Arc, or other Chromium browsers were found.
+					</p>
+				)}
+
+				{loadState.status === "ready" && loadState.sources.length > 0 && (
+					<div className="flex flex-col gap-4 py-1">
+						<RadioGroup
+							className="max-h-64 gap-2 overflow-y-auto"
+							value={selectedId ?? undefined}
+							onValueChange={setSelectedId}
+						>
+							{loadState.sources.map((source) => {
+								const logo = getBrowserLogo(source.browserKey);
+								const Icon = BROWSER_ICONS[source.browserKey] ?? TbWorld;
+								const iconColor = BROWSER_ICON_COLORS[source.browserKey];
+								return (
+									<div key={source.id} className="flex items-center gap-2">
+										<RadioGroupItem value={source.id} id={source.id} />
+										<Label
+											htmlFor={source.id}
+											className="flex items-center gap-2 font-normal"
+										>
+											{logo ? (
+												<img src={logo} alt="" className="size-4 shrink-0" />
+											) : (
+												<Icon
+													className={
+														iconColor
+															? "size-4 shrink-0"
+															: "size-4 shrink-0 text-muted-foreground"
+													}
+													style={iconColor ? { color: iconColor } : undefined}
+												/>
+											)}
+											<span>
+												{source.browserName}
+												<span className="text-muted-foreground">
+													{" "}
+													— {source.profileName}
+												</span>
+											</span>
+										</Label>
+									</div>
+								);
+							})}
+						</RadioGroup>
+
+						<div className="flex flex-col gap-2 border-t pt-3">
+							<div className="flex items-center gap-2">
+								<Checkbox
+									id="import-history"
+									checked={importHistory}
+									onCheckedChange={(v) => setImportHistory(v === true)}
+								/>
+								<Label htmlFor="import-history" className="font-normal">
+									Browsing history
+								</Label>
+							</div>
+							<div className="flex items-start gap-2">
+								<Checkbox
+									id="import-logins"
+									checked={importLogins}
+									disabled={!isMac}
+									onCheckedChange={(v) => setImportLogins(v === true)}
+								/>
+								<div className="flex flex-col gap-0.5">
+									<Label htmlFor="import-logins" className="font-normal">
+										Logins (cookies)
+									</Label>
+									<span className="text-xs text-muted-foreground">
+										{isMac
+											? "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
+											: "Only available on macOS."}
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				<DialogFooter>
+					<Button
+						variant="ghost"
+						onClick={() => onOpenChange(false)}
+						disabled={isImporting}
+					>
+						Cancel
+					</Button>
+					<Button onClick={handleImport} disabled={isImporting || !canImport}>
+						{isImporting ? "Importing…" : "Import"}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}

@@ -13,6 +13,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -28,6 +29,7 @@ import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentModelSelect } from "renderer/components/AgentModelSelect";
 import { AgentSelect } from "renderer/components/AgentSelect";
+import { GitHubStarPill } from "renderer/components/GitHubStarPill";
 import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
@@ -654,6 +656,7 @@ export function NewWorkspaceScreen({
 				<h1 className="text-center text-3xl font-medium text-foreground/90">
 					What should we build next?
 				</h1>
+				<GitHubStarPill surface="new_workspace" reserveSpace />
 			</div>
 			<div className="relative flex w-full max-w-[640px] flex-col px-6 pb-8">
 				<AnimatePresence initial={false}>
@@ -866,14 +869,14 @@ export function NewWorkspaceScreen({
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
 								disabled={needsSetup || isCreating}
-								status={isCreating ? "submitted" : undefined}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();
 								}}
 							>
-								{/* children win over the status icon, so stand aside for the spinner */}
-								{isCreating ? null : (
+								{isCreating ? (
+									<Spinner className="size-3.5 text-muted-foreground" />
+								) : (
 									<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 								)}
 							</PromptInputSubmit>

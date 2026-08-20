@@ -176,7 +176,13 @@ export function DashboardSidebarWorkspaceStatusProvider({
 		() =>
 			workspaces.map((workspace) => ({
 				workspaceId: workspace.id,
-				hostUrl: hostWorkspacesCache.resolveHostUrl(workspace.hostId),
+				// A sandbox row gets no live subscription from the sidebar: holding
+				// a socket to it keeps its VM awake for as long as the app is open,
+				// and the sidebar is open all day. Its status goes live when the
+				// workspace itself is opened and its own subscribers connect.
+				hostUrl: hostWorkspacesCache.isSandboxHost(workspace.hostId)
+					? null
+					: hostWorkspacesCache.resolveHostUrl(workspace.hostId),
 			})),
 		[workspaces, hostWorkspacesCache],
 	);

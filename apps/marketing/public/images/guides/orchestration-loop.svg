@@ -1,0 +1,57 @@
+<svg viewBox="0 0 1200 620" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, sans-serif">
+  <!-- panel -->
+  <rect x="0" y="0" width="1200" height="620" rx="12" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="600" y="40" text-anchor="middle" fill="#8a8a8a" font-size="15" letter-spacing="2">THE AGENTS WRITE THE CODE. ORCHESTRATION IS EVERYTHING AROUND THEM.</text>
+
+  <!-- inputs (left) -->
+  <g>
+    <rect x="48" y="120" width="180" height="72" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+    <text x="138" y="163" text-anchor="middle" fill="#e8e8e8" font-size="18">you</text>
+
+    <rect x="48" y="272" width="180" height="72" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+    <text x="138" y="303" text-anchor="middle" fill="#e8e8e8" font-size="18">schedules</text>
+    <text x="138" y="327" text-anchor="middle" fill="#9a9a9a" font-size="14">automations, cron</text>
+
+    <rect x="48" y="424" width="180" height="72" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+    <text x="138" y="455" text-anchor="middle" fill="#e8e8e8" font-size="18">other agents</text>
+    <text x="138" y="479" text-anchor="middle" fill="#9a9a9a" font-size="14">MCP · CLI · SDK</text>
+
+    <path d="M228 156 C 290 156, 290 250, 336 268" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+    <path d="M228 308 L 336 308" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+    <path d="M228 460 C 290 460, 290 366, 336 348" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  </g>
+
+  <!-- orchestration layer (center) -->
+  <rect x="336" y="88" width="530" height="460" rx="12" fill="rgba(255,140,60,0.05)" stroke="rgba(255,140,60,0.55)"/>
+  <text x="601" y="128" text-anchor="middle" fill="#ffb27a" font-size="20" font-weight="600">orchestration layer</text>
+
+  <!-- agent lanes inside -->
+  <g>
+    <rect x="368" y="160" width="466" height="64" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.2)"/>
+    <text x="392" y="199" fill="#e8e8e8" font-size="16" font-family="ui-monospace, monospace">worktree · agent · terminal session</text>
+
+    <rect x="368" y="240" width="466" height="64" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.2)"/>
+    <text x="392" y="279" fill="#e8e8e8" font-size="16" font-family="ui-monospace, monospace">worktree · agent · terminal session</text>
+
+    <rect x="368" y="320" width="466" height="64" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.2)"/>
+    <text x="392" y="359" fill="#e8e8e8" font-size="16" font-family="ui-monospace, monospace">worktree · agent · terminal session</text>
+
+    <text x="601" y="420" text-anchor="middle" fill="#9a9a9a" font-size="15">isolation · persistence · status</text>
+  </g>
+
+  <!-- status strip -->
+  <g>
+    <circle cx="470" cy="486" r="7" fill="#57d97a"/>
+    <text x="486" y="492" fill="#9a9a9a" font-size="14">working</text>
+    <circle cx="600" cy="486" r="7" fill="#ffc24b"/>
+    <text x="616" y="492" fill="#9a9a9a" font-size="14">needs you</text>
+    <circle cx="740" cy="486" r="7" fill="#7ab8ff"/>
+    <text x="756" y="492" fill="#9a9a9a" font-size="14">done</text>
+  </g>
+
+  <!-- outputs (right) -->
+  <path d="M866 318 L 940 318" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <rect x="940" y="248" width="212" height="140" rx="10" fill="rgba(255,140,60,0.14)" stroke="#ff8c3c"/>
+  <text x="1046" y="300" text-anchor="middle" fill="#ffb27a" font-size="19" font-weight="600">diffs per task</text>
+  <text x="1046" y="332" text-anchor="middle" fill="#ffb27a" font-size="17">review · merge · discard</text>
+</svg>

@@ -1,18 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
 import { dbWs } from "@superset/db/client";
 import { automationRuns, automations } from "@superset/db/schema";
-import { Receiver } from "@upstash/qstash";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
-
-import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
+import { runPayloadSchema } from "../runPayloadSchema";
 
 export const dynamic = "force-dynamic";
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 const failurePayloadSchema = z.object({
 	sourceMessageId: z.string(),
@@ -22,26 +16,14 @@ const failurePayloadSchema = z.object({
 	retried: z.number().optional(),
 });
 
-const sourceBodySchema = z.object({
-	automationId: z.string().uuid(),
-	scheduledFor: z.string().datetime(),
-});
-
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
-	const valid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/automations/run-failed`,
-	});
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		"/api/automations/run-failed",
+	);
+	if (rejected) return rejected;
 
 	let rawBody: unknown;
 	try {
@@ -66,13 +48,13 @@ export async function POST(request: Request): Promise<Response> {
 		console.error("[automations/run-failed] invalid sourceBody JSON", err);
 		return Response.json({ error: "Invalid sourceBody JSON" }, { status: 400 });
 	}
-	const source = sourceBodySchema.safeParse(decoded);
+	const source = runPayloadSchema.safeParse(decoded);
 	if (!source.success) {
 		console.error("[automations/run-failed] invalid sourceBody", source.error);
 		return Response.json({ error: "Invalid sourceBody" }, { status: 400 });
 	}
 
-	const { automationId, scheduledFor } = source.data;
+	const { automationId } = source.data;
 
 	const [automation] = await dbWs
 		.select({
@@ -88,30 +70,48 @@ export async function POST(request: Request): Promise<Response> {
 	}
 
 	const errorText = `delivery failed after retries (status ${parsed.data.status}): ${parsed.data.error ?? "unknown"}`;
+	const failed = { status: "dispatch_failed", error: errorText } as const;
 
-	await dbWs
-		.insert(automationRuns)
-		.values({
-			automationId,
-			organizationId: automation.organizationId,
-			title: automation.name,
-			scheduledFor: new Date(scheduledFor),
-			status: "dispatch_failed",
-			error: errorText,
-		})
-		.onConflictDoUpdate({
-			target: [automationRuns.automationId, automationRuns.scheduledFor],
-			targetWhere: sql`${automationRuns.scheduledFor} IS NOT NULL`,
-			set: { status: "dispatch_failed", error: errorText },
-		});
+	if ("scheduledFor" in source.data) {
+		await dbWs
+			.insert(automationRuns)
+			.values({
+				automationId,
+				organizationId: automation.organizationId,
+				title: automation.name,
+				scheduledFor: new Date(source.data.scheduledFor),
+				triggerId: source.data.triggerId ?? null,
+				...failed,
+			})
+			.onConflictDoUpdate({
+				target: [automationRuns.automationId, automationRuns.scheduledFor],
+				targetWhere: sql`${automationRuns.scheduledFor} IS NOT NULL`,
+				set: failed,
+			});
+	} else {
+		await dbWs
+			.insert(automationRuns)
+			.values({
+				automationId,
+				organizationId: automation.organizationId,
+				title: automation.name,
+				triggerId: source.data.triggerId,
+				eventId: source.data.eventId,
+				...failed,
+			})
+			.onConflictDoUpdate({
+				target: [automationRuns.triggerId, automationRuns.eventId],
+				targetWhere: sql`${automationRuns.eventId} IS NOT NULL`,
+				set: failed,
+			});
+	}
 
 	Sentry.captureException(
 		new Error(`automation dispatch failed: ${automationId}`),
 		{
 			tags: { feature: "automations" },
 			extra: {
-				automationId,
-				scheduledFor,
+				...source.data,
 				sourceMessageId: parsed.data.sourceMessageId,
 				status: parsed.data.status,
 			},

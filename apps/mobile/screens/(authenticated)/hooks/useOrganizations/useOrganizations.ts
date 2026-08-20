@@ -9,7 +9,7 @@ export function useOrganizations() {
 	const session = authClient.useSession();
 	const activeOrganizationId = session.data?.session?.activeOrganizationId;
 
-	const { data: organizations } = useQuery({
+	const { data: organizations, isPending } = useQuery({
 		queryKey: ["cloud", "user", "myOrganizations"],
 		queryFn: () => apiClient.user.myOrganizations.query(),
 		staleTime: 30_000,
@@ -33,6 +33,11 @@ export function useOrganizations() {
 	};
 
 	return {
+		/**
+		 * Distinct from "no organizations": until this settles the caller has
+		 * been told nothing, and an empty list would read as an answer.
+		 */
+		isLoadingOrganizations: isPending,
 		organizations: organizations ?? [],
 		activeOrganization,
 		activeOrganizationId,

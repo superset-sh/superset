@@ -1,6 +1,7 @@
 import path from "node:path";
 import { config } from "dotenv";
 import type { ConfigContext } from "expo/config";
+import { withIosAccentColor } from "./config-plugins/withIosAccentColor";
 
 // Load .env file
 config({
@@ -44,7 +45,15 @@ export default ({ config }: ConfigContext) => ({
 		bundler: "metro",
 	},
 	plugins: [
+		[withIosAccentColor, { color: "#FFFFFF" }],
 		"expo-router",
+		[
+			"@sentry/react-native/expo",
+			{
+				organization: "superset-sh",
+				project: "mobile",
+			},
+		],
 		"expo-localization",
 		"expo-apple-authentication",
 		[
@@ -59,13 +68,6 @@ export default ({ config }: ConfigContext) => ({
 			},
 		],
 		"expo-document-picker",
-		[
-			"expo-media-library",
-			{
-				photosPermission:
-					"Superset shows your recent photos so you can attach them to chats.",
-			},
-		],
 		[
 			"expo-speech-recognition",
 			{

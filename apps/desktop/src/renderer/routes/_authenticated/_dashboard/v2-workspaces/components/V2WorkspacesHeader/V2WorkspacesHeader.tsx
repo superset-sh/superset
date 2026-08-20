@@ -1,35 +1,36 @@
 import { Button } from "@superset/ui/button";
 import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-} from "@superset/ui/input-group";
-import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
 import {
 	LuArchive,
 	LuArrowDownUp,
 	LuBot,
+	LuFolder,
 	LuGitPullRequest,
 	LuLaptop,
 	LuList,
+	LuListFilter,
 	LuMonitor,
 	LuMonitorSmartphone,
-	LuSearch,
+	LuPin,
 	LuSquareKanban,
 	LuTerminal,
-	LuX,
 } from "react-icons/lu";
+import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
+import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type {
 	V2WorkspaceHostOption,
 	V2WorkspaceProjectOption,
@@ -41,19 +42,22 @@ import {
 	useV2WorkspacesFilterStore,
 	V2_WORKSPACES_AGENT_STATUS_FILTERS,
 	V2_WORKSPACES_AGENT_STATUS_LABELS,
+	V2_WORKSPACES_BOARD_LANES,
+	V2_WORKSPACES_PIN_FILTER_LABELS,
+	V2_WORKSPACES_PIN_FILTERS,
 	V2_WORKSPACES_PR_STATE_FILTERS,
 	V2_WORKSPACES_SORT_LABELS,
 	V2_WORKSPACES_SORT_MODES,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesArchivedWindow,
+	type V2WorkspacesPinFilter,
 	type V2WorkspacesPrStateFilter,
 	type V2WorkspacesSortMode,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { BOARD_COLUMN_LABELS } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
-import { DeviceFilterTriggerLabel } from "./components/DeviceFilterTriggerLabel";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
-import { MultiSelectFilter } from "./components/MultiSelectFilter";
 
 const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, string> = {
 	open: "Open",
@@ -64,10 +68,10 @@ const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, string> = {
 };
 
 const ARCHIVED_WINDOW_LABELS: Record<V2WorkspacesArchivedWindow, string> = {
-	none: "Hide archived",
-	week: "Archived: past week",
-	month: "Archived: past month",
-	all: "Archived: all",
+	none: "Hidden",
+	week: "Past week",
+	month: "Past month",
+	all: "All",
 };
 
 interface V2WorkspacesHeaderProps {
@@ -78,6 +82,15 @@ interface V2WorkspacesHeaderProps {
 		{ hostName: string; isOnline: boolean; isLocal: boolean }
 	>;
 	projectsById: Map<string, { projectName: string; iconUrl: string | null }>;
+}
+
+/** Muted right-aligned summary of a submenu's current selection. */
+function SubmenuValue({ children }: { children: React.ReactNode }) {
+	return (
+		<span className="ml-auto max-w-[8rem] truncate pl-3 text-xs text-muted-foreground">
+			{children}
+		</span>
+	);
 }
 
 export function V2WorkspacesHeader({
@@ -113,6 +126,10 @@ export function V2WorkspacesHeader({
 	const setAgentStatusFilters = useV2WorkspacesFilterStore(
 		(state) => state.setAgentStatusFilters,
 	);
+	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
+	const setPinFilter = useV2WorkspacesFilterStore(
+		(state) => state.setPinFilter,
+	);
 	const viewMode = useV2WorkspacesFilterStore((state) => state.viewMode);
 	const setViewMode = useV2WorkspacesFilterStore((state) => state.setViewMode);
 	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
@@ -123,28 +140,18 @@ export function V2WorkspacesHeader({
 	const setArchivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.setArchivedWindow,
 	);
+	const hiddenLanes = useV2WorkspacesFilterStore((state) => state.hiddenLanes);
+	const toggleLane = useV2WorkspacesFilterStore((state) => state.toggleLane);
 
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
-	const selectedRemoteHostFromOptions = remoteHosts.find(
-		(host) => host.hostId === deviceFilter,
-	);
-	const selectedHostFallback =
-		!selectedRemoteHostFromOptions &&
-		deviceFilter !== DEVICE_FILTER_THIS_DEVICE &&
-		deviceFilter !== DEVICE_FILTER_ALL_DEVICES
-			? hostsById.get(deviceFilter)
-			: undefined;
-	const selectedHostLabel = selectedRemoteHostFromOptions
-		? {
-				hostName: selectedRemoteHostFromOptions.hostName,
-				isOnline: selectedRemoteHostFromOptions.isOnline,
-			}
-		: selectedHostFallback
-			? {
-					hostName: selectedHostFallback.hostName,
-					isOnline: selectedHostFallback.isOnline,
-				}
-			: undefined;
+	const deviceLabel =
+		deviceFilter === DEVICE_FILTER_THIS_DEVICE
+			? "This device"
+			: deviceFilter === DEVICE_FILTER_ALL_DEVICES
+				? "All devices"
+				: (remoteHosts.find((host) => host.hostId === deviceFilter)?.hostName ??
+					hostsById.get(deviceFilter)?.hostName ??
+					"Unknown device");
 
 	const projectFilterOptions = [
 		...projectOptions.map((project) => ({
@@ -165,200 +172,375 @@ export function V2WorkspacesHeader({
 		},
 	];
 
+	const toggleIn = (values: string[], value: string) =>
+		values.includes(value)
+			? values.filter((entry) => entry !== value)
+			: [...values, value];
+
+	const activeFilterCount =
+		(projectFilters.length > 0 ? 1 : 0) +
+		(prStateFilters.length > 0 ? 1 : 0) +
+		(agentStatusFilters.length > 0 ? 1 : 0) +
+		(pinFilter !== "all" ? 1 : 0) +
+		(deviceFilter !== DEVICE_FILTER_THIS_DEVICE ? 1 : 0);
+
+	const clearFilters = () => {
+		setProjectFilters([]);
+		setPrStateFilters([]);
+		setAgentStatusFilters([]);
+		setPinFilter("all");
+		setDeviceFilter(DEVICE_FILTER_THIS_DEVICE);
+	};
+
 	return (
-		<div className="border-b border-border">
-			<div className="flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4">
-				<h1 className="text-sm font-semibold tracking-tight">Workspaces</h1>
+		<div
+			data-workspaces-toolbar
+			className="@container shrink-0 border-b border-border px-4 py-2"
+		>
+			<div className="flex flex-col items-stretch gap-2 @4xl:flex-row @4xl:items-center @4xl:justify-between">
+				<div className="flex min-w-0 items-center gap-3 overflow-x-auto hide-scrollbar">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className={cn(
+									"h-8 gap-1.5 font-normal",
+									activeFilterCount === 0 && "text-muted-foreground",
+								)}
+							>
+								<LuListFilter className="size-3.5" />
+								Filter
+								{activeFilterCount > 0 ? (
+									<span className="flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-medium text-accent-foreground">
+										{activeFilterCount}
+									</span>
+								) : null}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="start" className="min-w-[14rem]">
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuFolder className="size-3.5" />
+										Project
+									</span>
+									{projectFilters.length > 0 ? (
+										<SubmenuValue>{projectFilters.length}</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="max-h-[60vh] min-w-[12rem] overflow-y-auto">
+									{projectFilterOptions.map((option) => (
+										<DropdownMenuCheckboxItem
+											key={option.value}
+											checked={projectFilters.includes(option.value)}
+											onSelect={(event) => event.preventDefault()}
+											onCheckedChange={() =>
+												setProjectFilters(
+													toggleIn(projectFilters, option.value),
+												)
+											}
+										>
+											<span className="flex min-w-0 items-center gap-2">
+												{option.icon}
+												<span className="min-w-0 flex-1 truncate">
+													{option.label}
+												</span>
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
 
-				{/* Window-drag leaf standing in for the hidden TopBar. */}
-				<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuGitPullRequest className="size-3.5" />
+										PR state
+									</span>
+									{prStateFilters.length > 0 ? (
+										<SubmenuValue>
+											{prStateFilters
+												.map((state) => PR_STATE_LABELS[state])
+												.join(", ")}
+										</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[10rem]">
+									{V2_WORKSPACES_PR_STATE_FILTERS.map((state) => (
+										<DropdownMenuCheckboxItem
+											key={state}
+											checked={prStateFilters.includes(state)}
+											onSelect={(event) => event.preventDefault()}
+											onCheckedChange={() =>
+												setPrStateFilters(
+													toggleIn(
+														prStateFilters,
+														state,
+													) as V2WorkspacesPrStateFilter[],
+												)
+											}
+										>
+											<span className="flex items-center gap-2">
+												<PRIcon state={state} className="size-3.5" />
+												{PR_STATE_LABELS[state]}
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
 
-				<div className="flex flex-wrap items-center gap-2">
-					<InputGroup className="w-64">
-						<InputGroupAddon align="inline-start">
-							<LuSearch className="size-4" />
-						</InputGroupAddon>
-						<InputGroupInput
-							type="text"
-							placeholder="Search workspaces…"
-							value={searchQuery}
-							onChange={(event) => setSearchQuery(event.target.value)}
-						/>
-						{searchQuery ? (
-							<InputGroupAddon align="inline-end">
-								<InputGroupButton
-									size="icon-xs"
-									aria-label="Clear search"
-									onClick={() => setSearchQuery("")}
-								>
-									<LuX />
-								</InputGroupButton>
-							</InputGroupAddon>
-						) : null}
-					</InputGroup>
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuBot className="size-3.5" />
+										Agent
+									</span>
+									{agentStatusFilters.length > 0 ? (
+										<SubmenuValue>
+											{agentStatusFilters
+												.map(
+													(status) => V2_WORKSPACES_AGENT_STATUS_LABELS[status],
+												)
+												.join(", ")}
+										</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[11rem]">
+									{V2_WORKSPACES_AGENT_STATUS_FILTERS.map((status) => (
+										<DropdownMenuCheckboxItem
+											key={status}
+											checked={agentStatusFilters.includes(status)}
+											onSelect={(event) => event.preventDefault()}
+											onCheckedChange={() =>
+												setAgentStatusFilters(
+													toggleIn(
+														agentStatusFilters,
+														status,
+													) as V2WorkspacesAgentStatusFilter[],
+												)
+											}
+										>
+											{V2_WORKSPACES_AGENT_STATUS_LABELS[status]}
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
 
-					<MultiSelectFilter
-						placeholder="All projects"
-						options={projectFilterOptions}
-						value={projectFilters}
-						onChange={setProjectFilters}
-						searchable
-					/>
-
-					<MultiSelectFilter
-						placeholder="PR state"
-						icon={<LuGitPullRequest className="size-3.5" />}
-						options={V2_WORKSPACES_PR_STATE_FILTERS.map((state) => ({
-							value: state,
-							label: PR_STATE_LABELS[state],
-							icon: <PRIcon state={state} className="size-3.5" />,
-						}))}
-						value={prStateFilters}
-						onChange={(next) =>
-							setPrStateFilters(next as V2WorkspacesPrStateFilter[])
-						}
-					/>
-
-					<MultiSelectFilter
-						placeholder="Agent"
-						icon={<LuBot className="size-3.5" />}
-						options={V2_WORKSPACES_AGENT_STATUS_FILTERS.map((status) => ({
-							value: status,
-							label: V2_WORKSPACES_AGENT_STATUS_LABELS[status],
-						}))}
-						value={agentStatusFilters}
-						onChange={(next) =>
-							setAgentStatusFilters(next as V2WorkspacesAgentStatusFilter[])
-						}
-					/>
-
-					<Select value={deviceFilter} onValueChange={setDeviceFilter}>
-						<SelectTrigger size="sm" className="min-w-[10rem]">
-							<SelectValue placeholder="Filter devices">
-								<DeviceFilterTriggerLabel
-									deviceFilter={deviceFilter}
-									selectedRemoteHost={selectedHostLabel}
-								/>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end" className="min-w-[16rem]">
-							<SelectGroup>
-								<SelectItem value={DEVICE_FILTER_ALL_DEVICES}>
-									<DeviceOptionLabel
-										icon={<LuMonitorSmartphone className="size-3.5" />}
-										label="All devices"
-									/>
-								</SelectItem>
-								<SelectItem value={DEVICE_FILTER_THIS_DEVICE}>
-									<DeviceOptionLabel
-										icon={<LuLaptop className="size-3.5" />}
-										label="This device"
-									/>
-								</SelectItem>
-							</SelectGroup>
-
-							{remoteHosts.length > 0 ? (
-								<>
-									<SelectSeparator />
-									<SelectGroup>
-										<SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-											Other devices
-										</SelectLabel>
-										{remoteHosts.map((host) => (
-											<SelectItem key={host.hostId} value={host.hostId}>
-												<DeviceOptionLabel
-													icon={<LuMonitor className="size-3.5" />}
-													label={host.hostName}
-													isOnline={host.isOnline}
-												/>
-											</SelectItem>
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuPin className="size-3.5" />
+										Pinned
+									</span>
+									{pinFilter !== "all" ? (
+										<SubmenuValue>
+											{V2_WORKSPACES_PIN_FILTER_LABELS[pinFilter]}
+										</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[10rem]">
+									<DropdownMenuRadioGroup
+										value={pinFilter}
+										onValueChange={(next) =>
+											setPinFilter(next as V2WorkspacesPinFilter)
+										}
+									>
+										{V2_WORKSPACES_PIN_FILTERS.map((filter) => (
+											<DropdownMenuRadioItem key={filter} value={filter}>
+												{V2_WORKSPACES_PIN_FILTER_LABELS[filter]}
+											</DropdownMenuRadioItem>
 										))}
-									</SelectGroup>
+									</DropdownMenuRadioGroup>
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuMonitorSmartphone className="size-3.5" />
+										Device
+									</span>
+									{deviceFilter !== DEVICE_FILTER_THIS_DEVICE ? (
+										<SubmenuValue>{deviceLabel}</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[14rem]">
+									<DropdownMenuRadioGroup
+										value={deviceFilter}
+										onValueChange={setDeviceFilter}
+									>
+										<DropdownMenuRadioItem value={DEVICE_FILTER_ALL_DEVICES}>
+											<DeviceOptionLabel
+												icon={<LuMonitorSmartphone className="size-3.5" />}
+												label="All devices"
+											/>
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value={DEVICE_FILTER_THIS_DEVICE}>
+											<DeviceOptionLabel
+												icon={<LuLaptop className="size-3.5" />}
+												label="This device"
+											/>
+										</DropdownMenuRadioItem>
+										{remoteHosts.length > 0 ? (
+											<>
+												<DropdownMenuSeparator />
+												<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+													Other devices
+												</DropdownMenuLabel>
+												{remoteHosts.map((host) => (
+													<DropdownMenuRadioItem
+														key={host.hostId}
+														value={host.hostId}
+													>
+														<DeviceOptionLabel
+															icon={<LuMonitor className="size-3.5" />}
+															label={host.hostName}
+															isOnline={host.isOnline}
+														/>
+													</DropdownMenuRadioItem>
+												))}
+											</>
+										) : null}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							{activeFilterCount > 0 ? (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className="justify-center text-xs text-muted-foreground"
+										onSelect={clearFilters}
+									>
+										Clear filters
+									</DropdownMenuItem>
 								</>
 							) : null}
-						</SelectContent>
-					</Select>
+						</DropdownMenuContent>
+					</DropdownMenu>
 
-					<Select
-						value={archivedWindow}
-						onValueChange={(next) =>
-							setArchivedWindow(next as V2WorkspacesArchivedWindow)
-						}
-					>
-						<SelectTrigger size="sm" className="min-w-[10rem]">
-							<SelectValue>
+					<div className="h-4 w-px shrink-0 bg-border" />
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8 gap-1.5 font-normal text-muted-foreground"
+							>
+								<LuArrowDownUp className="size-3.5" />
+								Display
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="start" className="min-w-[12rem]">
+							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+								Sort by
+							</DropdownMenuLabel>
+							<DropdownMenuRadioGroup
+								value={sortMode}
+								onValueChange={(next) =>
+									setSortMode(next as V2WorkspacesSortMode)
+								}
+							>
+								{V2_WORKSPACES_SORT_MODES.map((mode) => (
+									<DropdownMenuRadioItem key={mode} value={mode}>
+										{V2_WORKSPACES_SORT_LABELS[mode]}
+									</DropdownMenuRadioItem>
+								))}
+							</DropdownMenuRadioGroup>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
 								<span className="flex items-center gap-1.5">
-									<LuArchive className="size-3.5" />
-									{ARCHIVED_WINDOW_LABELS[archivedWindow]}
+									<LuArchive className="size-3" />
+									Archived
 								</span>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end">
-							{(
-								Object.keys(
-									ARCHIVED_WINDOW_LABELS,
-								) as V2WorkspacesArchivedWindow[]
-							).map((window) => (
-								<SelectItem key={window} value={window}>
-									{ARCHIVED_WINDOW_LABELS[window]}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+							</DropdownMenuLabel>
+							<DropdownMenuRadioGroup
+								value={archivedWindow}
+								onValueChange={(next) =>
+									setArchivedWindow(next as V2WorkspacesArchivedWindow)
+								}
+							>
+								{(
+									Object.keys(
+										ARCHIVED_WINDOW_LABELS,
+									) as V2WorkspacesArchivedWindow[]
+								).map((window) => (
+									<DropdownMenuRadioItem key={window} value={window}>
+										{ARCHIVED_WINDOW_LABELS[window]}
+									</DropdownMenuRadioItem>
+								))}
+							</DropdownMenuRadioGroup>
+							{viewMode === "board" && (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+										Lanes
+									</DropdownMenuLabel>
+									{V2_WORKSPACES_BOARD_LANES.map((lane) => (
+										<DropdownMenuCheckboxItem
+											key={lane}
+											checked={!hiddenLanes.includes(lane)}
+											onCheckedChange={() => toggleLane(lane)}
+											onSelect={(event) => event.preventDefault()}
+										>
+											<span className="flex items-center gap-1.5">
+												<BoardColumnIcon column={lane} className="size-3" />
+												{BOARD_COLUMN_LABELS[lane]}
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 
-					<Select
-						value={sortMode}
-						onValueChange={(next) => setSortMode(next as V2WorkspacesSortMode)}
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag hidden min-w-0 flex-1 self-stretch @4xl:block" />
+
+				<div className="flex shrink-0 items-center gap-2">
+					<fieldset
+						className="flex items-center rounded-md border bg-muted/30 p-0.5"
+						aria-label="Workspace layout"
 					>
-						<SelectTrigger
-							size="sm"
-							className="min-w-[9rem]"
-							aria-label="Sort workspaces"
-						>
-							<SelectValue>
-								<span className="flex items-center gap-1.5">
-									<LuArrowDownUp className="size-3.5" />
-									{V2_WORKSPACES_SORT_LABELS[sortMode]}
-								</span>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end">
-							{V2_WORKSPACES_SORT_MODES.map((mode) => (
-								<SelectItem key={mode} value={mode}>
-									{V2_WORKSPACES_SORT_LABELS[mode]}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-
-					<div className="flex items-center rounded-md border border-border p-0.5">
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label="List view"
+						<button
+							type="button"
 							aria-pressed={viewMode === "list"}
 							className={cn(
-								"size-7",
-								viewMode === "list" && "bg-accent text-accent-foreground",
+								"flex h-6 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								viewMode === "list"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
 							)}
 							onClick={() => setViewMode("list")}
 						>
-							<LuList className="size-4" />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							aria-label="Board view"
+							<LuList className="size-3.5" />
+							List
+						</button>
+						<button
+							type="button"
 							aria-pressed={viewMode === "board"}
 							className={cn(
-								"size-7",
-								viewMode === "board" && "bg-accent text-accent-foreground",
+								"flex h-6 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								viewMode === "board"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
 							)}
 							onClick={() => setViewMode("board")}
 						>
-							<LuSquareKanban className="size-4" />
-						</Button>
-					</div>
+							<LuSquareKanban className="size-3.5" />
+							Board
+						</button>
+					</fieldset>
+
+					<WorkItemsSearch
+						value={searchQuery}
+						onChange={setSearchQuery}
+						placeholder="Search workspaces…"
+						label="Search workspaces"
+					/>
 				</div>
 			</div>
 		</div>

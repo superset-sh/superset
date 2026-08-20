@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronRight } from "lucide-react-native";
+import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
@@ -7,6 +8,8 @@ import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/component
 interface ProjectSectionHeaderProps {
 	name: string;
 	iconUrl?: string | null;
+	/** Replaces the project avatar for sections that aren't a project. */
+	icon?: ReactNode;
 	count: number;
 	collapsed: boolean;
 	onToggle: () => void;
@@ -21,6 +24,7 @@ interface ProjectSectionHeaderProps {
 export function ProjectSectionHeader({
 	name,
 	iconUrl,
+	icon,
 	count,
 	collapsed,
 	onToggle,
@@ -38,7 +42,7 @@ export function ProjectSectionHeader({
 			    doesn't reach the underlying SVG, so it renders nothing. */}
 			<Caret size={14} color={theme.mutedForeground} strokeWidth={2.5} />
 			<View className="size-6 items-center justify-center">
-				<ProjectAvatar name={name} iconUrl={iconUrl} size={20} />
+				{icon ?? <ProjectAvatar name={name} iconUrl={iconUrl} size={20} />}
 			</View>
 			<Text variant="large" numberOfLines={1}>
 				{name}

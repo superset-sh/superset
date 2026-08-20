@@ -100,6 +100,7 @@ Each terminal session receives these environment variables:
 | `SUPERSET_PANE_ID` | Unique identifier for the terminal pane |
 | `SUPERSET_TAB_ID` | Identifier for the containing tab |
 | `SUPERSET_WORKSPACE_ID` | Identifier for the workspace |
+| `SUPERSET_ORGANIZATION_ID` | Organization that owns the workspace; scopes CLI routing in Desktop-managed terminals |
 | `SUPERSET_WORKSPACE_NAME` | Human-readable workspace name |
 | `SUPERSET_WORKSPACE_PATH` | Filesystem path to the workspace |
 | `SUPERSET_ROOT_PATH` | Root path of the project |

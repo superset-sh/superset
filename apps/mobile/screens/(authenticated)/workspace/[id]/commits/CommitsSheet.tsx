@@ -6,9 +6,9 @@ import { FlatList, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { compactTime } from "@/screens/(authenticated)/(home)/home/utils/compactTime";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
 import { useWorkspaceCommits } from "../hooks/useWorkspaceCommits";
+import { compactTime } from "../utils/compactTime";
 import { AuthorAvatar } from "./components/AuthorAvatar";
 import { TimelineRow } from "./components/TimelineRow";
 

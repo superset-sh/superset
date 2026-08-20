@@ -173,7 +173,11 @@ describe("agent-wrappers copilot", () => {
 		expect(wrapper).toContain(
 			'projects={\\"$_superset_workspace_path_toml\\"={trust_level=\\"trusted\\"}}',
 		);
-		expect(wrapper).not.toContain("export CODEX_HOME=");
+		// The Usage-tab default resolver may export CODEX_HOME dynamically from
+		// the pointer file, but the wrapper must never hardcode a home.
+		expect(wrapper).toContain("state/default-codex-home");
+		expect(wrapper).toContain('export CODEX_HOME="$superset_default_account"');
+		expect(wrapper).not.toContain('export CODEX_HOME="$HOME');
 		expect(wrapper).not.toContain("rollout-*.jsonl");
 		expect(wrapper).not.toContain("_superset_sessions_dir");
 		expect(wrapper).not.toContain("$" + "{CODEX_HOME:-$HOME/.codex}");

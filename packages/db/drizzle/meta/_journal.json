@@ -575,6 +575,48 @@
       "when": 1786926353155,
       "tag": "0081_drop_users_slack_users",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1786989576969,
+      "tag": "0082_allow_multiple_schedule_triggers",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1787013109543,
+      "tag": "0083_add_trigger_provider_enum_values",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1787028266768,
+      "tag": "0084_per_user_google_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1787079112721,
+      "tag": "0085_automation_events_dispatch_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1787094486824,
+      "tag": "0086_drop_trigger_enabled",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1787099734268,
+      "tag": "0087_scope_unification",
+      "breakpoints": true
     }
   ]
 }

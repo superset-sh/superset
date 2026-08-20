@@ -4,5 +4,6 @@ export {
 	type TerminalRowData,
 	type TerminalsHost,
 	type UseHostTerminalsResult,
+	useHostsTerminals,
 	useHostTerminals,
 } from "./useHostTerminals";

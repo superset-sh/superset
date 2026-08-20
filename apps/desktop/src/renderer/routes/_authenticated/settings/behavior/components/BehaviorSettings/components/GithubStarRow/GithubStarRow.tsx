@@ -1,7 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
-import { ExternalLink, Star } from "lucide-react";
-import { useGithubStarAction } from "renderer/hooks/useGithubStarAction";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { Star } from "lucide-react";
+import {
+	canActivateStarAction,
+	useGithubStarAction,
+} from "renderer/hooks/useGithubStarAction";
 import { track } from "renderer/lib/analytics";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 
@@ -18,9 +22,7 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 	});
 
 	function handleClick() {
-		track(state === "unknown" ? "star_nag_opened_web" : "star_nag_starred", {
-			surface: "settings",
-		});
+		track("star_nag_starred", { surface: "settings" });
 		activate();
 	}
 
@@ -38,19 +40,35 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 				<span className="text-xs text-muted-foreground">
 					Starred — thank you!
 				</span>
+			) : state === "unknown" ? (
+				// A disabled shadcn Button has pointer-events-none baked into its
+				// base classes, so a `title` attribute on the button itself would
+				// never receive the hover needed to show it — wrap it (same pattern
+				// as DeleteProjectSection) so the tooltip trigger sits outside the
+				// disabled element.
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<span>
+							<Button variant="outline" size="sm" disabled>
+								<Star className="size-3.5" />
+								Star
+							</Button>
+						</span>
+					</TooltipTrigger>
+					<TooltipContent side="left">
+						Couldn't confirm star status — check that the GitHub CLI (`gh`) is
+						installed, signed in, and that you have a network connection
+					</TooltipContent>
+				</Tooltip>
 			) : (
 				<Button
 					variant="outline"
 					size="sm"
 					onClick={handleClick}
-					disabled={state === "loading" || isBusy}
+					disabled={!canActivateStarAction(state) || isBusy}
 				>
-					{state === "unknown" ? (
-						<ExternalLink className="size-3.5" />
-					) : (
-						<Star className="size-3.5" />
-					)}
-					{state === "unknown" ? "Open GitHub" : "Star"}
+					<Star className="size-3.5" />
+					Star
 				</Button>
 			)}
 		</div>

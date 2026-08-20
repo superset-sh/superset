@@ -21,29 +21,29 @@ export function MemberAddedEmail({
 
 	return (
 		<EmailLayout preview={`You've been added to ${organizationName}`}>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
-				You're now part of <strong>{organizationName}</strong>
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
+				You're now part of {organizationName}
 			</Heading>
 
-			<Text className="text-base leading-[26px] mb-4 text-foreground">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				Hi {memberName ?? "there"},
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				{addedByName} has added you to <strong>{organizationName}</strong> on
 				Superset as a <strong>{roleDisplay}</strong>.
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				You now have access to the team's workspaces, tasks, and workflows. Head
-				over to your dashboard to get started.
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
+				You now have access to the team's projects and workspaces. Open Superset
+				to get started.
 			</Text>
 
-			<Section className="mt-6 mb-6">
-				<Button href={dashboardLink}>Go to Dashboard</Button>
+			<Section className="mb-6">
+				<Button href={dashboardLink}>Open Superset</Button>
 			</Section>
 
-			<Text className="text-xs leading-5 text-muted">
+			<Text className="text-[13px] leading-5 text-muted m-0">
 				If you have any questions, reach out to {addedByName} or your team
 				administrator.
 			</Text>

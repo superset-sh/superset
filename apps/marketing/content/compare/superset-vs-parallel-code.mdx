@@ -1,0 +1,121 @@
+---
+title: "Superset vs Parallel Code (2026): Two Takes on Worktree-Based Agent Dispatch"
+description: "Compare Superset and Parallel Code (the open-source app) for running coding agents in parallel worktrees. Scope, platforms, licensing, and when each fits."
+date: 2026-08-17
+lastUpdated: 2026-08-17
+type: "1v1"
+competitors:
+  - parallel-code
+keywords:
+  - superset vs parallel code
+  - parallel code alternative
+  - parallel code app
+  - open source parallel agents
+  - dispatch coding agents worktrees
+  - johannesjo parallel code
+---
+
+Superset and Parallel Code agree on the core idea: give every coding agent its own Git worktree, review the diffs, merge the wins. Parallel Code is a fast-moving open-source (MIT) desktop app from Johannes Millan, the creator of Super Productivity, focused tightly on that dispatch-review-merge loop. Superset wraps the same loop in a broader workspace: persistent sessions, automations, programmatic control, and team surfaces. The comparison is mostly about how much product you want around the loop.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Parallel Code** |
+|---|---|---|
+| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, plus review, automations, and orchestration APIs | Dispatches agents into worktrees with diff review and one-key merge back to main |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Gemini, Copilot, more) | Claude Code, Codex CLI, Gemini CLI, Copilot CLI, Antigravity CLI |
+| **License** | Source-available (Elastic License 2.0), code on GitHub | Open source, MIT |
+| **Automations** | Scheduled recurring agent runs built in | Not documented |
+| **Programmatic control** | MCP server, CLI, TypeScript SDK | Not documented |
+| **Extras** | Chat panel, in-app browser, port management, remote/cloud workspaces | Docker sandboxing, AI Arena head-to-head mode, per-file coverage radar, phone monitoring via QR code |
+| **Platform** | macOS, experimental Linux AppImage | macOS and Linux (no Windows) |
+| **Maker** | Superset (funded company) | Johannes Millan, solo open-source maintainer |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Aider, Copilot, Cursor Agent, Gemini CLI, Superset Chat, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, scheduled automations, and an MCP server for driving everything programmatically. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+![Reviewing an agent's changes in Superset's diff viewer before merging](/images/readme/diff-viewer.png)
+
+---
+
+## What Is Parallel Code?
+
+Parallel Code is an MIT-licensed Electron desktop app (macOS and Linux) for dispatching AI coding agents in parallel, "each in its own worktree." Creating a task branches from main, sets up a worktree, symlinks `node_modules` and other ignored directories, and spawns the agent. A built-in diff viewer supports inline review comments and per-commit navigation, a coverage radar shows per-file test coverage on changed files, and merging back to main is a sidebar action. Distinctive extras include optional Docker sandboxing per task, an AI Arena mode that races agents head to head on the same task, and phone monitoring over Wi-Fi or Tailscale via QR code. Launched February 2026, it ships releases at a brisk pace (v1.14.x as of August 2026) and is free with no platform fees.
+
+---
+
+## Key Differences
+
+### Focused Loop vs Full Workspace
+
+Parallel Code does one loop and nothing else: task in, worktree up, agent runs, diff reviewed, branch merged. If that is the entire job, its focus is a feature. Superset treats the loop as the core of a larger workflow: persistent terminal sessions that survive restarts, port management for concurrent dev servers, an in-app browser, chat, and remote and cloud workspaces. The more your agent usage looks like infrastructure rather than an afternoon tool, the more that surface area matters.
+
+### Automations and Orchestration APIs
+
+Parallel Code is hands-on by design: you dispatch every task from the app. Superset adds scheduled automations (recurring prompts that run without you) and exposes workspaces, agents, terminals, and tasks over an MCP server, CLI, and TypeScript SDK, so scripts and other agents can run the fleet. Neither capability exists in Parallel Code today.
+
+### Sandboxing and Review Extras
+
+Parallel Code ships features Superset lacks: optional per-task Docker sandboxing (with the caveat, documented in its README, that Antigravity CLI cannot authenticate inside Docker), the AI Arena race mode, and coverage badges in the changed-files panel. If hard sandboxing of agent execution is a requirement, Parallel Code addresses it locally today.
+
+### Project Shape: Solo OSS vs Company
+
+Parallel Code is MIT, free, and moving fast, and it is overwhelmingly a single-maintainer project. That cuts both ways: full code freedom and quick releases, but single-maintainer risk and no support organization, team features, or enterprise story. Superset is source-available rather than OSI open source, built by a funded team, and carries team and enterprise surfaces.
+
+### Merge Flow
+
+Parallel Code merges branch-to-main locally from the sidebar and can watch GitHub PR checks, but does not orchestrate PR creation and review. Superset supports reviewing per task and handing off to your editor and normal PR flow, with the surrounding workspace tracking what is where.
+
+---
+
+## Pricing
+
+Both are free to run. Parallel Code is MIT-licensed with no subscription or platform fee at all. Superset has a free tier plus paid seats for advanced and team functionality. In both, you pay the underlying agent providers directly; neither proxies your API traffic.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want sessions, automations, and fleet monitoring beyond per-task dispatch
+- Need programmatic control (MCP server, CLI, SDK) or scheduled runs
+- Are adopting parallel agents as a team rather than solo
+- Want remote and cloud workspaces alongside local ones
+
+**Choose Parallel Code if you:**
+
+- Want a strictly open-source (MIT) tool and full code freedom
+- Need per-task Docker sandboxing today
+- Like the focused dispatch-review-merge loop with zero extra surface
+- Enjoy fast-moving indie software and accept single-maintainer risk
+
+**Verdict:** Parallel Code is one of the best pure implementations of the worktree-dispatch loop, and its MIT license makes it the obvious pick for open-source purists. Superset is the better choice when parallel agents become daily infrastructure for you and your team: the same loop, plus sessions that survive restarts, scheduled runs, and an MCP server other agents can drive.
+
+---
+
+## Frequently Asked Questions
+
+### Is Parallel Code open source?
+
+Yes, MIT-licensed on GitHub with active releases. Superset's code is public on GitHub too, but under the Elastic License 2.0 (source-available), which is not OSI-approved open source.
+
+### Do both tools use Git worktrees the same way?
+
+Essentially yes. Both create a branch and worktree per task and keep agents isolated until merge. Parallel Code also symlinks `node_modules` and similar directories into new worktrees; Superset manages worktree lifecycle as part of its workspace model.
+
+### Does Parallel Code work on Windows?
+
+No. It ships macOS (universal) and Linux (AppImage and deb) builds only. Superset is macOS with an experimental Linux AppImage; neither offers Windows today.
+
+### Can Parallel Code run agents on a schedule or via an API?
+
+No. It is an interactive dispatch tool with no documented automations or orchestration API. Superset includes scheduled automations and exposes orchestration over an MCP server, CLI, and SDK.
+
+### Which supports more coding agents?
+
+Parallel Code lists Claude Code, Codex CLI, Gemini CLI, Copilot CLI, and Antigravity CLI. Superset runs any agent that works in a terminal, which covers those plus OpenCode, Aider, Cursor Agent, and custom tools.

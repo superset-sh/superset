@@ -5,8 +5,8 @@
 	"type": "module",
 	"exports": {
 		"./automation-matching": {
-			"types": "./src/automation-matching.ts",
-			"default": "./src/automation-matching.ts"
+			"types": "./src/automation-matching/index.ts",
+			"default": "./src/automation-matching/index.ts"
 		},
 		"./automation-triggers": {
 			"types": "./src/automation-triggers.ts",
@@ -19,6 +19,10 @@
 		"./git-hook-tolerance": {
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
+		},
+		"./integrations": {
+			"types": "./src/integrations.ts",
+			"default": "./src/integrations.ts"
 		},
 		"./sentry": {
 			"types": "./src/sentry.ts",
@@ -132,6 +136,10 @@
 			"types": "./src/agent-launch-request.ts",
 			"default": "./src/agent-launch-request.ts"
 		},
+		"./workspace-attachments": {
+			"types": "./src/workspace-attachments.ts",
+			"default": "./src/workspace-attachments.ts"
+		},
 		"./agent-permissions-migration": {
 			"types": "./src/agent-permissions-migration.ts",
 			"default": "./src/agent-permissions-migration.ts"
@@ -183,6 +191,10 @@
 		"./shell-ready-scanner": {
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"
+		},
+		"./leaked-input-mode-reclaim": {
+			"types": "./src/leaked-input-mode-reclaim.ts",
+			"default": "./src/leaked-input-mode-reclaim.ts"
 		},
 		"./terminal-title-scanner": {
 			"types": "./src/terminal-title-scanner.ts",

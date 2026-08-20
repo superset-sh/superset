@@ -9,6 +9,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 import { compareWorkspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
 import { V2WorkspacesBoardColumn } from "./components/V2WorkspacesBoardColumn";
+import { getVisibleBoardColumns } from "./utils/getVisibleBoardColumns";
 
 interface V2WorkspacesBoardProps {
 	workspaces: AccessibleV2Workspace[];
@@ -23,6 +24,7 @@ export function V2WorkspacesBoard({
 		(state) => state.archivedWindow,
 	);
 	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
+	const hiddenLanes = useV2WorkspacesFilterStore((state) => state.hiddenLanes);
 
 	const byColumn = useMemo(() => {
 		const now = Date.now();
@@ -50,10 +52,15 @@ export function V2WorkspacesBoard({
 		return null;
 	}
 
+	const visibleColumns = getVisibleBoardColumns(
+		archivedWindow,
+		(column) => byColumn.get(column)?.length ?? 0,
+	).filter((column) => !hiddenLanes.includes(column));
+
 	return (
 		<div className="flex-1 overflow-x-auto overflow-y-hidden">
 			<div className="flex h-full min-w-max gap-2 px-6 py-4">
-				{BOARD_COLUMN_ORDER.map((column) => (
+				{visibleColumns.map((column) => (
 					<V2WorkspacesBoardColumn
 						key={column}
 						column={column}

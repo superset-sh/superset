@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -21,7 +21,9 @@ import type {
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
+import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
+import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
 
@@ -353,6 +355,16 @@ async function runDestroy(
 
 /** "merged" when the linked PR was observed merged; every other delete —
  * open/closed/draft PR or none at all — is a plain "deleted". */
+/** existsSync also answers false for a path that exists but cannot be read;
+ * this answers true only when the path is really absent. */
+function isMissingDirectory(path: string): boolean {
+	try {
+		return statSync(path, { throwIfNoEntry: false }) === undefined;
+	} catch {
+		return false;
+	}
+}
+
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
@@ -446,19 +458,55 @@ async function runDestroyPhases(
 	}
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
-		try {
-			repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			if (!worktreeRemoved) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to open project repo at ${project.repoPath}: ${message}`,
-				});
+		if (!worktreeRemoved && isMissingDirectory(project.repoPath)) {
+			// The project repo was moved or deleted outside Superset: there is
+			// no repository to run `git worktree remove` in, and the worktree's
+			// gitdir pointer is already dead, so no retry can ever succeed.
+			// Only a genuine ENOENT takes this branch — a repo this process
+			// merely cannot read (EPERM/EACCES) is not gone, and keeps the
+			// "failed to open" throw below rather than losing its worktree.
+			// Delete the folder directly under the same root guard the
+			// sessions branch uses — anything outside the project's managed
+			// worktrees root is left on disk (warned) while the delete proceeds.
+			const worktreeBaseDir =
+				project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+			if (
+				!isInsideProjectWorktreesRoot(
+					local.worktreePath,
+					project.id,
+					worktreeBaseDir,
+				)
+			) {
+				warnings.push(
+					`Skipped worktree removal at ${local.worktreePath}: project repo at ${project.repoPath} is missing and the folder is outside the managed worktrees root`,
+				);
+			} else {
+				try {
+					await rm(local.worktreePath, { recursive: true, force: true });
+					worktreeRemoved = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to remove worktree at ${local.worktreePath}: ${message}`,
+					});
+				}
 			}
-			warnings.push(
-				`Failed to open project repo at ${project.repoPath}: ${message}`,
-			);
+		} else {
+			try {
+				repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				if (!worktreeRemoved) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to open project repo at ${project.repoPath}: ${message}`,
+					});
+				}
+				warnings.push(
+					`Failed to open project repo at ${project.repoPath}: ${message}`,
+				);
+			}
 		}
 
 		if (repoGitEnv) {

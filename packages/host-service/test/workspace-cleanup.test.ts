@@ -379,6 +379,9 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 
 	test("worktree removal failure blocks local delete while the path still exists", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		// The repo must exist on disk: a missing repo directory now takes the
+		// direct-removal branch instead of the mocked git layer under test.
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
 		try {
 			const ctx = makeCtx({
 				workspace: {
@@ -387,7 +390,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 					worktreePath: tmp,
 					branch: "feature",
 				},
-				project: { id: "p-1", repoPath: "/repo" },
+				project: { id: "p-1", repoPath: repo },
 				// git still lists the worktree after the remove attempt — the
 				// authoritative signal that cleanup did not succeed.
 				removeWorktree: async () => ({ stillRegistered: true }),
@@ -409,11 +412,15 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			expect(events).toEqual(["deleted", "created"]);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
 		}
 	});
 
 	test("worktree removal task failure blocks local delete (post-remove state unknown)", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		// The repo must exist on disk: a missing repo directory now takes the
+		// direct-removal branch instead of the mocked git layer under test.
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
 		try {
 			const ctx = makeCtx({
 				workspace: {
@@ -422,7 +429,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 					worktreePath: tmp,
 					branch: "feature",
 				},
-				project: { id: "p-1", repoPath: "/repo" },
+				project: { id: "p-1", repoPath: repo },
 				removeWorktree: async () => {
 					throw new Error("worktree list boom");
 				},
@@ -438,11 +445,15 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			).rejects.toThrow(/Failed to verify worktree removal/i);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
 		}
 	});
 
 	test("git env-resolution failure blocks local delete while the worktree path still exists", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		// The repo must exist on disk: a missing repo directory now takes the
+		// direct-removal branch instead of the mocked git layer under test.
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
 		try {
 			const ctx = makeCtx({
 				workspace: {
@@ -451,7 +462,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 					worktreePath: tmp,
 					branch: "feature",
 				},
-				project: { id: "p-1", repoPath: "/repo" },
+				project: { id: "p-1", repoPath: repo },
 				resolveGitEnvThrows: true,
 			});
 			const caller = workspaceCleanupRouter.createCaller(ctx);
@@ -465,6 +476,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			).rejects.toThrow(/Failed to open project repo/i);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
 		}
 	});
 
@@ -500,6 +512,9 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 
 	test("destroy archives the row and broadcasts once", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "workspace-delete-"));
+		// The repo must exist on disk: a missing repo directory now takes the
+		// direct-removal branch instead of the mocked git layer under test.
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
 		try {
 			const ctx = makeCtx({
 				workspace: {
@@ -508,7 +523,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 					worktreePath: tmp,
 					branch: "feature",
 				},
-				project: { id: "p-1", repoPath: "/repo" },
+				project: { id: "p-1", repoPath: repo },
 			});
 			const caller = workspaceCleanupRouter.createCaller(ctx);
 
@@ -521,6 +536,7 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			expect(ctx.__mocks.broadcastWorkspaceChanged).toHaveBeenCalledTimes(1);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
 		}
 	});
 

@@ -1,9 +1,9 @@
-import type { IDisposable, Terminal } from "@xterm/xterm";
 import {
 	createLeakedInputModeReclaimer,
 	SHELL_READY_MARKER_PAYLOAD,
 	SHELL_READY_OSC_ID,
-} from "shared/leaked-input-mode-reclaim";
+} from "@superset/shared/leaked-input-mode-reclaim";
+import type { IDisposable, Terminal } from "@xterm/xterm";
 
 /**
  * Renderer adapter that wires xterm's parser to the shared leaked-input-mode
@@ -29,6 +29,9 @@ export function installInputModeReclaimer(terminal: Terminal): IDisposable {
 	const parser = terminal.parser;
 	const disposables: IDisposable[] = [];
 	let scheduled = false;
+	// The deferred flush must not write into a terminal whose lifecycle ended
+	// between the marker and the microtask.
+	let disposed = false;
 
 	// Kitty keyboard protocol: `CSI > flags u` push/arm, `CSI = flags ; mode u`
 	// set (0 disarms), `CSI < n u` pop/disarm. Return false so xterm still applies.
@@ -89,6 +92,7 @@ export function installInputModeReclaimer(terminal: Terminal): IDisposable {
 				scheduled = true;
 				queueMicrotask(() => {
 					scheduled = false;
+					if (disposed) return;
 					const disarm = reclaimer.collectDisarm();
 					if (disarm) terminal.write(disarm);
 				});
@@ -99,6 +103,7 @@ export function installInputModeReclaimer(terminal: Terminal): IDisposable {
 
 	return {
 		dispose(): void {
+			disposed = true;
 			for (const d of disposables) d.dispose();
 		},
 	};

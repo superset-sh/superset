@@ -20,6 +20,7 @@ import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 import { toTerminalSessionError } from "../terminal/errors";
+import { resolveDefaultAccountEnv } from "../usage/default-account";
 
 interface ResolvedHostAgentConfig {
 	id: string;
@@ -305,8 +306,11 @@ export function buildTerminalAgentLaunch(
 		{ resumeSessionId: input.resumeSessionId },
 	);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
+	// Host-default provider account (Usage tab switcher). Per-agent env wins,
+	// so a "Claude (work)" agent with its own CLAUDE_CONFIG_DIR stays pinned.
+	const accountEnv = resolveDefaultAccountEnv(db, config.presetId);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
 		label: config.label,
 	};
 }

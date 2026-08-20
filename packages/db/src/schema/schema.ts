@@ -37,6 +37,7 @@ import {
 } from "./enums";
 import { githubRepositories } from "./github";
 import type {
+	AutomationEventDispatchInput,
 	IntegrationConfig,
 	TriggerConfig,
 	UserIdentityMetadata,
@@ -224,10 +225,25 @@ export const integrationConnections = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
-		unique("integration_connections_unique").on(
-			table.organizationId,
-			table.provider,
-		),
+		// One connection per organization for org-scoped providers (Linear,
+		// Slack, ...). Google is the exception: Calendar and Gmail are one
+		// person's, so each member connects their own account. Two partial
+		// indexes rather than one constraint, and callers name the predicate in
+		// their ON CONFLICT target so Postgres can infer the right one.
+		//
+		// The predicate names the enum literal 'google', which 0083 added. Postgres
+		// refuses to USE a new enum value in the same transaction that added it,
+		// and drizzle runs every pending migration in one transaction — so 0083
+		// must be committed before 0084 runs. It is: 0083 merged to main and
+		// deploys ahead of this. A DB that skipped 0083 (a stale preview branch)
+		// must apply it first; do not "fix" that by casting to text — enum::text
+		// is not IMMUTABLE and cannot sit in an index predicate.
+		uniqueIndex("integration_connections_org_provider_unique")
+			.on(table.organizationId, table.provider)
+			.where(sql`${table.provider} <> 'google'`),
+		uniqueIndex("integration_connections_google_user_unique")
+			.on(table.organizationId, table.provider, table.connectedByUserId)
+			.where(sql`${table.provider} = 'google'`),
 		uniqueIndex("integration_connections_slack_external_org_active_unique")
 			.on(table.externalOrgId)
 			.where(
@@ -826,13 +842,13 @@ export const automationTriggers = pgTable(
 
 		kind: automationTriggerKind().notNull(),
 		config: jsonb().$type<TriggerConfig>().notNull(),
-		enabled: boolean().notNull().default(true),
 
 		// Schedule kind only. A column rather than config because the dispatcher
 		// indexes and sorts on it.
 		nextRunAt: timestamp("next_run_at", { withTimezone: true }),
 
-		// Webhook kind only. Argon2 hash, never the raw key.
+		// Bearer kinds store a SHA-256 hash of the token; HMAC kinds store the
+		// raw signing secret. Never returned by the API.
 		secretHash: text("secret_hash"),
 		secretPrefix: text("secret_prefix"),
 		secretRotatedAt: timestamp("secret_rotated_at", { withTimezone: true }),
@@ -857,16 +873,16 @@ export const automationTriggers = pgTable(
 			sql`config->>'kind' = kind::text`,
 		),
 		index("automation_triggers_dispatcher_idx")
-			.on(t.enabled, t.nextRunAt)
+			.on(t.nextRunAt)
 			.where(sql`kind = 'schedule'`),
-		index("automation_triggers_matcher_idx")
-			.on(t.organizationId, t.kind)
-			.where(sql`enabled`),
+		index("automation_triggers_matcher_idx").on(t.organizationId, t.kind),
 		index("automation_triggers_automation_idx").on(t.automationId),
-		// At most one schedule trigger per automation. The dispatcher reads
-		// triggers, so a duplicate would double-dispatch; this also gives the
-		// dual-write and the lazy repair a conflict target.
-		uniqueIndex("automation_triggers_schedule_unique")
+		// Deliberately not unique on (automation_id) where kind = 'schedule'. An
+		// automation may carry several schedules — "every weekday at 9" and "on
+		// Sunday at 6" is one automation, not two. The dispatcher already selects
+		// trigger rows rather than automations and gates on automations.enabled,
+		// so each schedule advances its own next_run_at independently.
+		index("automation_triggers_schedule_idx")
 			.on(t.automationId)
 			.where(sql`kind = 'schedule'`),
 	],
@@ -915,6 +931,17 @@ export const automationEvents = pgTable(
 		receivedAt: timestamp("received_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
+
+		// What the dispatcher needs to match this event again — the normalized
+		// matchable event plus any automation/trigger narrowing — so a delivery
+		// whose QStash publish failed can be re-dispatched without the provider's
+		// normalizer. Null only for rows written before this existed.
+		dispatchInput:
+			jsonb("dispatch_input").$type<AutomationEventDispatchInput>(),
+		// Set once every matched run has been handed to QStash (or nothing
+		// matched). Null past a grace period means the handoff failed and the
+		// sweep should retry it.
+		dispatchedAt: timestamp("dispatched_at", { withTimezone: true }),
 	},
 	(t) => [
 		// Connection-scoped: two orgs can legitimately receive the same
@@ -922,6 +949,10 @@ export const automationEvents = pgTable(
 		unique("automation_events_dedup_unique")
 			.on(t.integrationConnectionId, t.provider, t.externalEventId)
 			.nullsNotDistinct(),
+		// The re-dispatch sweep reads only undispatched rows.
+		index("automation_events_undispatched_idx")
+			.on(t.receivedAt)
+			.where(sql`${t.dispatchedAt} IS NULL`),
 		index("automation_events_org_received_idx").on(
 			t.organizationId,
 			t.receivedAt,

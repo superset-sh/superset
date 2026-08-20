@@ -12,6 +12,7 @@ import { z } from "zod";
 import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import { listGithubRepositories } from "./trigger-options";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -100,20 +101,7 @@ export const githubRouter = {
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
 			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
-
-			const installation = await db.query.githubInstallations.findFirst({
-				where: eq(githubInstallations.organizationId, input.organizationId),
-				columns: { id: true },
-			});
-
-			if (!installation) {
-				return [];
-			}
-
-			return db.query.githubRepositories.findMany({
-				where: eq(githubRepositories.installationId, installation.id),
-				orderBy: [desc(githubRepositories.updatedAt)],
-			});
+			return listGithubRepositories(input.organizationId);
 		}),
 
 	listPullRequests: protectedProcedure

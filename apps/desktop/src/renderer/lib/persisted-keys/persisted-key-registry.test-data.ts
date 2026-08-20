@@ -115,6 +115,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["desktop-notice-dismissals-v1", "v2-setup-card-dismissals-v1"],
 	],
 	["src/renderer/stores/workspace-agents-row.ts", ["workspace-agents-row"]],
+	[
+		"src/renderer/routes/_authenticated/_dashboard/usage/utils/usageLastSection/usageLastSection.ts",
+		["usage-last-section-v1"],
+	],
 	["src/renderer/stores/inline-workspace-ports.ts", ["inline-workspace-ports"]],
 	["src/renderer/hotkeys/stores/hotkeyOverridesStore.ts", ["hotkey-overrides"]],
 	[

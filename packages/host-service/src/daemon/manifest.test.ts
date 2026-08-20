@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
+	assertIsolatedDaemonNamespaceInTests,
 	type PtyDaemonManifest,
 	readPtyDaemonManifest,
 	removePtyDaemonManifest,
@@ -90,5 +91,57 @@ describe("PtyDaemonManifest", () => {
 			JSON.stringify({ pid: 1 }),
 		);
 		expect(readPtyDaemonManifest(TEST_ORG)).toBeNull();
+	});
+});
+
+describe("assertIsolatedDaemonNamespaceInTests", () => {
+	test("throws for test-runner contexts on the default home", () => {
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({ NODE_ENV: "test" }),
+		).toThrow(/isolated temp dir/);
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({
+				NODE_TEST_CONTEXT: "child-v8",
+			} as NodeJS.ProcessEnv),
+		).toThrow(/isolated temp dir/);
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({
+				NODE_ENV: "test",
+				SUPERSET_HOME_DIR: path.join(os.homedir(), ".superset"),
+			}),
+		).toThrow(/isolated temp dir/);
+		// Aliases of the default home must not slip past the guard.
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({
+				NODE_ENV: "test",
+				SUPERSET_HOME_DIR: `${path.join(os.homedir(), ".superset")}${path.sep}`,
+			}),
+		).toThrow(/isolated temp dir/);
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({
+				NODE_ENV: "test",
+				SUPERSET_HOME_DIR: path.join(
+					os.homedir(),
+					"somewhere",
+					"..",
+					".superset",
+				),
+			}),
+		).toThrow(/isolated temp dir/);
+	});
+
+	test("passes with an isolated home, and outside test runners", () => {
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({
+				NODE_ENV: "test",
+				SUPERSET_HOME_DIR: "/tmp/isolated-home",
+			}),
+		).not.toThrow();
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({ NODE_ENV: "production" }),
+		).not.toThrow();
+		expect(() =>
+			assertIsolatedDaemonNamespaceInTests({ NODE_ENV: "development" }),
+		).not.toThrow();
 	});
 });

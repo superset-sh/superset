@@ -1,3 +1,5 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import * as Clipboard from "expo-clipboard";
 import {
 	forwardRef,
 	useCallback,
@@ -6,10 +8,11 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { AppState } from "react-native";
+import { AppState, Linking } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
 import { withUniwind } from "uniwind";
 import { getHostAuthToken, getRelayUrl } from "@/lib/host/client";
+import { ensureSandboxAccess, isSandboxHost } from "@/lib/sandbox-access";
 
 const StyledWebView = withUniwind(WebView);
 
@@ -29,6 +32,11 @@ export interface TerminalControlMessage {
 	signal?: number;
 }
 
+export interface TerminalSelectState {
+	active: boolean;
+	hasSelection: boolean;
+}
+
 export interface TerminalWebViewHandle {
 	/** Write raw bytes into the PTY (quick keys, native composers). */
 	sendInput: (data: string) => void;
@@ -36,33 +44,59 @@ export interface TerminalWebViewHandle {
 	focus: () => void;
 	/** Reset the reconnect budget and redial (also the resume path). */
 	retry: () => void;
+	/** Copy the select-mode selection to the clipboard and leave select mode. */
+	copySelection: () => void;
+}
+
+export interface TerminalHost {
+	organizationId: string;
+	/** A machine id, or a cloud workspace's id when its sandbox is the host. */
+	machineId: string;
 }
 
 interface TerminalWebViewProps {
 	workspaceId: string;
 	terminalId: string;
-	routingKey: string;
+	host: TerminalHost;
 	onStateChange: (state: TerminalConnectionState) => void;
 	onControl: (message: TerminalControlMessage) => void;
+	/** Select mode entered/left, or the selection emptied — drives the
+	 *  native Copy Selection row, which lives outside the WebView. */
+	onSelectChange?: (select: TerminalSelectState) => void;
+	/** Select-mode text landed on the clipboard (either copy path). */
+	onCopied?: () => void;
 }
 
 type PageMessage =
 	| { type: "ready" }
 	| { type: "dial"; id: number; replay: "0" | "1" }
 	| { type: "state"; state: TerminalConnectionState }
-	| { type: "control"; message: TerminalControlMessage };
+	| { type: "control"; message: TerminalControlMessage }
+	| { type: "openUrl"; url: string }
+	| { type: "copy"; text: string }
+	| { type: "select"; active: boolean; hasSelection: boolean };
 
 /**
  * Hosts the xterm.js page (terminalHtml.generated.ts) and speaks its bridge
  * protocol. The WebSocket lives inside the page so PTY output never crosses
  * the RN bridge; this side only signs dial URLs (fresh JWT per attempt, same
- * contract as web's TerminalConnection) and relays UI intents.
+ * contract as web's TerminalConnection), relays UI intents, and lends the
+ * page what a WebView can't do itself: open a tapped link, write the
+ * clipboard from select mode.
  */
 export const TerminalWebView = forwardRef<
 	TerminalWebViewHandle,
 	TerminalWebViewProps
 >(function TerminalWebView(
-	{ workspaceId, terminalId, routingKey, onStateChange, onControl },
+	{
+		workspaceId,
+		terminalId,
+		host,
+		onStateChange,
+		onControl,
+		onSelectChange,
+		onCopied,
+	},
 	ref,
 ) {
 	const webViewRef = useRef<WebView>(null);
@@ -72,6 +106,10 @@ export const TerminalWebView = forwardRef<
 	onStateChangeRef.current = onStateChange;
 	const onControlRef = useRef(onControl);
 	onControlRef.current = onControl;
+	const onSelectChangeRef = useRef(onSelectChange);
+	onSelectChangeRef.current = onSelectChange;
+	const onCopiedRef = useRef(onCopied);
+	onCopiedRef.current = onCopied;
 
 	// Parsing the ~400KB generated module is deferred to first mount instead of
 	// app startup (expo-router requires route modules eagerly).
@@ -89,19 +127,34 @@ export const TerminalWebView = forwardRef<
 		webViewRef.current?.postMessage(JSON.stringify(message));
 	}, []);
 
+	// Signed per attempt, never cached: the relay wants a fresh JWT and a
+	// sandbox's edge token expires, so a redial after a long background must
+	// re-mint rather than reuse the URL that worked last time.
 	const buildDialUrl = useCallback(
 		async (replay: "0" | "1"): Promise<string> => {
 			const token = await getHostAuthToken();
-			const base = getRelayUrl().replace(/^http/, "ws");
 			const query = [
 				`workspaceId=${encodeURIComponent(workspaceId)}`,
 				"themeType=dark",
 				...(replay === "0" ? ["replay=0"] : []),
 				`token=${encodeURIComponent(token)}`,
-			].join("&");
-			return `${base}/hosts/${routingKey}/terminal/${encodeURIComponent(terminalId)}?${query}`;
+			];
+			const path = `/terminal/${encodeURIComponent(terminalId)}`;
+			if (isSandboxHost(host.machineId)) {
+				// A browser can't put a header on a WebSocket upgrade, so the
+				// provider's edge reads its token from the query string here.
+				const access = await ensureSandboxAccess(host.machineId);
+				query.push(`bl_preview_token=${encodeURIComponent(access.token)}`);
+				return `${access.url.replace(/^http/, "ws")}${path}?${query.join("&")}`;
+			}
+			const base = getRelayUrl().replace(/^http/, "ws");
+			const routingKey = buildHostRoutingKey(
+				host.organizationId,
+				host.machineId,
+			);
+			return `${base}/hosts/${routingKey}${path}?${query.join("&")}`;
 		},
-		[routingKey, terminalId, workspaceId],
+		[host.machineId, host.organizationId, terminalId, workspaceId],
 	);
 
 	const handleMessage = useCallback(
@@ -127,6 +180,19 @@ export const TerminalWebView = forwardRef<
 				onStateChangeRef.current(message.state);
 			} else if (message.type === "control") {
 				onControlRef.current(message.message);
+			} else if (message.type === "openUrl") {
+				void Linking.openURL(message.url).catch(() => {});
+			} else if (message.type === "copy") {
+				void Clipboard.setStringAsync(message.text).then(
+					() => onCopiedRef.current?.(),
+					// Failed write: stay quiet rather than toast a false "Copied".
+					() => {},
+				);
+			} else if (message.type === "select") {
+				onSelectChangeRef.current?.({
+					active: message.active,
+					hasSelection: message.hasSelection,
+				});
 			}
 		},
 		[buildDialUrl, postToPage],
@@ -157,6 +223,7 @@ export const TerminalWebView = forwardRef<
 			sendInput: (data: string) => postToPage({ type: "input", data }),
 			focus: () => postToPage({ type: "focus" }),
 			retry: () => postToPage({ type: "resume" }),
+			copySelection: () => postToPage({ type: "copySelection" }),
 		}),
 		[postToPage],
 	);

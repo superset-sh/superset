@@ -12,6 +12,7 @@ import { OpenInMenuButton } from "./components/OpenInMenuButton";
 import { OrganizationDropdown } from "./components/OrganizationDropdown";
 import { ResourceConsumption } from "./components/ResourceConsumption";
 import { RightSidebarToggle } from "./components/RightSidebarToggle";
+import { TopBarPortsDropdown } from "./components/TopBarPortsDropdown";
 import { V2WorkspaceTitle } from "./components/V2WorkspaceTitle";
 import { WindowControls } from "./components/WindowControls";
 
@@ -79,6 +80,9 @@ export function TopBar() {
 			</div>
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				{/* When the expanded sidebar hosts the chrome, its header also hosts
+				    the ports pill — don't render a duplicate here. */}
+				{!sidebarHostsChrome && <TopBarPortsDropdown />}
 				{!isOnline && (
 					<div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />

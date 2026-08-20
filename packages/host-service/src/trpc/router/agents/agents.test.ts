@@ -1,11 +1,13 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
+import { setDefaultAccountSelection } from "../usage/default-account";
 import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
@@ -286,6 +288,108 @@ describe("buildTerminalAgentLaunch", () => {
 				prompt: "p",
 			}),
 		).toThrow(/No host agent config matching 'nope'/);
+	});
+});
+
+describe("buildTerminalAgentLaunch default account env", () => {
+	// tmpdir always exists, which is all resolveDefaultAccountEnv checks.
+	const existingDir = tmpdir();
+
+	function seedClaude(db: HostDb, env: Record<string, string> = {}) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000c",
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				envJson: JSON.stringify(env),
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	it("injects CLAUDE_CONFIG_DIR for claude agents when a default account is set", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+		);
+	});
+
+	it("lets a per-agent CLAUDE_CONFIG_DIR beat the host default", () => {
+		const db = createTestDb();
+		seedClaude(db, { CLAUDE_CONFIG_DIR: "/pinned/profile" });
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		// The per-agent value wins for CLAUDE_CONFIG_DIR; the SUPERSET_DEFAULT_*
+		// twin still carries the host default so the wrapper can re-resolve a
+		// later account switch without overriding the user-pinned value.
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='/pinned/profile' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+		);
+	});
+
+	it("skips injection when the selected profile dir no longer exists", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		setDefaultAccountSelection(db, "claude", "/no/such/profile-dir");
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'claude' 'hi'");
+	});
+
+	it("does not leak provider account env into other presets", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000d",
+				presetId: "amp",
+				label: "Amp",
+				command: "amp",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 0,
+			})
+			.run();
+		setDefaultAccountSelection(db, "claude", existingDir);
+		setDefaultAccountSelection(db, "codex", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "amp",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'amp' 'hi'");
+	});
+
+	it("clearing the default (null) restores the system login", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		setDefaultAccountSelection(db, "claude", existingDir);
+		setDefaultAccountSelection(db, "claude", null);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'claude' 'hi'");
 	});
 });
 

@@ -70,6 +70,26 @@ const TaskListTightness = Extension.create({
 });
 
 const SafeImage = Image.extend({
+	// @tiptap/core's default attribute parser coerces numeric/boolean-looking
+	// strings (fromString), so ![123](x.png) loads alt: 123 and the markdown
+	// serializer throws on .replace. Read these verbatim instead.
+	addAttributes() {
+		return {
+			...this.parent?.(),
+			src: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("src"),
+			},
+			alt: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("alt"),
+			},
+			title: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("title"),
+			},
+		};
+	},
 	addNodeView() {
 		return ReactNodeViewRenderer(ReadOnlySafeImageView);
 	},

@@ -1,11 +1,22 @@
-import { basename } from "node:path";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { basename, join } from "node:path";
+import { provisionCodexProfile } from "@superset/agent-setup";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { usageHistoryTask } from "../../../workers/tasks/usage";
-import { queryProcedure, router } from "../../index";
+import { protectedProcedure, queryProcedure, router } from "../../index";
 import { offLoop } from "../../off-loop";
-import { fetchClaudeAccounts } from "./claude";
+import { provisionClaudeAccount } from "./account-provisioning";
+import { fetchClaudeAccounts, readDefaultLoginEmail } from "./claude";
 import { fetchCodexAccounts } from "./codex";
+import {
+	getDefaultAccountSelections,
+	setDefaultAccountSelection,
+} from "./default-account";
+import { removeClaudeProfile, removeCodexHome } from "./profile-remove";
+import { discoverClaudeProfiles, discoverCodexHomes } from "./profiles";
 import type { UsageAccount } from "./types";
 
 /**
@@ -49,7 +60,186 @@ export const usageRouter = router({
 	quota: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(z.object({ forceRefresh: z.boolean().optional() }).optional())
-		.query(({ input }) => getQuota(input?.forceRefresh ?? false)),
+		.query(async ({ ctx, input }) => {
+			const accounts = await getQuota(input?.forceRefresh ?? false);
+			// isDefault is applied per query, not cached with the quota: changing
+			// the default must reflect immediately without re-hitting providers.
+			const defaults = getDefaultAccountSelections(ctx.db);
+			return accounts.map((account) => ({
+				...account,
+				isDefault:
+					account.selection ===
+					(account.provider === "claude"
+						? defaults.claudeConfigDir
+						: defaults.codexHome),
+			}));
+		}),
+
+	/**
+	 * Local-only login discovery (no provider network calls), safe to poll
+	 * while an add-account or switch-sign-in flow is pending in a terminal.
+	 * The default-slot fields let the UI notice a `/login` that re-signed the
+	 * system-default login (Claude by state-file email; Codex by auth.json
+	 * fingerprint, since its email is only knowable via the network).
+	 */
+	logins: queryProcedure.query(async () => {
+		const [profiles, codexHomes, claudeDefaultEmail] = await Promise.all([
+			discoverClaudeProfiles(),
+			discoverCodexHomes(),
+			readDefaultLoginEmail(),
+		]);
+		// auth.json fingerprints let the UI notice a re-login on any Codex home
+		// (its email is only knowable via the network). The first home is the
+		// system default.
+		const codex = await Promise.all(
+			codexHomes.map(async ({ home }) => {
+				let fingerprint: string | null = null;
+				try {
+					fingerprint = createHash("sha256")
+						.update(await readFile(join(home, "auth.json")))
+						.digest("hex");
+				} catch {
+					// No readable auth.json — fingerprint stays null.
+				}
+				return { home, fingerprint };
+			}),
+		);
+		return {
+			claude: profiles.map((profile) => ({
+				configDir: profile.configDir,
+				email: profile.email,
+			})),
+			codex,
+			claudeDefaultEmail,
+		};
+	}),
+
+	/**
+	 * Point new agent launches at one of the discovered logins (null = the
+	 * system default). Never touches credentials — see default-account.ts.
+	 */
+	setDefaultAccount: protectedProcedure
+		.input(
+			z.object({
+				provider: z.enum(["claude", "codex"]),
+				selection: z.string().nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (input.selection !== null) {
+				// Only accept a discovered login: the value lands in a shell env
+				// overlay, and a typo'd dir would boot agents signed out.
+				const accounts = await getQuota(false);
+				const known = accounts.some(
+					(account) =>
+						account.provider === input.provider &&
+						account.selection === input.selection,
+				);
+				if (!known) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `No ${input.provider} login found at ${input.selection} — refresh usage and pick again.`,
+					});
+				}
+			}
+			setDefaultAccountSelection(ctx.db, input.provider, input.selection);
+			// A profile dir is a whole config root, not just a login: without
+			// provisioning, agents launched there lose the user's skills,
+			// plugins, MCP servers and settings along with Superset's lifecycle
+			// hooks — and, for Claude, the shared session history. Best-effort —
+			// a failed share must not undo the switch, and provisioning retries
+			// on the next switch and at host boot.
+			if (input.selection !== null) {
+				try {
+					await (input.provider === "claude"
+						? provisionClaudeAccount(input.selection)
+						: provisionCodexProfile(input.selection));
+				} catch (error) {
+					console.warn(
+						`[host-service] provisioning ${input.provider} account ${input.selection} failed (continuing):`,
+						error,
+					);
+				}
+			}
+			return { success: true as const };
+		}),
+
+	/**
+	 * Deletes a secondary profile: its dir plus, for Claude on macOS, its
+	 * scoped keychain items. The system default (selection null) is never
+	 * removable, and only currently discovered profiles are accepted. A
+	 * default pointer at the removed profile is cleared so agents fall back
+	 * to the system login instead of a dead dir.
+	 */
+	removeAccount: protectedProcedure
+		.input(
+			z.object({
+				provider: z.enum(["claude", "codex"]),
+				selection: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const accounts = await getQuota(false);
+			const known = accounts.some(
+				(account) =>
+					account.provider === input.provider &&
+					account.selection === input.selection,
+			);
+			if (!known) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No removable ${input.provider} profile at ${input.selection}.`,
+				});
+			}
+			if (input.provider === "claude") {
+				await removeClaudeProfile(input.selection);
+			} else {
+				await removeCodexHome(input.selection);
+			}
+			const defaults = getDefaultAccountSelections(ctx.db);
+			const pointer =
+				input.provider === "claude"
+					? defaults.claudeConfigDir
+					: defaults.codexHome;
+			if (pointer === input.selection) {
+				setDefaultAccountSelection(ctx.db, input.provider, null);
+			}
+			// The quota cache still lists the removed account; drop it so the
+			// next query re-discovers.
+			cachedQuota = null;
+			return { success: true as const };
+		}),
+
+	/**
+	 * Preparation for a freshly added profile: share the default account's
+	 * config into it (and, for Claude, mark onboarding complete), so its first
+	 * agent launch opens the prompt with the user's usual setup instead of the
+	 * first-boot wizard on an empty install. Only accepts discovered profile
+	 * dirs.
+	 */
+	prepareAccount: protectedProcedure
+		.input(
+			z.object({
+				provider: z.enum(["claude", "codex"]),
+				selection: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const discovered =
+				input.provider === "claude"
+					? (await discoverClaudeProfiles()).map((profile) => profile.configDir)
+					: (await discoverCodexHomes()).map((home) => home.home);
+			if (!discovered.includes(input.selection)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `No ${input.provider} profile found at ${input.selection}.`,
+				});
+			}
+			await (input.provider === "claude"
+				? provisionClaudeAccount(input.selection)
+				: provisionCodexProfile(input.selection));
+			return { success: true as const };
+		}),
 
 	/**
 	 * Token/cost history estimated from the providers' own transcript logs,

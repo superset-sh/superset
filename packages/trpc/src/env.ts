@@ -37,6 +37,14 @@ export const env = createEnv({
 		RELAY_URL: z.string().url(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
+		GOOGLE_CLIENT_ID: z.string().min(1),
+		GOOGLE_CLIENT_SECRET: z.string().min(1),
+		SENTRY_CLIENT_ID: z.string().optional(),
+		SENTRY_CLIENT_SECRET: z.string().optional(),
+		// Optional: the Teams integration is off wherever these are unset, and
+		// every other environment keeps booting.
+		MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
+		MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
 		STRIPE_SECRET_KEY: z.string().optional(),
 		MERCURY_API_TOKEN: z.string().optional(),
 	},

@@ -1,5 +1,5 @@
-import { readFile, rm } from "node:fs/promises";
-import { isAbsolute, join, normalize, sep } from "node:path";
+import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -10,6 +10,7 @@ import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	gitCommitFilesTask,
+	gitDiffBulkTask,
 	gitFetchBaseRefTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
@@ -31,8 +32,11 @@ import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
 import { rethrowEnvironmentalGitError } from "./utils/classify-git-error";
 import { gitConfigWrite } from "./utils/config-write";
 import {
+	assertSafeRelativePath,
 	getDefaultBranchName,
+	loadFileDiffContent,
 	resolveBaseComparison,
+	resolveDiffCategoryRefs,
 } from "./utils/git-helpers";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
 import {
@@ -85,28 +89,6 @@ function resolveGitTaskEnv(
 	worktreePath: string,
 ): Promise<Record<string, string>> {
 	return createGitEnvResolver(ctx.credentials)(worktreePath);
-}
-
-function assertSafeRelativePath(filePath: string): void {
-	if (isAbsolute(filePath)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Absolute paths are not allowed",
-		});
-	}
-	const normalized = normalize(filePath);
-	if (normalized.split(sep).includes("..")) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Path traversal is not allowed",
-		});
-	}
-	if (normalized === "" || normalized === ".") {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Cannot target worktree root",
-		});
-	}
 }
 
 /** Delete for a discard. Recursive because an untracked or staged-as-added
@@ -192,6 +174,20 @@ function sumSnapshotDiffStats(snapshot: {
 	}
 	return { additions, deletions, fileCount: byPath.size };
 }
+
+const getDiffInputShape = z.object({
+	workspaceId: z.string(),
+	path: z.string(),
+	category: z.enum(["against-base", "staged", "unstaged", "commit"]),
+	baseBranch: z.string().optional(),
+	commitHash: z.string().optional(),
+	fromHash: z.string().optional(),
+});
+
+/** Upper bound on one getDiffBulk call — generous headroom over the largest
+ * changeset we expect the Changes pane to render, while still bounding a
+ * runaway/malicious request. */
+const MAX_DIFF_BULK_PATHS = 2000;
 
 export const gitRouter = router({
 	listBranches: queryProcedure
@@ -564,10 +560,33 @@ export const gitRouter = router({
 
 	getDiff: queryProcedure
 		.meta({ timeoutMs: 30_000 })
+		.input(getDiffInputShape)
+		.query(async ({ ctx, input }) => {
+			assertSafeRelativePath(input.path);
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const git = await ctx.git(worktreePath);
+			const refs = await resolveDiffCategoryRefs(git, input.category, input);
+			return loadFileDiffContent(
+				git,
+				worktreePath,
+				input.category,
+				input.path,
+				refs,
+			);
+		}),
+
+	// Bulk sibling of `getDiff` for callers (the Changes pane) that need every
+	// changed file's diff at once. One network round trip instead of one per
+	// file, and the shared ref resolution (merge-base, etc.) below runs once
+	// for the whole batch instead of once per file. Concurrency is bounded so
+	// a several-hundred-file changeset doesn't spawn hundreds of simultaneous
+	// `git show` processes.
+	getDiffBulk: queryProcedure
+		.meta({ timeoutMs: 60_000 })
 		.input(
 			z.object({
 				workspaceId: z.string(),
-				path: z.string(),
+				paths: z.array(z.string()).min(1).max(MAX_DIFF_BULK_PATHS),
 				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 				baseBranch: z.string().optional(),
 				commitHash: z.string().optional(),
@@ -575,70 +594,25 @@ export const gitRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
+			for (const path of input.paths) assertSafeRelativePath(path);
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-			const git = await ctx.git(worktreePath);
-
-			let originalContent = "";
-			let modifiedContent = "";
-
-			if (input.category === "against-base") {
-				const base = await resolveBaseComparison(git, input.baseBranch);
-				const baseRef = base?.baseRef ?? "HEAD";
-				// Use the merge base so the diff excludes unrelated changes
-				// landed on the base branch after we forked — matches what the
-				// file list (3-dot diff) is already filtered by.
-				const originRef = await git
-					.raw(["merge-base", baseRef, "HEAD"])
-					.then((s) => s.trim())
-					.catch(() => baseRef);
-				try {
-					originalContent = await git.show([`${originRef}:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await git.show([`HEAD:${input.path}`]);
-				} catch {}
-			} else if (input.category === "staged") {
-				try {
-					originalContent = await git.show([`HEAD:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await git.show([`:0:${input.path}`]);
-				} catch {}
-			} else if (input.category === "commit") {
-				if (!input.commitHash) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "commitHash is required for commit diffs",
-					});
-				}
-				const from = input.fromHash ?? `${input.commitHash}^`;
-				try {
-					originalContent = await git.show([`${from}:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await git.show([
-						`${input.commitHash}:${input.path}`,
-					]);
-				} catch {}
-			} else {
-				// Unstaged: compare index (staged version) against working tree
-				// If file isn't in index (untracked), originalContent stays empty = "new file"
-				try {
-					originalContent = await git.show([`:0:${input.path}`]);
-				} catch {}
-				try {
-					modifiedContent = await readFile(
-						`${worktreePath}/${input.path}`,
-						"utf-8",
-					);
-				} catch {}
-			}
-
-			const fileName = input.path.split("/").pop() ?? input.path;
-			return {
-				oldFile: { name: fileName, contents: originalContent },
-				newFile: { name: fileName, contents: modifiedContent },
-			};
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			// Ref resolution and every file's `git show` pair run inside the
+			// worker task, off the host-service event loop — see
+			// no-main-loop-blocking.test.ts.
+			return getHostWorkerPool().run(
+				gitDiffBulkTask,
+				{
+					worktreePath,
+					paths: input.paths,
+					category: input.category,
+					baseBranch: input.baseBranch,
+					commitHash: input.commitHash,
+					fromHash: input.fromHash,
+					gitEnv,
+				},
+				{ timeoutMs: 60_000 },
+			);
 		}),
 
 	getBranchSyncStatus: queryProcedure

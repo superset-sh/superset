@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	type GitStatusSnapshot,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 
 export type ChangesetSource = "against-base" | "staged" | "unstaged";
@@ -46,7 +46,7 @@ export function useWorkspaceChangeset(
 	const { host } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
-			? buildRelayHostUrl(host.organizationId, host.machineId)
+			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
 
 	const query = useQuery({

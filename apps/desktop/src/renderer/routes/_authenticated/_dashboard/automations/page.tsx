@@ -370,7 +370,9 @@ function AutomationsPage() {
 					return owner?.name ?? owner?.email ?? "";
 				}
 				case "schedule":
-					return describeSchedule(automation.rrule);
+					return automation.rrule
+						? describeSchedule(automation.rrule)
+						: "Event triggered";
 				case "status":
 					return automation.enabled ? "active" : "paused";
 			}

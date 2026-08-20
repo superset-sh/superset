@@ -57,7 +57,9 @@ export const terminalAgentBindings = sqliteTable(
 		lastEventType: text("last_event_type").notNull(),
 		// Set when the agent session ended. "detached" = the agent reported its
 		// own end (SessionEnd hook) — not resumable; "terminal-exited" = the
-		// terminal died under it (kill, crash, reboot) — resume candidate.
+		// terminal died under it (kill, crash, reboot) — resume candidate;
+		// "resumed" = the candidate was consumed by an auto-resume; "disposed"
+		// = deliberately killed (pane close, CLI kill) — never resumable.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
 	},
@@ -117,6 +119,10 @@ export const hostSettings = sqliteTable("host_settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
+	// Which provider login newly launched agents use, as the profile dir to
+	// inject (CLAUDE_CONFIG_DIR / CODEX_HOME). Null = the system default login.
+	defaultClaudeConfigDir: text("default_claude_config_dir"),
+	defaultCodexHome: text("default_codex_home"),
 });
 
 export const pullRequests = sqliteTable(

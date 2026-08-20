@@ -5,7 +5,7 @@ interface WorkspaceAgentIconProps {
 	agentId: string;
 }
 
-/** Logo of an agent that ran here (Cursor-style "who's on this"). */
+/** Logo of an agent that ran here — the "who's on this" marker. */
 export function WorkspaceAgentIcon({ agentId }: WorkspaceAgentIconProps) {
 	const iconSrc = usePresetIcon(agentId);
 	if (!iconSrc) return null;

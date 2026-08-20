@@ -1,65 +1,28 @@
 import { dbWs } from "@superset/db/client";
 import { automations } from "@superset/db/schema";
 import { dispatchAutomation } from "@superset/trpc/automation-dispatch";
-import { Receiver } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
-import { z } from "zod";
-
-import { env } from "@/env";
 import { getRelayUrl } from "@/lib/relay-url";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
+import { runPayloadSchema } from "../../runPayloadSchema";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
-
-/**
- * A run comes from a schedule or from an event, never both. Scheduled runs
- * carry the minute they were due, which is also their dedupe key; event runs
- * carry the trigger and the event instead, and have no scheduled time.
- */
-const payloadSchema = z.union([
-	// Strict, so a payload carrying both causes is rejected rather than
-	// silently treated as whichever branch happens to match first.
-	z
-		.object({
-			automationId: z.string().uuid(),
-			scheduledFor: z.string().datetime(),
-		})
-		.strict(),
-	z
-		.object({
-			automationId: z.string().uuid(),
-			triggerId: z.string().uuid(),
-			eventId: z.string().uuid(),
-		})
-		.strict(),
-]);
 
 export async function POST(
 	request: Request,
 	{ params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
 	const { id } = await params;
-	const valid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${id}`,
-	});
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		`/api/automations/dispatch/${id}`,
+	);
+	if (rejected) return rejected;
 
-	const parsed = payloadSchema.safeParse(JSON.parse(body));
+	const parsed = runPayloadSchema.safeParse(JSON.parse(body));
 	if (!parsed.success) {
 		console.error("[automations/dispatch] invalid payload", parsed.error);
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
@@ -87,6 +50,7 @@ export async function POST(
 					automation,
 					relayUrl,
 					scheduledFor: new Date(parsed.data.scheduledFor),
+					triggerId: parsed.data.triggerId,
 				}
 			: {
 					automation,

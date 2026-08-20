@@ -1,15 +1,11 @@
-import { isValidRrule, type Weekday } from "@superset/shared/rrule";
-import { Input } from "@superset/ui/input";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
+	rruleProblem,
+	timezoneAbbreviation,
+	type Weekday,
+} from "@superset/shared/rrule";
+import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
-import { useMemo, useRef, useState } from "react";
-import { LuClock } from "react-icons/lu";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import {
 	DAY_OPTIONS,
 	formatTimeInputValue,
@@ -20,22 +16,21 @@ import {
 	type SchedulePickerState,
 	stateFromRrule,
 } from "../SchedulePicker/scheduleState";
-import { TimezonePicker } from "../TimezonePicker";
-
-const CHIP =
-	"w-auto min-w-0 gap-1 rounded-md border-none bg-transparent px-1.5 text-sm font-medium shadow-none hover:bg-accent focus-visible:ring-1 dark:bg-transparent dark:hover:bg-accent";
+import { CHIP } from "../TriggerSentence/chipStyles";
+import { SelectChip } from "../TriggerSentence/components/SelectChip";
 
 interface ScheduleSentenceProps {
 	rrule: string;
 	onRruleChange: (rrule: string) => void;
 	timezone: string;
-	onTimezoneChange: (timezone: string) => void;
+	/** Trailing "Next run ..." text, shown inline at the end of the sentence. */
+	nextRun?: ReactNode;
 	className?: string;
 	disabled?: boolean;
 }
 
 /**
- * Cursor-style sentence-chip schedule editor:
+ * Sentence-chip schedule editor:
  * "[Daily ▾] at [8:00 AM] · Los Angeles (PDT)", decomposed into inline
  * controls instead of one opaque popover chip.
  */
@@ -43,7 +38,7 @@ export function ScheduleSentence({
 	rrule,
 	onRruleChange,
 	timezone,
-	onTimezoneChange,
+	nextRun,
 	className,
 	disabled,
 }: ScheduleSentenceProps) {
@@ -82,10 +77,14 @@ export function ScheduleSentence({
 	};
 
 	const customDraft = state.customRrule.trim();
-	const customValid = useMemo(() => isValidRrule(customDraft), [customDraft]);
+	const customProblem = useMemo(() => rruleProblem(customDraft), [customDraft]);
+	// The saved rule itself can be exhausted (a run-once schedule that already
+	// ran); that is history, not an edit gone wrong, so only a changed draft
+	// gets the complaint.
+	const draftEdited = customDraft !== "" && customDraft !== rrule;
 
 	const commitCustom = () => {
-		if (!customDraft || customDraft === rrule || !customValid) return;
+		if (!draftEdited || customProblem) return;
 		emit(customDraft);
 	};
 
@@ -97,45 +96,23 @@ export function ScheduleSentence({
 
 	return (
 		<div className={cn("flex flex-col gap-1.5", className)}>
-			<div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-				<LuClock className="mr-1.5 size-4 shrink-0 text-muted-foreground" />
-
-				<Select
+			<div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px]">
+				<SelectChip
 					value={state.kind}
 					disabled={disabled}
-					onValueChange={(value) => update({ kind: value as PresetKind })}
-				>
-					<SelectTrigger size="sm" className={CHIP}>
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{PRESET_OPTIONS.map((option) => (
-							<SelectItem key={option.value} value={option.value}>
-								{option.label}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+					options={PRESET_OPTIONS}
+					onChange={(value) => update({ kind: value as PresetKind })}
+				/>
 
 				{showsDay && (
 					<>
 						<span className="text-muted-foreground">on</span>
-						<Select
+						<SelectChip
 							value={state.day}
 							disabled={disabled}
-							onValueChange={(value) => update({ day: value as Weekday })}
-						>
-							<SelectTrigger size="sm" className={CHIP}>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{DAY_OPTIONS.map((option) => (
-									<SelectItem key={option.value} value={option.value}>
-										{option.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+							options={DAY_OPTIONS}
+							onChange={(value) => update({ day: value as Weekday })}
+						/>
 					</>
 				)}
 
@@ -145,7 +122,10 @@ export function ScheduleSentence({
 						<input
 							type="time"
 							disabled={disabled}
-							className="h-8 rounded-md px-1.5 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-1 disabled:opacity-50 dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden"
+							className={cn(
+								CHIP,
+								"px-2 disabled:opacity-50 dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden",
+							)}
 							value={formatTimeInputValue(state.hour, state.minute)}
 							onChange={(event) => {
 								const parsed = parseTimeInputValue(event.target.value);
@@ -155,12 +135,20 @@ export function ScheduleSentence({
 					</>
 				)}
 
-				<TimezonePicker
+				{/* Read-only: the zone is captured from the browser when the trigger
+				    is created. Rebinding it to whoever is looking would silently
+				    move when the automation fires — create it in Los Angeles, open
+				    it from London, and an 11:00 job becomes a 19:00 one. */}
+				<span
 					className="text-muted-foreground"
-					value={timezone}
-					disabled={disabled}
-					onChange={onTimezoneChange}
-				/>
+					title={timezone.replace(/_/g, " ")}
+				>
+					{timezoneAbbreviation(timezone)}
+				</span>
+
+				{nextRun && (
+					<span className="ml-1 truncate text-muted-foreground">{nextRun}</span>
+				)}
 			</div>
 
 			{state.kind === "custom" && (
@@ -177,9 +165,11 @@ export function ScheduleSentence({
 							if (event.key === "Enter") commitCustom();
 						}}
 					/>
-					{customDraft && !customValid && (
+					{draftEdited && customProblem && (
 						<span className="select-text cursor-text text-xs text-destructive">
-							Invalid recurrence rule — changes aren't saved
+							{customProblem === "exhausted"
+								? "No upcoming runs — changes aren't saved"
+								: "Invalid recurrence rule — changes aren't saved"}
 						</span>
 					)}
 				</div>

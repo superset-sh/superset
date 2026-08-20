@@ -105,6 +105,34 @@ function buildRealBinaryResolver(): string {
 `;
 }
 
+/**
+ * Shell block that re-resolves the Usage-tab default account at launch.
+ * The PTY env is frozen at terminal spawn, so an account switch would
+ * otherwise reach only brand-new terminals; this re-reads the host's
+ * pointer file every time the agent starts instead. Superset terminals
+ * only, and a value the user exported by hand — one that differs from what
+ * Superset injected at spawn — always wins. A missing pointer file (older
+ * host build) changes nothing; an empty one means the system default.
+ */
+export function buildDefaultAccountResolver(
+	envVar: string,
+	pointerName: string,
+): string {
+	const pointer = `"$SUPERSET_HOME_DIR/state/${pointerName}"`;
+	return `if [ -n "$SUPERSET_TERMINAL_ID" ] && [ -n "$SUPERSET_HOME_DIR" ] \\
+  && { [ -z "\${${envVar}}" ] || [ "\${${envVar}}" = "\${SUPERSET_DEFAULT_${envVar}}" ]; } \\
+  && [ -f ${pointer} ]; then
+  superset_default_account="$(cat ${pointer} 2>/dev/null)"
+  if [ -n "$superset_default_account" ] && [ -d "$superset_default_account" ]; then
+    export ${envVar}="$superset_default_account"
+  else
+    unset ${envVar}
+  fi
+fi
+
+`;
+}
+
 function getMissingBinaryMessage(name: string): string {
 	return `Superset: ${name} not found in PATH. Install it and ensure it is on PATH, then retry.`;
 }

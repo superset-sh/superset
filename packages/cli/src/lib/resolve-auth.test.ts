@@ -10,7 +10,7 @@ const tempHome = fs.mkdtempSync(
 process.env.SUPERSET_HOME_DIR = tempHome;
 
 const { resolveAuth } = await import("./resolve-auth");
-const { writeConfig } = await import("./config");
+const { readConfig, writeConfig } = await import("./config");
 
 function clearConfig(): void {
 	writeConfig({});
@@ -19,7 +19,9 @@ function clearConfig(): void {
 // Clean baseline: the real dev/CI shell may export SUPERSET_API_KEY, which
 // would leak into every test. Clear it for the suite, restore in afterAll.
 const originalEnvKey = process.env.SUPERSET_API_KEY;
+const originalOrganizationId = process.env.SUPERSET_ORGANIZATION_ID;
 delete process.env.SUPERSET_API_KEY;
+delete process.env.SUPERSET_ORGANIZATION_ID;
 
 afterEach(() => {
 	clearConfig();
@@ -36,6 +38,11 @@ afterAll(() => {
 	}
 	if (originalEnvKey === undefined) delete process.env.SUPERSET_API_KEY;
 	else process.env.SUPERSET_API_KEY = originalEnvKey;
+	if (originalOrganizationId === undefined) {
+		delete process.env.SUPERSET_ORGANIZATION_ID;
+	} else {
+		process.env.SUPERSET_ORGANIZATION_ID = originalOrganizationId;
+	}
 });
 
 describe("resolveAuth", () => {
@@ -118,6 +125,8 @@ describe("resolveAuth", () => {
 		process.env.SUPERSET_ORGANIZATION_ID = "org_env";
 		const result = await resolveAuth(undefined);
 		expect(result.config.organizationId).toBe("org_env");
+		// Invocation-scoped only: the stored config on disk keeps the user's org.
+		expect(readConfig().organizationId).toBe("org_stored");
 	});
 
 	it("keeps the stored org when SUPERSET_ORGANIZATION_ID is unset", async () => {

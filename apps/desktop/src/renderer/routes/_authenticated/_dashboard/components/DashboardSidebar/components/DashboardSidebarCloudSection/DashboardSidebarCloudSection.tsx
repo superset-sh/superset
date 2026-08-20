@@ -1,9 +1,6 @@
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
-import { authClient } from "renderer/lib/auth-client";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
@@ -30,14 +27,7 @@ export function DashboardSidebarCloudSection({
 	isCollapsed?: boolean;
 	onWorkspaceHover?: (workspaceId: string) => void | Promise<void>;
 }) {
-	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
-
-	const { data: cloudWorkspaces = [] } = cloudTrpc.cloudWorkspace.list.useQuery(
-		{ organizationId: organizationId ?? "" },
-		{ enabled: Boolean(enabled && organizationId), refetchInterval: 30_000 },
-	);
+	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 
 	// Row visibility, pinning and order all live in the same local-state
@@ -102,12 +92,25 @@ export function DashboardSidebarCloudSection({
 					updatedAt: cloud.updatedAt,
 					taskId: null,
 					isPinned: false,
-					pendingTransaction: null,
+					// Same row treatment a local create gets while it is in flight —
+					// a spinner instead of a status dot, and no rename/delete menu
+					// on a workspace whose sandbox doesn't exist yet.
+					pendingTransaction:
+						cloud.status === "provisioning"
+							? {
+									id: cloud.id,
+									workspaceId: cloud.id,
+									type: "insert",
+									state: "pending",
+									createdAt: cloud.createdAt,
+									updatedAt: cloud.updatedAt,
+								}
+							: null,
 				};
 			});
 	}, [cloudWorkspaces, hostWorkspaces, localStateRows]);
 
-	if (!enabled || rows.length === 0) return null;
+	if (rows.length === 0) return null;
 
 	if (isCollapsed) {
 		return (

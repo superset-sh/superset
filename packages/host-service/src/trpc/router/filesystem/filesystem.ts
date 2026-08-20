@@ -384,6 +384,66 @@ export const filesystemRouter = router({
 			);
 		}),
 
+	/**
+	 * Create a new entry whose name the user has not chosen yet, so the Files tab
+	 * can open its inline rename on something that actually exists.
+	 *
+	 * The de-duplication (`Untitled`, `Untitled-2`, …) happens host-side on
+	 * purpose: the client's tree listing can be stale, and each attempt here is
+	 * exclusive, so an entry that already exists is never adopted. The attempt
+	 * cap is a module constant rather than an input — it bounds how many syscalls
+	 * one request can make.
+	 */
+	createUniqueEntry: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				parentAbsolutePath: z.string(),
+				baseName: z.string(),
+				kind: z.enum(["directory", "file"]),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { workspaceId, ...serviceInput } = input;
+			const service = getFilesystemService(ctx, workspaceId);
+			return await withFsErrorTranslation(() =>
+				service.createUniqueEntry(serviceInput),
+			);
+		}),
+
+	/** Cancel path for a provisional folder — never recursive. */
+	removeEmptyDirectory: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				absolutePath: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { workspaceId, ...serviceInput } = input;
+			const service = getFilesystemService(ctx, workspaceId);
+			return await withFsErrorTranslation(() =>
+				service.removeEmptyDirectory(serviceInput),
+			);
+		}),
+
+	/** Cancel path for a provisional file — no-ops if it changed after creation. */
+	removeFileIfUnchanged: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				absolutePath: z.string(),
+				revision: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { workspaceId, ...serviceInput } = input;
+			const service = getFilesystemService(ctx, workspaceId);
+			return await withFsErrorTranslation(() =>
+				service.removeFileIfUnchanged(serviceInput),
+			);
+		}),
+
 	deletePath: protectedProcedure
 		.input(
 			z.object({

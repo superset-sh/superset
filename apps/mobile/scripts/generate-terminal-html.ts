@@ -34,9 +34,16 @@ const xtermVersion = (
  *
  * Bridge protocol (JSON over postMessage):
  *   page -> RN: {type:"ready"} | {type:"dial", id, replay} |
- *               {type:"state", state} | {type:"control", message}
+ *               {type:"state", state} | {type:"control", message} |
+ *               {type:"openUrl", url} | {type:"copy", text} |
+ *               {type:"select", active, hasSelection}
  *   RN -> page: {type:"dialUrl", id, url?, error?} | {type:"input", data} |
- *               {type:"resume"} | {type:"focus"}
+ *               {type:"resume"} | {type:"focus"} |
+ *               {type:"copySelection"}
+ *
+ * Touch: a tap on a link opens it, a long press enters select mode (native
+ * iOS selection over a frozen snapshot of the buffer), and an overlay
+ * scrollbar appears while scrolled up. See the sections below.
  */
 const runtimeJs = /* js */ `
 (function () {
@@ -51,6 +58,9 @@ const runtimeJs = /* js */ `
 		fontFamily: "Menlo, monospace",
 		fontSize: 12,
 		scrollback: 5000,
+		// The built-in scrollbar only reveals on hover; the overlay one below
+		// replaces it, and dropping it gives its 14px gutter back to the columns.
+		scrollbar: { showScrollbar: false },
 		theme: {
 			background: "#0a0a0a",
 			foreground: "#fafafa",
@@ -284,15 +294,492 @@ const runtimeJs = /* js */ `
 					oldSocket.close();
 				} catch (error) {}
 			}
+			exitSelectMode();
 			term.reset();
 			connect();
+		} else if (message.type === "copySelection") {
+			copySelection();
 		} else if (message.type === "focus") {
+			allowTextareaFocus = true;
 			term.focus();
+			setTimeout(function () {
+				allowTextareaFocus = false;
+			}, 250);
 		}
 	}
 	// iOS delivers RN postMessage on window; older paths used document.
 	window.addEventListener("message", onBridgeMessage);
 	document.addEventListener("message", onBridgeMessage);
+
+	var termEl = document.getElementById("term");
+	var screen = term.element.querySelector(".xterm-screen");
+
+	// All typing goes through the composer and quick keys (terminal.send
+	// frames pastes and separates Enter server-side, #6284); the soft
+	// keyboard must never come up from inside the page. WKWebView turns
+	// some taps into real clicks, and xterm focuses its hidden textarea on
+	// click — so focus is refused unless RN explicitly asked for it.
+	var allowTextareaFocus = false;
+	term.textarea.addEventListener("focus", function () {
+		if (!allowTextareaFocus) term.textarea.blur();
+	});
+	var TAP_SLOP_PX = 10;
+	var TAP_MAX_MS = 300;
+	var LONG_PRESS_MS = 450;
+
+	// --- links -----------------------------------------------------------------
+	// xterm's linkifier is hover-driven: mousemove asks the providers, then a
+	// mousedown/mouseup pair on the same link activates it. On touch none of
+	// that arrives — xterm's own gesture handling cancels the touch to own
+	// scrolling, so the browser never synthesizes mouse events from a tap. A
+	// tap here replays the sequence itself, aimed at the screen element only
+	// (no bubbling) so xterm's mousedown handlers — focus, selection, mouse
+	// reports — stay out of it. Providers answer synchronously, so whether a
+	// link opened is known before touchend returns.
+	var URL_PATTERN = /\\bhttps?:\\/\\/[^\\s<>[\\]'"]+/g;
+	var TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+	function trimUrl(url) {
+		var depth = 0;
+		var end = url.length;
+		for (var i = 0; i < url.length; i++) {
+			if (url[i] === "(") depth++;
+			else if (url[i] === ")") {
+				if (depth > 0) depth--;
+				else {
+					end = i;
+					break;
+				}
+			}
+		}
+		url = url.slice(0, end);
+		while (url.endsWith("(")) url = url.slice(0, -1);
+		return url.replace(TRAILING_PUNCTUATION, "");
+	}
+
+	// The buffer row containing 1-based row y plus its wrapped continuations,
+	// with every character mapped back to its cell so regex offsets become
+	// xterm ranges. Wide characters occupy two cells but one string position.
+	var scratchCell = term.buffer.active.getNullCell();
+	function readLogicalLine(y) {
+		var buffer = term.buffer.active;
+		if (!buffer.getLine(y - 1)) return { text: "", cells: [] };
+		var start = y - 1;
+		while (start > 0 && buffer.getLine(start).isWrapped) start--;
+		var end = y - 1;
+		while (end + 1 < buffer.length && buffer.getLine(end + 1).isWrapped) end++;
+		var text = "";
+		var cells = [];
+		for (var row = start; row <= end; row++) {
+			var line = buffer.getLine(row);
+			if (!line) break;
+			for (var col = 0; col < line.length; col++) {
+				line.getCell(col, scratchCell);
+				if (scratchCell.getWidth() === 0) continue;
+				var chars = scratchCell.getChars() || " ";
+				for (var k = 0; k < chars.length; k++) {
+					cells.push({ x: col + 1, y: row + 1 });
+				}
+				text += chars;
+			}
+		}
+		return { text: text, cells: cells };
+	}
+
+	var linkActivated = false;
+	function openUrl(url) {
+		if (!/^https?:\\/\\//i.test(url)) return;
+		linkActivated = true;
+		post({ type: "openUrl", url: url });
+	}
+
+	term.registerLinkProvider({
+		provideLinks: function (y, callback) {
+			var logical = readLogicalLine(y);
+			var links = [];
+			var match;
+			URL_PATTERN.lastIndex = 0;
+			while ((match = URL_PATTERN.exec(logical.text))) {
+				var url = trimUrl(match[0]);
+				if (!url) continue;
+				links.push({
+					text: url,
+					range: {
+						start: logical.cells[match.index],
+						end: logical.cells[match.index + url.length - 1],
+					},
+					decorations: { underline: true, pointerCursor: false },
+					activate: function (event, text) {
+						openUrl(text);
+					},
+				});
+			}
+			callback(links.length ? links : undefined);
+		},
+	});
+	// OSC 8 hyperlinks (ls --hyperlink, agents that emit them) go through
+	// xterm's own provider; only their activation needs wiring.
+	term.options.linkHandler = {
+		activate: function (event, uri) {
+			openUrl(uri);
+		},
+	};
+
+	function synthesizeMouse(type, x, y) {
+		screen.dispatchEvent(
+			new MouseEvent(type, { clientX: x, clientY: y, bubbles: false, cancelable: true })
+		);
+	}
+
+	function activateLinkAt(x, y) {
+		var rect = screen.getBoundingClientRect();
+		var cellHeight = rect.height / term.rows;
+		// The linkifier ignores a move that stays in the last hovered cell and
+		// may have dropped that cell's link since, so hover a neighbouring row
+		// first to force a fresh answer for this one.
+		var primeY = y - rect.top >= cellHeight ? y - cellHeight : y + cellHeight;
+		linkActivated = false;
+		synthesizeMouse("mousemove", x, primeY);
+		synthesizeMouse("mousemove", x, y);
+		synthesizeMouse("mousedown", x, y);
+		synthesizeMouse("mouseup", x, y);
+		return linkActivated;
+	}
+
+	// --- select mode -----------------------------------------------------------
+	// xterm has no touch selection, and its rows are rebuilt on every write, so
+	// a long press freezes the buffer into a plain selectable <pre> laid over
+	// the terminal. The selection on it is WebKit's own — loupe, grabbers,
+	// callout menu — and Copy from the callout comes through the copy event
+	// below. Rows that xterm wrapped are joined back into one line on copy.
+	// The Copy button is native, rendered by RN off the "select" state
+	// messages; RN answers with copySelection.
+	var selectOverlay = document.getElementById("select");
+	var selectText = document.getElementById("select-text");
+	var selecting = false;
+	var softWraps = null;
+	var selectionEmptyTimer = null;
+
+	function hasLiveSelection() {
+		var selection = window.getSelection();
+		return !!selection && selection.rangeCount > 0 && !selection.isCollapsed;
+	}
+
+	function snapshotBuffer() {
+		var buffer = term.buffer.active;
+		var rows = [];
+		var wraps = [];
+		var offset = 0;
+		for (var row = 0; row < buffer.length; row++) {
+			var line = buffer.getLine(row);
+			if (!line) break;
+			var next = buffer.getLine(row + 1);
+			var wrapsOn = !!(next && next.isWrapped);
+			var text = line.translateToString(!wrapsOn);
+			rows.push(text);
+			offset += text.length;
+			if (row + 1 < buffer.length) {
+				if (wrapsOn) wraps.push(offset);
+				offset += 1;
+			}
+		}
+		return { text: rows.join("\\n"), softWraps: wraps };
+	}
+
+	function offsetAt(container, offset) {
+		var range = document.createRange();
+		range.selectNodeContents(selectText);
+		range.setEnd(container, offset);
+		return range.toString().length;
+	}
+
+	function joinWrapped(text, from) {
+		var out = "";
+		for (var i = 0; i < text.length; i++) {
+			if (text[i] === "\\n" && softWraps.has(from + i)) continue;
+			out += text[i];
+		}
+		return out;
+	}
+
+	function selectedText() {
+		var selection = window.getSelection();
+		if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return "";
+		var range = selection.getRangeAt(0);
+		var start = offsetAt(range.startContainer, range.startOffset);
+		var end = offsetAt(range.endContainer, range.endOffset);
+		var text = selectText.textContent.slice(start, end);
+		return joinWrapped(text, start);
+	}
+
+	// Select the whitespace-delimited run under the finger — a path, a flag,
+	// a hash — trimmed to the URL when it starts with one. Soft-wrap newlines
+	// don't break the run.
+	function selectRunAt(x, y) {
+		var node = selectText.firstChild;
+		var caret = document.caretRangeFromPoint(x, y);
+		if (!node || !caret || caret.startContainer !== node) return;
+		var text = node.data;
+		function isBreak(i) {
+			return /\\s/.test(text[i]) && !(text[i] === "\\n" && softWraps.has(i));
+		}
+		var start = caret.startOffset;
+		while (start > 0 && !isBreak(start - 1)) start--;
+		var end = caret.startOffset;
+		while (end < text.length && !isBreak(end)) end++;
+		if (start === end) return;
+		var run = joinWrapped(text.slice(start, end), start);
+		URL_PATTERN.lastIndex = 0;
+		var match = URL_PATTERN.exec(run);
+		if (match && match.index === 0) {
+			var keep = trimUrl(match[0]).length;
+			end = start;
+			while (keep > 0 && end < text.length) {
+				if (!(text[end] === "\\n" && softWraps.has(end))) keep--;
+				end++;
+			}
+		}
+		var range = document.createRange();
+		range.setStart(node, start);
+		range.setEnd(node, end);
+		var selection = window.getSelection();
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
+
+	function enterSelectMode(x, y) {
+		var rowsEl = term.element.querySelector(".xterm-rows");
+		var rowsStyle = getComputedStyle(rowsEl);
+		var screenRect = screen.getBoundingClientRect();
+		var termRect = termEl.getBoundingClientRect();
+		var cellHeight = screenRect.height / term.rows;
+		selectText.style.fontFamily = rowsStyle.fontFamily;
+		selectText.style.fontSize = rowsStyle.fontSize;
+		selectText.style.letterSpacing = rowsStyle.letterSpacing;
+		selectText.style.lineHeight = cellHeight + "px";
+		selectText.style.paddingTop = screenRect.top - termRect.top + "px";
+		selectText.style.paddingLeft = screenRect.left - termRect.left + "px";
+		var snapshot = snapshotBuffer();
+		softWraps = new Set(snapshot.softWraps);
+		selectText.textContent = snapshot.text;
+		selecting = true;
+		selectOverlay.classList.add("active");
+		selectOverlay.scrollTop = term.buffer.active.viewportY * cellHeight;
+		selectRunAt(x, y);
+		// Nothing under the finger to select: never enter the mode at all —
+		// select mode exists only while a selection does.
+		if (!hasLiveSelection()) {
+			selecting = false;
+			selectOverlay.classList.remove("active");
+			selectText.textContent = "";
+			softWraps = null;
+			return;
+		}
+		postSelect();
+	}
+
+	function exitSelectMode() {
+		if (!selecting) return;
+		clearTimeout(selectionEmptyTimer);
+		selecting = false;
+		window.getSelection().removeAllRanges();
+		selectOverlay.classList.remove("active");
+		selectText.textContent = "";
+		softWraps = null;
+		postSelect();
+	}
+
+	function postSelect() {
+		post({
+			type: "select",
+			active: selecting,
+			hasSelection: selecting && hasLiveSelection(),
+		});
+	}
+	// Select mode lives exactly as long as the selection: deselecting exits.
+	// The exit is debounced because iOS momentarily empties the selection
+	// mid-gesture (loupe placement, callout show/hide).
+	document.addEventListener("selectionchange", function () {
+		if (!selecting) return;
+		clearTimeout(selectionEmptyTimer);
+		if (hasLiveSelection()) {
+			postSelect();
+			return;
+		}
+		selectionEmptyTimer = setTimeout(function () {
+			if (selecting && !hasLiveSelection()) exitSelectMode();
+		}, 250);
+	});
+
+	function copySelection() {
+		var text = selectedText();
+		if (!text) return;
+		post({ type: "copy", text: text });
+		exitSelectMode();
+	}
+
+	document.addEventListener("copy", function (event) {
+		if (!selecting) return;
+		var text = selectedText();
+		if (!text) return;
+		event.clipboardData.setData("text/plain", text);
+		event.preventDefault();
+		setTimeout(exitSelectMode, 0);
+	});
+
+	// A plain tap while nothing is selected leaves select mode; a tap while
+	// something is selected just deselects, the way iOS does everywhere.
+	var overlayTouch = null;
+	selectOverlay.addEventListener(
+		"touchstart",
+		function (event) {
+			if (event.touches.length !== 1) {
+				overlayTouch = null;
+				return;
+			}
+			var selection = window.getSelection();
+			overlayTouch = {
+				x: event.touches[0].clientX,
+				y: event.touches[0].clientY,
+				at: Date.now(),
+				hadSelection: !!selection && selection.rangeCount > 0 && !selection.isCollapsed,
+			};
+		},
+		{ passive: true }
+	);
+	selectOverlay.addEventListener("touchend", function (event) {
+		var touch = overlayTouch;
+		overlayTouch = null;
+		if (!touch || touch.hadSelection) return;
+		var point = event.changedTouches[0];
+		if (
+			Math.abs(point.clientX - touch.x) > TAP_SLOP_PX ||
+			Math.abs(point.clientY - touch.y) > TAP_SLOP_PX ||
+			Date.now() - touch.at > TAP_MAX_MS
+		) {
+			return;
+		}
+		exitSelectMode();
+	});
+
+	// --- touch on the terminal -------------------------------------------------
+	var termTouch = null;
+	var longPressTimer = null;
+
+	termEl.addEventListener(
+		"touchstart",
+		function (event) {
+			clearTimeout(longPressTimer);
+			if (event.touches.length !== 1) {
+				termTouch = null;
+				return;
+			}
+			var point = event.touches[0];
+			termTouch = { x: point.clientX, y: point.clientY, at: Date.now(), moved: false };
+			longPressTimer = setTimeout(function () {
+				if (!termTouch || termTouch.moved) return;
+				termTouch.longPressed = true;
+				enterSelectMode(termTouch.x, termTouch.y);
+			}, LONG_PRESS_MS);
+		},
+		{ passive: true }
+	);
+	termEl.addEventListener(
+		"touchmove",
+		function (event) {
+			if (!termTouch || termTouch.moved) return;
+			var point = event.touches[0];
+			if (
+				Math.abs(point.clientX - termTouch.x) > TAP_SLOP_PX ||
+				Math.abs(point.clientY - termTouch.y) > TAP_SLOP_PX
+			) {
+				termTouch.moved = true;
+				clearTimeout(longPressTimer);
+			}
+		},
+		{ passive: true }
+	);
+	function endTermTouch(event) {
+		clearTimeout(longPressTimer);
+		var touch = termTouch;
+		termTouch = null;
+		if (!touch || touch.moved) return;
+		if (touch.longPressed) {
+			event.preventDefault();
+			return;
+		}
+		if (event.type !== "touchend" || Date.now() - touch.at > TAP_MAX_MS) return;
+		if (activateLinkAt(touch.x, touch.y)) event.preventDefault();
+	}
+	termEl.addEventListener("touchend", endTermTouch, { passive: false });
+	termEl.addEventListener("touchcancel", endTermTouch, { passive: false });
+
+	// --- scrollbar -------------------------------------------------------------
+	// Touch scrolling moves xterm's viewport programmatically, so WKWebView has
+	// nothing to draw an indicator for. This one shows while scrolled up, so it
+	// doubles as the "you're not at the bottom" cue, and drags.
+	var scrollbar = document.getElementById("scrollbar");
+	var thumb = document.getElementById("scrollbar-thumb");
+	var scrollbarFrame = 0;
+
+	function updateScrollbar() {
+		scrollbarFrame = 0;
+		var buffer = term.buffer.active;
+		var hidden = buffer.length - term.rows;
+		// Never hide mid-drag: reaching the bottom would remove the track (and
+		// its pointer-events) under the finger.
+		if (hidden <= 0 || (buffer.viewportY >= hidden && !thumbDrag)) {
+			scrollbar.classList.remove("visible");
+			return;
+		}
+		var trackHeight = scrollbar.clientHeight;
+		var thumbHeight = Math.max(24, (trackHeight * term.rows) / buffer.length);
+		thumb.style.height = thumbHeight + "px";
+		thumb.style.transform =
+			"translateY(" + ((trackHeight - thumbHeight) * buffer.viewportY) / hidden + "px)";
+		scrollbar.classList.add("visible");
+	}
+	function scheduleScrollbar() {
+		if (!scrollbarFrame) scrollbarFrame = requestAnimationFrame(updateScrollbar);
+	}
+	term.onScroll(scheduleScrollbar);
+	term.onWriteParsed(scheduleScrollbar);
+	term.onResize(scheduleScrollbar);
+
+	var thumbDrag = null;
+	scrollbar.addEventListener(
+		"touchstart",
+		function (event) {
+			thumbDrag = {
+				y: event.touches[0].clientY,
+				viewportY: term.buffer.active.viewportY,
+			};
+			scrollbar.classList.add("dragging");
+		},
+		{ passive: true }
+	);
+	scrollbar.addEventListener(
+		"touchmove",
+		function (event) {
+			if (!thumbDrag) return;
+			event.preventDefault();
+			var buffer = term.buffer.active;
+			var hidden = buffer.length - term.rows;
+			var travel = scrollbar.clientHeight - thumb.offsetHeight;
+			if (hidden <= 0 || travel <= 0) return;
+			var lines = ((event.touches[0].clientY - thumbDrag.y) / travel) * hidden;
+			term.scrollToLine(
+				Math.max(0, Math.min(hidden, Math.round(thumbDrag.viewportY + lines)))
+			);
+		},
+		{ passive: false }
+	);
+	function endThumbDrag() {
+		thumbDrag = null;
+		scrollbar.classList.remove("dragging");
+	}
+	scrollbar.addEventListener("touchend", endThumbDrag);
+	scrollbar.addEventListener("touchcancel", endThumbDrag);
 
 	post({ type: "ready" });
 	connect();
@@ -318,10 +805,66 @@ html, body {
 	width: 100%;
 	height: 100%;
 }
+#scrollbar {
+	position: absolute;
+	top: 4px;
+	right: 0;
+	bottom: 4px;
+	width: 20px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.2s;
+}
+#scrollbar.visible {
+	opacity: 1;
+	pointer-events: auto;
+}
+#scrollbar-thumb {
+	position: absolute;
+	top: 0;
+	right: 3px;
+	width: 3px;
+	border-radius: 2px;
+	background: rgba(250, 250, 250, 0.35);
+	transition: width 0.15s, background 0.15s;
+}
+#scrollbar.dragging #scrollbar-thumb {
+	width: 6px;
+	background: rgba(250, 250, 250, 0.6);
+}
+#select {
+	display: none;
+	position: absolute;
+	inset: 0;
+	overflow: auto;
+	-webkit-overflow-scrolling: touch;
+	background: #0a0a0a;
+	user-select: none;
+	-webkit-user-select: none;
+}
+#select.active {
+	display: block;
+}
+#select-text {
+	margin: 0;
+	padding-bottom: 96px;
+	color: #fafafa;
+	white-space: pre;
+	font-kerning: none;
+	user-select: text;
+	-webkit-user-select: text;
+}
+#select-text::selection {
+	background: rgba(250, 250, 250, 0.3);
+}
 </style>
 </head>
 <body>
 <div id="term"></div>
+<div id="scrollbar"><div id="scrollbar-thumb"></div></div>
+<div id="select">
+	<pre id="select-text"></pre>
+</div>
 <script>${xtermJs}</script>
 <script>${fitAddonJs}</script>
 <script>${runtimeJs}</script>

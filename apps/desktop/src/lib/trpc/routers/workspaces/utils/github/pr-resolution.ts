@@ -447,7 +447,7 @@ function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
 	});
 }
 
-function computeChecksStatus(
+export function computeChecksStatus(
 	rollup: GHPRResponse["statusCheckRollup"],
 ): NonNullable<GitHubStatus["pr"]>["checksStatus"] {
 	if (!rollup || rollup.length === 0) {
@@ -460,7 +460,14 @@ function computeChecksStatus(
 	for (const ctx of rollup) {
 		const status = ctx.state || ctx.conclusion;
 
-		if (status === "FAILURE" || status === "ERROR" || status === "TIMED_OUT") {
+		if (
+			status === "FAILURE" ||
+			status === "ERROR" ||
+			status === "TIMED_OUT" ||
+			// A cancelled run never produced a real verdict — treat it as a
+			// failure rather than falling through to "success".
+			status === "CANCELLED"
+		) {
 			hasFailure = true;
 		} else if (
 			status === "PENDING" ||

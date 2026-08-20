@@ -37,34 +37,42 @@
 		"scopes": {
 			"bot": [
 				"app_mentions:read",
-				"chat:write",
-				"reactions:write",
+				"assistant:write",
 				"channels:history",
+				"channels:read",
+				"chat:write",
+				"files:read",
 				"groups:history",
+				"groups:read",
 				"im:history",
 				"im:read",
 				"im:write",
-				"mpim:history",
-				"users:read",
-				"files:read",
-				"assistant:write",
+				"incoming-webhook",
 				"links:read",
 				"links:write",
-				"incoming-webhook"
+				"mpim:history",
+				"reactions:read",
+				"reactions:write",
+				"users:read"
 			]
-		}
+		},
+		"pkce_enabled": false
 	},
 	"settings": {
 		"event_subscriptions": {
 			"request_url": "https://api.superset.sh/api/integrations/slack/events",
 			"bot_events": [
-				"app_mention",
 				"app_home_opened",
+				"app_mention",
 				"assistant_thread_context_changed",
 				"assistant_thread_started",
+				"channel_created",
 				"entity_details_requested",
 				"link_shared",
-				"message.im"
+				"message.channels",
+				"message.groups",
+				"message.im",
+				"reaction_added"
 			]
 		},
 		"interactivity": {
@@ -73,6 +81,7 @@
 		},
 		"org_deploy_enabled": false,
 		"socket_mode_enabled": false,
-		"token_rotation_enabled": false
+		"token_rotation_enabled": false,
+		"is_mcp_enabled": false
 	}
 }

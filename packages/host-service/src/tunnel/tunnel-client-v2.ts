@@ -139,10 +139,8 @@ export class TunnelClientV2 {
 		const relayWs = new WebSocket(this.dialUrl(dial.ticket));
 		relayWs.binaryType = "arraybuffer";
 
-		const localUrl = new URL(
-			dial.path,
-			`ws://127.0.0.1:${this.options.localPort}`,
-		);
+		const localUrl = new URL(`ws://127.0.0.1:${this.options.localPort}`);
+		localUrl.pathname = dial.path;
 		localUrl.searchParams.set("token", this.options.hostServiceSecret);
 		if (dial.query) {
 			for (const [key, value] of new URLSearchParams(dial.query)) {

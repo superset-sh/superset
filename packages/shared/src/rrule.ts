@@ -369,6 +369,15 @@ export function nextOccurrenceAfter(args: {
 	return next ? rruleDateToUtc(next, args.timezone) : null;
 }
 
+/**
+ * True when the rule ends (COUNT or UNTIL). Schedules are repeating only —
+ * a rule that runs out is refused at save so no trigger ever needs retiring.
+ */
+export function hasFiniteRecurrence(rrule: string): boolean {
+	const parts = parseRruleParts(rrule);
+	return parts !== null && ("COUNT" in parts || "UNTIL" in parts);
+}
+
 /** Parses + validates an RRule body, returning the next occurrence. */
 export function parseRrule(args: {
 	rrule: string;
@@ -397,18 +406,29 @@ export function parseRrule(args: {
  * editors can gate saves instead of persisting rules the server will reject.
  */
 export function isValidRrule(rrule: string): boolean {
-	if (!parseRruleParts(rrule)) return false;
+	return rruleProblem(rrule) === null;
+}
+
+/**
+ * Why a rule can't be saved: `unparseable` (not an RRULE at all) or
+ * `exhausted` (well-formed, but COUNT/UNTIL leaves nothing in the future —
+ * a run-once schedule that already ran looks exactly like this). Null when
+ * the rule is fine.
+ */
+export function rruleProblem(
+	rrule: string,
+): "unparseable" | "exhausted" | null {
+	if (!parseRruleParts(rrule)) return "unparseable";
 	try {
-		return (
-			nextOccurrenceAfter({
-				rrule,
-				dtstart: new Date(),
-				timezone: "UTC",
-				after: new Date(),
-			}) !== null
-		);
+		const next = nextOccurrenceAfter({
+			rrule,
+			dtstart: new Date(),
+			timezone: "UTC",
+			after: new Date(),
+		});
+		return next === null ? "exhausted" : null;
 	} catch {
-		return false;
+		return "unparseable";
 	}
 }
 
@@ -451,6 +471,30 @@ const DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
 };
 
 /** Format a real UTC instant in the automation's configured timezone. */
+/**
+ * "America/Los_Angeles" → "PDT".
+ *
+ * DST-dependent, so it is resolved against an instant rather than the zone
+ * alone — the same zone reads PST for half the year.
+ */
+export function timezoneAbbreviation(
+	timezone: string,
+	at: Date = new Date(),
+): string {
+	try {
+		return (
+			new Intl.DateTimeFormat("en-US", {
+				timeZone: timezone,
+				timeZoneName: "short",
+			})
+				.formatToParts(at)
+				.find((part) => part.type === "timeZoneName")?.value ?? timezone
+		);
+	} catch {
+		return timezone;
+	}
+}
+
 export function formatDateTimeInTimezone(
 	date: Date,
 	timezone: string,

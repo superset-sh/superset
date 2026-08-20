@@ -1,6 +1,5 @@
 import {
 	Body,
-	Column,
 	Container,
 	Head,
 	Hr,
@@ -8,7 +7,6 @@ import {
 	Img,
 	Link,
 	Preview,
-	Row,
 	Section,
 	Text,
 } from "@react-email/components";
@@ -20,19 +18,17 @@ export const emailTheme = {
 	colors: {
 		background: "#FFFFFF",
 		foreground: "#242424",
-		muted: "#515759",
+		muted: "#51575A",
+		faint: "#A3A39E",
 		border: "#EBEBEB",
 		surface: "#F7F7F7",
-		primary: "#343434",
-		footer: "#000000",
-		footerText: "#FFFFFF",
-		footerMuted: "#A3A3A3",
+		primary: "#242424",
 	},
 	fonts: {
 		sans: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
 		mono: "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace",
 	},
-	width: 640,
+	width: 560,
 } as const;
 
 interface EmailLayoutProps {
@@ -44,10 +40,9 @@ interface EmailLayoutProps {
 
 const footerText = {
 	margin: 0,
-	fontFamily: emailTheme.fonts.sans,
 	fontSize: "12px",
-	lineHeight: "16px",
-	color: emailTheme.colors.footerMuted,
+	lineHeight: "20px",
+	color: emailTheme.colors.faint,
 } as const;
 
 export function EmailLayout({
@@ -70,6 +65,7 @@ export function EmailLayout({
 								foreground: emailTheme.colors.foreground,
 								primary: emailTheme.colors.primary,
 								muted: emailTheme.colors.muted,
+								faint: emailTheme.colors.faint,
 								border: emailTheme.colors.border,
 								surface: emailTheme.colors.surface,
 							},
@@ -89,151 +85,50 @@ export function EmailLayout({
 						style={{
 							margin: "0 auto",
 							maxWidth: `${emailTheme.width}px`,
-							backgroundColor: emailTheme.colors.background,
+							padding: "40px 24px 48px",
 						}}
 					>
-						<Section
-							style={{
-								backgroundColor: emailTheme.colors.footer,
-								padding: "26px 0",
-								textAlign: "center",
-							}}
-						>
-							<Img
-								src={`${assets}/logo-full-white.png`}
-								alt="Superset"
-								width="150"
-								style={{ margin: "0 auto" }}
-							/>
-						</Section>
+						<Img src={`${assets}/logo-full.png`} alt="Superset" width="116" />
 
-						<Section className="px-9 py-8">{children}</Section>
+						<Section style={{ paddingTop: "32px" }}>{children}</Section>
 
-						<Section
+						<Hr
 							style={{
-								backgroundColor: emailTheme.colors.footer,
-								padding: "48px 40px 56px 40px",
+								borderTop: `1px solid ${emailTheme.colors.border}`,
+								borderBottom: "none",
+								margin: "40px 0 20px",
 							}}
-						>
-							<Row>
-								<Column style={{ width: "50%", verticalAlign: "top" }}>
-									<Img
-										src={`${assets}/logo-full-white.png`}
-										alt="Superset"
-										width="232"
-									/>
-									<Text style={{ margin: "40px 0 0 0" }}>
-										<Img
-											src={`${assets}/badge-appstore.png`}
-											alt="App Store"
-											width="108"
-											height="32"
-											style={{ display: "inline-block", marginRight: "16px" }}
-										/>
-										<Img
-											src={`${assets}/badge-googleplay.png`}
-											alt="Google Play"
-											width="108"
-											height="32"
-											style={{ display: "inline-block" }}
-										/>
-									</Text>
-								</Column>
-								<Column style={{ width: "50%", verticalAlign: "top" }}>
-									<Section style={{ width: "248px", margin: "0 auto" }}>
-										<Row>
-											<Column style={{ width: "25%", textAlign: "center" }}>
-												<Link href="https://instagram.com/superset">
-													<Img
-														src={`${assets}/icon-instagram-white.png`}
-														alt="Instagram"
-														width="32"
-														height="32"
-														style={{ display: "inline-block" }}
-													/>
-												</Link>
-											</Column>
-											<Column style={{ width: "25%", textAlign: "center" }}>
-												<Link href="https://www.linkedin.com/company/superset-sh">
-													<Img
-														src={`${assets}/icon-linkedin-white.png`}
-														alt="LinkedIn"
-														width="32"
-														height="32"
-														style={{ display: "inline-block" }}
-													/>
-												</Link>
-											</Column>
-											<Column style={{ width: "25%", textAlign: "center" }}>
-												<Link href="https://x.com/superset_sh">
-													<Img
-														src={`${assets}/icon-x-white.png`}
-														alt="X"
-														width="32"
-														height="32"
-														style={{ display: "inline-block" }}
-													/>
-												</Link>
-											</Column>
-											<Column style={{ width: "25%", textAlign: "center" }}>
-												<Link href="https://www.youtube.com/@superset-sh">
-													<Img
-														src={`${assets}/icon-youtube-white.png`}
-														alt="YouTube"
-														width="32"
-														height="32"
-														style={{ display: "inline-block" }}
-													/>
-												</Link>
-											</Column>
-										</Row>
-										<Hr
-											style={{
-												borderTop: "solid 1px #C2C0B6",
-												borderBottom: "none",
-												width: "100%",
-												margin: "34px 0 18px 0",
-											}}
-										/>
-										<Text style={{ ...footerText, marginBottom: "8px" }}>
-											Superset, Inc., San Francisco, CA
-										</Text>
-										<Text style={footerText}>
-											{recipientEmail ? (
-												<>
-													This email was sent to{" "}
-													<Link
-														href={`mailto:${recipientEmail}`}
-														style={{
-															color: "#8CA6DE",
-															textDecoration: "underline",
-														}}
-													>
-														{recipientEmail}
-													</Link>
-													.{" "}
-												</>
-											) : null}
-											{unsubscribeUrl ? (
-												<>
-													To opt out of future emails, click{" "}
-													<Link
-														href={unsubscribeUrl}
-														style={{
-															color: emailTheme.colors.footerMuted,
-															textDecoration: "underline",
-														}}
-													>
-														unsubscribe
-													</Link>
-													.
-												</>
-											) : null}
-										</Text>
-									</Section>
-								</Column>
-							</Row>
-						</Section>
+						/>
+						<Text style={footerText}>
+							<Link
+								href="https://superset.sh"
+								style={{
+									color: emailTheme.colors.faint,
+									textDecoration: "none",
+								}}
+							>
+								Superset
+							</Link>
+							, Inc., San Francisco, CA
+						</Text>
+						{recipientEmail || unsubscribeUrl ? (
+							<Text style={footerText}>
+								{recipientEmail ? (
+									<>This email was sent to {recipientEmail}. </>
+								) : null}
+								{unsubscribeUrl ? (
+									<Link
+										href={unsubscribeUrl}
+										style={{
+											color: emailTheme.colors.faint,
+											textDecoration: "underline",
+										}}
+									>
+										Unsubscribe
+									</Link>
+								) : null}
+							</Text>
+						) : null}
 					</Container>
 				</Body>
 			</Tailwind>

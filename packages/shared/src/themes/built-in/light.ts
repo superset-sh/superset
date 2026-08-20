@@ -11,7 +11,7 @@ export const lightTheme: Theme = {
 	isBuiltIn: true,
 
 	ui: {
-		background: "oklch(1 0 0)",
+		background: "#f9f9fa",
 		foreground: "oklch(0.145 0 0)",
 		card: "oklch(0.97 0 0)",
 		cardForeground: "oklch(0.145 0 0)",
@@ -22,7 +22,7 @@ export const lightTheme: Theme = {
 		secondary: "oklch(0.97 0 0)",
 		secondaryForeground: "oklch(0.205 0 0)",
 		muted: "oklch(0.97 0 0)",
-		mutedForeground: "oklch(0.556 0 0)",
+		mutedForeground: "#4a4847",
 		accent: "oklch(0.93 0 0)",
 		accentForeground: "oklch(0.205 0 0)",
 		tertiary: "oklch(0.95 0.003 40)",
@@ -32,7 +32,7 @@ export const lightTheme: Theme = {
 		border: "oklch(0.922 0 0)",
 		input: "oklch(0.922 0 0)",
 		ring: "oklch(0.708 0 0)",
-		sidebar: "oklch(0.985 0 0)",
+		sidebar: "#ececec",
 		sidebarForeground: "oklch(0.145 0 0)",
 		sidebarPrimary: "oklch(0.205 0 0)",
 		sidebarPrimaryForeground: "oklch(0.985 0 0)",

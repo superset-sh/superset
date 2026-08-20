@@ -1,0 +1,1 @@
+export { checkDuration } from "./checkDuration";

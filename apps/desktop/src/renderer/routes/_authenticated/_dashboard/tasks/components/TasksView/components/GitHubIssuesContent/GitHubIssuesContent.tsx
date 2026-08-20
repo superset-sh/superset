@@ -101,7 +101,6 @@ export function GitHubIssuesContent({
 			enabled: !!target.hostUrl,
 			staleTime: 30_000,
 			gcTime: 10 * 60_000,
-			retry: false,
 		}),
 		getRows: (data) => data.issues,
 		getRowKey: (issue) => `${issue.projectId}:${issue.issueNumber}`,

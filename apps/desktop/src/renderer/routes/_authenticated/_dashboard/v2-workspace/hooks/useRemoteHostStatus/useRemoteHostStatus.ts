@@ -56,7 +56,6 @@ export function useRemoteHostStatus(
 		queryFn: () => getHostServiceClientByUrl(hostUrl).host.info.query(),
 		enabled: workspace != null && !isLocal,
 		staleTime: HOST_INFO_STALE_MS,
-		retry: false,
 	});
 
 	if (!workspace) return { status: "loading" };

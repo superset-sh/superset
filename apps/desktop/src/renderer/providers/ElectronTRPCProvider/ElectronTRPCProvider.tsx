@@ -12,6 +12,10 @@ import {
 	cloudTrpcClient,
 } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	hostServiceQueryRetry,
+	hostServiceQueryRetryDelay,
+} from "renderer/lib/host-service-client";
 import { electronReactClient } from "../../lib/trpc-client";
 
 // In Electron, blurring the BrowserWindow keeps document.visibilityState
@@ -38,7 +42,11 @@ const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
 			networkMode: "always",
-			retry: false,
+			// Bounded, backoff-delayed retries for connection-level failures only
+			// (e.g. a host-service restart) — see hostServiceQueryRetry. Anything
+			// else, including real application errors, still fails on attempt one.
+			retry: hostServiceQueryRetry,
+			retryDelay: hostServiceQueryRetryDelay,
 		},
 		mutations: {
 			networkMode: "always",

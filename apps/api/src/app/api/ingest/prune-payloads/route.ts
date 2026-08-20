@@ -1,15 +1,8 @@
 import { dbWs } from "@superset/db/client";
-import { Receiver } from "@upstash/qstash";
 import { sql } from "drizzle-orm";
-
-import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 /**
  * How long a raw payload is worth keeping. Nothing reads it back — its only use
@@ -35,19 +28,12 @@ const TIME_BUDGET_MS = 20_000;
 
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
-
-	const valid = await receiver.verify({
+	const rejected = await verifyQstashRequest(
+		request,
 		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/ingest/prune-payloads`,
-	});
-	if (!valid) {
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
+		"/api/ingest/prune-payloads",
+	);
+	if (rejected) return rejected;
 
 	const startedAt = Date.now();
 	let pruned = 0;

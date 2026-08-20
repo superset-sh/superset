@@ -15,6 +15,7 @@
 		"@better-auth/oauth-provider": "1.6.22",
 		"@linear/sdk": "68.1.1",
 		"@modelcontextprotocol/sdk": "1.30.0",
+		"@notionhq/client": "5.25.2",
 		"@octokit/app": "16.1.2",
 		"@octokit/rest": "22.0.1",
 		"@octokit/webhooks": "14.2.0",
@@ -48,6 +49,7 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@microsoft/microsoft-graph-types": "2.43.1",
 		"@superset/typescript": "workspace:*",
 		"@types/lodash.chunk": "4.2.9",
 		"@types/node": "24.12.0",

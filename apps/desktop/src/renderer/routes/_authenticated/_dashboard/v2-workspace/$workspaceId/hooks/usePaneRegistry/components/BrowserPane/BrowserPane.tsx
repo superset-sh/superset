@@ -1,8 +1,10 @@
 import type { RendererContext, Tab } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback, useSyncExternalStore } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { TbDeviceDesktop, TbDownload } from "react-icons/tb";
+import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserPaneData, PaneViewerData } from "../../../../types";
 
@@ -58,6 +60,24 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
 
+	// Offer importing from another browser on the empty page, but only when one
+	// is actually detected, so the CTA is never a dead end.
+	const [canImport, setCanImport] = useState(false);
+	const [isImportOpen, setIsImportOpen] = useState(false);
+	useEffect(() => {
+		if (!isBlankPage) return;
+		let cancelled = false;
+		electronTrpcClient.browserHistory.getImportSources
+			.query()
+			.then((result) => {
+				if (!cancelled) setCanImport(result.sources.length > 0);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
+	}, [isBlankPage]);
+
 	return (
 		<div className="relative flex flex-1 h-full">
 			<div ref={placeholderRef} className="w-full h-full" style={{ flex: 1 }} />
@@ -65,20 +85,35 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 				<BrowserErrorOverlay error={state.error} onRetry={reload} />
 			)}
 			{isBlankPage && !state.isLoading && !state.error && (
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background pointer-events-none">
-					<GlobeIcon className="size-10 text-muted-foreground/30" />
-					<div className="text-center">
-						<p className="text-sm font-medium text-muted-foreground/50">
-							Browser
-						</p>
-						<p className="mt-1 text-xs text-muted-foreground/30">
-							Enter a URL above, or instruct an agent to navigate
-							<br />
-							and use the browser
-						</p>
+				<div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+					<div className="flex w-full max-w-sm flex-col items-center gap-5 px-6">
+						<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+							<GlobeIcon className="size-7 text-muted-foreground" />
+						</div>
+						<div className="text-center">
+							<p className="text-base font-medium text-foreground">
+								Start browsing
+							</p>
+							<p className="mt-1.5 text-sm text-muted-foreground">
+								Type a web address in the bar above, or ask an agent to browse
+								for you.
+							</p>
+						</div>
+						{canImport && (
+							<Button
+								variant="outline"
+								size="sm"
+								className="gap-2"
+								onClick={() => setIsImportOpen(true)}
+							>
+								<TbDownload className="size-4" />
+								Import settings from another browser
+							</Button>
+						)}
 					</div>
 				</div>
 			)}
+			<ImportHistoryDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
 		</div>
 	);
 }

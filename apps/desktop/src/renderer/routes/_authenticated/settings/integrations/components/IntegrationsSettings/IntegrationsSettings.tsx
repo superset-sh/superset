@@ -1,9 +1,14 @@
+import {
+	INTEGRATIONS,
+	type IntegrationProvider,
+} from "@superset/shared/integrations";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useCallback, useEffect, useState } from "react";
-import { FaGithub, FaSlack } from "react-icons/fa";
+import { BsMicrosoftTeams } from "react-icons/bs";
+import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
-import { SiLinear } from "react-icons/si";
+import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -11,8 +16,8 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
+	integrationSettingItemId,
 	isItemVisible,
-	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
 
@@ -29,6 +34,22 @@ interface GithubInstallation {
 	createdAt: Date;
 }
 
+const INTEGRATION_ICONS: Record<IntegrationProvider, React.ReactNode> = {
+	linear: <SiLinear className="size-5" />,
+	github: <FaGithub className="size-5" />,
+	slack: <FaSlack className="size-5" />,
+	notion: <SiNotion className="size-5" />,
+	microsoft_teams: <BsMicrosoftTeams className="size-5" />,
+	sentry: <SiSentry className="size-5" />,
+	google: <FaGoogle className="size-5" />,
+};
+
+interface ProviderState {
+	isConnected: boolean;
+	connectedOrgName?: string | null;
+	isLoading: boolean;
+}
+
 export function IntegrationsSettings({
 	visibleItems,
 }: IntegrationsSettingsProps) {
@@ -42,18 +63,35 @@ export function IntegrationsSettings({
 			{ enabled: !!activeOrganizationId },
 		);
 
+	// Google is per member, not per org, so the caller's own connection rather
+	// than whichever row integration.list happens to return first.
+	const { data: googleConnection, isPending: isGooglePending } =
+		cloudTrpc.integration.google.getConnection.useQuery(
+			{ organizationId: activeOrganizationId ?? "" },
+			{ enabled: !!activeOrganizationId },
+		);
+
+	// These three keep a disconnected row around, which integration.list does
+	// not filter out — their per-provider getConnection does.
+	const { data: sentryConnection, isPending: isSentryPending } =
+		cloudTrpc.integration.sentry.getConnection.useQuery(
+			{ organizationId: activeOrganizationId ?? "" },
+			{ enabled: !!activeOrganizationId },
+		);
+	const { data: notionConnection, isPending: isNotionPending } =
+		cloudTrpc.integration.notion.getConnection.useQuery(
+			{ organizationId: activeOrganizationId ?? "" },
+			{ enabled: !!activeOrganizationId },
+		);
+	const { data: teamsConnection, isPending: isTeamsPending } =
+		cloudTrpc.integration.microsoftTeams.getConnection.useQuery(
+			{ organizationId: activeOrganizationId ?? "" },
+			{ enabled: !!activeOrganizationId },
+		);
+
 	const [githubInstallation, setGithubInstallation] =
 		useState<GithubInstallation | null>(null);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(true);
-
-	const showLinear = isItemVisible(
-		SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
-		visibleItems,
-	);
-	const showGithub = isItemVisible(
-		SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
-		visibleItems,
-	);
 
 	const fetchGithubInstallation = useCallback(async () => {
 		if (!activeOrganizationId) {
@@ -80,14 +118,44 @@ export function IntegrationsSettings({
 
 	const linearConnection = integrations?.find((i) => i.provider === "linear");
 	const slackConnection = integrations?.find((i) => i.provider === "slack");
-	const isLinearConnected = !!linearConnection;
-	const isSlackConnected = !!slackConnection;
-	const isGithubConnected =
-		!!githubInstallation && !githubInstallation.suspended;
-	const showSlack = isItemVisible(
-		SETTING_ITEM_ID.INTEGRATIONS_SLACK,
-		visibleItems,
-	);
+
+	const providerStates: Record<IntegrationProvider, ProviderState> = {
+		linear: {
+			isConnected: !!linearConnection,
+			connectedOrgName: linearConnection?.externalOrgName,
+			isLoading: isIntegrationsPending,
+		},
+		github: {
+			isConnected: !!githubInstallation && !githubInstallation.suspended,
+			connectedOrgName: githubInstallation?.accountLogin,
+			isLoading: isLoadingGithub,
+		},
+		slack: {
+			isConnected: !!slackConnection,
+			connectedOrgName: slackConnection?.externalOrgName,
+			isLoading: isIntegrationsPending,
+		},
+		notion: {
+			isConnected: !!notionConnection,
+			connectedOrgName: notionConnection?.externalOrgName,
+			isLoading: isNotionPending,
+		},
+		microsoft_teams: {
+			isConnected: !!teamsConnection,
+			connectedOrgName: teamsConnection?.externalOrgName,
+			isLoading: isTeamsPending,
+		},
+		sentry: {
+			isConnected: !!sentryConnection,
+			connectedOrgName: sentryConnection?.organizationName,
+			isLoading: isSentryPending,
+		},
+		google: {
+			isConnected: !!googleConnection && !googleConnection.needsReconnect,
+			connectedOrgName: googleConnection?.email,
+			isLoading: isGooglePending,
+		},
+	};
 
 	const handleOpenWeb = (path: string) => {
 		window.open(`${env.NEXT_PUBLIC_WEB_URL}${path}`, "_blank");
@@ -119,41 +187,25 @@ export function IntegrationsSettings({
 			</div>
 
 			<div className="space-y-1">
-				{showLinear && (
-					<IntegrationRow
-						name={<HighlightText text="Linear" query={searchQuery} />}
-						description="Sync issues bidirectionally with Linear."
-						icon={<SiLinear className="size-5" />}
-						isConnected={isLinearConnected}
-						connectedOrgName={linearConnection?.externalOrgName}
-						isLoading={isIntegrationsPending}
-						onManage={() => handleOpenWeb("/integrations/linear")}
-					/>
-				)}
-
-				{showGithub && (
-					<IntegrationRow
-						name={<HighlightText text="GitHub" query={searchQuery} />}
-						description="Connect repos and sync pull requests."
-						icon={<FaGithub className="size-5" />}
-						isConnected={isGithubConnected}
-						connectedOrgName={githubInstallation?.accountLogin}
-						isLoading={isLoadingGithub}
-						onManage={() => handleOpenWeb("/integrations/github")}
-					/>
-				)}
-
-				{showSlack && (
-					<IntegrationRow
-						name={<HighlightText text="Slack" query={searchQuery} />}
-						description="Manage tasks from Slack conversations."
-						icon={<FaSlack className="size-5" />}
-						isConnected={isSlackConnected}
-						connectedOrgName={slackConnection?.externalOrgName}
-						isLoading={isIntegrationsPending}
-						onManage={() => handleOpenWeb("/integrations/slack")}
-					/>
-				)}
+				{INTEGRATIONS.map((integration) => {
+					const itemId = integrationSettingItemId(integration.provider);
+					if (!isItemVisible(itemId, visibleItems)) return null;
+					const state = providerStates[integration.provider];
+					return (
+						<IntegrationRow
+							key={integration.provider}
+							name={
+								<HighlightText text={integration.label} query={searchQuery} />
+							}
+							description={integration.description}
+							icon={INTEGRATION_ICONS[integration.provider]}
+							isConnected={state.isConnected}
+							connectedOrgName={state.connectedOrgName}
+							isLoading={state.isLoading}
+							onManage={() => handleOpenWeb(integration.webPath)}
+						/>
+					);
+				})}
 			</div>
 
 			<p className="mt-6 text-xs text-muted-foreground">

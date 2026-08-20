@@ -12,7 +12,7 @@ relatedSlugs:
 
 Every month, a new AI coding agent launches. Claude Code. Codex. Aider. OpenCode. Cursor's agent mode. Windsurf's Cascade. Devin. The list keeps growing. Each promises to be smarter, faster, more capable than the last.
 
-Here's the thing: the agents are already good enough. Claude Code can refactor a module. Codex can write a test suite. Aider can iterate on a bugfix. The quality difference between top-tier agents is shrinking. What's not getting better is the workflow around them.
+The agents are already good enough. Claude Code can refactor a module. Codex can write a test suite. Aider can iterate on a bugfix. The quality difference between top-tier agents is shrinking. What's not getting better is the workflow around them.
 
 The real bottleneck isn't agent quality. It's agent quantity.
 
@@ -69,6 +69,8 @@ This isn't an argument against better agents. It's an argument that the orchestr
 
 ## What Good Orchestration Looks Like
 
+![A workspace board triaging a fleet of coding agents by status: working, needs attention, needs review, and merged](/changelog/2026-08-16-workspaces-board.png)
+
 ### Automatic Isolation
 
 Creating a task should automatically create a Git worktree and branch. No manual setup, no remembering to checkout a new branch, no worrying about file conflicts. The orchestrator handles this transparently.
@@ -116,7 +118,7 @@ Running parallel agents has a compound effect on productivity:
 3. **Better agent matching**: use the right agent for each task instead of one-size-fits-all
 4. **Reduced context switching**: tasks run to completion in isolation instead of being stashed and resumed
 
-The developers we work with who've adopted parallel agent workflows don't go back to single-agent work. The throughput difference is too large. The question shifts from "which agent should I use?" to "how many agents can I effectively manage?"
+The developers we work with who've adopted parallel agent workflows don't go back to single-agent work. The throughput difference is too large. The question shifts from "which agent should I use?" to "how many agents can I actually manage?"
 
 That's the right question. And the answer is: as many as your orchestrator supports and your review speed allows.
 

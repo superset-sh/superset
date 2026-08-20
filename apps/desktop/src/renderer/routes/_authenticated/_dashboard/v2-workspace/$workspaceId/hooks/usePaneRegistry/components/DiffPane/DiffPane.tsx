@@ -150,7 +150,7 @@ export function DiffPane({
 		paneId: context.pane.id,
 	});
 
-	const { targetItemId } = useDiffCodeViewScroll({
+	const { targetItemId, notifyScroll } = useDiffCodeViewScroll({
 		codeViewRef,
 		data,
 		fileByItemId,
@@ -174,8 +174,9 @@ export function DiffPane({
 		(scrollTop: number) => {
 			savePaneScrollState(scrollStateKey, { scrollTop, scrollLeft: 0 });
 			onScroll();
+			notifyScroll();
 		},
-		[scrollStateKey, onScroll],
+		[scrollStateKey, onScroll, notifyScroll],
 	);
 	const { options, style } = useDiffCodeViewTheme();
 

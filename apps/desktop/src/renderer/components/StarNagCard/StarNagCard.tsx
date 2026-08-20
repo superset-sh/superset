@@ -2,13 +2,14 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { SidebarCard } from "@superset/ui/sidebar-card";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer } from "react";
+import { AnimatedStarButton } from "renderer/components/AnimatedStarButton";
 import {
-	AnimatedStarButton,
-	STAR_SUCCESS_ANIMATION_MS,
-} from "renderer/components/AnimatedStarButton";
-import type { GithubStarActionState } from "renderer/hooks/useGithubStarAction";
-import { useGithubStarAction } from "renderer/hooks/useGithubStarAction";
+	canActivateStarAction,
+	useGithubStarAction,
+	useJustStarredWindow,
+	useTrackShownOnce,
+} from "renderer/hooks/useGithubStarAction";
 import { track } from "renderer/lib/analytics";
 import { useStarNagStore } from "renderer/stores/star-nag";
 
@@ -55,46 +56,26 @@ export function StarNagCard({ isCollapsed }: StarNagCardProps) {
 	// Starring calls markCompleted() internally, which flips shouldShow to
 	// false immediately — without this, the card would unmount before the
 	// AnimatedStarButton's confetti/label animation gets a chance to play.
-	const [staysVisibleForAnimation, setStaysVisibleForAnimation] =
-		useState(false);
-	const prevStateRef = useRef<GithubStarActionState | null>(null);
+	const celebrating = useJustStarredWindow(state);
 
-	useEffect(() => {
-		const prev = prevStateRef.current;
-		prevStateRef.current = state;
-		const justStarred =
-			(prev === "not_starred" || prev === "unknown") && state === "starred";
-		if (justStarred) {
-			setStaysVisibleForAnimation(true);
-			const timer = setTimeout(
-				() => setStaysVisibleForAnimation(false),
-				STAR_SUCCESS_ANIMATION_MS,
-			);
-			return () => clearTimeout(timer);
-		}
-	}, [state]);
+	const renderVisible = shouldShow || celebrating;
+	const cardVisible = Boolean(!isCollapsed && isEnabled && shouldShow);
 
-	const renderVisible = shouldShow || staysVisibleForAnimation;
-	const isVisible = !isCollapsed && isEnabled && shouldShow;
-
-	// Fire at most once per visible showing — without the reset, every
-	// sidebar collapse/expand cycle re-triggers this effect and inflates
-	// impressions relative to the other surfaces' once-per-showing trackers.
-	const trackedShownRef = useRef(false);
-	useEffect(() => {
-		if (!isVisible) {
-			trackedShownRef.current = false;
-			return;
-		}
-		if (trackedShownRef.current) return;
-		trackedShownRef.current = true;
-		track("star_nag_shown", { surface: "card" });
-	}, [isVisible]);
+	// Fire at most once per visible showing of the *button* specifically
+	// (not just the card) — the card can be visible with its title/
+	// description/dismiss while the button itself is hidden (loading/
+	// unknown), and that's not a "shown" impression of the star ask.
+	useTrackShownOnce(cardVisible && canActivateStarAction(state), () =>
+		track("star_nag_shown", { surface: "card" }),
+	);
 
 	function handleAction() {
-		track(state === "unknown" ? "star_nag_opened_web" : "star_nag_starred", {
-			surface: "card",
-		});
+		// A click during the post-star celebration window (state === "starred")
+		// reaches this handler but activate() no-ops for it — don't record a
+		// "starred" event for a click that didn't actually do anything.
+		if (canActivateStarAction(state)) {
+			track("star_nag_starred", { surface: "card" });
+		}
 		activate();
 	}
 
@@ -120,12 +101,18 @@ export function StarNagCard({ isCollapsed }: StarNagCardProps) {
 						description="Superset is open source. If it's helped you today, a GitHub star helps other developers find it."
 						onDismiss={handleDismiss}
 					>
-						<AnimatedStarButton
-							state={state}
-							busy={isBusy}
-							onActivate={handleAction}
-							className="mt-3 w-full justify-center"
-						/>
+						{/* A "loading" or "unknown" read isn't trustworthy enough to act
+						on, so the button doesn't render for those — the card chrome
+						(title, description, dismiss) stays up regardless, same pattern
+						as StarNagToast. */}
+						{(canActivateStarAction(state) || celebrating) && (
+							<AnimatedStarButton
+								state={state}
+								busy={isBusy}
+								onActivate={handleAction}
+								className="mt-3 w-full justify-center"
+							/>
+						)}
 					</SidebarCard>
 				</motion.div>
 			)}

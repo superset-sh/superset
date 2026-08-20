@@ -14,14 +14,17 @@ export interface TerminalQuickKey {
 	label?: string;
 	/** SF Symbol name (e.g. "arrow.up"). */
 	symbol?: SFSymbolName;
-	/** Raw bytes written into the PTY. */
+	/** Raw bytes written into the PTY. Empty for keys that submit instead. */
 	data: string;
+	/** Sent through the host's Enter path rather than as raw bytes, so a TUI never mistakes it for a paste. */
+	submits?: true;
 }
 
 // Escape/tab/arrow keys the soft keyboard doesn't have. The leading expander
 // (`»`) reveals the wider set (ctrl, space, function keys) in a later pass.
 export const QUICK_KEYS: TerminalQuickKey[] = [
 	{ id: "esc", label: "esc", data: "\u001b" },
+	{ id: "enter", symbol: "return", data: "", submits: true },
 	{ id: "tab", label: "tab", data: "\t" },
 	{ id: "shift-tab", label: "⇧tab", data: "\u001b[Z" },
 	{ id: "up", symbol: "arrow.up", data: "\u001b[A" },

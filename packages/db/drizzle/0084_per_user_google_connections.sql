@@ -1,0 +1,3 @@
+ALTER TABLE "integration_connections" DROP CONSTRAINT "integration_connections_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "integration_connections_org_provider_unique" ON "integration_connections" USING btree ("organization_id","provider") WHERE "integration_connections"."provider" <> 'google';--> statement-breakpoint
+CREATE UNIQUE INDEX "integration_connections_google_user_unique" ON "integration_connections" USING btree ("organization_id","provider","connected_by_user_id") WHERE "integration_connections"."provider" = 'google';

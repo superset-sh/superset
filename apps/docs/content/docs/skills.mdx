@@ -30,7 +30,8 @@ Or, in Claude Code, via the plugin marketplace:
 | `superset:setup` | Makes a repo Superset-ready: authors `.superset/config.json` and setup scripts, then verifies with a real workspace |
 | `superset:orchestrate` | Turns the agent you're talking to into a coordinator of parallel agents; see [Agent Orchestration](/orchestration) |
 | `superset:automate` | Turns a recurring chore into a scheduled [automation](/automations) and reviews its first run with you |
-| `superset:browser` | Drives a workspace's [in-app browser](/browser) panes — open, navigate, screenshot, eval, read console, and raw CDP for click/type automation |
+| `superset:browser` | Drives a workspace's [in-app browser](/browser) panes — open, navigate, screenshot, eval, read console, and raw CDP for click/type automation — and routes to [Browser Use 3.0](/browser#browser-use-30) for browsers the panes can't reach |
+| `superset:computer` | Drives [native desktop apps](/computer) through an accessibility-first driver (Cua Driver by default) — inspect windows, click, type, use menus, and verify results with background interaction when the platform supports it |
 | `superset:standup` | Sweeps your workspaces, tasks, and agent terminals into a digest: what needs you, what's in flight, what's blocked |
 | `superset:doctor` | Diagnoses Superset problems (expired auth, offline hosts, stale versions) and fixes them one step at a time |
 | `superset:feedback` | Files a bug report or feature request: privately to the Superset team (from your account, so we can reply) or as a public GitHub issue |
@@ -45,6 +46,7 @@ You usually don't invoke them; agents pick the right skill from context:
 - "what did my agents do overnight?" → `superset:standup`
 - "run these three refactors in parallel" → `superset:orchestrate`
 - "open localhost:3000 and click through the signup flow" → `superset:browser`
+- "open the desktop app and change its settings" → `superset:computer`
 
 To invoke one explicitly: `/superset:feedback` in Claude Code, or `/superset/feedback` in the in-app chat. Other agents that read skills (Codex, Kimi, Vibe, Grok) see the same skills with a `superset-` prefix.
 

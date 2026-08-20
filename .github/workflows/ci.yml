@@ -32,6 +32,23 @@ jobs:
       - name: Sherif
         run: bunx sherif
 
+  vale:
+    name: Vale prose lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install Vale
+        run: |
+          curl -sfLo /tmp/vale.tar.gz https://github.com/errata-ai/vale/releases/download/v3.17.1/vale_3.17.1_Linux_64-bit.tar.gz
+          echo "db947f89f2292e6a0381a61de155f6a5f5cb4cb460ca178ea412ef605559cefd  /tmp/vale.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/vale.tar.gz -C /usr/local/bin vale
+
+      - name: Lint marketing content
+        working-directory: apps/marketing
+        run: vale --config=vale.ini content
+
   version-sync:
     name: Version Sync
     runs-on: ubuntu-latest
@@ -85,11 +102,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
 
-      # The guard scripts run by `bun run lint` scan with ripgrep, which is not
-      # on the runner image.
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-
       - name: Lint
         run: bun run lint
 
@@ -114,13 +126,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
-
-      - name: Install Linux native build deps
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxkbfile-dev
-
-      - name: Install desktop native dependencies
-        working-directory: apps/desktop
-        run: bun run install:deps
 
       - name: Test
         env:

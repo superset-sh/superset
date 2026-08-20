@@ -1,5 +1,10 @@
 import { db, dbWs } from "@superset/db/client";
-import { subscriptions, v2Hosts, v2UsersHosts } from "@superset/db/schema";
+import {
+	subscriptions,
+	users,
+	v2Hosts,
+	v2UsersHosts,
+} from "@superset/db/schema";
 import {
 	ACTIVE_SUBSCRIPTION_STATUSES,
 	isActiveSubscriptionStatus,
@@ -10,11 +15,50 @@ import {
 	parseHostRoutingKey,
 } from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { Resend } from "resend";
 import { z } from "zod";
+import { env } from "../../env";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { jwtProcedure } from "../../trpc";
+
+const resend = new Resend(env.RESEND_API_KEY);
+const FIRST_OPEN_EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Emits `app.first_opened` when a recent signup registers their first host,
+// so the Resend activation automation can branch installed-but-no-workspace
+// users away from the download nudge.
+async function emitFirstHostEvent(userId: string) {
+	try {
+		const [hostCount] = await db
+			.select({ value: count() })
+			.from(v2Hosts)
+			.where(eq(v2Hosts.createdByUserId, userId));
+		if (hostCount?.value !== 1) return;
+
+		const user = await db.query.users.findFirst({
+			columns: { email: true, createdAt: true },
+			where: eq(users.id, userId),
+		});
+		const isRecentSignup =
+			user &&
+			Date.now() - user.createdAt.getTime() < FIRST_OPEN_EVENT_WINDOW_MS;
+		if (!user || !isRecentSignup) return;
+
+		const { error } = await resend.events.send({
+			event: "app.first_opened",
+			email: user.email,
+			payload: { userId },
+		});
+		if (error) throw new Error(error.message);
+	} catch (error) {
+		console.error(
+			`[host.ensure] Failed to emit first-open event for ${userId}:`,
+			error,
+		);
+	}
+}
 
 export const hostRouter = {
 	/**
@@ -146,6 +190,10 @@ export const hostRouter = {
 							v2UsersHosts.hostId,
 						],
 					});
+			}
+
+			if (inserted) {
+				await emitFirstHostEvent(ctx.userId);
 			}
 
 			return host;

@@ -63,5 +63,21 @@ Median 16 words (range 6-29); 1-2 sentences, never 3; zero colons; long subtitle
 
 ## House style
 
+The lintable subset of these rules is enforced by Vale: config in `apps/marketing/vale.ini`,
+rules in `vale-styles/Superset/`, run with `bun run lint:prose` (errors fail CI via the
+`vale` job in `ci.yml`). Paths are deliberately non-hidden: some local checkouts
+(the Superset CLI settings exclude) carry a `.git/info/exclude` rule that ignores `.*`, so a
+`.vale.ini` can sit invisible to `git status` and silently never get committed. Third-party
+packages (proselint, write-good, alex, MDX) are vendored into `vale-styles/` by `vale sync` and
+committed; they run advisory-only, calibrated in `vale.ini` (write-good.E-Prime,
+alex.ProfanityUnlikely, and other false-positive-heavy rules are off). Vendored style files are
+excluded from Biome and never hand-edited; recalibrate in `vale.ini` instead. Severity: em dashes, hype words, the AI-tell vocabulary from the
+Notion "Kiet's Email voice" page (delve/leverage-as-verb/robust/seamless/crucial/comprehensive/
+streamline/furthermore/additionally/effectively and friends), and performative phrasing are
+errors; owned terms, signposting ("Here's the thing"), "not just X, but Y", and changelog
+internal jargon (tRPC, Drizzle, package names) are warnings; "agentic" and Flesch-Kincaid
+grade > 11 are suggestions. The Notion voice page is the source of truth for the voice rules;
+sync the Vale style when it changes.
+
 - No em dashes anywhere in marketing copy or README (repo-wide sweep, Aug 2026). Rewrite with colon, comma, period, or parentheses.
 - Voice-of-customer vocabulary that converts (from HN/X research, Aug 2026): "parallel coding agents" (the converged category phrase), "without losing track", "terminal tabs don't scale", "babysitting" (pain), "native TUIs, no bloat", "worktrees". Avoid: "mission control" (GitHub owns it), "herding" (herdr owns it), "editor/IDE" (category the leaders exited), "agentic" (saturated).

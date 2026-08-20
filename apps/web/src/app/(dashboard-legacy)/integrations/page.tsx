@@ -1,38 +1,43 @@
 "use client";
 
-import { FaGithub, FaSlack } from "react-icons/fa";
-import { SiLinear } from "react-icons/si";
+import {
+	INTEGRATIONS,
+	type IntegrationProvider,
+} from "@superset/shared/integrations";
+import type { ReactNode } from "react";
+import { BsMicrosoftTeams } from "react-icons/bs";
+import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
+import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
 import {
 	IntegrationCard,
 	type IntegrationCardProps,
 } from "./components/IntegrationCard";
 
-const integrations: IntegrationCardProps[] = [
-	{
-		id: "linear",
-		name: "Linear",
-		description: "Sync issues bidirectionally with Linear.",
-		category: "Task Management",
-		accentColor: "#5E6AD2",
-		icon: <SiLinear className="size-8" />,
+const CARD_STYLES: Record<
+	IntegrationProvider,
+	{ accentColor: string; icon: ReactNode }
+> = {
+	linear: { accentColor: "#5E6AD2", icon: <SiLinear className="size-8" /> },
+	github: { accentColor: "#238636", icon: <FaGithub className="size-8" /> },
+	slack: { accentColor: "#4A154B", icon: <FaSlack className="size-8" /> },
+	notion: { accentColor: "#5F5E5B", icon: <SiNotion className="size-8" /> },
+	microsoft_teams: {
+		accentColor: "#5B5FC7",
+		icon: <BsMicrosoftTeams className="size-8" />,
 	},
-	{
-		id: "github",
-		name: "GitHub",
-		description: "Connect repos and sync pull requests.",
-		category: "Version Control",
-		accentColor: "#238636",
-		icon: <FaGithub className="size-8" />,
-	},
-	{
-		id: "slack",
-		name: "Slack",
-		description: "Connect Slack to manage tasks from conversations.",
-		category: "Communication",
-		accentColor: "#4A154B",
-		icon: <FaSlack className="size-8" />,
-	},
-];
+	sentry: { accentColor: "#362D59", icon: <SiSentry className="size-8" /> },
+	google: { accentColor: "#4285F4", icon: <FaGoogle className="size-8" /> },
+};
+
+const integrations: IntegrationCardProps[] = INTEGRATIONS.map(
+	(integration) => ({
+		id: integration.webPath.replace("/integrations/", ""),
+		name: integration.label,
+		description: integration.description,
+		category: integration.category,
+		...CARD_STYLES[integration.provider],
+	}),
+);
 
 export default function IntegrationsPage() {
 	return (

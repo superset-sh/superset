@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { GithubStarActionState } from "renderer/hooks/useGithubStarAction";
+import { STAR_SUCCESS_ANIMATION_MS } from "renderer/hooks/useGithubStarAction";
 import "./AnimatedStarButton.css";
 import { PlusMark } from "./components/PlusMark";
 
@@ -20,11 +21,6 @@ const CORNERS = ["top-left", "top-right", "bottom-right", "bottom-left"];
 // here would collide with that meaning.
 const CONFETTI_COLORS = ["#fbbf24", "#34d399", "#fbbf24"];
 const PARTICLE_COUNT = 8;
-
-// How long the post-star celebration (icon pop + confetti) stays visible.
-// Shared with GitHubStarPill and StarNagCard so they keep rendering the
-// button — instead of unmounting it — for exactly as long as this plays.
-export const STAR_SUCCESS_ANIMATION_MS = 1700;
 
 interface Particle {
 	id: number;
@@ -80,7 +76,14 @@ export function AnimatedStarButton({
 	useEffect(() => {
 		const prevState = prevStateRef.current;
 		prevStateRef.current = state;
-		if (prevState !== "starred" && state === "starred") {
+		// Matches useJustStarredWindow's transition condition (not just "wasn't
+		// starred before") — a cold mount that resolves straight from "loading"
+		// to "starred" (the repo was already starred before this session) isn't
+		// a fresh star and shouldn't burst confetti for it.
+		if (
+			(prevState === "not_starred" || prevState === "unknown") &&
+			state === "starred"
+		) {
 			setJustStarred(true);
 			if (!prefersReducedMotion) setParticles(createBurst());
 			const clearTimer = setTimeout(() => {
@@ -92,19 +95,13 @@ export function AnimatedStarButton({
 	}, [state, prefersReducedMotion]);
 
 	const isStarred = state === "starred";
-	const label = isStarred
-		? "Starred"
-		: busy
-			? "Starring…"
-			: state === "unknown"
-				? "Open GitHub"
-				: "Star on GitHub";
+	const label = isStarred ? "Starred" : busy ? "Starring…" : "Star on GitHub";
 
 	return (
 		<button
 			type="button"
 			onClick={onActivate}
-			disabled={busy || state === "loading"}
+			disabled={busy || (state !== "not_starred" && state !== "starred")}
 			className={cn(
 				"star-button group",
 				compact && "star-button--compact",

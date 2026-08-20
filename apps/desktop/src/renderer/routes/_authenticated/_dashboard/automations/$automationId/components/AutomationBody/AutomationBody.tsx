@@ -51,6 +51,12 @@ export function AutomationBody({
 	const updateMutation = useMutation({
 		mutationFn: (patch: AutomationUpdatePatch) =>
 			apiTrpcClient.automation.update.mutate({ id: automation.id, ...patch }),
+		// Only the trigger set gets a confirmation. Every other patch shows its
+		// own result — the picker relabels, the toggle flips — but a saved
+		// trigger set looks exactly like the unsaved one it replaced.
+		onSuccess: (_result, patch) => {
+			if (patch.triggers) toast.success("Triggers saved");
+		},
 		// The pickers re-render from the Electric-synced row, so a rejected
 		// update silently snaps back without this.
 		onError: (error) =>
@@ -159,12 +165,17 @@ export function AutomationBody({
 
 				{tab === "settings" ? (
 					<fieldset disabled={readOnly} className="contents">
-						<span className="mb-2 text-sm text-muted-foreground">Triggers</span>
 						<TriggersCard
 							automation={automation}
 							hostId={hostId}
 							readOnly={readOnly}
 							onUpdate={(patch) => updateMutation.mutate(patch)}
+							// Awaited, unlike the pickers: the editor holds the only copy
+							// of an unsaved set, so it must not clear its dirty state until
+							// the write actually lands.
+							onSaveTriggers={(triggers) =>
+								updateMutation.mutateAsync({ triggers })
+							}
 						/>
 
 						<span className="mt-8 mb-2 text-sm text-muted-foreground">

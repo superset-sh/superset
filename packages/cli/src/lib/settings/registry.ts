@@ -92,6 +92,13 @@ export const SETTINGS: SettingDefinition[] = [
 		defaultValue: false,
 	},
 	{
+		key: "browserHomepageUrl",
+		type: "string",
+		section: "behavior",
+		description: "URL new in-app browser tabs open to (unset = about:blank)",
+		defaultValue: null,
+	},
+	{
 		key: "defaultEditor",
 		type: "enum",
 		section: "behavior",

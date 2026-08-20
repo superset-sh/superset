@@ -14,7 +14,13 @@ import {
 } from "../../runtime/pull-requests/utils/workspace-refs.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
-import { getChangedFilesForDiff } from "../../trpc/router/git/utils/git-helpers.ts";
+import {
+	type DiffCategory,
+	getChangedFilesForDiff,
+	loadFileDiffContent,
+	mapWithConcurrency,
+	resolveDiffCategoryRefs,
+} from "../../trpc/router/git/utils/git-helpers.ts";
 import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
 import {
@@ -22,6 +28,11 @@ import {
 	parseWorktreeList,
 } from "../../trpc/router/workspace-creation/shared/worktree-list.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
+
+// How many `git show` pairs run at once for a bulk diff request. Each pair
+// is its own SimpleGit instance so slots genuinely run concurrently
+// (simple-git serializes commands within one instance).
+const DIFF_BULK_CONCURRENCY = 8;
 
 export interface GitTaskEnv {
 	[key: string]: string;
@@ -67,6 +78,64 @@ export const gitCommitFilesTask = defineWorkerTask<
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
 		const from = fromHash ? fromHash : `${commitHash}^`;
 		return getChangedFilesForDiff(git, [from, commitHash]);
+	},
+});
+
+// Bulk sibling of the single-file diff path: resolves the category's shared
+// refs once, then loads every requested file's diff with bounded
+// concurrency — all inside this worker, so a several-hundred-file changeset
+// never spawns its `git show` processes on the host-service event loop.
+export const gitDiffBulkTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		paths: string[];
+		category: DiffCategory;
+		baseBranch?: string;
+		commitHash?: string;
+		fromHash?: string;
+		gitEnv: GitTaskEnv;
+	},
+	{
+		diffs: Array<{
+			path: string;
+			oldFile: { name: string; contents: string };
+			newFile: { name: string; contents: string };
+		}>;
+	}
+>({
+	type: "git/getDiffBulk",
+	handler: async ({
+		worktreePath,
+		paths,
+		category,
+		baseBranch,
+		commitHash,
+		fromHash,
+		gitEnv,
+	}) => {
+		const refs = await resolveDiffCategoryRefs(
+			createUserSimpleGit(worktreePath).env(gitEnv),
+			category,
+			{ baseBranch, commitHash, fromHash },
+		);
+
+		const diffs = await mapWithConcurrency(
+			paths,
+			DIFF_BULK_CONCURRENCY,
+			async (path) => {
+				const git = createUserSimpleGit(worktreePath).env(gitEnv);
+				const { oldFile, newFile } = await loadFileDiffContent(
+					git,
+					worktreePath,
+					category,
+					path,
+					refs,
+				);
+				return { path, oldFile, newFile };
+			},
+		);
+
+		return { diffs };
 	},
 });
 
@@ -177,6 +246,7 @@ export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
+	gitDiffBulkTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
 	gitWorktreeStateTask,

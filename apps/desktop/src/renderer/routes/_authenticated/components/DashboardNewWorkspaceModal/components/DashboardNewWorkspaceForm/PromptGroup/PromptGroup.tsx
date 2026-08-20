@@ -15,6 +15,7 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -654,11 +655,10 @@ export function PromptGroup({
 								e.preventDefault();
 								handleSubmit();
 							}}
-							status={isCreating ? "submitted" : undefined}
 						>
-							{/* PromptInputSubmit renders `children ?? statusIcon`, so the
-							    arrow has to stand aside for the spinner to show. */}
-							{isCreating ? null : (
+							{isCreating ? (
+								<Spinner className="size-3.5 text-muted-foreground" />
+							) : (
 								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 							)}
 						</PromptInputSubmit>

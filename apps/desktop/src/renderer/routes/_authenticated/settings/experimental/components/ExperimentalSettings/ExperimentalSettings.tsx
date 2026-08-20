@@ -2,14 +2,15 @@ import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import {
+	useIsV1FlipLocked,
 	useIsV2CloudEnabled,
 	useIsV2OnlyUser,
 } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import {
-	useInlineWorkspacePortsEnabled,
 	useInlineWorkspacePortsStore,
+	usePortsDisplayMode,
 } from "renderer/stores/inline-workspace-ports";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
@@ -55,11 +56,12 @@ export function ExperimentalSettings({
 	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isV2OnlyUser = useIsV2OnlyUser();
+	const isV1FlipLocked = useIsV1FlipLocked();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
-	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
-	const setInlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
-		(state) => state.setEnabled,
+	const portsDisplayMode = usePortsDisplayMode();
+	const setPortsDisplayMode = useInlineWorkspacePortsStore(
+		(state) => state.setMode,
 	);
 	const workspaceAgentsEnabled = useWorkspaceAgentsRowEnabled();
 	const setWorkspaceAgentsEnabled = useWorkspaceAgentsRowStore(
@@ -76,7 +78,7 @@ export function ExperimentalSettings({
 			</div>
 
 			<div className="space-y-6">
-				{showSupersetV2 && (
+				{showSupersetV2 && !isV1FlipLocked && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
@@ -143,21 +145,23 @@ export function ExperimentalSettings({
 								className="text-sm font-medium"
 							>
 								<HighlightText
-									text="Inline workspace ports"
+									text="Ports in top bar dropdown"
 									query={searchQuery}
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Show detected ports under each workspace in the sidebar instead of a single panel at the bottom."
+									text="Show detected ports as a dropdown in the top bar instead of a chip under each workspace in the sidebar."
 									query={searchQuery}
 								/>
 							</p>
 						</div>
 						<Switch
 							id="inline-workspace-ports"
-							checked={inlineWorkspacePortsEnabled}
-							onCheckedChange={setInlineWorkspacePortsEnabled}
+							checked={portsDisplayMode === "topbar"}
+							onCheckedChange={(checked) =>
+								setPortsDisplayMode(checked ? "topbar" : "inline")
+							}
 						/>
 					</div>
 				)}

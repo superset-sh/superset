@@ -4,6 +4,7 @@ import {
 	describeTriggerProblems,
 	summarizeTriggerProblems,
 } from "@superset/shared/automation-triggers";
+import { LAUNCHED_TRIGGER_KINDS } from "@superset/shared/constants";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
@@ -52,6 +53,19 @@ export async function saveTriggerSet(
 		triggers: DraftTrigger[];
 	},
 ) {
+	// The schema accepts every kind that exists in code; this list is which of
+	// them have launched. The PostHog payload only hides menu entries, so the
+	// server has to be the one refusing an unlaunched kind.
+	const launched: ReadonlySet<string> = new Set(LAUNCHED_TRIGGER_KINDS);
+	for (const trigger of params.triggers) {
+		if (!launched.has(trigger.config.kind)) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `${trigger.config.kind} triggers are not available`,
+			});
+		}
+	}
+
 	const problems = describeTriggerProblems(params.triggers);
 	if (problems.length > 0) {
 		throw new TRPCError({
@@ -103,7 +117,7 @@ export async function saveTriggerSet(
 
 			const [row] = await tx
 				.update(automationTriggers)
-				.set({ config, enabled: trigger.enabled, nextRunAt })
+				.set({ config, nextRunAt })
 				.where(eq(automationTriggers.id, previous.id))
 				.returning({ id: automationTriggers.id });
 			if (row) saved.push(row.id);
@@ -117,7 +131,6 @@ export async function saveTriggerSet(
 				organizationId: params.organizationId,
 				kind: config.kind,
 				config,
-				enabled: trigger.enabled,
 				nextRunAt: nextRunAtFor(trigger.config),
 			})
 			.returning({ id: automationTriggers.id });

@@ -75,7 +75,7 @@ function TerminalRichInputInner({
 	// mention popover uses to shorten paths.
 	const { data: workspaceStatus } = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspaceId },
-		{ refetchOnWindowFocus: false, retry: false },
+		{ refetchOnWindowFocus: false },
 	);
 	const cwd = workspaceStatus?.worktreePath ?? "";
 

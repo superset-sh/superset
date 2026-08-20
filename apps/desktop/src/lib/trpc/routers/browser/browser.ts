@@ -213,6 +213,25 @@ export const createBrowserRouter = () => {
 			});
 		}),
 
+		// Panes with agent work in flight (a live CDP session or an in-flight
+		// capture). The renderer registry parks these presentable — a
+		// visibility-hidden webview gets no compositor frames, so screenshots
+		// hang — and exempts them from hidden-webview LRU eviction so a pane
+		// isn't destroyed out from under an attached agent. Emits the full set
+		// on every change, plus once on subscribe.
+		onAgentActivePanes: publicProcedure.subscription(() => {
+			return observable<{ paneIds: string[] }>((emit) => {
+				const handler = (state: { paneIds: string[] }) => {
+					emit.next(state);
+				};
+				browserManager.on("agent-active", handler);
+				emit.next({ paneIds: browserManager.getAgentActivePaneIds() });
+				return () => {
+					browserManager.off("agent-active", handler);
+				};
+			});
+		}),
+
 		openDevTools: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {

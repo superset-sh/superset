@@ -32,14 +32,11 @@ const root = repoRoot();
 // Ports the dev:desktop stack actually binds, read from .env so this stays
 // accurate if the base moves. Names → default (base-relative) fallbacks.
 // ONLY ports each dev:desktop stack binds *exclusively* and that hard-fail on
-// conflict. Deliberately excludes shared infra (ELECTRIC_PORT 3969 runs once in
-// Docker; CADDY_ELECTRIC_PORT 3970 is caddy) — those are held across worktrees
-// by design and aren't the collision that aborts a second stack.
+// conflict.
 const PORT_VARS: Record<string, number> = {
 	API_PORT: 3961,
 	DESKTOP_VITE_PORT: 3965,
 	DESKTOP_NOTIFICATIONS_PORT: 3966,
-	WRANGLER_PORT: 3972,
 };
 
 function readEnvPorts(): { name: string; port: number }[] {

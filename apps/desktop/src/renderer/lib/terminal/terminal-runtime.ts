@@ -1,3 +1,4 @@
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
 import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
@@ -24,7 +25,10 @@ import {
 	TERMINAL_DIMS_KEY_PREFIX,
 	touchTerminalStatePersistedAt,
 } from "./terminal-buffer-gc";
-import { installImagePasteFallback } from "./terminal-image-paste-fallback";
+import {
+	type ImagePasteOverride,
+	installImagePasteFallback,
+} from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 import { persistSeqAnchor } from "./terminal-seq-anchor";
@@ -55,6 +59,12 @@ export interface TerminalRuntime {
 	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
 	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
+	/**
+	 * When set, image/file pastes call this with the clipboard files instead
+	 * of forwarding Ctrl+V — used for workspaces whose PTY runs on another
+	 * machine, where the TUI can't see the local clipboard.
+	 */
+	imagePasteOverride: ImagePasteOverride | null;
 	/**
 	 * How this runtime's xterm was seeded: from the persisted localStorage
 	 * snapshot (its seq anchor pairs with it), from a sibling instance's
@@ -324,13 +334,18 @@ export function createRuntime(
 	} else if (restoreBuffer(terminalId, terminal)) {
 		initialContent = "restored";
 	}
+	if (initialContent !== "none") {
+		// SerializeAddon snapshots bake in whatever input-reporting modes were
+		// active at capture (?1002/?1003 mouse tracking, ?1h app cursor, …).
+		// Replaying them arms this fresh xterm before it has seen a single
+		// prompt marker, so the reclaimer above brands them shell-owned and can
+		// never reclaim them if the TUI turns out to be dead. Reset them now:
+		// the attach preamble re-asserts the session's real modes moments
+		// later, so a live TUI loses nothing.
+		terminal.write(FRESH_SHELL_INPUT_MODE_RESET);
+	}
 
-	const disposeImagePasteFallback = installImagePasteFallback(
-		terminal,
-		wrapper,
-	);
-
-	return {
+	const runtime: TerminalRuntime = {
 		terminalId,
 		terminal,
 		fitAddon,
@@ -347,9 +362,17 @@ export function createRuntime(
 		_disposeAddons: addonsResult.dispose,
 		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
 		ligaturesEnabled: appearance.ligatures,
-		_disposeImagePasteFallback: disposeImagePasteFallback,
+		_disposeImagePasteFallback: null,
+		imagePasteOverride: null,
 		initialContent,
 	};
+	runtime._disposeImagePasteFallback = installImagePasteFallback(
+		terminal,
+		wrapper,
+		() => runtime.imagePasteOverride,
+	);
+
+	return runtime;
 }
 
 export function attachToContainer(

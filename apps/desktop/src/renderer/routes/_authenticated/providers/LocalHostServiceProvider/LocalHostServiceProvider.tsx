@@ -161,6 +161,22 @@ export function LocalHostServiceProvider({
 			},
 		);
 
+	// The coordinator only emits "running" after its health check passes, so
+	// this closes the gap the 5s/1s polls above leave open: without it, a
+	// dev-mode restart (or any respawn) can land the renderer on a dead port
+	// for up to a full poll interval, and anything that queries host-service
+	// in that window fails with a connection-refused.
+	electronTrpc.hostServiceCoordinator.onStatusChange.useSubscription(
+		undefined,
+		{
+			onData: (event) => {
+				if (event.organizationId !== activeOrganizationId) return;
+				utils.hostServiceCoordinator.getConnection.invalidate();
+				utils.hostServiceCoordinator.getProcessStatus.invalidate();
+			},
+		},
+	);
+
 	const waitForHostReady = useCallback(
 		async (timeoutMs = 20_000): Promise<string | null> => {
 			const orgId = activeOrganizationId;

@@ -1,6 +1,6 @@
-import { Heading, Link, Section, Text } from "@react-email/components";
+import { Heading, Hr, Link, Section, Text } from "@react-email/components";
 import { format } from "date-fns";
-import { Button, EmailLayout } from "../../components";
+import { Button, DetailRow, EmailLayout } from "../../components";
 
 interface SubscriptionCancelledEmailProps {
 	ownerName?: string | null;
@@ -21,50 +21,48 @@ export function SubscriptionCancelledEmail({
 
 	return (
 		<EmailLayout preview={`Your ${planName} subscription has been cancelled`}>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
 				Subscription cancelled
 			</Heading>
 
-			<Text className="text-base leading-[26px] mb-4 text-foreground">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				Hi {ownerName ?? "there"},
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-2">
 				Your <strong>{planName}</strong> subscription for{" "}
 				<strong>{organizationName}</strong> has been cancelled.
 			</Text>
 
-			<Section className="bg-[#f9fafb] rounded-lg p-4 mb-4">
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>Access until:</strong> {formattedEndDate}
-				</Text>
-			</Section>
+			<Hr className="border-border my-4" />
+			<DetailRow label="Access until" value={formattedEndDate} />
+			<Hr className="border-border my-4" />
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				You'll continue to have access to all {planName} features until{" "}
-				{formattedEndDate}. After that, your organization will be moved to the
-				free plan.
+				{formattedEndDate}. After that, your organization moves to the free
+				plan.
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
 				Changed your mind? You can resubscribe anytime before your access ends.
 			</Text>
 
 			{billingPortalUrl && (
-				<Section className="mt-6 mb-6">
+				<Section className="mb-6">
 					<Button href={billingPortalUrl}>Resubscribe</Button>
 				</Section>
 			)}
 
-			<Text className="text-xs leading-5 text-muted">
-				We'd love to hear your feedback.{" "}
+			<Text className="text-[13px] leading-5 text-muted m-0">
+				Something not working?{" "}
 				<Link
 					href="mailto:support@superset.sh"
-					className="text-primary no-underline"
+					className="text-muted underline"
 				>
-					Let us know
+					Tell us
 				</Link>{" "}
-				why you cancelled so we can improve.
+				and we'll fix it.
 			</Text>
 		</EmailLayout>
 	);

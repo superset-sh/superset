@@ -14,25 +14,24 @@ export function MemberRemovedEmail({
 }: MemberRemovedEmailProps) {
 	return (
 		<EmailLayout preview={`You've been removed from ${organizationName}`}>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
-				You've been removed from <strong>{organizationName}</strong>
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
+				You've been removed from {organizationName}
 			</Heading>
 
-			<Text className="text-base leading-[26px] mb-4 text-foreground">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				Hi {memberName ?? "there"},
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				{removedByName} has removed you from <strong>{organizationName}</strong>{" "}
 				on Superset.
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				You no longer have access to this organization's workspaces, tasks, or
-				workflows.
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
+				You no longer have access to this organization's projects or workspaces.
 			</Text>
 
-			<Text className="text-xs leading-5 text-muted">
+			<Text className="text-[13px] leading-5 text-muted m-0">
 				If you believe this was a mistake, please contact {removedByName} or
 				your team administrator.
 			</Text>

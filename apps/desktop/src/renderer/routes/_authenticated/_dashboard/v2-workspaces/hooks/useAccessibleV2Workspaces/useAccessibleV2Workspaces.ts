@@ -19,6 +19,7 @@ import {
 	PROJECT_FILTER_SESSIONS,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesDeviceFilter,
+	type V2WorkspacesPinFilter,
 	type V2WorkspacesPrStateFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -141,6 +142,8 @@ interface UseAccessibleV2WorkspacesOptions {
 	prStateFilters?: V2WorkspacesPrStateFilter[];
 	/** Empty/omitted = any agent status. */
 	agentStatusFilters?: V2WorkspacesAgentStatusFilter[];
+	/** Omitted = "all" — sidebar-pinned and unpinned alike. */
+	pinFilter?: V2WorkspacesPinFilter;
 	/**
 	 * Also surface archived tombstones (with `archivedAt` set). Requires a
 	 * device filter — the archived fetch rides the scoped host source.
@@ -184,6 +187,19 @@ function matchesPrStateFilters(
 	return workspace.pr != null && prStateFilters.includes(workspace.pr.state);
 }
 
+function matchesPinFilter(
+	workspace: AccessibleV2Workspace,
+	pinFilter: V2WorkspacesPinFilter,
+): boolean {
+	if (pinFilter === "all") return true;
+	// Archived tombstones may keep stale sidebar metadata; they are never
+	// pinned regardless of what that metadata says.
+	if (workspace.archivedAt !== null) return pinFilter === "unpinned";
+	return pinFilter === "pinned"
+		? workspace.isInSidebar
+		: !workspace.isInSidebar;
+}
+
 function matchesAgentStatusFilters(
 	workspace: AccessibleV2Workspace,
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[],
@@ -213,6 +229,7 @@ export function useAccessibleV2Workspaces(
 	const projectFilters = options.projectFilters ?? [];
 	const prStateFilters = options.prStateFilters ?? [];
 	const agentStatusFilters = options.agentStatusFilters ?? [];
+	const pinFilter = options.pinFilter ?? "all";
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
@@ -714,9 +731,16 @@ export function useAccessibleV2Workspaces(
 				(workspace) =>
 					matchesProjectFilters(workspace, projectFilters) &&
 					matchesPrStateFilters(workspace, prStateFilters) &&
-					matchesAgentStatusFilters(workspace, agentStatusFilters),
+					matchesAgentStatusFilters(workspace, agentStatusFilters) &&
+					matchesPinFilter(workspace, pinFilter),
 			),
-		[searchFiltered, projectFilters, prStateFilters, agentStatusFilters],
+		[
+			searchFiltered,
+			projectFilters,
+			prStateFilters,
+			agentStatusFilters,
+			pinFilter,
+		],
 	);
 
 	// Hosts come straight from the (locally cached) hosts collections so the

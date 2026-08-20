@@ -94,7 +94,10 @@ export function AutomationRow({
 	onDelete,
 }: AutomationRowProps) {
 	const navigate = useNavigate();
-	const scheduleLabel = describeSchedule(automation.rrule);
+	// No rrule means the automation is driven by events rather than a clock.
+	const scheduleLabel = automation.rrule
+		? describeSchedule(automation.rrule)
+		: "Event triggered";
 
 	const openDetail = () =>
 		navigate({
@@ -200,7 +203,7 @@ export function AutomationRow({
 							automation.enabled && automation.nextRunAt
 								? `Next run ${formatDateTimeInTimezone(
 										new Date(automation.nextRunAt),
-										automation.timezone,
+										automation.timezone ?? "UTC",
 									)}`
 								: undefined
 						}

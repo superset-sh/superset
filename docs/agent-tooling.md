@@ -34,6 +34,40 @@ Everything else links to those:
 Agents other than Claude Code should read the relevant `.agents/skills/*/SKILL.md` when its
 description matches the task.
 
+## Provider accounts (multi-login)
+
+The Usage tab can hold several Claude Code / Codex logins and pick which one agents use. A login
+is just a config dir the CLI is pointed at — `CLAUDE_CONFIG_DIR` / `CODEX_HOME`, injected at PTY
+and agent launch by `packages/host-service/src/trpc/router/usage/default-account.ts`, which also
+publishes the selection to `$SUPERSET_HOME_DIR/state/default-*` pointer files. The agent wrappers
+re-read those at every launch (`buildDefaultAccountResolver` in agent-setup), so a switch reaches
+existing terminals the next time the agent starts; a value the user exported by hand always wins.
+Superset never touches the credential stores; the provider CLIs own every login end to end.
+
+Because those CLIs read *everything* from their active config dir, a second dir would otherwise
+mean a second, empty setup. `packages/agent-setup/src/provider-profiles.ts` provisions each
+non-default profile from the default account (`~/.claude`, `~/.codex`):
+
+- Capability directories (`skills/`, `plugins/`, `agents/`, `commands/`, `output-styles/`;
+  `prompts/` for Codex) are **symlinked** at the default account's, so anything installed later is
+  shared with no sync step.
+- Files (`CLAUDE.md`, `config.toml`, `AGENTS.md`) are **copied**, and `settings.json` /
+  `.claude.json` are **key-merged** — the CLIs rename-replace files, which would silently break a
+  file symlink.
+- Copies and merged keys are recorded in `<profile>/.superset-profile.json`, so anything the user
+  changes inside a profile is never overwritten by a later provision.
+- Claude session state (`projects/`, `sessions/`, `history.jsonl`, …) is shared too — by symlink,
+  which is safe there because transcripts are append-only — so every account sees one
+  conversation history and `--resume` list
+  (`packages/host-service/src/trpc/router/usage/session-share.ts`; existing trees are merged in,
+  live sessions included).
+- Per-account and never shared: credentials, `oauthAccount`/`userID` identity and per-project
+  state in `.claude.json`, auth-related settings keys, and Superset's own lifecycle hooks
+  (written per profile).
+
+Provisioning is idempotent and runs when an account is added, when one is selected, and at host
+boot for the selected accounts (`usage/account-provisioning.ts`).
+
 ## Testing the CLI and skills against the dev app
 
 The dev desktop app is local-first: it registers its host service under a

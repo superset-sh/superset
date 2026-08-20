@@ -707,10 +707,12 @@ export function ChangesView({
 	const reviewCommentCount = activePullRequest
 		? countOpenPullRequestComments(githubComments)
 		: 0;
+	// Mirrors computeChecksStatus: a cancelled check is a relevant failure, not
+	// excluded like a skipped one — otherwise this list (and the passing-count
+	// text below) can quietly hide the very check that made checksStatus red.
 	const relevantReviewTabChecks =
-		activePullRequest?.checks.filter(
-			(check) => check.status !== "skipped" && check.status !== "cancelled",
-		) ?? [];
+		activePullRequest?.checks.filter((check) => check.status !== "skipped") ??
+		[];
 	const reviewTabChecksStatus =
 		relevantReviewTabChecks.length > 0
 			? (activePullRequest?.checksStatus ?? "none")

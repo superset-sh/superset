@@ -20,6 +20,11 @@ import {
 	CdpBusyError,
 	resolveGuestUrl,
 } from "./browser-manager";
+import { importCookiesIntoSession } from "./chrome-cookie-import";
+import {
+	listChromeImportSources,
+	resolveImportProfile,
+} from "./chrome-history-import";
 
 const OPEN_PANE_TIMEOUT_MS = 15_000;
 const MAX_CDP_MESSAGE_BYTES = 4 * 1024 * 1024;
@@ -276,6 +281,37 @@ export async function startBrowserBridge(): Promise<void> {
 		withPane(req, res, (_wc, paneId, workspaceId) => {
 			res.json({ entries: browserManager.getConsoleLogs(paneId, workspaceId) });
 		});
+	});
+
+	// Chromium browsers/profiles whose history and logins can be imported.
+	app.get("/import-sources", (_req, res) => {
+		res.json({ sources: listChromeImportSources() });
+	});
+
+	// Import logins (cookies) from a system browser into this pane's session.
+	app.post("/panes/:paneId/import-cookies", (req, res) => {
+		const scope = requireScope(req, res);
+		if (!scope) return;
+		const sourceId = req.body?.sourceId;
+		if (typeof sourceId !== "string" || sourceId.length === 0) {
+			res.status(400).json({ error: "sourceId is required" });
+			return;
+		}
+		const profile = resolveImportProfile(sourceId);
+		if (!profile) {
+			res.status(404).json({ error: "Unknown import source" });
+			return;
+		}
+		const wc = browserManager.getWebContents(scope.paneId, scope.workspaceId);
+		if (!wc) {
+			res
+				.status(404)
+				.json({ error: `No live pane ${scope.paneId} in this workspace` });
+			return;
+		}
+		importCookiesIntoSession(wc.session, profile.profileDir, profile.browserKey)
+			.then((result) => res.json(result))
+			.catch((err) => res.status(500).json({ error: errorMessage(err) }));
 	});
 
 	const wss = new WebSocketServer({

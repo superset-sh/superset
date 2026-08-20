@@ -1,36 +1,45 @@
 import { useQueries } from "@tanstack/react-query";
 import { compareDesc } from "date-fns";
 import { useMemo } from "react";
+import { useCloudProjects } from "@/hooks/useCloudProjects";
 import { toHostProjectItem } from "@/hooks/useHostProjects";
 import { useHostsPresence } from "@/hooks/useHostsPresence";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { useWorkspacesFilterStore } from "../../../../stores/workspacesFilterStore";
 import { useNewSessionPreferencesStore } from "../../stores/newSessionPreferencesStore";
 
 export interface NewChatTarget {
 	key: string;
+	/** A machine's project, or a project a cloud sandbox can be created for. */
+	kind: "host" | "cloud";
 	projectId: string;
 	projectName: string;
 	projectIconUrl: string | null;
+	/** `CLOUD_TARGET_ID` for cloud targets — a sentinel, not a machine. */
 	machineId: string;
 	hostName: string;
+	/** Empty for cloud targets: there is nothing to address until create. */
 	hostUrl: string;
 }
+
+/** Sentinel host id for "create this in a cloud sandbox" (desktop's CLOUD_HOST_ID). */
+export const CLOUD_TARGET_ID = "cloud";
 
 export function targetKeyFor(projectId: string, machineId: string) {
 	return `${projectId}:${machineId}`;
 }
 
 /**
- * All (project, online host) pairs a new chat workspace can be created on,
- * from fanning out `project.list` to every online host, plus the default
- * pick: last used target, else the filtered project, else the most recently
- * updated workspace's target.
+ * Everywhere a new chat workspace can be created: all (project, online host)
+ * pairs from fanning out `project.list` to every online host, plus a cloud
+ * target per API-listed project — available with zero machines online. The
+ * default pick: last used target, else the filtered project, else the most
+ * recently updated workspace's target.
  */
 export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	targets: NewChatTarget[];
@@ -55,7 +64,7 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				.map((host) => ({
 					machineId: host.machineId,
 					name: host.name,
-					hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
+					hostUrl: hostServiceUrl(host.organizationId, host.machineId),
 				})),
 		[hosts, presence],
 	);
@@ -71,6 +80,8 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 		})),
 	});
 
+	const { projects: cloudProjects } = useCloudProjects();
+
 	const targets = useMemo<NewChatTarget[]>(() => {
 		const result: NewChatTarget[] = [];
 		onlineHosts.forEach((host, index) => {
@@ -78,6 +89,7 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				const project = toHostProjectItem(row);
 				result.push({
 					key: targetKeyFor(project.id, host.machineId),
+					kind: "host",
 					projectId: project.id,
 					projectName: project.name,
 					projectIconUrl: project.iconUrl,
@@ -87,8 +99,20 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				});
 			}
 		});
+		for (const project of cloudProjects) {
+			result.push({
+				key: targetKeyFor(project.id, CLOUD_TARGET_ID),
+				kind: "cloud",
+				projectId: project.id,
+				projectName: project.name,
+				projectIconUrl: project.iconUrl,
+				machineId: CLOUD_TARGET_ID,
+				hostName: "Cloud",
+				hostUrl: "",
+			});
+		}
 		return result.sort((a, b) => a.projectName.localeCompare(b.projectName));
-	}, [onlineHosts, projectListQueries]);
+	}, [onlineHosts, projectListQueries, cloudProjects]);
 
 	const defaultTarget = useMemo<NewChatTarget | null>(() => {
 		if (targets.length === 0) return null;

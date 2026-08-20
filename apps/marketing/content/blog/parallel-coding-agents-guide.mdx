@@ -30,6 +30,8 @@ These tasks are independent. They can, and should, run simultaneously. The bottl
 
 ## The Isolation Problem
 
+![How isolation works: one repository fans out into a Git worktree per task, each running its own agent on its own branch, producing independent diffs](/images/guides/worktree-isolation.svg)
+
 Running two agents in the same directory creates immediate problems:
 
 ```
@@ -135,13 +137,15 @@ Different agents have different strengths. A parallel workflow lets you match ag
 - Small, focused changes with tight feedback loops
 - Tasks requiring frequent back-and-forth
 
-The key insight: you don't have to choose one agent for everything. Run Claude Code on the complex refactor and Codex on the test generation simultaneously.
+You don't have to choose one agent for everything. Run Claude Code on the complex refactor and Codex on the test generation simultaneously.
 
 ---
 
 ## The Review Bottleneck
 
 Parallel agents create a new problem: review throughput. If you run 10 agents and each produces a diff in 15 minutes, you have 10 diffs to review per hour.
+
+![Reviewing one agent's isolated diff before merging](/images/readme/diff-viewer.png)
 
 ### Strategies for Fast Review
 

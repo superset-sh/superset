@@ -1,17 +1,27 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import {
+	chmodSync,
+	existsSync,
+	mkdtempSync,
+	realpathSync,
+	renameSync,
+	rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import { workspaces } from "../../src/db/schema";
 import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
+import { createTestHost } from "../helpers/createTestHost";
+import { createGitFixture } from "../helpers/git-fixture";
 import {
 	createBasicScenario,
 	createFeatureWorktreeScenario,
 	createProjectScenario,
 } from "../helpers/scenarios";
+import { seedProject } from "../helpers/seed";
 
 describe("workspace.create + workspace.delete integration", () => {
 	let dispose: (() => Promise<void>) | undefined;
@@ -380,6 +390,54 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(existsSync(rows[0]?.worktreePath ?? "")).toBe(true);
 	});
 
+	test("create() classifies a project directory missing from disk as NOT_FOUND", async () => {
+		const scenario = await createProjectScenario({
+			hostOptions: { apiOverrides: cloudFlows.workspaceCreateOk() },
+		});
+		dispose = scenario.dispose;
+		rmSync(scenario.repo.repoPath, { recursive: true, force: true });
+
+		await expect(
+			scenario.host.trpc.workspaces.create.mutate({
+				projectId: scenario.projectId,
+				name: "gone repo ws",
+				branch: "feature/gone-repo",
+			}),
+		).rejects.toMatchObject({ data: { code: "NOT_FOUND" } });
+	});
+
+	test("create() does not classify a permission-walled project directory as NOT_FOUND", async () => {
+		// Only a genuine ENOENT means the project is gone. EACCES/EPERM (macOS
+		// privacy protection, a permissions accident) must keep surfacing as an
+		// unexpected error, not get silenced as a routine missing directory.
+		// root ignores mode bits; Windows has neither getuid nor POSIX traversal denial
+		if (process.platform === "win32" || process.getuid?.() === 0) return;
+		const host = await createTestHost({
+			apiOverrides: cloudFlows.workspaceCreateOk(),
+		});
+		const repo = await createGitFixture();
+		const lockedParent = mkdtempSync(join(tmpdir(), "host-service-locked-"));
+		const lockedRepo = join(lockedParent, "repo");
+		const { id: projectId } = seedProject(host, { repoPath: lockedRepo });
+		renameSync(repo.repoPath, lockedRepo);
+		chmodSync(lockedParent, 0o000);
+
+		try {
+			await expect(
+				host.trpc.workspaces.create.mutate({
+					projectId,
+					name: "locked repo ws",
+					branch: "feature/locked-repo",
+				}),
+			).rejects.toMatchObject({ data: { code: "INTERNAL_SERVER_ERROR" } });
+		} finally {
+			chmodSync(lockedParent, 0o755);
+			await host.dispose();
+			rmSync(lockedParent, { recursive: true, force: true });
+			repo.dispose();
+		}
+	});
+
 	test("delete() rejects deleting a main workspace by path equality", async () => {
 		const scenario = await createBasicScenario();
 		dispose = scenario.dispose;
@@ -411,6 +469,59 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0]?.archivedAt).not.toBeNull();
 		expect(rows[0]?.archiveReason).toBe("deleted");
+	});
+
+	test("create() after delete() on the same branch creates a fresh workspace instead of reusing the tombstone", async () => {
+		// Regress #6383: deletes tombstone the row (archivedAt) instead of
+		// removing it, so the create-time idempotency lookup must not match
+		// the archived row — otherwise create returns the dead workspace id
+		// with no worktree and the app lands on "Workspace not found".
+		const scenario = await createFeatureWorktreeScenario({
+			hostOptions: {
+				apiOverrides: {
+					...cloudFlows.workspaceDeleteOk(),
+					...cloudFlows.workspaceCreateOk(),
+				},
+			},
+		});
+		dispose = scenario.dispose;
+
+		await scenario.host.trpc.workspace.delete.mutate({
+			id: scenario.featureWorkspaceId,
+		});
+		const tombstone = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.get();
+		expect(tombstone?.archivedAt).not.toBeNull();
+
+		const result = await scenario.host.trpc.workspaces.create.mutate({
+			projectId: scenario.projectId,
+			name: "recreated",
+			branch: scenario.branch,
+		});
+
+		expect(result.alreadyExists).toBe(false);
+		expect(result.workspace.id).not.toBe(scenario.featureWorkspaceId);
+		expect(result.workspace.branch).toBe(scenario.branch);
+
+		const fresh = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, result.workspace.id))
+			.get();
+		expect(fresh?.archivedAt).toBeNull();
+		expect(existsSync(fresh?.worktreePath ?? "")).toBe(true);
+
+		// The tombstone keeps its history untouched.
+		const archivedAfter = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.get();
+		expect(archivedAfter?.archivedAt).not.toBeNull();
+		expect(archivedAfter?.archiveReason).toBe("deleted");
 	});
 
 	test("delete() requires authentication", async () => {

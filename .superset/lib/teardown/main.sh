@@ -29,27 +29,17 @@ teardown_main() {
     step_failed "Kill terminal daemons"
   fi
 
-  # Step 4: Stop Electric SQL
-  if ! step_stop_electric; then
-    step_failed "Stop Electric SQL"
-  fi
-
-  # Step 5: Cleanup stale Electric replication sessions
-  if ! step_cleanup_electric_replication; then
-    step_failed "Cleanup Electric replication sessions"
-  fi
-
-  # Step 6: Delete Neon branch
+  # Step 4: Delete Neon branch
   if ! step_delete_neon_branch; then
     step_failed "Delete Neon branch"
   fi
 
-  # Step 7: Deallocate port base
+  # Step 5: Deallocate port base
   if ! step_deallocate_port; then
     step_failed "Deallocate port base"
   fi
 
-  # Step 8: Remove superset-dev-data (optional)
+  # Step 6: Remove superset-dev-data (optional)
   if ! step_remove_dev_data; then
     step_failed "Remove superset-dev-data"
   fi

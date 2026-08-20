@@ -1,6 +1,6 @@
 import type { CodeViewItem, CodeViewScrollTarget } from "@pierre/diffs";
 import type { CodeViewHandle } from "@pierre/diffs/react";
-import { type RefObject, useEffect, useMemo, useRef } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import type { DiffPaneData } from "../../../../../../types";
 import {
 	type ChangesetFile,
@@ -22,7 +22,18 @@ interface UseDiffCodeViewScrollOptions {
 
 interface UseDiffCodeViewScrollResult {
 	targetItemId?: string;
+	/** Call on every CodeView `onScroll` event. A scroll that lands outside
+	 *  our own programmatic `scrollTo`'s settle window is treated as the user
+	 *  taking over, which releases the sticky re-scroll below for the current
+	 *  click until a new one arrives. */
+	notifyScroll: () => void;
 }
+
+// @pierre/diffs' default critically-damped spring settles a smooth-auto
+// scroll in ~440ms (see SmoothScrollSettings.omega). Give it headroom so the
+// animation's own scroll events aren't mistaken for the user grabbing the
+// scrollbar.
+const PROGRAMMATIC_SCROLL_SETTLE_MS = 700;
 
 export function useDiffCodeViewScroll({
 	codeViewRef,
@@ -34,7 +45,14 @@ export function useDiffCodeViewScroll({
 	scrollStateKey,
 	initialScrollState,
 }: UseDiffCodeViewScrollOptions): UseDiffCodeViewScrollResult {
-	const lastScrollTargetRef = useRef<string | null>(null);
+	// Identifies the click/focus request currently being tracked, and whether
+	// it's still "sticky" — i.e. whether we should keep re-asserting
+	// `scrollTo` for it as `items` shifts under the viewport (a later
+	// `getDiffBulk` group resolving, a comment thread arriving) instead of
+	// landing once and never correcting for drift.
+	const activeScrollKeyRef = useRef<string | null>(null);
+	const stickyRef = useRef(true);
+	const lastProgrammaticScrollAtRef = useRef(0);
 	const resolvedScrollStateKeyRef = useRef<string | null>(null);
 	const itemById = useMemo(() => {
 		const map = new Map<string, CodeViewItem<DiffAnnotationMetadata>>();
@@ -63,7 +81,8 @@ export function useDiffCodeViewScroll({
 			data.focusTick ?? "",
 		].join(":");
 		if (resolvedScrollStateKeyRef.current !== scrollStateKey) {
-			lastScrollTargetRef.current = null;
+			activeScrollKeyRef.current = null;
+			stickyRef.current = true;
 			if (shouldRestoreCachedScrollState(initialScrollState, data.focusTick)) {
 				const instance = codeViewRef.current?.getInstance();
 				if (!instance || items.length === 0) return;
@@ -72,12 +91,20 @@ export function useDiffCodeViewScroll({
 					position: initialScrollState.scrollTop,
 					behavior: "instant",
 				});
-				lastScrollTargetRef.current = scrollKey;
+				activeScrollKeyRef.current = scrollKey;
 				resolvedScrollStateKeyRef.current = scrollStateKey;
 				return;
 			}
 			resolvedScrollStateKeyRef.current = scrollStateKey;
 		}
+
+		// A new click (or focus target) always re-arms sticky tracking, even
+		// if the user had released a previous one by scrolling manually.
+		if (activeScrollKeyRef.current !== scrollKey) {
+			activeScrollKeyRef.current = scrollKey;
+			stickyRef.current = true;
+		}
+		if (!stickyRef.current) return;
 
 		if (!targetItemId) return;
 		const file = fileByItemId.get(targetItemId);
@@ -88,8 +115,6 @@ export function useDiffCodeViewScroll({
 			setCollapsed(changeKey, false);
 			return;
 		}
-
-		if (lastScrollTargetRef.current === scrollKey) return;
 
 		const targetItem = itemById.get(targetItemId);
 		const target: CodeViewScrollTarget =
@@ -110,14 +135,14 @@ export function useDiffCodeViewScroll({
 					};
 
 		codeViewRef.current?.scrollTo(target);
-		lastScrollTargetRef.current = scrollKey;
+		lastProgrammaticScrollAtRef.current = Date.now();
 	}, [
 		codeViewRef,
 		data.focusLine,
 		data.focusSide,
 		data.focusTick,
 		initialScrollState,
-		items.length,
+		items,
 		scrollStateKey,
 		targetItemId,
 		fileByItemId,
@@ -126,5 +151,15 @@ export function useDiffCodeViewScroll({
 		setCollapsed,
 	]);
 
-	return { targetItemId };
+	const notifyScroll = useCallback(() => {
+		if (
+			Date.now() - lastProgrammaticScrollAtRef.current <
+			PROGRAMMATIC_SCROLL_SETTLE_MS
+		) {
+			return;
+		}
+		stickyRef.current = false;
+	}, []);
+
+	return { targetItemId, notifyScroll };
 }

@@ -81,7 +81,7 @@ The initial commit message laid out the vision:
 
 > "A git repository can support multiple working trees, allowing you to check out more than one branch at a time."
 
-The key insight was that a git repository is really two things:
+The idea: a git repository is really two things:
 1. **The object store**: All your commits, trees, and blobs (the `.git/objects` directory)
 2. **The working state**: What's currently checked out, staged, etc.
 
@@ -232,6 +232,8 @@ Each worktree is a full checkout of the repository. For large repos, this adds u
 
 ## Part V: Why Worktrees Are Having a Moment
 
+![The pattern that revived worktrees: a repository fanning out into a worktree per coding agent, each on its own branch with an independent diff](/images/guides/worktree-isolation.svg)
+
 Several shifts have made worktrees suddenly relevant:
 
 ### 1. Code Review Culture
@@ -322,7 +324,7 @@ git worktree unlock ../my-worktree
 
 ---
 
-## Part VII: Leveraging Worktrees Effectively
+## Part VII: Getting the Most from Worktrees
 
 If you're convinced worktrees are worth adopting, here's how to use them well:
 

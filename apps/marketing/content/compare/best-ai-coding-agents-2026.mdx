@@ -2,7 +2,7 @@
 title: "Best AI Coding Tools and Agents (2026): Complete Comparison"
 description: "Compare the top AI coding tools of 2026: Superset, Cursor, Claude Code, Codex, Windsurf, Devin, Capy, Conductor, and more. Find the right stack for your workflow."
 date: 2026-02-18
-lastUpdated: 2026-03-21
+lastUpdated: 2026-08-17
 type: "roundup"
 competitors:
   - cursor
@@ -15,6 +15,9 @@ competitors:
   - aider
   - conductor
   - capy
+  - zed
+  - augment-intent
+  - parallel-code
 keywords:
   - best ai coding tools
   - best ai coding agents 2026
@@ -58,6 +61,8 @@ These center the editing environment itself:
 
 - **Cursor**: AI-native editor plus cloud agents, web/mobile agents, and automations
 - **Windsurf**: AI-native IDE with Cascade workflows
+- **Zed**: Fast open-source editor with native Parallel Agents threads (April 2026), optional worktree isolation per thread
+
 ### 3. Agent Orchestrators and Workspaces
 
 These tools run and manage multiple agents:
@@ -65,6 +70,8 @@ These tools run and manage multiple agents:
 - **Superset**: Local-first workspace that runs 100+ agents in parallel via Git worktrees
 - **Capy**: Hosted parallel-agent platform with isolated environments
 - **Conductor**: macOS app for running Claude Code and Codex in parallel
+- **Augment Intent**: Spec-driven workspace where a coordinator agent decomposes features and runs implementors in parallel worktrees
+- **Parallel Code**: MIT-licensed desktop app for dispatching agents into worktrees with diff review and merge
 
 Most serious workflows now use one tool from more than one layer. The agent does the coding. The IDE improves the editing loop. The orchestrator scales work across many tasks.
 
@@ -85,6 +92,9 @@ Most serious workflows now use one tool from more than one layer. The agent does
 | **Aider** | CLI agent | Single session | Terminal | Local client | Free + API usage |
 | **Capy** | Parallel-agent platform | Up to 25 concurrent jams on Pro | Hosted dashboard | Hosted runtime | Pro $20/mo, Enterprise custom |
 | **Conductor** | Orchestrator | Multiple agents, Git worktrees | macOS app | Local Mac app workflow | Public pricing not emphasized on current site |
+| **Zed** | Editor + parallel agent threads | Threads Sidebar; optional worktree per thread | Editor (macOS, Windows, Linux) | Local, open source | Free personal tier, Pro $10/mo, Business $30/seat |
+| **Augment Intent** | Coordinator-led orchestrator | Implementor agents in waves, worktree per workspace | macOS app (Apple Silicon beta) | Local app + Augment platform | Free app; usage in Augment credits or BYOA |
+| **Parallel Code** | Orchestrator | Multiple agents, Git worktrees | macOS/Linux app | Local, open source (MIT) | Free |
 ---
 
 ## Detailed Breakdown
@@ -155,6 +165,24 @@ Conductor is a Mac app centered on parallel Claude Code and Codex work. Its home
 
 **Best for:** Mac-based teams centered on Claude Code and Codex who want a focused orchestration app
 
+### Zed
+
+Zed's Parallel Agents (April 2026) turned a very fast open-source editor into a legitimate multi-agent surface: a Threads Sidebar manages agent threads per project, external agents run over ACP (Claude Code, Codex, Gemini, OpenCode), any CLI agent runs as a Terminal Thread, and threads can optionally get their own Git worktree. Isolation is opt-in per thread and merging isolated work is manual Git, so it sits between the editor and orchestrator camps. See [Superset vs Zed](/compare/superset-vs-zed).
+
+**Best for:** Developers who want parallel agents inside a fast, open-source, cross-platform editor
+
+### Augment Intent
+
+Intent is Augment Code's coordinator-led workspace, in public beta on Apple Silicon Macs. A coordinator drafts a living spec, decomposes tasks, and runs implementor agents in parallel worktrees with a verifier pass and an in-app PR flow; you approve at spec, decomposition, and diff checkpoints. It runs Augment's Auggie or BYOA Claude Code, Codex, and OpenCode, and targets PR-sized multi-file features. See [Superset vs Augment Intent](/compare/superset-vs-augment-intent).
+
+**Best for:** Hands-off, spec-driven feature work with human approval gates
+
+### Parallel Code
+
+Parallel Code is an MIT-licensed macOS/Linux desktop app from the creator of Super Productivity: dispatch Claude Code, Codex, Gemini, Copilot, or Antigravity CLI agents into per-task worktrees, review diffs with inline comments, and merge from the sidebar. Extras include optional Docker sandboxing, an AI Arena race mode, and phone monitoring. It is free, fast-moving, and largely a single-maintainer project. See [Superset vs Parallel Code](/compare/superset-vs-parallel-code).
+
+**Best for:** Open-source purists who want a focused dispatch-review-merge loop with no platform fees
+
 ## Recommended Stacks
 
 ### The Parallel Powerhouse
@@ -203,4 +231,4 @@ Yes, because they change how people evaluate the products. Codex is no longer ju
 
 ### What changed most in the market recently?
 
-The biggest shifts are not just new models. The product surfaces changed: Superset added GA chat, a built-in browser, richer MCP tooling, and a faster built-in editor; Cursor expanded beyond the editor; Codex added an app and broader suite positioning; Claude Code added a desktop app; and hosted parallel-agent platforms like Capy became much more relevant.
+The biggest shifts are not just new models. The product surfaces changed: Superset added GA chat, a built-in browser, richer MCP tooling, and a faster built-in editor; Zed shipped Parallel Agents and made agent threads an editor primitive; Augment launched Intent's coordinator-led workflow; Cursor expanded beyond the editor; Codex added an app and broader suite positioning; Claude Code added a desktop app; and hosted parallel-agent platforms like Capy became much more relevant.

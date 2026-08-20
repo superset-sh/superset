@@ -15,6 +15,7 @@ import {
 	accessibilityLabel,
 	animation,
 	aspectRatio,
+	background,
 	buttonBorderShape,
 	buttonStyle,
 	clipped,
@@ -33,11 +34,12 @@ import {
 	padding,
 	resizable,
 	shapes,
+	textInputAutocapitalization,
 	tint,
 	truncationMode,
 } from "@expo/ui/swift-ui/modifiers";
+import { type PasteImagesEvent, PasteInputView } from "@superset/paste-input";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
 import {
 	forwardRef,
 	type ReactNode,
@@ -55,6 +57,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { VoiceControl } from "./components/VoiceControl";
 import { FOREGROUND, PILL_RADIUS } from "./constants";
+import { useAttachmentsSheet } from "./hooks/useAttachmentsSheet";
 import { useVoiceDictation } from "./hooks/useVoiceDictation";
 
 const EXPAND_SPRING = Animation.spring({ duration: 0.35 });
@@ -72,6 +75,10 @@ const GLASS_BLEED = 10;
 
 /** Stable identity so `showAttachments={false}` doesn't churn effect deps. */
 const NO_ATTACHMENTS: PromptInputAttachmentItem[] = [];
+
+type TextInputAutocapitalization = Parameters<
+	typeof textInputAutocapitalization
+>[0];
 
 export interface GlassComposerHandle {
 	focus: () => void;
@@ -94,6 +101,8 @@ export interface GlassComposerProps {
 	toolbarLeading?: ReactNode;
 	/** Keeps the composer expanded while the field isn't focused. */
 	keepExpanded?: boolean;
+	/** Overrides the native keyboard's autocapitalization behavior. */
+	textInputAutocapitalization?: TextInputAutocapitalization;
 	/** A submit is in flight: send stays visible but disabled. */
 	isSending?: boolean;
 	/**
@@ -132,6 +141,7 @@ export const GlassComposer = forwardRef<
 		header,
 		toolbarLeading,
 		keepExpanded = false,
+		textInputAutocapitalization: inputAutocapitalization,
 		isSending = false,
 		showAttachments = true,
 		onActiveChange,
@@ -139,7 +149,7 @@ export const GlassComposer = forwardRef<
 	},
 	ref,
 ) {
-	const router = useRouter();
+	const openAttachmentsSheet = useAttachmentsSheet();
 	const controller = usePromptInputController();
 	const fieldRef = useRef<TextFieldRef>(null);
 
@@ -152,18 +162,6 @@ export const GlassComposer = forwardRef<
 	const writeDraft = (text: string) => {
 		draftRef.current = text;
 		setHasText(text.trim().length > 0);
-	};
-
-	// Appends to the draft and leaves the caret after it. The field never
-	// reports where its cursor actually is — both onSelectionChange and a
-	// `selection` state read back {0,0} once you've typed — so the end is the
-	// only position an insert can be sure of. Setting the caret does work.
-	const appendToDraft = (insert: string) => {
-		const next = draftRef.current + insert;
-		writeDraft(next);
-		void fieldRef.current
-			?.setText(next)
-			.then(() => fieldRef.current?.setSelection(next.length, next.length));
 	};
 
 	const attachments = showAttachments
@@ -267,6 +265,18 @@ export const GlassComposer = forwardRef<
 		onSubmit({ text, attachments });
 	};
 
+	const handlePasteImages = (event: PasteImagesEvent) => {
+		if (!showAttachments) return;
+		controller.attachments.add(
+			event.nativeEvent.images.map((image) => ({
+				mediaType: "image/jpeg",
+				name: image.uri.split("/").pop(),
+				type: "image" as const,
+				uri: image.uri,
+			})),
+		);
+	};
+
 	// SwiftUI's implicit `.animation(_:value:)` drives every layout change —
 	// header/footer reveal, mic→send swap — so the glass morphs natively.
 	const animationKey =
@@ -283,7 +293,7 @@ export const GlassComposer = forwardRef<
 		<Button
 			onPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				router.push("/(authenticated)/attachments");
+				openAttachmentsSheet();
 			}}
 			modifiers={[
 				buttonStyle("bordered"),
@@ -296,53 +306,6 @@ export const GlassComposer = forwardRef<
 				systemName="plus"
 				size={16}
 				modifiers={[frame({ width: 16, height: 16 })]}
-			/>
-		</Button>
-	);
-
-	// Explicit line break for multi-line messages: expo-ui's TextField exposes
-	// nothing for the soft keyboard's return key, so this is the only way to
-	// put a newline in a draft.
-	const newlineButton = (
-		<Button
-			onPress={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				appendToDraft("\n");
-			}}
-			modifiers={[
-				buttonStyle("bordered"),
-				buttonBorderShape("circle"),
-				tint(FOREGROUND),
-				accessibilityLabel("New line"),
-			]}
-		>
-			<Image
-				systemName="return"
-				size={16}
-				modifiers={[frame({ width: 16, height: 16 })]}
-			/>
-		</Button>
-	);
-
-	// Same chip shape as the quick keys it sits beside, rather than the circular
-	// bottom-row buttons — it belongs to that row visually, not to send/mic.
-	const newlineChip = (
-		<Button
-			onPress={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				appendToDraft("\n");
-			}}
-			modifiers={[
-				buttonStyle("bordered"),
-				buttonBorderShape("roundedRectangle", 10),
-				tint(FOREGROUND),
-				accessibilityLabel("New line"),
-			]}
-		>
-			<Image
-				systemName="return"
-				size={13}
-				modifiers={[frame({ width: 24, height: 17 })]}
 			/>
 		</Button>
 	);
@@ -377,207 +340,244 @@ export const GlassComposer = forwardRef<
 		<View
 			style={contentHeight === null ? undefined : { height: contentHeight }}
 		>
-			<Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
-				<VStack
-					spacing={ABOVE_GAP}
-					modifiers={[
-						environment("colorScheme", "dark"),
-						frame({ maxWidth: 100_000 }),
-						padding({ bottom: GLASS_BLEED }),
-						// One spring for the whole cluster: `above` sits inside the Host
-						// so SwiftUI owns the gap to the pill. As an RN sibling it had to
-						// guess a height `Host matchContents` under-reports, and animated
-						// on its own curve.
-						animation(EXPAND_SPRING, animationKey),
-						onGeometryChange(reportHeight),
-					]}
-				>
-					{above ? (
-						<HStack spacing={8} modifiers={[padding({ horizontal: 2 })]}>
-							{newlineChip}
-							{above}
-						</HStack>
-					) : null}
+			<PasteInputView
+				enabled={showAttachments}
+				onPasteImages={handlePasteImages}
+			>
+				<Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
 					<VStack
-						spacing={0}
+						spacing={ABOVE_GAP}
 						modifiers={[
-							// SwiftUI stacks hug their content; stretch to the Host width.
+							environment("colorScheme", "dark"),
 							frame({ maxWidth: 100_000 }),
-							glassEffect({
-								glass: { variant: "regular", interactive: true },
-								shape: "roundedRectangle",
-								cornerRadius: PILL_RADIUS,
-							}),
-							// Whole-pill hit target: taps on padding/spacers focus the
-							// field (buttons and the field itself still win their taps).
-							contentShape(shapes.rectangle()),
-							onTapGesture(focusField),
+							padding({ bottom: GLASS_BLEED }),
+							// One spring for the whole cluster: `above` sits inside the Host
+							// so SwiftUI owns the gap to the pill. As an RN sibling it had to
+							// guess a height `Host matchContents` under-reports, and animated
+							// on its own curve.
+							animation(EXPAND_SPRING, animationKey),
+							onGeometryChange(reportHeight),
 						]}
 					>
-						{/* Every row stays mounted and collapses via frame/opacity —
+						{above ? (
+							<HStack spacing={8} modifiers={[padding({ horizontal: 2 })]}>
+								{above}
+							</HStack>
+						) : null}
+						<VStack
+							spacing={0}
+							modifiers={[
+								// SwiftUI stacks hug their content; stretch to the Host width.
+								frame({ maxWidth: 100_000 }),
+								glassEffect({
+									glass: { variant: "regular", interactive: true },
+									shape: "roundedRectangle",
+									cornerRadius: PILL_RADIUS,
+								}),
+								// Whole-pill hit target: taps on padding/spacers focus the
+								// field (buttons and the field itself still win their taps).
+								contentShape(shapes.rectangle()),
+								onTapGesture(focusField),
+							]}
+						>
+							{/* Every row stays mounted and collapses via frame/opacity —
 					    unmounting siblings shifts the TextField's position in the
 					    native children array, which recreates the SwiftUI field and
 					    kicks out the keyboard the moment the expand settles. */}
-						<HStack
-							spacing={6}
-							modifiers={[
-								padding({ horizontal: 16, top: showHeaderRow ? 12 : 0 }),
-								frame({ height: showHeaderRow ? undefined : 0 }),
-								opacity(showHeaderRow ? 1 : 0),
-								clipped(),
-							]}
-						>
-							{header}
-							<Spacer />
-						</HStack>
-						{/* Attachment thumbnails inside the glass, above the field —
+							<HStack
+								spacing={6}
+								modifiers={[
+									padding({ horizontal: 16, top: showHeaderRow ? 12 : 0 }),
+									frame({ height: showHeaderRow ? undefined : 0 }),
+									opacity(showHeaderRow ? 1 : 0),
+									clipped(),
+								]}
+							>
+								{header}
+								<Spacer />
+							</HStack>
+							{/* Attachment thumbnails inside the glass, above the field —
 					    rendered natively (attachment uris are local files); tapping
 					    a thumbnail removes it. */}
-						<HStack
-							spacing={8}
-							modifiers={[
-								padding({ horizontal: 16, top: expanded ? 10 : 0 }),
-								frame({
-									height: expanded && attachments.length > 0 ? undefined : 0,
-								}),
-								opacity(expanded && attachments.length > 0 ? 1 : 0),
-								clipped(),
-							]}
-						>
-							{attachments.map((attachment) => (
-								<ZStack key={attachment.id} alignment="topTrailing">
-									<Image
-										uiImage={attachment.uri}
-										modifiers={[
-											resizable(),
-											aspectRatio({ contentMode: "fill" }),
-											frame({ width: 56, height: 56 }),
-											cornerRadius(10),
-											clipped(),
-										]}
-									/>
-									<Image
-										systemName="xmark.circle.fill"
-										size={15}
-										color="#ffffff"
-										onPress={() => controller.attachments.remove(attachment.id)}
-										modifiers={[padding({ top: 3, trailing: 3 })]}
-									/>
-								</ZStack>
-							))}
-							<Spacer />
-						</HStack>
-						<HStack
-							spacing={6}
-							// Tuned on-device: the bordered button style carries intrinsic
-							// inset around its visible circle; these values land the
-							// circle ~8pt off every pill edge.
-							modifiers={[padding({ horizontal: 1, vertical: 4 })]}
-						>
 							<HStack
+								spacing={8}
 								modifiers={[
+									padding({ horizontal: 16, top: expanded ? 10 : 0 }),
 									frame({
-										width: expanded || !showAttachments ? 0 : undefined,
+										height: expanded && attachments.length > 0 ? undefined : 0,
 									}),
-									opacity(expanded || !showAttachments ? 0 : 1),
+									opacity(expanded && attachments.length > 0 ? 1 : 0),
 									clipped(),
 								]}
 							>
-								{plusButton}
-							</HStack>
-							{/* Collapsed draft indicator: first attachment as a mini
-						    thumbnail, +N badge for the rest. */}
-							<HStack
-								modifiers={[
-									frame({
-										width: !expanded && attachments.length > 0 ? undefined : 0,
-									}),
-									opacity(!expanded && attachments.length > 0 ? 1 : 0),
-									clipped(),
-								]}
-							>
-								{attachments.length > 0 ? (
-									<ZStack>
-										<Image
-											uiImage={attachments[0]?.uri ?? ""}
-											modifiers={[
-												resizable(),
-												aspectRatio({ contentMode: "fill" }),
-												frame({ width: 30, height: 30 }),
-												cornerRadius(8),
-												clipped(),
-											]}
-										/>
-										{attachments.length > 1 ? (
-											<Text
+								{attachments.map((attachment) => (
+									<ZStack key={attachment.id} alignment="topTrailing">
+										{attachment.type === "image" ? (
+											<Image
+												uiImage={attachment.uri}
 												modifiers={[
-													font({ size: 10, weight: "semibold" }),
-													foregroundStyle("#ffffff"),
+													resizable(),
+													aspectRatio({ contentMode: "fill" }),
+													frame({ width: 56, height: 56 }),
+													cornerRadius(10),
+													clipped(),
 												]}
-											>
-												+{attachments.length - 1}
-											</Text>
-										) : null}
+											/>
+										) : (
+											<Image
+												systemName="doc.fill"
+												size={22}
+												color="#ffffff"
+												modifiers={[
+													frame({ width: 56, height: 56 }),
+													background("#ffffff26"),
+													cornerRadius(10),
+													clipped(),
+												]}
+											/>
+										)}
+										<Image
+											systemName="xmark.circle.fill"
+											size={15}
+											color="#ffffff"
+											onPress={() =>
+												controller.attachments.remove(attachment.id)
+											}
+											modifiers={[padding({ top: 3, trailing: 3 })]}
+										/>
 									</ZStack>
-								) : null}
+								))}
+								<Spacer />
 							</HStack>
-							<TextField
-								ref={fieldRef}
-								axis="vertical"
-								placeholder={placeholder ?? "Plan, ask, build..."}
-								onTextChange={writeDraft}
-								onFocusChange={setFocused}
-								modifiers={[
-									padding({ horizontal: expanded ? 12 : 4 }),
-									frame({ minHeight: expanded ? 56 : 38 }),
-									lineLimit(expanded ? 12 : 1),
-									truncationMode("tail"),
-								]}
-							/>
 							<HStack
-								spacing={0}
+								spacing={6}
+								// Tuned on-device: the bordered button style carries intrinsic
+								// inset around its visible circle; these values land the
+								// circle ~8pt off every pill edge.
+								modifiers={[padding({ horizontal: 1, vertical: 4 })]}
+							>
+								<HStack
+									modifiers={[
+										frame({
+											width: expanded || !showAttachments ? 0 : undefined,
+										}),
+										opacity(expanded || !showAttachments ? 0 : 1),
+										clipped(),
+									]}
+								>
+									{plusButton}
+								</HStack>
+								{/* Collapsed draft indicator: first attachment as a mini
+						    thumbnail, +N badge for the rest. */}
+								<HStack
+									modifiers={[
+										frame({
+											width:
+												!expanded && attachments.length > 0 ? undefined : 0,
+										}),
+										opacity(!expanded && attachments.length > 0 ? 1 : 0),
+										clipped(),
+									]}
+								>
+									{attachments.length > 0 ? (
+										<ZStack>
+											{attachments[0]?.type === "image" ? (
+												<Image
+													uiImage={attachments[0]?.uri ?? ""}
+													modifiers={[
+														resizable(),
+														aspectRatio({ contentMode: "fill" }),
+														frame({ width: 30, height: 30 }),
+														cornerRadius(8),
+														clipped(),
+													]}
+												/>
+											) : (
+												<Image
+													systemName="doc.fill"
+													size={13}
+													color="#ffffff"
+													modifiers={[
+														frame({ width: 30, height: 30 }),
+														background("#ffffff26"),
+														cornerRadius(8),
+														clipped(),
+													]}
+												/>
+											)}
+											{attachments.length > 1 ? (
+												<Text
+													modifiers={[
+														font({ size: 10, weight: "semibold" }),
+														foregroundStyle("#ffffff"),
+													]}
+												>
+													+{attachments.length - 1}
+												</Text>
+											) : null}
+										</ZStack>
+									) : null}
+								</HStack>
+								<TextField
+									ref={fieldRef}
+									axis="vertical"
+									placeholder={placeholder ?? "Plan, ask, build..."}
+									onTextChange={writeDraft}
+									onFocusChange={setFocused}
+									modifiers={[
+										padding({ horizontal: expanded ? 12 : 4 }),
+										frame({ minHeight: expanded ? 56 : 38 }),
+										lineLimit(expanded ? 12 : 1),
+										truncationMode("tail"),
+										...(inputAutocapitalization
+											? [textInputAutocapitalization(inputAutocapitalization)]
+											: []),
+									]}
+								/>
+								<HStack
+									spacing={0}
+									modifiers={[
+										frame({ width: expanded ? 0 : undefined }),
+										opacity(expanded ? 0 : 1),
+										clipped(),
+									]}
+								>
+									{voiceControl}
+									{showSend ? sendButton : null}
+								</HStack>
+							</HStack>
+							<HStack
+								spacing={10}
 								modifiers={[
-									frame({ width: expanded ? 0 : undefined }),
-									opacity(expanded ? 0 : 1),
+									padding({ horizontal: 2, bottom: expanded ? 6 : 0 }),
+									frame({ height: expanded ? undefined : 0 }),
+									opacity(expanded ? 1 : 0),
 									clipped(),
 								]}
 							>
-								{voiceControl}
-								{showSend ? sendButton : null}
-							</HStack>
-						</HStack>
-						<HStack
-							spacing={10}
-							modifiers={[
-								padding({ horizontal: 2, bottom: expanded ? 6 : 0 }),
-								frame({ height: expanded ? undefined : 0 }),
-								opacity(expanded ? 1 : 0),
-								clipped(),
-							]}
-						>
-							<HStack
-								modifiers={[
-									frame({ width: showAttachments ? undefined : 0 }),
-									opacity(showAttachments ? 1 : 0),
-									clipped(),
-								]}
-							>
-								{plusButton}
-							</HStack>
-							{above ? null : newlineButton}
-							{toolbarLeading}
-							<Spacer />
-							{/* Bordered buttons carry ~6pt of invisible tap-target inset
+								<HStack
+									modifiers={[
+										frame({ width: showAttachments ? undefined : 0 }),
+										opacity(showAttachments ? 1 : 0),
+										clipped(),
+									]}
+								>
+									{plusButton}
+								</HStack>
+								{toolbarLeading}
+								<Spacer />
+								{/* Bordered buttons carry ~6pt of invisible tap-target inset
 						    around the visible circle, so spacing 0 still reads as a
 						    ~12pt visual gap between the circles. */}
-							<HStack spacing={0}>
-								{voiceControl}
-								{showSend ? sendButton : null}
+								<HStack spacing={0}>
+									{voiceControl}
+									{showSend ? sendButton : null}
+								</HStack>
 							</HStack>
-						</HStack>
+						</VStack>
 					</VStack>
-				</VStack>
-			</Host>
+				</Host>
+			</PasteInputView>
 		</View>
 	);
 });

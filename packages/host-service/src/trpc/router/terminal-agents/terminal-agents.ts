@@ -4,6 +4,7 @@ import {
 } from "@superset/shared/agent-catalog";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import type { HostDb } from "../../../db";
 import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
@@ -11,13 +12,20 @@ import {
 import type {
 	TerminalAgentBinding,
 	TerminalAgentId,
+	TerminalAgentStore,
 } from "../../../terminal-agents";
 import {
+	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
 	seedEndedTerminalAgentBinding,
+	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
 import { protectedProcedure, router } from "../../index";
-import { resolveHostAgentConfig } from "../agents/agents";
+import {
+	type AgentRunResult,
+	resolveHostAgentConfig,
+	runAgentInWorkspace,
+} from "../agents/agents";
 import { toTerminalSessionError } from "../terminal/errors";
 
 type GetOrCreateResult = {
@@ -26,6 +34,104 @@ type GetOrCreateResult = {
 };
 
 const inflight = new Map<string, Promise<GetOrCreateResult>>();
+
+/**
+ * `resumed: false` means there was nothing to do — no candidate, resume not
+ * supported, or another caller already consumed it. Launch failures throw
+ * (after un-claiming) instead.
+ */
+export type ResumeResult =
+	| { resumed: true; terminalId: string; label: string }
+	| { resumed: false };
+
+export interface ResumeSessionDeps {
+	db: HostDb;
+	terminalAgentStore: TerminalAgentStore;
+	runAgent: (input: {
+		workspaceId: string;
+		agent: string;
+		prompt: string;
+		resumeSessionId: string;
+	}) => Promise<AgentRunResult>;
+	disposeSession: (terminalId: string) => Promise<unknown>;
+}
+
+const resumeInflight = new Map<string, Promise<ResumeResult>>();
+
+/**
+ * Idempotently resume the agent session behind a dead terminal into a fresh
+ * terminal. The candidate is claimed with an atomic end-reason flip before
+ * launching, and concurrent callers for the same terminal coalesce onto one
+ * in-flight launch, so any number of panes/windows/retries produce exactly
+ * one resumed session — later callers either share its result or get
+ * `{ resumed: false }`. The dead terminal is disposed after a successful
+ * launch; a failed launch un-claims the candidate so it can be retried.
+ */
+export async function resumeTerminalAgentSession(
+	deps: ResumeSessionDeps,
+	input: { workspaceId: string; terminalId: string },
+): Promise<ResumeResult> {
+	const { workspaceId, terminalId } = input;
+	const key = `${workspaceId}::${terminalId}`;
+	const pending = resumeInflight.get(key);
+	if (pending) return pending;
+
+	const promise = (async (): Promise<ResumeResult> => {
+		const claimed = claimResumeCandidateBinding(
+			deps.db,
+			workspaceId,
+			terminalId,
+		);
+		if (!claimed?.agentSessionId) return { resumed: false };
+
+		const config = resolveHostAgentConfig(
+			deps.db,
+			claimed.definitionId ?? claimed.agentId,
+		);
+		if (!config || config.resumeArgs.length === 0) {
+			// Config gone or resume unsupported — leave the candidate intact
+			// rather than silently destroying the session id.
+			unclaimResumeCandidateBinding(deps.db, terminalId);
+			return { resumed: false };
+		}
+
+		let result: AgentRunResult;
+		try {
+			result = await deps.runAgent({
+				workspaceId,
+				agent: config.id,
+				prompt: "",
+				resumeSessionId: claimed.agentSessionId,
+			});
+		} catch (error) {
+			unclaimResumeCandidateBinding(deps.db, terminalId);
+			throw error;
+		}
+
+		// The replaced terminal is dead (or a respawned empty shell nobody
+		// asked for) — drop it now that the session lives elsewhere.
+		await deps.disposeSession(terminalId).catch((cleanupError) => {
+			console.warn(
+				"[terminal-agents] failed to dispose resumed-from terminal",
+				{ terminalId, cleanupError },
+			);
+		});
+		deps.terminalAgentStore.markTerminalDisposed(terminalId);
+
+		return {
+			resumed: true,
+			terminalId: result.sessionId,
+			label: result.label,
+		};
+	})();
+
+	resumeInflight.set(key, promise);
+	try {
+		return await promise;
+	} finally {
+		resumeInflight.delete(key);
+	}
+}
 
 function inflightKey(
 	workspaceId: string,
@@ -116,11 +222,27 @@ export const terminalAgentsRouter = router({
 			};
 		}),
 
+	/** See {@link resumeTerminalAgentSession}. */
+	resume: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			resumeTerminalAgentSession(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					runAgent: (runInput) => runAgentInWorkspace(ctx, runInput),
+					disposeSession: (terminalId) =>
+						disposeSessionAndWait(terminalId, ctx.db),
+				},
+				input,
+			),
+		),
+
 	/**
 	 * Seed a resume candidate for a terminal recreated by the v1→v2 pane
 	 * migration: the v1 pane's captured agent session, stamped ended, so the
-	 * migrated pane surfaces the same resume banner and flows through the
-	 * same `agents.run({resumeSessionId})` path as a killed v2 session.
+	 * migrated pane auto-resumes through the same `resume` path as a killed
+	 * v2 session.
 	 * No-ops when the terminal already earned a real binding.
 	 */
 	seedResumeCandidate: protectedProcedure

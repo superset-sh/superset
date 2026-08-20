@@ -5,7 +5,7 @@ import {
 	sanitizeUserBranchName,
 } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
@@ -42,7 +42,10 @@ import {
 	dispatchSugarAgents,
 } from "../workspace-creation/shared/dispatch-agents";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
-import { requireLocalProject } from "../workspace-creation/shared/local-project";
+import {
+	requireLocalProject,
+	requireProjectRepoPath,
+} from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
 	addWorktreeWithSparseCheckout,
@@ -164,6 +167,14 @@ function findExistingWorkspaceByBranch(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				// Deletes tombstone the row instead of removing it, so a
+				// tombstone must not satisfy idempotency: matching one returns
+				// the archived row with `alreadyExists: true` and silently
+				// skips the create — no worktree, nothing in the sidebar. Its
+				// worktree is gone, so re-creating on the same branch inserts a
+				// fresh live row alongside it. The adopt path already filters
+				// these (#6383).
+				isNull(workspaces.archivedAt),
 			),
 		})
 		.sync();
@@ -516,6 +527,7 @@ export const workspacesRouter = router({
 			}
 
 			const localProject = requireLocalProject(ctx, input.projectId);
+			const repoPath = requireProjectRepoPath(localProject);
 
 			// Kick off AI naming when the user supplied a prompt but no
 			// workspace name. The worktree add and registration run with an
@@ -551,13 +563,10 @@ export const workspacesRouter = router({
 			// rename the git branch.
 			let aiCanRenameBranch = false;
 
-			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
+			await ensureMainWorkspace(ctx, input.projectId, repoPath);
 
-			const git = await ctx.git(localProject.repoPath);
-			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(
-				ctx,
-				localProject.repoPath,
-			);
+			const git = await ctx.git(repoPath);
+			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(ctx, repoPath);
 			const worktreeBaseDir =
 				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
 			// Empty means a full checkout. Only applies to worktrees we create —
@@ -586,7 +595,7 @@ export const workspacesRouter = router({
 				);
 				try {
 					const prMetadata = await fetchPrMetadata({
-						cwd: localProject.repoPath,
+						cwd: repoPath,
 						prNumber: input.pr,
 						execGh: ctx.execGh,
 					});
@@ -849,7 +858,7 @@ export const workspacesRouter = router({
 							input.baseBranch,
 							fetchBaseRefOffLoop,
 						),
-						listBranchNames(ctx, localProject.repoPath),
+						listBranchNames(ctx, repoPath),
 					]);
 					plan = planResult;
 					// plan.branch may carry an existing branch's canonical casing.
@@ -884,7 +893,7 @@ export const workspacesRouter = router({
 							input.baseBranch,
 							fetchBaseRefOffLoop,
 						),
-						listBranchNames(ctx, localProject.repoPath),
+						listBranchNames(ctx, repoPath),
 					]);
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
@@ -1072,7 +1081,7 @@ export const workspacesRouter = router({
 						const applied = await applyGeneratedWorkspaceNames({
 							ctx,
 							workspaceId: workspaceRow.id,
-							repoPath: localProject.repoPath,
+							repoPath,
 							worktreePath,
 							oldBranchName: resolvedBranch,
 							oldWorkspaceName: workspaceRow.name || resolvedBranch,
@@ -1230,7 +1239,7 @@ export const workspacesRouter = router({
 			for (const launch of input.agents ?? []) {
 				validateAgentLaunchEffort(ctx.db, launch);
 			}
-			requireLocalProject(ctx, input.projectId);
+			requireProjectRepoPath(requireLocalProject(ctx, input.projectId));
 
 			void createWorkspacesCaller(ctx)
 				.create(input)

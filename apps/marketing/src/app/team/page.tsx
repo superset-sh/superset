@@ -1,6 +1,5 @@
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
-import { Micro_5 } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -9,20 +8,13 @@ import {
 	RiTwitterXFill,
 } from "react-icons/ri";
 import { getAllPeople } from "@/lib/people";
+import { CTASection } from "../components/CTASection";
 import { TeamBio } from "./components/TeamBio";
-
-// Loaded here instead of the root layout so other pages don't preload it
-const micro5 = Micro_5({
-	weight: "400",
-	subsets: ["latin"],
-	variable: "--font-micro5",
-	display: "swap",
-});
 
 export const metadata: Metadata = {
 	title: "About",
 	description:
-		"Meet the team behind Superset, building parallel coding agents for developers.",
+		"What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents.",
 	alternates: {
 		canonical: "/team",
 	},
@@ -46,38 +38,75 @@ export default function TeamPage() {
 	const people = getAllPeople();
 
 	return (
-		<main className={`relative min-h-screen bg-background ${micro5.variable}`}>
+		<main className="relative min-h-screen bg-background">
 			<div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
-				{/* Header Section */}
-				<section className="mb-20 md:mb-28">
-					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal text-foreground mb-8">
-						Meet the{" "}
-						<span
-							className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl ml-2 font-light tracking-wide"
-							style={{ fontFamily: "var(--font-micro5)" }}
-						>
-							FOUNDERS
-						</span>
-					</h1>
-
-					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mb-8">
-						Superset is built by a team of 3 ex YC CTOs. We want to create the
-						best team that has fun working together.
-						<br />
-						Success will be a lagging indicator.
+				{/* Hero */}
+				<section className="mb-24 md:mb-32">
+					<p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+						About Superset
 					</p>
+					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal leading-[1.05] text-foreground max-w-4xl mb-8">
+						Building the last piece of software.
+					</h1>
+					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
+						Superset is building self-improving software. It starts with giving
+						engineers the best tools that adapt to their needs over time. We're
+						3 ex-YC CTOs building a tool that we love.
+					</p>
+				</section>
 
-					<Link
-						href="/blog"
-						className="inline-flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors group"
-					>
-						Read more on our blog
-						<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-					</Link>
+				{/* Our Story */}
+				<section className="mb-24 md:mb-32">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-start">
+						<div>
+							<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
+								So how did we get here?
+							</h2>
+							<div className="space-y-4 text-muted-foreground leading-relaxed">
+								<p>
+									Superset started as a hackathon project in November 2025. It
+									was a simple desktop app for managing worktrees.
+								</p>
+								<p>
+									In just a few months,{" "}
+									<span className="text-foreground">
+										tens of thousands of engineers
+									</span>{" "}
+									run Superset as their primary IDE, at companies like Wix,
+									DoorDash, and Netflix.
+								</p>
+								<p>
+									Now, we've raised{" "}
+									<span className="text-foreground">$11M</span> from the best
+									investors in Silicon Valley to build the platform for software
+									factories.
+								</p>
+							</div>
+						</div>
+						<figure className="m-0 md:sticky md:top-24">
+							<div className="relative aspect-[8/5] rounded-lg overflow-hidden bg-muted border border-border">
+								<Image
+									src="/join-us/founders.jpg"
+									alt="The Superset founders at a hackathon, YC HQ San Francisco"
+									fill
+									className="object-cover"
+									sizes="(max-width: 768px) 100vw, 480px"
+								/>
+							</div>
+							<figcaption className="mt-3 text-xs text-muted-foreground">
+								The founders at the hackathon where Superset started{" "}
+								<span className="text-muted-foreground/40">|</span> YC HQ,
+								November 2025
+							</figcaption>
+						</figure>
+					</div>
 				</section>
 
 				{/* Founders Grid */}
-				<section>
+				<section className="mb-24 md:mb-32">
+					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-10">
+						The founders
+					</h2>
 					{people.length === 0 ? (
 						<p className="text-muted-foreground">No team members yet.</p>
 					) : (
@@ -114,9 +143,9 @@ export default function TeamPage() {
 										</Link>
 
 										<Link href={`/team/${person.id}`}>
-											<h2 className="text-xl font-medium text-foreground hover:text-foreground/80 transition-colors">
+											<h3 className="text-xl font-medium text-foreground hover:text-foreground/80 transition-colors">
 												{person.name}
-											</h2>
+											</h3>
 										</Link>
 										<p className="text-sm text-muted-foreground mt-1">
 											{person.role}
@@ -165,8 +194,19 @@ export default function TeamPage() {
 							})}
 						</div>
 					)}
+					<div className="mt-14 text-center">
+						<Link
+							href="/join-us"
+							className="inline-flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors group"
+						>
+							We're hiring in San Francisco
+							<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+						</Link>
+					</div>
 				</section>
 			</div>
+
+			<CTASection />
 		</main>
 	);
 }

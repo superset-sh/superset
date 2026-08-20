@@ -1,14 +1,15 @@
 import { db } from "@superset/db/client";
-import { webhookEvents } from "@superset/db/schema";
+import { githubInstallations, webhookEvents } from "@superset/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { stripNullChars } from "@/lib/strip-null-chars";
-import { dispatchMatchingTriggers } from "./dispatchMatchingTriggers";
 import {
 	type GithubPayload,
-	qualifiedEventType,
-	recordAutomationEvent,
-} from "./recordAutomationEvent";
+	normalizeGithubDelivery,
+} from "./normalizeGithubDelivery";
 import { webhooks } from "./webhooks";
+
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
 	const body = await request.text();
@@ -16,20 +17,25 @@ export async function POST(request: Request) {
 	const eventType = request.headers.get("x-github-event");
 	const deliveryId = request.headers.get("x-github-delivery");
 
+	// Verify signature BEFORE parsing or storing so unauthenticated bodies get
+	// no further. `verify` returns false on a mismatch and only throws when the
+	// signature is missing, so both outcomes have to be checked.
+	let signatureValid = false;
+	try {
+		signatureValid = await webhooks.verify(body, signature ?? "");
+	} catch (error) {
+		console.error("[github/webhook] Signature verification failed:", error);
+	}
+	if (!signatureValid) {
+		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	}
+
 	let payload: unknown;
 	try {
 		payload = JSON.parse(body);
 	} catch {
 		console.error("[github/webhook] Invalid JSON payload");
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
-	}
-
-	// Verify signature BEFORE storing to prevent spam from unverified requests
-	try {
-		await webhooks.verify(body, signature ?? "");
-	} catch (error) {
-		console.error("[github/webhook] Signature verification failed:", error);
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
 	// Store verified event with idempotent handling
@@ -81,50 +87,39 @@ export async function POST(request: Request) {
 			// biome-ignore lint/suspicious/noExplicitAny: GitHub webhook event types are complex unions
 		} as any);
 
-		// Recorded after processing and deliberately not inside the try above:
-		// nothing reads these rows yet, so a failure here must not fail a
-		// delivery GitHub would then retry.
-		try {
-			const recorded = await recordAutomationEvent({
-				eventType: eventType ?? "unknown",
-				deliveryId: eventId,
-				payload,
-				webhookEventId: webhookEvent.id,
-			});
-			if (recorded.recorded && recorded.eventId && recorded.organizationId) {
-				const result = await dispatchMatchingTriggers({
-					organizationId: recorded.organizationId,
-					eventId: recorded.eventId,
-					eventType: qualifiedEventType(
-						eventType ?? "unknown",
-						payload as GithubPayload,
-					),
-					repositoryId: recorded.repositoryId ?? null,
-					ref: recorded.ref ?? null,
-					payload: payload as GithubPayload,
-				});
-				if (result.matched > 0) {
-					console.log(
-						`[github/webhook] ${result.matched}/${result.considered} triggers matched:`,
-						eventId,
-					);
-				}
-			} else {
-				console.log(
-					`[github/webhook] Not recorded as automation event (${recorded.reason}):`,
-					eventId,
-				);
-			}
-		} catch (error) {
-			console.error("[github/webhook] recordAutomationEvent failed:", error);
-		}
+		// Pings and a few org-level events carry no installation, and an
+		// installation this deployment never saw has no organization: neither
+		// is recorded as an automation event.
+		const installationId = (payload as GithubPayload).installation?.id;
+		const installation =
+			installationId === undefined
+				? undefined
+				: await db.query.githubInstallations.findFirst({
+						where: eq(
+							githubInstallations.installationId,
+							String(installationId),
+						),
+						columns: { organizationId: true },
+					});
+		const outcome = installation
+			? await ingestAutomationEvent(
+					db,
+					normalizeGithubDelivery({
+						organizationId: installation.organizationId,
+						eventType: eventType ?? "unknown",
+						deliveryId: eventId,
+						payload: payload as GithubPayload,
+						webhookEventId: webhookEvent.id,
+					}),
+				)
+			: null;
 
 		await db
 			.update(webhookEvents)
 			.set({ status: "processed", processedAt: new Date() })
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
-		return Response.json({ success: true });
+		return Response.json({ success: true, outcome });
 	} catch (error) {
 		console.error("[github/webhook] Webhook processing error:", error);
 

@@ -1,28 +1,23 @@
 import { COMPANY } from "@superset/shared/constants";
+import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
 
 interface GitHubRepoResponse {
 	stargazers_count: number;
 }
 
-function getGitHubApiUrl(): string {
-	// Extract owner/repo from COMPANY.GITHUB_URL (e.g., "https://github.com/superset-sh/superset")
-	const match = COMPANY.GITHUB_URL.match(/github\.com\/([^/]+\/[^/]+)/);
-	if (!match) {
-		throw new Error("Invalid GitHub URL format");
-	}
-	return `https://api.github.com/repos/${match[1]}`;
-}
-
 async function getGitHubStars(): Promise<number | null> {
 	try {
-		const response = await fetch(getGitHubApiUrl(), {
-			headers: {
-				Accept: "application/vnd.github.v3+json",
+		const response = await fetch(
+			`https://api.github.com/repos/${getGitHubRepoSlug()}`,
+			{
+				headers: {
+					Accept: "application/vnd.github.v3+json",
+				},
+				next: {
+					revalidate: 3600, // Revalidate every hour
+				},
 			},
-			next: {
-				revalidate: 3600, // Revalidate every hour
-			},
-		});
+		);
 
 		if (!response.ok) {
 			console.error(
@@ -41,13 +36,6 @@ async function getGitHubStars(): Promise<number | null> {
 		);
 		return null;
 	}
-}
-
-function formatStarCount(count: number): string {
-	if (count >= 1000) {
-		return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-	}
-	return count.toString();
 }
 
 export async function GitHubStarCounter() {

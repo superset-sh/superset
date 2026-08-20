@@ -1,3 +1,4 @@
+import { realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import { discoverClaudeProfiles, discoverCodexHomes } from "../profiles";
@@ -188,17 +189,33 @@ export async function computeUsageHistory(
 	]);
 	for (const profile of claudeProfiles) claudeHomes.add(profile.configDir);
 
+	// Shared-history profiles symlink their projects/ into ~/.claude (see
+	// session-share.ts), so two homes can name the same tree under different
+	// paths — resolve every scan root and dedupe by real path, or the tree
+	// gets walked and parsed once per profile.
+	const resolveRoots = async (roots: string[]): Promise<string[]> => {
+		const resolved = await Promise.all(
+			roots.map(async (root) => {
+				try {
+					return await realpath(root);
+				} catch {
+					return null; // Dir absent — collectLogFiles would find nothing.
+				}
+			}),
+		);
+		return [
+			...new Set(resolved.filter((root): root is string => root !== null)),
+		];
+	};
+	const [claudeRoots, codexRoots] = await Promise.all([
+		resolveRoots([...claudeHomes].map((root) => join(root, "projects"))),
+		resolveRoots(
+			codexHomes.map((codexHome) => join(codexHome.home, "sessions")),
+		),
+	]);
 	const [claudeFileGroups, codexFileGroups] = await Promise.all([
-		Promise.all(
-			[...claudeHomes].map((root) =>
-				collectLogFiles(join(root, "projects"), days + 1),
-			),
-		),
-		Promise.all(
-			codexHomes.map((codexHome) =>
-				collectLogFiles(join(codexHome.home, "sessions"), days + 1),
-			),
-		),
+		Promise.all(claudeRoots.map((root) => collectLogFiles(root, days + 1))),
+		Promise.all(codexRoots.map((root) => collectLogFiles(root, days + 1))),
 	]);
 	const claudeFiles = dedupeLogFiles(claudeFileGroups.flat());
 	const codexFiles = dedupeLogFiles(codexFileGroups.flat());

@@ -124,9 +124,13 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	// you answer them; `-p` runs never write them, which is why the prompts
 	// survive a headless smoke test. `customApiKeyResponses` matches on the
 	// key's last 20 characters, so it stays valid as long as the placeholder does.
+	// The builtin agent launches `claude --dangerously-skip-permissions`, which
+	// opens a fourth dialog — accept Bypass Permissions mode — that headless
+	// runs never reach either; this is the key that answers it.
 	.runCommands(
 		`printf '%s' '${JSON.stringify({
 			hasCompletedOnboarding: true,
+			bypassPermissionsModeAccepted: true,
 			theme: "dark",
 			customApiKeyResponses: {
 				approved: [SANDBOX_CREDENTIAL_PLACEHOLDER.slice(-20)],

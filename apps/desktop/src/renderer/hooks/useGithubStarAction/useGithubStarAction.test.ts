@@ -1,9 +1,19 @@
 import { describe, expect, test } from "bun:test";
 import {
+	canActivateStarAction,
 	msUntilUnstarGraceWindowCloses,
 	shouldUnmuteOnUnstarredRead,
 	UNSTAR_CONFIRM_DELAY_MS,
 } from "./useGithubStarAction";
+
+describe("canActivateStarAction", () => {
+	test("only true for a confirmed not_starred read", () => {
+		expect(canActivateStarAction("not_starred")).toBe(true);
+		expect(canActivateStarAction("loading")).toBe(false);
+		expect(canActivateStarAction("unknown")).toBe(false);
+		expect(canActivateStarAction("starred")).toBe(false);
+	});
+});
 
 describe("shouldUnmuteOnUnstarredRead", () => {
 	test("ignores reads other than not_starred", () => {

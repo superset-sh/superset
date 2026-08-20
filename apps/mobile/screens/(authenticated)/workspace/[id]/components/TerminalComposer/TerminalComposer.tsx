@@ -28,6 +28,10 @@ interface TerminalComposerProps {
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
+	/** Terminal select mode: swaps the quick keys for Copy Selection / close. */
+	selectActive: boolean;
+	selectHasSelection: boolean;
+	onCopySelection: () => void;
 }
 
 /**
@@ -41,12 +45,15 @@ export const TerminalComposer = forwardRef<
 	TerminalComposerProps
 >(function TerminalComposer(
 	{
-		placeholder = "Send input",
+		placeholder = "Type a message...",
 		onSubmit,
 		onQuickKey,
 		attachmentTarget,
 		allowAttachments,
 		onActiveChange,
+		selectActive,
+		selectHasSelection,
+		onCopySelection,
 	},
 	ref,
 ) {
@@ -97,9 +104,22 @@ export const TerminalComposer = forwardRef<
 		<View className="px-3 pb-2">
 			<GlassComposer
 				ref={composerRef}
-				above={<QuickKeysRow onKey={onQuickKey} />}
+				above={
+					<QuickKeysRow
+						onKey={onQuickKey}
+						select={
+							selectActive
+								? {
+										hasSelection: selectHasSelection,
+										onCopy: onCopySelection,
+									}
+								: null
+						}
+					/>
+				}
 				isSending={writeAttachments.isPending || isSubmitting}
 				showAttachments={allowAttachments}
+				textInputAutocapitalization="never"
 				onActiveChange={onActiveChange}
 				onSubmit={submit}
 				placeholder={placeholder}

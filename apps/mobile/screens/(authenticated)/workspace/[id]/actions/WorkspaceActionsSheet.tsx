@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 import { useHostProjects } from "@/hooks/useHostProjects";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
+import { isSandboxHost } from "@/lib/sandbox-access";
 import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/components/ProjectAvatar";
 import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinnedWorkspacesStore";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
@@ -88,7 +89,10 @@ export function WorkspaceActionsSheet() {
 	);
 	const togglePin = usePinnedWorkspacesStore((state) => state.togglePin);
 
-	const canDelete = workspace ? workspace.type !== "main" : false;
+	// A cloud workspace is served as `main` because its checkout is the repo,
+	// but deleting it deletes the sandbox, not somebody's base checkout.
+	const isCloud = host !== null && isSandboxHost(host.machineId);
+	const canDelete = workspace ? workspace.type !== "main" || isCloud : false;
 	const project = workspace?.projectId
 		? projects.find((candidate) => candidate.id === workspace.projectId)
 		: undefined;
@@ -163,7 +167,9 @@ export function WorkspaceActionsSheet() {
 					</View>
 				</View>
 			) : null}
-			{host ? <InfoRow label="Host" value={host.name} /> : null}
+			{/* A sandbox isn't one of your machines; naming it as the host says
+			    nothing the Cloud section didn't. */}
+			{host && !isCloud ? <InfoRow label="Host" value={host.name} /> : null}
 			{changeset.files.length > 0 ? (
 				<InfoRow
 					label="Changes"

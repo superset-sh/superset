@@ -6,8 +6,8 @@ import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 import { useStartWorkspaceTerminal } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceTerminal";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
@@ -92,7 +92,7 @@ export function FinishReviewSheet() {
 				router.back();
 				return;
 			}
-			const hostUrl = buildRelayHostUrl(host.organizationId, host.machineId);
+			const hostUrl = hostServiceUrl(host.organizationId, host.machineId);
 			await getHostServiceClientByUrl(hostUrl).terminal.send.mutate({
 				terminalId: target,
 				workspaceId,

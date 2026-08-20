@@ -80,6 +80,18 @@ export async function createTestHost(
 	const dataDir = mkdtempSync(join(tmpdir(), "host-service-test-db-"));
 	const dbPath = join(dataDir, "host.db");
 
+	// Isolate the daemon namespace for the lifetime of this host: any code
+	// path that resolves manifests or sockets (reaper, adoption, dispose)
+	// must land in this temp home, never `~/.superset` — a test host that
+	// reads real manifests can reap or kill daemons belonging to running
+	// desktop instances. The manifest layer throws in test runs without
+	// this. Restored (not deleted) on dispose so nested harnesses keep
+	// their own isolation.
+	const priorHomeDir = process.env.SUPERSET_HOME_DIR;
+	if (!priorHomeDir) {
+		process.env.SUPERSET_HOME_DIR = dataDir;
+	}
+
 	const sqlite = new BunDatabase(dbPath, { create: true, readwrite: true });
 	sqlite.exec("PRAGMA journal_mode = WAL");
 	sqlite.exec("PRAGMA foreign_keys = ON");
@@ -156,6 +168,9 @@ export async function createTestHost(
 		try {
 			await result.dispose();
 		} finally {
+			if (!priorHomeDir && process.env.SUPERSET_HOME_DIR === dataDir) {
+				delete process.env.SUPERSET_HOME_DIR;
+			}
 			try {
 				sqlite.close();
 			} catch {

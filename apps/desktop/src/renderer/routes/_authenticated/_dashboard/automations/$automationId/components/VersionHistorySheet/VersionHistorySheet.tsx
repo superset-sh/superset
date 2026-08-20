@@ -121,7 +121,7 @@ export function VersionHistorySheet({
 				onInteractOutside={(event) => event.preventDefault()}
 			>
 				<DialogTitle className="sr-only">
-					Version history for {automationName}
+					Prompt history for {automationName}
 				</DialogTitle>
 
 				<div className="flex flex-1 flex-col overflow-hidden">
@@ -135,7 +135,7 @@ export function VersionHistorySheet({
 
 				<aside className="flex w-60 shrink-0 flex-col border-l bg-background">
 					<div className="flex h-12 shrink-0 items-center justify-between border-b pr-2 pl-4">
-						<h2 className="text-base font-semibold">Version history</h2>
+						<h2 className="text-base font-semibold">Prompt history</h2>
 						<DialogClose asChild>
 							<Button variant="ghost" size="icon-xs" aria-label="Close">
 								<LuX className="size-3.5" />

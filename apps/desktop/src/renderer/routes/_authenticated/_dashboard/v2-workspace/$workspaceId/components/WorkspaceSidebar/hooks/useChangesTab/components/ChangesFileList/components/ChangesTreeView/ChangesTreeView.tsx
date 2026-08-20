@@ -282,6 +282,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		onSuccess: () => {
 			void utils.git.getStatus.invalidate({ workspaceId });
 			void utils.git.getDiff.invalidate({ workspaceId });
+			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		onError: (err) => {
 			toast.error("Couldn't discard changes", { description: err.message });

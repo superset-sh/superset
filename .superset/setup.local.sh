@@ -2,9 +2,8 @@
 # Local-development setup. Provisions a fully self-contained, PER-WORKSPACE
 # Superset stack backed by a local Postgres container + fake credentials — no
 # Neon account, no real third-party keys. Mirrors setup.sh, but replaces the
-# Neon branch with a docker-compose bundle (Postgres + neon-proxy + Electric +
-# Redis/SRH) on per-workspace allocated ports so multiple worktrees never
-# collide.
+# Neon branch with a docker-compose bundle (Postgres + neon-proxy + Redis/SRH)
+# on per-workspace allocated ports so multiple worktrees never collide.
 set -uo pipefail
 
 SUPERSET_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,7 +16,6 @@ source "$SUPERSET_SCRIPT_DIR/lib/setup/steps.sh" # reuse allocate_port_base + he
 
 cd "$ROOT_DIR" || exit 1
 
-ELECTRIC_SECRET_VALUE="local_electric_dev_secret"
 # Must match SRH_TOKEN in docker-compose.yml.
 LOCAL_KV_TOKEN_VALUE="local_dev_token"
 
@@ -25,7 +23,6 @@ LOCAL_KV_TOKEN_VALUE="local_dev_token"
 LOCAL_DB_PROJECT=""
 LOCAL_PG_PORT=""
 LOCAL_NEON_PROXY_PORT=""
-LOCAL_ELECTRIC_PORT=""
 LOCAL_REDIS_PORT=""
 LOCAL_SRH_PORT=""
 
@@ -54,7 +51,6 @@ local_check_dependencies() {
   command -v bun &> /dev/null || missing+=("bun (https://bun.sh)")
   command -v docker &> /dev/null || missing+=("docker (https://docker.com)")
   command -v jq &> /dev/null || missing+=("jq (brew install jq)")
-  command -v caddy &> /dev/null || warn "caddy not found — Electric HTTPS proxy won't work (brew install caddy && caddy trust)"
   if [ ${#missing[@]} -gt 0 ]; then
     error "Missing dependencies:"
     for dep in "${missing[@]}"; do echo "  - $dep"; done
@@ -72,20 +68,19 @@ local_allocate_ports() {
   fi
   local base="$SUPERSET_PORT_BASE"
   # DB stack host ports live in the free tail of the 20-port window
-  # (app ports use +0..+13; Electric reuses the +9 ELECTRIC_PORT slot).
+  # (app ports use +0..+13).
   LOCAL_PG_PORT=$((base + 14))
   LOCAL_NEON_PROXY_PORT=$((base + 15))
-  LOCAL_ELECTRIC_PORT=$((base + 9))
   LOCAL_REDIS_PORT=$((base + 16))
   LOCAL_SRH_PORT=$((base + 17))
-  export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT LOCAL_ELECTRIC_PORT
+  export LOCAL_PG_PORT LOCAL_NEON_PROXY_PORT
   export LOCAL_REDIS_PORT LOCAL_SRH_PORT
   # Export so migrate/seed (child bun processes) use these — an inherited env
   # var beats the .env file, so this overrides any stale DATABASE_URL.
   export DATABASE_URL="postgres://postgres:postgres@db.localtest.me:$LOCAL_NEON_PROXY_PORT/main"
   export DATABASE_URL_UNPOOLED="postgres://postgres:postgres@localhost:$LOCAL_PG_PORT/main"
   LOCAL_DB_PROJECT="superset-$(sanitize_name "${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}")"
-  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT electric=$LOCAL_ELECTRIC_PORT redis=$LOCAL_REDIS_PORT srh=$LOCAL_SRH_PORT (project $LOCAL_DB_PROJECT)"
+  success "Base $base → pg=$LOCAL_PG_PORT proxy=$LOCAL_NEON_PROXY_PORT redis=$LOCAL_REDIS_PORT srh=$LOCAL_SRH_PORT (project $LOCAL_DB_PROJECT)"
   return 0
 }
 
@@ -155,7 +150,7 @@ local_db_up() {
     return 1
   fi
 
-  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, electric :$LOCAL_ELECTRIC_PORT, redis :$LOCAL_REDIS_PORT, srh :$LOCAL_SRH_PORT)"
+  success "DB stack ready (pg :$LOCAL_PG_PORT, proxy :$LOCAL_NEON_PROXY_PORT, redis :$LOCAL_REDIS_PORT, srh :$LOCAL_SRH_PORT)"
   return 0
 }
 
@@ -196,9 +191,7 @@ local_write_env() {
   local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
   local STREAMS_PORT=$((BASE + 7))
   local STREAMS_INTERNAL_PORT=$((BASE + 8))
-  local CADDY_ELECTRIC_PORT=$((BASE + 10))
   local CODE_INSPECTOR_PORT=$((BASE + 11))
-  local WRANGLER_PORT=$((BASE + 12))
   local RELAY_PORT=$((BASE + 13))
 
   {
@@ -211,7 +204,6 @@ local_write_env() {
     echo "# Per-workspace local DB stack (docker compose project $LOCAL_DB_PROJECT)"
     write_env_var "LOCAL_PG_PORT" "$LOCAL_PG_PORT"
     write_env_var "LOCAL_NEON_PROXY_PORT" "$LOCAL_NEON_PROXY_PORT"
-    write_env_var "LOCAL_ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
     write_env_var "LOCAL_REDIS_PORT" "$LOCAL_REDIS_PORT"
     write_env_var "LOCAL_SRH_PORT" "$LOCAL_SRH_PORT"
     write_env_var "DATABASE_URL" "$DATABASE_URL"
@@ -232,12 +224,8 @@ local_write_env() {
     write_env_var "DESKTOP_NOTIFICATIONS_PORT" "$DESKTOP_NOTIFICATIONS_PORT"
     write_env_var "STREAMS_PORT" "$STREAMS_PORT"
     write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
-    write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
-    write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
-    write_env_var "ELECTRIC_PORT" "$LOCAL_ELECTRIC_PORT"
-    write_env_var "ELECTRIC_SECRET" "$ELECTRIC_SECRET_VALUE"
     echo ""
     echo "# Cross-app URLs (allocated ports)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -256,36 +244,10 @@ local_write_env() {
     write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
     write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
     echo ""
-    echo "# Electric URLs (per-workspace Electric :$LOCAL_ELECTRIC_PORT, fronted by Caddy)"
-    write_env_var "ELECTRIC_URL" "http://localhost:$LOCAL_ELECTRIC_PORT/v1/shape"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-    echo ""
-    echo "# Mobile (Expo) — plain-HTTP electric-proxy; RN fetch rejects Caddy's self-signed cert"
+    echo "# Mobile (Expo)"
     write_env_var "EXPO_PUBLIC_API_URL" "http://localhost:$API_PORT"
-    write_env_var "EXPO_PUBLIC_ELECTRIC_URL" "http://localhost:$WRANGLER_PORT"
     write_env_var "EXPO_PUBLIC_POSTHOG_KEY" "phc_local_dev_disabled"
   } >> .env
-
-  cat > Caddyfile <<-CADDYEOF
-	{
-		auto_https disable_redirects
-	}
-
-	https://localhost:{\$CADDY_ELECTRIC_PORT} {
-		reverse_proxy localhost:{\$WRANGLER_PORT} {
-			flush_interval -1
-		}
-	}
-	CADDYEOF
-
-  cat > apps/electric-proxy/.dev.vars <<DEVVARS
-AUTH_URL=http://localhost:$API_PORT
-ELECTRIC_SHAPE_URL=http://localhost:$LOCAL_ELECTRIC_PORT/v1/shape
-ELECTRIC_SECRET=$ELECTRIC_SECRET_VALUE
-ELECTRIC_SOURCE_ID=
-ELECTRIC_SOURCE_SECRET=
-DEVVARS
 
   cat > "$SUPERSET_SCRIPT_DIR/ports.json" <<PORTSJSON
 {
@@ -298,9 +260,6 @@ DEVVARS
     { "port": $DESKTOP_VITE_PORT, "label": "Desktop Vite" },
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
-    { "port": $LOCAL_ELECTRIC_PORT, "label": "Electric" },
-    { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
-    { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" },
     { "port": $LOCAL_PG_PORT, "label": "Postgres" },
     { "port": $LOCAL_NEON_PROXY_PORT, "label": "Neon Proxy" },
     { "port": $LOCAL_REDIS_PORT, "label": "Redis" },
@@ -309,7 +268,7 @@ DEVVARS
 }
 PORTSJSON
 
-  success "Workspace .env, Caddyfile, electric-proxy/.dev.vars, ports.json written"
+  success "Workspace .env, ports.json written"
   return 0
 }
 

@@ -28,6 +28,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
+import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	pullRequestsSearchFromFilters,
@@ -37,6 +38,10 @@ import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
+import {
+	getUsageLastSection,
+	usageSectionPath,
+} from "renderer/routes/_authenticated/_dashboard/usage/utils/usageLastSection";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
@@ -166,7 +171,9 @@ export function DashboardSidebarHeader({
 	};
 
 	const handleUsageClick = () => {
-		navigate({ to: "/usage" });
+		// Reopen whichever Usage section (token / machine resources) was
+		// visited last.
+		navigate({ to: usageSectionPath(getUsageLastSection()) });
 	};
 
 	const handlePullRequestsClick = () => {
@@ -418,9 +425,12 @@ export function DashboardSidebarHeader({
 					className="drag h-full shrink-0"
 					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
 				/>
-				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
+				<ZoomStable enabled={isMac} className="flex items-center gap-1">
 					<SidebarToggle />
 					<NavigationControls />
+					{/* Lives here (persistent chrome) rather than the workspace tab
+					    bar, which remounts on every navigation. */}
+					<TopBarPortsDropdown align="start" />
 				</ZoomStable>
 				<div className="drag h-full min-w-0 flex-1" />
 			</div>

@@ -168,6 +168,15 @@ export class TerminalAgentStore extends EventEmitter {
 	}
 
 	/**
+	 * A deliberate kill (pane close, CLI kill, resume cleanup). Unlike
+	 * markTerminalExited the row never becomes a resume candidate — a session
+	 * the user chose to end must not be resurrected by auto-resume.
+	 */
+	markTerminalDisposed(terminalId: string): void {
+		this.endBinding(terminalId, "disposed", Date.now());
+	}
+
+	/**
 	 * Escape hatch for wedged working/permission state (an agent whose final
 	 * Stop hook never fired — interrupts fire no hook at all). Forces the
 	 * workspace's bindings (or just `terminalId`'s) to `Stop`, keeping

@@ -3,6 +3,7 @@ import {
 	buttonBorderShape,
 	buttonStyle,
 	font,
+	foregroundColor,
 	frame,
 	scrollIndicators,
 	tint,
@@ -10,8 +11,17 @@ import {
 import { FOREGROUND } from "@/screens/(authenticated)/components/GlassComposer";
 import { QUICK_KEYS, type TerminalQuickKey } from "../../constants";
 
+export interface QuickKeysSelectActions {
+	hasSelection: boolean;
+	onCopy: () => void;
+}
+
 interface QuickKeysRowProps {
 	onKey: (key: TerminalQuickKey) => void;
+	/** Terminal select mode: the row shows a centered Copy Selection button
+	 *  instead of the keys. Exits need no button of their own — copying
+	 *  exits, and so does deselecting (the page auto-leaves select mode). */
+	select?: QuickKeysSelectActions | null;
 }
 
 /**
@@ -22,7 +32,34 @@ interface QuickKeysRowProps {
  * height `Host matchContents` under-reports, so it drifted whenever the pill
  * grew (attachments, extra lines) and animated on a different curve.
  */
-export function QuickKeysRow({ onKey }: QuickKeysRowProps) {
+export function QuickKeysRow({ onKey, select }: QuickKeysRowProps) {
+	if (select) {
+		return (
+			<HStack modifiers={[frame({ maxWidth: 100_000 })]}>
+				{select.hasSelection ? (
+					<Button
+						onPress={select.onCopy}
+						modifiers={[
+							buttonStyle("glassProminent"),
+							buttonBorderShape("capsule"),
+							// White fill + explicit dark label, like the send button:
+							// prominent styles keep white text even on a light tint.
+							tint("#ffffff"),
+						]}
+					>
+						<Text
+							modifiers={[
+								font({ size: 14, weight: "semibold" }),
+								foregroundColor("#1c1c1e"),
+							]}
+						>
+							Copy Selection
+						</Text>
+					</Button>
+				) : null}
+			</HStack>
+		);
+	}
 	return (
 		<ScrollView
 			axes="horizontal"

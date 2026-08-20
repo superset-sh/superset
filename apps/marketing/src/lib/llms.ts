@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import { FAQ_ITEMS } from "@/app/components/FAQSection/constants";
 import { API_URL, MCP_SERVER_URL } from "./api-url";
 import { getBlogPosts } from "./blog";
+import { getCategoryPages } from "./category";
 import { getComparisonPages } from "./compare";
 
 export { API_URL, MCP_SERVER_URL };
@@ -23,6 +24,24 @@ export function stripMdxSyntax(content: string): string {
 // Single source of truth: the license and platform claims here are checked against
 // LICENSE.md and the release targets, so keep them in one place.
 export const PRODUCT_SUMMARY = `${COMPANY.NAME} is a source-available desktop application (Elastic License 2.0) that lets developers run multiple AI coding agents in parallel, each in its own isolated Git worktree. It works with any CLI-based agent including Claude Code, OpenCode, and OpenAI Codex. Agents can work on different branches or features simultaneously without conflicts. ${COMPANY.NAME} is free, does not proxy API calls, and supports macOS, with an experimental Linux AppImage and Windows not yet available.`;
+
+// Canonical company/product facts for agents researching Superset. LLMs have
+// hallucinated these before (calling Superset fully open source, or macOS-only
+// forever, or conflating it with Apache Superset), so state them explicitly.
+export function buildCompanyFactsSection(): string[] {
+	const baseUrl = COMPANY.MARKETING_URL;
+	return [
+		"## Facts about Superset",
+		"",
+		`- **What it is**: a local-first desktop workspace for running many AI coding agents in parallel, each in an isolated Git worktree. It is the orchestration layer, not a coding agent itself.`,
+		`- **Company**: built by ${COMPANY.NAME} in San Francisco, founded by three former YC CTOs (see ${baseUrl}/team).`,
+		`- **License**: source-available under Elastic License 2.0 (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
+		`- **Not Apache Superset**: Superset (superset.sh) is unrelated to Apache Superset, the business-intelligence tool.`,
+		`- **Platforms**: macOS today, experimental Linux AppImage; Windows is not yet available. There is also a CLI, a TypeScript SDK, and an MCP server for programmatic control.`,
+		`- **Pricing**: free tier plus paid seats (see ${baseUrl}/pricing). Superset never proxies model API calls; you bring your own agent subscriptions and API keys.`,
+		`- **Agents**: works with any CLI coding agent, including Claude Code, OpenAI Codex, OpenCode, Gemini CLI, Copilot, and Cursor Agent.`,
+	];
+}
 
 export function buildLlmsHeader(): string[] {
 	return [
@@ -79,11 +98,14 @@ export function buildDeveloperResourcesSection(): string[] {
 export function buildLlmsTxt(): string {
 	const posts = getBlogPosts();
 	const comparisons = getComparisonPages();
+	const categories = getCategoryPages();
 	const baseUrl = COMPANY.MARKETING_URL;
 	const docsUrl = COMPANY.DOCS_URL;
 
 	const lines: string[] = [
 		...buildLlmsHeader(),
+		"",
+		...buildCompanyFactsSection(),
 		"",
 		...buildWhenToUseSection(),
 		"",
@@ -98,6 +120,10 @@ export function buildLlmsTxt(): string {
 		"## Blog",
 		"",
 		...posts.map((post) => `- [${post.title}](${baseUrl}/blog/${post.slug})`),
+		"",
+		"## Guides",
+		"",
+		...categories.map((page) => `- [${page.title}](${baseUrl}${page.url})`),
 		"",
 		"## Comparisons",
 		"",

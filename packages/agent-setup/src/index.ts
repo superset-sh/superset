@@ -56,6 +56,16 @@ export function setupAgentIntegrations(
 
 export { setupSingleAgent, teardownSingleAgent };
 
+export {
+	ensureClaudeManagedHooksAt,
+	ensureCodexManagedHooksAt,
+} from "./agent-wrappers-claude-codex-opencode";
+export {
+	type ProfileProvisionReport,
+	provisionClaudeProfile,
+	provisionCodexProfile,
+} from "./provider-profiles";
+
 export { getCommandShellArgs, getShellArgs, getShellEnv };
 
 export {

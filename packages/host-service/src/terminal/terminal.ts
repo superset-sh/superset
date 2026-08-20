@@ -32,6 +32,7 @@ import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
+import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -536,6 +537,15 @@ interface TerminalSession {
 	modeTracker: ModeTracker;
 
 	/**
+	 * Resolves once the daemon's post-adoption ring-buffer replay has
+	 * quiesced (immediately for non-adopted sessions). Attach paths await it
+	 * before delivering to a socket, so the mode preamble is built from a
+	 * tracker that has actually seen the program's mode bytes and replayed
+	 * bytes never broadcast to a just-attached client.
+	 */
+	adoptionReplaySettled: Promise<void>;
+
+	/**
 	 * Stream identity for seq-aware clients. Fresh per TerminalSession object
 	 * (create, adopt, respawn) — a client anchored to a different epoch has an
 	 * unknowable position (the byte counter restarted) and gets a reanchor.
@@ -979,7 +989,7 @@ async function getOrAdoptSession({
 			});
 			if ("error" in adopted) return adopted;
 
-			await waitForAdoptionReplay(adopted);
+			await adopted.adoptionReplaySettled;
 			return adopted;
 		})();
 		adoptionsInFlight.set(terminalId, attempt);
@@ -2316,13 +2326,6 @@ interface CreateTerminalSessionOptions {
 	/** Only recover an already-live daemon session; never spawn a new PTY. */
 	adoptOnly?: boolean;
 	/**
-	 * Replay the daemon's ring buffer on subscribe. Default true. Pass false
-	 * when the renderer's xterm already has the scrollback — replaying then
-	 * doubles the visible output. Tradeoff: bytes the PTY produced during
-	 * the WS-down window are dropped (sub-second on a daemon swap).
-	 */
-	replayOnAdoption?: boolean;
-	/**
 	 * Deliver a "session restored" separator ahead of the first replay. Set on
 	 * the cold-restore respawn path, where the renderer paints stale scrollback
 	 * above a brand-new shell.
@@ -2376,7 +2379,6 @@ export async function createTerminalSessionInternal({
 	cols: requestedCols,
 	rows: requestedRows,
 	adoptOnly = false,
-	replayOnAdoption = true,
 	restoredNotice = false,
 }: CreateTerminalSessionOptions): Promise<
 	TerminalSession | CreateSessionError
@@ -2459,22 +2461,29 @@ export async function createTerminalSessionInternal({
 	const supersetHomeDir = resolveSupersetHomeDir();
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
-	const ptyEnv = buildV2TerminalEnv({
-		baseEnv,
-		shell,
-		supersetHomeDir,
-		themeType,
-		cwd,
-		terminalId,
-		workspaceId,
-		workspacePath: workspace.worktreePath,
-		rootPath,
-		supersetEnv:
-			process.env.NODE_ENV === "development" ? "development" : "production",
-		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
-		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
-		hostAgentHookUrl: getHostAgentHookUrl(),
-	});
+	const ptyEnv = {
+		...buildV2TerminalEnv({
+			baseEnv,
+			shell,
+			supersetHomeDir,
+			organizationId: process.env.ORGANIZATION_ID || "",
+			themeType,
+			cwd,
+			terminalId,
+			workspaceId,
+			workspacePath: workspace.worktreePath,
+			rootPath,
+			supersetEnv:
+				process.env.NODE_ENV === "development" ? "development" : "production",
+			agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
+			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+			hostAgentHookUrl: getHostAgentHookUrl(),
+		}),
+		// Usage-tab default account: provider CLIs typed or preset-launched in
+		// this terminal run on the selected login. Baked at spawn as the fast
+		// path; the agent wrappers re-resolve later switches at launch time.
+		...resolveDefaultAccountTerminalEnv(db),
+	};
 
 	let daemon: DaemonClient;
 	try {
@@ -2598,6 +2607,20 @@ export async function createTerminalSessionInternal({
 			})
 		: Promise.resolve();
 
+	// The tracker's leaked-mode reclaim needs the session to broadcast disarm
+	// bytes, but the session literal below needs the tracker — close over a
+	// ref assigned right after construction.
+	let reclaimSession: TerminalSession | null = null;
+	const modeTracker = createModeTracker(cols, rows, {
+		onLeakedInputModeDisarm(bytes) {
+			const s = reclaimSession;
+			if (!s || !isCurrentLiveSession(s)) return;
+			// deliverOutput feeds the tracker too, so its modes (and the next
+			// attach preamble) converge with what clients were just told.
+			deliverOutput(s, bytes);
+		},
+	});
+
 	const session: TerminalSession = {
 		terminalId,
 		workspaceId,
@@ -2637,7 +2660,8 @@ export async function createTerminalSessionInternal({
 		initialCommandQueued: isAdopted,
 		launchShellName: basename(shell),
 		portHintDecoder: new StringDecoder("utf8"),
-		modeTracker: createModeTracker(cols, rows),
+		modeTracker,
+		adoptionReplaySettled: Promise.resolve(),
 		epoch: randomBytes(8).toString("hex"),
 		outputSeq: 0,
 		retained: [],
@@ -2647,6 +2671,7 @@ export async function createTerminalSessionInternal({
 		resizeGeneration: 0,
 		focusedSockets: new Set(),
 	};
+	reclaimSession = session;
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
 
@@ -2666,9 +2691,17 @@ export async function createTerminalSessionInternal({
 		);
 	}
 
+	// Always request the daemon's ring on subscribe: it is the only way to
+	// rebuild the mode tracker after adoption (a tracker that never sees the
+	// program's `?25l`/`?1004h`/kitty bytes builds wrong preambles and
+	// disables host-side focus forwarding). Whether the replayed BYTES reach
+	// any client is decided per-attach: seq clients are protected by
+	// reanchor/anchor accounting, legacy `?replay=0` clients get the FIFO
+	// dropped at attach. Fresh (non-adopted) sessions have an empty ring, so
+	// replay is a no-op there.
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
-		{ replay: replayOnAdoption },
+		{ replay: true },
 		{
 			onOutput(chunk) {
 				// Bytes flow daemon → host → xterm without UTF-8 decoding;
@@ -2776,6 +2809,12 @@ export async function createTerminalSessionInternal({
 			},
 		},
 	);
+
+	// The ring replay lands asynchronously after subscribe; attach paths
+	// await this so the first preamble reflects the rebuilt tracker.
+	if (isAdopted) {
+		session.adoptionReplaySettled = waitForAdoptionReplay(session);
+	}
 
 	if (initialCommand) {
 		queueInitialCommand(session, initialCommand);
@@ -2904,6 +2943,14 @@ export function registerWorkspaceTerminalRoute({
 
 				sendMessage(ws, { type: "title", title: session.title });
 				if (seqRequest.kind === "legacy") {
+					// Pre-seq contract: `?replay=0` means "my xterm already has
+					// the scrollback". Adoption now always pulls the daemon ring
+					// (the mode tracker needs it), so drop the FIFO here instead
+					// of double-painting this client.
+					if (c.req.query("replay") === "0") {
+						session.buffer.length = 0;
+						session.bufferBytes = 0;
+					}
 					replayBuffer(session, ws);
 				} else {
 					sendSeqAttach(session, ws, seqRequest);
@@ -3009,13 +3056,6 @@ export function registerWorkspaceTerminalRoute({
 					db,
 					eventBus,
 					adoptOnly: true,
-					// Only a client with an empty xterm wants the daemon ring
-					// dumped at it. Anchored/reanchor clients keep their own
-					// (better) copy; legacy clients signal via `?replay=0`.
-					replayOnAdoption:
-						seqRequest.kind === "legacy"
-							? c.req.query("replay") !== "0"
-							: seqRequest.kind === "new",
 				});
 				if (!("error" in adopted)) return adopted;
 				// Daemon unreachable ≠ PTY lost: the shell may still be alive behind
@@ -3069,6 +3109,12 @@ export function registerWorkspaceTerminalRoute({
 							ws.close(transient ? 1013 : 1011, toWsCloseReason(session.error));
 							return;
 						}
+						// A just-adopted session may still be receiving the daemon's
+						// ring replay: wait for it to quiesce so the mode preamble
+						// reflects the program's real state and the replayed bytes
+						// don't broadcast to this socket. Resolved immediately in
+						// every other case.
+						await session.adoptionReplaySettled;
 						if (ws.readyState !== SOCKET_OPEN) return;
 						attachSocketToSession(session, ws);
 					})().catch((error) => {
