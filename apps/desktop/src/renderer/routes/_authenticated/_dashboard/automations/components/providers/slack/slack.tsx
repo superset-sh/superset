@@ -25,7 +25,7 @@ function renderSlot(
 	config: SlackConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, optionState, disabled }: SentenceContext,
 ) {
 	switch (slot) {
 		case "channels":
@@ -38,6 +38,11 @@ function renderSlot(
 					options={options.slack?.channels ?? []}
 					emptyLabel="Select channels"
 					anyLabel="Any channel"
+					countNoun={{ singular: "channel", plural: "channels" }}
+					// The roster only lists channels the bot can see plus public ones;
+					// a pasted id is the way in for anything else.
+					allowCustom={{ placeholder: "Paste a channel ID..." }}
+					state={optionState?.slack}
 					disabled={disabled}
 				/>
 			);
@@ -72,6 +77,8 @@ function renderSlot(
 					options={options.slack?.people ?? []}
 					emptyLabel="Select people"
 					anyLabel="Anyone"
+					countNoun={{ singular: "person", plural: "people" }}
+					state={optionState?.slack}
 					disabled={disabled}
 				/>
 			);
@@ -143,4 +150,25 @@ export const slackProvider: TriggerProvider<SlackConfig> = {
 			renderSlot={(slot, index) => renderSlot(config, slot, index, ctx)}
 		/>
 	),
+	// Slack only delivers message events for channels the bot is in, so a
+	// trigger watching a channel it hasn't joined is configured fine and
+	// permanently silent. Saving auto-joins public channels; what this warns
+	// about is the rest — private channels, and installs without the join
+	// scope yet — where a human invite is the only fix.
+	runtimeWarnings: (config, options) => {
+		if (config.event === "channel_created") return [];
+		if (config.channels.mode !== "list") return [];
+		const roster = options.slack?.channels ?? [];
+		const outside = config.channels.ids.flatMap((id) => {
+			const option = roster.find((o) => o.id === id);
+			return option?.botMember === false ? [option.label] : [];
+		});
+		if (outside.length === 0) return [];
+		const list = outside.join(", ");
+		return [
+			outside.length === 1
+				? `This trigger will not run for messages in ${list} until @Superset is invited to it.`
+				: `This trigger will not run for messages in ${list} until @Superset is invited to them.`,
+		];
+	},
 };

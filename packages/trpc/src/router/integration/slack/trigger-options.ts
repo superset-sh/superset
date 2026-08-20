@@ -48,7 +48,14 @@ const channels: TriggerOptionSource = async ({ organizationId }) => {
 	for await (const page of pages) {
 		for (const channel of page.channels ?? []) {
 			if (channel.id && channel.name) {
-				options.push({ id: channel.id, label: channel.name });
+				options.push({
+					id: channel.id,
+					label: `#${channel.name}`,
+					// A private channel only appears in this list because the bot is in
+					// it; for public ones Slack says outright. Events never arrive from
+					// a channel where this is false.
+					botMember: channel.is_private ? true : channel.is_member === true,
+				});
 			}
 		}
 		if (options.length >= MAX_CHANNELS) break;
