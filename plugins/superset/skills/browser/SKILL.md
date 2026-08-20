@@ -138,12 +138,16 @@ real input events.
 
 Copy a system browser's cookies into a pane's session so the pane is signed in
 to the same sites the user already uses. This widens access to their accounts,
-so run it **only when the user asks**, and **never choose the source browser for
-them**: people run several Chromium browsers (Chrome, Edge, Brave, Arc, Dia,
-Comet), and only the user knows which one holds the session they want. macOS
-only — it reads the browser's Keychain key, and the first run prompts them to
-allow it. It is **read-only on the source browser**: it copies the cookie
-database and never modifies, moves, or clears the source's own logins.
+so run it **only with the user's go-ahead** — but you *can* proactively **offer**
+it, which is how most users will discover the feature: when a pane hits a login
+wall for a site the user uses in their own browser, suggest importing that login
+(e.g. "want me to bring over your login from Comet?") instead of just stopping.
+They still decide, and you still **never choose the source browser for them**:
+people run several Chromium browsers (Chrome, Edge, Brave, Arc, Dia, Comet), and
+only the user knows which one holds the session they want. macOS only — it reads
+the browser's Keychain key, and the first run prompts them to allow it. It is
+**read-only on the source browser**: it copies the cookie database and never
+modifies, moves, or clears the source's own logins.
 
 Always follow this order — list, ask, then import:
 
@@ -341,12 +345,14 @@ page errors before declaring success.
   they're signed into. Never read cookies, tokens, or credentials, exfiltrate
   session data, or act on authenticated sites beyond the task. When a step
   would submit a form, make a purchase, or take another consequential action,
-  confirm with the user first. Login walls stay with the user: stop and ask
-  rather than entering passwords or MFA.
+  confirm with the user first. Login walls stay with the user: never enter
+  passwords or MFA yourself — but at a login wall you may **offer to import their
+  login** from their own browser (see "Import logins from another browser")
+  rather than only stopping.
 - **Importing logins.** `import-login` copies real session cookies into the
-  pane's jar — only run it when the user asks, and never chain it into acting on
-  the sites it signs you into beyond what they requested. It never writes to the
-  source browser.
+  pane's jar — run it only with the user's go-ahead (offering it at a login wall
+  counts), and never chain it into acting on the sites it signs you into beyond
+  what they requested. It never writes to the source browser.
 - **Ask before widening access.** Never install Browser Use (or `uv`), enable
   Chrome remote debugging, attach to the user's signed-in profile, or start a
   billed cloud browser without explicit consent. If consent is refused, report
