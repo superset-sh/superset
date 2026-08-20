@@ -7,6 +7,7 @@ import {
 	AlertDialogTitle,
 	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -31,6 +32,7 @@ import {
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
@@ -64,16 +66,25 @@ const MERGE_METHOD_LABELS: Record<MergeMethod, string> = {
 
 type PendingAction = { kind: "close" } | { kind: "merge"; method: MergeMethod };
 
-// Mirrors PRStatusGroup's state-tinted badge language, so a PR reads the
-// same way here as it does in the v2 workspace sidebar.
-const STATE_BADGE_STYLES: Record<PRState, string> = {
-	open: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+const PR_STATE_BADGE_STYLES: Record<PRState, string> = {
+	open: "bg-[#dcfae8] text-[#00a558] border-transparent dark:bg-emerald-500/15 dark:text-emerald-400",
 	merged:
-		"border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
-	closed: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
-	draft: "border-border bg-muted/40 text-muted-foreground",
+		"bg-violet-500/10 text-violet-600 border-transparent dark:text-violet-400",
+	closed:
+		"bg-[#fde5e5] text-[#f43b3a] border-transparent dark:bg-red-500/15 dark:text-red-400",
+	draft: "bg-muted text-muted-foreground border-transparent",
 	queued:
-		"border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+		"bg-[#fef3c6] text-[#a15c07] border-transparent dark:bg-amber-500/15 dark:text-amber-400",
+};
+
+// Just the text-color half of PR_STATE_BADGE_STYLES, so the icon inside the
+// badge reads as one color with its label instead of PRIcon's own palette.
+const PR_BADGE_ICON_COLOR: Record<PRState, string> = {
+	open: "text-[#00a558] dark:text-emerald-400",
+	merged: "text-violet-600 dark:text-violet-400",
+	closed: "text-[#f43b3a] dark:text-red-400",
+	draft: "text-muted-foreground",
+	queued: "text-[#a15c07] dark:text-amber-400",
 };
 
 function PullRequestDetailPage() {
@@ -189,130 +200,14 @@ function PullRequestDetailPage() {
 		openModal(projectId);
 	};
 
-	const defaultState = normalizePRState("open", false);
-	const state = data
-		? normalizePRState(data.state, data.isDraft)
-		: defaultState;
-	const canMerge = data?.state === "open" && !data.isDraft;
 	// The list pane is always visible in the split view (or reachable via the
 	// list-collapse toggle in the shared layout), so there's no "back"
-	// affordance here — just the PR identity and its actions.
-	const itemNumber = data?.number ?? prNumber;
+	// affordance here — just the toggle, kept reachable while the PR is
+	// loading or failed to load. The full title/actions/metadata header only
+	// renders once `data` is available, further down.
 	const header = (
-		<div className="@container flex shrink-0 items-center gap-2 border-b border-border px-4 pb-9 pt-3 @md:gap-3 @md:px-6">
+		<div className="@container flex shrink-0 items-center gap-2 border-b border-border px-4 py-2 @md:px-6">
 			<PullRequestListToggle />
-			<PRIcon state={state} className="size-4 shrink-0" />
-			<span className="shrink-0 font-mono text-sm tabular-nums text-muted-foreground">
-				{itemNumber === null ? "#—" : `#${itemNumber}`}
-			</span>
-			{data && (
-				<span
-					className={cn(
-						"shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium capitalize",
-						STATE_BADGE_STYLES[state],
-					)}
-				>
-					{data.isDraft ? "Draft" : data.state}
-				</span>
-			)}
-			<div className="min-w-0 flex-1" />
-			<div className="ml-auto flex shrink-0 items-center gap-1">
-				{data?.url && (
-					<Button variant="ghost" size="icon" className="size-8" asChild>
-						<a
-							href={data.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							aria-label="Open pull request in GitHub"
-							title="Open pull request in GitHub"
-						>
-							<LuExternalLink className="size-4" />
-						</a>
-					</Button>
-				)}
-				{data && data.state !== "merged" && (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button
-								variant="outline"
-								size="sm"
-								className={cn(
-									"h-8 gap-1.5 px-2 @md:px-3",
-									canMerge &&
-										"border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-400",
-								)}
-								disabled={isActionPending}
-								aria-label="Pull request actions"
-							>
-								{canMerge ? (
-									<VscGitMerge className="size-4" />
-								) : data.state === "closed" ? (
-									<LuRotateCcw className="size-4" />
-								) : (
-									<LuGitPullRequestClosed className="size-4" />
-								)}
-								<span className="hidden @md:inline">
-									{data.state === "closed"
-										? "Reopen"
-										: canMerge
-											? "Merge"
-											: "Close"}
-								</span>
-								<VscChevronDown className="size-3" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end" className="w-56">
-							{canMerge && (
-								<>
-									<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-										Merge
-									</DropdownMenuLabel>
-									{(["squash", "merge", "rebase"] as const).map((method) => (
-										<DropdownMenuItem
-											key={method}
-											onClick={() =>
-												setPendingAction({ kind: "merge", method })
-											}
-										>
-											<VscGitMerge className="size-3.5" />
-											{MERGE_METHOD_LABELS[method]}
-										</DropdownMenuItem>
-									))}
-									<DropdownMenuSeparator />
-								</>
-							)}
-							{data.state === "open" && (
-								<DropdownMenuItem
-									variant="destructive"
-									onClick={() => setPendingAction({ kind: "close" })}
-								>
-									<LuGitPullRequestClosed className="size-3.5" />
-									Close pull request
-								</DropdownMenuItem>
-							)}
-							{data.state === "closed" && (
-								<DropdownMenuItem onClick={handleReopen}>
-									<LuRotateCcw className="size-3.5" />
-									Reopen pull request
-								</DropdownMenuItem>
-							)}
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
-				{data && (
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-8 gap-1.5 px-2 @md:px-3"
-						onClick={handleAddToWorkspace}
-						aria-label="Add to workspace"
-						title="Add to workspace"
-					>
-						<LuPlus className="size-4" />
-						<span className="hidden @md:inline">Add to workspace</span>
-					</Button>
-				)}
-			</div>
 		</div>
 	);
 
@@ -390,6 +285,8 @@ function PullRequestDetailPage() {
 		);
 	}
 
+	const state = normalizePRState(data.state, data.isDraft);
+	const canMerge = data.state === "open" && !data.isDraft;
 	const stateLabel = data.isDraft ? "Draft" : data.state;
 	const branchSummary = data.branch
 		? `${data.headRepositoryOwner && data.isCrossRepository ? `${data.headRepositoryOwner}:${data.branch}` : data.branch} → ${data.baseBranch}`
@@ -397,7 +294,153 @@ function PullRequestDetailPage() {
 
 	return (
 		<div className="@container flex min-h-0 flex-1 flex-col">
-			{header}
+			<div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 pb-4 pt-3 @md:px-6">
+				<div className="flex min-w-0 items-start gap-2">
+					<PullRequestListToggle />
+					<h1 className="min-w-0 flex-1 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
+						{data.title}
+					</h1>
+					<div className="flex shrink-0 items-center gap-1">
+						<Button variant="ghost" size="icon-xs" asChild>
+							<a
+								href={data.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label="Open pull request in GitHub"
+								title="Open pull request in GitHub"
+							>
+								<LuExternalLink className="size-3.5" />
+							</a>
+						</Button>
+						{data.state !== "merged" && (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										className={cn(
+											"h-7 gap-1.5 px-2 text-xs",
+											canMerge &&
+												"border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-400",
+										)}
+										disabled={isActionPending}
+										aria-label="Pull request actions"
+									>
+										{canMerge ? (
+											<VscGitMerge className="size-3.5" />
+										) : data.state === "closed" ? (
+											<LuRotateCcw className="size-3.5" />
+										) : (
+											<LuGitPullRequestClosed className="size-3.5" />
+										)}
+										<span className="hidden @md:inline">
+											{data.state === "closed"
+												? "Reopen"
+												: canMerge
+													? "Merge"
+													: "Close"}
+										</span>
+										<VscChevronDown className="size-3" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									{canMerge && (
+										<>
+											<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+												Merge
+											</DropdownMenuLabel>
+											{(["squash", "merge", "rebase"] as const).map(
+												(method) => (
+													<DropdownMenuItem
+														key={method}
+														onClick={() =>
+															setPendingAction({ kind: "merge", method })
+														}
+													>
+														<VscGitMerge className="size-3.5" />
+														{MERGE_METHOD_LABELS[method]}
+													</DropdownMenuItem>
+												),
+											)}
+											<DropdownMenuSeparator />
+										</>
+									)}
+									{data.state === "open" && (
+										<DropdownMenuItem
+											variant="destructive"
+											onClick={() => setPendingAction({ kind: "close" })}
+										>
+											<LuGitPullRequestClosed className="size-3.5" />
+											Close pull request
+										</DropdownMenuItem>
+									)}
+									{data.state === "closed" && (
+										<DropdownMenuItem onClick={handleReopen}>
+											<LuRotateCcw className="size-3.5" />
+											Reopen pull request
+										</DropdownMenuItem>
+									)}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						)}
+						<Button
+							variant="outline"
+							size="sm"
+							className="h-7 gap-1.5 px-2 text-xs"
+							onClick={handleAddToWorkspace}
+							aria-label="Add to workspace"
+							title="Add to workspace"
+						>
+							<LuPlus className="size-3.5" />
+							<span className="hidden @md:inline">Add to workspace</span>
+						</Button>
+					</div>
+				</div>
+
+				<div className="flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
+					<Badge
+						variant="outline"
+						className={cn(
+							"gap-1 rounded-full border-0 font-medium capitalize",
+							PR_STATE_BADGE_STYLES[state],
+						)}
+					>
+						<PRIcon
+							state={state}
+							className={cn("size-3.5 shrink-0", PR_BADGE_ICON_COLOR[state])}
+						/>
+						{stateLabel}
+					</Badge>
+					{data.author && (
+						<span className="flex min-w-0 items-center gap-1.5">
+							<img
+								alt=""
+								src={`https://github.com/${data.author}.png?size=32`}
+								className="size-4 shrink-0 rounded"
+							/>
+							<span className="min-w-0 break-words">{data.author}</span>
+						</span>
+					)}
+					<span aria-hidden>·</span>
+					<span>#{data.number}</span>
+					{data.createdAt && (
+						<>
+							<span aria-hidden>·</span>
+							<span>
+								{formatRelativeTime(new Date(data.createdAt).getTime())} ago
+							</span>
+						</>
+					)}
+					{branchSummary && (
+						<>
+							<span aria-hidden>·</span>
+							<span className="min-w-0 break-all font-mono">
+								{branchSummary}
+							</span>
+						</>
+					)}
+				</div>
+			</div>
 			<AlertDialog
 				open={pendingAction !== null}
 				onOpenChange={(open) => {
@@ -448,33 +491,6 @@ function PullRequestDetailPage() {
 			<ScrollArea className="min-h-0 flex-1">
 				<div className="grid w-full gap-8 px-4 py-6 @md:px-6 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:py-8">
 					<article className="min-w-0">
-						<div className="mb-4 flex min-w-0 items-start gap-3">
-							<PRIcon state={state} className="mt-1 size-5 shrink-0" />
-							<h1 className="min-w-0 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
-								{data.title}
-							</h1>
-						</div>
-
-						<div className="mb-7 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-							<span>{project.name}</span>
-							<span aria-hidden>·</span>
-							<span className="capitalize">{stateLabel}</span>
-							{data.author && (
-								<>
-									<span aria-hidden>·</span>
-									<span className="min-w-0 break-words">by {data.author}</span>
-								</>
-							)}
-							{branchSummary && (
-								<>
-									<span aria-hidden>·</span>
-									<span className="min-w-0 break-all font-mono">
-										{branchSummary}
-									</span>
-								</>
-							)}
-						</div>
-
 						{data.body.trim() ? (
 							<MarkdownRenderer content={data.body} />
 						) : (
