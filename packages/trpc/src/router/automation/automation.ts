@@ -392,8 +392,9 @@ export const automationRouter = {
 				}
 
 				// An untitled automation starts with no instructions; recording that
-				// as v1 would put an empty entry in every version history.
-				if (input.prompt.length > 0) {
+				// as v1 would put an empty entry in every version history. Trimmed,
+				// to match what runNow and the dispatcher call instruction-less.
+				if (input.prompt.trim().length > 0) {
 					await recordPromptVersion(tx, {
 						automationId: row.id,
 						authorUserId: ctx.session.user.id,
