@@ -20,11 +20,14 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
+	LuCheck,
+	LuCopy,
 	LuExternalLink,
 	LuGitPullRequestClosed,
 	LuPlus,
@@ -33,6 +36,7 @@ import {
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
@@ -110,6 +114,7 @@ function PullRequestDetailPage() {
 	const [pendingAction, setPendingAction] = useState<PendingAction | null>(
 		null,
 	);
+	const { copyToClipboard, copied: branchNameCopied } = useCopyToClipboard();
 
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: ["pull-request-detail", projectId, hostUrl, prNumber],
@@ -290,8 +295,12 @@ function PullRequestDetailPage() {
 	const state = normalizePRState(data.state, data.isDraft);
 	const canMerge = data.state === "open" && !data.isDraft;
 	const stateLabel = data.isDraft ? "Draft" : data.state;
+	const headBranchRef =
+		data.headRepositoryOwner && data.isCrossRepository
+			? `${data.headRepositoryOwner}:${data.branch}`
+			: data.branch;
 	const branchSummary = data.branch
-		? `${data.headRepositoryOwner && data.isCrossRepository ? `${data.headRepositoryOwner}:${data.branch}` : data.branch} → ${data.baseBranch}`
+		? `${headBranchRef} → ${data.baseBranch}`
 		: null;
 
 	return (
@@ -443,6 +452,25 @@ function PullRequestDetailPage() {
 							<span className="min-w-0 break-all font-mono">
 								{branchSummary}
 							</span>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<button
+										type="button"
+										onClick={() => copyToClipboard(headBranchRef)}
+										aria-label="Copy branch name"
+										className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
+									>
+										{branchNameCopied ? (
+											<LuCheck className="size-3 text-emerald-500" />
+										) : (
+											<LuCopy className="size-3" />
+										)}
+									</button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom">
+									{branchNameCopied ? "Copied!" : "Copy branch name"}
+								</TooltipContent>
+							</Tooltip>
 						</>
 					)}
 				</div>
