@@ -44,6 +44,7 @@ import {
 	initTanstackDbPersistence,
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
+import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
@@ -486,6 +487,13 @@ if (!gotTheLock) {
 			setupAgentIntegrations({ disabledAgentIds: disabledAgentHooks });
 		} catch (error) {
 			console.error("[main] Failed to set up agent integrations:", error);
+		}
+		try {
+			// Converge agent MCP configs on the installed-plugin set, so
+			// installs/uninstalls that missed a mid-session sync land here.
+			syncInstalledPluginMcpServers();
+		} catch (error) {
+			console.error("[main] Failed to sync installed plugins:", error);
 		}
 		try {
 			installBundledCliShim();

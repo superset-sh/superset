@@ -201,6 +201,14 @@ export const FEATURE_FLAGS = {
 	 * visibility rather than access.
 	 */
 	CLOUD_WORKSPACES: "cloud-workspaces",
+	/**
+	 * Shows the Plugins page in the v2 dashboard sidebar. Audience is a
+	 * release condition on the flag (email contains @superset.sh, plus an
+	 * override for the local dev account, which is not on that domain) so
+	 * widening the rollout never needs a release. Everything the page does is
+	 * desktop-local; the flag controls visibility, not capability.
+	 */
+	PLUGINS: "plugins",
 } as const;
 
 /**

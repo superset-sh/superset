@@ -76,4 +76,8 @@ export {
 	readSharedDisabledAgentIds,
 	writeSharedDisabledAgentIds,
 } from "./disabled-agent-hooks";
+export {
+	type SyncManagedMcpServersOptions,
+	syncManagedMcpServers,
+} from "./managed-mcp-servers";
 export { getBinDir, resolveSupersetHomeDir } from "./paths";
