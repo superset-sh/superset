@@ -8,12 +8,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
+import { getBrowserLogo } from "@superset/ui/icons/browser-icons";
 import { Label } from "@superset/ui/label";
 import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useState } from "react";
 import type { IconType } from "react-icons";
-import { SiArc, SiBrave, SiGooglechrome } from "react-icons/si";
+import { SiArc } from "react-icons/si";
 import { TbWorld } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
@@ -24,27 +25,12 @@ interface ImportSource {
 	profileName: string;
 }
 
-/** Brand glyph per browser; a globe covers browsers Simple Icons doesn't ship. */
-const BROWSER_ICONS: Record<string, IconType> = {
-	chrome: SiGooglechrome,
-	"chrome-beta": SiGooglechrome,
-	"chrome-canary": SiGooglechrome,
-	brave: SiBrave,
-	arc: SiArc,
-};
-
-/** Brand color to tint each glyph (Simple Icons are single-color). */
-const BROWSER_COLORS: Record<string, string> = {
-	chrome: "#4285F4",
-	"chrome-beta": "#4285F4",
-	"chrome-canary": "#4285F4",
-	brave: "#FB542B",
-	arc: "#F45D7F",
-};
-
-function browserIcon(browserKey: string): IconType {
-	return BROWSER_ICONS[browserKey] ?? TbWorld;
-}
+/**
+ * Fallback glyph for browsers without a bundled full-color logo. Arc has an
+ * official monochrome mark (tinted below); everything else gets a globe.
+ */
+const BROWSER_ICONS: Record<string, IconType> = { arc: SiArc };
+const BROWSER_ICON_COLORS: Record<string, string> = { arc: "#F45D7F" };
 
 interface ImportHistoryDialogProps {
 	open: boolean;
@@ -198,8 +184,9 @@ export function ImportHistoryDialog({
 							onValueChange={setSelectedId}
 						>
 							{loadState.sources.map((source) => {
-								const Icon = browserIcon(source.browserKey);
-								const color = BROWSER_COLORS[source.browserKey];
+								const logo = getBrowserLogo(source.browserKey);
+								const Icon = BROWSER_ICONS[source.browserKey] ?? TbWorld;
+								const iconColor = BROWSER_ICON_COLORS[source.browserKey];
 								return (
 									<div key={source.id} className="flex items-center gap-2">
 										<RadioGroupItem value={source.id} id={source.id} />
@@ -207,14 +194,18 @@ export function ImportHistoryDialog({
 											htmlFor={source.id}
 											className="flex items-center gap-2 font-normal"
 										>
-											<Icon
-												className={
-													color
-														? "size-4 shrink-0"
-														: "size-4 shrink-0 text-muted-foreground"
-												}
-												style={color ? { color } : undefined}
-											/>
+											{logo ? (
+												<img src={logo} alt="" className="size-4 shrink-0" />
+											) : (
+												<Icon
+													className={
+														iconColor
+															? "size-4 shrink-0"
+															: "size-4 shrink-0 text-muted-foreground"
+													}
+													style={iconColor ? { color: iconColor } : undefined}
+												/>
+											)}
 											<span>
 												{source.browserName}
 												<span className="text-muted-foreground">
