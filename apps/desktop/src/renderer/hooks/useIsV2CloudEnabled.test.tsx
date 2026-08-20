@@ -45,8 +45,14 @@ mock.module("renderer/stores/v2-local-override", () => ({
 		}) => T,
 	): T => selector({ optInV2, setOptInV2: () => {} }),
 }));
+// Spread the real module so files loaded later that import its other exports
+// (getAuthToken, ensureFreshJwt, ...) keep working — mock.module replaces the
+// module for the whole test process, and file load order varies by platform.
+const realAuthClient = await import("renderer/lib/auth-client");
 mock.module("renderer/lib/auth-client", () => ({
+	...realAuthClient,
 	authClient: {
+		...realAuthClient.authClient,
 		useSession: () => ({
 			data: {
 				session: { activeOrganizationId },
@@ -55,8 +61,10 @@ mock.module("renderer/lib/auth-client", () => ({
 		}),
 	},
 }));
+const realEnv = await import("renderer/env.renderer");
 mock.module("renderer/env.renderer", () => ({
-	env: { NODE_ENV: "production" },
+	...realEnv,
+	env: { ...realEnv.env, NODE_ENV: "production" },
 }));
 
 const { useIsV1FlipLocked, useIsV2CloudEnabled } = await import(
