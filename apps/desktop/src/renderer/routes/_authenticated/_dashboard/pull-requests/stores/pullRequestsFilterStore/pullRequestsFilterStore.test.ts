@@ -32,7 +32,7 @@ describe("pullRequestsSearchFromFilters", () => {
 				projectFilters: [],
 				authorFilter: null,
 				reviewFilter: null,
-				includeClosed: false,
+				stateFilter: "open",
 			}),
 		).toEqual({});
 	});
@@ -44,7 +44,7 @@ describe("pullRequestsSearchFromFilters", () => {
 				projectFilters: ["project-1", "project-2"],
 				authorFilter: "octocat",
 				reviewFilter: "changes-requested",
-				includeClosed: true,
+				stateFilter: "all",
 			}),
 		).toEqual({
 			search: "remote host",
@@ -53,6 +53,18 @@ describe("pullRequestsSearchFromFilters", () => {
 			review: "changes-requested",
 			state: "all",
 		});
+	});
+
+	test("serializes the merged state filter", () => {
+		expect(
+			pullRequestsSearchFromFilters({
+				search: "",
+				projectFilters: [],
+				authorFilter: null,
+				reviewFilter: null,
+				stateFilter: "merged",
+			}),
+		).toEqual({ state: "merged" });
 	});
 });
 
@@ -83,13 +95,22 @@ describe("migratePullRequestsFilterState", () => {
 			projectFilters: ["project-1"],
 			authorFilter: null,
 			reviewFilter: null,
-			includeClosed: false,
+			stateFilter: "open",
 		});
 		expect(migratePullRequestsFilterState(null)).toMatchObject({
 			projectFilters: [],
 			authorFilter: null,
 			reviewFilter: null,
-			includeClosed: false,
+			stateFilter: "open",
 		});
+	});
+
+	test("migrates the legacy boolean includeClosed into stateFilter", () => {
+		expect(
+			migratePullRequestsFilterState({ includeClosed: true }),
+		).toMatchObject({ stateFilter: "all" });
+		expect(
+			migratePullRequestsFilterState({ includeClosed: false }),
+		).toMatchObject({ stateFilter: "open" });
 	});
 });

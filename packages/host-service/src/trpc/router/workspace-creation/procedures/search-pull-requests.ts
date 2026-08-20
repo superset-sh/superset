@@ -45,6 +45,9 @@ interface PullRequestResult {
 	updatedAt: string | null;
 	checks: PullRequestCheck[];
 	checksStatus: ChecksStatus;
+	additions: number;
+	deletions: number;
+	baseRefName: string | null;
 }
 
 export interface PullRequestsPage {
@@ -172,10 +175,13 @@ const ghPrViewSchema = z.object({
 	reviewDecision: z.string().nullable().optional(),
 	reviewRequests: z.array(ghReviewRequestSchema).nullable().optional(),
 	latestReviews: z.array(ghLatestReviewSchema).nullable().optional(),
+	additions: z.number().optional(),
+	deletions: z.number().optional(),
+	baseRefName: z.string().optional(),
 });
 
 const PR_VIEW_FIELDS =
-	"number,title,url,state,isDraft,author,mergedAt,updatedAt,statusCheckRollup,reviewDecision,reviewRequests,latestReviews";
+	"number,title,url,state,isDraft,author,mergedAt,updatedAt,statusCheckRollup,reviewDecision,reviewRequests,latestReviews,additions,deletions,baseRefName";
 
 interface GhDirectLookupReview {
 	decision: string | null;
@@ -217,6 +223,9 @@ async function ghDirectLookup(
 			updatedAt: pr.updatedAt ?? null,
 			checks,
 			checksStatus,
+			additions: pr.additions ?? 0,
+			deletions: pr.deletions ?? 0,
+			baseRefName: pr.baseRefName ?? null,
 		},
 		review: {
 			decision: pr.reviewDecision || null,
@@ -466,6 +475,9 @@ async function octokitDirectLookupRow(
 		updatedAt: pr.updated_at ?? null,
 		checks,
 		checksStatus,
+		additions: pr.additions ?? 0,
+		deletions: pr.deletions ?? 0,
+		baseRefName: pr.base?.ref ?? null,
 	};
 }
 
@@ -540,6 +552,9 @@ async function ghApiSearchPullRequests(
 					updatedAt: item.updated_at ?? null,
 					checks: [],
 					checksStatus: "none",
+					additions: 0,
+					deletions: 0,
+					baseRefName: null,
 				},
 			];
 		});
@@ -586,6 +601,9 @@ async function octokitSearchPullRequests(
 					updatedAt: item.updated_at ?? null,
 					checks: [],
 					checksStatus: "none",
+					additions: 0,
+					deletions: 0,
+					baseRefName: null,
 				},
 			];
 		});
@@ -601,6 +619,9 @@ const checksGraphqlDataSchema = z.object({
 			z
 				.object({
 					number: z.number(),
+					additions: z.number().optional(),
+					deletions: z.number().optional(),
+					baseRefName: z.string().nullable().optional(),
 					statusCheckRollup: z
 						.object({
 							contexts: z.object({
@@ -624,15 +645,24 @@ type RunChecksGraphqlQuery = (
 	variables: Record<string, string>,
 ) => Promise<unknown>;
 
+type PullRequestEnrichment = Pick<
+	PullRequestResult,
+	"checks" | "checksStatus" | "additions" | "deletions" | "baseRefName"
+>;
+
 async function getPullRequestChecksViaGraphql(
 	runQuery: RunChecksGraphqlQuery,
 	repo: { owner: string; name: string },
 	pullRequestNumbers: number[],
-): Promise<Map<number, Pick<PullRequestResult, "checks" | "checksStatus">>> {
+): Promise<Map<number, PullRequestEnrichment>> {
 	if (pullRequestNumbers.length === 0) return new Map();
 	const contextsByPullRequest = new Map<
 		number,
 		z.infer<typeof pullRequestCheckContextSchema>[]
+	>();
+	const metaByPullRequest = new Map<
+		number,
+		{ additions: number; deletions: number; baseRefName: string | null }
 	>();
 	let cursors = new Map<number, string | null>(
 		pullRequestNumbers.map((number) => [number, null]),
@@ -648,6 +678,9 @@ async function getPullRequestChecksViaGraphql(
 			.map(
 				([number, cursor]) => `pr${number}:pullRequest(number:${number}) {
 				number
+				additions
+				deletions
+				baseRefName
 				statusCheckRollup {
 					contexts(first: 100${cursor ? `, after: $cursor${number}` : ""}) {
 						pageInfo { hasNextPage endCursor }
@@ -695,6 +728,11 @@ async function getPullRequestChecksViaGraphql(
 		const nextCursors = new Map<number, string | null>();
 		for (const pullRequest of Object.values(repository)) {
 			if (!pullRequest) continue;
+			metaByPullRequest.set(pullRequest.number, {
+				additions: pullRequest.additions ?? 0,
+				deletions: pullRequest.deletions ?? 0,
+				baseRefName: pullRequest.baseRefName ?? null,
+			});
 			const contexts =
 				pullRequest.statusCheckRollup?.contexts.nodes.filter(
 					(context): context is z.infer<typeof pullRequestCheckContextSchema> =>
@@ -724,7 +762,12 @@ async function getPullRequestChecksViaGraphql(
 		pullRequestNumbers.map((pullRequestNumber) => {
 			const contexts = contextsByPullRequest.get(pullRequestNumber) ?? [];
 			const { checks, checksStatus } = normalizePullRequestChecks(contexts);
-			return [pullRequestNumber, { checks, checksStatus }] as const;
+			const meta = metaByPullRequest.get(pullRequestNumber) ?? {
+				additions: 0,
+				deletions: 0,
+				baseRefName: null,
+			};
+			return [pullRequestNumber, { checks, checksStatus, ...meta }] as const;
 		}),
 	);
 }
@@ -733,7 +776,7 @@ async function ghGetPullRequestChecks(
 	execGh: ExecGh,
 	repo: ResolvedGithubRepo,
 	pullRequestNumbers: number[],
-): Promise<Map<number, Pick<PullRequestResult, "checks" | "checksStatus">>> {
+): Promise<Map<number, PullRequestEnrichment>> {
 	return getPullRequestChecksViaGraphql(
 		(query, variables) =>
 			execGh(
@@ -754,12 +797,10 @@ async function ghGetPullRequestChecks(
 	);
 }
 
-type PullRequestChecksInfo = Pick<PullRequestResult, "checks" | "checksStatus">;
-
 /**
- * Enrich a merged page with checks: one GraphQL batch per repo that has
- * rows on the page. Keyed by (projectId, prNumber) — PR numbers can
- * collide across repos.
+ * Enrich a merged page with checks, additions/deletions, and the base
+ * branch: one GraphQL batch per repo that has rows on the page. Keyed by
+ * (projectId, prNumber) — PR numbers can collide across repos.
  */
 async function enrichPageWithChecks(
 	pullRequests: PullRequestResult[],
@@ -767,7 +808,7 @@ async function enrichPageWithChecks(
 	getChecks: (
 		repo: ResolvedGithubRepo,
 		pullRequestNumbers: number[],
-	) => Promise<Map<number, PullRequestChecksInfo>>,
+	) => Promise<Map<number, PullRequestEnrichment>>,
 ): Promise<PullRequestResult[]> {
 	const numbersByProject = new Map<string, number[]>();
 	for (const pullRequest of pullRequests) {
@@ -778,7 +819,7 @@ async function enrichPageWithChecks(
 	const repoByProject = new Map(
 		projectRepos.map(({ projectId, repo }) => [projectId, repo]),
 	);
-	const checksByProject = new Map<string, Map<number, PullRequestChecksInfo>>();
+	const checksByProject = new Map<string, Map<number, PullRequestEnrichment>>();
 	await Promise.all(
 		[...numbersByProject].map(async ([projectId, numbers]) => {
 			const repo = repoByProject.get(projectId);

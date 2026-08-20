@@ -8,6 +8,7 @@ import {
 	type PullRequestReviewFilter,
 } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
 import {
+	type PullRequestStateFilter,
 	pullRequestsSearchFromFilters,
 	usePullRequestsFilterStore,
 } from "../../stores/pullRequestsFilterStore";
@@ -19,7 +20,7 @@ interface PullRequestsViewProps {
 	initialProjects?: string[];
 	initialAuthor?: string;
 	initialReview?: string;
-	initialState?: "open" | "all";
+	initialState?: "open" | "all" | "merged";
 }
 
 export function PullRequestsView({
@@ -35,12 +36,12 @@ export function PullRequestsView({
 		projectFilters: storedProjectFilters,
 		authorFilter: storedAuthorFilter,
 		reviewFilter: storedReviewFilter,
-		includeClosed: storedIncludeClosed,
+		stateFilter: storedStateFilter,
 		setSearch: storeSetSearch,
 		setProjectFilters: storeSetProjectFilters,
 		setAuthorFilter: storeSetAuthorFilter,
 		setReviewFilter: storeSetReviewFilter,
-		setIncludeClosed: storeSetIncludeClosed,
+		setStateFilter: storeSetStateFilter,
 	} = usePullRequestsFilterStore();
 	const [searchQuery, setSearchQuery] = useState(initialSearch ?? storedSearch);
 	const projectFilters = initialProjects ?? storedProjectFilters;
@@ -52,8 +53,8 @@ export function PullRequestsView({
 		initialReview === undefined
 			? storedReviewFilter
 			: normalizePullRequestReviewFilter(initialReview);
-	const includeClosed =
-		initialState === undefined ? storedIncludeClosed : initialState === "all";
+	const stateFilter: PullRequestStateFilter =
+		initialState === undefined ? storedStateFilter : initialState;
 	const {
 		isReady: areProjectsReady,
 		projects: hostProjects,
@@ -77,7 +78,7 @@ export function PullRequestsView({
 			projects?: string[];
 			author?: string | null;
 			review?: PullRequestReviewFilter | null;
-			includeClosed?: boolean;
+			state?: PullRequestStateFilter;
 		}) =>
 			pullRequestsSearchFromFilters({
 				search: overrides.search ?? searchQuery,
@@ -89,9 +90,9 @@ export function PullRequestsView({
 					overrides.author !== undefined ? overrides.author : authorFilter,
 				reviewFilter:
 					overrides.review !== undefined ? overrides.review : reviewFilter,
-				includeClosed: overrides.includeClosed ?? includeClosed,
+				stateFilter: overrides.state ?? stateFilter,
 			}),
-		[authorFilter, includeClosed, projectFilters, reviewFilter, searchQuery],
+		[authorFilter, stateFilter, projectFilters, reviewFilter, searchQuery],
 	);
 	const navigateSearch = useCallback(
 		(query: string) => {
@@ -121,8 +122,8 @@ export function PullRequestsView({
 	}, [reviewFilter, storeSetReviewFilter]);
 
 	useEffect(() => {
-		storeSetIncludeClosed(includeClosed);
-	}, [includeClosed, storeSetIncludeClosed]);
+		storeSetStateFilter(stateFilter);
+	}, [stateFilter, storeSetStateFilter]);
 
 	const projects = useMemo(
 		() =>
@@ -174,12 +175,12 @@ export function PullRequestsView({
 		});
 	};
 
-	const handleIncludeClosedChange = (nextIncludeClosed: boolean) => {
+	const handleStateFilterChange = (nextState: PullRequestStateFilter) => {
 		cancelPendingSearchNavigation();
-		storeSetIncludeClosed(nextIncludeClosed);
+		storeSetStateFilter(nextState);
 		navigate({
 			to: "/pull-requests",
-			search: buildSearch({ includeClosed: nextIncludeClosed }),
+			search: buildSearch({ state: nextState }),
 			replace: true,
 		});
 	};
@@ -216,12 +217,13 @@ export function PullRequestsView({
 				onSearchChange={handleSearchChange}
 				projectFilters={projectFilters}
 				onProjectFiltersChange={handleProjectFiltersChange}
+				projectTargets={projectTargets}
 				authorFilter={authorFilter}
 				onAuthorFilterChange={handleAuthorFilterChange}
 				reviewFilter={reviewFilter}
 				onReviewFilterChange={handleReviewFilterChange}
-				includeClosed={includeClosed}
-				onIncludeClosedChange={handleIncludeClosedChange}
+				stateFilter={stateFilter}
+				onStateFilterChange={handleStateFilterChange}
 			/>
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				<PullRequestsContent
@@ -232,7 +234,7 @@ export function PullRequestsView({
 					searchQuery={searchQuery}
 					authorFilter={authorFilter}
 					reviewFilter={reviewFilter}
-					includeClosed={includeClosed}
+					stateFilter={stateFilter}
 				/>
 			</div>
 		</div>

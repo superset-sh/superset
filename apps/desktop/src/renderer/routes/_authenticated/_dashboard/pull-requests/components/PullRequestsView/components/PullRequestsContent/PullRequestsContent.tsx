@@ -1,14 +1,22 @@
 import { Button } from "@superset/ui/button";
-import { useNavigate } from "@tanstack/react-router";
+import { cn } from "@superset/ui/utils";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { GoGitPullRequest } from "react-icons/go";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { LuMinus, LuPlus, LuRefreshCw } from "react-icons/lu";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
+import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
 import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useWorkItemsList } from "renderer/routes/_authenticated/_dashboard/hooks/useWorkItemsList";
+import type { PullRequestStateFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsFilterStore";
+import {
+	DIFF_STAT_NEGATIVE_CLASSNAME,
+	DIFF_STAT_POSITIVE_CLASSNAME,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/diffStatStyles";
+import { githubAvatarUrl } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/githubAvatarUrl";
 import type { PullRequestReviewFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
 import {
 	normalizePRState,
@@ -29,7 +37,7 @@ interface PullRequestsContentProps {
 	searchQuery: string;
 	authorFilter: string | null;
 	reviewFilter: PullRequestReviewFilter | null;
-	includeClosed: boolean;
+	stateFilter: PullRequestStateFilter;
 	onCollapse?: () => void;
 }
 
@@ -43,7 +51,7 @@ export function PullRequestsContent({
 	searchQuery,
 	authorFilter,
 	reviewFilter,
-	includeClosed,
+	stateFilter,
 	onCollapse,
 }: PullRequestsContentProps) {
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
@@ -52,6 +60,16 @@ export function PullRequestsContent({
 	const selectProject = useNewWorkspaceDraftStore((s) => s.selectProject);
 	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
+	// Undefined off the index route, so the list can highlight the row
+	// currently open in the split view's right pane.
+	const { prNumber: selectedPrNumberRaw } = useParams({ strict: false });
+	const selectedPrNumber = selectedPrNumberRaw
+		? Number(selectedPrNumberRaw)
+		: null;
+
+	// "all" and "merged" fetch the same unfiltered-by-state query — "Merged"
+	// is applied client-side below — so only "open" needs its own reset key.
+	const includeClosed = stateFilter !== "open";
 
 	const {
 		rows: pullRequests,
@@ -115,6 +133,11 @@ export function PullRequestsContent({
 			`${pullRequest.projectId}:${pullRequest.prNumber}`,
 	});
 
+	const visiblePullRequests =
+		stateFilter === "merged"
+			? pullRequests.filter((pr) => pr.state === "merged")
+			: pullRequests;
+
 	const handleAddToWorkspace = (pr: (typeof pullRequests)[number]) => {
 		const linkedPR: LinkedPR = {
 			prNumber: pr.prNumber,
@@ -142,7 +165,7 @@ export function PullRequestsContent({
 				projects: serializeProjectFilters(projectFilters),
 				author: authorFilter ?? undefined,
 				review: reviewFilter ?? undefined,
-				state: includeClosed ? "all" : undefined,
+				state: stateFilter !== "open" ? stateFilter : undefined,
 			},
 		});
 	};
@@ -178,11 +201,26 @@ export function PullRequestsContent({
 	}
 
 	const isInitialLoad = isFetching && pullRequests.length === 0;
+	const visibleCount =
+		stateFilter === "merged" ? visiblePullRequests.length : totalCount;
 	const countLabel = isInitialLoad
 		? "Loading…"
-		: totalCount === 0
-			? "0"
-			: `${pullRequests.length} of ${totalCount}`;
+		: stateFilter === "merged"
+			? `${visibleCount}`
+			: totalCount === 0
+				? "0"
+				: `${pullRequests.length} of ${totalCount}`;
+	const noResultsYet =
+		visiblePullRequests.length === 0 &&
+		!isFetching &&
+		!isFetchingNextPage &&
+		!hasNextPage;
+	const emptyMessage =
+		stateFilter === "merged"
+			? "No merged pull requests."
+			: stateFilter === "all"
+				? "No pull requests found."
+				: "No open pull requests.";
 
 	return (
 		<div
@@ -193,7 +231,7 @@ export function PullRequestsContent({
 				<GoGitPullRequest className="size-3.5 text-muted-foreground" />
 				<span className="text-xs text-muted-foreground" aria-live="polite">
 					<span className="tabular-nums">{countLabel}</span>{" "}
-					{totalCount === 1 ? "pull request" : "pull requests"}
+					{visibleCount === 1 ? "pull request" : "pull requests"}
 				</span>
 				<Button
 					variant="ghost"
@@ -242,18 +280,16 @@ export function PullRequestsContent({
 						<LuRefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
 						<span className="text-sm">Loading pull requests…</span>
 					</div>
-				) : totalCount === 0 && !isFetching ? (
+				) : noResultsYet ? (
 					<div className="flex h-full items-center justify-center p-8">
 						<span className="text-sm text-muted-foreground">
-							{includeClosed
-								? "No pull requests found."
-								: "No open pull requests."}
+							{emptyMessage}
 						</span>
 					</div>
 				) : (
-					<div className="flex flex-col">
+					<div className="flex flex-col gap-1.5 p-2">
 						{error instanceof Error && (
-							<div className="flex items-center gap-2 border-b border-border/50 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+							<div className="flex items-center gap-2 rounded-lg border border-border/50 bg-destructive/5 px-4 py-2 text-xs text-destructive">
 								<span className="min-w-0 flex-1 truncate select-text cursor-text">
 									Some repositories could not be loaded: {error.message}
 								</span>
@@ -262,14 +298,19 @@ export function PullRequestsContent({
 								</Button>
 							</div>
 						)}
-						{pullRequests.map((pr) => {
+						{visiblePullRequests.map((pr) => {
 							const state = normalizePRState(pr.state, pr.isDraft);
 							const rowKey = `${pr.projectId}:${pr.prNumber}`;
+							const isSelected = pr.prNumber === selectedPrNumber;
 							return (
 								// biome-ignore lint/a11y/useSemanticElements: row contains nested action buttons, so the outer element is a div with role/tabIndex
 								<div
 									key={rowKey}
-									className="group flex h-10 cursor-pointer items-center gap-3 border-b border-border/50 px-4 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+									aria-current={isSelected ? "true" : undefined}
+									className={cn(
+										"group flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
+										isSelected && "bg-accent/50",
+									)}
 									onClick={() => handleOpenPreview(pr)}
 									onKeyDown={(e) => {
 										if (e.target !== e.currentTarget) return;
@@ -282,24 +323,60 @@ export function PullRequestsContent({
 									tabIndex={0}
 								>
 									<PRIcon state={state} className="size-4 shrink-0" />
-									{projectTargets.length > 1 && (
-										<span className="hidden max-w-28 shrink-0 truncate text-xs text-muted-foreground @lg:inline">
-											{pr.projectName}
-										</span>
-									)}
-									<span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
-										#{pr.prNumber}
-									</span>
-									<span className="min-w-0 flex-1 truncate text-sm font-medium">
-										{pr.title}
-									</span>
-									<PullRequestChecksSummary checks={pr.checks} />
-									{pr.authorLogin && (
-										<span className="hidden shrink-0 text-xs text-muted-foreground @md:inline">
-											{pr.authorLogin}
-										</span>
-									)}
-									<div className="flex items-center gap-1">
+									<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+										<p className="min-w-0 truncate text-[13px] font-medium leading-normal text-foreground">
+											{pr.title}
+										</p>
+										<div className="flex min-w-0 items-center gap-1 text-[11px] leading-normal text-muted-foreground">
+											{pr.authorLogin && (
+												<img
+													alt=""
+													src={githubAvatarUrl(pr.authorLogin)}
+													className="size-4 shrink-0 rounded"
+												/>
+											)}
+											{projectTargets.length > 1 && pr.projectName && (
+												<span className="max-w-28 shrink-0 truncate @lg:max-w-40">
+													{pr.projectName}
+												</span>
+											)}
+											<span className="shrink-0">#{pr.prNumber}</span>
+											{pr.baseRefName && (
+												<>
+													<span className="shrink-0" aria-hidden>
+														•
+													</span>
+													<span className="shrink-0 truncate">
+														{pr.baseRefName}
+													</span>
+												</>
+											)}
+											<PullRequestChecksSummary checks={pr.checks} />
+										</div>
+									</div>
+									<div className="flex shrink-0 flex-col items-end gap-0.5 text-[12px] leading-normal">
+										{pr.updatedAt && (
+											<span className="text-muted-foreground">
+												{formatRelativeTime(new Date(pr.updatedAt).getTime())}{" "}
+												ago
+											</span>
+										)}
+										{(pr.additions > 0 || pr.deletions > 0) && (
+											<div className="flex items-center gap-1 tabular-nums">
+												{pr.additions > 0 && (
+													<span className={DIFF_STAT_POSITIVE_CLASSNAME}>
+														+{pr.additions}
+													</span>
+												)}
+												{pr.deletions > 0 && (
+													<span className={DIFF_STAT_NEGATIVE_CLASSNAME}>
+														-{pr.deletions}
+													</span>
+												)}
+											</div>
+										)}
+									</div>
+									<div className="hidden shrink-0 items-center gap-1 group-hover:flex group-focus-within:flex">
 										<Button
 											variant="ghost"
 											size="icon-xs"

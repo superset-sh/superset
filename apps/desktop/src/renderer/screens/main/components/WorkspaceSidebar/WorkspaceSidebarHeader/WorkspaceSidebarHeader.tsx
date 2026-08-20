@@ -57,7 +57,7 @@ export function WorkspaceSidebarHeader({
 		projectFilters: lastPullRequestsProjectFilters,
 		authorFilter: lastPullRequestsAuthorFilter,
 		reviewFilter: lastPullRequestsReviewFilter,
-		includeClosed: lastPullRequestsIncludeClosed,
+		stateFilter: lastPullRequestsStateFilter,
 	} = usePullRequestsFilterStore();
 
 	const handleTasksClick = () => {
@@ -86,7 +86,7 @@ export function WorkspaceSidebarHeader({
 					projectFilters: lastPullRequestsProjectFilters,
 					authorFilter: lastPullRequestsAuthorFilter,
 					reviewFilter: lastPullRequestsReviewFilter,
-					includeClosed: lastPullRequestsIncludeClosed,
+					stateFilter: lastPullRequestsStateFilter,
 				}),
 			});
 		});

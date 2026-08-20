@@ -11,23 +11,29 @@ import {
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export type PullRequestStateFilter = "open" | "all" | "merged";
+
 interface PullRequestsFilterState {
 	search: string;
 	projectFilters: string[];
 	authorFilter: string | null;
 	reviewFilter: PullRequestReviewFilter | null;
-	includeClosed: boolean;
+	stateFilter: PullRequestStateFilter;
 	setSearch: (search: string) => void;
 	setProjectFilters: (projectFilters: string[]) => void;
 	setAuthorFilter: (authorFilter: string | null) => void;
 	setReviewFilter: (reviewFilter: PullRequestReviewFilter | null) => void;
-	setIncludeClosed: (includeClosed: boolean) => void;
+	setStateFilter: (stateFilter: PullRequestStateFilter) => void;
 }
 
 type PersistedPullRequestsFilterState = Pick<
 	PullRequestsFilterState,
-	"projectFilters" | "authorFilter" | "reviewFilter" | "includeClosed"
+	"projectFilters" | "authorFilter" | "reviewFilter" | "stateFilter"
 >;
+
+function normalizeStateFilter(value: unknown): PullRequestStateFilter {
+	return value === "all" || value === "merged" ? value : "open";
+}
 
 export function migratePullRequestsFilterState(
 	persistedState: unknown,
@@ -44,7 +50,14 @@ export function migratePullRequestsFilterState(
 		),
 		authorFilter: normalizeAuthorFilter(state.authorFilter),
 		reviewFilter: normalizePullRequestReviewFilter(state.reviewFilter),
-		includeClosed: state.includeClosed === true,
+		// v4 persisted a boolean `includeClosed`; v5 replaces it with a
+		// tri-state `stateFilter` ("open" | "all" | "merged").
+		stateFilter:
+			"stateFilter" in state
+				? normalizeStateFilter(state.stateFilter)
+				: state.includeClosed === true
+					? "all"
+					: "open",
 	};
 }
 
@@ -55,7 +68,7 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 			projectFilters: [],
 			authorFilter: null,
 			reviewFilter: null,
-			includeClosed: false,
+			stateFilter: "open",
 			setSearch: (search) => set({ search }),
 			// Bail on equal content: views sync filters back through an effect,
 			// so an always-fresh array here becomes an infinite update loop.
@@ -74,17 +87,17 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 				set({
 					reviewFilter: normalizePullRequestReviewFilter(reviewFilter),
 				}),
-			setIncludeClosed: (includeClosed) => set({ includeClosed }),
+			setStateFilter: (stateFilter) => set({ stateFilter }),
 		}),
 		{
 			name: "pull-requests-filter-state",
-			version: 4,
+			version: 5,
 			migrate: migratePullRequestsFilterState,
 			partialize: (state) => ({
 				projectFilters: state.projectFilters,
 				authorFilter: state.authorFilter,
 				reviewFilter: state.reviewFilter,
-				includeClosed: state.includeClosed,
+				stateFilter: state.stateFilter,
 			}),
 		},
 	),
@@ -95,7 +108,7 @@ interface PullRequestsFilters {
 	projectFilters: string[];
 	authorFilter: string | null;
 	reviewFilter: PullRequestReviewFilter | null;
-	includeClosed: boolean;
+	stateFilter: PullRequestStateFilter;
 }
 
 export function pullRequestsSearchFromFilters(
@@ -107,6 +120,6 @@ export function pullRequestsSearchFromFilters(
 	if (projects) search.projects = projects;
 	if (filters.authorFilter) search.author = filters.authorFilter;
 	if (filters.reviewFilter) search.review = filters.reviewFilter;
-	if (filters.includeClosed) search.state = "all";
+	if (filters.stateFilter !== "open") search.state = filters.stateFilter;
 	return search;
 }

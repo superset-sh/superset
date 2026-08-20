@@ -1,3 +1,4 @@
+import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useParams } from "@tanstack/react-router";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { ZoomStable } from "renderer/components/ZoomStable";
@@ -35,6 +36,8 @@ export function TopBar() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isSidebarOpen = useWorkspaceSidebarStore((s) => s.isOpen);
 	const isSidebarCollapsed = useWorkspaceSidebarStore((s) => s.isCollapsed());
+	const isPullRequestsRoute =
+		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false;
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 	// In v2 the expanded sidebar lives outside the TopBar column, so the TopBar
@@ -56,7 +59,12 @@ export function TopBar() {
 			// spacer + title filler), never on this container: `no-drag` carve-outs
 			// under a `drag` ancestor are lost inside zoomed/masked/scrollable
 			// wrappers, which makes the whole bar swallow clicks.
-			className="gap-2 h-12 w-full flex items-center justify-between bg-muted/45 relative dark:bg-muted/35"
+			className={cn(
+				"gap-2 h-12 w-full flex items-center justify-between relative dark:bg-muted/35",
+				isPullRequestsRoute && isSidebarCollapsed
+					? "bg-sidebar"
+					: "bg-muted/45",
+			)}
 			style={barStyle}
 		>
 			<div className="flex items-center h-full">

@@ -6,8 +6,11 @@ import type {
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import type { RendererContext } from "@superset/panes";
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
+import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useMemo, useRef } from "react";
 import { LuFileCode } from "react-icons/lu";
+import { CommentThread } from "renderer/components/CommentThread";
 import {
 	createPaneScrollStateKey,
 	getPaneScrollState,
@@ -24,7 +27,6 @@ import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { AgentCommentComposer } from "./components/AgentCommentComposer";
-import { CommentThread } from "./components/CommentThread";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
 import { DiffSectionBar } from "./components/DiffSectionBar";
@@ -83,6 +85,18 @@ export function DiffPane({
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const threadAnnotationsByPath = useDiffAnnotationsByPath({ workspaceId });
+	const utils = workspaceTrpc.useUtils();
+	const setThreadResolution =
+		workspaceTrpc.git.setReviewThreadResolution.useMutation({
+			onSuccess: () => {
+				void utils.git.getPullRequestThreads.invalidate({ workspaceId });
+			},
+			onError: (error) => {
+				toast.error("Couldn't update thread", {
+					description: error.message,
+				});
+			},
+		});
 
 	const collapsedSet = useMemo(
 		() => new Set(data.collapsedFiles ?? []),
@@ -272,13 +286,22 @@ export function DiffPane({
 
 			return (
 				<CommentThread
-					workspaceId={workspaceId}
-					threadId={m.threadId}
 					isResolved={m.isResolved}
 					isOutdated={m.isOutdated}
 					url={m.url}
 					comments={m.comments}
 					focusTick={focused ? data.focusTick : undefined}
+					onResolveChange={(resolved) =>
+						setThreadResolution.mutate({
+							workspaceId,
+							threadId: m.threadId,
+							resolved,
+						})
+					}
+					isResolvePending={
+						setThreadResolution.isPending &&
+						setThreadResolution.variables?.threadId === m.threadId
+					}
 				/>
 			);
 		},
@@ -292,6 +315,7 @@ export function DiffPane({
 			submitComposer,
 			fileByItemId,
 			onOpenFile,
+			setThreadResolution,
 		],
 	);
 

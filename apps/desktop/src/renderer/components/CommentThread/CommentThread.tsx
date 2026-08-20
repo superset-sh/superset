@@ -7,7 +7,6 @@ import {
 } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useState } from "react";
 import {
 	LuCheck,
@@ -28,8 +27,6 @@ interface Comment {
 }
 
 interface CommentThreadProps {
-	workspaceId: string;
-	threadId: string;
 	isResolved: boolean;
 	isOutdated?: boolean;
 	url?: string;
@@ -37,16 +34,20 @@ interface CommentThreadProps {
 	/** Force-expand the bubble whenever this changes — lets jump-to-line
 	 *  reveal a collapsed (resolved/outdated) thread. */
 	focusTick?: number;
+	/** Resolve/unresolve this thread — the caller owns the actual mutation
+	 *  (different hosts call different tRPC routers) and any error toast. */
+	onResolveChange: (resolved: boolean) => void;
+	isResolvePending?: boolean;
 }
 
 export function CommentThread({
-	workspaceId,
-	threadId,
 	isResolved,
 	isOutdated,
 	url,
 	comments,
 	focusTick,
+	onResolveChange,
+	isResolvePending,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
@@ -78,20 +79,6 @@ export function CommentThread({
 	useEffect(() => {
 		if (focusTick != null) setOpen(true);
 	}, [focusTick]);
-	const utils = workspaceTrpc.useUtils();
-	const setResolution = workspaceTrpc.git.setReviewThreadResolution.useMutation(
-		{
-			onSuccess: () => {
-				void utils.git.getPullRequestThreads.invalidate({ workspaceId });
-			},
-			onError: (error) => {
-				toast.error("Couldn't update thread", {
-					description: error.message,
-				});
-			},
-		},
-	);
-
 	return (
 		<Collapsible
 			open={open}
@@ -170,16 +157,10 @@ export function CommentThread({
 						type="button"
 						size="xs"
 						variant="outline"
-						disabled={setResolution.isPending}
-						onClick={() =>
-							setResolution.mutate({
-								workspaceId,
-								threadId,
-								resolved: !isResolved,
-							})
-						}
+						disabled={isResolvePending}
+						onClick={() => onResolveChange(!isResolved)}
 					>
-						{setResolution.isPending && (
+						{isResolvePending && (
 							<LuLoaderCircle className="size-3 animate-spin" />
 						)}
 						{isResolved ? "Unresolve" : "Resolve conversation"}
