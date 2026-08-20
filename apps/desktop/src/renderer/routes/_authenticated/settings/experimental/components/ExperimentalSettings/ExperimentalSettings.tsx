@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import {
+	useIsV1FlipLocked,
 	useIsV2CloudEnabled,
 	useIsV2OnlyUser,
 } from "renderer/hooks/useIsV2CloudEnabled";
@@ -55,6 +56,7 @@ export function ExperimentalSettings({
 	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const isV2OnlyUser = useIsV2OnlyUser();
+	const isV1FlipLocked = useIsV1FlipLocked();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
 	const portsDisplayMode = usePortsDisplayMode();
@@ -76,7 +78,7 @@ export function ExperimentalSettings({
 			</div>
 
 			<div className="space-y-6">
-				{showSupersetV2 && (
+				{showSupersetV2 && !isV1FlipLocked && (
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
