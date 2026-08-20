@@ -33,6 +33,15 @@ const BROWSER_ICONS: Record<string, IconType> = {
 	arc: SiArc,
 };
 
+/** Brand color to tint each glyph (Simple Icons are single-color). */
+const BROWSER_COLORS: Record<string, string> = {
+	chrome: "#4285F4",
+	"chrome-beta": "#4285F4",
+	"chrome-canary": "#4285F4",
+	brave: "#FB542B",
+	arc: "#F45D7F",
+};
+
 function browserIcon(browserKey: string): IconType {
 	return BROWSER_ICONS[browserKey] ?? TbWorld;
 }
@@ -190,6 +199,7 @@ export function ImportHistoryDialog({
 						>
 							{loadState.sources.map((source) => {
 								const Icon = browserIcon(source.browserKey);
+								const color = BROWSER_COLORS[source.browserKey];
 								return (
 									<div key={source.id} className="flex items-center gap-2">
 										<RadioGroupItem value={source.id} id={source.id} />
@@ -197,7 +207,14 @@ export function ImportHistoryDialog({
 											htmlFor={source.id}
 											className="flex items-center gap-2 font-normal"
 										>
-											<Icon className="size-4 shrink-0" />
+											<Icon
+												className={
+													color
+														? "size-4 shrink-0"
+														: "size-4 shrink-0 text-muted-foreground"
+												}
+												style={color ? { color } : undefined}
+											/>
 											<span>
 												{source.browserName}
 												<span className="text-muted-foreground">
@@ -229,17 +246,16 @@ export function ImportHistoryDialog({
 									disabled={!isMac}
 									onCheckedChange={(v) => setImportLogins(v === true)}
 								/>
-								<Label
-									htmlFor="import-logins"
-									className="flex flex-col gap-0.5 font-normal"
-								>
-									Logins (cookies)
+								<div className="flex flex-col gap-0.5">
+									<Label htmlFor="import-logins" className="font-normal">
+										Logins (cookies)
+									</Label>
 									<span className="text-xs text-muted-foreground">
 										{isMac
 											? "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
 											: "Only available on macOS."}
 									</span>
-								</Label>
+								</div>
 							</div>
 						</div>
 					</div>
