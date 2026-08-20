@@ -1,8 +1,10 @@
 import type { RendererContext, Tab } from "@superset/panes";
+import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GlobeIcon } from "lucide-react";
-import { useCallback, useSyncExternalStore } from "react";
-import { TbDeviceDesktop } from "react-icons/tb";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { TbDeviceDesktop, TbDownload } from "react-icons/tb";
+import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserPaneData, PaneViewerData } from "../../../../types";
 
@@ -58,6 +60,24 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 
 	const isBlankPage = !state.currentUrl || state.currentUrl === "about:blank";
 
+	// Offer importing from another browser on the empty page, but only when one
+	// is actually detected, so the CTA is never a dead end.
+	const [canImport, setCanImport] = useState(false);
+	const [isImportOpen, setIsImportOpen] = useState(false);
+	useEffect(() => {
+		if (!isBlankPage) return;
+		let cancelled = false;
+		electronTrpcClient.browserHistory.getImportSources
+			.query()
+			.then((result) => {
+				if (!cancelled) setCanImport(result.sources.length > 0);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
+	}, [isBlankPage]);
+
 	return (
 		<div className="relative flex flex-1 h-full">
 			<div ref={placeholderRef} className="w-full h-full" style={{ flex: 1 }} />
@@ -77,8 +97,20 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 							and use the browser
 						</p>
 					</div>
+					{canImport && (
+						<Button
+							variant="outline"
+							size="sm"
+							className="pointer-events-auto mt-1 gap-2"
+							onClick={() => setIsImportOpen(true)}
+						>
+							<TbDownload className="size-4" />
+							Import history & logins from another browser
+						</Button>
+					)}
 				</div>
 			)}
+			<ImportHistoryDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
 		</div>
 	);
 }
