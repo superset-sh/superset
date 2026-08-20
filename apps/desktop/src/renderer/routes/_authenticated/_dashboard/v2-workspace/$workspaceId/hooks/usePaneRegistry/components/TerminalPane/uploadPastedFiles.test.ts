@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { WORKSPACE_ATTACHMENTS_DIR } from "@superset/shared/workspace-attachments";
 import {
+	PasteUploadLimitError,
 	type UploadPastedFilesDeps,
 	uploadPastedFiles,
 } from "./uploadPastedFiles";
@@ -160,6 +161,48 @@ describe("uploadPastedFiles", () => {
 				files: [new File(["x"], "image.png", { type: "image/png" })],
 			}),
 		).rejects.toThrow("conflict");
+	});
+
+	it("refuses oversized files before reading any bytes", async () => {
+		const { deps, writes } = makeDeps();
+		const big = new File([new Uint8Array(1)], "video.mov", {
+			type: "video/quicktime",
+		});
+		// A 2GB Blob in the test would be real memory; fake the size instead —
+		// the check reads file.size only.
+		Object.defineProperty(big, "size", { value: 2 * 1024 * 1024 * 1024 });
+
+		await expect(
+			uploadPastedFiles({
+				deps,
+				workspaceId: "ws-1",
+				worktreePath: WORKTREE,
+				files: [big],
+			}),
+		).rejects.toThrow(PasteUploadLimitError);
+		// Failed fast: no directory created, no bytes shipped.
+		expect(writes).toHaveLength(0);
+	});
+
+	it("refuses batches over the total budget", async () => {
+		const { deps, writes } = makeDeps();
+		const files = Array.from({ length: 5 }, (_, i) => {
+			const f = new File([new Uint8Array(1)], `part${i}.bin`, {
+				type: "application/octet-stream",
+			});
+			Object.defineProperty(f, "size", { value: 45 * 1024 * 1024 });
+			return f;
+		});
+
+		await expect(
+			uploadPastedFiles({
+				deps,
+				workspaceId: "ws-1",
+				worktreePath: WORKTREE,
+				files,
+			}),
+		).rejects.toThrow(PasteUploadLimitError);
+		expect(writes).toHaveLength(0);
 	});
 
 	it("sanitizes path-hostile clipboard names and falls back to attachment_N", async () => {

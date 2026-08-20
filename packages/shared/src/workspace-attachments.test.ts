@@ -21,6 +21,13 @@ describe("sanitizeAttachmentFileName", () => {
 		expect(sanitizeAttachmentFileName(undefined)).toBeNull();
 		expect(sanitizeAttachmentFileName(null)).toBeNull();
 	});
+
+	it("rejects names that resolve to the directory or its parent", () => {
+		expect(sanitizeAttachmentFileName(".")).toBeNull();
+		expect(sanitizeAttachmentFileName("..")).toBeNull();
+		// "..." is a legal (if odd) filename — only the two specials are out.
+		expect(sanitizeAttachmentFileName("...")).toBe("...");
+	});
 });
 
 describe("attachmentNameWithSuffix", () => {
@@ -84,6 +91,16 @@ describe("assignAttachmentFileName", () => {
 				fallbackExtension: ".png",
 			}),
 		).toBe("attachment_1.png");
+	});
+
+	it("dedupes case-insensitively — one path on APFS/NTFS", () => {
+		const used = new Set<string>();
+		expect(
+			assignAttachmentFileName({ rawName: "image.png", index: 0, used }),
+		).toBe("image.png");
+		expect(
+			assignAttachmentFileName({ rawName: "Image.png", index: 1, used }),
+		).toBe("Image_1.png");
 	});
 
 	it("dedupes generated names that collide with real ones", () => {

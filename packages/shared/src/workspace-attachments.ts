@@ -24,7 +24,11 @@ export function sanitizeAttachmentFileName(
 	raw: string | null | undefined,
 ): string | null {
 	const sanitized = (raw ?? "").replace(/[^a-zA-Z0-9._-]/g, "_");
-	return sanitized.trim() ? sanitized : null;
+	if (!sanitized.trim()) return null;
+	// "." and ".." survive the charset but name the directory itself or its
+	// parent, not a file — send those to the generated-name fallback.
+	if (sanitized === "." || sanitized === "..") return null;
+	return sanitized;
 }
 
 /** Generated name for an attachment with no usable filename (1-based). */
@@ -69,8 +73,12 @@ export function assignAttachmentFileName(input: {
 		attachmentFallbackName(input.index, input.fallbackExtension ?? "");
 	for (let attempt = 0; ; attempt++) {
 		const candidate = attachmentNameWithSuffix(base, attempt);
-		if (!input.used.has(candidate)) {
-			input.used.add(candidate);
+		// Case-insensitive: on APFS/NTFS "image.png" and "Image.png" are the
+		// same path, and a same-batch collision would silently overwrite while
+		// the prompt lists two names.
+		const key = candidate.toLowerCase();
+		if (!input.used.has(key)) {
+			input.used.add(key);
 			return candidate;
 		}
 	}

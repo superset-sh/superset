@@ -51,7 +51,7 @@ import {
 	terminalRichInputOpenStore,
 	useTerminalRichInputOpen,
 } from "./richInputOpenStore";
-import { uploadPastedFiles } from "./uploadPastedFiles";
+import { PasteUploadLimitError, uploadPastedFiles } from "./uploadPastedFiles";
 import { shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {
@@ -402,9 +402,11 @@ export function TerminalPane({
 				} catch (error) {
 					console.error("[v2 Terminal] remote file upload failed", error);
 					toast.error(
-						files.length === 1
-							? "Failed to send the file to the remote workspace"
-							: "Failed to send the files to the remote workspace",
+						error instanceof PasteUploadLimitError
+							? error.message
+							: files.length === 1
+								? "Failed to send the file to the remote workspace"
+								: "Failed to send the files to the remote workspace",
 					);
 				}
 			})();
@@ -541,7 +543,9 @@ export function TerminalPane({
 				items.length > 0 &&
 				items.every(
 					(item) =>
-						item.kind === "file" && item.webkitGetAsEntry()?.isFile === true,
+						item.kind === "file" &&
+						typeof item.webkitGetAsEntry === "function" &&
+						item.webkitGetAsEntry()?.isFile === true,
 				);
 			const files = Array.from(event.dataTransfer.files);
 			if (allPlainFiles && files.length > 0) {

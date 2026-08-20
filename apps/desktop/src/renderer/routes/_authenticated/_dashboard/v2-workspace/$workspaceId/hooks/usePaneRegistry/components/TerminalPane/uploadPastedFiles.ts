@@ -15,6 +15,20 @@ import { fileToBase64 } from "renderer/lib/file-to-base64";
 /** Collision-probe cap; matches the spirit of createUniqueEntry's bound. */
 const MAX_NAME_ATTEMPTS = 50;
 
+// Same caps as the agent-launch adapter's attachment writer. The bytes are
+// FileReader-read and base64'd (~1.33x) in renderer memory, then travel as
+// one JSON body — an accidentally pasted multi-GB Finder file must fail
+// fast instead of stalling the renderer and the host.
+const MAX_SINGLE_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
+
+/** Thrown for limits the user can act on; the message is toast-ready. */
+export class PasteUploadLimitError extends Error {}
+
+function formatMb(bytes: number): string {
+	return `${Math.round(bytes / 1024 / 1024)}MB`;
+}
+
 interface FsWriteOutcome {
 	ok: boolean;
 	reason?: string;
@@ -101,6 +115,21 @@ export async function uploadPastedFiles(options: {
 }): Promise<string[]> {
 	const { deps, workspaceId, worktreePath, files } = options;
 	const dirAbs = `${worktreePath}/${WORKSPACE_ATTACHMENTS_DIR}`;
+
+	let totalBytes = 0;
+	for (const file of files) {
+		if (file.size > MAX_SINGLE_FILE_BYTES) {
+			throw new PasteUploadLimitError(
+				`"${file.name || "pasted file"}" is ${formatMb(file.size)} — files over ${formatMb(MAX_SINGLE_FILE_BYTES)} can't be sent to a remote workspace`,
+			);
+		}
+		totalBytes += file.size;
+	}
+	if (totalBytes > MAX_TOTAL_BYTES) {
+		throw new PasteUploadLimitError(
+			`Pasted files total ${formatMb(totalBytes)} — more than the ${formatMb(MAX_TOTAL_BYTES)} limit for a remote workspace`,
+		);
+	}
 
 	await deps.createDirectory({
 		workspaceId,
