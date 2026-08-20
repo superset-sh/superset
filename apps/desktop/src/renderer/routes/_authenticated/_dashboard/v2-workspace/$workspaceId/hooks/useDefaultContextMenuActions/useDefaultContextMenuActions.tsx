@@ -20,6 +20,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useDefaultContextMenuActions({
@@ -36,6 +37,7 @@ export function useDefaultContextMenuActions({
 		"EQUALIZE_PANE_SPLITS",
 	).text;
 	const closePaneShortcut = useHotkeyDisplay("CLOSE_PANE").text;
+	const defaultBrowserUrl = useDefaultBrowserUrl();
 
 	return useMemo<ContextMenuActionConfig<PaneViewerData>[]>(
 		() => [
@@ -83,7 +85,7 @@ export function useDefaultContextMenuActions({
 					ctx.actions.split("right", {
 						kind: "browser",
 						data: {
-							url: "about:blank",
+							url: defaultBrowserUrl,
 						} as BrowserPaneData,
 					});
 				},
@@ -151,6 +153,7 @@ export function useDefaultContextMenuActions({
 			closePaneShortcut,
 			paneRegistry,
 			launcher,
+			defaultBrowserUrl,
 		],
 	);
 }

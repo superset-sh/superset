@@ -11,6 +11,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspacePaneOpeners({
@@ -147,18 +148,19 @@ export function useWorkspacePaneOpeners({
 		});
 	}, [store]);
 
+	const defaultBrowserUrl = useDefaultBrowserUrl();
 	const addBrowserTab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "browser",
 					data: {
-						url: "about:blank",
+						url: defaultBrowserUrl,
 					} as BrowserPaneData,
 				},
 			],
 		});
-	}, [store]);
+	}, [store, defaultBrowserUrl]);
 
 	const openCommentPane = useCallback(
 		(comment: CommentPaneData) => {

@@ -36,6 +36,9 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 	BEHAVIOR_STAR_GITHUB: "behavior-star-github",
 
+	BROWSER_HOMEPAGE: "browser-homepage",
+	BROWSER_IMPORT_HISTORY: "browser-import-history",
+
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
@@ -169,6 +172,10 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB]: "shared",
+
+	// The in-app browser pane is a v2-only surface.
+	[SETTING_ITEM_ID.BROWSER_HOMEPAGE]: "v2",
+	[SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY]: "v2",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -782,6 +789,40 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"open source",
 			"repo",
 			"repository",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BROWSER_HOMEPAGE,
+		section: "browser",
+		title: "Browser homepage",
+		description: "The page new in-app browser tabs open to",
+		keywords: [
+			"browser",
+			"homepage",
+			"home",
+			"start page",
+			"default url",
+			"new tab",
+			"landing",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY,
+		section: "browser",
+		title: "Import from Chrome",
+		description:
+			"Copy browsing history and logins from Chrome, Brave, Arc, or another Chromium browser",
+		keywords: [
+			"browser",
+			"import",
+			"history",
+			"logins",
+			"cookies",
+			"chrome",
+			"brave",
+			"arc",
+			"chromium",
+			"migrate",
 		],
 	},
 	{
