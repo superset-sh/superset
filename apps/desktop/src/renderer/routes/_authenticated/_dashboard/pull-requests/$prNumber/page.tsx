@@ -1,7 +1,8 @@
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { TRPCClientError } from "@trpc/client";
+import { useMemo, useState } from "react";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -24,6 +25,10 @@ import { Route as PullRequestsLayoutRoute } from "../layout";
 import { pullRequestsSearchFromFilters } from "../stores/pullRequestsFilterStore";
 import { normalizeAuthorFilter } from "../utils/normalizeAuthorFilter";
 import { normalizePullRequestReviewFilter } from "../utils/pullRequestReviewFilter";
+import { normalizePullRequestsViewTab } from "../utils/viewerRelationship";
+import { PRCodePanel } from "./components/PRCodePanel";
+import { PRDetailHeader, type PRDetailTab } from "./components/PRDetailHeader";
+import { PRReviewPanel } from "./components/PRReviewPanel";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pull-requests/$prNumber/",
@@ -49,6 +54,7 @@ function PullRequestDetailPage() {
 	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
+	const [activeTab, setActiveTab] = useState<PRDetailTab>("review");
 
 	// `project` identifies this PR's repo, not the list filter: falling back
 	// to it would rewrite an "all repositories" view to a single repo on back.
@@ -59,7 +65,9 @@ function PullRequestDetailPage() {
 				projectFilters: resolveProjectFilterParams(search.projects, null, []),
 				authorFilter: normalizeAuthorFilter(search.author),
 				reviewFilter: normalizePullRequestReviewFilter(search.review),
-				includeClosed: search.state === "all",
+				includeClosed: search.state === "all" || search.state === "merged",
+				mergedOnly: search.state === "merged",
+				viewTab: normalizePullRequestsViewTab(search.tab),
 			}),
 		[
 			search.author,
@@ -67,6 +75,7 @@ function PullRequestDetailPage() {
 			search.review,
 			search.search,
 			search.state,
+			search.tab,
 		],
 	);
 
@@ -179,12 +188,22 @@ function PullRequestDetailPage() {
 	}
 
 	if (error instanceof Error || !data) {
+		// This procedure is new; a host still running an older host-service
+		// build resolves the route to nothing and answers NOT_FOUND rather
+		// than a domain-level "no such PR" — surfacing that as a raw fetch
+		// error just confuses the update path with connectivity issues.
+		const isStaleHostService =
+			error instanceof TRPCClientError && error.data?.code === "NOT_FOUND";
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
 					message={
-						error instanceof Error ? error.message : "Pull request not found."
+						isStaleHostService
+							? "This device's Superset is out of date and can't show pull request details yet. Update it, then try again."
+							: error instanceof Error
+								? error.message
+								: "Pull request not found."
 					}
 					isError
 					onRetry={() => void refetch()}
@@ -193,58 +212,58 @@ function PullRequestDetailPage() {
 		);
 	}
 
-	const stateLabel = data.isDraft ? "Draft" : data.state;
-	const branchSummary = data.branch
-		? `${data.headRepositoryOwner && data.isCrossRepository ? `${data.headRepositoryOwner}:${data.branch}` : data.branch} → ${data.baseBranch}`
-		: null;
-
 	return (
 		<div className="@container flex min-h-0 flex-1 flex-col">
-			{header}
-			<ScrollArea className="min-h-0 flex-1">
-				<div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-6 @md:px-6 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:py-8">
-					<article className="min-w-0">
-						<div className="mb-4 flex min-w-0 items-start gap-3">
-							<PRIcon state={state} className="mt-1 size-5 shrink-0" />
-							<h1 className="min-w-0 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
-								{data.title}
-							</h1>
-						</div>
-
-						<div className="mb-7 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-							<span>{project.name}</span>
-							<span aria-hidden>·</span>
-							<span className="capitalize">{stateLabel}</span>
-							{data.author && (
-								<>
-									<span aria-hidden>·</span>
-									<span className="min-w-0 break-words">by {data.author}</span>
-								</>
-							)}
-							{branchSummary && (
-								<>
-									<span aria-hidden>·</span>
-									<span className="min-w-0 break-all font-mono">
-										{branchSummary}
-									</span>
-								</>
-							)}
-						</div>
-
-						{data.body.trim() ? (
-							<MarkdownRenderer content={data.body} />
-						) : (
-							<p className="text-sm italic text-muted-foreground">
-								No description provided.
-							</p>
-						)}
-					</article>
-
-					<aside className="min-w-0 @4xl:sticky @4xl:top-6 @4xl:self-start">
-						<PullRequestChecksSection checks={data.checks} />
-					</aside>
+			<PRDetailHeader
+				title={data.title}
+				state={state}
+				authorLogin={data.author}
+				prNumber={data.number}
+				timestamp={data.updatedAt ?? data.createdAt}
+				url={data.url}
+				activeTab={activeTab}
+				onTabChange={setActiveTab}
+				onAddToWorkspace={handleAddToWorkspace}
+			/>
+			{activeTab === "code" ? (
+				// CodeView virtualizes against its own scroll container, so the
+				// Code tab sits outside ScrollArea instead of nesting scrollers.
+				<div className="min-h-0 flex-1">
+					{hostUrl && (
+						<PRCodePanel
+							hostUrl={hostUrl}
+							projectId={projectId}
+							prNumber={data.number}
+						/>
+					)}
 				</div>
-			</ScrollArea>
+			) : (
+				<ScrollArea className="min-h-0 flex-1">
+					{activeTab === "review" && hostUrl && (
+						<PRReviewPanel
+							hostUrl={hostUrl}
+							projectId={projectId}
+							prNumber={data.number}
+						/>
+					)}
+					{activeTab === "summary" && (
+						<div className="mx-auto w-full max-w-3xl px-4 py-6 @md:px-6 @md:py-8">
+							{data.body.trim() ? (
+								<MarkdownRenderer content={data.body} />
+							) : (
+								<p className="text-sm italic text-muted-foreground">
+									No description provided.
+								</p>
+							)}
+						</div>
+					)}
+					{activeTab === "checks" && (
+						<div className="mx-auto w-full max-w-3xl px-4 py-6 @md:px-6 @md:py-8">
+							<PullRequestChecksSection checks={data.checks} />
+						</div>
+					)}
+				</ScrollArea>
+			)}
 		</div>
 	);
 }

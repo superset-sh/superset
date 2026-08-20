@@ -1,8 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { GoGitPullRequest } from "react-icons/go";
-import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
-import { LuMinus, LuPlus, LuRefreshCw } from "react-icons/lu";
+import { LuRefreshCw } from "react-icons/lu";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
@@ -10,16 +9,8 @@ import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboa
 import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useWorkItemsList } from "renderer/routes/_authenticated/_dashboard/hooks/useWorkItemsList";
 import type { PullRequestReviewFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
-import {
-	normalizePRState,
-	PRIcon,
-} from "renderer/screens/main/components/PRIcon";
-import {
-	type LinkedPR,
-	useNewWorkspaceDraftStore,
-} from "renderer/stores/new-workspace-draft";
-import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
-import { PullRequestChecksSummary } from "../../../PullRequestChecksSummary";
+import type { ViewerRelationship } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/viewerRelationship";
+import { PullRequestRow } from "../PullRequestRow";
 
 interface PullRequestsContentProps {
 	projectFilters: string[];
@@ -30,7 +21,13 @@ interface PullRequestsContentProps {
 	authorFilter: string | null;
 	reviewFilter: PullRequestReviewFilter | null;
 	includeClosed: boolean;
-	onCollapse?: () => void;
+	mergedOnly: boolean;
+	/** Restricts to PRs where the viewer has this relationship — drives the
+	 *  Reviewing/Authored tabs. Undefined = no restriction (the All tab). */
+	viewerRelationship?: ViewerRelationship;
+	selectedPrNumber: number | null;
+	selectedPrProjectId: string | null;
+	repoSlugByProjectId: Map<string, string>;
 }
 
 const PAGE_SIZE = 30;
@@ -44,14 +41,14 @@ export function PullRequestsContent({
 	authorFilter,
 	reviewFilter,
 	includeClosed,
-	onCollapse,
+	mergedOnly,
+	viewerRelationship,
+	selectedPrNumber,
+	selectedPrProjectId,
+	repoSlugByProjectId,
 }: PullRequestsContentProps) {
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const navigate = useNavigate();
-	const updateDraft = useNewWorkspaceDraftStore((s) => s.updateDraft);
-	const selectProject = useNewWorkspaceDraftStore((s) => s.selectProject);
-	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
-	const openModal = useOpenNewWorkspaceModal();
 
 	const {
 		rows: pullRequests,
@@ -66,7 +63,7 @@ export function PullRequestsContent({
 		sentinelRef,
 	} = useWorkItemsList({
 		projectTargets,
-		resetKey: `${debouncedQuery.trim()}\0${authorFilter ?? ""}\0${reviewFilter ?? ""}\0${includeClosed}`,
+		resetKey: `${debouncedQuery.trim()}\0${authorFilter ?? ""}\0${reviewFilter ?? ""}\0${includeClosed}\0${mergedOnly}\0${viewerRelationship ?? ""}`,
 		getQueryOptions: ({ target, page }) => ({
 			queryKey: [
 				"pullRequests",
@@ -77,6 +74,8 @@ export function PullRequestsContent({
 				authorFilter,
 				reviewFilter,
 				includeClosed,
+				mergedOnly,
+				viewerRelationship,
 				page,
 			],
 			queryFn: async () => {
@@ -91,6 +90,8 @@ export function PullRequestsContent({
 					review: reviewFilter ?? undefined,
 					limit: PAGE_SIZE,
 					includeClosed,
+					mergedOnly,
+					viewerRelationship,
 					page,
 				});
 				// The router types come from this build, the rows come from
@@ -115,23 +116,6 @@ export function PullRequestsContent({
 			`${pullRequest.projectId}:${pullRequest.prNumber}`,
 	});
 
-	const handleAddToWorkspace = (pr: (typeof pullRequests)[number]) => {
-		const linkedPR: LinkedPR = {
-			prNumber: pr.prNumber,
-			title: pr.title,
-			url: pr.url,
-			state: normalizePRState(pr.state, pr.isDraft),
-		};
-		resetDraft();
-		selectProject(pr.projectId);
-		updateDraft({ hostId: pr.hostId, linkedPR });
-		openModal(pr.projectId);
-	};
-
-	const handleOpenUrl = (url: string) => {
-		window.open(url, "_blank", "noopener,noreferrer");
-	};
-
 	const handleOpenPreview = (pr: (typeof pullRequests)[number]) => {
 		navigate({
 			to: "/pull-requests/$prNumber",
@@ -142,7 +126,8 @@ export function PullRequestsContent({
 				projects: serializeProjectFilters(projectFilters),
 				author: authorFilter ?? undefined,
 				review: reviewFilter ?? undefined,
-				state: includeClosed ? "all" : undefined,
+				state: mergedOnly ? "merged" : includeClosed ? "all" : undefined,
+				tab: viewerRelationship === "authored" ? "authored" : undefined,
 			},
 		});
 	};
@@ -212,17 +197,6 @@ export function PullRequestsContent({
 						}
 					/>
 				</Button>
-				{onCollapse && (
-					<Button
-						variant="ghost"
-						size="icon-xs"
-						title="Minimize"
-						aria-label="Minimize pull requests"
-						onClick={onCollapse}
-					>
-						<LuMinus className="size-3.5" />
-					</Button>
-				)}
 			</div>
 
 			<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
@@ -245,9 +219,11 @@ export function PullRequestsContent({
 				) : totalCount === 0 && !isFetching ? (
 					<div className="flex h-full items-center justify-center p-8">
 						<span className="text-sm text-muted-foreground">
-							{includeClosed
-								? "No pull requests found."
-								: "No open pull requests."}
+							{mergedOnly
+								? "No merged pull requests."
+								: includeClosed
+									? "No pull requests found."
+									: "No open pull requests."}
 						</span>
 					</div>
 				) : (
@@ -263,73 +239,20 @@ export function PullRequestsContent({
 							</div>
 						)}
 						{pullRequests.map((pr) => {
-							const state = normalizePRState(pr.state, pr.isDraft);
 							const rowKey = `${pr.projectId}:${pr.prNumber}`;
+							const isSelected =
+								selectedPrNumber === pr.prNumber &&
+								(selectedPrProjectId == null ||
+									selectedPrProjectId === pr.projectId);
+							const repoSlug = repoSlugByProjectId.get(pr.projectId);
 							return (
-								// biome-ignore lint/a11y/useSemanticElements: row contains nested action buttons, so the outer element is a div with role/tabIndex
-								<div
+								<PullRequestRow
 									key={rowKey}
-									className="group flex h-10 cursor-pointer items-center gap-3 border-b border-border/50 px-4 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+									pr={pr}
+									repoSlug={repoSlug}
+									isSelected={isSelected}
 									onClick={() => handleOpenPreview(pr)}
-									onKeyDown={(e) => {
-										if (e.target !== e.currentTarget) return;
-										if (e.key === "Enter" || e.key === " ") {
-											e.preventDefault();
-											handleOpenPreview(pr);
-										}
-									}}
-									role="button"
-									tabIndex={0}
-								>
-									<PRIcon state={state} className="size-4 shrink-0" />
-									{projectTargets.length > 1 && (
-										<span className="hidden max-w-28 shrink-0 truncate text-xs text-muted-foreground @lg:inline">
-											{pr.projectName}
-										</span>
-									)}
-									<span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
-										#{pr.prNumber}
-									</span>
-									<span className="min-w-0 flex-1 truncate text-sm font-medium">
-										{pr.title}
-									</span>
-									<PullRequestChecksSummary checks={pr.checks} />
-									{pr.authorLogin && (
-										<span className="hidden shrink-0 text-xs text-muted-foreground @md:inline">
-											{pr.authorLogin}
-										</span>
-									)}
-									<div className="flex items-center gap-1">
-										<Button
-											variant="ghost"
-											size="icon-xs"
-											title="Open in browser"
-											aria-label={`Open pull request #${pr.prNumber} in browser`}
-											onClick={(e) => {
-												e.stopPropagation();
-												handleOpenUrl(pr.url);
-											}}
-										>
-											<HiOutlineArrowTopRightOnSquare className="size-3.5" />
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											title="Add to workspace"
-											aria-label={`Add pull request #${pr.prNumber} to workspace`}
-											className="h-7 gap-1.5 px-2 text-xs"
-											onClick={(e) => {
-												e.stopPropagation();
-												handleAddToWorkspace(pr);
-											}}
-										>
-											<LuPlus className="size-3.5" />
-											<span className="hidden @lg:inline">
-												Add to workspace
-											</span>
-										</Button>
-									</div>
-								</div>
+								/>
 							);
 						})}
 						<LoadMoreSentinel

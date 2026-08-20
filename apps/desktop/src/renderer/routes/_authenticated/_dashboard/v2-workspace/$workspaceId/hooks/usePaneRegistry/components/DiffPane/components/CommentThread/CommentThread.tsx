@@ -7,7 +7,6 @@ import {
 } from "@superset/ui/collapsible";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useState } from "react";
 import {
 	LuCheck,
@@ -28,8 +27,6 @@ interface Comment {
 }
 
 interface CommentThreadProps {
-	workspaceId: string;
-	threadId: string;
 	isResolved: boolean;
 	isOutdated?: boolean;
 	url?: string;
@@ -37,16 +34,21 @@ interface CommentThreadProps {
 	/** Force-expand the bubble whenever this changes — lets jump-to-line
 	 *  reveal a collapsed (resolved/outdated) thread. */
 	focusTick?: number;
+	/** Purely presentational — the resolve mutation (workspace-scoped via
+	 *  workspaceTrpc, or standalone via a host-service client) lives in the
+	 *  caller, which knows which tRPC context it has available. */
+	onToggleResolve: (resolved: boolean) => void;
+	isResolving: boolean;
 }
 
 export function CommentThread({
-	workspaceId,
-	threadId,
 	isResolved,
 	isOutdated,
 	url,
 	comments,
 	focusTick,
+	onToggleResolve,
+	isResolving,
 }: CommentThreadProps) {
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
@@ -78,19 +80,7 @@ export function CommentThread({
 	useEffect(() => {
 		if (focusTick != null) setOpen(true);
 	}, [focusTick]);
-	const utils = workspaceTrpc.useUtils();
-	const setResolution = workspaceTrpc.git.setReviewThreadResolution.useMutation(
-		{
-			onSuccess: () => {
-				void utils.git.getPullRequestThreads.invalidate({ workspaceId });
-			},
-			onError: (error) => {
-				toast.error("Couldn't update thread", {
-					description: error.message,
-				});
-			},
-		},
-	);
+	const handleToggleResolve = () => onToggleResolve(!isResolved);
 
 	return (
 		<Collapsible
@@ -170,18 +160,10 @@ export function CommentThread({
 						type="button"
 						size="xs"
 						variant="outline"
-						disabled={setResolution.isPending}
-						onClick={() =>
-							setResolution.mutate({
-								workspaceId,
-								threadId,
-								resolved: !isResolved,
-							})
-						}
+						disabled={isResolving}
+						onClick={handleToggleResolve}
 					>
-						{setResolution.isPending && (
-							<LuLoaderCircle className="size-3 animate-spin" />
-						)}
+						{isResolving && <LuLoaderCircle className="size-3 animate-spin" />}
 						{isResolved ? "Unresolve" : "Resolve conversation"}
 					</Button>
 				</div>

@@ -45,6 +45,11 @@ interface PullRequestResult {
 	updatedAt: string | null;
 	checks: PullRequestCheck[];
 	checksStatus: ChecksStatus;
+	/** null until enriched — search-listed rows start unknown, direct
+	 *  lookups and the checks-enrichment pass fill these in. */
+	additions: number | null;
+	deletions: number | null;
+	headRefName: string | null;
 }
 
 export interface PullRequestsPage {
@@ -100,9 +105,33 @@ const REVIEW_DECISION_BY_FILTER: Record<
 // GitHub caps Search API results at 1000; paging past that returns 422.
 const GITHUB_SEARCH_RESULT_LIMIT = 1_000;
 
+// No combined "needs-review OR reviewed" value: GitHub's search API rejects
+// qualifier-level OR (422 either with or without parens), so a "Reviewing"
+// grouping has to run as two separate queries, not one.
+const viewerRelationshipSchema = z.enum([
+	"needs-review",
+	"reviewed",
+	"authored",
+]);
+type ViewerRelationship = z.infer<typeof viewerRelationshipSchema>;
+
+// Bypasses the free-typed `author`/`review` filters (and their username
+// validation, which would mangle the literal "@me" token) for the grouped
+// "my work" list sections — each maps to one fixed, unambiguous qualifier.
+const VIEWER_RELATIONSHIP_QUALIFIERS: Record<ViewerRelationship, string> = {
+	"needs-review": "user-review-requested:@me",
+	reviewed: "reviewed-by:@me -user-review-requested:@me",
+	authored: "author:@me",
+};
+
 const searchPullRequestsInputSchema = githubSearchInputSchema.extend({
 	author: githubAuthorSchema.optional(),
 	review: pullRequestReviewFilterSchema.optional(),
+	// Mutually exclusive with includeClosed: false wins to "is:open" first,
+	// so only pass this when includeClosed is true (or omitted).
+	mergedOnly: z.boolean().optional(),
+	// Mutually exclusive with author/review — see VIEWER_RELATIONSHIP_QUALIFIERS.
+	viewerRelationship: viewerRelationshipSchema.optional(),
 });
 
 function emptyPullRequestsPage(page: number): PullRequestsPage {
@@ -172,10 +201,13 @@ const ghPrViewSchema = z.object({
 	reviewDecision: z.string().nullable().optional(),
 	reviewRequests: z.array(ghReviewRequestSchema).nullable().optional(),
 	latestReviews: z.array(ghLatestReviewSchema).nullable().optional(),
+	additions: z.number().optional(),
+	deletions: z.number().optional(),
+	headRefName: z.string().optional(),
 });
 
 const PR_VIEW_FIELDS =
-	"number,title,url,state,isDraft,author,mergedAt,updatedAt,statusCheckRollup,reviewDecision,reviewRequests,latestReviews";
+	"number,title,url,state,isDraft,author,mergedAt,updatedAt,statusCheckRollup,reviewDecision,reviewRequests,latestReviews,additions,deletions,headRefName";
 
 interface GhDirectLookupReview {
 	decision: string | null;
@@ -217,6 +249,9 @@ async function ghDirectLookup(
 			updatedAt: pr.updatedAt ?? null,
 			checks,
 			checksStatus,
+			additions: pr.additions ?? null,
+			deletions: pr.deletions ?? null,
+			headRefName: pr.headRefName ?? null,
 		},
 		review: {
 			decision: pr.reviewDecision || null,
@@ -466,6 +501,9 @@ async function octokitDirectLookupRow(
 		updatedAt: pr.updated_at ?? null,
 		checks,
 		checksStatus,
+		additions: pr.additions ?? null,
+		deletions: pr.deletions ?? null,
+		headRefName: pr.head?.ref ?? null,
 	};
 }
 
@@ -540,6 +578,9 @@ async function ghApiSearchPullRequests(
 					updatedAt: item.updated_at ?? null,
 					checks: [],
 					checksStatus: "none",
+					additions: null,
+					deletions: null,
+					headRefName: null,
 				},
 			];
 		});
@@ -586,6 +627,9 @@ async function octokitSearchPullRequests(
 					updatedAt: item.updated_at ?? null,
 					checks: [],
 					checksStatus: "none",
+					additions: null,
+					deletions: null,
+					headRefName: null,
 				},
 			];
 		});
@@ -601,6 +645,9 @@ const checksGraphqlDataSchema = z.object({
 			z
 				.object({
 					number: z.number(),
+					additions: z.number().optional(),
+					deletions: z.number().optional(),
+					headRefName: z.string().optional(),
 					statusCheckRollup: z
 						.object({
 							contexts: z.object({
@@ -624,16 +671,28 @@ type RunChecksGraphqlQuery = (
 	variables: Record<string, string>,
 ) => Promise<unknown>;
 
+type PullRequestGraphqlDetails = Pick<
+	PullRequestResult,
+	"additions" | "deletions" | "headRefName"
+>;
+
 async function getPullRequestChecksViaGraphql(
 	runQuery: RunChecksGraphqlQuery,
 	repo: { owner: string; name: string },
 	pullRequestNumbers: number[],
-): Promise<Map<number, Pick<PullRequestResult, "checks" | "checksStatus">>> {
+): Promise<
+	Map<
+		number,
+		Pick<PullRequestResult, "checks" | "checksStatus"> &
+			PullRequestGraphqlDetails
+	>
+> {
 	if (pullRequestNumbers.length === 0) return new Map();
 	const contextsByPullRequest = new Map<
 		number,
 		z.infer<typeof pullRequestCheckContextSchema>[]
 	>();
+	const detailsByPullRequest = new Map<number, PullRequestGraphqlDetails>();
 	let cursors = new Map<number, string | null>(
 		pullRequestNumbers.map((number) => [number, null]),
 	);
@@ -648,6 +707,9 @@ async function getPullRequestChecksViaGraphql(
 			.map(
 				([number, cursor]) => `pr${number}:pullRequest(number:${number}) {
 				number
+				additions
+				deletions
+				headRefName
 				statusCheckRollup {
 					contexts(first: 100${cursor ? `, after: $cursor${number}` : ""}) {
 						pageInfo { hasNextPage endCursor }
@@ -702,6 +764,11 @@ async function getPullRequestChecksViaGraphql(
 				) ?? [];
 			const existing = contextsByPullRequest.get(pullRequest.number) ?? [];
 			contextsByPullRequest.set(pullRequest.number, [...existing, ...contexts]);
+			detailsByPullRequest.set(pullRequest.number, {
+				additions: pullRequest.additions ?? null,
+				deletions: pullRequest.deletions ?? null,
+				headRefName: pullRequest.headRefName ?? null,
+			});
 			const pageInfo = pullRequest.statusCheckRollup?.contexts.pageInfo;
 			if (pageInfo?.hasNextPage) {
 				if (!pageInfo.endCursor) {
@@ -724,7 +791,12 @@ async function getPullRequestChecksViaGraphql(
 		pullRequestNumbers.map((pullRequestNumber) => {
 			const contexts = contextsByPullRequest.get(pullRequestNumber) ?? [];
 			const { checks, checksStatus } = normalizePullRequestChecks(contexts);
-			return [pullRequestNumber, { checks, checksStatus }] as const;
+			const details = detailsByPullRequest.get(pullRequestNumber) ?? {
+				additions: null,
+				deletions: null,
+				headRefName: null,
+			};
+			return [pullRequestNumber, { checks, checksStatus, ...details }] as const;
 		}),
 	);
 }
@@ -733,7 +805,7 @@ async function ghGetPullRequestChecks(
 	execGh: ExecGh,
 	repo: ResolvedGithubRepo,
 	pullRequestNumbers: number[],
-): Promise<Map<number, Pick<PullRequestResult, "checks" | "checksStatus">>> {
+): Promise<Map<number, PullRequestChecksInfo>> {
 	return getPullRequestChecksViaGraphql(
 		(query, variables) =>
 			execGh(
@@ -754,7 +826,10 @@ async function ghGetPullRequestChecks(
 	);
 }
 
-type PullRequestChecksInfo = Pick<PullRequestResult, "checks" | "checksStatus">;
+type PullRequestChecksInfo = Pick<
+	PullRequestResult,
+	"checks" | "checksStatus" | "additions" | "deletions" | "headRefName"
+>;
 
 /**
  * Enrich a merged page with checks: one GraphQL batch per repo that has
@@ -840,12 +915,15 @@ export const searchPullRequests = protectedProcedure
 			normalizedTargets[0]?.normalized.query ?? "",
 			input.author ? `author:${input.author}` : "",
 			input.review ? REVIEW_QUERY_BY_FILTER[input.review] : "",
+			input.viewerRelationship
+				? VIEWER_RELATIONSHIP_QUALIFIERS[input.viewerRelationship]
+				: "",
 		]
 			.filter(Boolean)
 			.join(" ");
 		const qualifiers = [
 			"is:pr",
-			input.includeClosed ? "" : "is:open",
+			input.mergedOnly ? "is:merged" : input.includeClosed ? "" : "is:open",
 			effectiveQuery,
 		]
 			.filter(Boolean)

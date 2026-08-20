@@ -33,6 +33,8 @@ describe("pullRequestsSearchFromFilters", () => {
 				authorFilter: null,
 				reviewFilter: null,
 				includeClosed: false,
+				mergedOnly: false,
+				viewTab: "all",
 			}),
 		).toEqual({});
 	});
@@ -45,6 +47,8 @@ describe("pullRequestsSearchFromFilters", () => {
 				authorFilter: "octocat",
 				reviewFilter: "changes-requested",
 				includeClosed: true,
+				mergedOnly: false,
+				viewTab: "all",
 			}),
 		).toEqual({
 			search: "remote host",
@@ -53,6 +57,34 @@ describe("pullRequestsSearchFromFilters", () => {
 			review: "changes-requested",
 			state: "all",
 		});
+	});
+
+	test("mergedOnly wins over includeClosed in the serialized state", () => {
+		expect(
+			pullRequestsSearchFromFilters({
+				search: "",
+				projectFilters: [],
+				authorFilter: null,
+				reviewFilter: null,
+				includeClosed: true,
+				mergedOnly: true,
+				viewTab: "all",
+			}),
+		).toEqual({ state: "merged" });
+	});
+
+	test("serializes a non-default view tab", () => {
+		expect(
+			pullRequestsSearchFromFilters({
+				search: "",
+				projectFilters: [],
+				authorFilter: null,
+				reviewFilter: null,
+				includeClosed: false,
+				mergedOnly: false,
+				viewTab: "reviewing",
+			}),
+		).toEqual({ tab: "reviewing" });
 	});
 });
 
@@ -68,6 +100,7 @@ describe("migratePullRequestsFilterState", () => {
 			projectFilters: ["project-1"],
 			authorFilter: "octocat",
 			reviewFilter: "approved",
+			viewTab: "all",
 		});
 	});
 
@@ -78,18 +111,24 @@ describe("migratePullRequestsFilterState", () => {
 				authorFilter: "octocat author:someone-else",
 				reviewFilter: "review:approved",
 				includeClosed: "true",
+				mergedOnly: "true",
+				viewTab: "bogus",
 			}),
 		).toMatchObject({
 			projectFilters: ["project-1"],
 			authorFilter: null,
 			reviewFilter: null,
 			includeClosed: false,
+			mergedOnly: false,
+			viewTab: "all",
 		});
 		expect(migratePullRequestsFilterState(null)).toMatchObject({
 			projectFilters: [],
 			authorFilter: null,
 			reviewFilter: null,
 			includeClosed: false,
+			mergedOnly: false,
+			viewTab: "all",
 		});
 	});
 });

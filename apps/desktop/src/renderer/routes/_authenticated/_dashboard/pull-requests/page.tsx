@@ -1,31 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
-import { PullRequestsView } from "./components/PullRequestsView";
-import { Route as PullRequestsLayoutRoute } from "./layout";
+import { GoGitPullRequest } from "react-icons/go";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pull-requests/",
 )({
-	component: PullRequestsPage,
+	component: PullRequestsIndexPage,
 });
 
-function PullRequestsPage() {
-	const { search, project, projects, author, review, state } =
-		PullRequestsLayoutRoute.useSearch();
-	// Stable identity: effects downstream key off this array.
-	const initialProjects = useMemo(
-		() => resolveProjectFilterParams(projects, project, undefined),
-		[projects, project],
-	);
-
+function PullRequestsIndexPage() {
 	return (
-		<PullRequestsView
-			initialSearch={search}
-			initialProjects={initialProjects}
-			initialAuthor={author}
-			initialReview={review}
-			initialState={state}
-		/>
+		<div className="flex h-full items-center justify-center p-8">
+			<div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
+				<GoGitPullRequest className="size-8" />
+				<span className="text-sm">Select a pull request to preview it.</span>
+			</div>
+		</div>
 	);
 }
