@@ -1,5 +1,6 @@
 import * as DocumentPicker from "expo-document-picker";
 import { Image } from "expo-image";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import {
 	ArrowUpIcon,
@@ -24,7 +25,7 @@ import type {
 	TextInputContentSizeChangeEventData,
 	TextInputKeyPressEventData,
 } from "react-native";
-import { Pressable, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -63,8 +64,8 @@ export interface AttachmentsContext {
 	add: (items: PromptInputAttachmentInput[]) => void;
 	remove: (id: string) => void;
 	clear: () => void;
-	openImagePicker: () => Promise<void>;
-	openFilePicker: () => Promise<void>;
+	openImagePicker: () => Promise<boolean>;
+	openFilePicker: () => Promise<boolean>;
 }
 
 export interface TextInputContext {
@@ -85,25 +86,85 @@ const createAttachmentId = () => {
 	return `attachment-${Date.now()}-${attachmentIdCounter}`;
 };
 
-const imageAssetToAttachment = (
+// The picker re-encodes JPEG/PNG (quality < 1), which already drops EXIF GPS;
+// HEIC and the rest arrive as original bytes and the agent API rejects HEIC.
+export const imageAssetToAttachment = async (
 	asset: ImagePicker.ImagePickerAsset,
-): PromptInputAttachmentInput => ({
-	mediaType: asset.mimeType,
-	name: asset.fileName ?? undefined,
-	size: asset.fileSize,
-	type: "image",
-	uri: asset.uri,
-});
+): Promise<PromptInputAttachmentInput | null> => {
+	if (asset.mimeType === "image/jpeg" || asset.mimeType === "image/png") {
+		return {
+			mediaType: asset.mimeType,
+			name: asset.fileName ?? undefined,
+			size: asset.fileSize,
+			type: "image",
+			uri: asset.uri,
+		};
+	}
+	try {
+		const converted = await manipulateAsync(asset.uri, [], {
+			compress: 0.8,
+			format: SaveFormat.JPEG,
+		});
+		return {
+			mediaType: "image/jpeg",
+			name: asset.fileName?.replace(/\.[^.]+$/, ".jpg") ?? undefined,
+			type: "image",
+			uri: converted.uri,
+		};
+	} catch {
+		// Never attach undecodable originals: they may carry EXIF GPS.
+		return null;
+	}
+};
 
-const documentAssetToAttachment = (
+/** Formats UIImage decodes whose bytes can carry EXIF GPS. */
+const EXIF_IMAGE_TYPES = new Set([
+	"image/jpeg",
+	"image/png",
+	"image/heic",
+	"image/heif",
+	"image/tiff",
+	"image/webp",
+]);
+
+// The document picker always hands back original bytes — EXIF GPS included.
+// PNG stays PNG for transparency.
+const documentAssetToAttachment = async (
 	asset: DocumentPicker.DocumentPickerAsset,
-): PromptInputAttachmentInput => ({
-	mediaType: asset.mimeType,
-	name: asset.name,
-	size: asset.size,
-	type: asset.mimeType?.startsWith("image/") ? "image" : "file",
-	uri: asset.uri,
-});
+): Promise<PromptInputAttachmentInput> => {
+	if (asset.mimeType && EXIF_IMAGE_TYPES.has(asset.mimeType)) {
+		try {
+			const png = asset.mimeType === "image/png";
+			const converted = await manipulateAsync(asset.uri, [], {
+				compress: png ? undefined : 0.8,
+				format: png ? SaveFormat.PNG : SaveFormat.JPEG,
+			});
+			return {
+				mediaType: png ? "image/png" : "image/jpeg",
+				name: png ? asset.name : asset.name.replace(/\.[^.]+$/, ".jpg"),
+				type: "image",
+				uri: converted.uri,
+			};
+		} catch {
+			// Undecodable image bytes may carry EXIF GPS — hand them over as a
+			// plain file, not an image.
+			return {
+				mediaType: asset.mimeType,
+				name: asset.name,
+				size: asset.size,
+				type: "file",
+				uri: asset.uri,
+			};
+		}
+	}
+	return {
+		mediaType: asset.mimeType,
+		name: asset.name,
+		size: asset.size,
+		type: asset.mimeType?.startsWith("image/") ? "image" : "file",
+		uri: asset.uri,
+	};
+};
 
 const useAttachmentsContextValue = (): AttachmentsContext => {
 	const [attachments, setAttachments] = useState<PromptInputAttachmentItem[]>(
@@ -131,23 +192,38 @@ const useAttachmentsContextValue = (): AttachmentsContext => {
 			const result = await ImagePicker.launchImageLibraryAsync({
 				allowsMultipleSelection: true,
 				mediaTypes: ["images"],
+				// Automatic, stacked over the attachments sheet, sometimes hides
+				// the picker's bottom bar.
+				presentationStyle:
+					ImagePicker.UIImagePickerPresentationStyle.PAGE_SHEET,
 				quality: 0.8,
 			});
 			if (result.canceled) {
-				return;
+				return false;
 			}
-			add(result.assets.map(imageAssetToAttachment));
-		} catch {}
+			const attachments = await Promise.all(
+				result.assets.map(imageAssetToAttachment),
+			);
+			add(attachments.filter((attachment) => attachment !== null));
+			return true;
+		} catch {
+			Alert.alert("Could not open Photos");
+			return false;
+		}
 	}, [add]);
 
 	const openFilePicker = useCallback(async () => {
 		try {
 			const result = await DocumentPicker.getDocumentAsync({ multiple: true });
 			if (result.canceled) {
-				return;
+				return false;
 			}
-			add(result.assets.map(documentAssetToAttachment));
-		} catch {}
+			add(await Promise.all(result.assets.map(documentAssetToAttachment)));
+			return true;
+		} catch {
+			Alert.alert("Could not open Files");
+			return false;
+		}
 	}, [add]);
 
 	return useMemo(

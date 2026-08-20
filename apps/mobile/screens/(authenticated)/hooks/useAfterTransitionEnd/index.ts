@@ -1,1 +1,0 @@
-export { useAfterTransitionEnd } from "./useAfterTransitionEnd";
