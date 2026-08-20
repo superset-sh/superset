@@ -26,6 +26,17 @@ const createdAt: Date = V1_ERA_CREATED_AT;
 // the override store is mocked with a mutable value instead.
 let optInV2: boolean | null = null;
 
+// The forced-flip backstop keys off the V1_FORCED_FLIP_VERSION const (null in
+// source), so it can't be armed through real state. Stub only that function;
+// everything else (marker reads/writes) stays the real module. The version
+// comparison itself is covered by isForcedFlipVersion tests in v1-migration.
+const realCompletion = await import("renderer/lib/v1-migration/completion");
+let forcedFlipActive = false;
+mock.module("renderer/lib/v1-migration/completion", () => ({
+	...realCompletion,
+	isV1ForcedFlipActive: () => forcedFlipActive,
+}));
+
 mock.module("renderer/stores/v2-local-override", () => ({
 	useV2LocalOverrideStore: <T,>(
 		selector: (state: {
@@ -88,6 +99,15 @@ describe("useIsV1FlipLocked", () => {
 
 	test("plain opt-in to v2 does not lock the flip", () => {
 		expect(readProbe("org-optin", true)).toEqual({ locked: false, v2: true });
+	});
+
+	test("forced-flip backstop locks the flip without a marker", () => {
+		forcedFlipActive = true;
+		try {
+			expect(readProbe("org-forced", false)).toEqual({ locked: true, v2: true });
+		} finally {
+			forcedFlipActive = false;
+		}
 	});
 
 	test("no active org: not locked", () => {
