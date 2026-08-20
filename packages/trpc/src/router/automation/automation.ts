@@ -718,6 +718,15 @@ export const automationRouter = {
 				input.id,
 			);
 
+			// The dispatcher refuses this too, but through runNow it would surface
+			// as a 500 — an expected user state, not a server fault.
+			if (automation.prompt.trim().length === 0) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Automation has no instructions",
+				});
+			}
+
 			const outcome = await dispatchAutomation({
 				automation,
 				scheduledFor: new Date(),

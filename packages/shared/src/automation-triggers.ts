@@ -556,7 +556,5 @@ export function summarizeTriggerProblems(
 	problems: TriggerProblem[],
 ): string | null {
 	if (problems.length === 0) return null;
-	const missingTriggers = problems.find((p) => p.field === "triggers");
-	if (missingTriggers) return missingTriggers.message;
 	return "Some triggers need additional configuration";
 }
