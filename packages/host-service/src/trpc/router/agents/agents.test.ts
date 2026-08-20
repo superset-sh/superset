@@ -321,7 +321,7 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			prompt: "hi",
 		});
 		expect(launch.fullCommand).toBe(
-			`CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
 		);
 	});
 
@@ -335,7 +335,7 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			prompt: "hi",
 		});
 		expect(launch.fullCommand).toBe(
-			"CLAUDE_CONFIG_DIR='/pinned/profile' 'claude' 'hi'",
+			`CLAUDE_CONFIG_DIR='/pinned/profile' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
 		);
 	});
 
