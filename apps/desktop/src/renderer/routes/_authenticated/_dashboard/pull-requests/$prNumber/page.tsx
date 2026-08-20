@@ -7,6 +7,7 @@ import {
 	AlertDialogTitle,
 	EnterEnabledAlertDialogContent,
 } from "@superset/ui/alert-dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -414,11 +415,15 @@ function PullRequestDetailPage() {
 					</Badge>
 					{data.author && (
 						<span className="flex min-w-0 items-center gap-1.5">
-							<img
-								alt=""
-								src={`https://github.com/${data.author}.png?size=32`}
-								className="size-4 shrink-0 rounded"
-							/>
+							<Avatar className="size-4 rounded-sm">
+								<AvatarImage
+									src={`https://github.com/${data.author}.png?size=32`}
+									alt={data.author}
+								/>
+								<AvatarFallback className="rounded-sm text-[8px]">
+									{data.author.slice(0, 1).toUpperCase()}
+								</AvatarFallback>
+							</Avatar>
 							<span className="min-w-0 break-words">{data.author}</span>
 						</span>
 					)}
