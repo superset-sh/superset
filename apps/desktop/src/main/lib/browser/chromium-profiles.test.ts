@@ -3,12 +3,16 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+	browserLocations,
 	getInstalledChromiumBrowsers,
 	listProfilesWithHistory,
 } from "./chromium-profiles";
 
-// These paths mirror browserLocations() for darwin, where CI for this app runs.
-const CHROME_REL = "Library/Application Support/Google/Chrome";
+// Derive Chrome's user-data path from the implementation so these tests pass on
+// whichever platform CI runs (macOS locally, Linux in CI), not just darwin.
+const CHROME_REL = browserLocations(process.platform).find(
+	(location) => location.key === "chrome",
+)?.relativePath as string;
 
 const tempHomes: string[] = [];
 

@@ -36,7 +36,7 @@ interface BrowserLocation {
 	relativePath: string;
 }
 
-function browserLocations(platform: NodeJS.Platform): BrowserLocation[] {
+export function browserLocations(platform: NodeJS.Platform): BrowserLocation[] {
 	if (platform === "darwin") {
 		const base = "Library/Application Support";
 		return [
