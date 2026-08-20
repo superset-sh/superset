@@ -66,25 +66,26 @@ const MERGE_METHOD_LABELS: Record<MergeMethod, string> = {
 
 type PendingAction = { kind: "close" } | { kind: "merge"; method: MergeMethod };
 
+// Mirrors PRStatusGroup's state-tinted badge language, so a PR reads the
+// same way here as it does in the v2 workspace sidebar.
 const PR_STATE_BADGE_STYLES: Record<PRState, string> = {
-	open: "bg-[#dcfae8] text-[#00a558] border-transparent dark:bg-emerald-500/15 dark:text-emerald-400",
+	open: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
 	merged:
-		"bg-violet-500/10 text-violet-600 border-transparent dark:text-violet-400",
-	closed:
-		"bg-[#fde5e5] text-[#f43b3a] border-transparent dark:bg-red-500/15 dark:text-red-400",
-	draft: "bg-muted text-muted-foreground border-transparent",
+		"border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+	closed: "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+	draft: "border-border bg-muted/40 text-muted-foreground",
 	queued:
-		"bg-[#fef3c6] text-[#a15c07] border-transparent dark:bg-amber-500/15 dark:text-amber-400",
+		"border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
 };
 
 // Just the text-color half of PR_STATE_BADGE_STYLES, so the icon inside the
 // badge reads as one color with its label instead of PRIcon's own palette.
 const PR_BADGE_ICON_COLOR: Record<PRState, string> = {
-	open: "text-[#00a558] dark:text-emerald-400",
+	open: "text-emerald-600 dark:text-emerald-400",
 	merged: "text-violet-600 dark:text-violet-400",
-	closed: "text-[#f43b3a] dark:text-red-400",
+	closed: "text-rose-600 dark:text-rose-400",
 	draft: "text-muted-foreground",
-	queued: "text-[#a15c07] dark:text-amber-400",
+	queued: "text-amber-600 dark:text-amber-400",
 };
 
 function PullRequestDetailPage() {
@@ -294,9 +295,11 @@ function PullRequestDetailPage() {
 
 	return (
 		<div className="@container flex min-h-0 flex-1 flex-col">
-			<div className="flex shrink-0 flex-col gap-3 border-b border-border px-4 pb-4 pt-3 @md:px-6">
-				<div className="flex min-w-0 items-start gap-2">
+			<div className="flex shrink-0 flex-col border-b border-border px-4 pb-4 pt-2 @md:px-6">
+				<div className="mb-2 flex items-center">
 					<PullRequestListToggle />
+				</div>
+				<div className="mb-3 flex min-w-0 items-center gap-2">
 					<h1 className="min-w-0 flex-1 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
 						{data.title}
 					</h1>
@@ -317,9 +320,8 @@ function PullRequestDetailPage() {
 								<DropdownMenuTrigger asChild>
 									<Button
 										variant="outline"
-										size="sm"
+										size="xs"
 										className={cn(
-											"h-7 gap-1.5 px-2 text-xs",
 											canMerge &&
 												"border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-400",
 										)}
@@ -385,8 +387,7 @@ function PullRequestDetailPage() {
 						)}
 						<Button
 							variant="outline"
-							size="sm"
-							className="h-7 gap-1.5 px-2 text-xs"
+							size="xs"
 							onClick={handleAddToWorkspace}
 							aria-label="Add to workspace"
 							title="Add to workspace"
@@ -401,13 +402,13 @@ function PullRequestDetailPage() {
 					<Badge
 						variant="outline"
 						className={cn(
-							"gap-1 rounded-full border-0 font-medium capitalize",
+							"h-6 gap-1 rounded-full font-medium capitalize",
 							PR_STATE_BADGE_STYLES[state],
 						)}
 					>
 						<PRIcon
 							state={state}
-							className={cn("size-3.5 shrink-0", PR_BADGE_ICON_COLOR[state])}
+							className={cn("size-3 shrink-0", PR_BADGE_ICON_COLOR[state])}
 						/>
 						{stateLabel}
 					</Badge>
