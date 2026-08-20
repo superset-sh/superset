@@ -25,7 +25,10 @@ import {
 	TERMINAL_DIMS_KEY_PREFIX,
 	touchTerminalStatePersistedAt,
 } from "./terminal-buffer-gc";
-import { installImagePasteFallback } from "./terminal-image-paste-fallback";
+import {
+	type ImagePasteOverride,
+	installImagePasteFallback,
+} from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 import { persistSeqAnchor } from "./terminal-seq-anchor";
@@ -56,6 +59,12 @@ export interface TerminalRuntime {
 	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
 	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
+	/**
+	 * When set, image/file pastes call this with the clipboard files instead
+	 * of forwarding Ctrl+V — used for workspaces whose PTY runs on another
+	 * machine, where the TUI can't see the local clipboard.
+	 */
+	imagePasteOverride: ImagePasteOverride | null;
 	/**
 	 * How this runtime's xterm was seeded: from the persisted localStorage
 	 * snapshot (its seq anchor pairs with it), from a sibling instance's
@@ -336,12 +345,7 @@ export function createRuntime(
 		terminal.write(FRESH_SHELL_INPUT_MODE_RESET);
 	}
 
-	const disposeImagePasteFallback = installImagePasteFallback(
-		terminal,
-		wrapper,
-	);
-
-	return {
+	const runtime: TerminalRuntime = {
 		terminalId,
 		terminal,
 		fitAddon,
@@ -358,9 +362,17 @@ export function createRuntime(
 		_disposeAddons: addonsResult.dispose,
 		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
 		ligaturesEnabled: appearance.ligatures,
-		_disposeImagePasteFallback: disposeImagePasteFallback,
+		_disposeImagePasteFallback: null,
+		imagePasteOverride: null,
 		initialContent,
 	};
+	runtime._disposeImagePasteFallback = installImagePasteFallback(
+		terminal,
+		wrapper,
+		() => runtime.imagePasteOverride,
+	);
+
+	return runtime;
 }
 
 export function attachToContainer(

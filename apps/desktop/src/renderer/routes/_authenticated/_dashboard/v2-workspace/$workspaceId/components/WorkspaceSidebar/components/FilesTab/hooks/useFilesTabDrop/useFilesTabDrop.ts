@@ -3,6 +3,7 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useState } from "react";
+import { fileToBase64 } from "renderer/lib/file-to-base64";
 import {
 	asDirectoryHandle,
 	basename,
@@ -232,26 +233,6 @@ async function flattenEntries(
 		files: trees.flatMap((t) => t.files),
 		dirs: trees.flatMap((t) => t.dirs),
 	};
-}
-
-/** Read a File into base64 (handles binary + large files via the reader). */
-function fileToBase64(file: File): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			const result = reader.result;
-			if (typeof result !== "string") {
-				reject(new Error("Unexpected file reader result"));
-				return;
-			}
-			// Strip the "data:<mime>;base64," prefix.
-			const comma = result.indexOf(",");
-			resolve(comma >= 0 ? result.slice(comma + 1) : result);
-		};
-		reader.onerror = () =>
-			reject(reader.error ?? new Error("Failed to read file"));
-		reader.readAsDataURL(file);
-	});
 }
 
 /**

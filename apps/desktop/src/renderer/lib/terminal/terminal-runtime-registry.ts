@@ -3,6 +3,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { runWhenParserIdle } from "./parser-idle-gate";
+import type { ImagePasteOverride } from "./terminal-image-paste-fallback";
 import {
 	type LinkHoverInfo,
 	type TerminalLinkHandlers,
@@ -50,6 +51,8 @@ interface RegistryEntry {
 	linkManager: TerminalLinkManager | null;
 	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
+	/** Survives runtime eviction/rebuild (the override outlives any one xterm). */
+	imagePasteOverride: ImagePasteOverride | null;
 	/** Stops the alternate/normal buffer observer installed with the runtime. */
 	disposeBufferChangeListener: (() => void) | null;
 	/** Monotonic use counter; bumped on mount/detach, drives parked-LRU eviction. */
@@ -101,6 +104,7 @@ class TerminalRuntimeRegistryImpl {
 			}),
 			linkManager: null,
 			pendingLinkHandlers: null,
+			imagePasteOverride: null,
 			disposeBufferChangeListener: null,
 			lastUsedAt: 0,
 		};
@@ -206,6 +210,7 @@ class TerminalRuntimeRegistryImpl {
 					entry.transport.seqAnchor = loadPersistedSeqAnchor(terminalId);
 				}
 			}
+			entry.runtime.imagePasteOverride = entry.imagePasteOverride;
 			this.observeBufferChanges(entry);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
@@ -301,6 +306,22 @@ class TerminalRuntimeRegistryImpl {
 			entry.linkManager.setHandlers(handlers);
 		} else {
 			entry.pendingLinkHandlers = handlers;
+		}
+	}
+
+	/**
+	 * Set (or clear, with null) the image-paste override for a terminal. Safe
+	 * to call before or after mount(); survives runtime eviction/rebuild.
+	 */
+	setImagePasteOverride(
+		terminalId: string,
+		override: ImagePasteOverride | null,
+		instanceId = terminalId,
+	) {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.imagePasteOverride = override;
+		if (entry.runtime) {
+			entry.runtime.imagePasteOverride = override;
 		}
 	}
 

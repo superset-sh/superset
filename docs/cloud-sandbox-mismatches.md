@@ -139,6 +139,19 @@ rebuilt.
 creation — anything assuming a worktree can be created or discarded next to a
 main checkout has nothing to work with.
 
+**There is no clipboard where the PTY runs.** Pasting an image into a terminal
+forwards Ctrl+V and lets the TUI (Claude Code, Codex) read the image from the
+OS clipboard — of the machine the PTY runs on. A sandbox (or any
+relay-reached host) never holds the user's local screenshot, so the paste
+silently did nothing or surfaced "Failed to paste image". Fixed renderer-side:
+for non-local hosts the desktop ships the clipboard bytes over
+`filesystem.writeFile` into the shared `.superset/attachments/` worktree dir
+(the same convention the agent-launch terminal adapter and the mobile
+composer use — mobile proved the pattern) and pastes the worktree-relative
+path instead (`setImagePasteOverride` in the terminal runtime registry).
+Chosen over a new host endpoint because deployed sandboxes never update
+their baked host-service.
+
 ## Lifecycle
 
 **Delete is not wired.** The generic delete routes to the owning host, which
