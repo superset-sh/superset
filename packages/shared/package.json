@@ -136,6 +136,10 @@
 			"types": "./src/agent-launch-request.ts",
 			"default": "./src/agent-launch-request.ts"
 		},
+		"./workspace-attachments": {
+			"types": "./src/workspace-attachments.ts",
+			"default": "./src/workspace-attachments.ts"
+		},
 		"./agent-permissions-migration": {
 			"types": "./src/agent-permissions-migration.ts",
 			"default": "./src/agent-permissions-migration.ts"
