@@ -85,29 +85,32 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 				<BrowserErrorOverlay error={state.error} onRetry={reload} />
 			)}
 			{isBlankPage && !state.isLoading && !state.error && (
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background pointer-events-none">
-					<GlobeIcon className="size-10 text-muted-foreground/30" />
-					<div className="text-center">
-						<p className="text-sm font-medium text-muted-foreground/50">
-							Browser
-						</p>
-						<p className="mt-1 text-xs text-muted-foreground/30">
-							Enter a URL above, or instruct an agent to navigate
-							<br />
-							and use the browser
-						</p>
+				<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background">
+					<div className="pointer-events-auto flex w-full max-w-sm flex-col items-center gap-5 px-6">
+						<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+							<GlobeIcon className="size-7 text-muted-foreground" />
+						</div>
+						<div className="text-center">
+							<p className="text-base font-medium text-foreground">
+								Start browsing
+							</p>
+							<p className="mt-1.5 text-sm text-muted-foreground">
+								Type a web address in the bar above, or ask an agent to browse
+								for you.
+							</p>
+						</div>
+						{canImport && (
+							<Button
+								variant="outline"
+								size="sm"
+								className="gap-2"
+								onClick={() => setIsImportOpen(true)}
+							>
+								<TbDownload className="size-4" />
+								Import from another browser
+							</Button>
+						)}
 					</div>
-					{canImport && (
-						<Button
-							variant="outline"
-							size="sm"
-							className="pointer-events-auto mt-1 gap-2"
-							onClick={() => setIsImportOpen(true)}
-						>
-							<TbDownload className="size-4" />
-							Import history & logins from another browser
-						</Button>
-					)}
 				</div>
 			)}
 			<ImportHistoryDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
