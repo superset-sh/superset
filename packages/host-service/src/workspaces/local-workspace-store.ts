@@ -3,10 +3,10 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 	type: "json",
 };
 import { getHostId } from "@superset/shared/host-info";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
 import type { WorkspaceSpawnOrigin } from "../db/schema";
-import { workspaces } from "../db/schema";
+import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
@@ -82,7 +82,10 @@ export interface CloudShapedWorkspace {
 	updatedAt: Date;
 }
 
-export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
+export function toWorkspaceSnapshot(
+	row: HostWorkspaceRow,
+	tags: string[],
+): WorkspaceSnapshot {
 	return {
 		id: row.id,
 		projectId: row.projectId,
@@ -93,6 +96,7 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		taskId: row.taskId,
 		createdByUserId: row.createdByUserId,
 		parentWorkspaceId: row.parentWorkspaceId,
+		tags,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 	};
@@ -139,6 +143,8 @@ export interface InsertLocalWorkspaceValues {
 	/** Pre-validated by the caller (resolveParentWorkspaceId). */
 	parentWorkspaceId?: string | null;
 	spawnOrigin?: WorkspaceSpawnOrigin | null;
+	/** Already-normalized tags (normalizeWorkspaceTags). */
+	tags?: string[];
 }
 
 /**
@@ -168,9 +174,16 @@ export function insertLocalWorkspace(
 			updatedAt: now,
 		})
 		.run();
+	const tags = values.tags ?? [];
+	if (tags.length > 0) {
+		ctx.db
+			.insert(workspaceTags)
+			.values(tags.map((tag) => ({ workspaceId: id, tag })))
+			.run();
+	}
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) throw new Error(`Workspace insert readback failed: ${id}`);
-	emitWorkspaceChanged(ctx.eventBus, "created", row);
+	emitWorkspaceChanged(ctx.eventBus, "created", row, tags);
 	trackWorkspaceEvent(ctx, "workspace_created", row);
 	return row;
 }
@@ -183,9 +196,11 @@ export interface UpdateLocalWorkspacePatch {
 	projectId?: string;
 	/** Pre-validated by the caller (existence, project, cycle guard). */
 	parentWorkspaceId?: string | null;
+	/** Already-normalized (normalizeWorkspaceTags); replaces the full set. */
+	tags?: string[];
 }
 
-/** Patch a local row, bump `updatedAt`, and broadcast. */
+/** Patch a local row (tag set included), bump `updatedAt`, and broadcast. */
 export function updateLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
@@ -193,16 +208,33 @@ export function updateLocalWorkspace(
 ): HostWorkspaceRow | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
+	const { tags, ...columns } = patch;
+	if (tags !== undefined) {
+		ctx.db.delete(workspaceTags).where(eq(workspaceTags.workspaceId, id)).run();
+		if (tags.length > 0) {
+			ctx.db
+				.insert(workspaceTags)
+				.values(tags.map((tag) => ({ workspaceId: id, tag })))
+				.run();
+		}
+	}
 	ctx.db
 		.update(workspaces)
 		.set({
-			...patch,
+			...columns,
 			updatedAt: Date.now(),
 		})
 		.where(eq(workspaces.id, id))
 		.run();
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "updated", row);
+	if (row) {
+		emitWorkspaceChanged(
+			ctx.eventBus,
+			"updated",
+			row,
+			tags ?? getWorkspaceTags(ctx.db, id),
+		);
+	}
 	return row;
 }
 
@@ -299,7 +331,68 @@ export function unarchiveLocalWorkspace(
 			.run();
 	}
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "created", row);
+	if (row) {
+		emitWorkspaceChanged(
+			ctx.eventBus,
+			"created",
+			row,
+			getWorkspaceTags(ctx.db, id),
+		);
+	}
+}
+
+const MAX_TAGS_PER_WORKSPACE = 32;
+const MAX_TAG_LENGTH = 64;
+
+/**
+ * Canonical tag form: trimmed, lowercased, length-capped. Returns null for
+ * tags that normalize to nothing. Tags are compared and stored in this form
+ * so `Backend` and `backend ` are the same label everywhere.
+ */
+export function normalizeWorkspaceTag(tag: string): string | null {
+	const normalized = tag.trim().toLowerCase();
+	if (!normalized || normalized.length > MAX_TAG_LENGTH) return null;
+	return normalized;
+}
+
+/** Normalize, drop empties, dedupe, and cap a caller-supplied tag list. */
+export function normalizeWorkspaceTags(tags: string[]): string[] {
+	const seen = new Set<string>();
+	for (const tag of tags) {
+		const normalized = normalizeWorkspaceTag(tag);
+		if (normalized) seen.add(normalized);
+		if (seen.size >= MAX_TAGS_PER_WORKSPACE) break;
+	}
+	return [...seen];
+}
+
+/** Tags per workspace for a bulk read (workspace.list). */
+export function getTagsByWorkspaceId(
+	db: HostDb,
+	workspaceIds: string[],
+): Map<string, string[]> {
+	const byId = new Map<string, string[]>();
+	if (workspaceIds.length === 0) return byId;
+	const rows = db
+		.select({
+			workspaceId: workspaceTags.workspaceId,
+			tag: workspaceTags.tag,
+		})
+		.from(workspaceTags)
+		.where(inArray(workspaceTags.workspaceId, workspaceIds))
+		.all();
+	for (const row of rows) {
+		const tags = byId.get(row.workspaceId);
+		if (tags) tags.push(row.tag);
+		else byId.set(row.workspaceId, [row.tag]);
+	}
+	for (const tags of byId.values()) tags.sort();
+	return byId;
+}
+
+/** A single workspace's sorted tag list. */
+export function getWorkspaceTags(db: HostDb, workspaceId: string): string[] {
+	return getTagsByWorkspaceId(db, [workspaceId]).get(workspaceId) ?? [];
 }
 
 /**
@@ -341,11 +434,12 @@ function emitWorkspaceChanged(
 	eventBus: EventBus,
 	eventType: "created" | "updated",
 	row: HostWorkspaceRow,
+	tags: string[],
 ): void {
 	eventBus.broadcastWorkspaceChanged({
 		workspaceId: row.id,
 		eventType,
-		workspace: toWorkspaceSnapshot(row),
+		workspace: toWorkspaceSnapshot(row, tags),
 		occurredAt: Date.now(),
 	});
 }

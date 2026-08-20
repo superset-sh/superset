@@ -30,6 +30,8 @@ export interface HostWorkspaceRow extends HostShapedWorkspace {
 	/** Lineage: the workspace this one was spawned from. Absent on rows
 	 * served by hosts that predate the column. */
 	parentWorkspaceId?: string | null;
+	/** Normalized labels; absent on rows from hosts that predate tags. */
+	tags?: string[];
 	/** Non-null = archived tombstone (only served on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
@@ -41,6 +43,8 @@ export interface HostWorkspaceItem extends HostShapedWorkspace {
 	worktreeExists?: boolean;
 	/** Lineage: the workspace this one was spawned from. */
 	parentWorkspaceId?: string | null;
+	/** Normalized labels; grouping UIs derive membership from these. */
+	tags?: string[];
 	/** False when the host didn't answer. */
 	hostReachable: boolean;
 	/** Non-null = archived tombstone (only present on `includeArchived`). */
@@ -234,13 +238,15 @@ export function applyWorkspaceChangedEvent(
 		type: snapshot.type,
 		createdByUserId: snapshot.createdByUserId,
 		taskId: snapshot.taskId,
-		// Only hosts that predate the column OMIT the field — keep the cached
-		// value then. A present `null` is a current host clearing the lineage
-		// (parent hard-deleted) and must overwrite, so no `??` here.
+		// Only hosts that predate the columns OMIT these fields — keep the
+		// cached values then. A present `null` parent is a current host
+		// clearing the lineage (parent hard-deleted) and must overwrite, so
+		// no `??` for it. Tags from current hosts are always an array.
 		parentWorkspaceId:
 			snapshot.parentWorkspaceId !== undefined
 				? snapshot.parentWorkspaceId
 				: (existing?.parentWorkspaceId ?? null),
+		tags: snapshot.tags ?? existing?.tags ?? [],
 		createdAt: new Date(snapshot.createdAt),
 		updatedAt: new Date(snapshot.updatedAt),
 		worktreePath: snapshot.worktreePath,

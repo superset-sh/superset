@@ -110,6 +110,7 @@ export function DashboardSidebarCloudSection({
 					lineageDepth: 0,
 					lineageChildCount: 0,
 					lineageCollapsed: false,
+					tags: [],
 				};
 			});
 	}, [cloudWorkspaces, hostWorkspaces, localStateRows]);

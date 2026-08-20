@@ -22,6 +22,7 @@ import {
 	type CloudShapedWorkspace,
 	getLocalWorkspace,
 	insertLocalWorkspace,
+	normalizeWorkspaceTags,
 	resolveParentWorkspaceId,
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
@@ -124,6 +125,8 @@ const createInputSchema = z
 		// git base branch. Invalid parents are dropped, not errored.
 		parentWorkspaceId: z.string().uuid().optional(),
 		spawnOrigin: z.enum(WORKSPACE_SPAWN_ORIGINS).optional(),
+		// Labels applied at creation; normalized server-side.
+		tags: z.array(z.string()).max(64).optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
@@ -489,6 +492,7 @@ async function registerLocalWorkspace(args: {
 	taskId: string | undefined;
 	parentWorkspaceId?: string | null;
 	spawnOrigin?: WorkspaceSpawnOrigin | null;
+	tags?: string[];
 	rollbackWorktree: () => Promise<void>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
@@ -504,6 +508,7 @@ async function registerLocalWorkspace(args: {
 			taskId: args.taskId ?? null,
 			parentWorkspaceId: args.parentWorkspaceId ?? null,
 			spawnOrigin: args.spawnOrigin ?? null,
+			tags: args.tags,
 		});
 	} catch (err) {
 		await args.rollbackWorktree();
@@ -552,7 +557,12 @@ export const workspacesRouter = router({
 				input.projectId,
 			);
 			const spawnOrigin = input.spawnOrigin ?? null;
-			const spawnMeta = { parentWorkspaceId: lineageParentId, spawnOrigin };
+			const tags = normalizeWorkspaceTags(input.tags ?? []);
+			const spawnMeta = {
+				parentWorkspaceId: lineageParentId,
+				spawnOrigin,
+				tags,
+			};
 
 			// Kick off AI naming when the user supplied a prompt but no
 			// workspace name. The worktree add and registration run with an

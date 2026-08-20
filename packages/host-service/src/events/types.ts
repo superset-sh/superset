@@ -70,6 +70,8 @@ export interface WorkspaceSnapshot {
 	createdByUserId: string | null;
 	/** Lineage: the workspace this one was spawned from. Null = top-level. */
 	parentWorkspaceId: string | null;
+	/** Normalized labels; grouping UIs derive membership from these. */
+	tags: string[];
 	createdAt: number;
 	updatedAt: number;
 }

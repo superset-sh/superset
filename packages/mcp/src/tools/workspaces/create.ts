@@ -82,6 +82,13 @@ export function register(server: McpServer): void {
 				.describe(
 					"Lineage: the workspace this create is spawned from. When you are an agent running inside a workspace, pass your own SUPERSET_WORKSPACE_ID so the new workspace nests under it in the sidebar. Metadata only — never affects the git base branch. Unknown or cross-project parents are dropped silently.",
 				),
+			tags: z
+				.array(z.string())
+				.max(64)
+				.optional()
+				.describe(
+					"Labels for the new workspace (normalized: trimmed, lowercased). Tag-bound sidebar groups derive membership from tags, so tagging is how agents organize related workspaces.",
+				),
 		},
 		handler: async (input, ctx) => {
 			if (input.projectId === undefined) {
@@ -160,6 +167,7 @@ export function register(server: McpServer): void {
 					command: input.command,
 					parentWorkspaceId: input.parentWorkspaceId,
 					spawnOrigin: "mcp",
+					tags: input.tags,
 				},
 			);
 		},

@@ -392,6 +392,7 @@ export function useDashboardSidebarState() {
 				tabOrder,
 				isCollapsed: false,
 				color: randomColor,
+				tagBinding: null,
 			});
 
 			return sectionId;

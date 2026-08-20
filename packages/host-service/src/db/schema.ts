@@ -284,3 +284,24 @@ export const workspaces = sqliteTable(
 			.where(sql`type = 'main'`),
 	],
 );
+
+// Free-form labels on workspaces, host-owned so every actor that can
+// create a workspace (UI, CLI, MCP, automations) can also organize it.
+// Grouping UIs derive membership from these instead of storing their own.
+export const workspaceTags = sqliteTable(
+	"workspace_tags",
+	{
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		// Stored as typed after normalizeWorkspaceTag (trimmed, lowercased).
+		tag: text().notNull(),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		uniqueIndex("workspace_tags_unique").on(table.workspaceId, table.tag),
+		index("workspace_tags_tag_idx").on(table.tag),
+	],
+);

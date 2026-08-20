@@ -11,6 +11,12 @@ export default command({
 		name: string().desc("Workspace name"),
 		taskId: string().desc("Link the workspace to a task by id"),
 		clearTask: boolean().desc("Unlink the workspace from its current task"),
+		tag: string()
+			.variadic()
+			.desc(
+				"Replace the workspace's tags with this set. Repeatable; tags are normalized (trimmed, lowercased). Tag-bound sidebar groups derive membership from tags",
+			),
+		clearTags: boolean().desc("Remove all tags from the workspace"),
 		parent: string().desc(
 			"Re-parent the workspace under another workspace (lineage only — never affects the git base branch)",
 		),
@@ -38,6 +44,18 @@ export default command({
 				? options.taskId
 				: undefined;
 
+		if (options.tag && options.tag.length > 0 && options.clearTags) {
+			throw new CLIError(
+				"Cannot combine --tag and --clear-tags",
+				"Pass one or the other",
+			);
+		}
+		const tags = options.clearTags
+			? []
+			: options.tag && options.tag.length > 0
+				? options.tag
+				: undefined;
+
 		if (options.parent !== undefined && options.noParent) {
 			throw new CLIError(
 				"Cannot combine --parent and --no-parent",
@@ -55,11 +73,12 @@ export default command({
 		if (
 			options.name === undefined &&
 			taskId === undefined &&
+			tags === undefined &&
 			parentWorkspaceId === undefined
 		) {
 			throw new CLIError(
 				"No fields to update",
-				"Pass --name, --task-id, --clear-task, --parent, or --no-parent",
+				"Pass --name, --task-id, --clear-task, --tag, --clear-tags, --parent, or --no-parent",
 			);
 		}
 
@@ -73,6 +92,7 @@ export default command({
 			id,
 			...(options.name !== undefined ? { name: options.name } : {}),
 			...(taskId !== undefined ? { taskId } : {}),
+			...(tags !== undefined ? { tags } : {}),
 			...(parentWorkspaceId !== undefined ? { parentWorkspaceId } : {}),
 		});
 

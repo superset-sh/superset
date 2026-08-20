@@ -33,6 +33,8 @@ export interface SidebarSectionInput {
 	isCollapsed: boolean;
 	tabOrder: number;
 	color: string | null;
+	/** Non-null = smart section: membership also derives from this tag. */
+	tagBinding: string | null;
 }
 
 export interface SidebarWorkspaceInput {
@@ -55,6 +57,8 @@ export interface SidebarWorkspaceInput {
 	parentWorkspaceId: string | null;
 	/** True when the user collapsed this workspace's child subtree. */
 	lineageCollapsed: boolean;
+	/** Normalized host-side labels. */
+	tags: string[];
 }
 
 /**
@@ -114,6 +118,7 @@ function decorateSidebarWorkspace(
 		lineageDepth: 0,
 		lineageChildCount: 0,
 		lineageCollapsed: workspace.lineageCollapsed,
+		tags: workspace.tags,
 	};
 }
 
@@ -220,6 +225,8 @@ export function buildDashboardSidebarProjects({
 		string,
 		DashboardSidebarProject & {
 			sectionMap: Map<string, DashboardSidebarSection>;
+			/** tag → bound section; lowest tab order wins on collision. */
+			tagSectionMap: Map<string, DashboardSidebarSection>;
 			childEntries: Array<{
 				tabOrder: number;
 				child: DashboardSidebarProjectChild;
@@ -236,6 +243,7 @@ export function buildDashboardSidebarProjects({
 			...project,
 			children: [],
 			sectionMap: new Map(),
+			tagSectionMap: new Map(),
 			childEntries: [],
 			orphanedWorkspaces: [],
 		});
@@ -251,6 +259,12 @@ export function buildDashboardSidebarProjects({
 		};
 
 		project.sectionMap.set(section.id, sidebarSection);
+		if (section.tagBinding !== null) {
+			const bound = project.tagSectionMap.get(section.tagBinding);
+			if (!bound || sidebarSection.tabOrder < bound.tabOrder) {
+				project.tagSectionMap.set(section.tagBinding, sidebarSection);
+			}
+		}
 		project.childEntries.push({
 			tabOrder: section.tabOrder,
 			child: {
@@ -290,6 +304,26 @@ export function buildDashboardSidebarProjects({
 			continue;
 		}
 
+		// Tag-derived membership: an unsectioned workspace joins the bound
+		// section with the lowest tab order among its tags. Explicit
+		// sectionId always wins above, and single-match keeps the "a
+		// workspace renders in exactly one container" invariant that
+		// ordering, DnD, and selection assume.
+		let tagSection: DashboardSidebarSection | undefined;
+		for (const tag of workspace.tags) {
+			const bound = project.tagSectionMap.get(tag);
+			if (bound && (!tagSection || bound.tabOrder < tagSection.tabOrder)) {
+				tagSection = bound;
+			}
+		}
+		if (tagSection) {
+			tagSection.workspaces.push({
+				...sidebarWorkspace,
+				accentColor: tagSection.color,
+			});
+			continue;
+		}
+
 		project.childEntries.push({
 			tabOrder: workspace.tabOrder,
 			child: {
@@ -305,6 +339,7 @@ export function buildDashboardSidebarProjects({
 		const {
 			childEntries,
 			sectionMap: _sectionMap,
+			tagSectionMap: _tagSectionMap,
 			orphanedWorkspaces,
 			...sidebarProject
 		} = resolvedProject;

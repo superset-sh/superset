@@ -6,6 +6,8 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import {
 	getLocalWorkspace,
+	getTagsByWorkspaceId,
+	normalizeWorkspaceTags,
 	toCloudShape,
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
@@ -65,10 +67,15 @@ export const workspaceRouter = router({
 						project.name || basename(project.repoPath),
 					]),
 			);
+			const tagsByWorkspaceId = getTagsByWorkspaceId(
+				ctx.db,
+				rows.map((row) => row.id),
+			);
 			return rows.map((row) => ({
 				...toCloudShape(row, ctx.organizationId),
 				worktreePath: row.worktreePath,
 				parentWorkspaceId: row.parentWorkspaceId,
+				tags: tagsByWorkspaceId.get(row.id) ?? [],
 				// Tombstones' worktrees are gone by definition; stat-checking an
 				// unbounded, forever-growing archive on every poll adds up.
 				worktreeExists:
@@ -94,6 +101,8 @@ export const workspaceRouter = router({
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
 				taskId: z.string().uuid().nullable().optional(),
+				// Replace-all tag set; normalized server-side.
+				tags: z.array(z.string()).max(64).optional(),
 				parentWorkspaceId: z.string().uuid().nullable().optional(),
 			}),
 		)
@@ -119,6 +128,7 @@ export const workspaceRouter = router({
 				branch?: string;
 				taskId?: string | null;
 				parentWorkspaceId?: string | null;
+				tags?: string[];
 			} = {};
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
@@ -171,6 +181,9 @@ export const workspaceRouter = router({
 					}
 				}
 				patch.parentWorkspaceId = input.parentWorkspaceId;
+			}
+			if (input.tags !== undefined) {
+				patch.tags = normalizeWorkspaceTags(input.tags);
 			}
 			if (Object.keys(patch).length === 0) {
 				return toCloudShape(current, ctx.organizationId);

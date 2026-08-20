@@ -39,6 +39,8 @@ export interface AdoptExistingWorktreeArgs {
 	 * caller (resolveParentWorkspaceId). */
 	parentWorkspaceId?: string | null;
 	spawnOrigin?: WorkspaceSpawnOrigin | null;
+	/** Already-normalized tags (normalizeWorkspaceTags). */
+	tags?: string[];
 }
 
 export interface AdoptExistingWorktreeResult {
@@ -78,6 +80,7 @@ export async function adoptExistingWorktree(
 		taskId,
 		parentWorkspaceId,
 		spawnOrigin,
+		tags,
 	} = args;
 	const store: WorkspaceStoreContext = {
 		db: ctx.db,
@@ -117,6 +120,7 @@ export async function adoptExistingWorktree(
 			taskId: taskId ?? null,
 			parentWorkspaceId: parentWorkspaceId ?? null,
 			spawnOrigin: spawnOrigin ?? null,
+			tags,
 		});
 		return {
 			workspace: toCloudShape(inserted, ctx.organizationId),
@@ -192,6 +196,7 @@ export async function adoptExistingWorktree(
 			taskId: taskId ?? null,
 			parentWorkspaceId: parentWorkspaceId ?? null,
 			spawnOrigin: spawnOrigin ?? null,
+			tags,
 		});
 	} catch (err) {
 		throw new TRPCError({

@@ -43,6 +43,11 @@ export default command({
 		parent: string().desc(
 			"Parent workspace ID for lineage. Defaults to the workspace this command runs inside (SUPERSET_WORKSPACE_ID). Metadata only — never affects the git base branch",
 		),
+		tag: string()
+			.variadic()
+			.desc(
+				"Tag the new workspace. Repeatable; tags are normalized (trimmed, lowercased). Tag-bound sidebar groups derive membership from tags",
+			),
 		noParent: boolean().desc(
 			"Create a top-level workspace even when running inside another workspace",
 		),
@@ -190,6 +195,7 @@ export default command({
 			command: options.command ?? undefined,
 			parentWorkspaceId,
 			spawnOrigin: "cli",
+			tags: options.tag ?? undefined,
 		});
 
 		return {

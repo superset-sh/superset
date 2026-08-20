@@ -183,6 +183,13 @@
       "when": 1787186156971,
       "tag": "0025_workspace_lineage",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1787186403722,
+      "tag": "0026_workspace_tags",
+      "breakpoints": true
     }
   ]
 }

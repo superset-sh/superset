@@ -82,7 +82,17 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							className="-ml-1 h-5 w-full min-w-0 px-1 py-0 text-[13px] font-medium bg-transparent border-none outline-none text-muted-foreground"
 						/>
 					) : (
-						<span className="truncate">{section.name}</span>
+						<>
+							<span className="truncate">{section.name}</span>
+							{section.tagBinding && (
+								<span
+									className="ml-1 shrink-0 rounded bg-fill-hover px-1 font-normal text-[10px] text-muted-foreground"
+									title={`Smart group: workspaces tagged "${section.tagBinding}" appear here automatically`}
+								>
+									#{section.tagBinding}
+								</span>
+							)}
+						</>
 					)}
 				</div>
 
