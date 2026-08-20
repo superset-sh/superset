@@ -75,20 +75,42 @@ export async function dispatchAutomation(
 	const { automation, relayUrl } = opts;
 	const cause = runCause(opts);
 
+	// An automation created from the detail page starts without instructions; a
+	// trigger can be armed before they're written, so refuse to run instead of
+	// starting an agent session with an empty prompt.
+	if (automation.prompt.trim().length === 0) {
+		const error = "automation has no instructions";
+		const inserted = await recordUndispatched(
+			automation,
+			cause,
+			automation.targetHostId,
+			"dispatch_failed",
+			error,
+		);
+		return { status: "dispatch_failed", runId: inserted?.id ?? null, error };
+	}
+
 	const candidates = await resolveCandidateHosts(automation);
 	if (candidates.length === 0) {
 		const error = "no host available";
-		const inserted = await recordSkipped(automation, cause, null, error);
+		const inserted = await recordUndispatched(
+			automation,
+			cause,
+			null,
+			"skipped_offline",
+			error,
+		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
 
 	const host = await pickOnlineHost(automation, relayUrl, candidates);
 	if (!host) {
 		const error = "target host offline";
-		const inserted = await recordSkipped(
+		const inserted = await recordUndispatched(
 			automation,
 			cause,
 			candidates[0]?.machineId ?? null,
+			"skipped_offline",
 			error,
 		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
@@ -359,10 +381,12 @@ function runDedupTarget(cause: RunCause) {
 			};
 }
 
-async function recordSkipped(
+/** Records a run that never reached a host, so the failure is visible. */
+async function recordUndispatched(
 	automation: DispatchableAutomation,
 	cause: RunCause,
 	hostId: string | null,
+	status: "skipped_offline" | "dispatch_failed",
 	error: string,
 ): Promise<{ id: string } | undefined> {
 	const [row] = await dbWs
@@ -373,7 +397,7 @@ async function recordSkipped(
 			title: automation.name,
 			...cause,
 			hostId,
-			status: "skipped_offline",
+			status,
 			error,
 		})
 		.onConflictDoNothing(runDedupTarget(cause))

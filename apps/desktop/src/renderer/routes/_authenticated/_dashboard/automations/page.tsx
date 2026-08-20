@@ -65,9 +65,9 @@ import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationStatCards } from "./components/AutomationStatCards";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
-import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
 import type { AutomationTemplate } from "./templates";
+import { matchAgentChoice, portableAgentValue } from "./utils/agentIdentity";
 import { isHostOfflineError } from "./utils/hostOfflineError";
 import { isStaleAgentError, STALE_AGENT_HELP } from "./utils/staleAgentError";
 
@@ -89,6 +89,9 @@ type AutomationSortField = "name" | "owner" | "schedule" | "status";
 const AUTOMATION_AGENT_PROMPT =
 	"Help me create a Superset automation. Use the superset:automate skill if it's available, otherwise the `superset` CLI (start with `superset automations --help`). Ask me what should run on a schedule, confirm the cadence, target project, and agent, then create the automation and trigger a first run so we can review the result together.";
 
+const DEFAULT_TIMEZONE =
+	Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
 function settledErrorMessage(result: PromiseSettledResult<unknown>) {
 	return result.status === "rejected" && result.reason instanceof Error
 		? result.reason.message
@@ -99,9 +102,6 @@ function AutomationsPage() {
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
 
-	const [createOpen, setCreateOpen] = useState(false);
-	const [initialTemplate, setInitialTemplate] =
-		useState<AutomationTemplate | null>(null);
 	const [scope, setScope] = useState<Scope>("mine");
 	const [search, setSearch] = useState("");
 	const [cliHintDismissed, setCliHintDismissed] = useState(false);
@@ -372,7 +372,9 @@ function AutomationsPage() {
 				case "schedule":
 					return automation.rrule
 						? describeSchedule(automation.rrule)
-						: "Event triggered";
+						: automation.triggerCount > 0
+							? "Event triggered"
+							: "No triggers";
 				case "status":
 					return automation.enabled ? "active" : "paused";
 			}
@@ -406,15 +408,59 @@ function AutomationsPage() {
 		[visible, failedIds],
 	);
 
-	const handleSelectTemplate = (template: AutomationTemplate) => {
-		setInitialTemplate(template);
-		setCreateOpen(true);
-	};
-
 	const navigate = useNavigate();
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
 	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
+
+	// Cursor-style creation: no dialog. "New automation" writes an untitled
+	// automation with no triggers and opens its detail page, which is the
+	// editor; a template pre-fills name/prompt/schedule the same way.
+	const createMutation = useMutation({
+		mutationFn: (template: AutomationTemplate | null) => {
+			const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
+			// Template preference first (iconId is a legacy fallback, as in the
+			// old dialog), then the last-used agent, then the first host agent.
+			const choice =
+				(template?.agentType
+					? (matchAgentChoice(agentChoices, template.agentType) ??
+						agentChoices.find((option) => option.iconId === template.agentType))
+					: null) ??
+				(stored ? matchAgentChoice(agentChoices, stored) : null) ??
+				agentChoices[0];
+			if (!choice) throw new Error("No agent available yet");
+			return apiTrpcClient.automation.create.mutate({
+				name: template?.name ?? "Untitled",
+				prompt: template?.prompt ?? "",
+				// Preset slug when unambiguous — instance UUIDs die when the host's
+				// agent-config table is re-seeded, orphaning the automation.
+				agent: portableAgentValue(agentChoices, choice),
+				targetHostId: machineId ?? null,
+				v2ProjectId: recentProjects.find((p) => p != null)?.id ?? null,
+				...(template?.rrule
+					? { rrule: template.rrule, timezone: DEFAULT_TIMEZONE }
+					: { triggers: [] }),
+			});
+		},
+		onSuccess: (result) => {
+			void utils.automation.list.invalidate();
+			void navigate({
+				to: "/automations/$automationId",
+				params: { automationId: result.id },
+			});
+		},
+		onError: (error) => {
+			// Raw Postgres errors are multi-line SQL dumps — keep the first line.
+			const message =
+				error instanceof Error ? error.message.split("\n")[0]?.trim() : null;
+			toast.error(message || "Failed to create automation");
+		},
+	});
+
+	const handleSelectTemplate = (template: AutomationTemplate) => {
+		if (createMutation.isPending) return;
+		createMutation.mutate(template);
+	};
 
 	// Opens a project-less agent session seeded with automation-creation
 	// instructions. The in-app "superset" chat agent can't run the CLI, so
@@ -450,11 +496,6 @@ function AutomationsPage() {
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
 		}).catch(() => {});
-	};
-
-	const handleDialogOpenChange = (next: boolean) => {
-		setCreateOpen(next);
-		if (!next) setInitialTemplate(null);
 	};
 
 	const scheduleWidth = scope === "team" ? "w-[16%]" : "w-[18%]";
@@ -568,7 +609,8 @@ function AutomationsPage() {
 								type="button"
 								size="sm"
 								className="h-8 gap-1.5 px-3"
-								onClick={() => setCreateOpen(true)}
+								disabled={createMutation.isPending}
+								onClick={() => createMutation.mutate(null)}
 							>
 								<LuPlus className="size-4" />
 								<span>New automation</span>
@@ -851,13 +893,6 @@ function AutomationsPage() {
 					)}
 				</div>
 			</div>
-
-			<CreateAutomationDialog
-				open={createOpen}
-				onOpenChange={handleDialogOpenChange}
-				initialTemplate={initialTemplate}
-				onCreated={() => handleDialogOpenChange(false)}
-			/>
 
 			<HostOfflineRunDialog
 				hostId={hostOfflineRun?.hostId ?? null}
