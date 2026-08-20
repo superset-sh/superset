@@ -9,6 +9,8 @@ import {
 // fileToBase64 goes through FileReader.readAsDataURL, which the renderer has
 // but Bun's test runtime may not — pin a minimal implementation over
 // Blob.arrayBuffer so the tests exercise the real base64 pipeline.
+let fileReads = 0;
+
 class TestFileReader {
 	result: string | null = null;
 	error: Error | null = null;
@@ -16,6 +18,7 @@ class TestFileReader {
 	onerror: (() => void) | null = null;
 
 	readAsDataURL(file: File) {
+		fileReads += 1;
 		file
 			.arrayBuffer()
 			.then((buffer) => {
@@ -164,7 +167,8 @@ describe("uploadPastedFiles", () => {
 	});
 
 	it("refuses oversized files before reading any bytes", async () => {
-		const { deps, writes } = makeDeps();
+		const { deps, createdDirs, writes } = makeDeps();
+		fileReads = 0;
 		const big = new File([new Uint8Array(1)], "video.mov", {
 			type: "video/quicktime",
 		});
@@ -180,12 +184,15 @@ describe("uploadPastedFiles", () => {
 				files: [big],
 			}),
 		).rejects.toThrow(PasteUploadLimitError);
-		// Failed fast: no directory created, no bytes shipped.
+		// Failed fast: nothing read, no directory created, no bytes shipped.
+		expect(fileReads).toBe(0);
+		expect(createdDirs).toHaveLength(0);
 		expect(writes).toHaveLength(0);
 	});
 
 	it("refuses batches over the total budget", async () => {
-		const { deps, writes } = makeDeps();
+		const { deps, createdDirs, writes } = makeDeps();
+		fileReads = 0;
 		const files = Array.from({ length: 5 }, (_, i) => {
 			const f = new File([new Uint8Array(1)], `part${i}.bin`, {
 				type: "application/octet-stream",
@@ -202,6 +209,8 @@ describe("uploadPastedFiles", () => {
 				files,
 			}),
 		).rejects.toThrow(PasteUploadLimitError);
+		expect(fileReads).toBe(0);
+		expect(createdDirs).toHaveLength(0);
 		expect(writes).toHaveLength(0);
 	});
 
