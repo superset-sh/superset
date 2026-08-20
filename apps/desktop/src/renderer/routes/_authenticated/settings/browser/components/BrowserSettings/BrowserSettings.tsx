@@ -92,7 +92,10 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 					<div className="flex items-center justify-between gap-4">
 						<div className="space-y-0.5">
 							<Label className="text-sm font-medium">
-								<HighlightText text="Import from Chrome" query={searchQuery} />
+								<HighlightText
+									text="Import settings from another browser"
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								Copy browsing history and logins from Chrome, Brave, Arc, or

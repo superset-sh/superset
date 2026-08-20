@@ -107,7 +107,7 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 								onClick={() => setIsImportOpen(true)}
 							>
 								<TbDownload className="size-4" />
-								Import from another browser
+								Import settings from another browser
 							</Button>
 						)}
 					</div>

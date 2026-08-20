@@ -809,7 +809,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY,
 		section: "browser",
-		title: "Import from Chrome",
+		title: "Import settings from another browser",
 		description:
 			"Copy browsing history and logins from Chrome, Brave, Arc, or another Chromium browser",
 		keywords: [

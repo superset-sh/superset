@@ -122,7 +122,7 @@ export function BrowserOverflowMenu({
 						className="gap-2"
 					>
 						<TbDownload className="size-4" />
-						Import from Chrome…
+						Import settings from another browser…
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleClearHistory} className="gap-2">
 						<TbClock className="size-4" />

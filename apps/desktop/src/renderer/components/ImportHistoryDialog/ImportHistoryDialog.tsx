@@ -140,7 +140,7 @@ export function ImportHistoryDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Import from another browser</DialogTitle>
+					<DialogTitle>Import settings from another browser</DialogTitle>
 					<DialogDescription>
 						Copy your browsing history and logins from another browser into
 						Superset. Your original browser isn't changed.
