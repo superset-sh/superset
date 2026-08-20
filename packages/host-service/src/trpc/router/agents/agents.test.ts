@@ -321,7 +321,7 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			prompt: "hi",
 		});
 		expect(launch.fullCommand).toBe(
-			`CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
 		);
 	});
 
@@ -334,8 +334,11 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			agent: "claude",
 			prompt: "hi",
 		});
+		// The per-agent value wins for CLAUDE_CONFIG_DIR; the SUPERSET_DEFAULT_*
+		// twin still carries the host default so the wrapper can re-resolve a
+		// later account switch without overriding the user-pinned value.
 		expect(launch.fullCommand).toBe(
-			"CLAUDE_CONFIG_DIR='/pinned/profile' 'claude' 'hi'",
+			`CLAUDE_CONFIG_DIR='/pinned/profile' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
 		);
 	});
 

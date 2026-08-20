@@ -259,10 +259,10 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 export function createClaudeWrapper(): void {
 	const script = buildWrapperScript(
 		"claude",
-		buildDefaultAccountResolver(
+		`${buildDefaultAccountResolver(
 			"CLAUDE_CONFIG_DIR",
 			"default-claude-config-dir",
-		) + `exec "$REAL_BIN" "$@"`,
+		)}exec "$REAL_BIN" "$@"`,
 		{ agentId: "claude" },
 	);
 	createWrapper("claude", script);
