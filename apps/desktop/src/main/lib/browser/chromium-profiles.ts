@@ -250,34 +250,6 @@ export function listAllChromiumProfiles(
 	);
 }
 
-/** macOS `.app` bundle name for each browser, used to find its icon. */
-const BROWSER_APP_NAMES: Record<string, string> = {
-	chrome: "Google Chrome",
-	"chrome-beta": "Google Chrome Beta",
-	"chrome-canary": "Google Chrome Canary",
-	chromium: "Chromium",
-	edge: "Microsoft Edge",
-	brave: "Brave Browser",
-	arc: "Arc",
-	dia: "Dia",
-	comet: "Comet",
-};
-
-/** Resolves a browser's installed `.app` bundle path on macOS, or null. */
-export function resolveBrowserAppPath(
-	browserKey: string,
-	homeDir: string = os.homedir(),
-): string | null {
-	if (process.platform !== "darwin") return null;
-	const appName = BROWSER_APP_NAMES[browserKey];
-	if (!appName) return null;
-	for (const base of ["/Applications", path.join(homeDir, "Applications")]) {
-		const candidate = path.join(base, `${appName}.app`);
-		if (existsSync(candidate)) return candidate;
-	}
-	return null;
-}
-
 /**
  * True when a Chromium browser's user-data directory exists but its contents
  * can't be read — the signature of a macOS permission denial. Chrome's own data
