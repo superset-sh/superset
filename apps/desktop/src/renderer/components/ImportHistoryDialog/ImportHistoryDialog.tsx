@@ -179,7 +179,7 @@ export function ImportHistoryDialog({
 				{loadState.status === "ready" && loadState.sources.length > 0 && (
 					<div className="flex flex-col gap-4 py-1">
 						<RadioGroup
-							className="gap-2"
+							className="max-h-64 gap-2 overflow-y-auto"
 							value={selectedId ?? undefined}
 							onValueChange={setSelectedId}
 						>
