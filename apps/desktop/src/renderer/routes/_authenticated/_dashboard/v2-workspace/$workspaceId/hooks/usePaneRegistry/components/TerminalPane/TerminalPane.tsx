@@ -20,6 +20,7 @@ import {
 	useTerminalFolderPolicy,
 	useTerminalUrlPolicy,
 } from "renderer/lib/clickPolicy";
+import { repairDroppedPaths } from "renderer/lib/terminal/repair-dropped-paths";
 import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
@@ -405,14 +406,20 @@ export function TerminalPane({
 
 	const [isDropActive, setIsDropActive] = useState(false);
 	const dragCounterRef = useRef(0);
+	/** Which terminal this pane currently shows, for re-checking after an await. */
+	const terminalIdRef = useRef(terminalId);
+	terminalIdRef.current = terminalId;
 
-	const resolveDroppedText = (dataTransfer: DataTransfer): string | null => {
+	const resolveDroppedText = async (
+		dataTransfer: DataTransfer,
+	): Promise<string | null> => {
 		const files = Array.from(dataTransfer.files);
 		if (files.length > 0) {
 			const paths = files
 				.map((file) => window.webUtils.getPathForFile(file))
 				.filter(Boolean);
-			return paths.length > 0 ? shellEscapePaths(paths) : null;
+			if (paths.length === 0) return null;
+			return shellEscapePaths(await repairDroppedPaths(paths));
 		}
 		const plainText = dataTransfer.getData("text/plain");
 		return plainText ? shellEscapePaths([plainText]) : null;
@@ -438,13 +445,25 @@ export function TerminalPane({
 		}
 	};
 
-	const handleDrop = (event: React.DragEvent) => {
+	const handleDrop = async (event: React.DragEvent) => {
 		event.preventDefault();
 		dragCounterRef.current = 0;
 		setIsDropActive(false);
 		if (connectionState === "closed") return;
-		const text = resolveDroppedText(event.dataTransfer);
+		const text = await resolveDroppedText(event.dataTransfer);
 		if (!text) return;
+		// Resolving a dropped path is async, and the pane can be re-pointed at
+		// another terminal while it runs (session dropdown, tab switch). Drop
+		// the paste rather than send it to whichever terminal we captured.
+		if (terminalIdRef.current !== terminalId) return;
+		if (
+			terminalRuntimeRegistry.getConnectionState(
+				terminalId,
+				terminalInstanceId,
+			) === "closed"
+		) {
+			return;
+		}
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();

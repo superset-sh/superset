@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
 	getAppCommand,
 	RelativePathWithoutCwdError,
+	resolveDroppedPath,
 	resolvePath,
 	stripPathWrappers,
 } from "./helpers";
@@ -745,5 +747,65 @@ describe("resolvePath guards against process.cwd() fallback", () => {
 		expect(resolvePath("src/index.ts", "/workspace")).toBe(
 			"/workspace/src/index.ts",
 		);
+	});
+});
+
+describe("resolveDroppedPath", () => {
+	const NNBSP = "\u202f";
+	let dir: string;
+
+	beforeEach(() => {
+		dir = fs.mkdtempSync(path.join(os.tmpdir(), "dropped-path-"));
+	});
+
+	afterEach(() => {
+		fs.rmSync(dir, { recursive: true, force: true });
+	});
+
+	test("repairs a path whose narrow no-break space arrived as a plain space", async () => {
+		const onDisk = path.join(dir, `Screenshot at 9.42.51${NNBSP}am.png`);
+		fs.writeFileSync(onDisk, "x");
+		const dropped = path.join(dir, "Screenshot at 9.42.51 am.png");
+
+		expect(fs.existsSync(dropped)).toBe(false);
+		expect(await resolveDroppedPath(dropped)).toBe(onDisk);
+		expect(fs.existsSync(await resolveDroppedPath(dropped))).toBe(true);
+	});
+
+	test("leaves a path that already exists untouched", async () => {
+		const onDisk = path.join(dir, `real${NNBSP}name.png`);
+		fs.writeFileSync(onDisk, "x");
+		expect(await resolveDroppedPath(onDisk)).toBe(onDisk);
+	});
+
+	test("gives up when two siblings fold to the same name", async () => {
+		fs.writeFileSync(path.join(dir, `a${NNBSP}b.png`), "x");
+		fs.writeFileSync(path.join(dir, "a\u00a0b.png"), "x");
+		const dropped = path.join(dir, "a b.png");
+		expect(fs.existsSync(dropped)).toBe(false);
+		expect(await resolveDroppedPath(dropped)).toBe(dropped);
+	});
+
+	test("returns the input when nothing in the directory matches", async () => {
+		fs.writeFileSync(path.join(dir, "other.png"), "x");
+		const dropped = path.join(dir, "missing.png");
+		expect(await resolveDroppedPath(dropped)).toBe(dropped);
+	});
+
+	test("returns the input when the directory does not exist", async () => {
+		const dropped = path.join(dir, "nope", "missing.png");
+		expect(await resolveDroppedPath(dropped)).toBe(dropped);
+	});
+
+	test("leaves a relative path alone rather than scanning the cwd", async () => {
+		expect(await resolveDroppedPath("relative/name.png")).toBe(
+			"relative/name.png",
+		);
+	});
+
+	test("handles a path directly under the root without bailing out", async () => {
+		// dirname("/x.png") is "/", which an empty-string check would reject.
+		const dropped = "/superset-dropped-path-probe.png";
+		expect(await resolveDroppedPath(dropped)).toBe(dropped);
 	});
 });

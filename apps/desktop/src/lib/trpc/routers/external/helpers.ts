@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { matchByFoldedName } from "shared/dropped-path-repair";
 
 /** Map of app IDs to their macOS application names */
 const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
@@ -413,6 +415,55 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 			}
 		});
 	});
+}
+
+/** A drop lands in one directory; a huge one is not a screenshot folder. */
+const MAX_REPAIR_DIRECTORY_ENTRIES = 5_000;
+
+/**
+ * The on-disk path behind a dropped one whose Unicode whitespace came back
+ * folded to ASCII (#6369). Returns the input unchanged whenever it already
+ * resolves, the directory cannot be read, or more than one sibling matches —
+ * so this only ever swaps a path that does not exist for one that does.
+ */
+export async function resolveDroppedPath(dropped: string): Promise<string> {
+	if (!nodePath.isAbsolute(dropped)) return dropped;
+	if (fs.existsSync(dropped)) return dropped;
+
+	// nodePath rather than a hand-rolled split: it keeps the root directory for
+	// a file dropped straight into `/`, and it understands the backslash
+	// separator that Electron hands back on Windows.
+	const dir = nodePath.dirname(dropped);
+	const base = nodePath.basename(dropped);
+	if (!base) return dropped;
+
+	// Streamed with opendir so the cap bounds the scan itself; readdir would
+	// have materialized the whole listing before we could check it. Breaking
+	// out of `for await` closes the directory handle.
+	const entries: string[] = [];
+	let overflowed = false;
+	try {
+		const directory = await fs.promises.opendir(dir);
+		for await (const entry of directory) {
+			entries.push(entry.name);
+			if (entries.length > MAX_REPAIR_DIRECTORY_ENTRIES) {
+				overflowed = true;
+				break;
+			}
+		}
+	} catch (error) {
+		// A permission or I/O failure is not a non-match — say so, then fall
+		// back to the path we were given.
+		console.warn(
+			"[external/resolveDroppedPath] Could not read the dropped file's directory",
+			{ dropped, dir, error },
+		);
+		return dropped;
+	}
+	if (overflowed) return dropped;
+
+	const match = matchByFoldedName(base, entries);
+	return match ? nodePath.join(dir, match) : dropped;
 }
 
 export type { ExternalApp };

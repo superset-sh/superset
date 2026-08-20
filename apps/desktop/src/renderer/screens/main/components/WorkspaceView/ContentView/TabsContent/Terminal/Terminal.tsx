@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
+import { repairDroppedPaths } from "renderer/lib/terminal/repair-dropped-paths";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { SessionKilledOverlay } from "./components";
@@ -424,14 +425,14 @@ export const Terminal = memo(function Terminal({
 		event.dataTransfer.dropEffect = "copy";
 	};
 
-	const handleDrop = (event: React.DragEvent) => {
+	const handleDrop = async (event: React.DragEvent) => {
 		event.preventDefault();
 		const files = Array.from(event.dataTransfer.files);
 		let text: string;
 		if (files.length > 0) {
 			// Native file drop (from Finder, etc.)
 			const paths = files.map((file) => window.webUtils.getPathForFile(file));
-			text = shellEscapePaths(paths);
+			text = shellEscapePaths(await repairDroppedPaths(paths));
 		} else {
 			// Internal drag (from file tree) - path is in text/plain
 			const plainText = event.dataTransfer.getData("text/plain");
