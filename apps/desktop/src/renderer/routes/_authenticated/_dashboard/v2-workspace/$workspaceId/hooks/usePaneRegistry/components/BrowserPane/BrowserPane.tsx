@@ -85,8 +85,8 @@ export function BrowserPane({ ctx }: BrowserPaneProps) {
 				<BrowserErrorOverlay error={state.error} onRetry={reload} />
 			)}
 			{isBlankPage && !state.isLoading && !state.error && (
-				<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background">
-					<div className="pointer-events-auto flex w-full max-w-sm flex-col items-center gap-5 px-6">
+				<div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+					<div className="flex w-full max-w-sm flex-col items-center gap-5 px-6">
 						<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
 							<GlobeIcon className="size-7 text-muted-foreground" />
 						</div>
