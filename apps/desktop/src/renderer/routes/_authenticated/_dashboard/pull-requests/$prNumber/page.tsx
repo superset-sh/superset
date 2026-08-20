@@ -93,6 +93,36 @@ const PR_BADGE_ICON_COLOR: Record<PRState, string> = {
 	queued: "text-amber-600 dark:text-amber-400",
 };
 
+// Mount one instance per PR (parent passes `key={prNumber}`) so switching PRs
+// in the split view resets the copied state instead of leaking a stale
+// checkmark from whatever branch was last copied — the route component
+// itself isn't remounted on a $prNumber change alone.
+function CopyBranchButton({ branchRef }: { branchRef: string }) {
+	const { copyToClipboard, copied } = useCopyToClipboard();
+
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<button
+					type="button"
+					onClick={() => copyToClipboard(branchRef)}
+					aria-label={copied ? "Branch name copied" : "Copy branch name"}
+					className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
+				>
+					{copied ? (
+						<LuCheck className="size-3 text-emerald-500" />
+					) : (
+						<LuCopy className="size-3" />
+					)}
+				</button>
+			</TooltipTrigger>
+			<TooltipContent side="bottom">
+				{copied ? "Copied!" : "Copy branch name"}
+			</TooltipContent>
+		</Tooltip>
+	);
+}
+
 function PullRequestDetailPage() {
 	const { prNumber: prNumberRaw } = Route.useParams();
 	const prNumber = parsePositiveIntegerParam(prNumberRaw);
@@ -114,7 +144,6 @@ function PullRequestDetailPage() {
 	const [pendingAction, setPendingAction] = useState<PendingAction | null>(
 		null,
 	);
-	const { copyToClipboard, copied: branchNameCopied } = useCopyToClipboard();
 
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: ["pull-request-detail", projectId, hostUrl, prNumber],
@@ -302,6 +331,13 @@ function PullRequestDetailPage() {
 	const branchSummary = data.branch
 		? `${headBranchRef} → ${data.baseBranch}`
 		: null;
+	const createdAtMs = data.createdAt
+		? new Date(data.createdAt).getTime()
+		: null;
+	const relativeCreatedAt =
+		createdAtMs !== null && !Number.isNaN(createdAtMs)
+			? formatRelativeTime(createdAtMs)
+			: null;
 
 	return (
 		<div className="@container flex min-h-0 flex-1 flex-col">
@@ -314,17 +350,19 @@ function PullRequestDetailPage() {
 						{data.title}
 					</h1>
 					<div className="flex shrink-0 items-center gap-1">
-						<Button variant="ghost" size="icon-xs" asChild>
-							<a
-								href={data.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								aria-label="Open pull request in GitHub"
-								title="Open pull request in GitHub"
-							>
-								<LuExternalLink className="size-3.5" />
-							</a>
-						</Button>
+						{data.url && (
+							<Button variant="ghost" size="icon-xs" asChild>
+								<a
+									href={data.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									aria-label="Open pull request in GitHub"
+									title="Open pull request in GitHub"
+								>
+									<LuExternalLink className="size-3.5" />
+								</a>
+							</Button>
+						)}
 						{data.state !== "merged" && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
@@ -438,11 +476,13 @@ function PullRequestDetailPage() {
 					)}
 					<span aria-hidden>·</span>
 					<span>#{data.number}</span>
-					{data.createdAt && (
+					{relativeCreatedAt && (
 						<>
 							<span aria-hidden>·</span>
 							<span>
-								{formatRelativeTime(new Date(data.createdAt).getTime())} ago
+								{relativeCreatedAt === "now"
+									? relativeCreatedAt
+									: `${relativeCreatedAt} ago`}
 							</span>
 						</>
 					)}
@@ -452,25 +492,7 @@ function PullRequestDetailPage() {
 							<span className="min-w-0 break-all font-mono">
 								{branchSummary}
 							</span>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<button
-										type="button"
-										onClick={() => copyToClipboard(headBranchRef)}
-										aria-label="Copy branch name"
-										className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
-									>
-										{branchNameCopied ? (
-											<LuCheck className="size-3 text-emerald-500" />
-										) : (
-											<LuCopy className="size-3" />
-										)}
-									</button>
-								</TooltipTrigger>
-								<TooltipContent side="bottom">
-									{branchNameCopied ? "Copied!" : "Copy branch name"}
-								</TooltipContent>
-							</Tooltip>
+							<CopyBranchButton key={data.number} branchRef={headBranchRef} />
 						</>
 					)}
 				</div>
