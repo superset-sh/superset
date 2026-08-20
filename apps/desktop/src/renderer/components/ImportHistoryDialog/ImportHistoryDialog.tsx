@@ -12,14 +12,29 @@ import { Label } from "@superset/ui/label";
 import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useState } from "react";
+import type { IconType } from "react-icons";
+import { SiArc, SiBrave, SiGooglechrome } from "react-icons/si";
 import { TbWorld } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 interface ImportSource {
 	id: string;
+	browserKey: string;
 	browserName: string;
 	profileName: string;
-	iconDataUrl?: string | null;
+}
+
+/** Brand glyph per browser; a globe covers browsers Simple Icons doesn't ship. */
+const BROWSER_ICONS: Record<string, IconType> = {
+	chrome: SiGooglechrome,
+	"chrome-beta": SiGooglechrome,
+	"chrome-canary": SiGooglechrome,
+	brave: SiBrave,
+	arc: SiArc,
+};
+
+function browserIcon(browserKey: string): IconType {
+	return BROWSER_ICONS[browserKey] ?? TbWorld;
 }
 
 interface ImportHistoryDialogProps {
@@ -173,32 +188,27 @@ export function ImportHistoryDialog({
 							value={selectedId ?? undefined}
 							onValueChange={setSelectedId}
 						>
-							{loadState.sources.map((source) => (
-								<div key={source.id} className="flex items-center gap-2">
-									<RadioGroupItem value={source.id} id={source.id} />
-									<Label
-										htmlFor={source.id}
-										className="flex items-center gap-2 font-normal"
-									>
-										{source.iconDataUrl ? (
-											<img
-												src={source.iconDataUrl}
-												alt=""
-												className="size-4 shrink-0"
-											/>
-										) : (
-											<TbWorld className="size-4 shrink-0 text-muted-foreground" />
-										)}
-										<span>
-											{source.browserName}
-											<span className="text-muted-foreground">
-												{" "}
-												— {source.profileName}
+							{loadState.sources.map((source) => {
+								const Icon = browserIcon(source.browserKey);
+								return (
+									<div key={source.id} className="flex items-center gap-2">
+										<RadioGroupItem value={source.id} id={source.id} />
+										<Label
+											htmlFor={source.id}
+											className="flex items-center gap-2 font-normal"
+										>
+											<Icon className="size-4 shrink-0" />
+											<span>
+												{source.browserName}
+												<span className="text-muted-foreground">
+													{" "}
+													— {source.profileName}
+												</span>
 											</span>
-										</span>
-									</Label>
-								</div>
-							))}
+										</Label>
+									</div>
+								);
+							})}
 						</RadioGroup>
 
 						<div className="flex flex-col gap-2 border-t pt-3">
