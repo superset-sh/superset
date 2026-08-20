@@ -111,10 +111,10 @@ describe("mapUrlRowsToEntries", () => {
 });
 
 describe("readHistoryFromProfile", () => {
-	it("returns nothing when the profile has no History file", () => {
+	it("returns nothing when the profile has no History file", async () => {
 		const emptyDir = mkdtempSync(path.join(tmpdir(), "chrome-import-empty-"));
 		try {
-			expect(readHistoryFromProfile(emptyDir)).toEqual([]);
+			expect(await readHistoryFromProfile(emptyDir)).toEqual([]);
 		} finally {
 			rmSync(emptyDir, { recursive: true, force: true });
 		}

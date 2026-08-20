@@ -1,4 +1,5 @@
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -70,9 +71,9 @@ export function chromeTimeToUnixMs(chromeMicroseconds: number): number | null {
  * live `History` database while running, so we copy it (plus any WAL sidecar)
  * to a temp directory and read the copy read-only.
  */
-export function readHistoryFromProfile(
+export async function readHistoryFromProfile(
 	profileDir: string,
-): ImportedHistoryEntry[] {
+): Promise<ImportedHistoryEntry[]> {
 	const source = path.join(profileDir, "History");
 	if (!existsSync(source)) return [];
 
@@ -107,7 +108,7 @@ export function readHistoryFromProfile(
 			db.close();
 		}
 	} finally {
-		rmSync(tempDir, { recursive: true, force: true });
+		await rm(tempDir, { recursive: true, force: true });
 	}
 }
 

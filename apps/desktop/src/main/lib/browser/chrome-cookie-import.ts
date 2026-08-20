@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
-import { copyFileSync, existsSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -256,7 +257,7 @@ export async function readCookiesFromProfile(
 			db.close();
 		}
 	} finally {
-		rmSync(tempDir, { recursive: true, force: true });
+		await rm(tempDir, { recursive: true, force: true });
 	}
 }
 

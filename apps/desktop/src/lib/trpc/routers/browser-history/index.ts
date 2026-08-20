@@ -118,7 +118,7 @@ export const createBrowserHistoryRouter = () => {
 		 */
 		importFromSource: publicProcedure
 			.input(z.object({ sourceId: z.string() }))
-			.mutation(({ input }) => {
+			.mutation(async ({ input }) => {
 				const profileDir = resolveImportSource(input.sourceId);
 				if (!profileDir) {
 					throw new TRPCError({
@@ -127,9 +127,9 @@ export const createBrowserHistoryRouter = () => {
 					});
 				}
 
-				let entries: ReturnType<typeof readHistoryFromProfile>;
+				let entries: Awaited<ReturnType<typeof readHistoryFromProfile>>;
 				try {
-					entries = readHistoryFromProfile(profileDir);
+					entries = await readHistoryFromProfile(profileDir);
 				} catch (error) {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
