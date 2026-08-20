@@ -1,6 +1,8 @@
 import braveLogo from "./brave.svg";
 import chromeLogo from "./chrome.svg";
 import chromiumLogo from "./chromium.svg";
+import cometLogo from "./comet.svg";
+import diaLogo from "./dia.svg";
 import edgeLogo from "./edge.svg";
 
 /**
@@ -15,6 +17,8 @@ export const BROWSER_LOGOS: Record<string, string> = {
 	chromium: chromiumLogo,
 	edge: edgeLogo,
 	brave: braveLogo,
+	comet: cometLogo,
+	dia: diaLogo,
 };
 
 /** Returns the logo URL for a browser key, or undefined if none is bundled. */
