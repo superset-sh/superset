@@ -104,7 +104,10 @@ describe("useIsV1FlipLocked", () => {
 	test("forced-flip backstop locks the flip without a marker", () => {
 		forcedFlipActive = true;
 		try {
-			expect(readProbe("org-forced", false)).toEqual({ locked: true, v2: true });
+			expect(readProbe("org-forced", false)).toEqual({
+				locked: true,
+				v2: true,
+			});
 		} finally {
 			forcedFlipActive = false;
 		}
