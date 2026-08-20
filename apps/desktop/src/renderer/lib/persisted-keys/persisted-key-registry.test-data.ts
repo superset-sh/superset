@@ -120,6 +120,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["usage-last-section-v1"],
 	],
 	["src/renderer/stores/inline-workspace-ports.ts", ["inline-workspace-ports"]],
+	[
+		"src/renderer/stores/free-solo-board/free-solo-board.ts",
+		["free-solo-board"],
+	],
 	["src/renderer/hotkeys/stores/hotkeyOverridesStore.ts", ["hotkey-overrides"]],
 	[
 		"src/renderer/hotkeys/stores/keyboardPreferencesStore.ts",

@@ -75,7 +75,8 @@ function DashboardLayout() {
 		matchRoute({ to: "/tasks", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
 		matchRoute({ to: "/usage", fuzzy: true }) !== false ||
-		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;
+		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false ||
+		matchRoute({ to: "/free-solo", fuzzy: true }) !== false;
 	const versionMismatch =
 		(isV2CloudEnabled && onV1WorkspaceRoute) ||
 		(!isV2CloudEnabled && onV2WorkspaceRoute);

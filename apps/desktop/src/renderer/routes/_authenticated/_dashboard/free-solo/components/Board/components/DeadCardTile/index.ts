@@ -1,0 +1,1 @@
+export { DeadCardTile } from "./DeadCardTile";
