@@ -272,10 +272,14 @@ export interface CookieImportResult {
  * from the system browser could clobber the app's signed-in session.
  */
 function isProtectedCookieHost(host: string): boolean {
-	const bare = host.startsWith(".") ? host.slice(1) : host;
+	const bare = (host.startsWith(".") ? host.slice(1) : host)
+		.toLowerCase()
+		.replace(/^\[|\]$/g, ""); // strip IPv6 brackets, e.g. [::1]
 	return (
 		bare === "localhost" ||
+		bare.endsWith(".localhost") ||
 		bare === "127.0.0.1" ||
+		bare === "::1" ||
 		bare === "superset.sh" ||
 		bare.endsWith(".superset.sh")
 	);
