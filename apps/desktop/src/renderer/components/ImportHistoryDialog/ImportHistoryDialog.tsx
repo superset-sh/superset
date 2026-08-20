@@ -12,12 +12,14 @@ import { Label } from "@superset/ui/label";
 import { RadioGroup, RadioGroupItem } from "@superset/ui/radio-group";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useState } from "react";
+import { TbWorld } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 interface ImportSource {
 	id: string;
 	browserName: string;
 	profileName: string;
+	iconDataUrl?: string | null;
 }
 
 interface ImportHistoryDialogProps {
@@ -174,11 +176,25 @@ export function ImportHistoryDialog({
 							{loadState.sources.map((source) => (
 								<div key={source.id} className="flex items-center gap-2">
 									<RadioGroupItem value={source.id} id={source.id} />
-									<Label htmlFor={source.id} className="font-normal">
-										{source.browserName}
-										<span className="text-muted-foreground">
-											{" "}
-											— {source.profileName}
+									<Label
+										htmlFor={source.id}
+										className="flex items-center gap-2 font-normal"
+									>
+										{source.iconDataUrl ? (
+											<img
+												src={source.iconDataUrl}
+												alt=""
+												className="size-4 shrink-0"
+											/>
+										) : (
+											<TbWorld className="size-4 shrink-0 text-muted-foreground" />
+										)}
+										<span>
+											{source.browserName}
+											<span className="text-muted-foreground">
+												{" "}
+												— {source.profileName}
+											</span>
 										</span>
 									</Label>
 								</div>

@@ -2,6 +2,7 @@ import { browserHistory } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { like, or, sql } from "drizzle-orm";
 import { session } from "electron";
+import { getBrowserIconDataUrl } from "main/lib/browser/browser-icons";
 import { importCookiesIntoSession } from "main/lib/browser/chrome-cookie-import";
 import {
 	listChromeImportSources,
@@ -99,15 +100,31 @@ export const createBrowserHistoryRouter = () => {
 		 * Access; we only hint at FDA when a browser is installed but its profile
 		 * directory can't be read.
 		 */
-		getImportSources: publicProcedure.query(() => {
+		getImportSources: publicProcedure.query(async () => {
 			const sources = listChromeImportSources();
-			if (sources.length > 0) {
-				return { needsFullDiskAccess: false, sources };
+			if (sources.length === 0) {
+				return {
+					needsFullDiskAccess:
+						process.platform === "darwin" && hasUnreadableChromiumBrowser(),
+					sources: [],
+				};
+			}
+			// Resolve each browser's app icon once (profiles share a browser).
+			const iconByBrowser = new Map<string, string | null>();
+			for (const source of sources) {
+				if (!iconByBrowser.has(source.browserKey)) {
+					iconByBrowser.set(
+						source.browserKey,
+						await getBrowserIconDataUrl(source.browserKey),
+					);
+				}
 			}
 			return {
-				needsFullDiskAccess:
-					process.platform === "darwin" && hasUnreadableChromiumBrowser(),
-				sources,
+				needsFullDiskAccess: false,
+				sources: sources.map((source) => ({
+					...source,
+					iconDataUrl: iconByBrowser.get(source.browserKey) ?? null,
+				})),
 			};
 		}),
 

@@ -114,6 +114,8 @@ export function readHistoryFromProfile(
 export interface ChromeImportSource {
 	/** Absolute profile directory path; also used as the opaque source id. */
 	id: string;
+	/** Stable browser key, e.g. "chrome", "comet". */
+	browserKey: string;
 	/** Browser name, e.g. "Google Chrome". */
 	browserName: string;
 	/** Profile display name, e.g. "Default" or "Work". */
@@ -123,6 +125,7 @@ export interface ChromeImportSource {
 function toSource(profile: ChromiumProfile): ChromeImportSource {
 	return {
 		id: profile.profileDir,
+		browserKey: profile.browser.key,
 		browserName: profile.browser.name,
 		profileName: profile.displayName,
 	};
