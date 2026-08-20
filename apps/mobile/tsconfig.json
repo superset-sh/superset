@@ -5,7 +5,11 @@
 		"skipLibCheck": true,
 		"paths": {
 			"@/*": ["./*"],
-			"@superset/alert-prompt": ["./modules/alert-prompt/src/index.ts"]
+			"@superset/alert-prompt": ["./modules/alert-prompt/src/index.ts"],
+			"@superset/attachments-sheet": [
+				"./modules/attachments-sheet/src/index.ts"
+			],
+			"@superset/paste-input": ["./modules/paste-input/src/index.tsx"]
 		}
 	},
 	"include": ["**/*.ts", "**/*.tsx", "uniwind-env.d.ts", "uniwind-types.d.ts"],
