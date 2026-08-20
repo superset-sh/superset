@@ -138,8 +138,11 @@ export function WorkspaceScreen() {
 	const createFailed =
 		!!pendingCreate?.error && !workspaceResolved && rows.length === 0;
 
+	// Poll through the failed state too: a relay timeout can reject a create
+	// the host actually finished, and the row arriving is what heals it.
+	const pollingActive = isCreating || createFailed;
 	useEffect(() => {
-		if (!isCreating || !pendingCreate) return;
+		if (!pollingActive || !pendingCreate) return;
 		const interval = setInterval(() => {
 			void queryClient.invalidateQueries({
 				queryKey: getHostWorkspacesQueryKey(
@@ -152,7 +155,7 @@ export function WorkspaceScreen() {
 			});
 		}, PENDING_CREATE_POLL_MS);
 		return () => clearInterval(interval);
-	}, [isCreating, pendingCreate, queryClient]);
+	}, [pollingActive, pendingCreate, queryClient]);
 
 	// The launched session arrived — the create is done for this screen.
 	useEffect(() => {
