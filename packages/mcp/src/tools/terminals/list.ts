@@ -37,7 +37,7 @@ export function register(server: McpServer): void {
 					hostId: input.hostId,
 					jwt: ctx.bearerToken,
 				},
-				"terminal.listSessions",
+				"terminal.list",
 				"query",
 				{ workspaceId: input.workspaceId },
 			);

@@ -1,5 +1,5 @@
 interface V2WorkspaceNameSource {
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	name: string;
 	branch: string;
 }

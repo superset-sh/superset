@@ -10,52 +10,137 @@ export type CommandNode = {
 	args?: ProcessedBuilderConfig[];
 };
 
+/** Optional branding/curation for the root help screen. */
+export interface HelpBranding {
+	/** One-line pitch printed under the wordmark. */
+	tagline?: string;
+	/** Curated sections; listed command names come from the command tree. */
+	sections?: Array<{ title: string; commands: string[] }>;
+	/** Copy-paste examples shown before the command list. */
+	examples?: Array<{ cmd: string; desc: string }>;
+	docsUrl?: string;
+	/** One-line closing tip. */
+	tip?: string;
+}
+
+const useColor = () =>
+	process.stdout.isTTY === true && process.env.NO_COLOR === undefined;
+
+type Paint = (s: string) => string;
+const ansi =
+	(open: string, close = "\x1b[0m"): Paint =>
+	(s) =>
+		useColor() ? `${open}${s}${close}` : s;
+
+export const paint = {
+	bold: ansi("\x1b[1m"),
+	dim: ansi("\x1b[2m"),
+	cyan: ansi("\x1b[36m"),
+	green: ansi("\x1b[32m"),
+	yellow: ansi("\x1b[33m"),
+	magenta: ansi("\x1b[35m"),
+	heading: ansi("\x1b[1m\x1b[4m"),
+	invert: ansi("\x1b[7m"),
+};
+
+function visibleRootEntries(root: CommandNode): Array<[string, CommandNode]> {
+	return [...root.children.entries()]
+		.filter(([, node]) => node.children.size > 0 || node.hasCommand)
+		.sort(([a], [b]) => a.localeCompare(b));
+}
+
+function commandLabel(name: string, node: CommandNode): string {
+	const aliasStr = node.aliases?.length ? ` (${node.aliases.join(", ")})` : "";
+	return `${name}${aliasStr}`;
+}
+
 export function generateRootHelp(
 	name: string,
 	version: string,
 	root: CommandNode,
 	globals?: Record<string, ProcessedBuilderConfig>,
+	branding?: HelpBranding,
 ): string {
 	const lines: string[] = [];
-	lines.push(`${name} v${version}`);
+	lines.push(`${paint.bold(paint.cyan(name))} ${paint.dim(`v${version}`)}`);
+	if (branding?.tagline) {
+		lines.push(paint.dim(branding.tagline));
+	}
 	lines.push("");
-	lines.push(`Usage: ${name} <command> [options]`);
+	lines.push(
+		`${paint.heading("Usage")}  ${name} ${paint.cyan("<command>")} ${paint.dim("[options]")}`,
+	);
 	lines.push("");
 
-	if (root.children.size > 0) {
-		lines.push("Commands:");
-		const entries = [...root.children.entries()]
-			.filter(([, node]) => node.children.size > 0 || node.hasCommand)
-			.sort(([a], [b]) => a.localeCompare(b));
+	const entries = visibleRootEntries(root);
 
-		const maxLen = Math.max(
-			...entries.map(([name]) => {
-				const node = root.children.get(name)!;
-				const aliasStr = node.aliases?.length
-					? ` (${node.aliases.join(", ")})`
-					: "";
-				return name.length + aliasStr.length;
-			}),
-		);
-
-		for (const [cmdName, node] of entries) {
-			const aliasStr = node.aliases?.length
-				? ` (${node.aliases.join(", ")})`
-				: "";
-			const label = `${cmdName}${aliasStr}`.padEnd(maxLen + 2);
-			lines.push(`  ${label}${node.description ?? ""}`);
+	if (branding?.examples?.length) {
+		lines.push(paint.heading("Examples"));
+		for (const example of branding.examples) {
+			lines.push(`  ${paint.dim("$")} ${paint.green(example.cmd)}`);
+			lines.push(`    ${paint.dim(example.desc)}`);
 		}
 		lines.push("");
 	}
 
-	if (globals) {
-		lines.push("Global options:");
+	if (entries.length > 0) {
+		const maxLen = Math.max(
+			...entries.map(([n, node]) => commandLabel(n, node).length),
+		);
+		const renderEntry = ([cmdName, node]: [string, CommandNode]) => {
+			const label = commandLabel(cmdName, node).padEnd(maxLen + 2);
+			return `  ${paint.cyan(label)}${node.description ?? ""}`;
+		};
+
+		if (branding?.sections?.length) {
+			lines.push(paint.heading("Commands"));
+			const byName = new Map(entries);
+			const seen = new Set<string>();
+			for (const section of branding.sections) {
+				const sectionEntries = section.commands.flatMap((n) => {
+					const node = byName.get(n);
+					if (!node) return [];
+					seen.add(n);
+					return [[n, node] as [string, CommandNode]];
+				});
+				if (sectionEntries.length === 0) continue;
+				lines.push(`  ${paint.bold(section.title)}`);
+				for (const entry of sectionEntries)
+					lines.push(`  ${renderEntry(entry)}`);
+			}
+			const rest = entries.filter(([n]) => !seen.has(n));
+			if (rest.length > 0) {
+				lines.push(`  ${paint.bold("Other")}`);
+				for (const entry of rest) lines.push(`  ${renderEntry(entry)}`);
+			}
+			lines.push("");
+		} else {
+			lines.push(paint.heading("Commands"));
+			for (const entry of entries) lines.push(renderEntry(entry));
+			lines.push("");
+		}
+	}
+
+	if (globals && Object.keys(globals).length > 0) {
+		lines.push(paint.heading("Global options"));
 		lines.push(...formatOptions(globals));
 		lines.push("");
 	}
 
-	lines.push("  --help, -h       Show help");
-	lines.push("  --version, -v    Show version");
+	lines.push(`  ${paint.cyan("--help, -h".padEnd(17))}Show help`);
+	lines.push(`  ${paint.cyan("--version, -v".padEnd(17))}Show version`);
+
+	const footer: string[] = [];
+	if (branding?.docsUrl) {
+		footer.push(`  ${paint.dim("Docs")}  ${paint.cyan(branding.docsUrl)}`);
+	}
+	if (branding?.tip) {
+		footer.push(`  ${paint.dim("Tip")}   ${branding.tip}`);
+	}
+	if (footer.length > 0) {
+		lines.push("");
+		lines.push(...footer);
+	}
 
 	return lines.join("\n");
 }

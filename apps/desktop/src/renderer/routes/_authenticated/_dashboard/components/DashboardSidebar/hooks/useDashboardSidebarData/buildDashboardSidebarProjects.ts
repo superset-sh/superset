@@ -36,7 +36,8 @@ export interface SidebarSectionInput {
 
 export interface SidebarWorkspaceInput {
 	id: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	hostId: string;
 	type: DashboardSidebarWorkspaceType;
 	hostIsOnline: boolean;
@@ -127,22 +128,66 @@ export function buildDashboardSidebarPinnedWorkspaces({
 	const projectsById = new Map(
 		sidebarProjects.map((project) => [project.id, project]),
 	);
-	return pinnedSidebarWorkspaces.flatMap((workspace) => {
-		const project = projectsById.get(workspace.projectId);
-		if (!project) return [];
-		return [
-			{
-				...decorateSidebarWorkspace(
-					workspace,
-					project,
-					machineId,
-					pullRequestsByWorkspaceId,
-				),
-				projectName: project.name,
-				projectIconUrl: project.iconUrl,
-			},
-		];
-	});
+	return pinnedSidebarWorkspaces.flatMap(
+		(workspace): DashboardSidebarPinnedWorkspace[] => {
+			// Pinned sessions render with no project identity.
+			if (workspace.projectId === null) {
+				return [
+					{
+						...decorateSidebarWorkspace(
+							workspace,
+							{ githubOwner: null, githubRepoName: null },
+							machineId,
+							pullRequestsByWorkspaceId,
+						),
+						projectName: null,
+						projectIconUrl: null,
+					},
+				];
+			}
+			const project = projectsById.get(workspace.projectId);
+			if (!project) return [];
+			return [
+				{
+					...decorateSidebarWorkspace(
+						workspace,
+						project,
+						machineId,
+						pullRequestsByWorkspaceId,
+					),
+					projectName: project.name,
+					projectIconUrl: project.iconUrl,
+				},
+			];
+		},
+	);
+}
+
+/**
+ * Decorates the Sessions section rows (project-less workspaces), ordered by
+ * tabOrder ascending. Sessions have no repo identity, so every project-derived
+ * affordance (repoUrl, remote-branch, PRs) is null/off.
+ */
+export function buildDashboardSidebarSessionWorkspaces({
+	sessionSidebarWorkspaces,
+	machineId,
+	pullRequestsByWorkspaceId,
+}: {
+	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
+	machineId: string;
+	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+}): DashboardSidebarWorkspace[] {
+	return sessionSidebarWorkspaces
+		.slice()
+		.sort((left, right) => left.tabOrder - right.tabOrder)
+		.map((workspace) =>
+			decorateSidebarWorkspace(
+				workspace,
+				{ githubOwner: null, githubRepoName: null },
+				machineId,
+				pullRequestsByWorkspaceId,
+			),
+		);
 }
 
 export interface BuildDashboardSidebarProjectsParams {
@@ -205,6 +250,9 @@ export function buildDashboardSidebarProjects({
 	}
 
 	for (const workspace of visibleSidebarWorkspaces) {
+		// Sessions render in the top-level Sessions section, never in a
+		// project group (see buildDashboardSidebarSessionWorkspaces).
+		if (workspace.projectId === null) continue;
 		const project = projectsById.get(workspace.projectId);
 		if (!project) continue;
 
@@ -280,25 +328,11 @@ export function buildDashboardSidebarProjects({
 			})
 			.map(({ child }) => child);
 
-		// Ungrouped workspaces rendered after a section header are visually
-		// grouped with that section (shared accent, collapse-together) and will
-		// be committed into it on next DnD. Reparent them here so section counts
-		// match what the user sees.
-		const children: DashboardSidebarProjectChild[] = [];
-		let currentSection: DashboardSidebarSection | null = null;
-		for (const child of sortedChildren) {
-			if (child.type === "section") {
-				currentSection = child.section;
-				children.push(child);
-			} else if (currentSection) {
-				currentSection.workspaces.push({
-					...child.workspace,
-					accentColor: currentSection.color,
-				});
-			} else {
-				children.push(child);
-			}
-		}
+		// Section membership is explicit (sectionId): an ungrouped workspace
+		// keeps its top-level slot even when its tabOrder places it below a
+		// section header — groups reorder like any other item, so ungrouped
+		// rows and sections interleave freely.
+		const children: DashboardSidebarProjectChild[] = [...sortedChildren];
 
 		if (orphanedWorkspaces.length > 0) {
 			const firstSectionIndex = children.findIndex(

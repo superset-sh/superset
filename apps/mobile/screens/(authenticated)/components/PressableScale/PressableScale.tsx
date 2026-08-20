@@ -1,4 +1,4 @@
-import { type ComponentProps, type ReactNode, useRef } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
 	Pressable,
 	type StyleProp,
@@ -15,11 +15,10 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const PRESS_IN_MS = 80;
 const PRESS_OUT_MS = 250;
-// Fade back to rest while a long press develops, so the row is clean before
-// the native context-menu lift snapshots it (~500ms in).
-const HOLD_FADE_DELAY_MS = 300;
-const HOLD_FADE_MS = 150;
 
+// Button press feedback (scale + highlight, held while pressed). Not for
+// rows with a native context menu — the system lift owns that animation;
+// give those a plain Pressable with a highlight.
 export function PressableScale({
 	children,
 	style,
@@ -31,7 +30,6 @@ export function PressableScale({
 	style?: StyleProp<ViewStyle>;
 }) {
 	const pressed = useSharedValue(0);
-	const holdFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const containerStyle = useAnimatedStyle(() => ({
 		transform: [{ scale: 1 - pressed.value * 0.025 }],
 	}));
@@ -45,17 +43,9 @@ export function PressableScale({
 			style={[style, containerStyle]}
 			onPressIn={(event) => {
 				pressed.value = withTiming(1, { duration: PRESS_IN_MS });
-				if (holdFadeTimer.current) clearTimeout(holdFadeTimer.current);
-				holdFadeTimer.current = setTimeout(() => {
-					pressed.value = withTiming(0, { duration: HOLD_FADE_MS });
-				}, HOLD_FADE_DELAY_MS);
 				onPressIn?.(event);
 			}}
 			onPressOut={(event) => {
-				if (holdFadeTimer.current) {
-					clearTimeout(holdFadeTimer.current);
-					holdFadeTimer.current = null;
-				}
 				pressed.value = withTiming(0, { duration: PRESS_OUT_MS });
 				onPressOut?.(event);
 			}}

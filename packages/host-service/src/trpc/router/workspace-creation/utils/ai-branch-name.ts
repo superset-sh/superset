@@ -1,5 +1,5 @@
-import { generateTitleFromMessage } from "@superset/chat-legacy/server/desktop";
-import { getSmallModel } from "@superset/chat-legacy/server/shared";
+import { generateTitleFromMessage } from "@superset/provider-auth/server";
+import { getSmallModel } from "@superset/provider-auth/server/shared";
 import { deduplicateBranchName } from "./sanitize-branch";
 
 const BRANCH_NAME_INSTRUCTIONS =

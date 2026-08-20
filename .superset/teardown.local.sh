@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local-development teardown. Removes this workspace's DB bundle (Postgres +
-# neon-proxy + Electric + Redis/SRH) and its volume. App servers
+# neon-proxy + Redis/SRH) and its volume. App servers
 # (web/api/desktop/etc.) are stopped by Ctrl+C on `bun dev`; this only tears
 # down the docker stack.
 set -uo pipefail

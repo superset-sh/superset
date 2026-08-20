@@ -8,25 +8,14 @@ export interface FilePaneData {
 
 export interface TerminalPaneData {
 	terminalId: string;
-}
-
-export interface ChatPaneData {
-	sessionId: string | null;
 	/**
-	 * Transient initial launch config for a freshly-opened chat pane.
-	 * Cleared by the chat pane on first consume. Set by the V2 workspace
-	 * page's useConsumePendingLaunch when a pending chat launch exists.
+	 * Pane was inserted optimistically; the WS attach creates the session
+	 * (`create=1`) instead of a pre-awaited HTTP mutation, which starves under
+	 * Chromium's 6-per-origin socket pool. Safe to persist: the host only
+	 * honors it when no session row exists at all, so a stale flag can't
+	 * clobber a live or exited session.
 	 */
-	launchConfig?: {
-		initialPrompt?: string;
-		initialFiles?: Array<{
-			data: string;
-			mediaType: string;
-			filename?: string;
-		}>;
-		model?: string;
-		taskSlug?: string;
-	} | null;
+	createOnAttach?: boolean;
 }
 
 export interface BrowserPaneData {
@@ -70,7 +59,6 @@ export interface ChatV3PaneData {
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
-	| ChatPaneData
 	| ChatV3PaneData
 	| BrowserPaneData
 	| DevtoolsPaneData

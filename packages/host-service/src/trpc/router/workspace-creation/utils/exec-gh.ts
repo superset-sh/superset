@@ -27,6 +27,9 @@ export const execGh: ExecGh = async (args, options) => {
 	const { stdout } = await execFileAsync("gh", args, {
 		encoding: "utf8",
 		timeout: options?.timeout ?? 10_000,
+		// Node's 1MB default dies on large REST payloads (open-PR sweeps of
+		// busy repos exceed it even paginated).
+		maxBuffer: 10 * 1024 * 1024,
 		cwd: options?.cwd,
 		env,
 	});

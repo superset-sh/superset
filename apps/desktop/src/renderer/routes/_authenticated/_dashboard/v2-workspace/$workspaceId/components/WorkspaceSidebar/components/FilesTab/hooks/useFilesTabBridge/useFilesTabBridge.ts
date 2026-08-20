@@ -3,12 +3,27 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
+import { isHostServiceConnectionError } from "renderer/lib/host-service-client";
+import type { TreeBookkeeping } from "../../utils/treeBookkeeping";
+import { purgeDirectory, rekeyDirectory } from "../../utils/treeBookkeeping";
 import {
 	asDirectoryHandle,
+	resolveDeleteTreePath,
 	stripTrailingSlash,
 	toAbs,
 	toRel,
 } from "../../utils/treePath";
+
+// Failed listings retry on their own with exponential backoff: a listing can
+// fail while the host socket stays open (relay 502s, a host-service restart
+// racing the request), and without a retry the directory sat empty until the
+// user left and re-entered the workspace. Bounded — the connection-status
+// subscription below covers outages that outlast the backoff window.
+const FETCH_RETRY_BASE_MS = 1_000;
+const FETCH_RETRY_MAX_MS = 15_000;
+const FETCH_RETRY_MAX_ATTEMPTS = 5;
 
 interface UseFilesTabBridgeOptions {
 	model: FileTree;
@@ -21,8 +36,14 @@ export interface FilesTabBridge {
 	knownPaths: Set<string>;
 	/** Relative directory paths whose children we've fetched. "" = root. */
 	loadedDirs: Set<string>;
-	/** Placeholder paths created via "New File/Folder", awaiting rename commit. */
-	pendingCreates: Map<string, "file" | "folder">;
+	/**
+	 * Surface a path in the tree without waiting for the fs watcher. Idempotent.
+	 * Returns false if Pierre rejected it, in which case our bookkeeping is
+	 * rolled back too — callers must not assume the row exists.
+	 */
+	addPath(treePath: string): boolean;
+	/** Drop a path (and, for directories, its cached descendants) from the tree. */
+	removePath(treePath: string): void;
 	/** Lazy-load a directory's children into Pierre. Idempotent + dedup'd. */
 	fetchDir(relDir: string): Promise<void>;
 	/** Re-fetch every loaded directory and resetPaths so drift can't accumulate. */
@@ -51,7 +72,11 @@ export interface FilesTabBridge {
  * so consumers can hold references safely):
  *   - `knownPaths`: union of every path Pierre has been told about
  *   - `loadedDirs`: directories whose children we've already fetched
- *   - `pendingCreates`: placeholder paths from the inline "New" flow
+ *   - `unloadedDirCandidates`: known directories still awaiting a fetch
+ *
+ * All three are path-keyed, so a folder rename or removal invalidates every
+ * entry beneath it at once. `purgeDirectory` / `rekeyDirectory` move them
+ * together — see `utils/treeBookkeeping`.
  *
  * Drives four side-effects:
  *   - Initial load: fetch root on mount / workspace switch
@@ -59,13 +84,12 @@ export interface FilesTabBridge {
  *     that becomes expanded but isn't loaded yet
  *   - Live sync: apply fs:events (create / delete / rename / overflow) to the
  *     model + bookkeeping, falling back to a full refresh on overflow
- *   - Pending-create cleanup: when Pierre's renaming flow is canceled with
- *     `removeIfCanceled`, it fires a `remove` mutation; we use that to drop
- *     the placeholder from our bookkeeping
+ *   - Row removal: mirror Pierre's `remove` mutations into our bookkeeping
+ *     (the Files tab's own cancel handling lives in useFilesTabActions)
  *
- * Workspace-switch races: every async listing captures a `versionRef` snapshot
- * and aborts its mutations if `versionRef` advanced (i.e. workspace/root
- * changed) before the await resolved.
+ * Async-listing races: every listing captures both the workspace version and a
+ * tree revision. It aborts if the workspace changes or if a destructive tree
+ * mutation (rename or removal) happens before the await resolves.
  */
 export function useFilesTabBridge({
 	model,
@@ -86,32 +110,64 @@ export function useFilesTabBridge({
 	// fetchDir before reveal's own `await fetchDir` runs — without shared
 	// promises, reveal would resolve before children land in knownPaths.
 	const inflightDirsRef = useRef(new Map<string, Promise<void>>());
-	const pendingCreatesRef = useRef(new Map<string, "file" | "folder">());
 
 	// Bumped on workspace/root change so async listings started against an
 	// old workspace can detect they're stale and bail out before mutating.
 	const versionRef = useRef(0);
+	// Bumped on structural changes within the current workspace so a delayed
+	// listing cannot restore paths that were renamed or removed after it began.
+	const treeRevisionRef = useRef(0);
 
 	// Track directories that are known but haven't been loaded yet. When
 	// Pierre fires model.subscribe (on expansion, selection, etc.) we only
 	// check these candidates instead of iterating the entire knownPaths set.
 	const unloadedDirCandidatesRef = useRef(new Set<string>());
 
+	// Consecutive listing failures per directory, cleared on success and on
+	// workspace switch. Drives the bounded retry backoff in fetchDir.
+	const fetchFailuresRef = useRef(new Map<string, number>());
+
+	// The three path-keyed sets always move together on a rename or removal, so
+	// hand them to the helpers as one value rather than passing them separately
+	// and risking one being forgotten.
+	const bookkeeping = useCallback(
+		(): TreeBookkeeping => ({
+			knownPaths: knownPathsRef.current,
+			loadedDirs: loadedDirsRef.current,
+			unloadedDirCandidates: unloadedDirCandidatesRef.current,
+		}),
+		[],
+	);
+
+	const invalidateTreeListings = useCallback(() => {
+		treeRevisionRef.current += 1;
+	}, []);
+
 	const fetchDir = useCallback(
-		async (relDir: string): Promise<void> => {
+		async function fetchDirectory(relDir: string): Promise<void> {
 			if (!rootPath || !workspaceId) return;
 			if (loadedDirsRef.current.has(relDir)) return;
 			const existing = inflightDirsRef.current.get(relDir);
 			if (existing) return existing;
 
 			const startVersion = versionRef.current;
+			const startTreeRevision = treeRevisionRef.current;
+			let shouldRetry = false;
+			let retryDelayMs = 0;
 			const promise = (async () => {
 				try {
 					const result = await utils.filesystem.listDirectory.fetch({
 						workspaceId,
 						absolutePath: toAbs(rootPath, relDir),
 					});
-					if (versionRef.current !== startVersion) return;
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						shouldRetry = versionRef.current === startVersion;
+						return;
+					}
+					fetchFailuresRef.current.delete(relDir);
 					const ops: { type: "add"; path: string }[] = [];
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
@@ -131,11 +187,26 @@ export function useFilesTabBridge({
 					loadedDirsRef.current.add(relDir);
 					unloadedDirCandidatesRef.current.delete(relDir);
 				} catch (error) {
-					if (versionRef.current !== startVersion) return;
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						shouldRetry = versionRef.current === startVersion;
+						return;
+					}
 					console.error("[v2 FilesTab] listDirectory failed", {
 						relDir,
 						error,
 					});
+					const attempt = (fetchFailuresRef.current.get(relDir) ?? 0) + 1;
+					fetchFailuresRef.current.set(relDir, attempt);
+					if (attempt <= FETCH_RETRY_MAX_ATTEMPTS) {
+						shouldRetry = true;
+						retryDelayMs = Math.min(
+							FETCH_RETRY_BASE_MS * 2 ** (attempt - 1),
+							FETCH_RETRY_MAX_MS,
+						);
+					}
 				}
 			})();
 			inflightDirsRef.current.set(relDir, promise);
@@ -147,6 +218,26 @@ export function useFilesTabBridge({
 				if (inflightDirsRef.current.get(relDir) === promise) {
 					inflightDirsRef.current.delete(relDir);
 				}
+				if (!shouldRetry || versionRef.current !== startVersion) return;
+				// Root is always relevant. Nested directories are retried only when
+				// they still exist at the same path and remain expanded; a renamed or
+				// removed directory must not produce a request against its old path.
+				const retryIfStillRelevant = () => {
+					if (versionRef.current !== startVersion) return;
+					if (relDir === "") {
+						if (!loadedDirsRef.current.has("")) void fetchDirectory(relDir);
+						return;
+					}
+					const dirKey = `${relDir}/`;
+					if (!knownPathsRef.current.has(dirKey)) return;
+					const handle = asDirectoryHandle(model.getItem(dirKey));
+					if (handle?.isExpanded()) void fetchDirectory(relDir);
+				};
+				if (retryDelayMs > 0) {
+					setTimeout(retryIfStillRelevant, retryDelayMs);
+				} else {
+					retryIfStillRelevant();
+				}
 			});
 			return promise;
 		},
@@ -157,37 +248,71 @@ export function useFilesTabBridge({
 		if (!rootPath || !workspaceId) return;
 		setIsRefreshing(true);
 		const startVersion = versionRef.current;
+		const startTreeRevision = treeRevisionRef.current;
 		try {
-			const dirsToReload = Array.from(loadedDirsRef.current).sort(
-				(a, b) => a.split("/").length - b.split("/").length,
-			);
-			loadedDirsRef.current.clear();
-
+			// Always include the root: when the initial load failed (host
+			// restarting, relay flap) nothing is in loadedDirs, and a refresh
+			// that only re-lists loaded dirs would silently do nothing — the
+			// one moment the button matters most.
+			const dirsToReload = Array.from(
+				new Set(["", ...loadedDirsRef.current]),
+			).sort((a, b) => a.split("/").length - b.split("/").length);
 			// Collect fresh listings into a flat set then resetPaths so what
-			// Pierre shows can't drift from what we think we know.
+			// Pierre shows can't drift from what we think we know. Keep the live
+			// loaded-dir set untouched until commit so a stale refresh can abort
+			// without partially clearing current bookkeeping.
 			const freshPaths = new Set<string>();
+			const freshLoadedDirs = new Set<string>();
 			for (const dir of dirsToReload) {
 				try {
 					const result = await utils.filesystem.listDirectory.fetch(
 						{ workspaceId, absolutePath: toAbs(rootPath, dir) },
 						{ staleTime: 0 },
 					);
-					if (versionRef.current !== startVersion) return;
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						return;
+					}
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
 						freshPaths.add(entry.kind === "directory" ? `${rel}/` : rel);
 					}
-					loadedDirsRef.current.add(dir);
+					freshLoadedDirs.add(dir);
 				} catch (error) {
+					if (
+						versionRef.current !== startVersion ||
+						treeRevisionRef.current !== startTreeRevision
+					) {
+						return;
+					}
 					console.error("[v2 FilesTab] refresh listDirectory failed", {
 						dir,
 						error,
 					});
+					// A transport-level failure (host unreachable mid-refresh) says
+					// nothing about what exists on disk — committing would wipe the
+					// dir's whole subtree from the tree. Abort and keep the current
+					// state instead. Typed errors (e.g. NOT_FOUND for a directory
+					// deleted since it was loaded) legitimately drop the dir.
+					if (isHostServiceConnectionError(error)) {
+						return;
+					}
 				}
 			}
-			if (versionRef.current !== startVersion) return;
+			if (
+				versionRef.current !== startVersion ||
+				treeRevisionRef.current !== startTreeRevision
+			) {
+				return;
+			}
 			knownPathsRef.current.clear();
+			loadedDirsRef.current.clear();
 			unloadedDirCandidatesRef.current.clear();
+			for (const dir of freshLoadedDirs) {
+				loadedDirsRef.current.add(dir);
+			}
 			for (const path of freshPaths) {
 				knownPathsRef.current.add(path);
 				if (path.endsWith("/")) {
@@ -208,14 +333,43 @@ export function useFilesTabBridge({
 	useEffect(() => {
 		if (!rootPath || !workspaceId) return;
 		versionRef.current += 1;
+		invalidateTreeListings();
 		knownPathsRef.current.clear();
 		loadedDirsRef.current.clear();
 		inflightDirsRef.current.clear();
-		pendingCreatesRef.current.clear();
 		unloadedDirCandidatesRef.current.clear();
+		fetchFailuresRef.current.clear();
 		model.resetPaths([]);
 		void fetchDir("");
-	}, [model, rootPath, workspaceId, fetchDir]);
+	}, [model, rootPath, workspaceId, fetchDir, invalidateTreeListings]);
+
+	// Recover listings lost to a host outage. A listing that failed while the
+	// host was down exhausts its retries against a dead socket; when the
+	// connection (re)opens, fetch whatever is still missing — the root when
+	// the initial load never landed, plus any expanded dirs awaiting children.
+	// Without this, the tab sat empty until the user left and re-entered the
+	// workspace (Refresh used to no-op here too — see doRefresh).
+	const hostUrl = useWorkspaceHostUrl(workspaceId || null);
+	useEffect(() => {
+		if (!hostUrl || !workspaceId || !rootPath) return;
+		const bus = getHostEventBus(hostUrl);
+		const releaseRetain = bus.retain();
+		const unsubscribe = bus.subscribeConnectionStatus((status) => {
+			if (status.state !== "open") return;
+			fetchFailuresRef.current.clear();
+			if (!loadedDirsRef.current.has("")) {
+				void fetchDir("");
+			}
+			for (const dirRel of unloadedDirCandidatesRef.current) {
+				const handle = asDirectoryHandle(model.getItem(`${dirRel}/`));
+				if (handle?.isExpanded()) void fetchDir(dirRel);
+			}
+		});
+		return () => {
+			unsubscribe();
+			releaseRetain();
+		};
+	}, [hostUrl, workspaceId, rootPath, model, fetchDir]);
 
 	// On every model change, check only unloaded directory candidates for
 	// expansion. Pierre doesn't surface an explicit "expand" event, so we
@@ -236,20 +390,22 @@ export function useFilesTabBridge({
 	}, [model, fetchDir]);
 
 	// Pierre fires a `remove` mutation when an inline rename is canceled with
-	// `removeIfCanceled: true`. Mirror that into our bookkeeping so the
-	// placeholder doesn't ghost in pendingCreates / knownPaths. (Renames that
-	// commit fire `move`, not `remove` — those are handled in handleRename.)
+	// `removeIfCanceled: true`. Mirror that into our bookkeeping so the row
+	// doesn't ghost in knownPaths. (Renames that commit fire `move`, not
+	// `remove` — those are handled in handleRename. Deleting the cancelled
+	// entry from disk is useFilesTabActions' job, via its own `remove`
+	// listener; Pierre supports several per mutation type.)
 	useEffect(() => {
 		return model.onMutation("remove", (event) => {
-			pendingCreatesRef.current.delete(event.path);
+			invalidateTreeListings();
 			knownPathsRef.current.delete(event.path);
 			if (event.path.endsWith("/")) {
 				const dir = stripTrailingSlash(event.path);
 				loadedDirsRef.current.delete(dir);
-				purgeDescendants(knownPathsRef.current, loadedDirsRef.current, dir);
+				purgeDirectory(bookkeeping(), dir);
 			}
 		});
-	}, [model]);
+	}, [model, bookkeeping, invalidateTreeListings]);
 
 	useWorkspaceEvent(
 		"fs:events",
@@ -288,6 +444,7 @@ export function useFilesTabBridge({
 			}
 
 			if (event.kind === "rename" && event.oldAbsolutePath) {
+				invalidateTreeListings();
 				const oldRel = toRel(rootPath, event.oldAbsolutePath);
 				const oldKey = matchKnown(knownPathsRef.current, oldRel);
 				const isFolder = event.isDirectory ?? oldKey?.endsWith("/") ?? false;
@@ -300,22 +457,13 @@ export function useFilesTabBridge({
 						if (isFolder) {
 							const oldDir = stripTrailingSlash(oldKey);
 							const newDir = stripTrailingSlash(newKey);
-							rekeyDescendants(
-								knownPathsRef.current,
-								loadedDirsRef.current,
-								oldDir,
-								newDir,
-							);
+							rekeyDirectory(bookkeeping(), oldDir, newDir);
 						}
 					} catch {
 						// Pierre rejected the move — fall back to remove + add.
 						removeKnownPath(model, knownPathsRef.current, oldKey);
 						if (isFolder) {
-							purgeDescendants(
-								knownPathsRef.current,
-								loadedDirsRef.current,
-								stripTrailingSlash(oldKey),
-							);
+							purgeDirectory(bookkeeping(), stripTrailingSlash(oldKey));
 						}
 						addKnownPath(model, knownPathsRef.current, newKey);
 					}
@@ -331,20 +479,27 @@ export function useFilesTabBridge({
 					}
 					addKnownPath(model, knownPathsRef.current, newKey);
 				}
+				if (isFolder) {
+					const newDir = stripTrailingSlash(newKey);
+					if (!loadedDirsRef.current.has(newDir)) {
+						unloadedDirCandidatesRef.current.add(newDir);
+					}
+					const handle = asDirectoryHandle(model.getItem(newKey));
+					if (handle?.isExpanded()) void fetchDir(newDir);
+				}
 				return;
 			}
 
 			if (event.kind === "delete") {
-				const isFolder = event.isDirectory ?? false;
-				const key = isFolder ? `${rel}/` : rel;
-				const matched = matchKnown(knownPathsRef.current, rel) ?? key;
+				invalidateTreeListings();
+				const { treePath: matched, isDirectory } = resolveDeleteTreePath(
+					knownPathsRef.current,
+					rel,
+					event.isDirectory,
+				);
 				removeKnownPath(model, knownPathsRef.current, matched);
-				if (isFolder) {
-					purgeDescendants(
-						knownPathsRef.current,
-						loadedDirsRef.current,
-						stripTrailingSlash(matched),
-					);
+				if (isDirectory) {
+					purgeDirectory(bookkeeping(), stripTrailingSlash(matched));
 				}
 				return;
 			}
@@ -366,14 +521,13 @@ export function useFilesTabBridge({
 
 	const rekeyDescendantsBound = useCallback(
 		(oldDir: string, newDir: string) => {
-			rekeyDescendants(
-				knownPathsRef.current,
-				loadedDirsRef.current,
-				oldDir,
-				newDir,
-			);
+			invalidateTreeListings();
+			rekeyDirectory(bookkeeping(), oldDir, newDir);
+			const newKey = `${newDir}/`;
+			const handle = asDirectoryHandle(model.getItem(newKey));
+			if (handle?.isExpanded()) void fetchDir(newDir);
 		},
-		[],
+		[bookkeeping, fetchDir, invalidateTreeListings, model],
 	);
 
 	const getVersion = useCallback(() => versionRef.current, []);
@@ -382,10 +536,52 @@ export function useFilesTabBridge({
 		[],
 	);
 
+	const addPath = useCallback(
+		(treePath: string): boolean => {
+			if (!knownPathsRef.current.has(treePath)) {
+				knownPathsRef.current.add(treePath);
+				try {
+					model.add(treePath);
+				} catch {
+					// Pierre refused the path. Roll our bookkeeping back rather than
+					// claiming to know a row the tree doesn't have.
+					knownPathsRef.current.delete(treePath);
+					return false;
+				}
+			}
+			// A new directory still needs to lazy-load when the user expands it.
+			if (treePath.endsWith("/")) {
+				const dirRel = stripTrailingSlash(treePath);
+				if (!loadedDirsRef.current.has(dirRel)) {
+					unloadedDirCandidatesRef.current.add(dirRel);
+				}
+			}
+			return true;
+		},
+		[model],
+	);
+
+	const removePath = useCallback(
+		(treePath: string): void => {
+			if (knownPathsRef.current.has(treePath)) {
+				invalidateTreeListings();
+			}
+			removeKnownPath(model, knownPathsRef.current, treePath);
+			if (treePath.endsWith("/")) {
+				const dirRel = stripTrailingSlash(treePath);
+				loadedDirsRef.current.delete(dirRel);
+				unloadedDirCandidatesRef.current.delete(dirRel);
+				purgeDirectory(bookkeeping(), dirRel);
+			}
+		},
+		[model, bookkeeping, invalidateTreeListings],
+	);
+
 	return {
 		knownPaths: knownPathsRef.current,
 		loadedDirs: loadedDirsRef.current,
-		pendingCreates: pendingCreatesRef.current,
+		addPath,
+		removePath,
 		fetchDir,
 		doRefresh,
 		rekeyDescendants: rekeyDescendantsBound,
@@ -427,51 +623,5 @@ function removeKnownPath(
 		model.remove(path, { recursive: true });
 	} catch {
 		// ignore
-	}
-}
-
-// Walk knownPaths/loadedDirs and remove anything under `dirRel`. Used after a
-// folder is removed (or renamed, paired with rekey) so stale descendants don't
-// pin paths that no longer exist on disk.
-function purgeDescendants(
-	known: Set<string>,
-	loaded: Set<string>,
-	dirRel: string,
-): void {
-	const prefix = `${dirRel}/`;
-	for (const path of known) {
-		if (path.startsWith(prefix)) known.delete(path);
-	}
-	for (const dir of loaded) {
-		if (dir === dirRel || dir.startsWith(prefix)) loaded.delete(dir);
-	}
-}
-
-// Walk knownPaths/loadedDirs and re-key any descendants of `oldDir` to live
-// under `newDir`. Pierre's `model.move(oldKey, newKey)` already moves the
-// renamed subtree on its side, but our bookkeeping is path-keyed — without
-// this, fs reconciliation looks up old paths and skips real changes.
-function rekeyDescendants(
-	known: Set<string>,
-	loaded: Set<string>,
-	oldDir: string,
-	newDir: string,
-): void {
-	const oldPrefix = `${oldDir}/`;
-	const movedKnown: string[] = [];
-	for (const path of known) {
-		if (path.startsWith(oldPrefix)) movedKnown.push(path);
-	}
-	for (const path of movedKnown) {
-		known.delete(path);
-		known.add(newDir + path.slice(oldDir.length));
-	}
-	const movedLoaded: string[] = [];
-	for (const dir of loaded) {
-		if (dir === oldDir || dir.startsWith(oldPrefix)) movedLoaded.push(dir);
-	}
-	for (const dir of movedLoaded) {
-		loaded.delete(dir);
-		loaded.add(newDir + dir.slice(oldDir.length));
 	}
 }

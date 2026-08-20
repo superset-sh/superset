@@ -72,15 +72,33 @@ export function collectProcessSignalTargets(
 	const signalPids = options.signalPids ?? true;
 	const excludeCurrentProcessGroup = options.excludeCurrentProcessGroup ?? true;
 	const table = options.table ?? readProcessTable();
-	const currentPgid = excludeCurrentProcessGroup
-		? getProcessGroupId(process.pid, table)
-		: null;
+	// Protected set: our own process group AND every ancestor's pid + group.
+	// A kill target's tree never legitimately contains the caller's shell,
+	// terminal, test runner, or CI job — but group collisions (a tree member
+	// that never called setsid) can put them in a target pgid, and one killpg
+	// then takes out the invoking session. This has SIGKILLed developer
+	// shells; treat the ancestor chain as untouchable.
+	const protectedPids = new Set<number>();
+	const protectedPgids = new Set<number>();
+	if (excludeCurrentProcessGroup) {
+		const infoByPidForAncestors = new Map(table.map((row) => [row.pid, row]));
+		let cursor: number | undefined = process.pid;
+		while (cursor !== undefined && cursor > 1 && !protectedPids.has(cursor)) {
+			protectedPids.add(cursor);
+			const row = infoByPidForAncestors.get(cursor);
+			if (!row) break;
+			if (row.pgid > 1) protectedPgids.add(row.pgid);
+			cursor = row.ppid;
+		}
+	}
 	const rootPgid = getProcessGroupId(rootPid, table);
 	const pids = collectProcessTree(rootPid, table);
+	for (const pid of protectedPids) pids.delete(pid);
 	for (const row of table) {
 		if (pids.has(row.pid)) continue;
 		if (row.pid === process.pid) continue;
-		if (currentPgid !== null && row.pgid === currentPgid) continue;
+		if (protectedPids.has(row.pid)) continue;
+		if (protectedPgids.has(row.pgid)) continue;
 		const onSessionTty = options.ttyName != null && row.tty === options.ttyName;
 		const inKnownGroup = options.knownPgids?.has(row.pgid) ?? false;
 		if (onSessionTty || inKnownGroup) pids.add(row.pid);
@@ -94,7 +112,7 @@ export function collectProcessSignalTargets(
 		const info = infoByPid.get(pid);
 		if (!info) continue;
 		if (info.pgid <= 1) continue;
-		if (currentPgid !== null && info.pgid === currentPgid) continue;
+		if (protectedPgids.has(info.pgid)) continue;
 		if (!includeRoot && rootPgid !== null && info.pgid === rootPgid) {
 			continue;
 		}

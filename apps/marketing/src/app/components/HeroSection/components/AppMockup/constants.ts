@@ -2,8 +2,8 @@ import type { AgentTab, FileChange, WorkspaceData } from "./types";
 
 export const WORKSPACES: WorkspaceData[] = [
 	{
-		name: "use any agents",
-		branch: "use-any-agents",
+		name: "fix onboarding crash",
+		branch: "fix-onboarding-crash",
 		add: 46,
 		del: 1,
 		pr: "#733",
@@ -11,34 +11,60 @@ export const WORKSPACES: WorkspaceData[] = [
 		status: "working",
 	},
 	{
-		name: "create parallel branches",
-		branch: "create-parallel-branches",
+		name: "billing webhooks",
+		branch: "billing-webhooks",
 		add: 193,
 		del: 0,
 		pr: "#815",
 		status: "review",
 	},
 	{
-		name: "see changes",
-		branch: "see-changes",
+		name: "refactor auth flow",
+		branch: "refactor-auth-flow",
 		add: 394,
 		del: 23,
 		pr: "#884",
 	},
 	{
-		name: "open in any IDE",
-		branch: "open-in-any-ide",
+		name: "speed up cold start",
+		branch: "speed-up-cold-start",
 		add: 33,
 		del: 0,
 		pr: "#816",
 		status: "permission",
 	},
 	{
-		name: "forward ports",
-		branch: "forward-ports",
+		name: "bump dependencies",
+		branch: "bump-dependencies",
 		add: 127,
 		del: 8,
 		pr: "#902",
+		icon: "branch",
+	},
+];
+
+export const CLOUD_WORKSPACES: WorkspaceData[] = [
+	{
+		name: "nightly evals",
+		branch: "nightly-evals",
+		add: 812,
+		del: 64,
+		status: "working",
+		icon: "cloud",
+	},
+	{
+		name: "api hotfix",
+		branch: "api-hotfix",
+		add: 12,
+		del: 3,
+		icon: "cloud",
+	},
+	{
+		name: "docs refresh",
+		branch: "docs-refresh",
+		add: 58,
+		del: 0,
+		icon: "cloud",
 	},
 ];
 
@@ -56,10 +82,6 @@ export const FILE_CHANGES: FileChange[] = [
 		type: "delete",
 		indent: 1,
 	},
-	{ path: "WorkspaceSidebar.tsx", add: 14, del: 0, type: "edit", indent: 1 },
-	{ path: "apps/api/src/trpc/routers", type: "folder" },
-	{ path: "ssh-manager.ts", add: 277, del: 0, type: "add", indent: 1 },
-	{ path: "index.ts", add: 7, del: 0, type: "edit", indent: 1 },
 ];
 
 export const AGENT_TABS: AgentTab[] = [
@@ -76,36 +98,23 @@ export const AGENT_TABS: AgentTab[] = [
 		label: "opencode",
 		delay: 0.3,
 	},
-	{
-		src: "/app-icons/copilot-white.svg",
-		alt: "Copilot",
-		label: "copilot",
-		delay: 0.4,
-	},
-	{ src: "/app-icons/amp.svg", alt: "Amp", label: "amp", delay: 0.5 },
-	{ src: "/app-icons/gemini.svg", alt: "Gemini", label: "gemini", delay: 0.6 },
-	{
-		src: "/app-icons/vibe.svg",
-		alt: "Mistral Vibe",
-		label: "vibe",
-		delay: 0.7,
-	},
-	{
-		src: "/app-icons/kimi.svg",
-		alt: "Kimi Code",
-		label: "kimi",
-		delay: 0.8,
-	},
-	{
-		src: "/app-icons/grok.svg",
-		alt: "Grok CLI",
-		label: "grok",
-		delay: 0.9,
-	},
 ];
 
-export const SETUP_STEPS = [
-	"→ create worktree",
-	"→ install deps",
-	"→ ready shell",
+export interface AutomationRow {
+	name: string;
+	schedule: string;
+	lastRun: string;
+	running?: boolean;
+}
+
+export const AUTOMATIONS: AutomationRow[] = [
+	{
+		name: "daily-triage",
+		schedule: "daily 9:00",
+		lastRun: "running",
+		running: true,
+	},
+	{ name: "changelog-draft", schedule: "sun 11:00", lastRun: "✓ 2h ago" },
+	{ name: "dep-upgrades", schedule: "weekly", lastRun: "✓ 1d ago" },
+	{ name: "roadmap-sync", schedule: "monthly", lastRun: "✓ 3d ago" },
 ];

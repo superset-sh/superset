@@ -23,7 +23,7 @@ import {
 import { useOpenInExternalEditor } from "../../../useOpenInExternalEditor";
 import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
-import { AgentCommentComposer } from "./components/AgentCommentComposer";
+import { AgentCommentComposer } from "../AgentCommentComposer";
 import { CommentThread } from "./components/CommentThread";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
@@ -150,7 +150,7 @@ export function DiffPane({
 		paneId: context.pane.id,
 	});
 
-	const { targetItemId } = useDiffCodeViewScroll({
+	const { targetItemId, notifyScroll } = useDiffCodeViewScroll({
 		codeViewRef,
 		data,
 		fileByItemId,
@@ -174,8 +174,9 @@ export function DiffPane({
 		(scrollTop: number) => {
 			savePaneScrollState(scrollStateKey, { scrollTop, scrollLeft: 0 });
 			onScroll();
+			notifyScroll();
 		},
-		[scrollStateKey, onScroll],
+		[scrollStateKey, onScroll, notifyScroll],
 	);
 	const { options, style } = useDiffCodeViewTheme();
 
@@ -253,8 +254,12 @@ export function DiffPane({
 				return (
 					<AgentCommentComposer
 						workspaceId={workspaceId}
-						startLine={m.startLine}
-						endLine={m.endLine}
+						contextLabel={
+							m.startLine === m.endLine
+								? `Line ${m.startLine}`
+								: `Lines ${m.startLine}–${m.endLine}`
+						}
+						placeholder="Ask the AI about these lines…"
 						onCancel={clearComposer}
 						onSubmit={submitComposer}
 					/>

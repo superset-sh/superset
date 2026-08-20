@@ -1,7 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
-import { GeistPixelGrid, GeistPixelSquare } from "geist/font/pixel";
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Inter, Micro_5, Pixelify_Sans } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 
 import { CookieConsent } from "@/components/CookieConsent";
@@ -24,36 +23,25 @@ const ibmPlexMono = IBM_Plex_Mono({
 	subsets: ["latin"],
 	variable: "--font-ibm-plex-mono",
 	display: "swap",
+	// Not used by the LCP hero text; keep it off the critical preload path
+	preload: false,
 });
 
+// Variable font with the opsz axis: large sizes render as Inter Display
 const inter = Inter({
-	weight: ["300", "400", "500"],
 	subsets: ["latin"],
 	variable: "--font-inter",
 	display: "swap",
-});
-
-const micro5 = Micro_5({
-	weight: "400",
-	subsets: ["latin"],
-	variable: "--font-micro5",
-	display: "swap",
-});
-
-const pixelifySans = Pixelify_Sans({
-	weight: ["400", "500", "600", "700"],
-	subsets: ["latin"],
-	variable: "--font-pixel",
-	display: "swap",
+	axes: ["opsz"],
 });
 
 const siteDescription =
-	"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
+	"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
 
 export const metadata: Metadata = {
 	metadataBase: new URL(COMPANY.MARKETING_URL),
 	title: {
-		default: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		default: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
 		template: `%s | ${COMPANY.NAME}`,
 	},
 	description: siteDescription,
@@ -75,23 +63,23 @@ export const metadata: Metadata = {
 		locale: "en_US",
 		url: COMPANY.MARKETING_URL,
 		siteName: COMPANY.NAME,
-		title: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		title: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
 		description:
-			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+			"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
 		images: [
 			{
 				url: "/og-image.png",
 				width: 1200,
 				height: 630,
-				alt: `${COMPANY.NAME} - The Terminal for Coding Agents`,
+				alt: `${COMPANY.NAME} - Run 100+ coding agents in parallel`,
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		title: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
 		description:
-			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+			"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
 		images: ["/og-image.png"],
 		creator: "@superset_sh",
 	},
@@ -124,19 +112,19 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable} ${micro5.variable} ${pixelifySans.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable}`}
+			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>
 			<head>
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />
-				{/* Google tag (gtag.js) — Google Ads */}
+				{/* Google tag (gtag.js) for Google Ads */}
 				<Script
 					src="https://www.googletagmanager.com/gtag/js?id=AW-18209336001"
-					strategy="afterInteractive"
+					strategy="lazyOnload"
 				/>
-				<Script id="google-ads-gtag" strategy="afterInteractive">
+				<Script id="google-ads-gtag" strategy="lazyOnload">
 					{`
 						window.dataLayer = window.dataLayer || [];
 						function gtag(){dataLayer.push(arguments);}
@@ -145,7 +133,7 @@ export default function RootLayout({
 					`}
 				</Script>
 				{/* Reddit Pixel */}
-				<Script id="reddit-pixel" strategy="afterInteractive">
+				<Script id="reddit-pixel" strategy="lazyOnload">
 					{`
 						!function(w,d){if(!w.rdt){var p=w.rdt=function(){p.sendEvent?p.sendEvent.apply(p,arguments):p.callQueue.push(arguments)};p.callQueue=[];var t=d.createElement("script");t.src="https://www.redditstatic.com/ads/pixel.js?pixel_id=${REDDIT_PIXEL_ID}",t.async=!0;var s=d.getElementsByTagName("script")[0];s.parentNode.insertBefore(t,s)}}(window,document);
 						rdt('init','${REDDIT_PIXEL_ID}');

@@ -7,6 +7,42 @@ export interface V1TerminalPane {
 export interface PendingMigratedTerminal {
 	terminalId: string;
 	cwd: string | null;
+	/**
+	 * Source pane, so pane-creation time can look up the pane's latest
+	 * captured agent session and seed a resume candidate. Null on queue
+	 * entries persisted before this field existed.
+	 */
+	v1PaneId: string | null;
+}
+
+/** Shape of the electron-main V1PaneAgentSession capture the resume check needs. */
+export interface V1PaneAgentSessionSnapshot {
+	agentId: string;
+	agentSessionId: string;
+	prompted: boolean;
+	endedAt?: number;
+}
+
+export interface MigratedPaneResume {
+	agentId: string;
+	agentSessionId: string;
+}
+
+/**
+ * Whether a migrated pane's captured agent session should be offered for
+ * resume. Mirrors host-service findResumeCandidateBinding: a session id was
+ * captured, the session progressed past its first prompt (never-prompted
+ * sessions have no persisted conversation), and the agent never said its own
+ * goodbye (a clean quit is not a resume candidate).
+ */
+export function resolveMigratedPaneResume(
+	session: V1PaneAgentSessionSnapshot | undefined,
+): MigratedPaneResume | null {
+	if (!session) return null;
+	if (!session.agentId || !session.agentSessionId) return null;
+	if (!session.prompted) return null;
+	if (session.endedAt !== undefined) return null;
+	return { agentId: session.agentId, agentSessionId: session.agentSessionId };
 }
 
 export interface TerminalMigrationPlan {
@@ -48,7 +84,7 @@ export function planTerminalMigration({
 		const terminalId = newTerminalId();
 		plan.terminalIdByPaneId.set(pane.paneId, terminalId);
 		const list = plan.pendingByV2WorkspaceId.get(v2WorkspaceId) ?? [];
-		list.push({ terminalId, cwd: pane.cwd });
+		list.push({ terminalId, cwd: pane.cwd, v1PaneId: pane.paneId });
 		plan.pendingByV2WorkspaceId.set(v2WorkspaceId, list);
 	}
 

@@ -113,10 +113,6 @@ export function AgentCard({
 					: currentPreset.description,
 			taskPromptTemplate:
 				patch.taskPromptTemplate ?? currentPreset.taskPromptTemplate,
-			model:
-				patch.model !== undefined
-					? (patch.model ?? undefined)
-					: currentPreset.model,
 		};
 	};
 

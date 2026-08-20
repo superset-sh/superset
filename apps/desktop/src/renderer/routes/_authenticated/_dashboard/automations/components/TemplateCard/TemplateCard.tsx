@@ -1,9 +1,3 @@
-import {
-	Card,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@superset/ui/card";
 import type { AutomationTemplate } from "../../templates";
 
 interface TemplateCardProps {
@@ -13,27 +7,18 @@ interface TemplateCardProps {
 
 export function TemplateCard({ template, onSelect }: TemplateCardProps) {
 	return (
-		<Card
-			role="button"
-			tabIndex={0}
+		<button
+			type="button"
 			onClick={() => onSelect(template)}
-			onKeyDown={(event) => {
-				if (event.key === "Enter" || event.key === " ") {
-					event.preventDefault();
-					onSelect(template);
-				}
-			}}
-			className="py-4 cursor-pointer transition-all duration-150 hover:border-border/80 hover:bg-accent/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+			className="flex flex-col items-start gap-1 rounded-lg border border-border px-3.5 py-3 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
 		>
-			<CardHeader>
-				<CardTitle className="flex items-center gap-2 text-sm">
-					<span className="text-lg leading-none">{template.emoji}</span>
-					{template.name}
-				</CardTitle>
-				<CardDescription className="line-clamp-2">
-					{template.description}
-				</CardDescription>
-			</CardHeader>
-		</Card>
+			<span className="flex items-center gap-2 text-sm font-medium">
+				<span className="text-base leading-none">{template.emoji}</span>
+				{template.name}
+			</span>
+			<span className="line-clamp-3 text-xs text-muted-foreground">
+				{template.description}
+			</span>
+		</button>
 	);
 }

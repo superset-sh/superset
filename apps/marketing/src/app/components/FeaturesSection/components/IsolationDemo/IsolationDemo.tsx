@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useRef } from "react";
 import {
 	HiOutlineChatBubbleLeftRight,
@@ -48,7 +48,7 @@ const DIFF_LINES = [
 	{
 		id: "line-8",
 		type: "added",
-		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<motion.h1",
+		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<m.h1",
 	},
 	{
 		id: "line-9",
@@ -76,7 +76,7 @@ const DIFF_LINES = [
 	{
 		id: "line-13",
 		type: "added",
-		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0</motion.h1>",
+		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0</m.h1>",
 	},
 	{
 		id: "line-14",
@@ -98,35 +98,37 @@ export function IsolationDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
-			className="w-full min-w-[500px] max-w-2xl bg-[#1a1a1a]/90 backdrop-blur-sm rounded-md border border-white/10 shadow-2xl overflow-hidden"
+			className="relative w-full min-w-[500px] max-w-2xl overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
 			animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 			transition={{ duration: 0.5 }}
 		>
+			<div className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-1 ring-inset ring-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" />
+
 			{/* Header */}
-			<div className="flex items-center justify-between px-4 py-2 bg-[#2a2a2a]/80 border-b border-white/5">
+			<div className="relative flex items-center justify-between border-b border-border/60 bg-card px-3 py-2">
 				<div className="flex items-center gap-3">
 					<div className="flex gap-1.5">
-						<div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
-						<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
-						<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+						<div className="size-2 rounded-full bg-[#ff5f57]/85" />
+						<div className="size-2 rounded-full bg-[#febc2e]/85" />
+						<div className="size-2 rounded-full bg-[#28c840]/85" />
 					</div>
-					<span className="text-xs text-white/60 font-mono">
+					<span className="font-mono text-[10px] tracking-tight text-muted-foreground/60">
 						components/HeroSection/HeroSection.tsx
 					</span>
 				</div>
 				<div className="flex items-center gap-2 mx-2">
 					<button
 						type="button"
-						className="px-2 py-1 text-xs text-white/60 hover:text-white/80 bg-white/5 rounded transition-colors whitespace-nowrap"
+						className="whitespace-nowrap rounded-sm bg-foreground/[0.06] px-2 py-1 text-xs text-foreground/90 transition-colors"
 					>
 						Side by Side
 					</button>
 					<button
 						type="button"
-						className="px-2 py-1 text-xs text-white/40 hover:text-white/60 rounded transition-colors"
+						className="rounded-sm px-2 py-1 text-xs text-muted-foreground/55 transition-colors hover:text-foreground/80"
 					>
 						Inline
 					</button>
@@ -135,36 +137,36 @@ export function IsolationDemo() {
 
 			<div className="flex">
 				{/* Sidebar */}
-				<div className="w-48 border-r border-white/5 bg-[#1e1e1e]/50">
+				<div className="w-48 border-r border-border/60 bg-card">
 					{/* Sidebar sections */}
-					<div className="p-2 border-b border-white/5">
-						<div className="flex items-center gap-2 px-2 py-1.5 text-white/50 text-xs">
+					<div className="border-b border-border/60 p-2">
+						<div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground/65 text-xs">
 							<HiOutlineChatBubbleLeftRight className="w-3.5 h-3.5" />
 							<span>Messages</span>
 						</div>
-						<div className="flex items-center gap-2 px-2 py-1.5 text-white/50 text-xs">
+						<div className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground/65 text-xs">
 							<VscGitCommit className="w-3.5 h-3.5" />
 							<span>Commits</span>
-							<span className="ml-auto bg-white/10 px-1.5 rounded text-[10px]">
+							<span className="ml-auto rounded bg-foreground/[0.07] px-1.5 font-mono text-[10px] tabular-nums text-muted-foreground/70">
 								3
 							</span>
 						</div>
-						<div className="flex items-center gap-2 px-2 py-1.5 text-white/80 text-xs bg-white/5 rounded">
+						<div className="flex items-center gap-2 px-2 py-1.5 text-foreground/90 text-xs bg-foreground/[0.06] rounded-sm">
 							<VscGitPullRequest className="w-3.5 h-3.5" />
 							<span>Against Main</span>
-							<HiOutlineCheck className="ml-auto w-3.5 h-3.5 text-green-400" />
+							<HiOutlineCheck className="ml-auto w-3.5 h-3.5 text-emerald-400/85" />
 						</div>
 					</div>
 
 					{/* Files */}
 					<div className="p-2">
-						<div className="text-[10px] uppercase text-white/30 px-2 py-1">
+						<div className="px-2 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
 							Unstaged
 						</div>
 						{SIDEBAR_FILES.map((file, index) => (
-							<motion.div
+							<m.div
 								key={file.name}
-								className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-white/5 rounded cursor-pointer"
+								className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-foreground/[0.04] rounded-sm cursor-pointer"
 								initial={{ opacity: 0, x: -5 }}
 								animate={
 									isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -5 }
@@ -174,34 +176,34 @@ export function IsolationDemo() {
 									delay: 0.2 + index * 0.05,
 								}}
 							>
-								<HiOutlineDocumentText className="w-3.5 h-3.5 text-white/40" />
-								<span className="text-white/70 truncate flex-1">
+								<HiOutlineDocumentText className="w-3.5 h-3.5 text-muted-foreground/55" />
+								<span className="text-muted-foreground truncate flex-1">
 									{file.name}
 								</span>
-								<span className="text-green-400 text-[10px]">
+								<span className="font-mono text-[10px] tabular-nums text-emerald-400/85">
 									+{file.added}
 								</span>
 								{file.removed > 0 && (
-									<span className="text-red-400 text-[10px]">
+									<span className="font-mono text-[10px] tabular-nums text-rose-400/75">
 										-{file.removed}
 									</span>
 								)}
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 				</div>
 
 				{/* Diff content */}
 				<div className="flex-1 overflow-hidden">
-					<div className="font-mono text-xs">
+					<div className="font-mono text-[11px]">
 						{DIFF_LINES.map((line, index) => (
-							<motion.div
+							<m.div
 								key={line.id}
 								className={`flex ${
 									line.type === "added"
-										? "bg-green-500/10"
+										? "bg-emerald-500/[0.08]"
 										: line.type === "removed"
-											? "bg-red-500/10"
+											? "bg-rose-500/[0.08]"
 											: ""
 								}`}
 								initial={{ opacity: 0 }}
@@ -214,10 +216,10 @@ export function IsolationDemo() {
 								<span
 									className={`w-8 text-right pr-2 select-none ${
 										line.type === "added"
-											? "text-green-400/60"
+											? "text-emerald-400/60"
 											: line.type === "removed"
-												? "text-red-400/60"
-												: "text-white/20"
+												? "text-rose-400/60"
+												: "text-muted-foreground/40"
 									}`}
 								>
 									{index + 1}
@@ -225,10 +227,10 @@ export function IsolationDemo() {
 								<span
 									className={`w-4 text-center select-none ${
 										line.type === "added"
-											? "text-green-400"
+											? "text-emerald-400/85"
 											: line.type === "removed"
-												? "text-red-400"
-												: "text-white/20"
+												? "text-rose-400/75"
+												: "text-muted-foreground/40"
 									}`}
 								>
 									{line.type === "added"
@@ -240,19 +242,19 @@ export function IsolationDemo() {
 								<span
 									className={`flex-1 px-2 ${
 										line.type === "added"
-											? "text-green-300/90"
+											? "text-emerald-300/95"
 											: line.type === "removed"
-												? "text-red-300/90"
-												: "text-white/60"
+												? "text-rose-300/95"
+												: "text-muted-foreground/75"
 									}`}
 								>
 									{line.content}
 								</span>
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

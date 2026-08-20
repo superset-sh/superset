@@ -14,7 +14,13 @@ import {
 } from "../../runtime/pull-requests/utils/workspace-refs.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
-import { getChangedFilesForDiff } from "../../trpc/router/git/utils/git-helpers.ts";
+import {
+	type DiffCategory,
+	getChangedFilesForDiff,
+	loadFileDiffContent,
+	mapWithConcurrency,
+	resolveDiffCategoryRefs,
+} from "../../trpc/router/git/utils/git-helpers.ts";
 import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
 import {
@@ -22,6 +28,11 @@ import {
 	parseWorktreeList,
 } from "../../trpc/router/workspace-creation/shared/worktree-list.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
+
+// How many `git show` pairs run at once for a bulk diff request. Each pair
+// is its own SimpleGit instance so slots genuinely run concurrently
+// (simple-git serializes commands within one instance).
+const DIFF_BULK_CONCURRENCY = 8;
 
 export interface GitTaskEnv {
 	[key: string]: string;
@@ -70,6 +81,64 @@ export const gitCommitFilesTask = defineWorkerTask<
 	},
 });
 
+// Bulk sibling of the single-file diff path: resolves the category's shared
+// refs once, then loads every requested file's diff with bounded
+// concurrency — all inside this worker, so a several-hundred-file changeset
+// never spawns its `git show` processes on the host-service event loop.
+export const gitDiffBulkTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		paths: string[];
+		category: DiffCategory;
+		baseBranch?: string;
+		commitHash?: string;
+		fromHash?: string;
+		gitEnv: GitTaskEnv;
+	},
+	{
+		diffs: Array<{
+			path: string;
+			oldFile: { name: string; contents: string };
+			newFile: { name: string; contents: string };
+		}>;
+	}
+>({
+	type: "git/getDiffBulk",
+	handler: async ({
+		worktreePath,
+		paths,
+		category,
+		baseBranch,
+		commitHash,
+		fromHash,
+		gitEnv,
+	}) => {
+		const refs = await resolveDiffCategoryRefs(
+			createUserSimpleGit(worktreePath).env(gitEnv),
+			category,
+			{ baseBranch, commitHash, fromHash },
+		);
+
+		const diffs = await mapWithConcurrency(
+			paths,
+			DIFF_BULK_CONCURRENCY,
+			async (path) => {
+				const git = createUserSimpleGit(worktreePath).env(gitEnv);
+				const { oldFile, newFile } = await loadFileDiffContent(
+					git,
+					worktreePath,
+					category,
+					path,
+					refs,
+				);
+				return { path, oldFile, newFile };
+			},
+		);
+
+		return { diffs };
+	},
+});
+
 export const gitWorkspaceRefsTask = defineWorkerTask<
 	{ worktreePath: string; gitEnv: GitTaskEnv },
 	WorkspaceRefsSnapshot
@@ -93,11 +162,18 @@ export const gitIdentityTask = defineWorkerTask<
 // Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
 // branches with no upstream still report unpushed commits correctly.
 export const gitWorktreeStateTask = defineWorkerTask<
-	{ worktreePath: string; gitEnv: GitTaskEnv },
+	{
+		worktreePath: string;
+		gitEnv: GitTaskEnv;
+		// Session repos have no remote, so `--not --remotes` counts every
+		// commit and the initial scaffold commit would read as "unpushed"
+		// forever. This treats exactly one commit as the empty baseline.
+		ignoreInitialCommit?: boolean;
+	},
 	{ hasChanges: boolean; hasUnpushedCommits: boolean }
 >({
 	type: "git/worktreeState",
-	handler: async ({ worktreePath, gitEnv }) => {
+	handler: async ({ worktreePath, gitEnv, ignoreInitialCommit }) => {
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
 		const status = await git.status();
 		let hasUnpushedCommits = false;
@@ -110,7 +186,8 @@ export const gitWorktreeStateTask = defineWorkerTask<
 				"--remotes",
 			]);
 			const count = Number.parseInt(result.trim(), 10);
-			hasUnpushedCommits = Number.isFinite(count) && count > 0;
+			hasUnpushedCommits =
+				Number.isFinite(count) && count > (ignoreInitialCommit ? 1 : 0);
 		} catch {
 			// Leave false — `rev-list` failure isn't a signal we can act on.
 		}
@@ -169,6 +246,7 @@ export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
+	gitDiffBulkTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
 	gitWorktreeStateTask,

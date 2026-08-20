@@ -21,49 +21,43 @@ describe("project.setup error paths", () => {
 		repo.dispose();
 	});
 
-	test("rejects clone when cloud project has no repoCloneUrl", async () => {
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Project.get.query": () => ({ id: randomUUID(), repoCloneUrl: null }),
-			},
-		});
+	test("rejects clone when origin has no repoCloneUrl", async () => {
+		host = await createTestHost();
 
 		await expect(
 			host.trpc.project.setup.mutate({
 				projectId: randomUUID(),
+				origin: { repoCloneUrl: null, name: "No Remote" },
 				mode: { kind: "clone", parentDir: "/tmp/parent-does-not-matter" },
 			}),
 		).rejects.toThrow(/no linked GitHub repository/i);
 	});
 
-	test("rejects clone when cloud repoCloneUrl is unparseable", async () => {
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: randomUUID(),
-					repoCloneUrl: "not-a-github-url",
-				}),
-			},
-		});
+	test("rejects an unknown project with no origin, in both modes", async () => {
+		host = await createTestHost();
 
 		await expect(
 			host.trpc.project.setup.mutate({
 				projectId: randomUUID(),
 				mode: { kind: "clone", parentDir: "/tmp/parent-does-not-matter" },
 			}),
-		).rejects.toThrow(/Could not parse GitHub remote/i);
+		).rejects.toThrow(/not set up on this host/i);
+
+		await expect(
+			host.trpc.project.setup.mutate({
+				projectId: randomUUID(),
+				mode: { kind: "import", repoPath: repo.repoPath },
+			}),
+		).rejects.toThrow(/not set up on this host/i);
+
+		expect(
+			host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
+		).toEqual([]);
 	});
 
 	test("rejects re-pointing existing project to a different path without allowRelocate", async () => {
 		const projectId = randomUUID();
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: projectId,
-					repoCloneUrl: "https://github.com/octocat/hello.git",
-				}),
-			},
-		});
+		host = await createTestHost();
 
 		// project already set up at repo.repoPath
 		host.db
@@ -90,11 +84,7 @@ describe("project.setup error paths", () => {
 	});
 
 	test("remove() is idempotent when project doesn't exist", async () => {
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Project.delete.mutate": () => ({ success: true }),
-			},
-		});
+		host = await createTestHost();
 		const result = await host.trpc.project.remove.mutate({
 			projectId: randomUUID(),
 		});

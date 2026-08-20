@@ -13,8 +13,11 @@
 			"!**/*.template.sh",
 			"!**/*.template.ts",
 			"!**/plans",
+			"!**/*.generated.ts",
 			"!apps/mobile/uniwind-types.d.ts",
-			"!packages/sdk/src"
+			"!packages/sdk/src",
+			// Vendored Vale style packages (synced by `vale sync`); don't reformat.
+			"!apps/marketing/vale-styles"
 		]
 	},
 	"formatter": {
@@ -89,9 +92,8 @@
 			// Legacy on-loop sync-subprocess call sites, frozen by the
 			// no-*-blocking ratchet tests — delete entries here as they're fixed.
 			"includes": [
-				"apps/desktop/src/main/lib/agent-setup/utils.ts",
 				"apps/desktop/src/main/lib/terminal-host/client.ts",
-				"packages/chat-legacy/src/server/desktop/auth/anthropic/anthropic.ts",
+				"packages/provider-auth/src/server/auth/anthropic/anthropic.ts",
 				"packages/host-service/src/providers/model-providers/LocalModelProvider/utils/resolveAnthropicCredential.ts",
 				"packages/pty-daemon/src/process-tree.ts",
 				"packages/shared/src/host-info.ts"
@@ -114,7 +116,11 @@
 							"options": {
 								"paths": {
 									"@superset/workspace-fs/host": "Renderer code must stay browser-compatible. Import Node filesystem helpers from the desktop server/host layer instead.",
-									"@superset/workspace-fs/server": "Renderer code must stay browser-compatible. Import Node filesystem helpers from the desktop server/host layer instead."
+									"@superset/workspace-fs/server": "Renderer code must stay browser-compatible. Import Node filesystem helpers from the desktop server/host layer instead.",
+									"@tanstack/react-router": {
+										"importNames": ["Navigate"],
+										"message": "<Navigate> re-navigates whenever its props object identity changes — inline usage loops into React error #185 (#5729, SUPER-1814). Use Redirect from renderer/components/Redirect, or `beforeLoad: () => { throw redirect(...) }` for static targets."
+									}
 								},
 								"patterns": [
 									{

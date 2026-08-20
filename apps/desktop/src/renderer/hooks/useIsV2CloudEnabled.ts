@@ -16,6 +16,20 @@ export function useIsV2OnlyUser(): boolean {
 	return isV2OnlyUser(session?.user?.createdAt);
 }
 
+/**
+ * True when v2 is locked on for this machine (org migration completed, or
+ * the forced-flip backstop is active). The optInV2 override has no effect in
+ * either state, so surfaces offering the v1/v2 switch must hide it instead
+ * of rendering a control that silently snaps back.
+ */
+export function useIsV1FlipLocked(): boolean {
+	const { data: session } = authClient.useSession();
+	return (
+		isV1MigrationCompleteAtBoot(session?.session?.activeOrganizationId) ||
+		isV1ForcedFlipActive()
+	);
+}
+
 /** Returns whether v2 is currently active for this user. */
 export function useIsV2CloudEnabled(): boolean {
 	const v2Only = useIsV2OnlyUser();

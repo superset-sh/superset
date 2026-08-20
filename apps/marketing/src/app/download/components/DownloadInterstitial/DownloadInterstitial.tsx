@@ -26,7 +26,7 @@ export function DownloadInterstitial() {
 
 	const isMac = isMacPlatform(platform);
 	// Only auto-download on Mac (the only built binary). Windows/Linux/Mobile see
-	// the waitlist instead — never the .dmg. Unknown waits for detection.
+	// the waitlist instead, never the .dmg. Unknown waits for detection.
 	const showWaitlist = !isMac && platform !== Platform.Unknown;
 
 	useEffect(() => {
@@ -101,7 +101,7 @@ export function DownloadInterstitial() {
 							"linear-gradient(to right, transparent 0%, black 18%, black 100%)",
 					}}
 				>
-					<AppMockup activeDemo="Use Any Agents" />
+					<AppMockup activeDemo="Orchestrate Parallel Agents" />
 				</div>
 			</div>
 		</div>

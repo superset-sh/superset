@@ -1,5 +1,6 @@
 import { GitBranch, Pencil } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { Branch } from "../../types";
 import { BaseBranchSelector } from "../BaseBranchSelector";
 
@@ -24,14 +25,10 @@ export function ChangesHeader({
 }: ChangesHeaderProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState(currentBranch.name);
-	const inputRef = useRef<HTMLInputElement>(null);
-	const skipBlurRef = useRef(false);
 
 	const startEditing = () => {
 		setEditValue(currentBranch.name);
 		setIsEditing(true);
-		skipBlurRef.current = false;
-		requestAnimationFrame(() => inputRef.current?.select());
 	};
 
 	const handleSubmit = () => {
@@ -46,42 +43,34 @@ export function ChangesHeader({
 		<div className="group flex items-center gap-1.5 px-3 py-2 text-xs">
 			<GitBranch className="size-3 shrink-0 text-muted-foreground" />
 			{isEditing ? (
-				<input
-					ref={inputRef}
+				<RenameInput
 					value={editValue}
-					onChange={(e) => setEditValue(e.target.value)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") {
-							skipBlurRef.current = true;
-							handleSubmit();
-						}
-						if (e.key === "Escape") {
-							skipBlurRef.current = true;
-							setIsEditing(false);
-						}
-					}}
-					onBlur={() => {
-						if (skipBlurRef.current) return;
-						handleSubmit();
-					}}
-					className="min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 font-medium outline-none ring-1 ring-ring"
+					onChange={setEditValue}
+					onSubmit={handleSubmit}
+					onCancel={() => setIsEditing(false)}
+					className="-ml-1 min-w-0 flex-1 border-none bg-transparent px-1 py-0 font-medium outline-none"
 				/>
 			) : (
 				<>
-					<span
-						className="min-w-0 truncate font-medium"
-						title={currentBranch.name}
-					>
-						{currentBranch.name}
-					</span>
-					{canRename && (
+					{canRename ? (
 						<button
 							type="button"
 							onClick={startEditing}
-							className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+							title={currentBranch.name}
+							className="flex min-w-0 items-center gap-1.5 text-left"
 						>
-							<Pencil className="size-3" />
+							<span className="min-w-0 truncate font-medium">
+								{currentBranch.name}
+							</span>
+							<Pencil className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
 						</button>
+					) : (
+						<span
+							className="min-w-0 truncate font-medium"
+							title={currentBranch.name}
+						>
+							{currentBranch.name}
+						</span>
 					)}
 					<span className="shrink-0 text-muted-foreground/60">from</span>
 					<BaseBranchSelector

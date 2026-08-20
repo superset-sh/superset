@@ -2,12 +2,14 @@ import { EventEmitter } from "node:events";
 import { BrowserWindow } from "electron";
 import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
+import { reloadThemeStateFromDisk } from "main/lib/app-state";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
+import { recordV1AgentHookEvent } from "./v1-agent-sessions";
 
 // Re-export types for backwards compatibility
 export type {
@@ -59,6 +61,8 @@ app.get("/hook/complete", (req, res) => {
 		hookSessionId,
 		resourceId,
 		eventType,
+		rawEventType,
+		agentId,
 		env: clientEnv,
 		version,
 	} = req.query;
@@ -95,8 +99,27 @@ app.get("/hook/complete", (req, res) => {
 		paneId as string | undefined,
 		tabId as string | undefined,
 		workspaceId as string | undefined,
-		sessionId as string | undefined,
 	);
+
+	// v1 pane agent-session capture for the v1→v2 migration's resume seeding.
+	// Needs the un-collapsed event (SessionEnd vs Stop) — only v7+ hook
+	// scripts send it, so absence just means no capture.
+	if (
+		resolvedPaneId &&
+		typeof rawEventType === "string" &&
+		rawEventType.length > 0 &&
+		typeof agentId === "string" &&
+		agentId.length > 0
+	) {
+		recordV1AgentHookEvent(resolvedPaneId, {
+			rawEventType,
+			agentId,
+			...(typeof sessionId === "string" && sessionId.length > 0
+				? { agentSessionId: sessionId }
+				: {}),
+			at: Date.now(),
+		});
+	}
 
 	const event: AgentLifecycleEvent = {
 		paneId: resolvedPaneId,
@@ -172,6 +195,17 @@ app.get("/auth/callback", async (req, res) => {
 <p style="opacity:0.6">You can close this tab and return to the desktop app.</p>
 </div>
 </body></html>`);
+});
+
+// External settings change (e.g. `superset settings ...` CLI). Reads no
+// request data — it only re-reads local files and tells the renderer to
+// refresh, so an unauthenticated localhost nudge is safe.
+app.post("/settings-changed", (_req, res) => {
+	const themeState = reloadThemeStateFromDisk();
+	// Emit even when the theme reload failed: local.db settings may still
+	// have changed, and the renderer refresh is driven by this event.
+	notificationsEmitter.emit("settings-external-change", { themeState });
+	res.json({ success: true, themeReloaded: themeState !== null });
 });
 
 // 404

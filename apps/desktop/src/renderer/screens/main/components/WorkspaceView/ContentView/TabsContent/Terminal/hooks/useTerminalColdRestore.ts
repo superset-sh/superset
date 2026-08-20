@@ -1,3 +1,4 @@
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef, useState } from "react";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
@@ -179,6 +180,12 @@ export function useTerminalColdRestore({
 				error: error instanceof Error ? error.message : String(error),
 			});
 		});
+
+		// The replayed scrollback can contain the dead session's TUI arming
+		// sequences (mouse tracking, kitty keyboard, …); the brand-new shell
+		// knows nothing about them, so scrolling would spray mouse reports into
+		// the prompt as garbage text. Disarm before handing the pane over.
+		xterm.write(FRESH_SHELL_INPUT_MODE_RESET);
 
 		// Add visual separator
 		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");

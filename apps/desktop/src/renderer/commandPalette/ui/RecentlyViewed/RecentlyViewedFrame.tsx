@@ -5,30 +5,31 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { cn } from "@superset/ui/utils";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { LuCpu, LuGitBranch } from "react-icons/lu";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type RecentlyViewedEntry,
 	useRecentlyViewed,
 } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls/components/HistoryDropdown/hooks/useRecentlyViewed";
 import {
+	joinTasksWithStatuses,
+	TASK_LOOKUP_LIMIT,
+} from "renderer/routes/_authenticated/_dashboard/components/NavigationControls/components/HistoryDropdown/utils/joinTasksWithStatuses";
+import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useFrameStackStore } from "../../core/frames";
 
 export function RecentlyViewedFrame() {
 	const recentEntries = useRecentlyViewed(20);
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
-	const collections = useCollections();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const setOpen = useFrameStackStore((s) => s.setOpen);
 	const navigate = useNavigate();
@@ -58,41 +59,35 @@ export function RecentlyViewedFrame() {
 		const projectNamesById = new Map(
 			(v2ProjectData ?? []).map((p) => [p.id, p.name]),
 		);
-		// Inner join: drop workspaces whose project isn't synced yet.
+		// Inner join: drop workspaces whose project isn't synced yet (and
+		// project-less session workspaces).
 		return hostWorkspaces.flatMap((workspace) => {
+			if (workspace.projectId === null) return [];
 			const projectName = projectNamesById.get(workspace.projectId);
 			if (projectName === undefined) return [];
 			return [{ id: workspace.id, projectName, branch: workspace.branch }];
 		});
 	}, [hostWorkspaces, v2ProjectData]);
 
-	const { data: automationData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ automations: collections.automations })
-				.select(({ automations }) => ({
-					id: automations.id,
-					name: automations.name,
-				})),
-		[collections],
+	const { data: automations = [] } =
+		cloudTrpc.automation.list.useQuery(undefined);
+	const automationData = useMemo(
+		() =>
+			automations.map((automation) => ({
+				id: automation.id,
+				name: automation.name,
+			})),
+		[automations],
 	);
 
-	const { data: taskData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tasks: collections.tasks })
-				.innerJoin({ status: collections.taskStatuses }, ({ tasks, status }) =>
-					eq(tasks.statusId, status.id),
-				)
-				.select(({ tasks, status }) => ({
-					id: tasks.id,
-					slug: tasks.slug,
-					title: tasks.title,
-					statusColor: status.color,
-					statusType: status.type,
-					statusProgress: status.progressPercent,
-				})),
-		[collections],
+	const { data: taskPage } = cloudTrpc.task.listPage.useQuery({
+		limit: TASK_LOOKUP_LIMIT,
+	});
+	const { data: taskStatuses = [] } =
+		cloudTrpc.task.statuses.list.useQuery(undefined);
+	const taskData = useMemo(
+		() => joinTasksWithStatuses(taskPage?.items ?? [], taskStatuses),
+		[taskPage, taskStatuses],
 	);
 
 	const filteredEntries = recentEntries.filter((entry) => {
@@ -106,9 +101,9 @@ export function RecentlyViewedFrame() {
 		}
 		if (entry.type === "automation") {
 			if (!isV2CloudEnabled) return false;
-			return (automationData ?? []).some((a) => a.id === entry.entityId);
+			return automationData.some((a) => a.id === entry.entityId);
 		}
-		return (taskData ?? []).some(
+		return taskData.some(
 			(t) => t.id === entry.entityId || t.slug === entry.entityId,
 		);
 	});
@@ -130,7 +125,7 @@ export function RecentlyViewedFrame() {
 								key={entry.path}
 								entry={entry}
 								isCurrent={isCurrent}
-								taskData={taskData ?? []}
+								taskData={taskData}
 								onSelect={() => navigateTo(entry.path)}
 							/>
 						);
@@ -152,7 +147,7 @@ export function RecentlyViewedFrame() {
 								key={entry.path}
 								entry={entry}
 								isCurrent={isCurrent}
-								automationData={automationData ?? []}
+								automationData={automationData}
 								onSelect={() => navigateTo(entry.path)}
 							/>
 						);

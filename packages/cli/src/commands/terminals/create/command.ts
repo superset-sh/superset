@@ -24,7 +24,7 @@ export default command({
 
 		const hostId = options.host ?? getHostId();
 		const { workspace } = await findWorkspaceOnHost(
-			{ organizationId, userJwt: ctx.bearer, hostId },
+			{ organizationId, userJwt: ctx.bearer, api: ctx.api, hostId },
 			options.workspace,
 		);
 		if (!workspace) {
@@ -34,10 +34,11 @@ export default command({
 			);
 		}
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const result = await target.client.terminal.createSession.mutate({

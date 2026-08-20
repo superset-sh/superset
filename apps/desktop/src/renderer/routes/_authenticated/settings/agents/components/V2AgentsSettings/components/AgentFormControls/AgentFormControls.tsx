@@ -47,14 +47,17 @@ interface AgentLaunchFieldsProps {
 	promptArgsText: string;
 	onPromptArgsTextChange: (value: string) => void;
 	onPromptArgsBlur?: () => void;
+	resumeArgsText: string;
+	onResumeArgsTextChange: (value: string) => void;
+	onResumeArgsBlur?: () => void;
 	promptTransport: PromptTransport;
 	onPromptTransportChange: (next: PromptTransport) => void;
 }
 
 /**
- * The "Launch" section (command, prompt-only args, transport). The edit pane
- * wires the blur callbacks to autosave; the create pane omits them and reads
- * the controlled values on submit.
+ * The "Launch" section (command, prompt-only args, resume args, transport).
+ * The edit pane wires the blur callbacks to autosave; the create pane omits
+ * them and reads the controlled values on submit.
  */
 export function AgentLaunchFields({
 	idPrefix,
@@ -64,6 +67,9 @@ export function AgentLaunchFields({
 	promptArgsText,
 	onPromptArgsTextChange,
 	onPromptArgsBlur,
+	resumeArgsText,
+	onResumeArgsTextChange,
+	onResumeArgsBlur,
 	promptTransport,
 	onPromptTransportChange,
 }: AgentLaunchFieldsProps) {
@@ -101,6 +107,27 @@ export function AgentLaunchFields({
 					onChange={(e) => onPromptArgsTextChange(e.target.value)}
 					onBlur={onPromptArgsBlur}
 					placeholder="--prompt"
+				/>
+			</StackedField>
+
+			<StackedField
+				label="Resume args"
+				hint={
+					<>
+						Used to restore a previous session — the session id is appended
+						after these, e.g. <code>--resume</code>. Leave empty if the agent
+						can't resume by id.
+					</>
+				}
+				htmlFor={`${idPrefix}-resume-args`}
+			>
+				<Input
+					id={`${idPrefix}-resume-args`}
+					className="font-mono text-xs"
+					value={resumeArgsText}
+					onChange={(e) => onResumeArgsTextChange(e.target.value)}
+					onBlur={onResumeArgsBlur}
+					placeholder="--resume"
 				/>
 			</StackedField>
 

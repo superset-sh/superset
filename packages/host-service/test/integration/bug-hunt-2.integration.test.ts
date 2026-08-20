@@ -231,12 +231,14 @@ describe("bug-hunt-2: partial-failure consistency", () => {
 		expect(result.success).toBe(true);
 		expect(result.worktreeRemoved).toBe(true);
 
+		// Soft delete: the row survives as an archived tombstone.
 		const remaining = host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, workspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
 	});
 
 	test("workspaceCleanup.destroy succeeds even if the worktree dir was deleted manually", async () => {

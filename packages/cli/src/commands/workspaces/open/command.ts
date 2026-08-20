@@ -41,6 +41,7 @@ export default command({
 			{
 				organizationId,
 				userJwt: ctx.bearer,
+				api: ctx.api,
 				hostId: options.host ?? undefined,
 			},
 			id,

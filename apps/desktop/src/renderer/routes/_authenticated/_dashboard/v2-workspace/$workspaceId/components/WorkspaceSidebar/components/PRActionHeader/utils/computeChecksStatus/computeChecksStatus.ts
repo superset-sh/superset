@@ -55,9 +55,11 @@ export function computeChecksRollup(checks: CheckRun[]): ChecksRollup {
 	let pendingCount = 0;
 	for (const c of checks) {
 		const s = coerceCheckStatus(c.status, c.conclusion);
-		if (s === "skipped" || s === "cancelled") continue;
+		if (s === "skipped") continue;
 		if (s === "success") successCount++;
-		else if (s === "failure") failureCount++;
+		// A cancelled run never produced a real verdict — treat it as a
+		// failure rather than silently excluding it from the rollup.
+		else if (s === "failure" || s === "cancelled") failureCount++;
 		else pendingCount++;
 	}
 	const relevantCount = successCount + failureCount + pendingCount;

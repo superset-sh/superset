@@ -1,8 +1,8 @@
 export type ActiveDemo =
-	| "Use Any Agents"
-	| "Create Parallel Branches"
-	| "See Changes"
-	| "Open in Any IDE";
+	| "Orchestrate Parallel Agents"
+	| "Automate Tasks"
+	| "Remote Workspaces"
+	| "See Changes";
 
 export type WorkspaceStatus = "permission" | "working" | "review";
 
@@ -16,6 +16,7 @@ export interface WorkspaceData {
 	pr?: string;
 	isActive?: boolean;
 	status?: WorkspaceStatus;
+	icon?: "cloud" | "branch";
 }
 
 export interface FileChange {

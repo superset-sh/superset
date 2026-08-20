@@ -1,6 +1,10 @@
+import path from "node:path";
 import type { NodeWebSocket } from "@hono/node-ws";
 import type { DetectedPort } from "@superset/port-scanner";
-import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import {
+	type FsWatchEvent,
+	watchSingleFile,
+} from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
 import type { HostDb } from "../db/index.ts";
 import { portManager } from "../ports/port-manager.ts";
@@ -22,7 +26,12 @@ interface FsSubscription {
 
 interface ClientState {
 	fsSubscriptions: Map<string, FsSubscription>;
+	/** Targeted per-file watches, keyed `${workspaceId}\0${absolutePath}`. */
+	fileWatches: Map<string, () => void>;
 }
+
+/** Open documents per client are bounded by open panes; this is a leak stop. */
+const MAX_FILE_WATCHES_PER_CLIENT = 256;
 
 type WorkspaceChangedListener = (
 	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
@@ -44,6 +53,13 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 			typeof parsed.workspaceId === "string"
 		) {
 			if (parsed.type === "fs:watch" || parsed.type === "fs:unwatch") {
+				return parsed as ClientMessage;
+			}
+			if (
+				(parsed.type === "fs:watch-file" ||
+					parsed.type === "fs:unwatch-file") &&
+				typeof parsed.absolutePath === "string"
+			) {
 				return parsed as ClientMessage;
 			}
 		}
@@ -118,7 +134,10 @@ export class EventBus {
 	}
 
 	handleOpen(socket: WsSocket): void {
-		this.clients.set(socket, { fsSubscriptions: new Map() });
+		this.clients.set(socket, {
+			fsSubscriptions: new Map(),
+			fileWatches: new Map(),
+		});
 	}
 
 	handleMessage(socket: WsSocket, data: unknown): void {
@@ -132,6 +151,15 @@ export class EventBus {
 			this.startFsWatch(socket, state, message.workspaceId);
 		} else if (message.type === "fs:unwatch") {
 			this.stopFsWatch(state, message.workspaceId);
+		} else if (message.type === "fs:watch-file") {
+			this.startFsFileWatch(
+				socket,
+				state,
+				message.workspaceId,
+				message.absolutePath,
+			);
+		} else if (message.type === "fs:unwatch-file") {
+			this.stopFsFileWatch(state, message.workspaceId, message.absolutePath);
 		}
 	}
 
@@ -222,6 +250,20 @@ export class EventBus {
 	onWorkspaceChanged(listener: WorkspaceChangedListener): () => void {
 		this.workspaceChangedListeners.add(listener);
 		return () => this.workspaceChangedListeners.delete(listener);
+	}
+
+	/**
+	 * Terminal event for an enqueued workspaces.createEnqueued call — carries
+	 * what the synchronous create response used to (canonical id + launched
+	 * terminals/agents), keyed by the client-minted enqueue id.
+	 */
+	broadcastWorkspaceCreateSettled(
+		message: Omit<
+			Extract<ServerMessage, { type: "workspace:create-settled" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "workspace:create-settled", ...message });
 	}
 
 	/**
@@ -365,11 +407,98 @@ export class EventBus {
 		}
 	}
 
+	/**
+	 * Targeted watch for one open document. Installs a real per-file watcher
+	 * only when the recursive workspace watch delivers nothing for the path
+	 * (pruned subtree — gitignored build dir, node_modules, nested repo); a
+	 * covered path records a no-op so unwatch stays symmetric. Port of VS
+	 * Code's per-resource fallback for visible editors.
+	 */
+	private startFsFileWatch(
+		socket: WsSocket,
+		state: ClientState,
+		workspaceId: string,
+		absolutePath: string,
+	): void {
+		const key = `${workspaceId}\0${absolutePath}`;
+		if (state.fileWatches.has(key)) return;
+		if (state.fileWatches.size >= MAX_FILE_WATCHES_PER_CLIENT) {
+			sendMessage(socket, {
+				type: "error",
+				message: "Too many file watches for this client",
+			});
+			return;
+		}
+
+		let rootPath: string;
+		try {
+			rootPath = this.filesystem.resolveWorkspaceRoot(workspaceId);
+		} catch {
+			sendMessage(socket, {
+				type: "error",
+				message: `Workspace not found: ${workspaceId}`,
+			});
+			return;
+		}
+
+		// Only workspace files: a path outside the worktree must not be
+		// watchable through a workspace-scoped command.
+		const resolved = path.resolve(absolutePath);
+		if (
+			resolved !== absolutePath ||
+			!resolved.startsWith(`${rootPath.replace(/\/$/, "")}/`)
+		) {
+			sendMessage(socket, {
+				type: "error",
+				message: "watch-file path must be inside the workspace",
+			});
+			return;
+		}
+
+		if (!this.filesystem.isPathPrunedFromWatch(workspaceId, absolutePath)) {
+			// The recursive watcher already covers this file — nothing to add.
+			state.fileWatches.set(key, () => {});
+			return;
+		}
+
+		const dispose = watchSingleFile(absolutePath, (event: FsWatchEvent) => {
+			// A dead socket must not throw into the watcher's settle loop; the
+			// close handler disposes every file watch for this client.
+			try {
+				sendMessage(socket, {
+					type: "fs:events",
+					workspaceId,
+					events: [event],
+				});
+			} catch (error) {
+				console.error("[event-bus] file-watch send failed", { error });
+			}
+		});
+		state.fileWatches.set(key, dispose);
+	}
+
+	private stopFsFileWatch(
+		state: ClientState,
+		workspaceId: string,
+		absolutePath: string,
+	): void {
+		const key = `${workspaceId}\0${absolutePath}`;
+		const dispose = state.fileWatches.get(key);
+		if (dispose) {
+			dispose();
+			state.fileWatches.delete(key);
+		}
+	}
+
 	private cleanupClient(_socket: WsSocket, state: ClientState): void {
 		for (const sub of state.fsSubscriptions.values()) {
 			sub.dispose();
 		}
 		state.fsSubscriptions.clear();
+		for (const dispose of state.fileWatches.values()) {
+			dispose();
+		}
+		state.fileWatches.clear();
 	}
 }
 

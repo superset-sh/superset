@@ -144,6 +144,60 @@ describe("handleImagePasteFallback", () => {
 		expect(flags.defaultPrevented).toBe(false);
 		expect(flags.immediateStopped).toBe(false);
 	});
+
+	it("routes the clipboard files to the override instead of forwarding ^V", () => {
+		// Remote workspaces: the TUI's machine has no access to the local
+		// clipboard, so the override ships the bytes over and pastes a path.
+		const fileA = { name: "image.png" };
+		const fileB = { name: "notes.pdf" };
+		const { event, flags } = clipboardEvent({
+			types: ["Files"],
+			getData: () => "",
+			files: { length: 2, 0: fileA, 1: fileB } as unknown as {
+				length: number;
+			},
+		});
+		const { terminal, input } = makeFakeTerminal();
+		const override = mock((_files: File[]) => {});
+
+		handleImagePasteFallback(event, terminal, () => override);
+
+		expect(input).not.toHaveBeenCalled();
+		expect(override).toHaveBeenCalledTimes(1);
+		expect(override.mock.calls[0]?.[0]).toEqual([
+			fileA,
+			fileB,
+		] as unknown as File[]);
+		expect(flags.defaultPrevented).toBe(true);
+		expect(flags.immediateStopped).toBe(true);
+	});
+
+	it("forwards ^V when the override getter returns null", () => {
+		const { event } = clipboardEvent({
+			types: ["Files"],
+			getData: () => "",
+			files: { length: 1 },
+		});
+		const { terminal, input } = makeFakeTerminal();
+
+		handleImagePasteFallback(event, terminal, () => null);
+
+		expect(input).toHaveBeenCalledWith("\x16", true);
+	});
+
+	it("does not consult the override for text paste", () => {
+		const { event } = clipboardEvent({
+			types: ["text/plain"],
+			getData: (t) => (t === "text/plain" ? "hello" : ""),
+		});
+		const { terminal, input } = makeFakeTerminal();
+		const override = mock((_files: File[]) => {});
+
+		handleImagePasteFallback(event, terminal, () => override);
+
+		expect(override).not.toHaveBeenCalled();
+		expect(input).not.toHaveBeenCalled();
+	});
 });
 
 describe("installImagePasteFallback", () => {

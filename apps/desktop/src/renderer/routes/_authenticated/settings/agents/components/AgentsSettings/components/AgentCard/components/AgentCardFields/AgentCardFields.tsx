@@ -102,19 +102,6 @@ export function AgentCardFields({
 				</div>
 			)}
 
-			{preset.kind === "chat" && (
-				<div className="space-y-2">
-					<Label htmlFor={`${preset.id}-model`}>Model Override</Label>
-					<Input
-						key={`${preset.id}-${inputVersion}-model-${preset.model ?? ""}`}
-						id={`${preset.id}-model`}
-						defaultValue={preset.model ?? ""}
-						onBlur={(event) => onFieldBlur("model", event.target.value)}
-						placeholder="Optional model id"
-					/>
-				</div>
-			)}
-
 			{validationMessage && (
 				<p className="text-sm text-destructive">{validationMessage}</p>
 			)}

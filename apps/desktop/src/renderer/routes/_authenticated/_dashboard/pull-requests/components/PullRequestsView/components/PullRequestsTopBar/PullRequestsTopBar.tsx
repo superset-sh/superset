@@ -1,12 +1,19 @@
 import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
+import type { PullRequestReviewFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
+import { AuthorFilter } from "./components/AuthorFilter";
+import { ReviewFilter } from "./components/ReviewFilter";
 
 interface PullRequestsTopBarProps {
 	searchQuery: string;
 	onSearchChange: (query: string) => void;
-	projectFilter: string | null;
-	onProjectFilterChange: (projectId: string) => void;
+	projectFilters: string[];
+	onProjectFiltersChange: (projectIds: string[]) => void;
+	authorFilter: string | null;
+	onAuthorFilterChange: (author: string | null) => void;
+	reviewFilter: PullRequestReviewFilter | null;
+	onReviewFilterChange: (review: PullRequestReviewFilter | null) => void;
 	includeClosed: boolean;
 	onIncludeClosedChange: (includeClosed: boolean) => void;
 }
@@ -14,8 +21,12 @@ interface PullRequestsTopBarProps {
 export function PullRequestsTopBar({
 	searchQuery,
 	onSearchChange,
-	projectFilter,
-	onProjectFilterChange,
+	projectFilters,
+	onProjectFiltersChange,
+	authorFilter,
+	onAuthorFilterChange,
+	reviewFilter,
+	onReviewFilterChange,
 	includeClosed,
 	onIncludeClosedChange,
 }: PullRequestsTopBarProps) {
@@ -29,8 +40,24 @@ export function PullRequestsTopBar({
 					<div className="flex items-center gap-2">
 						<span className="text-xs text-muted-foreground">Repository</span>
 						<ProjectFilter
-							value={projectFilter}
-							onChange={onProjectFilterChange}
+							value={projectFilters}
+							onChange={onProjectFiltersChange}
+						/>
+					</div>
+					<div className="h-4 w-px shrink-0 bg-border" />
+					<div className="flex items-center gap-2">
+						<span className="text-xs text-muted-foreground">Author</span>
+						<AuthorFilter
+							value={authorFilter}
+							onChange={onAuthorFilterChange}
+						/>
+					</div>
+					<div className="h-4 w-px shrink-0 bg-border" />
+					<div className="flex items-center gap-2">
+						<span className="text-xs text-muted-foreground">Reviews</span>
+						<ReviewFilter
+							value={reviewFilter}
+							onChange={onReviewFilterChange}
 						/>
 					</div>
 					<div className="h-4 w-px shrink-0 bg-border" />

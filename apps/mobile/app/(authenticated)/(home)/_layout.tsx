@@ -19,22 +19,11 @@ export default function HomeLayout() {
 				}}
 			/>
 			<Stack.Screen
-				name="new-chat"
+				name="new-session"
 				options={{
 					presentation: "formSheet",
 					headerShown: false,
 					sheetAllowedDetents: [1.0],
-					sheetGrabberVisible: true,
-				}}
-			/>
-			<Stack.Screen
-				name="attachments"
-				options={{
-					presentation: "formSheet",
-					headerShown: false,
-					// Single detent: multi-detent resizes corrupt expo-image frames.
-					// Content (incl. the screenshots grid) is sized to fit 0.5.
-					sheetAllowedDetents: [0.5],
 					sheetGrabberVisible: true,
 				}}
 			/>

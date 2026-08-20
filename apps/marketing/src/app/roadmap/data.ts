@@ -50,7 +50,7 @@ export const STATUS_LABELS: Record<RoadmapStatus, string> = {
 
 export const STATUS_DESCRIPTIONS: Record<RoadmapStatus, string> = {
 	now: "Being built right now.",
-	next: "Committed — starting soon.",
+	next: "Committed, starting soon.",
 	later: "On our radar. Order and scope may change.",
 	shipped: "Live in the app.",
 };
@@ -95,7 +95,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "chat-v3",
 		title: "Next-generation chat",
 		description:
-			"A rebuilt chat surface for driving agents — richer tool output, smoother steering, faster everything.",
+			"A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything.",
 		category: "Agents",
 		status: "next",
 	},
@@ -103,7 +103,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "native-pr-reviews",
 		title: "Native PR reviews",
 		description:
-			"Review pull requests inside Superset — diff pane, agent-assisted review, act on comments directly.",
+			"Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly.",
 		category: "Desktop",
 		status: "next",
 	},
@@ -144,7 +144,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "work-from-tickets",
 		title: "Work from tickets",
 		description:
-			"Start a workspace straight from a Linear ticket — the agent picks it up and reports back with a PR.",
+			"Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR.",
 		category: "Integrations",
 		status: "later",
 	},
@@ -152,7 +152,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "autonomous-ticket-to-pr",
 		title: "Autonomous ticket-to-PR pipeline",
 		description:
-			"File a ticket, get back a verified, merge-ready PR — with screenshots or a screencast as proof the change works.",
+			"File a ticket, get back a verified, merge-ready PR, with screenshots or a screencast as proof the change works.",
 		category: "Agents",
 		status: "later",
 	},
@@ -160,7 +160,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "automations",
 		title: "Automations & event triggers",
 		description:
-			"Scheduled and event-triggered agents — cron, GitHub events, webhooks — with ready-made templates.",
+			"Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates.",
 		category: "Agents",
 		status: "later",
 	},
@@ -184,7 +184,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "session-snapshots",
 		title: "Session snapshots & revert",
 		description:
-			"Roll back an agent session to any checkpoint — conversation and file changes together.",
+			"Roll back an agent session to any checkpoint, conversation and file changes together.",
 		category: "Desktop",
 		status: "later",
 	},
@@ -225,7 +225,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "offline-local-first",
 		title: "Offline / local-first mode",
 		description:
-			"The full core loop — import a repo, run an agent, review the diff — now works signed out and offline.",
+			"The full core loop (import a repo, run an agent, review the diff) now works signed out and offline.",
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Aug 2026",
@@ -246,7 +246,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "sidebar-redesign",
 		title: "Cleaner, denser sidebar",
 		description:
-			"A full restyle — denser rows, port and agent chips under each workspace, one-click stop for everything.",
+			"A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything.",
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Aug 2026",
@@ -288,7 +288,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "terminal-rich-input",
 		title: "Rich input for the terminal",
 		description:
-			"Press ⌘I over any terminal and compose in a real editor — multiline prompts and @file mentions.",
+			"Press ⌘I over any terminal and compose in a real editor, with multiline prompts and @file mentions.",
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Jul 2026",

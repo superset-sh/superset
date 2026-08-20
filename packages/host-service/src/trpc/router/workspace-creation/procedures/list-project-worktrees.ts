@@ -1,8 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../../db/schema";
 import { protectedProcedure } from "../../../index";
-import { requireLocalProject } from "../shared/local-project";
+import {
+	requireLocalProject,
+	requireProjectRepoPath,
+} from "../shared/local-project";
 import {
 	listGitWorktrees,
 	normalizeWorktreePath,
@@ -20,7 +23,7 @@ export const listProjectWorktrees = protectedProcedure
 	.input(z.object({ projectId: z.string() }))
 	.query(async ({ ctx, input }) => {
 		const localProject = requireLocalProject(ctx, input.projectId);
-		const git = await ctx.git(localProject.repoPath);
+		const git = await ctx.git(requireProjectRepoPath(localProject));
 		const records = await listGitWorktrees(git);
 
 		// Tracking key is (projectId, branch) — same as searchBranches — but
@@ -29,7 +32,12 @@ export const listProjectWorktrees = protectedProcedure
 		const workspaceRows = ctx.db
 			.select()
 			.from(workspaces)
-			.where(eq(workspaces.projectId, input.projectId))
+			.where(
+				and(
+					eq(workspaces.projectId, input.projectId),
+					isNull(workspaces.archivedAt),
+				),
+			)
 			.all();
 		const workspaceBranches = new Set(
 			workspaceRows.map((row) => row.branch).filter(Boolean),

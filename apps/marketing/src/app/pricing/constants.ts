@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { FAQItem } from "@/app/components/FAQSection";
 
 export type TierId = "free" | "pro" | "enterprise";
@@ -22,6 +23,7 @@ export interface PricingTier {
 		variant: "default" | "outline" | "secondary";
 		external?: boolean;
 	};
+	ctaNote?: { label: string; href?: string };
 	highlight?: boolean;
 }
 
@@ -36,13 +38,14 @@ export const PRICING_TIERS: PricingTier[] = [
 			"Local workspaces",
 			"Desktop app",
 			"GitHub integration",
-			"CLI (coming soon)",
+			"CLI",
 		],
 		cta: {
 			label: "Download app",
 			href: "/download",
 			variant: "outline",
 		},
+		ctaNote: { label: "No credit card required." },
 	},
 	{
 		id: "pro",
@@ -58,7 +61,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			yearly: {
 				display: "$15",
 				note: "per user/month",
-				cadence: "Billed yearly",
+				cadence: "$180 per user, billed yearly",
 			},
 		},
 		features: [
@@ -66,6 +69,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			"Unlimited users",
 			"Remote workspaces",
 			"Linear integration",
+			"Slack integration",
 			"Mobile (coming soon)",
 		],
 		cta: {
@@ -82,13 +86,13 @@ export const PRICING_TIERS: PricingTier[] = [
 		price: {
 			kind: "custom",
 			display: "Custom pricing",
-			note: "Billed yearly",
+			note: "Annual billing only",
 		},
 		features: [
 			"Everything in Pro",
-			"SSO & advanced security",
+			"SAML SSO & SCIM provisioning",
 			"Audit logs",
-			"SLA & dedicated support",
+			"Uptime SLA & dedicated support",
 			"Custom integrations",
 		],
 		cta: {
@@ -96,6 +100,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			href: "/enterprise",
 			variant: "outline",
 		},
+		ctaNote: { label: "Review our security", href: COMPANY.TRUST_URL },
 	},
 ];
 
@@ -171,7 +176,7 @@ export const PRICING_FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Is there a free plan?",
 		answer:
-			"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and GitHub integration. No credit card required.",
+			"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, the CLI, and GitHub integration. No credit card required.",
 	},
 	{
 		question: "How does Pro pricing work?",
@@ -187,5 +192,15 @@ export const PRICING_FAQ_ITEMS: FAQItem[] = [
 		question: "What's included in Enterprise?",
 		answer:
 			"Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, audit logs, a custom SLA, dedicated support, and custom contracts. Pricing is tailored to your organization. Get in touch and we'll scope something that fits.",
+	},
+	{
+		question: "Where does my code run?",
+		answer:
+			"On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls.",
+	},
+	{
+		question: "Do I need my own coding agent subscriptions?",
+		answer:
+			"Yes. Superset is the workspace your agents run in, not a model provider. Bring Claude Code, Codex, OpenCode, or any CLI agent, and use your existing accounts or API keys on every plan.",
 	},
 ];

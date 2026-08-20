@@ -5,6 +5,6 @@
 		"jsx": "react-jsx",
 		"moduleResolution": "bundler"
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts"],
 	"exclude": ["node_modules", "dist"]
 }

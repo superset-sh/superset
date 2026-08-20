@@ -1,6 +1,7 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
+import Link from "next/link";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
@@ -9,17 +10,19 @@ import { BoidsBackground } from "./components/BoidsBackground";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
-const PIXEL_FONT_STYLE = {
-	fontFamily: "var(--font-geist-pixel-grid)",
-} satisfies React.CSSProperties;
-
 const HERO_COPY = {
 	segments: [
-		{ text: "The Code Editor for " },
-		{ text: "AI Agents.", style: PIXEL_FONT_STYLE },
+		{ text: "Run 100+ Coding Agents " },
+		{
+			text: "in Parallel.",
+			// Plain inline (not inline-block): vertical padding on inline boxes
+			// paints the brackets without affecting line height, so the line
+			// can't jump when this segment mounts mid-animation
+			className: "corner-brackets px-[0.2em] py-[0.06em] whitespace-nowrap",
+		},
 	],
 	subheadline:
-		"Orchestrate 100+ coding agents in parallel. Works for any agents. Built for the AI era.",
+		"Claude Code, Codex, or any CLI agent, each in its own isolated workspace. Spend your time shipping, not waiting.",
 };
 
 export function HeroSection() {
@@ -31,17 +34,26 @@ export function HeroSection() {
 				<BoidsBackground />
 				<div className="relative w-full max-w-7xl mx-auto px-6 sm:px-8">
 					<div className="flex flex-col items-center text-center">
+						{/* Hiring pill: in-flow badge above the headline */}
+						<Link
+							href="/join-us"
+							className="group mb-6 sm:mb-8 inline-flex w-max items-center gap-2 whitespace-nowrap rounded-[2px] border border-border bg-background/80 px-3 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/[0.2]"
+						>
+							<span className="text-brand shrink-0">●</span>
+							<span>
+								We&apos;re hiring engineers
+								<span className="hidden sm:inline"> in San Francisco</span>
+							</span>
+							<span className="shrink-0 transition-transform group-hover:translate-x-0.5">
+								→
+							</span>
+						</Link>
 						<div className="space-y-4 sm:space-y-6">
-							<h1
-								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative max-w-6xl mx-auto"
-								style={{
-									fontFamily: "var(--font-ibm-plex-mono), monospace",
-								}}
-							>
-								{/* Sizer must mirror the visible segments' fonts so wrapping matches */}
+							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] text-foreground relative max-w-6xl mx-auto">
+								{/* Sizer must mirror the visible segments' styling so wrapping matches */}
 								<span className="invisible" aria-hidden="true">
 									{HERO_COPY.segments.map((segment) => (
-										<span key={segment.text} style={segment.style}>
+										<span key={segment.text} className={segment.className}>
 											{segment.text}
 										</span>
 									))}
@@ -51,6 +63,10 @@ export function HeroSection() {
 										segments={HERO_COPY.segments}
 										speed={40}
 										delay={600}
+										// Caret matches the corner-bracket box height (1.30em) for the
+										// whole animation; drawn via scale-y so its layout height stays
+										// 0.72em and can't inflate the line box
+										cursorClassName="inline-block ml-0.5 w-3 -mr-3.5 h-[0.72em] origin-bottom scale-y-[1.806] translate-y-[0.268em] bg-brand"
 									/>
 								</span>
 							</h1>

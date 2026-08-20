@@ -10,8 +10,24 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { FaSlack } from "react-icons/fa";
 import { api } from "@/trpc/server";
+import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
+
+const CALLBACK_MESSAGES = {
+	oauth_denied: "Authorization was denied. Please try again.",
+	missing_params: "Invalid OAuth response. Please try again.",
+	invalid_state: "Invalid state parameter. Please try again.",
+	token_exchange_failed: "Failed to connect to Slack. Please try again.",
+	slack_api_error: "Slack API error occurred. Please try again.",
+	unauthorized: "You are not authorized to perform this action.",
+	workspace_already_linked: {
+		param: "owner",
+		withParam:
+			"This Slack workspace is already connected by {owner}. Ask them to disconnect first.",
+		withoutParam:
+			"This Slack workspace is already connected by another Superset organization.",
+	},
+};
 
 export default async function SlackIntegrationPage() {
 	const trpc = await api();
@@ -34,7 +50,7 @@ export default async function SlackIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler provider="slack" messages={CALLBACK_MESSAGES} />
 
 			<Link
 				href="/integrations"

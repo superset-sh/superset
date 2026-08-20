@@ -1,0 +1,7 @@
+extends: existence
+message: "'%s' is saturated in the category; fine in SEO keyword slots, avoid it in fresh prose."
+link: https://github.com/superset-sh/superset/blob/main/apps/marketing/docs/copywriting-references.md
+level: suggestion
+ignorecase: true
+tokens:
+  - agentic

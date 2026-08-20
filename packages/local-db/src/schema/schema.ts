@@ -206,6 +206,8 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
+	/** @deprecated Nothing reads this. Kept so builds <= 1.20.2 can still
+	 * select the column; drop it once those builds are out of circulation. */
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
@@ -248,6 +250,7 @@ export const settings = sqliteTable("settings", {
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
+	browserHomepageUrl: text("browser_homepage_url"),
 	defaultEditor: text("default_editor").$type<ExternalApp>(),
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",

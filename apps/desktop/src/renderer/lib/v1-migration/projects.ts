@@ -124,6 +124,13 @@ export async function importV1Project({
 		try {
 			const result = await hostClient.project.setup.mutate({
 				projectId: targetCandidate.id,
+				// Coordinates from the candidate the host just handed us: a
+				// `remote` candidate has no local row on this host, so setup
+				// has no other way to learn the repo.
+				origin: {
+					repoCloneUrl: targetCandidate.repoCloneUrl,
+					name: targetCandidate.name,
+				},
 				mode: {
 					kind: "import",
 					repoPath: project.mainRepoPath,
@@ -153,7 +160,13 @@ export async function importV1Project({
 		name: project.name,
 		mode: { kind: "importLocal", repoPath: project.mainRepoPath },
 	});
-	await carryV1ProjectAppearance(hostClient, result.projectId, project);
+	// Only stamp v1 appearance onto projects this call actually created.
+	// A reused project (created === false) may carry v2 customizations the
+	// user chose after their first import — never overwrite those. Older
+	// hosts omit the field; keep their long-standing carry behavior.
+	if (result.created !== false) {
+		await carryV1ProjectAppearance(hostClient, result.projectId, project);
+	}
 	return {
 		kind: "imported",
 		v2ProjectId: result.projectId,

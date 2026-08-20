@@ -146,6 +146,26 @@ export const createExternalRouter = () => {
 				shell.showItemInFolder(input);
 			}),
 
+		// Opens a folder itself in Finder (like `open <path>`), rather than
+		// highlighting it in its parent the way openInFinder does.
+		openFolderInFinder: publicProcedure
+			.input(z.string())
+			.mutation(async ({ input }) => {
+				if (!nodePath.isAbsolute(input)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `openFolderInFinder requires an absolute path (got ${JSON.stringify(input)}).`,
+					});
+				}
+				const errorMessage = await shell.openPath(input);
+				if (errorMessage) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: errorMessage,
+					});
+				}
+			}),
+
 		saveToDownloads: publicProcedure
 			.input(
 				z.object({

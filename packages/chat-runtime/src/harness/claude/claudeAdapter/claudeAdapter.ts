@@ -30,6 +30,7 @@ export type ClaudeQueryOptions = Pick<
 	| "cwd"
 	| "includePartialMessages"
 	| "model"
+	| "pathToClaudeCodeExecutable"
 	| "permissionMode"
 	| "resume"
 	| "settingSources"
@@ -50,6 +51,7 @@ export type ClaudeQuery = (params: {
 
 export type ClaudeAdapterOptions = {
 	query: ClaudeQuery;
+	pathToClaudeCodeExecutable?: string;
 	now?: () => number;
 	mintId?: () => string;
 };
@@ -172,6 +174,7 @@ export class ClaudeAdapter implements HarnessAdapter {
 			options: {
 				cwd: startOptions.cwd,
 				model: startOptions.modelId,
+				pathToClaudeCodeExecutable: this.options.pathToClaudeCodeExecutable,
 				includePartialMessages: true,
 				settingSources: [],
 				permissionMode: "default",

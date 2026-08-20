@@ -1,0 +1,1 @@
+export { BurnByVendorTile } from "./BurnByVendorTile";

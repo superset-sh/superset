@@ -1,3 +1,5 @@
+import type { TriggerConfigInput } from "./automation-triggers";
+
 // Auth
 export const AUTH_PROVIDERS = ["github", "google"] as const;
 export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
@@ -37,6 +39,7 @@ export const COMPANY = {
 	FOUNDERS_MAIL_TO: `mailto:founders@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
+	APP_STORE_URL: "https://apps.apple.com/app/id6788926383",
 	STATUS_URL: `https://status.${ROOT_DOMAIN}`,
 	TRUST_URL: `https://trust.${ROOT_DOMAIN}`,
 	JOIN_US_URL: `${MARKETING_URL}/join-us`,
@@ -71,6 +74,9 @@ export const TOKEN_CONFIG = {
 
 // Workspace teardown
 export const TEARDOWN_TIMEOUT_MS = 60_000;
+
+/** Days a pending-deletion account stays recoverable before it may be purged. */
+export const ACCOUNT_DELETION_GRACE_DAYS = 30;
 
 // PostHog
 export const POSTHOG_COOKIE_NAME = "superset";
@@ -131,6 +137,16 @@ export const FEATURE_FLAGS = {
 	 * it to reach users who cross the threshold later.
 	 */
 	HIRING_BANNER: "hiring-banner",
+	/** Shows the "Star Superset on GitHub" sidebar card once a user crosses the workspace-count threshold. Lets us kill the nag instantly without a release if it reads as annoying. */
+	STAR_NAG_CARD: "star-nag-card",
+	/**
+	 * Which trigger providers the Add Trigger menu offers. Payload is a JSON
+	 * array of provider kinds, e.g. `["github", "slack"]`; Scheduled is always
+	 * offered. Off, unloaded, offline, or a payload that isn't an array all
+	 * mean Scheduled only — the event providers exist on main ahead of their
+	 * credentials being provisioned, and each is exposed by adding its kind.
+	 */
+	AUTOMATION_EVENT_TRIGGERS: "automation-event-triggers",
 	/**
 	 * Experiment flag (control/test): renders the new-workspace surface as a
 	 * full-screen view with sample prompts instead of the dense modal.
@@ -148,12 +164,89 @@ export const FEATURE_FLAGS = {
 	 */
 	NEW_WORKSPACE_SCREEN_OVERRIDE: "new-workspace-screen-override",
 	/**
+	 * Three-arm experiment flag nested inside the shipped new-workspace screen,
+	 * testing form factor only: `control` keeps the inline sample-prompt rows,
+	 * `cards2` shows two cards above the composer, `cards4` shows four in a 2x2
+	 * grid. Every arm slices a nested prefix of one fixed prompt pool and shares
+	 * the same selection rule, so content is identical and only layout and count
+	 * vary. Evaluated when the screen opens, like NEW_WORKSPACE_SCREEN, so
+	 * exposure matches the population that sees it.
+	 *
+	 * Anything other than `cards2`/`cards4` renders control — which is why the
+	 * flag must not go live before a build carrying those arms ships, or older
+	 * builds would be assigned a card arm and shown rows.
+	 *
+	 * Eligibility (new accounts only) is a release condition on the flag, not
+	 * code: a `created_at` person property cutoff, which the renderer sends with
+	 * flag requests at identify time. Existing accounts get `false` back and
+	 * render the rows exactly as they do today, with no exposure recorded.
+	 */
+	NEW_WORKSPACE_PROMPT_CARDS: "new-workspace-prompt-cards",
+	/**
+	 * Boolean override that forces the `cards2` arm without evaluating the
+	 * experiment flag — no exposure event, so team and dev accounts can look at
+	 * the cards without entering the analysis. Checked before the experiment
+	 * flag, same as NEW_WORKSPACE_SCREEN_OVERRIDE.
+	 */
+	NEW_WORKSPACE_PROMPT_CARDS_OVERRIDE: "new-workspace-prompt-cards-override",
+	/**
 	 * Shows the rebuilt chat pane (ChatV3Pane). UI-only: host-service always
 	 * serves its `/chat-v3/*` routes, so this flag decides who sees the pane,
 	 * not what the host can do — flips take effect live, with no host restart.
 	 */
 	CHAT_V3: "chat-v3",
+	/**
+	 * Shows the cloud-workspace option in the create picker. The API gates
+	 * these to @superset.sh accounts independently, so the flag controls
+	 * visibility rather than access.
+	 */
+	CLOUD_WORKSPACES: "cloud-workspaces",
 } as const;
+
+/**
+ * The trigger kinds the server accepts on save. The AUTOMATION_EVENT_TRIGGERS
+ * flag payload gates which of these each user's Add Trigger menu offers;
+ * flipping a provider off for everyone is deleting its line here.
+ */
+export const LAUNCHED_TRIGGER_KINDS = [
+	"schedule",
+	"webhook",
+	"github",
+	"slack",
+	"linear",
+	"sentry",
+	"notion",
+	"circleback",
+	"microsoft_teams",
+	"google_calendar",
+	"gmail",
+] as const satisfies readonly TriggerConfigInput["kind"][];
+
+/**
+ * What a cloud workspace sandbox holds in place of a real model API key. The
+ * provider's egress proxy substitutes the real one after the request leaves,
+ * so this is the only credential-shaped string inside a sandbox.
+ *
+ * Shared because two places must agree on it byte-for-byte: the sandbox spec
+ * that sets it as an env var, and the image's pre-seeded Claude config, which
+ * pre-approves it by its last 20 characters.
+ */
+export const SANDBOX_CREDENTIAL_PLACEHOLDER =
+	"proxy-injected-see-network-routing";
+
+/**
+ * Where a cloud workspace's checkout lives. The sandbox's checkout *is* the
+ * workspace, so this is both the clone target and the path the image marks as
+ * trusted ahead of time.
+ */
+export const SANDBOX_WORKSPACE_PATH = "/workspace";
+
+/**
+ * host.db inside a sandbox. Separate from the checkout so a persistent volume
+ * can mount over it without touching the workspace, and so the image can ship
+ * a pre-migrated template alongside it.
+ */
+export const SANDBOX_HOST_DB_PATH = "/data/host.db";
 
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
 // agent TUIs (claude-code especially) tune wheel-scroll compensation per

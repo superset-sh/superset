@@ -599,11 +599,13 @@ project id when the host doesn't know the project's name.
 <Command
 	name="superset workspaces create"
 	options={[
-		{ flag: "--project <projectId>", required: true, description: "Project ID." },
-		{ flag: "--name <name>", required: true, description: "Workspace name." },
-		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` is set." },
+		{ flag: "--project <projectId>", description: "Project ID. Omit to create a project-less session (a managed scratch folder)." },
+		{ flag: "--name <name>", description: "Workspace name. Required when `--project` is set; optional for sessions." },
+		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` or `--task` is set." },
 		{ flag: "--pr <number>", description: "Pull request number. Checks out the verified PR head." },
+		{ flag: "--task <id>", description: "Task ID to link. When `--branch` is omitted, the task's provider branch name (e.g. Linear's) is used verbatim." },
 		{ flag: "--base-branch <branch>", description: "Branch to fork from when `--branch` does not exist. Defaults to the project default branch." },
+		{ flag: "--skip-branch-prefix", description: "Use `--branch` exactly as given instead of namespacing it under the project branch prefix." },
 		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
 		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
@@ -614,11 +616,18 @@ project id when the host doesn't know the project's name.
 	]}
 	output={`{ workspace: Workspace; alreadyExists: boolean }`}
 >
-Create a workspace on the target host. Specify exactly one of `--branch`
-or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
+Create a workspace on the target host. With `--project`, specify one of
+`--branch`, `--pr`, or `--task` (`--branch` and `--pr` are mutually
+exclusive). If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
 `--agent`/`--prompt`. Pass either or both. `--effort` requires `--agent`; see
 the [agent effort levels](#agent-effort-levels) below.
+
+Omitting `--project` creates a **session**: a project-less workspace backed
+by a managed folder under `~/.superset/sessions`, initialized as its own git
+repo. Sessions have no branch semantics, so `--branch`, `--pr`, `--task`,
+`--base-branch`, and `--skip-branch-prefix` are rejected, `--name` is
+optional, and the output has no `alreadyExists` field.
 
 ```bash
 superset workspaces create \
@@ -632,6 +641,9 @@ superset workspaces create \
   --name "review-pr-123" \
   --pr 123 \
   --local
+
+# Project-less session with an agent
+superset workspaces create --local --agent claude --prompt "…"
 ```
 </Command>
 
@@ -810,7 +822,8 @@ superset agents list --host host_…
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
-		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
+		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session` is set." },
+		{ flag: "--resume-session <id>", description: "Agent session id of a previous run to restore instead of starting fresh (e.g. `claude --resume <id>`). Fails for agents without an id-based resume." },
 		{ flag: "--effort <level>", description: "Reasoning effort for this launch. Omit to use the agent default." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
 		{ flag: "--attachment <path>", description: "Local file path to upload as an attachment. Repeatable." },
@@ -828,6 +841,8 @@ terminal session there.
 ```bash
 superset agents create --workspace ws_… --agent claude --effort high --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
+# Restore a killed agent session by the agent's own session id
+superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
 ```
 
 #### Agent effort levels
@@ -937,6 +952,126 @@ give an agent new instructions mid-session.
 	]}
 >
 Close (dispose) a terminal running in a workspace. This ends the session.
+</Command>
+
+---
+
+### browser
+
+Drive a workspace's [in-app browser](/browser) panes: open and navigate URLs,
+screenshot, read console, evaluate JavaScript, and get a raw Chrome DevTools
+Protocol endpoint for click/type/scroll automation. Every operation runs in the
+pane the user sees, against the browser's real session. Browser panes live in
+the desktop app, so a standalone host with no desktop attached has no panes and
+these commands error. A `paneId` is scoped to its workspace — pass the same
+`--workspace` it was opened under. See the [`browser` skill](/skills) for the
+agent-facing protocol.
+
+<Command
+	name="superset browser list"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  panes: Array<{ paneId; workspaceId; url; title; isLoading }>;
+}`}
+>
+List the browser panes open in a workspace.
+</Command>
+
+<Command
+	name="superset browser open"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--url <url>", required: true, description: "URL to open (http/https)." },
+		{ flag: "--target <t>", description: "`current-tab` (default) or `new-tab`." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  paneId: string;
+  url: string;
+  title: string;
+}`}
+>
+Open a URL in a browser pane and return its `paneId`. Requires the workspace to
+be visible in the desktop app (the renderer creates the pane).
+
+```bash
+superset browser open --workspace ws_… --url http://localhost:3000 --target new-tab
+```
+</Command>
+
+<Command
+	name="superset browser navigate"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID (from `browser list`)." },
+		{ flag: "--url <url>", required: true, description: "URL to navigate to (http/https)." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+>
+Point an existing pane at a new URL. `file://`, `chrome://`, and custom schemes
+are refused.
+</Command>
+
+<Command
+	name="superset browser screenshot"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--out <path>", description: "Write a PNG file instead of printing base64." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ base64: string }  // or { path } with --out`}
+>
+Capture a PNG screenshot of the pane's page.
+</Command>
+
+<Command
+	name="superset browser eval"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--code <js>", required: true, description: "JavaScript expression to evaluate in the page." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ result: unknown }`}
+>
+Evaluate JavaScript in the page and return the result — the ergonomic path for
+reading or nudging the DOM.
+
+```bash
+superset browser eval --workspace ws_… --pane pane_… \
+  --code "document.querySelector('h1')?.textContent"
+```
+</Command>
+
+<Command
+	name="superset browser console"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--max-lines <n>", description: "Cap returned entries from the bottom." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ entries: Array<{ level; message; timestamp }> }`}
+>
+Read the pane's captured console output.
+</Command>
+
+<Command
+	name="superset browser cdp"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ url: string }  // a CDP WebSocket URL`}
+>
+Print a raw Chrome DevTools Protocol WebSocket endpoint for the pane, for
+browser-use / Playwright-class tools (mouse, keyboard, scroll, DOM, network).
+The URL embeds an auth token — treat it as a secret.
 </Command>
 
 ---
@@ -1111,17 +1246,18 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 		{ flag: "--rrule <rrule>", required: true, description: "RFC 5545 RRULE schedule." },
 		{ flag: "--timezone <iana>", description: "Default: host TZ, then UTC." },
 		{ flag: "--dtstart <iso8601>", description: "Default: now." },
-		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace." },
-		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode." },
+		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace (session workspaces are accepted)." },
+		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode. Omit (with no --workspace) for session mode." },
 		{ flag: "--host <hostId>", description: "Host the automation dispatches to (default: this machine)." },
 		{ flag: "--agent <agent>", description: "Host agent presetId, instance UUID, or 'superset' for built-in chat. Default: claude." },
 	]}
 	output="Automation"
 >
 Create an automation. Provide `--prompt` or `--prompt-file`; if both are
-present, the inline `--prompt` value is used. At least one of `--project`
-or `--workspace` must be provided, and it must exist on the target host;
-the CLI verifies this before creating the automation.
+present, the inline `--prompt` value is used. A `--project` or `--workspace`
+must exist on the target host; the CLI verifies this before creating the
+automation. Omit both for **session mode**: each run creates a project-less
+session workspace on the target host.
 
 ```bash
 superset automations create \
@@ -1146,6 +1282,7 @@ superset automations create \
 		{ flag: "--host <hostId>", description: "New target host." },
 		{ flag: "--project <projectId>", description: "New v2 project ID." },
 		{ flag: "--workspace <workspaceId>", description: "New v2 workspace ID." },
+		{ flag: "--session", description: "Switch to session mode: clears the project and any workspace pin; each run creates a project-less session workspace. Mutually exclusive with --project/--workspace." },
 		{ flag: "--agent <agent>", description: "New host agent presetId, instance UUID, or 'superset'." },
 		{ flag: "--mcp-scope <a,b,c>", description: "Comma-separated MCP scope strings." },
 		{ flag: "--enabled / --no-enabled", description: "Calls automation.setEnabled first." },
@@ -1277,6 +1414,208 @@ List recent runs for an automation.
 
 ```bash
 superset automations logs aut_…
+```
+</Command>
+
+---
+
+### settings
+
+Read and update the Superset desktop app's settings on this machine:
+behavior, git, notifications, terminal, terminal/editor appearance, and the
+app theme. These commands work offline and don't require login.
+
+After every write the CLI nudges the running desktop app, which refreshes
+immediately, themes included, no restart (the command output confirms
+with "refreshed immediately" / "applied to the running desktop app").
+Without a running app (or on older app versions) settings apply on next
+window focus and theme changes on next launch. Git settings
+(`branchPrefixMode`, `branchPrefixCustom`, `worktreeBaseDir`) are
+host-wide and written through the local host service, so the desktop app
+or `superset start` must be running for those.
+
+<Command
+	name="superset settings list"
+	output={`Array<{
+  key: string;
+  value: string;
+  isSet: boolean;
+  default: string;
+  allowed: string;
+  section: string;
+  description: string;
+}>`}
+	humanColumns={["KEY", "VALUE", "DEFAULT", "SECTION", "DESCRIPTION"]}
+>
+List every settable key with its current value, default, and allowed values.
+`isSet: false` means the app is using its built-in default.
+
+```bash
+superset settings list
+```
+</Command>
+
+<Command
+	name="superset settings get <key>"
+	args={[
+		{ name: "key", required: true, description: "Setting key from `settings list`." },
+	]}
+	output={`{
+  key: string;
+  value: string | number | boolean | null;
+  isSet: boolean;
+  default: string | number | boolean | null;
+  allowed: string;
+  description: string;
+}`}
+>
+Print the effective value of one setting (falls back to the app default
+when unset).
+
+```bash
+superset settings get terminalFontSize
+```
+</Command>
+
+<Command
+	name="superset settings set <key> <value>"
+	args={[
+		{ name: "key", required: true, description: "Setting key from `settings list`." },
+		{ name: "value", required: true, description: "New value. Validated against the setting's type, range, and allowed values." },
+	]}
+>
+Set a setting. Booleans accept `true/false/on/off/1/0/yes/no`; enums and
+numeric ranges are validated the same way the desktop settings UI validates
+them.
+
+```bash
+superset settings set confirmOnQuit false
+superset settings set terminalFontSize 16
+superset settings set defaultEditor cursor
+superset settings set selectedRingtoneId ping
+```
+</Command>
+
+<Command
+	name="superset settings reset <key>"
+	args={[
+		{ name: "key", required: true, description: "Setting key from `settings list`." },
+	]}
+>
+Reset a setting to the app default.
+
+```bash
+superset settings reset terminalFontSize
+```
+</Command>
+
+<Command
+	name="superset settings theme list"
+	output={`{
+  activeThemeId: string;
+  systemLightThemeId: string;
+  systemDarkThemeId: string;
+  themes: Array<{ id: string; name: string; type: string; source: "system" | "built-in" | "custom"; active: "*" | "" }>;
+}`}
+	humanColumns={["ID", "NAME", "TYPE", "SOURCE", "ACTIVE"]}
+>
+List available themes: `system` (follows OS appearance), the built-ins
+(`dark`, `light`, `monokai`), and any custom themes imported through the
+app.
+
+```bash
+superset settings theme list
+```
+</Command>
+
+<Command
+	name="superset settings theme get"
+	output={`{
+  activeThemeId: string;
+  systemLightThemeId: string;
+  systemDarkThemeId: string;
+}`}
+>
+Print the active theme.
+
+```bash
+superset settings theme get
+```
+</Command>
+
+<Command
+	name="superset settings theme export <id>"
+	args={[
+		{ name: "id", required: true, description: "Theme id (built-in or custom)." },
+	]}
+	options={[
+		{ flag: "--out <path>", description: "Write to a file instead of stdout." },
+	]}
+	output="Theme (full definition JSON)"
+>
+Export a theme's full JSON definition, the starting point for creating a
+custom theme: export a built-in, edit the colors, then import it.
+
+```bash
+superset settings theme export dark --out my-theme.json
+```
+</Command>
+
+<Command
+	name="superset settings theme import <file>"
+	args={[
+		{ name: "file", required: true, description: "Path to a theme JSON file (max 256 KB): a single theme, an array, or `{ themes: [...] }`." },
+	]}
+	output={`{
+  imported: string[]; // theme ids
+  issues: string[];   // per-entry validation issues that were skipped
+}`}
+>
+Import custom themes, using the same validation and normalization as the
+desktop's Appearance UI (ids are slugified; missing colors are filled from
+the built-in base theme; reserved ids like `dark` are rejected).
+Re-importing an id replaces that custom theme.
+
+```bash
+superset settings theme export dark --out my-theme.json
+# edit my-theme.json (id, name, ui/terminal/editor colors)
+superset settings theme import my-theme.json
+superset settings theme set my-theme
+```
+</Command>
+
+<Command
+	name="superset settings theme remove <id>"
+	args={[
+		{ name: "id", required: true, description: "Custom theme id. Built-ins can't be removed." },
+	]}
+>
+Remove a custom theme. If it was the active theme (or a system light/dark
+mapping), that reference falls back to the default.
+
+```bash
+superset settings theme remove my-theme
+```
+</Command>
+
+<Command
+	name="superset settings theme set [theme]"
+	args={[
+		{ name: "theme", description: "Theme id, or `system` to follow the OS appearance." },
+	]}
+	options={[
+		{ flag: "--system-light <id>", description: "Theme used for OS light mode when the active theme is `system`." },
+		{ flag: "--system-dark <id>", description: "Theme used for OS dark mode when the active theme is `system`." },
+	]}
+>
+Set the active theme and/or the system light/dark mappings. A running
+desktop app restyles live; without one the theme applies on next launch.
+(On app versions without live reload, quit the app first, then set, then
+relaunch, or the app may overwrite the change.)
+
+```bash
+superset settings theme set monokai
+superset settings theme set system --system-light light --system-dark monokai
 ```
 </Command>
 

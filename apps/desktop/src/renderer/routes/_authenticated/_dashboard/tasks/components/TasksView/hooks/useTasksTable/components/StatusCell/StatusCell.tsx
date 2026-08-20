@@ -5,10 +5,9 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import {
 	StatusIcon,
 	type StatusType,
@@ -22,21 +21,19 @@ interface StatusCellProps {
 }
 
 export function StatusCell({ taskWithStatus }: StatusCellProps) {
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
-	const { data: allStatuses } = useLiveQuery(
-		(q) => (open ? q.from({ taskStatuses: collections.taskStatuses }) : null),
-		[collections, open],
+	const { data: allStatuses } = cloudTrpc.task.statuses.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
-	const statuses = useMemo(() => allStatuses || [], [allStatuses]);
 	const currentStatus = taskWithStatus.status;
 
 	const sortedStatuses = useMemo(() => {
-		return statuses.sort(compareStatusesForDropdown);
-	}, [statuses]);
+		return [...(allStatuses ?? [])].sort(compareStatusesForDropdown);
+	}, [allStatuses]);
 
 	const handleSelectStatus = (newStatus: SelectTaskStatus) => {
 		if (newStatus.id === currentStatus.id) {

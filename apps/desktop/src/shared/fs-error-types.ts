@@ -9,7 +9,8 @@ export type FsErrnoCode =
 	| "ENOTDIR"
 	| "EACCES"
 	| "EPERM"
-	| "ENOSPC";
+	| "ENOSPC"
+	| "ETIMEDOUT";
 
 export interface FsErrnoCause {
 	kind: "FS_ERRNO";

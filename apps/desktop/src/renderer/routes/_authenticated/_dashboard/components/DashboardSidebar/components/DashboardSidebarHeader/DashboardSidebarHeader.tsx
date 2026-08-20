@@ -11,7 +11,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 import { GoGitPullRequest } from "react-icons/go";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
-import { LuClock, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
+import { LuClock, LuGauge, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -28,6 +28,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
+import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	pullRequestsSearchFromFilters,
@@ -37,6 +38,10 @@ import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
+import {
+	getUsageLastSection,
+	usageSectionPath,
+} from "renderer/routes/_authenticated/_dashboard/usage/utils/usageLastSection";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
@@ -120,6 +125,7 @@ export function DashboardSidebarHeader({
 		fuzzy: true,
 	});
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
+	const isUsageOpen = !!matchRoute({ to: "/usage", fuzzy: true });
 	const { myFailedCount } = useFailedAutomations();
 
 	const {
@@ -127,13 +133,15 @@ export function DashboardSidebarHeader({
 		assignee: lastAssignee,
 		search: lastSearch,
 		typeTab: lastTypeTab,
-		projectFilter: lastProjectFilter,
+		projectFilters: lastProjectFilters,
 		linearProjectFilter: lastLinearProjectFilter,
 		includeClosedIssues: lastIncludeClosedIssues,
 	} = useTasksFilterStore();
 	const {
 		search: lastPullRequestsSearch,
-		projectFilter: lastPullRequestsProjectFilter,
+		projectFilters: lastPullRequestsProjectFilters,
+		authorFilter: lastPullRequestsAuthorFilter,
+		reviewFilter: lastPullRequestsReviewFilter,
 		includeClosed: lastPullRequestsIncludeClosed,
 	} = usePullRequestsFilterStore();
 
@@ -154,12 +162,18 @@ export function DashboardSidebarHeader({
 					assignee: lastAssignee,
 					search: lastSearch,
 					typeTab: lastTypeTab,
-					projectFilter: lastProjectFilter,
+					projectFilters: lastProjectFilters,
 					linearProjectFilter: lastLinearProjectFilter,
 					includeClosedIssues: lastIncludeClosedIssues,
 				}),
 			});
 		});
+	};
+
+	const handleUsageClick = () => {
+		// Reopen whichever Usage section (token / machine resources) was
+		// visited last.
+		navigate({ to: usageSectionPath(getUsageLastSection()) });
 	};
 
 	const handlePullRequestsClick = () => {
@@ -168,7 +182,9 @@ export function DashboardSidebarHeader({
 				to: "/pull-requests",
 				search: pullRequestsSearchFromFilters({
 					search: lastPullRequestsSearch,
-					projectFilter: lastPullRequestsProjectFilter,
+					projectFilters: lastPullRequestsProjectFilters,
+					authorFilter: lastPullRequestsAuthorFilter,
+					reviewFilter: lastPullRequestsReviewFilter,
 					includeClosed: lastPullRequestsIncludeClosed,
 				}),
 			});
@@ -320,6 +336,26 @@ export function DashboardSidebarHeader({
 						<TooltipContent side="right">Pull requests</TooltipContent>
 					</Tooltip>
 
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleUsageClick}
+								aria-label="Usage"
+								aria-current={isUsageOpen ? "page" : undefined}
+								className={cn(
+									"flex size-7 items-center justify-center rounded-md transition-colors",
+									isUsageOpen
+										? "bg-fill-selected text-muted-foreground"
+										: "text-muted-foreground hover:bg-fill-hover",
+								)}
+							>
+								<LuGauge className="size-3.5" strokeWidth={1.5} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Usage</TooltipContent>
+					</Tooltip>
+
 					<DropdownMenu>
 						<Tooltip delayDuration={700}>
 							<TooltipTrigger asChild>
@@ -389,9 +425,12 @@ export function DashboardSidebarHeader({
 					className="drag h-full shrink-0"
 					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
 				/>
-				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
+				<ZoomStable enabled={isMac} className="flex items-center gap-1">
 					<SidebarToggle />
 					<NavigationControls />
+					{/* Lives here (persistent chrome) rather than the workspace tab
+					    bar, which remounts on every navigation. */}
+					<TopBarPortsDropdown align="start" />
 				</ZoomStable>
 				<div className="drag h-full min-w-0 flex-1" />
 			</div>
@@ -498,6 +537,25 @@ export function DashboardSidebarHeader({
 			>
 				<GoGitPullRequest className="size-3.5 shrink-0 text-muted-foreground" />
 				<span className="flex-1 text-left">Pull requests</span>
+			</button>
+
+			<button
+				type="button"
+				onClick={handleUsageClick}
+				aria-label="Usage"
+				aria-current={isUsageOpen ? "page" : undefined}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					isUsageOpen
+						? "bg-fill-selected text-foreground"
+						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+				)}
+			>
+				<LuGauge
+					className="size-3.5 shrink-0 text-muted-foreground"
+					strokeWidth={1.5}
+				/>
+				<span className="flex-1 text-left">Usage</span>
 			</button>
 		</div>
 	);

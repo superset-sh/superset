@@ -34,7 +34,13 @@ function migrationsFolder(): string {
 
 function harnessRegistry(): HarnessRegistry {
 	const entries: [string, HarnessFactory][] = [
-		["claude-code", () => createClaudeAdapter()],
+		[
+			"claude-code",
+			() =>
+				createClaudeAdapter({
+					pathToClaudeCodeExecutable: process.env.SUPERSET_CHAT_V3_CLAUDE_BIN,
+				}),
+		],
 		["codex", () => new CodexAdapter()],
 	];
 	return new Map(entries);

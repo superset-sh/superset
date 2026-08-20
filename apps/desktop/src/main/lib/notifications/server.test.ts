@@ -5,9 +5,7 @@ import { resolvePaneId } from "./resolve-pane-id";
 describe("notifications/server", () => {
 	describe("resolvePaneId", () => {
 		it("returns an explicit paneId even when app state is not initialized", () => {
-			expect(resolvePaneId("pane-1", "tab-1", "ws-1", "session-1")).toBe(
-				"pane-1",
-			);
+			expect(resolvePaneId("pane-1", "tab-1", "ws-1")).toBe("pane-1");
 		});
 	});
 

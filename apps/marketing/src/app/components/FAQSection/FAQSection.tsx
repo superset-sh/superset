@@ -1,6 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 import { HiPlus } from "react-icons/hi2";
 import type { FAQItem } from "./constants";
@@ -33,17 +34,27 @@ function FAQAccordionItem({
 			</button>
 			<AnimatePresence initial={false}>
 				{isOpen && (
-					<motion.div
+					<m.div
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: "auto", opacity: 1 }}
 						exit={{ height: 0, opacity: 0 }}
 						transition={{ duration: 0.2, ease: "easeInOut" }}
 						className="overflow-hidden"
 					>
-						<p className="pb-6 text-base text-muted-foreground leading-relaxed pr-12">
-							{item.answer}
-						</p>
-					</motion.div>
+						<div className="pb-6 pr-12 space-y-3">
+							<p className="text-base text-muted-foreground leading-relaxed">
+								{item.answer}
+							</p>
+							{item.link && (
+								<Link
+									href={item.link.href}
+									className="inline-block text-base text-brand hover:text-brand-light transition-colors"
+								>
+									{item.link.label} →
+								</Link>
+							)}
+						</div>
+					</m.div>
 				)}
 			</AnimatePresence>
 		</div>

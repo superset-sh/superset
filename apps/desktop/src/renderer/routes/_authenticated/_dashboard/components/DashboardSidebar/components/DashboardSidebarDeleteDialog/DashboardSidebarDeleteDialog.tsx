@@ -1,3 +1,4 @@
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { DestroyConfirmPane } from "./components/DestroyConfirmPane";
 import { TeardownFailedPane } from "./components/TeardownFailedPane";
 import { useDestroyDialogState } from "./hooks/useDestroyDialogState";
@@ -24,6 +25,10 @@ export function DashboardSidebarDeleteDialog({
 	onOpenChange,
 	onDeleted,
 }: DashboardSidebarDeleteDialogProps) {
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const isSession =
+		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.type ===
+		"session";
 	const {
 		deleteBranch,
 		setDeleteBranch,
@@ -48,7 +53,7 @@ export function DashboardSidebarDeleteDialog({
 				open={open}
 				onOpenChange={handleOpenChange}
 				cause={error.cause}
-				onForceDelete={() => run(true)}
+				onForceDelete={() => run({ force: true, skipTeardown: true })}
 			/>
 		);
 	}
@@ -61,13 +66,14 @@ export function DashboardSidebarDeleteDialog({
 			open={open}
 			onOpenChange={handleOpenChange}
 			workspaceName={workspaceName}
+			isSession={isSession}
 			deleteBranch={deleteBranch}
 			onDeleteBranchChange={setDeleteBranch}
 			hasChanges={hasChanges}
 			hasUnpushedCommits={hasUnpushedCommits}
 			canConfirm={canConfirm}
 			blockingReason={blockingReason}
-			onConfirm={() => run(hasWarnings)}
+			onConfirm={() => run({ force: hasWarnings })}
 			confirmLabel={confirmLabel}
 		/>
 	);

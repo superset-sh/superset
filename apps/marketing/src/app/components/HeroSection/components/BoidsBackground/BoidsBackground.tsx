@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useEffect, useRef } from "react";
 
-// character grid — glyphs stay upright and snapped, like real terminal text
+// character grid: glyphs stay upright and snapped, like real terminal text
 const CELL = 13;
 const FONT_SIZE = 11;
 
-// the source text each boid writes as it flies — trails spell real code
+// the source text each boid writes as it flies, so trails spell real code
 const CODE =
 	'awaitagent.spawn({preset:"claude",workspace:"boid"})superset.orchestrate({agents:100,' +
 	'parallel:true})agent.review({channel:"all",sla:"24h"})awaitworktree.create({branch:"main",' +
@@ -208,7 +208,7 @@ export function BoidsBackground() {
 					wrapped = true;
 				}
 
-				// write the next character only after real net displacement — a boid
+				// write the next character only after real net displacement: a boid
 				// hovering on a cell boundary shouldn't flicker through its code string
 				if (wrapped) {
 					this.sx = this.x;
@@ -349,14 +349,22 @@ export function BoidsBackground() {
 	}, []);
 
 	return (
-		<motion.div
+		<m.div
 			className="absolute inset-0 pointer-events-none z-0"
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			transition={{ duration: 1.2, ease: "easeOut" }}
 			aria-hidden="true"
+			style={{
+				// Fade the flock out above the product demo so the mockup sits on a
+				// clean backdrop instead of glyph noise
+				maskImage:
+					"linear-gradient(to bottom, black 0%, black 40%, transparent 65%)",
+				WebkitMaskImage:
+					"linear-gradient(to bottom, black 0%, black 40%, transparent 65%)",
+			}}
 		>
 			<canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-		</motion.div>
+		</m.div>
 	);
 }

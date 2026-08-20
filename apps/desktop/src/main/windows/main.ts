@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import * as Sentry from "@sentry/electron/main";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
@@ -7,6 +8,7 @@ import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
+import { isExpectedRendererExit } from "main/lib/renderer-exit";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
 import {
 	env,
@@ -30,6 +32,7 @@ import {
 	getNotificationTitle,
 	getWorkspaceName,
 } from "../lib/notifications/utils";
+import { recordV1TerminalExit } from "../lib/notifications/v1-agent-sessions";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
@@ -114,6 +117,10 @@ export async function MainWindow() {
 		center: initialBounds.center,
 		movable: true,
 		resizable: true,
+		// macOS: deliver the first click on an unfocused window to the renderer
+		// (otherwise it only activates the window and pane focus needs a second
+		// click).
+		acceptFirstMouse: true,
 		alwaysOnTop: false,
 		autoHideMenuBar: true,
 		frame: false,
@@ -249,6 +256,9 @@ export async function MainWindow() {
 				signal?: number;
 				reason?: "killed" | "exited" | "error";
 			}) => {
+				// A goodbye hook just before this death was the agent's SIGHUP
+				// death gasp — keep the session resumable across migration.
+				recordV1TerminalExit(event.paneId);
 				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
 					paneId: event.paneId,
 					exitCode: event.exitCode,
@@ -338,6 +348,22 @@ export async function MainWindow() {
 	window.webContents.on("render-process-gone", (_event, details) => {
 		console.error("[main-window] Renderer process gone:", details);
 		log.error("[main-window] Renderer process gone", details);
+		// The Sentry SDK's own capture for this event runs off the app-level
+		// listener it registered at init, so it fires before this one and cannot
+		// be tagged retroactively — report the details separately.
+		//
+		// Deliberately an exclude-list, not an allow-list: a reason Electron adds
+		// in a future version reports by default. Silence has to be opted into
+		// one reason at a time, so a new crash mode is never lost to this filter.
+		if (!isExpectedRendererExit(details.reason)) {
+			Sentry.captureMessage(`renderer process gone (${details.reason})`, {
+				level: "error",
+				tags: {
+					renderer_gone_reason: details.reason,
+					renderer_gone_exit_code: String(details.exitCode),
+				},
+			});
+		}
 	});
 
 	window.webContents.on("preload-error", (_event, preloadPath, error) => {

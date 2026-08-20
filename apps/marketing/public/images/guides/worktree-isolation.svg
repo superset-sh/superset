@@ -1,0 +1,55 @@
+<svg viewBox="0 0 1200 560" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, sans-serif">
+  <!-- panel -->
+  <rect x="0" y="0" width="1200" height="560" rx="12" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)"/>
+
+  <!-- repo -->
+  <rect x="48" y="200" width="200" height="160" rx="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+  <text x="148" y="266" text-anchor="middle" fill="#e8e8e8" font-size="22" font-weight="600">your repo</text>
+  <text x="148" y="298" text-anchor="middle" fill="#9a9a9a" font-size="16">one .git history</text>
+
+  <!-- fan-out lines -->
+  <path d="M248 240 C 320 240, 320 120, 392 120" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <path d="M248 280 L 392 280" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <path d="M248 320 C 320 320, 320 440, 392 440" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+
+  <!-- worktree lanes -->
+  <g>
+    <rect x="392" y="72" width="360" height="96" rx="10" fill="rgba(255,140,60,0.06)" stroke="rgba(255,140,60,0.5)"/>
+    <text x="416" y="112" fill="#e8e8e8" font-size="19" font-weight="600">worktree · feature-auth</text>
+    <text x="416" y="142" fill="#ffa05c" font-size="16" font-family="ui-monospace, monospace">claude-code</text>
+
+    <rect x="392" y="232" width="360" height="96" rx="10" fill="rgba(255,140,60,0.06)" stroke="rgba(255,140,60,0.5)"/>
+    <text x="416" y="272" fill="#e8e8e8" font-size="19" font-weight="600">worktree · fix-flaky-tests</text>
+    <text x="416" y="302" fill="#ffa05c" font-size="16" font-family="ui-monospace, monospace">codex</text>
+
+    <rect x="392" y="392" width="360" height="96" rx="10" fill="rgba(255,140,60,0.06)" stroke="rgba(255,140,60,0.5)"/>
+    <text x="416" y="432" fill="#e8e8e8" font-size="19" font-weight="600">worktree · bump-deps</text>
+    <text x="416" y="462" fill="#ffa05c" font-size="16" font-family="ui-monospace, monospace">opencode</text>
+  </g>
+
+  <!-- diff cards -->
+  <g>
+    <path d="M752 120 L 824 120" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+    <path d="M752 280 L 824 280" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+    <path d="M752 440 L 824 440" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+
+    <rect x="824" y="88" width="150" height="64" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+    <text x="899" y="127" text-anchor="middle" fill="#c9c9c9" font-size="17">diff #1</text>
+    <rect x="824" y="248" width="150" height="64" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+    <text x="899" y="287" text-anchor="middle" fill="#c9c9c9" font-size="17">diff #2</text>
+    <rect x="824" y="408" width="150" height="64" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.25)"/>
+    <text x="899" y="447" text-anchor="middle" fill="#c9c9c9" font-size="17">diff #3</text>
+  </g>
+
+  <!-- converge to merge -->
+  <path d="M974 120 C 1030 120, 1030 250, 1064 262" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <path d="M974 280 L 1064 280" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+  <path d="M974 440 C 1030 440, 1030 310, 1064 298" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+
+  <rect x="1064" y="240" width="96" height="80" rx="10" fill="rgba(255,140,60,0.14)" stroke="#ff8c3c"/>
+  <text x="1112" y="272" text-anchor="middle" fill="#ffb27a" font-size="18" font-weight="600">review</text>
+  <text x="1112" y="298" text-anchor="middle" fill="#ffb27a" font-size="18" font-weight="600">&amp; merge</text>
+
+  <!-- caption row -->
+  <text x="600" y="38" text-anchor="middle" fill="#8a8a8a" font-size="15" letter-spacing="2">EACH AGENT GETS ITS OWN WORKTREE AND BRANCH. NOTHING COLLIDES UNTIL YOU MERGE.</text>
+</svg>

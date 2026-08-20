@@ -48,7 +48,7 @@ The response contains your \`client_id\`. Public clients (no secret) with PKCE a
 
 ## 4. Claim
 
-Send the user to the authorization endpoint to claim the registration — this is the human-approval step:
+Send the user to the authorization endpoint to claim the registration. This is the human-approval step:
 
 \`\`\`
 GET ${API_URL}/api/auth/oauth2/authorize?client_id=...&response_type=code&redirect_uri=...&scope=openid+profile+email+offline_access&code_challenge=...&code_challenge_method=S256
@@ -80,9 +80,9 @@ Access tokens expire after one hour; refresh with \`grant_type=refresh_token\` a
 
 All errors are JSON. The ones you will see:
 
-- \`401\` \`{"error": {"code": "UNAUTHORIZED", "message": "..."}}\` — missing, expired, or revoked token. Re-read \`WWW-Authenticate\` and re-authenticate.
-- \`invalid_grant\` from the token endpoint — the refresh token was revoked or the code expired; restart at "Claim".
-- \`invalid_client\` — the registration is unknown; restart at "Register".
+- \`401\` \`{"error": {"code": "UNAUTHORIZED", "message": "..."}}\`: missing, expired, or revoked token. Re-read \`WWW-Authenticate\` and re-authenticate.
+- \`invalid_grant\` from the token endpoint: the refresh token was revoked or the code expired; restart at "Claim".
+- \`invalid_client\`: the registration is unknown; restart at "Register".
 
 ## 7. Revocation
 

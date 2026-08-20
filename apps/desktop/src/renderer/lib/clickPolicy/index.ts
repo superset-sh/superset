@@ -16,7 +16,10 @@ export {
 } from "./policies/changesSidebarFilePolicy";
 export {
 	type FolderIntent,
+	type FolderLinkAction,
+	type FolderTierMap,
 	folderIntentFor,
+	folderIntentForMap,
 	folderIntentLabel,
 } from "./policies/folderPolicy";
 export type { ClickPolicy } from "./policies/policy";
@@ -25,6 +28,10 @@ export { useInlineFilePolicy } from "./policies/useInlineFilePolicy";
 export { useInlineUrlPolicy } from "./policies/useInlineUrlPolicy";
 export { useSidebarFilePolicy } from "./policies/useSidebarFilePolicy";
 export { useTerminalFilePolicy } from "./policies/useTerminalFilePolicy";
+export {
+	type FolderClickPolicy,
+	useTerminalFolderPolicy,
+} from "./policies/useTerminalFolderPolicy";
 export { useTerminalUrlPolicy } from "./policies/useTerminalUrlPolicy";
 export { tierFor } from "./tiers";
 export type {

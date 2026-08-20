@@ -33,6 +33,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
@@ -141,8 +142,61 @@ export const useProviderAttachments = () => {
 const useOptionalProviderAttachments = () =>
 	useContext(ProviderAttachmentsContext);
 
+export type PromptInputAttachmentItem = FileUIPart & { id: string };
+
+export interface PromptInputAttachmentsStore {
+	get: () => PromptInputAttachmentItem[];
+	set: (files: PromptInputAttachmentItem[]) => void;
+	subscribe: (listener: () => void) => () => void;
+	/** Revokes all blob URLs and empties the store; safe while no provider is mounted. */
+	clear: () => void;
+}
+
+/**
+ * Module-scoped attachment state for PromptInputProvider. Pass the result as
+ * `attachmentsStore` to make attachments survive provider unmount (e.g. route
+ * navigation). The store then owns the blob URLs' lifetime: they are no longer
+ * revoked on unmount, only by remove/clear/setFiles or store.clear().
+ */
+export function createPromptInputAttachmentsStore(): PromptInputAttachmentsStore {
+	let files: PromptInputAttachmentItem[] = [];
+	const listeners = new Set<() => void>();
+	const notify = () => {
+		for (const listener of listeners) {
+			listener();
+		}
+	};
+	return {
+		get: () => files,
+		set: (next) => {
+			files = next;
+			notify();
+		},
+		subscribe: (listener) => {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
+		clear: () => {
+			for (const f of files) {
+				if (f.url) {
+					URL.revokeObjectURL(f.url);
+				}
+			}
+			files = [];
+			notify();
+		},
+	};
+}
+
+const EMPTY_ATTACHMENTS: PromptInputAttachmentItem[] = [];
+const emptyAttachmentsSubscribe = () => () => {};
+const getEmptyAttachments = () => EMPTY_ATTACHMENTS;
+
 export type PromptInputProviderProps = PropsWithChildren<{
 	initialInput?: string;
+	attachmentsStore?: PromptInputAttachmentsStore;
 }>;
 
 /**
@@ -151,6 +205,7 @@ export type PromptInputProviderProps = PropsWithChildren<{
  */
 export function PromptInputProvider({
 	initialInput: initialTextInput = "",
+	attachmentsStore,
 	children,
 }: PromptInputProviderProps) {
 	// ----- textInput state
@@ -180,41 +235,65 @@ export function PromptInputProvider({
 		focusCallbackRef.current = cb;
 	}, []);
 
-	// ----- attachments state (global when wrapped)
-	const [attachmentFiles, setAttachmentFiles] = useState<
-		(FileUIPart & { id: string })[]
-	>([]);
+	// ----- attachments state (global when wrapped, module-scoped when an
+	// external store is provided)
+	const [localFiles, setLocalFiles] = useState<PromptInputAttachmentItem[]>([]);
+	const storeFiles = useSyncExternalStore(
+		attachmentsStore?.subscribe ?? emptyAttachmentsSubscribe,
+		attachmentsStore?.get ?? getEmptyAttachments,
+	);
+	const attachmentFiles = attachmentsStore ? storeFiles : localFiles;
+	const setAttachmentFiles = useCallback(
+		(
+			updater: (
+				prev: PromptInputAttachmentItem[],
+			) => PromptInputAttachmentItem[],
+		) => {
+			if (attachmentsStore) {
+				attachmentsStore.set(updater(attachmentsStore.get()));
+			} else {
+				setLocalFiles(updater);
+			}
+		},
+		[attachmentsStore],
+	);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const openRef = useRef<() => void>(() => {});
 
-	const add = useCallback((files: File[] | FileList) => {
-		const incoming = Array.from(files);
-		if (incoming.length === 0) {
-			return;
-		}
-
-		setAttachmentFiles((prev) =>
-			prev.concat(
-				incoming.map((file) => ({
-					id: nanoid(),
-					type: "file" as const,
-					url: URL.createObjectURL(file),
-					mediaType: file.type,
-					filename: file.name,
-				})),
-			),
-		);
-	}, []);
-
-	const remove = useCallback((id: string) => {
-		setAttachmentFiles((prev) => {
-			const found = prev.find((f) => f.id === id);
-			if (found?.url) {
-				URL.revokeObjectURL(found.url);
+	const add = useCallback(
+		(files: File[] | FileList) => {
+			const incoming = Array.from(files);
+			if (incoming.length === 0) {
+				return;
 			}
-			return prev.filter((f) => f.id !== id);
-		});
-	}, []);
+
+			setAttachmentFiles((prev) =>
+				prev.concat(
+					incoming.map((file) => ({
+						id: nanoid(),
+						type: "file" as const,
+						url: URL.createObjectURL(file),
+						mediaType: file.type,
+						filename: file.name,
+					})),
+				),
+			);
+		},
+		[setAttachmentFiles],
+	);
+
+	const remove = useCallback(
+		(id: string) => {
+			setAttachmentFiles((prev) => {
+				const found = prev.find((f) => f.id === id);
+				if (found?.url) {
+					URL.revokeObjectURL(found.url);
+				}
+				return prev.filter((f) => f.id !== id);
+			});
+		},
+		[setAttachmentFiles],
+	);
 
 	const clear = useCallback(() => {
 		setAttachmentFiles((prev) => {
@@ -225,38 +304,43 @@ export function PromptInputProvider({
 			}
 			return [];
 		});
-	}, []);
+	}, [setAttachmentFiles]);
 
-	const setFiles = useCallback((files: FileUIPart[]) => {
-		setAttachmentFiles((prev) => {
-			for (const f of prev) {
-				if (f.url) {
-					URL.revokeObjectURL(f.url);
+	const setFiles = useCallback(
+		(files: FileUIPart[]) => {
+			setAttachmentFiles((prev) => {
+				for (const f of prev) {
+					if (f.url) {
+						URL.revokeObjectURL(f.url);
+					}
 				}
-			}
-			return files.map((file) => ({
-				...file,
-				id: nanoid(),
-			}));
-		});
-	}, []);
+				return files.map((file) => ({
+					...file,
+					id: nanoid(),
+				}));
+			});
+		},
+		[setAttachmentFiles],
+	);
 
 	const takeFiles = useCallback(() => {
 		const takenFiles = attachmentsRef.current;
 		attachmentsRef.current = [];
-		setAttachmentFiles([]);
+		setAttachmentFiles(() => []);
 		if (fileInputRef.current) {
 			fileInputRef.current.value = "";
 		}
 		return takenFiles;
-	}, []);
+	}, [setAttachmentFiles]);
 
 	// Keep a ref to attachments for cleanup on unmount (avoids stale closure)
 	const attachmentsRef = useRef(attachmentFiles);
 	attachmentsRef.current = attachmentFiles;
 
-	// Cleanup blob URLs on unmount to prevent memory leaks
+	// Cleanup blob URLs on unmount to prevent memory leaks. With an external
+	// store the files outlive the provider, so their URLs must stay valid.
 	useEffect(() => {
+		if (attachmentsStore) return;
 		return () => {
 			for (const f of attachmentsRef.current) {
 				if (f.url) {
@@ -264,7 +348,7 @@ export function PromptInputProvider({
 				}
 			}
 		};
-	}, []);
+	}, [attachmentsStore]);
 
 	const openFileDialog = useCallback(() => {
 		openRef.current?.();

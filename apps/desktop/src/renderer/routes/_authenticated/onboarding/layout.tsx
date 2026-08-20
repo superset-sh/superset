@@ -1,13 +1,13 @@
-import { ChatServiceProvider } from "@superset/chat-legacy/client";
+import { ChatServiceProvider } from "@superset/provider-auth/client";
 import {
 	createFileRoute,
-	Navigate,
 	Outlet,
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
+import { createChatServiceIpcClient } from "renderer/components/ProviderAuth/provider-auth-client";
+import { Redirect } from "renderer/components/Redirect";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
@@ -17,8 +17,7 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 	component: OnboardingFlowLayout,
 });
 
-// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
-const rootRedirect = <Navigate to="/" replace />;
+const rootRedirect = <Redirect to="/" replace />;
 
 const STEPS = [
 	{

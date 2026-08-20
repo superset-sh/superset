@@ -1,4 +1,3 @@
-import type { SelectV2Host } from "@superset/db/schema";
 import {
 	Command,
 	CommandGroup,
@@ -8,20 +7,26 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
 import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface WorkspacePickerProps {
 	hostId: string | null;
-	projectId: string | null;
+	/**
+	 * Null = session mode (list session workspaces, offer "New session").
+	 * Undefined = no project chosen yet — render neutral "New workspace" copy
+	 * and list nothing, so the pre-default loading window never looks like
+	 * session mode.
+	 */
+	projectId: string | null | undefined;
 	value: string | null;
 	onChange: (workspaceId: string | null) => void;
 	className?: string;
+	disabled?: boolean;
 }
 
 export function WorkspacePicker({
@@ -30,9 +35,9 @@ export function WorkspacePicker({
 	value,
 	onChange,
 	className,
+	disabled,
 }: WorkspacePickerProps) {
 	const [open, setOpen] = useState(false);
-	const collections = useCollections();
 
 	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
 	const workspaceRows = useMemo(
@@ -44,16 +49,13 @@ export function WorkspacePicker({
 		[hostWorkspaces],
 	);
 
-	const { data: allHosts = [] } = useLiveQuery(
-		(q) => q.from({ h: collections.v2Hosts }).select(({ h }) => ({ ...h })),
-		[collections.v2Hosts],
-	);
+	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined);
 
-	const hostRows = allHosts as SelectV2Host[];
-
+	// Null projectId = session mode: offer the host's session workspaces
+	// (projectId null) as pin targets.
 	const workspaces = useMemo(
 		() =>
-			hostId && projectId
+			hostId && projectId !== undefined
 				? workspaceRows.filter(
 						(w) => w.hostId === hostId && w.projectId === projectId,
 					)
@@ -88,12 +90,17 @@ export function WorkspacePicker({
 			? "Loading…"
 			: missing
 				? "Workspace not found"
-				: "New workspace";
+				: projectId === null
+					? "New session"
+					: "New workspace";
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		// Guard the open state, not just the trigger: Radix opens on pointerdown,
+		// which Chromium still dispatches to fieldset-disabled buttons.
+		<Popover open={open} onOpenChange={(next) => !disabled && setOpen(next)}>
 			<PopoverTrigger asChild>
 				<PickerTrigger
+					disabled={disabled}
 					className={cn((offScope || missing) && "text-amber-500", className)}
 					icon={
 						offScope || missing ? (
@@ -125,7 +132,9 @@ export function WorkspacePicker({
 								}}
 							>
 								<LuSparkles className="size-4" />
-								<span>New workspace</span>
+								<span>
+									{projectId === null ? "New session" : "New workspace"}
+								</span>
 								{!selected && !resolving && !missing && (
 									<HiCheck className="ml-auto size-4" />
 								)}

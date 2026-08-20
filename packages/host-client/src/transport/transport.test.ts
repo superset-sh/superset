@@ -45,14 +45,14 @@ describe("createHostTransport", () => {
 		);
 		const result = await transport.call<{ ok: boolean }>({
 			routingKey: "rk",
-			procedure: "acpSessions.list",
+			procedure: "workspace.list",
 			input: { workspaceId: "ws" },
 			method: "GET",
 		});
 		expect(result).toEqual({ ok: true });
 		const url = new URL(requests[0]?.url ?? "");
 		// Trailing slash on the relay URL must not double up in the path.
-		expect(url.pathname).toBe("/hosts/rk/trpc/acpSessions.list");
+		expect(url.pathname).toBe("/hosts/rk/trpc/workspace.list");
 		expect(JSON.parse(url.searchParams.get("input") ?? "")).toEqual(
 			SuperJSON.serialize({ workspaceId: "ws" }),
 		);
@@ -65,7 +65,7 @@ describe("createHostTransport", () => {
 		);
 		await transport.call({
 			routingKey: "rk",
-			procedure: "acpSessions.prompt",
+			procedure: "workspaces.aiRename",
 			input: { sessionId: "s1" },
 			method: "POST",
 		});
@@ -135,7 +135,7 @@ describe("createHostTransport", () => {
 		expect(
 			await transport.call({
 				routingKey: "rk",
-				procedure: "acpSessions.cancel",
+				procedure: "workspace.delete",
 				input: { sessionId: "s1" },
 				method: "POST",
 			}),
@@ -146,10 +146,10 @@ describe("createHostTransport", () => {
 		const { transport, tokens } = makeTransport(() => jsonResponse({}));
 		const factory = transport.streamUrl({
 			routingKey: "rk",
-			path: "acp-sessions/s%201/stream",
+			path: "terminal/t%201",
 		});
 		expect(await factory()).toBe(
-			"wss://relay.test/hosts/rk/acp-sessions/s%201/stream?token=cached",
+			"wss://relay.test/hosts/rk/terminal/t%201?token=cached",
 		);
 		await factory();
 		// One getToken per call — reconnects never replay an expired token.

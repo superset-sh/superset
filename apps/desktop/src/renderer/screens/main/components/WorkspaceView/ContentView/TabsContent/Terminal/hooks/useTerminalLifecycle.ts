@@ -1,3 +1,4 @@
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, ITheme, Terminal as XTerm } from "@xterm/xterm";
@@ -363,6 +364,10 @@ export function useTerminalLifecycle({
 				wasKilledByUserRef.current = false;
 				setExitStatus(null);
 				resetModes();
+				// clear() drops the buffer but not parser input modes — a TUI that
+				// died with mouse/kitty reporting armed would spray reports into
+				// the replacement shell. Disarm before attaching it.
+				xterm.write(FRESH_SHELL_INPUT_MODE_RESET);
 				xterm.clear();
 				const attach = () => {
 					const requestId = nextAttachRequestId();

@@ -1,18 +1,17 @@
-import type { SelectGithubPullRequest } from "@superset/db/schema";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useHostProjects } from "@/hooks/useHostProjects";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { prStateFor } from "@/screens/(authenticated)/(home)/home/utils/prStateFor";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import {
+	type OrgPullRequest,
+	usePullRequests,
+} from "@/screens/(authenticated)/hooks/usePullRequests";
 
-const STATE_RANK = { open: 0, draft: 1, merged: 2, closed: 3 } as const;
+const NONE: OrgPullRequest[] = [];
 
-/** The PR for the workspace's branch, best state first (open > draft > merged > closed). */
-export function useWorkspacePullRequest(
+/** Every pull request on the workspace's branch, newest first. */
+export function useWorkspacePullRequests(
 	workspaceId: string | null,
-): SelectGithubPullRequest | null {
-	const collections = useCollections();
+): OrgPullRequest[] {
 	const { workspace, host } = useWorkspaceHost(workspaceId);
 	const { projects } = useHostProjects(
 		host
@@ -24,27 +23,35 @@ export function useWorkspacePullRequest(
 			: null,
 	);
 
-	const { data: pullRequests } = useLiveQuery(
-		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
-		[collections],
-	);
+	const pullRequests = usePullRequests();
 
 	return useMemo(() => {
-		if (!workspace) return null;
+		if (!workspace) return NONE;
 		// Projects are fully local: match PRs by repo coordinates parsed from
 		// the PR URL (the cloud repo UUID isn't known host-side).
 		const project = projects.find((item) => item.id === workspace.projectId);
-		if (!project?.repoOwner || !project.repoName) return null;
+		if (!project?.repoOwner || !project.repoName) return NONE;
 		const repoPrefix =
 			`https://github.com/${project.repoOwner}/${project.repoName}/`.toLowerCase();
-		const candidates = (pullRequests ?? []).filter(
+		const candidates = pullRequests.filter(
 			(pullRequest) =>
 				pullRequest.url.toLowerCase().startsWith(repoPrefix) &&
 				pullRequest.headBranch === workspace.branch,
 		);
+		// Newest first. With several pull requests on one branch, the recent one
+		// is what is being worked on; ordering by state would bury it behind
+		// whatever merely counts as "most open".
 		candidates.sort(
-			(a, b) => STATE_RANK[prStateFor(a)] - STATE_RANK[prStateFor(b)],
+			(a, b) =>
+				new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
 		);
-		return candidates[0] ?? null;
+		return candidates;
 	}, [workspace, projects, pullRequests]);
+}
+
+/** The one worth showing when there is only room for one. */
+export function useWorkspacePullRequest(
+	workspaceId: string | null,
+): OrgPullRequest | null {
+	return useWorkspacePullRequests(workspaceId)[0] ?? null;
 }

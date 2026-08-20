@@ -34,6 +34,10 @@ type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
 			data?: TerminalExitNotification;
+	  }
+	| {
+			type: typeof NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE;
+			data?: { themeState?: unknown };
 	  };
 
 const v2NotificationSourceSchema = z.discriminatedUnion("type", [
@@ -152,6 +156,13 @@ export const createNotificationsRouter = (
 					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
 				};
 
+				const onSettingsExternalChange = (data: { themeState?: unknown }) => {
+					emit.next({
+						type: NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+						data,
+					});
+				};
+
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
@@ -164,6 +175,10 @@ export const createNotificationsRouter = (
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.TERMINAL_EXIT,
 					onTerminalExit,
+				);
+				notificationsEmitter.on(
+					NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+					onSettingsExternalChange,
 				);
 
 				return () => {
@@ -179,6 +194,10 @@ export const createNotificationsRouter = (
 					notificationsEmitter.off(
 						NOTIFICATION_EVENTS.TERMINAL_EXIT,
 						onTerminalExit,
+					);
+					notificationsEmitter.off(
+						NOTIFICATION_EVENTS.SETTINGS_EXTERNAL_CHANGE,
+						onSettingsExternalChange,
 					);
 				};
 			});

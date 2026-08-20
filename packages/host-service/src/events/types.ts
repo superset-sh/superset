@@ -60,10 +60,11 @@ export interface PortChangedMessage {
  */
 export interface WorkspaceSnapshot {
 	id: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	worktreePath: string;
 	taskId: string | null;
 	createdByUserId: string | null;
@@ -110,6 +111,36 @@ export interface ProjectChangedMessage {
 	occurredAt: number;
 }
 
+export interface WorkspaceCreateTerminalLaunch {
+	terminalId: string;
+	label?: string;
+}
+
+export type WorkspaceCreateAgentLaunch =
+	| { ok: true; kind: "terminal"; sessionId: string; label: string }
+	| { ok: false; error: string };
+
+/**
+ * Terminal event for an enqueued `workspaces.createEnqueued` call. The HTTP
+ * response returns immediately; this carries what the synchronous
+ * `workspaces.create` response used to: the canonical row id (which can
+ * differ from the enqueue id when the create resolved to an existing
+ * workspace) and the launched terminals/agents for the pane-layout seed.
+ */
+export interface WorkspaceCreateSettledMessage {
+	type: "workspace:create-settled";
+	/** The client-minted id from the enqueue call — the correlation key. */
+	workspaceId: string;
+	ok: boolean;
+	canonicalWorkspaceId: string | null;
+	projectId: string | null;
+	terminals: WorkspaceCreateTerminalLaunch[];
+	agents: WorkspaceCreateAgentLaunch[];
+	alreadyExists: boolean;
+	error?: string;
+	occurredAt: number;
+}
+
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -122,6 +153,7 @@ export type ServerMessage =
 	| TerminalLifecycleMessage
 	| PortChangedMessage
 	| WorkspaceChangedMessage
+	| WorkspaceCreateSettledMessage
 	| ProjectChangedMessage
 	| EventBusErrorMessage;
 
@@ -137,4 +169,27 @@ export interface FsUnwatchCommand {
 	workspaceId: string;
 }
 
-export type ClientMessage = FsWatchCommand | FsUnwatchCommand;
+/**
+ * Targeted watch on one file the recursive workspace watcher can't see
+ * (inside a pruned subtree — gitignored build dir, node_modules, nested
+ * repo). Sent by the renderer for every open document; the server installs a
+ * per-file watcher only when the recursive watch doesn't already cover the
+ * path. Events come back as regular `fs:events` messages.
+ */
+export interface FsWatchFileCommand {
+	type: "fs:watch-file";
+	workspaceId: string;
+	absolutePath: string;
+}
+
+export interface FsUnwatchFileCommand {
+	type: "fs:unwatch-file";
+	workspaceId: string;
+	absolutePath: string;
+}
+
+export type ClientMessage =
+	| FsWatchCommand
+	| FsUnwatchCommand
+	| FsWatchFileCommand
+	| FsUnwatchFileCommand;

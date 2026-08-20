@@ -21,6 +21,10 @@ export const env = createEnv({
 		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 		ANTHROPIC_API_KEY: z.string(),
+		// Read-only PAT (no scopes needed) used to fetch stargazer timestamps for
+		// /starchart. GitHub's stargazers endpoint requires authentication even for
+		// public repos; without this the page falls back to a live total only.
+		GITHUB_TOKEN: z.string().optional(),
 	},
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),

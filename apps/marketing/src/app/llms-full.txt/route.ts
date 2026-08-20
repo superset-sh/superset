@@ -17,7 +17,7 @@ export async function GET() {
 		[
 			`# ${COMPANY.NAME}`,
 			"",
-			"> Run 10+ parallel coding agents on your machine",
+			"> Run 100+ parallel coding agents on your machine",
 			"",
 			PRODUCT_SUMMARY,
 			"",

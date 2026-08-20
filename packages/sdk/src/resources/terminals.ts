@@ -29,7 +29,7 @@ export class Terminals extends APIResource {
 		this._requireOrgId();
 		return this._client.hostQuery<TerminalListResult>(
 			params.hostId,
-			"terminal.listSessions",
+			"terminal.list",
 			{ workspaceId: params.workspaceId },
 		);
 	}

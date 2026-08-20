@@ -61,6 +61,8 @@ The moment you run more than one agent on the same repository, a new problem app
 
 The clean solution is a **Git worktree per task**. A worktree gives each agent its own directory and branch that share the same repository history, so agents can work in parallel without stepping on each other. You review each worktree's diff independently and merge the ones you want.
 
+![The worktree-per-task pattern: one repository, an isolated worktree and branch per agent, independent diffs converging into review and merge](/images/guides/worktree-isolation.svg)
+
 This is why the strongest multi-agent IDEs are built around worktrees. It is also the dividing line in the category: some tools isolate parallel work in local worktrees ([Superset](/compare/superset-vs-orca), Orca, Conductor, and Cursor 2.0), some push isolation to the cloud as a branch and a pull request (Copilot, Devin, JetBrains), and some edit the working copy with review gating (Zed and most in-editor agent modes).
 
 ## Where the Agents Actually Run

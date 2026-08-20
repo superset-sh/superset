@@ -39,10 +39,11 @@ export default command({
 			);
 		}
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: options.host ?? getHostId(),
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 		const updated = await target.client.workspace.update.mutate({
 			id,

@@ -51,16 +51,6 @@ describe("selectAgentLaunchAdapter", () => {
 
 		expect(selectAgentLaunchAdapter(request)).toBe("terminal");
 	});
-
-	it("picks chat adapter for chat requests", () => {
-		const request: AgentLaunchRequest = {
-			kind: "chat",
-			workspaceId: "ws-1",
-			chat: {},
-		};
-
-		expect(selectAgentLaunchAdapter(request)).toBe("chat");
-	});
 });
 
 describe("launchAgentSession", () => {
@@ -74,10 +64,6 @@ describe("launchAgentSession", () => {
 			addTerminalPane: mock(() => "pane-2"),
 			removePane: mock(() => {}),
 			setTabAutoTitle: mock(() => {}),
-			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
-			addChatPane: mock(() => "chat-pane-2"),
-			switchChatSession: mock(() => {}),
-			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({
@@ -121,10 +107,6 @@ describe("launchAgentSession", () => {
 			addTerminalPane,
 			removePane,
 			setTabAutoTitle: mock(() => {}),
-			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
-			addChatPane: mock(() => "chat-pane-2"),
-			switchChatSession: mock(() => {}),
-			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({
@@ -169,10 +151,6 @@ describe("launchAgentSession", () => {
 			addTerminalPane: mock(() => "pane-2"),
 			removePane,
 			setTabAutoTitle: mock(() => {}),
-			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
-			addChatPane: mock(() => "chat-pane-2"),
-			switchChatSession: mock(() => {}),
-			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({
@@ -208,10 +186,6 @@ describe("launchAgentSession", () => {
 			addTerminalPane: mock(() => "pane-3"),
 			removePane,
 			setTabAutoTitle: mock(() => {}),
-			addChatTab: mock(() => ({ tabId: "chat-tab", paneId: "chat-pane" })),
-			addChatPane: mock(() => "chat-pane-2"),
-			switchChatSession: mock(() => {}),
-			setChatLaunchConfig: mock(() => {}),
 		};
 
 		const context = createContext({

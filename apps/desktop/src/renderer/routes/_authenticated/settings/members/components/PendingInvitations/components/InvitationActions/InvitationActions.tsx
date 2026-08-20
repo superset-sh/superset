@@ -1,4 +1,3 @@
-import type { SelectInvitation } from "@superset/db/schema";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -10,13 +9,15 @@ import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineXMark } from "react-icons/hi2";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface InvitationActionsProps {
-	invitation: SelectInvitation;
+	invitation: { id: string };
 }
 
 export function InvitationActions({ invitation }: InvitationActionsProps) {
 	const [isCanceling, setIsCanceling] = useState(false);
+	const utils = cloudTrpc.useUtils();
 
 	const handleCancel = async () => {
 		setIsCanceling(true);
@@ -24,6 +25,7 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 			await authClient.organization.cancelInvitation({
 				invitationId: invitation.id,
 			});
+			await utils.organization.listInvitations.invalidate();
 			toast.success("Invitation canceled");
 		} catch (error) {
 			toast.error(

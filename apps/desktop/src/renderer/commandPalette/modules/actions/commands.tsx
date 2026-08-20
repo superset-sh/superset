@@ -13,14 +13,20 @@ import {
 	PanelLeftIcon,
 	PanelRightIcon,
 	RefreshCwIcon,
+	StarIcon,
 	TriangleAlertIcon,
 	XIcon,
 } from "lucide-react";
+import { previewStarNagOnboardingToast } from "renderer/components/StarNagToast";
 import { env } from "renderer/env.renderer";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useDesktopNoticePreviewStore } from "renderer/stores/desktop-notice-preview";
 import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
+import {
+	STAR_NAG_INITIAL_THRESHOLD,
+	useStarNagStore,
+} from "renderer/stores/star-nag";
 import { SYSTEM_THEME_ID, useThemeStore } from "renderer/stores/theme/store";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import type { Command, CommandProvider } from "../../core/types";
@@ -264,6 +270,40 @@ export const actionsProvider: CommandProvider = {
 					icon: XIcon,
 					keywords: PREVIEW_KEYWORDS,
 					run: () => setPreview(null),
+				},
+				{
+					id: "dev.previewStarNagToast",
+					title: "Preview: GitHub star nag toast",
+					section: "dev",
+					icon: StarIcon,
+					keywords: ["star", "github", "nag", "dev", "preview", "test"],
+					// A dynamic import here would only defer this file's own module —
+					// AnimatedStarButton (and framer-motion) is already statically
+					// imported by StarNagCard, which DashboardSidebar/WorkspaceSidebar
+					// import unconditionally, so it's already in the eager bundle.
+					run: () => previewStarNagOnboardingToast(),
+				},
+				{
+					id: "dev.resetStarNagState",
+					title: "Reset GitHub star nag state",
+					section: "dev",
+					icon: RefreshCwIcon,
+					keywords: ["star", "github", "nag", "dev", "reset", "test"],
+					run: () => {
+						const threshold =
+							useStarNagStore.getState().nextThreshold ||
+							STAR_NAG_INITIAL_THRESHOLD;
+						useStarNagStore.setState({
+							completed: false,
+							completedAt: null,
+							workspacesCreatedSinceBaseline: threshold,
+							nextThreshold: threshold,
+							deferredUntil: null,
+						});
+						toast.info(
+							"Star nag reset — eligible again on the empty state, sidebar card, and onboarding toast",
+						);
+					},
 				},
 			);
 		}

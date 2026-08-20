@@ -22,10 +22,11 @@ export default command({
 				host: options.host ?? undefined,
 				local: options.local ?? undefined,
 			}) ?? getHostId();
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const deleted: string[] = [];

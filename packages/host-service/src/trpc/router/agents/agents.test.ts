@@ -1,16 +1,18 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
+import { setDefaultAccountSelection } from "../usage/default-account";
 import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
-	isChatAgent,
 	validateAgentEffortSelection,
+	validateAgentResumeSelection,
 } from "./agents";
 
 const argvConfig = {
@@ -21,6 +23,7 @@ const argvConfig = {
 	args: ["--dangerously-skip-permissions"],
 	promptTransport: "argv" as const,
 	promptArgs: [],
+	resumeArgs: ["--resume"],
 	env: {},
 };
 
@@ -32,6 +35,7 @@ const stdinConfig = {
 	args: [],
 	promptTransport: "stdin" as const,
 	promptArgs: [],
+	resumeArgs: ["threads", "continue"],
 	env: {},
 };
 
@@ -43,7 +47,9 @@ describe("buildAgentCommandString", () => {
 		// Not the shared "$(cat <<…)" form: the command must parse in non-POSIX
 		// shells like fish, which have no heredocs.
 		expect(
-			buildAgentCommandString(argvConfig, "do the thing", [], RANDOM_ID),
+			buildAgentCommandString(argvConfig, "do the thing", [], {
+				randomId: RANDOM_ID,
+			}),
 		).toBe("'claude' '--dangerously-skip-permissions' 'do the thing'");
 	});
 
@@ -53,7 +59,9 @@ describe("buildAgentCommandString", () => {
 				argvConfig,
 				"do the thing",
 				["--model", "sonnet"],
-				RANDOM_ID,
+				{
+					randomId: RANDOM_ID,
+				},
 			),
 		).toBe(
 			"'claude' '--dangerously-skip-permissions' '--model' 'sonnet' 'do the thing'",
@@ -66,7 +74,9 @@ describe("buildAgentCommandString", () => {
 				stdinConfig,
 				"do the thing",
 				["--model", "sonnet"],
-				RANDOM_ID,
+				{
+					randomId: RANDOM_ID,
+				},
 			),
 		).toBe(
 			`'amp' '--model' 'sonnet' <<'${DELIMITER}'\ndo the thing\n${DELIMITER}`,
@@ -79,7 +89,9 @@ describe("buildAgentCommandString", () => {
 				argvConfig,
 				"p'; rm -rf /",
 				["--model", "x'; rm -rf /"],
-				RANDOM_ID,
+				{
+					randomId: RANDOM_ID,
+				},
 			),
 		).toBe(
 			"'claude' '--dangerously-skip-permissions' '--model' 'x'\\''; rm -rf /' 'p'\\''; rm -rf /'",
@@ -88,19 +100,102 @@ describe("buildAgentCommandString", () => {
 
 	it("includes promptArgs before the prompt when a prompt is present", () => {
 		const config = { ...argvConfig, promptArgs: ["-p"] };
-		expect(buildAgentCommandString(config, "p", [], RANDOM_ID)).toBe(
-			"'claude' '--dangerously-skip-permissions' '-p' 'p'",
-		);
+		expect(
+			buildAgentCommandString(config, "p", [], { randomId: RANDOM_ID }),
+		).toBe("'claude' '--dangerously-skip-permissions' '-p' 'p'");
 	});
 
 	it("drops promptArgs and the prompt payload when the prompt sanitizes to empty", () => {
 		const config = { ...argvConfig, promptArgs: ["-p"] };
-		expect(buildAgentCommandString(config, "\x1b\x07", [], RANDOM_ID)).toBe(
-			"'claude' '--dangerously-skip-permissions'",
+		expect(
+			buildAgentCommandString(config, "\x1b\x07", [], { randomId: RANDOM_ID }),
+		).toBe("'claude' '--dangerously-skip-permissions'");
+		expect(
+			buildAgentCommandString(stdinConfig, "", [], { randomId: RANDOM_ID }),
+		).toBe("'amp'");
+	});
+
+	it("splices resumeArgs and the session id after the base args (promptless resume)", () => {
+		expect(
+			buildAgentCommandString(argvConfig, "", [], {
+				resumeSessionId: "abc-123",
+				randomId: RANDOM_ID,
+			}),
+		).toBe("'claude' '--dangerously-skip-permissions' '--resume' 'abc-123'");
+	});
+
+	it("keeps the prompt after the resume args (argv transport)", () => {
+		expect(
+			buildAgentCommandString(argvConfig, "keep going", ["--model", "sonnet"], {
+				resumeSessionId: "abc-123",
+				randomId: RANDOM_ID,
+			}),
+		).toBe(
+			"'claude' '--dangerously-skip-permissions' '--model' 'sonnet' '--resume' 'abc-123' 'keep going'",
 		);
-		expect(buildAgentCommandString(stdinConfig, "", [], RANDOM_ID)).toBe(
-			"'amp'",
+	});
+
+	it("supports subcommand-style resume args (stdin transport)", () => {
+		expect(
+			buildAgentCommandString(stdinConfig, "keep going", [], {
+				resumeSessionId: "T-42",
+				randomId: RANDOM_ID,
+			}),
+		).toBe(
+			`'amp' 'threads' 'continue' 'T-42' <<'${DELIMITER}'\nkeep going\n${DELIMITER}`,
 		);
+	});
+
+	it("shell-quotes and sanitizes a hostile resume session id", () => {
+		expect(
+			buildAgentCommandString(argvConfig, "", [], {
+				resumeSessionId: "x'; rm -rf /\x1b",
+				randomId: RANDOM_ID,
+			}),
+		).toBe(
+			"'claude' '--dangerously-skip-permissions' '--resume' 'x'\\''; rm -rf /'",
+		);
+	});
+});
+
+describe("validateAgentResumeSelection", () => {
+	it("accepts an omitted resume", () => {
+		expect(() =>
+			validateAgentResumeSelection(argvConfig, undefined),
+		).not.toThrow();
+	});
+
+	it("accepts a session id when the config has resume args", () => {
+		expect(() =>
+			validateAgentResumeSelection(argvConfig, "abc-123"),
+		).not.toThrow();
+	});
+
+	it("rejects resuming a config without resume args", () => {
+		const config = { ...argvConfig, resumeArgs: [] };
+		try {
+			validateAgentResumeSelection(config, "abc-123");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toBe(
+				"Claude does not support resuming a session by id. Omit resumeSessionId to start a new session.",
+			);
+		}
+	});
+
+	it("rejects a session id that sanitizes to empty", () => {
+		try {
+			validateAgentResumeSelection(argvConfig, "\x1b\x07");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toBe(
+				"Invalid resume session id for Claude.",
+			);
+		}
 	});
 });
 
@@ -124,6 +219,7 @@ describe("buildTerminalAgentLaunch", () => {
 				argsJson: JSON.stringify(["--dangerously-skip-permissions"]),
 				promptTransport: "argv",
 				promptArgsJson: "[]",
+				resumeArgsJson: JSON.stringify(["--resume"]),
 				envJson: JSON.stringify({ FOO: "bar" }),
 				displayOrder: 0,
 			})
@@ -144,6 +240,45 @@ describe("buildTerminalAgentLaunch", () => {
 		);
 	});
 
+	it("resumes a previous session with an empty prompt", () => {
+		const db = createTestDb();
+		seedConfig(db);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "",
+			resumeSessionId: "abc-123",
+		});
+		expect(launch.fullCommand).toBe(
+			"FOO='bar' 'claude' '--dangerously-skip-permissions' '--resume' 'abc-123'",
+		);
+	});
+
+	it("rejects a resume when the agent config has no resume args", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000b",
+				presetId: "custom",
+				label: "My Agent",
+				command: "my-agent",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 1,
+			})
+			.run();
+		expect(() =>
+			buildTerminalAgentLaunch(db, {
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "custom",
+				prompt: "",
+				resumeSessionId: "abc-123",
+			}),
+		).toThrow(/does not support resuming a session by id/);
+	});
+
 	it("throws NOT_FOUND for an unknown agent", () => {
 		const db = createTestDb();
 		expect(() =>
@@ -156,10 +291,105 @@ describe("buildTerminalAgentLaunch", () => {
 	});
 });
 
-describe("isChatAgent", () => {
-	it("is true only for the superset chat agent", () => {
-		expect(isChatAgent("superset")).toBe(true);
-		expect(isChatAgent("claude")).toBe(false);
+describe("buildTerminalAgentLaunch default account env", () => {
+	// tmpdir always exists, which is all resolveDefaultAccountEnv checks.
+	const existingDir = tmpdir();
+
+	function seedClaude(db: HostDb, env: Record<string, string> = {}) {
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000c",
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				envJson: JSON.stringify(env),
+				displayOrder: 0,
+			})
+			.run();
+	}
+
+	it("injects CLAUDE_CONFIG_DIR for claude agents when a default account is set", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='${existingDir}' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+		);
+	});
+
+	it("lets a per-agent CLAUDE_CONFIG_DIR beat the host default", () => {
+		const db = createTestDb();
+		seedClaude(db, { CLAUDE_CONFIG_DIR: "/pinned/profile" });
+		setDefaultAccountSelection(db, "claude", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		// The per-agent value wins for CLAUDE_CONFIG_DIR; the SUPERSET_DEFAULT_*
+		// twin still carries the host default so the wrapper can re-resolve a
+		// later account switch without overriding the user-pinned value.
+		expect(launch.fullCommand).toBe(
+			`CLAUDE_CONFIG_DIR='/pinned/profile' SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR='${existingDir}' 'claude' 'hi'`,
+		);
+	});
+
+	it("skips injection when the selected profile dir no longer exists", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		setDefaultAccountSelection(db, "claude", "/no/such/profile-dir");
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'claude' 'hi'");
+	});
+
+	it("does not leak provider account env into other presets", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000d",
+				presetId: "amp",
+				label: "Amp",
+				command: "amp",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 0,
+			})
+			.run();
+		setDefaultAccountSelection(db, "claude", existingDir);
+		setDefaultAccountSelection(db, "codex", existingDir);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "amp",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'amp' 'hi'");
+	});
+
+	it("clearing the default (null) restores the system login", () => {
+		const db = createTestDb();
+		seedClaude(db);
+		setDefaultAccountSelection(db, "claude", existingDir);
+		setDefaultAccountSelection(db, "claude", null);
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "claude",
+			prompt: "hi",
+		});
+		expect(launch.fullCommand).toBe("'claude' 'hi'");
 	});
 });
 

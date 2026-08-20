@@ -1,4 +1,19 @@
+import {
+	FONT_FAMILY_MAX_LENGTH,
+	FONT_SIZE_LIMITS,
+	FONT_WEIGHT_LIMITS,
+	LETTER_SPACING_LIMITS,
+	LINE_HEIGHT_LIMITS,
+	type NumberLimits,
+	TERMINAL_CURSOR_STYLES,
+	TERMINAL_MINIMUM_CONTRAST_CHOICES,
+} from "@superset/shared/settings-constraints";
 import { z } from "zod";
+
+function limitedNumber(limits: NumberLimits) {
+	const step = limits.step ?? 0;
+	return steppedNumber(limits.min, limits.max, step > 0 ? 1 / step : 1);
+}
 
 function steppedNumber(min: number, max: number, multiplier: number) {
 	return z
@@ -14,43 +29,42 @@ function steppedNumber(min: number, max: number, multiplier: number) {
 		);
 }
 
-function halfStepNumber(min: number, max: number) {
-	return steppedNumber(min, max, 2);
-}
+// step of 100 already implies integers
+const fontWeightSchema = limitedNumber(FONT_WEIGHT_LIMITS);
 
-function tenthStepNumber(min: number, max: number) {
-	return steppedNumber(min, max, 10);
-}
-
-const fontWeightSchema = z
-	.number()
-	.int()
-	.min(100)
-	.max(900)
-	.refine((value) => value % 100 === 0, {
-		message: "Must use 100 increments",
-	});
+const contrastSchema = z.union([
+	z.literal(TERMINAL_MINIMUM_CONTRAST_CHOICES[0]),
+	z.literal(TERMINAL_MINIMUM_CONTRAST_CHOICES[1]),
+	z.literal(TERMINAL_MINIMUM_CONTRAST_CHOICES[2]),
+	z.literal(TERMINAL_MINIMUM_CONTRAST_CHOICES[3]),
+]);
 
 export const setFontSettingsSchema = z.object({
-	terminalFontFamily: z.string().max(500).nullable().optional(),
-	terminalFontSize: halfStepNumber(10, 24).nullable().optional(),
-	terminalLineHeight: tenthStepNumber(1, 2.5).nullable().optional(),
-	terminalLetterSpacing: tenthStepNumber(-2, 4).nullable().optional(),
+	terminalFontFamily: z
+		.string()
+		.max(FONT_FAMILY_MAX_LENGTH)
+		.nullable()
+		.optional(),
+	terminalFontSize: limitedNumber(FONT_SIZE_LIMITS).nullable().optional(),
+	terminalLineHeight: limitedNumber(LINE_HEIGHT_LIMITS).nullable().optional(),
+	terminalLetterSpacing: limitedNumber(LETTER_SPACING_LIMITS)
+		.nullable()
+		.optional(),
 	terminalFontWeight: fontWeightSchema.nullable().optional(),
 	terminalLigatures: z.boolean().nullable().optional(),
-	terminalMinimumContrast: z
-		.union([z.literal(1), z.literal(3), z.literal(4.5), z.literal(7)])
-		.nullable()
-		.optional(),
-	terminalCursorStyle: z
-		.enum(["block", "bar", "underline"])
-		.nullable()
-		.optional(),
+	terminalMinimumContrast: contrastSchema.nullable().optional(),
+	terminalCursorStyle: z.enum(TERMINAL_CURSOR_STYLES).nullable().optional(),
 	terminalCursorBlink: z.boolean().nullable().optional(),
-	editorFontFamily: z.string().max(500).nullable().optional(),
-	editorFontSize: halfStepNumber(10, 24).nullable().optional(),
-	editorLineHeight: tenthStepNumber(1, 2.5).nullable().optional(),
-	editorLetterSpacing: tenthStepNumber(-2, 4).nullable().optional(),
+	editorFontFamily: z
+		.string()
+		.max(FONT_FAMILY_MAX_LENGTH)
+		.nullable()
+		.optional(),
+	editorFontSize: limitedNumber(FONT_SIZE_LIMITS).nullable().optional(),
+	editorLineHeight: limitedNumber(LINE_HEIGHT_LIMITS).nullable().optional(),
+	editorLetterSpacing: limitedNumber(LETTER_SPACING_LIMITS)
+		.nullable()
+		.optional(),
 	editorFontWeight: fontWeightSchema.nullable().optional(),
 	editorLigatures: z.boolean().nullable().optional(),
 });

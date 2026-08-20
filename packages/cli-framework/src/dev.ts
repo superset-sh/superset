@@ -58,5 +58,6 @@ export async function runDev(argv: string[]): Promise<void> {
 		version: config.version,
 		tree: { commands, groups, middleware },
 		globals: config.globals,
+		help: config.help,
 	});
 }

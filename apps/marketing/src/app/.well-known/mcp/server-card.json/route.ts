@@ -27,7 +27,7 @@ export async function GET() {
 			card = await response.json();
 		}
 	} catch {
-		// api unreachable — serve the static fallback
+		// api unreachable; serve the static fallback
 	}
 
 	return Response.json(card, {

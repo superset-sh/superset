@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { Agent } from "@mastra/core/agent";
-import { getSmallModel } from "@superset/chat-legacy/server/shared";
+import { getSmallModel } from "@superset/provider-auth/server/shared";
 import {
 	getBuiltinAgentDefinition,
 	isBuiltinAgentId,

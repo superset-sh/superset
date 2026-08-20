@@ -4,6 +4,10 @@ import { Client } from "@upstash/qstash";
 import { env } from "@/env";
 import { verifySlackSignature } from "../verify-signature";
 import { processAppHomeOpened } from "./process-app-home-opened";
+import {
+	isAutomationEvent,
+	processAutomationEvent,
+} from "./process-automation-event";
 import { processEntityDetails } from "./process-entity-details";
 import { processLinkShared } from "./process-link-shared";
 
@@ -14,6 +18,8 @@ type SlackEventEnvelope = {
 	challenge?: string;
 	team_id?: string;
 	event_id?: string;
+	api_app_id?: string;
+	authorizations?: Array<{ user_id?: string; is_bot?: boolean }>;
 	event?: SlackEvent | null;
 };
 
@@ -75,6 +81,32 @@ export async function POST(request: Request) {
 		) {
 			console.error("[slack/events] Invalid event payload shape");
 			return Response.json({ error: "Invalid payload shape" }, { status: 400 });
+		}
+
+		// Channel messages, reactions and new channels are recorded as automation
+		// events and matched against Slack triggers. Awaited, like GitHub's route:
+		// a few indexed queries, and Slack's three-second budget is not at risk.
+		// Failures are logged rather than surfaced — Slack would only retry, and a
+		// redelivery of the same event_id is deduped anyway.
+		const envelope = {
+			team_id,
+			event_id,
+			api_app_id: payload.api_app_id,
+			authorizations: payload.authorizations,
+			event,
+		};
+		if (isAutomationEvent(envelope)) {
+			try {
+				const outcome = await processAutomationEvent(envelope);
+				if (outcome.status === "dispatched" && outcome.matched > 0) {
+					console.log(
+						`[slack/events] ${outcome.matched}/${outcome.considered} triggers matched:`,
+						event_id,
+					);
+				}
+			} catch (error) {
+				console.error("[slack/events] processAutomationEvent failed:", error);
+			}
 		}
 
 		if (event.type === "app_mention") {

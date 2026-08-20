@@ -7,7 +7,10 @@ import {
 	getWorktreeBranchAtPath,
 	listWorktreeBranches,
 } from "../shared/branch-search";
-import { requireLocalProject } from "../shared/local-project";
+import {
+	requireLocalProject,
+	requireProjectRepoPath,
+} from "../shared/local-project";
 import type { TerminalDescriptor } from "../shared/types";
 
 /**
@@ -21,7 +24,8 @@ export const adopt = protectedProcedure
 	.input(adoptInputSchema)
 	.mutation(async ({ ctx, input }) => {
 		const localProject = requireLocalProject(ctx, input.projectId);
-		await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
+		const repoPath = requireProjectRepoPath(localProject);
+		await ensureMainWorkspace(ctx, input.projectId, repoPath);
 
 		let branch = input.branch.trim();
 		if (!branch) {
@@ -31,7 +35,7 @@ export const adopt = protectedProcedure
 			});
 		}
 
-		const git = await ctx.git(localProject.repoPath);
+		const git = await ctx.git(repoPath);
 
 		let worktreePath: string;
 		if (input.worktreePath) {

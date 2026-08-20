@@ -6,9 +6,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { HiChevronRight } from "react-icons/hi2";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -21,11 +19,9 @@ import {
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
-import { useSidebarWorkspacesCollapseStore } from "renderer/stores/sidebar-workspaces-collapse";
+import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 
 export function DashboardSidebarWorkspacesHeader() {
-	const isCollapsed = useSidebarWorkspacesCollapseStore((s) => s.isCollapsed);
-	const toggleCollapsed = useSidebarWorkspacesCollapseStore((s) => s.toggle);
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
@@ -53,31 +49,7 @@ export function DashboardSidebarWorkspacesHeader() {
 	};
 
 	return (
-		// biome-ignore lint/a11y/useSemanticElements: can't be a native <button> — it nests the add-repository dropdown trigger button
-		<div
-			role="button"
-			tabIndex={0}
-			onClick={toggleCollapsed}
-			onKeyDown={(event) => {
-				if (event.key === "Enter" || event.key === " ") {
-					event.preventDefault();
-					toggleCollapsed();
-				}
-			}}
-			className="group flex min-h-8 w-full shrink-0 items-center gap-1.5 py-1.5 pl-4 pr-2 text-[10px] font-semibold uppercase tracking-[0.075em] text-muted-foreground transition-colors"
-		>
-			<span className="min-w-0 truncate text-left">Projects</span>
-			<HiChevronRight
-				className={cn(
-					"size-3 shrink-0 text-muted-foreground transition-[opacity,transform] duration-150",
-					// Stays visible while collapsed — it's the only cue that the
-					// project rows are hidden rather than missing (GH #6009).
-					isCollapsed
-						? "opacity-100"
-						: "rotate-90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
-				)}
-			/>
-			<div className="min-w-0 flex-1" />
+		<DashboardSidebarSectionHeader label="Projects" section="workspaces">
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>
@@ -123,6 +95,6 @@ export function DashboardSidebarWorkspacesHeader() {
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-		</div>
+		</DashboardSidebarSectionHeader>
 	);
 }

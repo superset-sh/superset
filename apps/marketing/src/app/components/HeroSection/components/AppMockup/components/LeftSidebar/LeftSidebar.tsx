@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
 	LuChevronDown,
 	LuChevronRight,
@@ -8,7 +8,7 @@ import {
 	LuPlus,
 	LuZap,
 } from "react-icons/lu";
-import { WORKSPACES } from "../../constants";
+import { CLOUD_WORKSPACES, WORKSPACES } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
 import { WorkspaceItem } from "../WorkspaceItem";
@@ -18,8 +18,11 @@ interface LeftSidebarProps {
 }
 
 export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
+	const isOrchestrate = activeDemo === "Orchestrate Parallel Agents";
+	const isRemote = activeDemo === "Remote Workspaces";
+
 	return (
-		<div className="flex w-[208px] shrink-0 flex-col border-r border-border/60 bg-card text-[11px]">
+		<div className="flex w-[232px] shrink-0 flex-col border-r border-border/60 bg-card text-[11px]">
 			<div className="flex h-9 items-center gap-1.5 px-3">
 				<div className="size-2.5 rounded-full bg-[#ff5f57]" />
 				<div className="size-2.5 rounded-full bg-[#febc2e]" />
@@ -35,12 +38,12 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 			<div className="mt-6 flex-1 overflow-hidden">
 				<GroupHeader label="desktop" count={5} expanded />
 
-				<motion.div
+				<m.div
 					className="overflow-hidden"
 					initial={{ height: 0, opacity: 0 }}
 					animate={{
-						height: activeDemo === "Create Parallel Branches" ? "auto" : 0,
-						opacity: activeDemo === "Create Parallel Branches" ? 1 : 0,
+						height: isOrchestrate ? "auto" : 0,
+						opacity: isOrchestrate ? 1 : 0,
 					}}
 					transition={{ duration: 0.25, ease: "easeOut" }}
 				>
@@ -55,37 +58,59 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 							creating
 						</span>
 					</div>
-				</motion.div>
+				</m.div>
 
 				<div className="mt-1 space-y-0.5">
-					{WORKSPACES.map((workspace) => {
-						const isFirstItem = workspace.name === "use any agents";
-						const shouldHideActiveState =
-							isFirstItem && activeDemo === "Create Parallel Branches";
+					{WORKSPACES.map((workspace) => (
+						<WorkspaceItem
+							key={workspace.branch}
+							name={workspace.name}
+							branch={workspace.branch}
+							add={workspace.add}
+							del={workspace.del}
+							pr={workspace.pr}
+							isActive={isRemote ? false : workspace.isActive}
+							status={workspace.status}
+							icon={workspace.icon}
+						/>
+					))}
+				</div>
 
-						return (
+				<div className="mt-3">
+					<GroupHeader label="cloud" count={3} expanded={isRemote} />
+				</div>
+				<m.div
+					className="overflow-hidden"
+					initial={{ height: 0, opacity: 0 }}
+					animate={{
+						height: isRemote ? "auto" : 0,
+						opacity: isRemote ? 1 : 0,
+					}}
+					transition={{ duration: 0.25, ease: "easeOut" }}
+				>
+					<div className="mt-1 space-y-0.5">
+						{CLOUD_WORKSPACES.map((workspace, index) => (
 							<WorkspaceItem
 								key={workspace.branch}
 								name={workspace.name}
 								branch={workspace.branch}
 								add={workspace.add}
 								del={workspace.del}
-								pr={workspace.pr}
-								isActive={shouldHideActiveState ? false : workspace.isActive}
-								status={shouldHideActiveState ? undefined : workspace.status}
+								isActive={isRemote && index === 0}
+								status={workspace.status}
+								icon={workspace.icon}
 							/>
-						);
-					})}
-				</div>
-
-				<div className="mt-3">
-					<GroupHeader label="cloud" count={3} />
+						))}
+					</div>
+				</m.div>
+				<div className="mt-1">
+					<GroupHeader label="gpu-box" count={14} />
 				</div>
 				<div className="mt-1">
 					<GroupHeader label="mobile" count={1} />
 				</div>
 				<div className="mt-1">
-					<GroupHeader label="cli" count={2} />
+					<GroupHeader label="cli" count={4} />
 				</div>
 			</div>
 		</div>

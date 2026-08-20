@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { ReactNode } from "react";
 import {
 	HiOutlineCodeBracket,
@@ -21,9 +21,9 @@ const SECURITY_FEATURES: {
 	},
 	{
 		icon: <HiOutlineServerStack className="w-5 h-5 text-foreground/70" />,
-		title: "Offline First",
+		title: "Local First",
 		description:
-			"Your code stays on your machine. Work without an internet connection. All processing happens locally.",
+			"Repos, worktrees, terminal output, and agent sessions stay on your machine. Cloud sync covers account and organization metadata only.",
 	},
 	{
 		icon: <HiOutlineSignal className="w-5 h-5 text-foreground/70" />,
@@ -35,29 +35,32 @@ const SECURITY_FEATURES: {
 
 export function SecuritySection() {
 	return (
-		<section className="relative py-24 px-8 lg:px-[30px]">
-			<div className="max-w-7xl mx-auto">
+		<section id="security" className="relative py-24 sm:py-32">
+			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				{/* Heading */}
-				<motion.div
-					className="mb-16"
+				<m.div
+					className="mb-16 space-y-4"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
 					viewport={{ once: true }}
 					transition={{ duration: 0.5 }}
 				>
-					<div className="space-y-1">
-						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-foreground">
-							Private by default
-						</h2>
-						<h2 className="text-lg sm:text-xl font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
-							Your code stays local by default, with explicit control over
-							connected services.
-						</h2>
-					</div>
-				</motion.div>
+					<span className="text-sm font-mono uppercase tracking-widest text-brand">
+						Security
+					</span>
+					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
+						Private by default.
+						<br />
+						You&apos;re in control.
+					</h2>
+					<p className="text-base sm:text-lg font-light text-muted-foreground max-w-[700px]">
+						Your code stays local by default, with explicit control over
+						connected services.
+					</p>
+				</m.div>
 
 				{/* Features Grid */}
-				<motion.div
+				<m.div
 					className="grid grid-cols-1 md:grid-cols-3 gap-6"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
@@ -65,15 +68,15 @@ export function SecuritySection() {
 					transition={{ duration: 0.5, delay: 0.2 }}
 				>
 					{SECURITY_FEATURES.map((feature, index) => (
-						<motion.div
+						<m.div
 							key={feature.title}
-							className="relative p-6 rounded-2xl border border-border bg-card/50 backdrop-blur-sm"
+							className="relative p-6 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03]"
 							initial={{ opacity: 0, y: 20 }}
 							whileInView={{ opacity: 1, y: 0 }}
 							viewport={{ once: true }}
 							transition={{ duration: 0.5, delay: 0.1 * index }}
 						>
-							<div className="mb-4 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-muted border border-border">
+							<div className="mb-4 inline-flex items-center justify-center w-10 h-10 rounded-[2px] bg-muted border border-border">
 								{feature.icon}
 							</div>
 							<h3 className="text-lg font-medium text-foreground/90 mb-2">
@@ -82,9 +85,9 @@ export function SecuritySection() {
 							<p className="text-sm leading-relaxed text-muted-foreground">
 								{feature.description}
 							</p>
-						</motion.div>
+						</m.div>
 					))}
-				</motion.div>
+				</m.div>
 			</div>
 		</section>
 	);

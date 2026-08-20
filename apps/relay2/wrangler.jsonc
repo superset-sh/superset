@@ -3,6 +3,7 @@
 	"name": "superset-relay2",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-07-01",
+	"compatibility_flags": ["nodejs_als"],
 	"vars": {
 		// Must match the API's JWT issuer/audience exactly — a mismatch 401s
 		// every connection. Same value as the Fly relay's NEXT_PUBLIC_API_URL.

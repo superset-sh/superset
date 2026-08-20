@@ -37,7 +37,7 @@ export function OrganizationJsonLd() {
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
 		logo: `${COMPANY.MARKETING_URL}/logo.png`,
-		description: "Run 10+ parallel coding agents on your machine",
+		description: "Run 100+ parallel coding agents on your machine",
 		email: supportEmail,
 		contactPoint: {
 			"@type": "ContactPoint",
@@ -69,7 +69,7 @@ export function SoftwareApplicationJsonLd() {
 		"@context": "https://schema.org",
 		"@type": "SoftwareApplication",
 		name: COMPANY.NAME,
-		operatingSystem: "macOS, Windows, Linux",
+		operatingSystem: "macOS",
 		applicationCategory: "DeveloperApplication",
 		applicationSubCategory: "Developer Tools",
 		offers: {
@@ -77,7 +77,7 @@ export function SoftwareApplicationJsonLd() {
 			price: "0",
 			priceCurrency: "USD",
 		},
-		description: "Run 10+ parallel coding agents on your machine",
+		description: "Run 100+ parallel coding agents on your machine",
 		url: COMPANY.MARKETING_URL,
 	};
 
@@ -95,6 +95,7 @@ interface ArticleJsonLdProps {
 	description?: string;
 	author: ArticleAuthor;
 	publishedTime: string;
+	modifiedTime?: string;
 	url: string;
 	image?: string;
 }
@@ -104,6 +105,7 @@ export function ArticleJsonLd({
 	description,
 	author,
 	publishedTime,
+	modifiedTime,
 	url,
 	image,
 }: ArticleJsonLdProps) {
@@ -128,7 +130,7 @@ export function ArticleJsonLd({
 			},
 		},
 		datePublished: publishedTime,
-		dateModified: publishedTime,
+		dateModified: modifiedTime ?? publishedTime,
 		mainEntityOfPage: {
 			"@type": "WebPage",
 			"@id": url,
@@ -214,7 +216,7 @@ export function HomeWebPageJsonLd() {
 		"@type": "WebPage",
 		"@id": COMPANY.MARKETING_URL,
 		url: COMPANY.MARKETING_URL,
-		name: `${COMPANY.NAME} — Run 10+ parallel coding agents on your machine`,
+		name: `${COMPANY.NAME}: Run 100+ parallel coding agents on your machine`,
 		isPartOf: {
 			"@type": "WebSite",
 			name: COMPANY.NAME,

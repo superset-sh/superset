@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
 
@@ -32,7 +32,6 @@ const READY_FOR_REVIEW = [
 		time: "now",
 		added: 93,
 		removed: 18,
-		summary: "Perfect! I've implem...",
 	},
 	{
 		id: "review-2",
@@ -40,7 +39,6 @@ const READY_FOR_REVIEW = [
 		time: "30m",
 		added: 37,
 		removed: 0,
-		summary: "Set up Cursor Rules f...",
 	},
 	{
 		id: "review-3",
@@ -48,27 +46,25 @@ const READY_FOR_REVIEW = [
 		time: "45m",
 		added: 135,
 		removed: 21,
-		summary: "Bioinformatics Tools",
 	},
 ];
 
 const TERMINAL_LINES = [
-	"$ claude",
-	"\u00A0",
-	"╭──────────────────────────╮",
-	"│\u00A0\u00A0Claude Code\u00A0\u00A0\u00A0\u00A0v1.0.42\u00A0\u00A0│",
-	"╰──────────────────────────╯",
-	"\u00A0",
-	"> Implement order validation",
-	"\u00A0",
+	"❯ claude",
+	" ",
+	"Claude Code v2.0.74",
+	"Opus 4.5 · Claude Max",
+	" ",
+	"❯ Implement order validation",
+	" ",
 	"I'll implement order validation.",
 	"Let me examine the existing schema...",
-	"\u00A0",
+	" ",
 	"Read: src/schemas/order.ts",
 	"Read: src/api/orders/validate.ts",
-	"\u00A0",
+	" ",
 	"✓ Added validation for required fields,",
-	"\u00A0\u00A0quantity checks, and price formats.",
+	"  quantity checks, and price formats.",
 ];
 
 function SpinnerIcon({
@@ -79,7 +75,7 @@ function SpinnerIcon({
 	rotation?: number;
 }) {
 	return (
-		<motion.svg
+		<m.svg
 			className={className}
 			viewBox="0 0 24 24"
 			fill="none"
@@ -104,18 +100,14 @@ function SpinnerIcon({
 				fill="currentColor"
 				d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 			/>
-		</motion.svg>
+		</m.svg>
 	);
 }
 
 export function ParallelExecutionDemo() {
 	const ref = useRef<HTMLDivElement>(null);
-	const terminalRef = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 	const [displayedLines, setDisplayedLines] = useState<string[]>([]);
-	const [showCursor, setShowCursor] = useState(true);
-	const [inputValue, setInputValue] = useState("");
-	const [chatMessages, setChatMessages] = useState<string[]>([]);
 
 	// Line-by-line animation
 	useEffect(() => {
@@ -134,65 +126,43 @@ export function ParallelExecutionDemo() {
 		return () => clearInterval(interval);
 	}, [isInView]);
 
-	// Blinking cursor
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setShowCursor((prev) => !prev);
-		}, 530);
-		return () => clearInterval(interval);
-	}, []);
-
-	// Auto-scroll to bottom when new messages are added
-	useEffect(() => {
-		if (terminalRef.current && chatMessages.length > 0) {
-			terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-		}
-	}, [chatMessages]);
-
-	const handleSubmit = () => {
-		if (!inputValue.trim()) return;
-		setChatMessages((prev) => [...prev, `> ${inputValue}`]);
-		setInputValue("");
-	};
-
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === "Enter") {
-			e.preventDefault();
-			handleSubmit();
-		}
-	};
-
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
-			className="w-full min-w-[500px] max-w-2xl bg-[#1a1a1a]/90 backdrop-blur-sm rounded-md border border-white/10 shadow-2xl overflow-hidden"
+			className="relative w-full min-w-[500px] max-w-2xl overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
 			animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 			transition={{ duration: 0.5 }}
 		>
+			<div className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-1 ring-inset ring-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" />
+
 			{/* Window chrome */}
-			<div className="flex items-center gap-2 px-4 py-3 bg-[#2a2a2a]/80 border-b border-white/5">
-				<div className="flex gap-1.5">
-					<div className="w-3 h-3 rounded-full bg-[#ff5f57]" />
-					<div className="w-3 h-3 rounded-full bg-[#febc2e]" />
-					<div className="w-3 h-3 rounded-full bg-[#28c840]" />
+			<div className="relative flex h-8 items-center border-b border-border/60 bg-card px-3">
+				<div className="flex items-center gap-1.5">
+					<div className="size-2 rounded-full bg-[#ff5f57]/85" />
+					<div className="size-2 rounded-full bg-[#febc2e]/85" />
+					<div className="size-2 rounded-full bg-[#28c840]/85" />
 				</div>
-				<span className="text-xs text-white/40 ml-2 font-mono">Superset</span>
+				<span className="pointer-events-none absolute inset-x-0 text-center font-mono text-[10px] tracking-tight text-muted-foreground/60">
+					superset
+				</span>
 			</div>
 
 			<div className="flex h-[360px]">
 				{/* Sidebar */}
-				<div className="w-56 border-r border-white/5 bg-[#1e1e1e]/50 overflow-hidden flex-shrink-0">
+				<div className="w-56 shrink-0 overflow-hidden border-r border-border/60 bg-card">
 					{/* In Progress Section */}
 					<div className="p-3">
-						<div className="text-[10px] uppercase text-white/40 font-medium tracking-wider mb-2">
+						<div className="mb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
 							In Progress{" "}
-							<span className="text-white/30">{IN_PROGRESS_TASKS.length}</span>
+							<span className="text-muted-foreground/40">
+								{IN_PROGRESS_TASKS.length}
+							</span>
 						</div>
 						{IN_PROGRESS_TASKS.map((task, index) => (
-							<motion.div
+							<m.div
 								key={task.id}
-								className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-white/5 cursor-pointer"
+								className="flex cursor-pointer items-start gap-2 rounded-sm px-1 py-1.5 hover:bg-foreground/[0.04]"
 								initial={{ opacity: 0, x: -10 }}
 								animate={
 									isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }
@@ -200,135 +170,87 @@ export function ParallelExecutionDemo() {
 								transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
 							>
 								<SpinnerIcon
-									className="w-3.5 h-3.5 text-white/50 mt-0.5 flex-shrink-0"
+									className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/55"
 									rotation={task.rotation}
 								/>
 								<div className="min-w-0">
-									<div className="text-xs text-white/70 truncate">
+									<div className="truncate text-xs text-muted-foreground">
 										{task.name}
 									</div>
-									<div className="text-[10px] text-white/30">{task.status}</div>
+									<div className="text-[10px] text-muted-foreground/45">
+										{task.status}
+									</div>
 								</div>
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 
 					{/* Ready for Review Section */}
 					<div className="p-3 pt-0">
-						<div className="text-[10px] uppercase text-white/40 font-medium tracking-wider mb-2">
+						<div className="mb-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
 							Ready for Review{" "}
-							<span className="text-white/30">{READY_FOR_REVIEW.length}</span>
+							<span className="text-muted-foreground/40">
+								{READY_FOR_REVIEW.length}
+							</span>
 						</div>
 						{READY_FOR_REVIEW.map((task, index) => (
-							<motion.div
+							<m.div
 								key={task.id}
-								className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-white/5 cursor-pointer"
+								className="flex cursor-pointer items-start gap-2 rounded-sm px-1 py-1.5 hover:bg-foreground/[0.04]"
 								initial={{ opacity: 0, x: -10 }}
 								animate={
 									isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -10 }
 								}
 								transition={{ duration: 0.3, delay: 0.3 + index * 0.05 }}
 							>
-								<HiCheck className="w-3.5 h-3.5 text-white/50 mt-0.5 flex-shrink-0" />
+								<HiCheck className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/55" />
 								<div className="min-w-0 flex-1">
 									<div className="flex items-center justify-between gap-1">
-										<span className="text-xs text-white/70 truncate">
+										<span className="truncate text-xs text-muted-foreground">
 											{task.name}
 										</span>
-										<span className="text-[10px] text-white/30 flex-shrink-0">
+										<span className="shrink-0 text-[10px] text-muted-foreground/45">
 											{task.time}
 										</span>
 									</div>
-									<div className="flex items-center gap-1 text-[10px]">
-										<span className="text-green-400">+{task.added}</span>
+									<div className="flex items-center gap-1 font-mono text-[10px] tabular-nums">
+										<span className="text-emerald-400/85">+{task.added}</span>
 										{task.removed > 0 && (
-											<span className="text-red-400">-{task.removed}</span>
+											<span className="text-rose-400/75">−{task.removed}</span>
 										)}
-										<span className="text-white/30 truncate">
-											· {task.summary}
-										</span>
 									</div>
 								</div>
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 				</div>
 
 				{/* Terminal Area */}
-				<div className="flex-1 flex flex-col min-w-0">
+				<div className="flex min-w-0 flex-1 flex-col">
 					{/* Terminal content */}
-					<div
-						ref={terminalRef}
-						className="flex-1 p-4 font-mono text-xs leading-relaxed text-white/80 overflow-y-auto"
-					>
+					<div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed text-muted-foreground">
 						{displayedLines.map((line, index) => (
 							<div
 								key={`line-${index}-${line.slice(0, 10)}`}
-								className={`${line.startsWith("$") || line.startsWith(">") ? "text-green-400" : ""} ${line.startsWith("Read:") ? "text-blue-400" : ""} ${line.startsWith("✓") ? "text-green-400" : ""}`}
+								className={`${line.startsWith("❯") ? "text-foreground" : ""} ${line.startsWith("Read:") ? "text-muted-foreground/55" : ""} ${line.startsWith("✓") ? "text-emerald-400/85" : ""}`}
 							>
-								{line || "\u00A0"}
+								{line || " "}
 							</div>
 						))}
-						{chatMessages.map((line, index) => (
-							<div key={`chat-${index}-${line.slice(0, 10)}`}>
-								<div
-									className={`${line.startsWith(">") ? "text-green-400" : ""}`}
-								>
-									{line || "\u00A0"}
-								</div>
-								<div className="mt-1">
-									Try us out,{" "}
-									<a
-										href="/download"
-										className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
-									>
-										download Superset
-									</a>
-								</div>
-								<div>{"\u00A0"}</div>
-							</div>
-						))}
-						{displayedLines.length === TERMINAL_LINES.length && (
-							<span
-								className={`inline-block w-2 h-4 bg-white/70 ml-0.5 align-middle ${
-									showCursor ? "opacity-100" : "opacity-0"
-								}`}
-							/>
-						)}
 					</div>
 
-					{/* Input box */}
-					<div className="border-t border-white/5 p-2">
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-[#2a2a2a]/60 rounded-md border border-white/10">
-							<span className="text-white/30 text-xs">{">"}</span>
-							<input
-								type="text"
-								value={inputValue}
-								onChange={(e) => setInputValue(e.target.value)}
-								onKeyDown={handleKeyDown}
-								placeholder="Type a message..."
-								className="text-white/80 text-xs flex-1 bg-transparent outline-none placeholder:text-white/50"
-							/>
-							<div className="flex items-center gap-1">
-								<button
-									type="button"
-									onClick={handleSubmit}
-									className="w-5 h-5 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-								>
-									<span className="text-[10px] text-white/40">⌘</span>
-								</button>
-								<button
-									type="button"
-									onClick={handleSubmit}
-									className="w-5 h-5 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-								>
-									<span className="text-[10px] text-white/40">↵</span>
-								</button>
-							</div>
+					{/* Prompt row */}
+					<div className="border-t border-border/60 px-4 pb-3 pt-3">
+						<div className="flex items-center gap-2.5">
+							<span className="text-muted-foreground/55">❯</span>
+							<span className="h-3.5 w-[7px] bg-foreground/60" />
+							<span className="flex-1 font-mono text-[11px] text-muted-foreground/40">
+								Type a task for Claude…
+							</span>
 						</div>
 					</div>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LuPencil } from "react-icons/lu";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 
 interface HostHeaderProps {
 	name: string;
@@ -16,7 +16,7 @@ export function HostHeader({
 	machineId,
 	canRename,
 }: HostHeaderProps) {
-	const { v2Hosts: hostActions } = useOptimisticCollectionActions();
+	const { v2Hosts: hostActions } = useOptimisticActions();
 	const [isEditing, setIsEditing] = useState(false);
 	const [draft, setDraft] = useState(name);
 	const inputRef = useRef<HTMLInputElement>(null);

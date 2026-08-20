@@ -253,6 +253,13 @@ export async function fetchPullRequestByHead(
 	return normalizePullRequestCandidates(response.data, head);
 }
 
+// 100 full PR objects (bodies included) routinely exceed exec's stdout
+// buffer, so project down to exactly what normalizePullRequest reads before
+// the payload leaves gh. jq's null-indexing keeps absent nests as nulls,
+// which normalizePullRequest already rejects the same way as missing keys.
+const OPEN_PULL_REQUESTS_JQ =
+	'if type == "array" then [.[] | select(type == "object") | {number, title, html_url, state, merged_at, draft, updated_at, head: {ref: .head.ref, sha: .head.sha, repo: {name: .head.repo.name, owner: {login: .head.repo.owner.login}}, user: {login: .head.user.login}}, base: {repo: {full_name: .base.repo.full_name}}}] else . end';
+
 // GitHub's `head=` filter is case-sensitive on the branch (verified), so a
 // drifted-case lookup returns nothing. This repo-wide sweep lets the caller
 // match heads case-insensitively. Open PRs only — `state=all` is unbounded.
@@ -276,6 +283,8 @@ export async function fetchOpenPullRequestsFromGh(
 		"direction=desc",
 		"-f",
 		"per_page=100",
+		"--jq",
+		OPEN_PULL_REQUESTS_JQ,
 	]);
 
 	return asArray(raw)

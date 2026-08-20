@@ -26,6 +26,28 @@ interface GradientInstance {
 	};
 }
 
+/**
+ * Browsers cap how many WebGL contexts may be live at once, and a probe
+ * context counts against that cap until it is explicitly lost. Probing on
+ * every mount without releasing would eventually starve the real gradient of
+ * a context, so release immediately and cache the answer: WebGL support does
+ * not change over a page's lifetime.
+ */
+let webglSupport: boolean | undefined;
+
+function supportsWebgl(): boolean {
+	if (webglSupport !== undefined) return webglSupport;
+	try {
+		const probe = document.createElement("canvas");
+		const context = probe.getContext("webgl2") || probe.getContext("webgl");
+		context?.getExtension("WEBGL_lose_context")?.loseContext();
+		webglSupport = Boolean(context);
+	} catch {
+		webglSupport = false;
+	}
+	return webglSupport;
+}
+
 export function MeshGradient({
 	colors,
 	className = "",
@@ -37,18 +59,11 @@ export function MeshGradient({
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		if (!canvas) return;
+		if (!canvas || !supportsWebgl()) return;
 
 		const gradient = new Gradient() as GradientInstance;
-		gradient.initGradient(`#${canvasId}`);
 
-		setTimeout(() => {
-			if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
-				gradient.uniforms.u_global.value.noiseSpeed.value = speed;
-			}
-		}, 100);
-
-		return () => {
+		const teardown = () => {
 			if (gradient.pause) {
 				gradient.pause();
 			}
@@ -65,6 +80,23 @@ export function MeshGradient({
 				gradient.disconnect();
 			}
 		};
+
+		// Guard scoped to init only: the library dereferences a null WebGL
+		// context when creation fails despite the probe above.
+		try {
+			gradient.initGradient(`#${canvasId}`);
+		} catch {
+			teardown();
+			return;
+		}
+
+		setTimeout(() => {
+			if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
+				gradient.uniforms.u_global.value.noiseSpeed.value = speed;
+			}
+		}, 100);
+
+		return teardown;
 	}, [canvasId, speed]);
 
 	return (

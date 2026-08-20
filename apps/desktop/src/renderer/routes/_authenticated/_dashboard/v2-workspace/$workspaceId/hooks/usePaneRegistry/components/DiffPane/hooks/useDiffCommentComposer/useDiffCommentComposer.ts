@@ -12,7 +12,7 @@ import {
 	useSendToTerminalAgent,
 } from "renderer/hooks/host-service/useSendToTerminalAgent";
 import type { ChangesetFile } from "../../../../../useChangeset";
-import type { AgentTarget } from "../../components/AgentCommentComposer";
+import type { AgentTarget } from "../../../AgentCommentComposer";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
 
 interface ComposerState {

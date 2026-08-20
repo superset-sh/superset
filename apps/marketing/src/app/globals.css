@@ -20,6 +20,13 @@
 }
 
 @layer base {
+	/* Linear-style Inter: optical sizing (Display cut at large sizes) +
+	   alternate glyphs. Feature settings are ignored by the mono/pixel fonts. */
+	body {
+		font-optical-sizing: auto;
+		font-feature-settings: "cv01", "ss03";
+	}
+
 	button:not(:disabled),
 	[role="button"]:not([aria-disabled="true"]) {
 		cursor: pointer;
@@ -31,6 +38,39 @@
 	}
 }
 
+/* Cyber HUD frame: four L-shaped corner brackets drawn as background strips
+   (two strips per corner). Sized in em so it scales with the text. */
+@utility corner-brackets {
+	background-image:
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand)),
+		linear-gradient(var(--brand), var(--brand));
+	background-repeat: no-repeat;
+	background-size:
+		0.15em 4px,
+		4px 0.15em,
+		0.15em 4px,
+		4px 0.15em,
+		0.15em 4px,
+		4px 0.15em,
+		0.15em 4px,
+		4px 0.15em;
+	background-position:
+		0 0,
+		0 0,
+		100% 0,
+		100% 0,
+		0 100%,
+		0 100%,
+		100% 100%,
+		100% 100%;
+}
+
 @utility scrollbar-hide {
 	-ms-overflow-style: none;
 	scrollbar-width: none;
@@ -38,7 +78,6 @@
 		display: none;
 	}
 }
-
 /* Blog prose styles */
 .prose {
 	--tw-prose-body: rgb(255 255 255 / 0.7);

@@ -1,6 +1,6 @@
-import { generateTitleFromMessage } from "@superset/chat-legacy/server/desktop";
-import { getSmallModel } from "@superset/chat-legacy/server/shared";
 import { workspaces } from "@superset/local-db";
+import { generateTitleFromMessage } from "@superset/provider-auth/server";
+import { getSmallModel } from "@superset/provider-auth/server/shared";
 import { deriveWorkspaceTitleFromPrompt } from "@superset/shared/workspace-launch";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";

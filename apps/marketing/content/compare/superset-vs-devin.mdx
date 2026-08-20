@@ -23,8 +23,8 @@ Devin is a cloud-based AI software engineer that works autonomously in a remote 
 | | **Superset** | **Devin** |
 |---|---|---|
 | **Category** | Agent orchestration workspace | Autonomous AI software engineer |
-| **Architecture** | Local-first today — worktrees, review, browser, and chat run on your machine | Fully remote — runs in cloud VMs |
-| **AI approach** | Agent-agnostic — orchestrates external agents plus Superset Chat and MCP tools | Proprietary AI with browser, editor, and terminal in cloud |
+| **Architecture** | Local-first today: worktrees, review, browser, and chat run on your machine | Fully remote: runs in cloud VMs |
+| **AI approach** | Agent-agnostic: orchestrates external agents plus Superset Chat and MCP tools | Proprietary AI with browser, editor, and terminal in cloud |
 | **Parallelism** | 100+ agents across isolated local worktrees | Parallel cloud sessions (10 concurrent on Pro, unlimited on Max) |
 | **Code privacy** | Local-first; outbound model traffic depends on your chosen agents/providers | Code runs on Cognition's cloud infrastructure |
 | **Pricing** | Free tier + Pro $20/seat/mo | Free; Pro $20/mo, Max $200/mo, Teams $80 + $40/seat |
@@ -40,7 +40,7 @@ Superset is a local-first desktop workspace for AI coding agents. It launches Cl
 
 ## What Is Devin?
 
-Devin is Cognition's AI software engineer — a cloud-based autonomous agent that runs in its own virtual machine with a browser, code editor, terminal, and planner. You assign tasks via chat or Slack, and Devin works independently: reading docs, writing code, debugging, running tests, and creating pull requests. It has event-driven workflows (triggers from Linear, Slack, etc.) and a review system that annotates PRs before human review. Since Devin 2.0, Cognition retired the old $500/month usage model for flat tiers starting at $20/month, with parallel cloud sessions (up to 10 concurrent on Pro, unlimited on Max). Devin and the former Windsurf editor are now sold as one product family, so every paid tier also bundles Devin Desktop; see [Superset vs Windsurf](/compare/superset-vs-windsurf) for the editor comparison.
+Devin is Cognition's AI software engineer: a cloud-based autonomous agent that runs in its own virtual machine with a browser, code editor, terminal, and planner. You assign tasks via chat or Slack, and Devin works independently: reading docs, writing code, debugging, running tests, and creating pull requests. It has event-driven workflows (triggers from Linear, Slack, etc.) and a review system that annotates PRs before human review. Since Devin 2.0, Cognition retired the old $500/month usage model for flat tiers starting at $20/month, with parallel cloud sessions (up to 10 concurrent on Pro, unlimited on Max). Devin and the former Windsurf editor are now sold as one product family, so every paid tier also bundles Devin Desktop; see [Superset vs Windsurf](/compare/superset-vs-windsurf) for the editor comparison.
 
 ---
 
@@ -48,19 +48,19 @@ Devin is Cognition's AI software engineer — a cloud-based autonomous agent tha
 
 ### Local vs Cloud
 
-Superset's shipped workflow is local-first today. Your repo, worktrees, review flow, chat, and browser preview stay on your machine, and outbound traffic depends on the specific agents or providers you choose. Devin runs entirely in Cognition's cloud — your code is cloned into remote VMs where Devin operates. This is the fundamental architectural difference and drives most of the trade-offs below.
+Superset's shipped workflow is local-first today. Your repo, worktrees, review flow, chat, and browser preview stay on your machine, and outbound traffic depends on the specific agents or providers you choose. Devin runs entirely in Cognition's cloud: your code is cloned into remote VMs where Devin operates. This is the fundamental architectural difference and drives most of the trade-offs below.
 
 ### Control vs Autonomy
 
-Superset gives you direct access to each agent session. You can watch the terminal, inspect diffs, open a browser preview, chat in the same workspace, interrupt, or redirect mid-task. Devin aims for full autonomy — you assign a task and check back later for a PR. This makes Devin more hands-off but less controllable when it goes in the wrong direction.
+Superset gives you direct access to each agent session. You can watch the terminal, inspect diffs, open a browser preview, chat in the same workspace, interrupt, or redirect mid-task. Devin aims for full autonomy: you assign a task and check back later for a PR. This makes Devin more hands-off but less controllable when it goes in the wrong direction.
 
 ### Agent Flexibility
 
-Devin is a single proprietary agent — you use Cognition's AI or nothing. Superset is agent-agnostic: run Claude Code for complex refactors, Codex for well-scoped tasks, Aider for iterative work. When a better agent ships, use it in Superset immediately. With Devin, you wait for Cognition to improve their model.
+Devin is a single proprietary agent: you use Cognition's AI or nothing. Superset is agent-agnostic: run Claude Code for complex refactors, Codex for well-scoped tasks, Aider for iterative work. When a better agent ships, use it in Superset immediately. With Devin, you wait for Cognition to improve their model.
 
 ### Isolation Mechanism
 
-Superset isolates agents using Git worktrees — lightweight, fast, and built into git itself. Devin isolates each session in a full cloud VM with its own OS, browser, and toolchain. VMs provide stronger isolation and fuller environment parity, but at much higher cost and latency.
+Superset isolates agents using Git worktrees: lightweight, fast, and built into git itself. Devin isolates each session in a full cloud VM with its own OS, browser, and toolchain. VMs provide stronger isolation and fuller environment parity, but at much higher cost and latency.
 
 ### Pricing
 
@@ -77,9 +77,9 @@ Superset offers a free tier and Pro at $20/seat/month plus your agents' API cost
 - Want autonomous parallel cloud sessions and the ROI justifies the cloud usage
 
 **Choose Superset if you:**
-- Want direct control over each agent — see what they're doing, redirect in real time
+- Want direct control over each agent: see what they're doing, redirect in real time
 - Need local execution and direct control over each agent
-- Want agent flexibility (Claude Code, Codex, Aider, OpenCode — your choice per task)
+- Want agent flexibility (your choice per task: Claude Code, Codex, Aider, OpenCode)
 - Prefer the cost efficiency of local execution with direct API pricing
 - Need a source-available tool you can inspect and modify
 

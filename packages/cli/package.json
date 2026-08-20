@@ -1,6 +1,6 @@
 {
 	"name": "@superset/cli",
-	"version": "1.19.0",
+	"version": "1.23.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -10,16 +10,19 @@
 		"build:linux-x64": "cli-framework build --target=bun-linux-x64 --outfile=./dist/superset-linux-x64",
 		"build:all": "bun run build:darwin-arm64 && bun run build:linux-x64",
 		"build:dist": "bun run scripts/build-dist.ts",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@clack/prompts": "0.10.1",
 		"@superset/cli-framework": "workspace:*",
 		"@superset/host-service": "workspace:*",
+		"@superset/local-db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "11.16.0",
 		"date-fns": "4.1.0",
+		"drizzle-orm": "0.45.2",
 		"ink": "7.0.1",
 		"mime-types": "3.0.2",
 		"react": "19.2.3",

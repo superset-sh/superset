@@ -3,6 +3,7 @@ import type { SearchAddon } from "@xterm/addon-search";
 import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import { runWhenParserIdle } from "./parser-idle-gate";
+import type { ImagePasteOverride } from "./terminal-image-paste-fallback";
 import {
 	type LinkHoverInfo,
 	type TerminalLinkHandlers,
@@ -23,11 +24,16 @@ import {
 	selectRuntimesToEvict,
 } from "./terminal-runtime-eviction";
 import {
+	loadPersistedSeqAnchor,
+	persistSeqAnchor,
+} from "./terminal-seq-anchor";
+import {
 	type ConnectionState,
 	clearLogs,
 	connect,
 	createTransport,
 	disposeTransport,
+	getPersistableSeqAnchor,
 	reconnect,
 	sendDispose,
 	sendInput,
@@ -45,6 +51,8 @@ interface RegistryEntry {
 	linkManager: TerminalLinkManager | null;
 	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
+	/** Survives runtime eviction/rebuild (the override outlives any one xterm). */
+	imagePasteOverride: ImagePasteOverride | null;
 	/** Stops the alternate/normal buffer observer installed with the runtime. */
 	disposeBufferChangeListener: (() => void) | null;
 	/** Monotonic use counter; bumped on mount/detach, drives parked-LRU eviction. */
@@ -96,6 +104,7 @@ class TerminalRuntimeRegistryImpl {
 			}),
 			linkManager: null,
 			pendingLinkHandlers: null,
+			imagePasteOverride: null,
 			disposeBufferChangeListener: null,
 			lastUsedAt: 0,
 		};
@@ -188,6 +197,20 @@ class TerminalRuntimeRegistryImpl {
 			entry.runtime = createRuntime(terminalId, appearance, {
 				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
 			});
+			// Pair the transport's stream position with what the fresh xterm
+			// actually contains: the persisted anchor belongs to the persisted
+			// snapshot only; sibling-seeded content has no known position.
+			if (!entry.transport._hasReceivedBytes) {
+				entry.transport._xtermHadContent =
+					entry.runtime.initialContent !== "none";
+				if (
+					entry.transport.seqAnchor === null &&
+					entry.runtime.initialContent === "restored"
+				) {
+					entry.transport.seqAnchor = loadPersistedSeqAnchor(terminalId);
+				}
+			}
+			entry.runtime.imagePasteOverride = entry.imagePasteOverride;
 			this.observeBufferChanges(entry);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
@@ -287,6 +310,22 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	/**
+	 * Set (or clear, with null) the image-paste override for a terminal. Safe
+	 * to call before or after mount(); survives runtime eviction/rebuild.
+	 */
+	setImagePasteOverride(
+		terminalId: string,
+		override: ImagePasteOverride | null,
+		instanceId = terminalId,
+	) {
+		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.imagePasteOverride = override;
+		if (entry.runtime) {
+			entry.runtime.imagePasteOverride = override;
+		}
+	}
+
+	/**
 	 * Park the wrapper in the hidden body-level container. Runtime and
 	 * transport stay alive; DOM is moved off the React-controlled tree so
 	 * it survives the parent unmount without re-entering xterm.open().
@@ -296,7 +335,21 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 
 		entry.lastUsedAt = ++this.useSeq;
-		detachFromContainer(entry.runtime);
+		// Land any frame-pending output in xterm before the buffer snapshot,
+		// so the persisted snapshot matches the persisted stream position.
+		entry.transport._writeCoalescer?.flushSync();
+		const snapshotPersisted = detachFromContainer(entry.runtime);
+		// The anchor is only meaningful paired with the snapshot it was counted
+		// against: skip it when the snapshot write failed, and when the parser
+		// still holds unrendered bytes the anchor already counted (the snapshot
+		// would restore short and catch-up would never refill the gap). No
+		// anchor degrades to the safe reanchor path.
+		persistSeqAnchor(
+			terminalId,
+			snapshotPersisted && entry.runtime.gate.pending === 0
+				? getPersistableSeqAnchor(entry.transport)
+				: null,
+		);
 		// detachFromContainer persists unconditionally; a dead session's snapshot
 		// must not outlive the PTY.
 		if (entry.transport.sessionEnded) {
@@ -356,6 +409,10 @@ class TerminalRuntimeRegistryImpl {
 				this.warnPersistFailureOnce(entry.terminalId);
 				continue;
 			}
+			persistSeqAnchor(
+				entry.terminalId,
+				getPersistableSeqAnchor(entry.transport),
+			);
 			this.clearPersistFailureWarning(entry.terminalId);
 			// tryPersistRuntimeState already wrote the snapshot. Preserve it while
 			// disposing instead of serializing and writing the same buffer twice.
@@ -426,10 +483,20 @@ class TerminalRuntimeRegistryImpl {
 				this.disposeEntry(entry, { persistedState: "clear" });
 				continue;
 			}
+			// Land frame-pending output first so snapshot and anchor agree.
+			entry.transport._writeCoalescer?.flushSync();
 			if (entry.runtime && !tryPersistRuntimeState(entry.runtime)) {
 				this.warnPersistFailureOnce(entry.terminalId);
 				continue;
 			}
+			// Anchor only when the snapshot can actually contain every counted
+			// byte — a busy parser means the serialize ran short of the count.
+			persistSeqAnchor(
+				entry.terminalId,
+				(entry.runtime?.gate.pending ?? 0) === 0
+					? getPersistableSeqAnchor(entry.transport)
+					: null,
+			);
 			this.clearPersistFailureWarning(entry.terminalId);
 			// Persistence succeeded before any runtime or transport cleanup began.
 			this.disposeEntry(entry, { persistedState: "preserve" });
@@ -573,6 +640,17 @@ class TerminalRuntimeRegistryImpl {
 	): TerminalFailureClassification | null {
 		return (
 			this.getEntry(terminalId, instanceId)?.transport.lastDiagnosis ?? null
+		);
+	}
+
+	/**
+	 * True when the transport has stopped retrying for good (access denied,
+	 * fatal server error, PTY exit). A diagnosis without this still means the
+	 * socket is auto-retrying — e.g. a wedged daemon that will self-heal.
+	 */
+	isConnectionTerminated(terminalId: string, instanceId?: string): boolean {
+		return (
+			this.getEntry(terminalId, instanceId)?.transport._terminated ?? false
 		);
 	}
 

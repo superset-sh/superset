@@ -22,6 +22,7 @@ import {
 	wrapWrite,
 } from "renderer/lib/terminal/parser-idle-gate";
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
+import { installInputModeReclaimer } from "renderer/lib/terminal/terminalInputModeReclaimer";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
@@ -168,6 +169,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 	const uninstallWheelHandler = installTerminalWheelEventHandler(xterm);
+	// Disarm TUI-only input modes (kitty keyboard / mouse / focus) leaked into a
+	// live shell prompt by a TUI killed while attached (#4949) — keyed on the
+	// OSC 777 shell-ready marker, same as v2's terminal-runtime.
+	const inputModeReclaimer = installInputModeReclaimer(xterm);
 
 	const linkManager = new TerminalLinkManager(xterm);
 	linkManager.setHandlers({
@@ -234,6 +239,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
 			uninstallWheelHandler();
+			inputModeReclaimer.dispose();
 			linkManager.dispose();
 			try {
 				webglAddon?.dispose();

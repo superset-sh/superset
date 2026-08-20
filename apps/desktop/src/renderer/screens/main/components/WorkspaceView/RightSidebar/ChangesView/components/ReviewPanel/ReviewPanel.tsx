@@ -181,8 +181,11 @@ export function ReviewPanel({
 
 	const requestedReviewers = pr.requestedReviewers ?? [];
 
+	// Mirrors computeChecksStatus: a cancelled check is a relevant failure, not
+	// excluded like a skipped one — otherwise this list (and the passing-count
+	// text below) can quietly hide the very check that made checksStatus red.
 	const relevantChecks = pr.checks.filter(
-		(check) => check.status !== "skipped" && check.status !== "cancelled",
+		(check) => check.status !== "skipped",
 	);
 	const passingChecks = relevantChecks.filter(
 		(check) => check.status === "success",

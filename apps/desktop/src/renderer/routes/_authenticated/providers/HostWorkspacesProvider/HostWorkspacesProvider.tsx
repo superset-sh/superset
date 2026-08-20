@@ -24,9 +24,9 @@ export function HostWorkspacesProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * The workspace read path: every known host's workspaces, merged — local
- * host live (works offline), remote hosts live or last-seen. Replaces
- * `useLiveQuery` over the Electric `v2Workspaces` collection.
+ * The workspace read path: every known host's workspaces, merged — the
+ * local host serves live even offline; a remote host contributes nothing
+ * until it answers.
  */
 export function useHostWorkspaces(): UseHostWorkspacesResult {
 	const value = useContext(HostWorkspacesContext);

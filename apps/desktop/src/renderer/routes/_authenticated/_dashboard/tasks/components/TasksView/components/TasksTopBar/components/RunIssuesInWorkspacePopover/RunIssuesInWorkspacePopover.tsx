@@ -22,9 +22,9 @@ import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/componen
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { SelectedIssue } from "../../../GitHubIssuesContent";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2IssueBatchAgent";
@@ -141,7 +141,19 @@ export function RunIssuesInWorkspacePopover({
 	const [open, setOpen] = useState(false);
 	const [projectPickerOpen, setProjectPickerOpen] = useState(false);
 
+	// Workspaces launch against one project; a mixed-repo selection would
+	// silently run every issue against a single repository.
+	const issueProjectIds = useMemo(
+		() => new Set(issues.map((issue) => issue.projectId)),
+		[issues],
+	);
+
+	const hasMixedRepos = issueProjectIds.size > 1;
+
 	const submitBlocker = useMemo<string | null>(() => {
+		if (hasMixedRepos) {
+			return "Selected issues span multiple repositories. Select issues from a single repository to run them.";
+		}
 		if (!selectedProjectId) return "Select a project";
 		if (!hostId) return "No active host";
 		if (hostId !== machineId) {
@@ -162,6 +174,7 @@ export function RunIssuesInWorkspacePopover({
 		}
 		return null;
 	}, [
+		hasMixedRepos,
 		selectedProjectId,
 		selectedProject?.needsSetup,
 		setUpProjectIds,
@@ -339,10 +352,16 @@ export function RunIssuesInWorkspacePopover({
 				</div>
 
 				<div className="border-t border-border p-2">
+					{hasMixedRepos && (
+						<p className="mb-2 text-xs text-muted-foreground text-wrap-pretty">
+							{submitBlocker}
+						</p>
+					)}
 					<Button
 						size="sm"
 						className="w-full h-8"
 						disabled={!!submitBlocker}
+						title={submitBlocker ?? undefined}
 						onClick={handleRun}
 					>
 						Run {issues.length} Workspace{issues.length === 1 ? "" : "s"}

@@ -1,30 +1,89 @@
+import {
+	areProjectFiltersEqual,
+	normalizeProjectFilters,
+	serializeProjectFilters,
+} from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
+import { normalizeAuthorFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
+import {
+	normalizePullRequestReviewFilter,
+	type PullRequestReviewFilter,
+} from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/pullRequestReviewFilter";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface PullRequestsFilterState {
 	search: string;
-	projectFilter: string | null;
+	projectFilters: string[];
+	authorFilter: string | null;
+	reviewFilter: PullRequestReviewFilter | null;
 	includeClosed: boolean;
 	setSearch: (search: string) => void;
-	setProjectFilter: (projectFilter: string | null) => void;
+	setProjectFilters: (projectFilters: string[]) => void;
+	setAuthorFilter: (authorFilter: string | null) => void;
+	setReviewFilter: (reviewFilter: PullRequestReviewFilter | null) => void;
 	setIncludeClosed: (includeClosed: boolean) => void;
+}
+
+type PersistedPullRequestsFilterState = Pick<
+	PullRequestsFilterState,
+	"projectFilters" | "authorFilter" | "reviewFilter" | "includeClosed"
+>;
+
+export function migratePullRequestsFilterState(
+	persistedState: unknown,
+): PersistedPullRequestsFilterState {
+	const state =
+		persistedState && typeof persistedState === "object"
+			? (persistedState as Record<string, unknown>)
+			: {};
+	const legacyProject =
+		typeof state.projectFilter === "string" ? state.projectFilter : null;
+	return {
+		projectFilters: normalizeProjectFilters(
+			state.projectFilters ?? (legacyProject ? [legacyProject] : []),
+		),
+		authorFilter: normalizeAuthorFilter(state.authorFilter),
+		reviewFilter: normalizePullRequestReviewFilter(state.reviewFilter),
+		includeClosed: state.includeClosed === true,
+	};
 }
 
 export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 	persist(
 		(set) => ({
 			search: "",
-			projectFilter: null,
+			projectFilters: [],
+			authorFilter: null,
+			reviewFilter: null,
 			includeClosed: false,
 			setSearch: (search) => set({ search }),
-			setProjectFilter: (projectFilter) => set({ projectFilter }),
+			// Bail on equal content: views sync filters back through an effect,
+			// so an always-fresh array here becomes an infinite update loop.
+			// Bail on equal content: views sync filters back through an effect,
+			// so an always-fresh array here becomes an infinite update loop.
+			setProjectFilters: (projectFilters) =>
+				set((state) => {
+					const next = normalizeProjectFilters(projectFilters);
+					return areProjectFiltersEqual(state.projectFilters, next)
+						? state
+						: { projectFilters: next };
+				}),
+			setAuthorFilter: (authorFilter) =>
+				set({ authorFilter: normalizeAuthorFilter(authorFilter) }),
+			setReviewFilter: (reviewFilter) =>
+				set({
+					reviewFilter: normalizePullRequestReviewFilter(reviewFilter),
+				}),
 			setIncludeClosed: (includeClosed) => set({ includeClosed }),
 		}),
 		{
 			name: "pull-requests-filter-state",
-			version: 1,
+			version: 4,
+			migrate: migratePullRequestsFilterState,
 			partialize: (state) => ({
-				projectFilter: state.projectFilter,
+				projectFilters: state.projectFilters,
+				authorFilter: state.authorFilter,
+				reviewFilter: state.reviewFilter,
 				includeClosed: state.includeClosed,
 			}),
 		},
@@ -33,7 +92,9 @@ export const usePullRequestsFilterStore = create<PullRequestsFilterState>()(
 
 interface PullRequestsFilters {
 	search: string;
-	projectFilter: string | null;
+	projectFilters: string[];
+	authorFilter: string | null;
+	reviewFilter: PullRequestReviewFilter | null;
 	includeClosed: boolean;
 }
 
@@ -42,7 +103,10 @@ export function pullRequestsSearchFromFilters(
 ): Record<string, string> {
 	const search: Record<string, string> = {};
 	if (filters.search) search.search = filters.search;
-	if (filters.projectFilter) search.project = filters.projectFilter;
+	const projects = serializeProjectFilters(filters.projectFilters);
+	if (projects) search.projects = projects;
+	if (filters.authorFilter) search.author = filters.authorFilter;
+	if (filters.reviewFilter) search.review = filters.reviewFilter;
 	if (filters.includeClosed) search.state = "all";
 	return search;
 }

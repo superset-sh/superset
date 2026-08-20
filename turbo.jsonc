@@ -15,7 +15,6 @@
 		"NEXT_PUBLIC_ROOT_DOMAIN",
 		"RELAY_BACKUP_URL",
 		"NEXT_PUBLIC_ADMIN_URL",
-		"NEXT_PUBLIC_ELECTRIC_URL",
 		"POSTHOG_API_KEY",
 		"POSTHOG_PROJECT_ID",
 		"KV_REST_API_URL",
@@ -30,7 +29,9 @@
 		"npm_lifecycle_event",
 		"RENDERER_REMOTE_DEBUG_PORT",
 		"SUPERSET_PTY_DAEMON_ADOPT_IN_DEV",
-		"SUPERSET_HOST_WORKER_SCRIPT_PATH"
+		"SUPERSET_HOST_WORKER_SCRIPT_PATH",
+		"SUPERSET_CHAT_V3_MIGRATIONS",
+		"SUPERSET_CHAT_V3_CLAUDE_BIN"
 	],
 	"tasks": {
 		"build": {
@@ -46,10 +47,6 @@
 			]
 		},
 		"dev": {
-			"cache": false,
-			"persistent": true
-		},
-		"//#dev:caddy": {
 			"cache": false,
 			"persistent": true
 		},

@@ -3,6 +3,7 @@ import { useCallback, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { recordV1WorkspaceCreatedIfNew } from "renderer/stores/star-nag";
 import type { PendingTerminalSetup } from "renderer/stores/workspace-init";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
@@ -75,6 +76,8 @@ export function useCreateWorkspace(options?: UseCreateWorkspaceOptions) {
 					},
 				});
 			}
+
+			recordV1WorkspaceCreatedIfNew(data.wasExisting);
 
 			if (!data.wasExisting) {
 				const normalizedLaunchRequest =

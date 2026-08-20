@@ -1,4 +1,3 @@
-import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -6,10 +5,16 @@ import { Alert, ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { createAcpSessionsApi } from "@/lib/host/client";
-import { useStartWorkspaceChat } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceChat";
-import { useHostAcpSessions } from "@/screens/(authenticated)/(home)/home/hooks/useHostAcpSessions";
-import { buildSessionRows } from "@/screens/(authenticated)/(home)/home/utils/sessionRows";
+import {
+	getHostServiceClientByUrl,
+	hostServiceUrl,
+} from "@/lib/host-service/client";
+import { useStartWorkspaceTerminal } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceTerminal";
+import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import {
+	getHostTerminalsQueryKey,
+	useHostTerminals,
+} from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import {
 	type DraftComment,
@@ -43,7 +48,7 @@ export function FinishReviewSheet() {
 	const workspaceId = id ?? "";
 
 	const { workspace, host } = useWorkspaceHost(workspaceId || null);
-	const { sessionsByWorkspace } = useHostAcpSessions(host);
+	const { terminalsByWorkspace } = useHostTerminals(host);
 	const comments = useDraftCommentsStore(
 		(state) => state.commentsByWorkspace[workspaceId] ?? NO_COMMENTS,
 	);
@@ -53,14 +58,12 @@ export function FinishReviewSheet() {
 		() => (workspace ? [{ ...workspace, hostReachable: true }] : []),
 		[workspace],
 	);
-	const startWorkspaceChat = useStartWorkspaceChat(widgetWorkspaces);
+	const startWorkspaceTerminal = useStartWorkspaceTerminal(widgetWorkspaces);
+	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 
-	const sessionRows = useMemo(
-		() =>
-			buildSessionRows(
-				workspaceId ? (sessionsByWorkspace.get(workspaceId) ?? []) : [],
-			),
-		[sessionsByWorkspace, workspaceId],
+	const terminalRows = useMemo(
+		() => (workspaceId ? (terminalsByWorkspace.get(workspaceId) ?? []) : []),
+		[terminalsByWorkspace, workspaceId],
 	);
 
 	const [message, setMessage] = useState("");
@@ -73,7 +76,7 @@ export function FinishReviewSheet() {
 		setSending(true);
 		try {
 			if (target === "new") {
-				startWorkspaceChat.mutate(
+				startWorkspaceTerminal.mutate(
 					{
 						target: {
 							workspaceId: workspace.id,
@@ -82,28 +85,25 @@ export function FinishReviewSheet() {
 							hostId: workspace.hostId,
 						},
 						message: { text: prompt, attachments: [] },
+						agentId,
 					},
 					{ onSuccess: () => clearWorkspace(workspaceId) },
 				);
 				router.back();
 				return;
 			}
-			const routingKey = buildHostRoutingKey(
-				host.organizationId,
-				host.machineId,
-			);
-			await createAcpSessionsApi(routingKey).prompt({
-				sessionId: target,
-				prompt: [{ type: "text", text: prompt }],
+			const hostUrl = hostServiceUrl(host.organizationId, host.machineId);
+			await getHostServiceClientByUrl(hostUrl).terminal.send.mutate({
+				terminalId: target,
+				workspaceId,
+				text: prompt,
 			});
 			clearWorkspace(workspaceId);
 			void queryClient.invalidateQueries({
-				queryKey: ["acp-sessions", "list"],
+				queryKey: getHostTerminalsQueryKey(host.machineId),
 			});
 			router.back();
-			router.push(
-				`/(authenticated)/workspace/${workspaceId}/chat/acp/${target}`,
-			);
+			router.push(`/(authenticated)/workspace/${workspaceId}?tab=${target}`);
 		} catch (cause) {
 			Alert.alert(
 				"Could not send review",
@@ -153,13 +153,13 @@ export function FinishReviewSheet() {
 					selected={target === "new"}
 					onPress={() => setTarget("new")}
 				/>
-				{sessionRows.map((row) => (
+				{terminalRows.map((row) => (
 					<TargetRow
-						key={row.id}
+						key={row.terminalId}
 						name={row.title}
-						subtitle={row.status === "running" ? "Running" : "Idle"}
-						selected={target === row.id}
-						onPress={() => setTarget(row.id)}
+						subtitle={row.attention === "working" ? "Running" : "Idle"}
+						selected={target === row.terminalId}
+						onPress={() => setTarget(row.terminalId)}
 					/>
 				))}
 				<PressableScale

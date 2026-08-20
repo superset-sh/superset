@@ -25,7 +25,14 @@ import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
 import { RunIssuesInWorkspacePopover } from "./components/RunIssuesInWorkspacePopover";
 import { StatusFilter } from "./components/StatusFilter";
 
-export type TabValue = "all" | "active" | "backlog";
+export type TabValue =
+	| "all"
+	| "active"
+	| "backlog"
+	| "unstarted"
+	| "started"
+	| "completed"
+	| "canceled";
 export type TaskSource = "tasks" | "issues";
 
 interface TasksTopBarProps {
@@ -43,8 +50,8 @@ interface TasksTopBarProps {
 	onViewModeChange: (mode: ViewMode) => void;
 	taskSource: TaskSource;
 	onTaskSourceChange: (taskSource: TaskSource) => void;
-	projectFilter: string | null;
-	onProjectFilterChange: (projectId: string) => void;
+	projectFilters: string[];
+	onProjectFiltersChange: (projectIds: string[]) => void;
 	linearProjectFilter: string | null;
 	onLinearProjectFilterChange: (projectId: string | null) => void;
 	includeClosedIssues: boolean;
@@ -71,8 +78,8 @@ export function TasksTopBar({
 	onViewModeChange,
 	taskSource,
 	onTaskSourceChange,
-	projectFilter,
-	onProjectFilterChange,
+	projectFilters,
+	onProjectFiltersChange,
 	linearProjectFilter,
 	onLinearProjectFilterChange,
 	includeClosedIssues,
@@ -83,6 +90,13 @@ export function TasksTopBar({
 	const taskSelectedCount = selectedTasks.length;
 	const issueSelectedCount = selectedIssues.length;
 	const selectedCount = showIssues ? issueSelectedCount : taskSelectedCount;
+	const selectedIssueProjectIds = new Set(
+		selectedIssues.map((issue) => issue.projectId),
+	);
+	const selectedIssueProject =
+		selectedIssueProjectIds.size === 1
+			? (selectedIssueProjectIds.values().next().value ?? null)
+			: null;
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 
@@ -115,7 +129,7 @@ export function TasksTopBar({
 								{showIssues ? (
 									<RunIssuesInWorkspacePopover
 										issues={selectedIssues}
-										projectFilter={projectFilter}
+										projectFilter={selectedIssueProject}
 										onComplete={onClearIssueSelection ?? (() => {})}
 									/>
 								) : isV2CloudEnabled ? (
@@ -179,8 +193,8 @@ export function TasksTopBar({
 												Repository
 											</span>
 											<ProjectFilter
-												value={projectFilter}
-												onChange={onProjectFilterChange}
+												value={projectFilters}
+												onChange={onProjectFiltersChange}
 											/>
 										</div>
 										<div className="h-4 w-px shrink-0 bg-border" />

@@ -98,6 +98,22 @@ export function createApplicationMenu() {
 			],
 		},
 		{
+			label: "Resources",
+			submenu: [
+				// No accelerator here: on macOS, a menu accelerator is always live
+				// and would bypass the renderer's user-customizable CHECK_RESOURCES
+				// binding (Settings > Keyboard). The default shortcut stays
+				// discoverable via the command palette and keyboard settings, both
+				// of which reflect the user's actual current/overridden binding.
+				{
+					label: "Check Resources",
+					click: () => {
+						menuEmitter.emit("check-resources");
+					},
+				},
+			],
+		},
+		{
 			label: "Help",
 			submenu: [
 				{

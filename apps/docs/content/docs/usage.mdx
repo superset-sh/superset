@@ -1,0 +1,45 @@
+---
+title: Usage
+description: Subscription quota meters, token-cost analytics, machine resources, and multi-account switching
+---
+
+## Overview
+
+The **Usage** page (gauge icon in the sidebar) tracks what your agents consume on this machine: signed-in Claude Code and Codex accounts, their session logs, and local processes. Remote hosts aren't aggregated. A pill toggle switches between **Token usage** and **Machine resources**.
+
+![The Usage page: quota meters per account and token-cost analytics](/images/usage.png)
+
+## Quota Meters
+
+The top of **Token usage** shows official subscription quota for every Claude Code and Codex login on this host, refreshed every 5 minutes (use the refresh button to force it). Each account card shows the email, plan, and one meter per quota window, e.g. **Session (5h)** and **Weekly** for Claude, with the fill percentage and time until reset.
+
+Quota comes from the providers' own usage endpoints using your existing sign-ins; Superset never handles credentials. Some plans (org-managed, education) don't expose limits.
+
+## Multiple Accounts
+
+Run different agents on different subscriptions from one machine:
+
+![Two Claude Code accounts with quota meters, one marked as the default](/images/usage-accounts.png)
+
+- **Add account** creates a second profile: pick a profile name, then run the shown sign-in command (e.g. `CLAUDE_CONFIG_DIR="$HOME/.claude-work" claude auth login`) in any terminal on this host. The dialog detects the sign-in automatically.
+- **Make default** picks which account new agent launches use — when a provider has several accounts, the cards read as a radio group with the default checked. Switching reaches terminals you already have open too: a running agent keeps its account until you relaunch it.
+- Your setup comes along: skills, plugins, MCP servers, and settings are shared across accounts, and for Claude Code there's one conversation history — `--resume` shows the same sessions whichever account is active.
+- Logins, credentials, and account identity stay per account. The **…** menu on a card offers **Switch sign-in…** (re-login that profile to a different account) and, for secondary profiles, **Remove…** — which deletes that profile and its credentials, never your shared setup or history. The system-default login can't be removed.
+- If a sign-in expires, the card shows the exact login command to run, with click-to-copy.
+
+Under the hood, a profile is just a config dir the CLI is pointed at (`CLAUDE_CONFIG_DIR` / `CODEX_HOME`). Superset's agent wrappers re-resolve the current default every time the agent starts in a Superset terminal — so switching works for agents you launch by hand too, and a value you export yourself always wins.
+
+## Token Costs
+
+Below the meters, the **Token usage** chart estimates spend from the agents' local session logs, priced at API list rates. Subscription usage isn't billed per token (the page shows **Cost to you: $0**); the estimate is what the same work would cost at API rates, plus how much caching saved.
+
+- Toggle **Cost** / **Tokens** and pick a **7d** / **30d** / **90d** range
+- Per-provider split between Claude Code and Codex; click a provider to show or hide it in the chart; click a day for that day's breakdown
+- **Model** table and **Workspace** bars break spend down; click a row for a per-model or per-workspace drilldown, or **All N →** for every workspace and project
+- Workspace drilldowns list the top sessions by cost; click one to copy its session ID for `claude --resume`
+
+## Machine Resources
+
+The **Machine resources** section is a live view (every 2 seconds) of local CPU and memory: Superset's own usage, the system RAM split, and a process table covering the app and every workspace, grouped by project down to individual terminal panes. Click a workspace or session row to jump to it.
+
+Also reachable via **⌘⇧U** (Check Resources), the command palette, or the **Resources** menu.

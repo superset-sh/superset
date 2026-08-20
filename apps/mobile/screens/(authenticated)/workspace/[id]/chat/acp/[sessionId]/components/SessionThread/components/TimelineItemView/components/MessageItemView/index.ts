@@ -1,1 +1,0 @@
-export { MessageItemView } from "./MessageItemView";

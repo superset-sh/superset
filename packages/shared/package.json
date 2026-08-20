@@ -4,6 +4,14 @@
 	"private": true,
 	"type": "module",
 	"exports": {
+		"./automation-matching": {
+			"types": "./src/automation-matching/index.ts",
+			"default": "./src/automation-matching/index.ts"
+		},
+		"./automation-triggers": {
+			"types": "./src/automation-triggers.ts",
+			"default": "./src/automation-triggers.ts"
+		},
 		"./constants": {
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
@@ -11,6 +19,10 @@
 		"./git-hook-tolerance": {
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
+		},
+		"./integrations": {
+			"types": "./src/integrations.ts",
+			"default": "./src/integrations.ts"
 		},
 		"./sentry": {
 			"types": "./src/sentry.ts",
@@ -31,6 +43,26 @@
 		"./media-files": {
 			"types": "./src/media-files.ts",
 			"default": "./src/media-files.ts"
+		},
+		"./ringtones": {
+			"types": "./src/ringtones.ts",
+			"default": "./src/ringtones.ts"
+		},
+		"./settings-constraints": {
+			"types": "./src/settings-constraints.ts",
+			"default": "./src/settings-constraints.ts"
+		},
+		"./themes": {
+			"types": "./src/themes/index.ts",
+			"default": "./src/themes/index.ts"
+		},
+		"./themes/types": {
+			"types": "./src/themes/types.ts",
+			"default": "./src/themes/types.ts"
+		},
+		"./themes/utils": {
+			"types": "./src/themes/utils.ts",
+			"default": "./src/themes/utils.ts"
 		},
 		"./v2-only-user": {
 			"types": "./src/v2-only-user.ts",
@@ -104,6 +136,10 @@
 			"types": "./src/agent-launch-request.ts",
 			"default": "./src/agent-launch-request.ts"
 		},
+		"./workspace-attachments": {
+			"types": "./src/workspace-attachments.ts",
+			"default": "./src/workspace-attachments.ts"
+		},
 		"./agent-permissions-migration": {
 			"types": "./src/agent-permissions-migration.ts",
 			"default": "./src/agent-permissions-migration.ts"
@@ -132,6 +168,10 @@
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"
 		},
+		"./rotating-log": {
+			"types": "./src/rotating-log.ts",
+			"default": "./src/rotating-log.ts"
+		},
 		"./host-routing": {
 			"types": "./src/host-routing.ts",
 			"default": "./src/host-routing.ts"
@@ -152,6 +192,10 @@
 			"types": "./src/shell-ready-scanner.ts",
 			"default": "./src/shell-ready-scanner.ts"
 		},
+		"./leaked-input-mode-reclaim": {
+			"types": "./src/leaked-input-mode-reclaim.ts",
+			"default": "./src/leaked-input-mode-reclaim.ts"
+		},
 		"./terminal-title-scanner": {
 			"types": "./src/terminal-title-scanner.ts",
 			"default": "./src/terminal-title-scanner.ts"
@@ -168,6 +212,7 @@
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
+		"culori": "4.0.2",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",
 		"semver": "7.7.4",
@@ -175,6 +220,7 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/culori": "4.0.1",
 		"@types/friendly-words": "1.2.2",
 		"@types/semver": "7.7.1",
 		"@xterm/xterm": "6.1.0-beta.289",

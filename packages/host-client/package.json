@@ -7,10 +7,6 @@
 		".": {
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
-		},
-		"./acp": {
-			"types": "./src/acp/index.ts",
-			"default": "./src/acp/index.ts"
 		}
 	},
 	"scripts": {
@@ -18,7 +14,6 @@
 		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
-		"@superset/session-protocol": "workspace:*",
 		"superjson": "2.2.6"
 	},
 	"devDependencies": {

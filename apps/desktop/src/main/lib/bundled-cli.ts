@@ -9,8 +9,8 @@ import {
 	writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import { getBinDir } from "@superset/agent-setup/paths";
 import { app } from "electron";
-import { BIN_DIR } from "./agent-setup/paths";
 
 export const BUNDLED_CLI_SHIM_MARKER = "# Superset bundled CLI shim v1";
 const SHIM_HEADER_BYTES = 2048;
@@ -113,7 +113,7 @@ export function installBundledCliShim(
 		return "missing";
 	}
 
-	const binDir = options.binDir ?? BIN_DIR;
+	const binDir = options.binDir ?? getBinDir();
 	const shimPath = path.join(binDir, getBundledCliShimName(platform));
 	if (!shouldReplaceShim(shimPath)) {
 		console.warn(

@@ -245,9 +245,31 @@ describe("GitHub pull request REST queries", () => {
 					"direction=desc",
 					"-f",
 					"per_page=100",
+					"--jq",
+					expect.stringContaining("html_url"),
 				],
 			},
 		]);
+		// The projection must keep every field normalizePullRequest reads;
+		// dropping one silently discards PRs from the sweep.
+		const jqExpression = calls[0]?.args.at(-1) ?? "";
+		for (const field of [
+			"number",
+			"title",
+			"html_url",
+			"state",
+			"merged_at",
+			"draft",
+			"updated_at",
+			".head.ref",
+			".head.sha",
+			".head.repo.name",
+			".head.repo.owner.login",
+			".head.user.login",
+			".base.repo.full_name",
+		]) {
+			expect(jqExpression).toContain(field);
+		}
 	});
 
 	test("derives review decision from latest REST reviews by author", async () => {

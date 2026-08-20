@@ -1,4 +1,3 @@
-import type { HarnessKind, StopReason } from "@superset/session-protocol";
 import type {
 	AgentDefinitionId,
 	AgentIdentityId,
@@ -56,6 +55,13 @@ export const terminalAgentBindings = sqliteTable(
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),
+		// Set when the agent session ended. "detached" = the agent reported its
+		// own end (SessionEnd hook) — not resumable; "terminal-exited" = the
+		// terminal died under it (kill, crash, reboot) — resume candidate;
+		// "resumed" = the candidate was consumed by an auto-resume; "disposed"
+		// = deliberately killed (pane close, CLI kill) — never resumable.
+		endedAt: integer("ended_at"),
+		endReason: text("end_reason"),
 	},
 	(table) => [
 		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),
@@ -113,6 +119,10 @@ export const hostSettings = sqliteTable("host_settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
+	// Which provider login newly launched agents use, as the profile dir to
+	// inject (CLAUDE_CONFIG_DIR / CODEX_HOME). Null = the system default login.
+	defaultClaudeConfigDir: text("default_claude_config_dir"),
+	defaultCodexHome: text("default_codex_home"),
 });
 
 export const pullRequests = sqliteTable(
@@ -135,6 +145,9 @@ export const pullRequests = sqliteTable(
 		reviewDecision: text("review_decision"),
 		checksStatus: text("checks_status").notNull().default("none"),
 		checksJson: text("checks_json").notNull().default("[]"),
+		// Set when the PR is first observed merged; never cleared. Anchors
+		// "merged in the last N days" windows on the workspaces board.
+		mergedAt: integer("merged_at"),
 		lastFetchedAt: integer("last_fetched_at"),
 		error: text(),
 		createdAt: integer("created_at")
@@ -175,6 +188,9 @@ export const hostAgentConfigs = sqliteTable(
 		argsJson: text("args_json").notNull().default("[]"),
 		promptTransport: text("prompt_transport").notNull(),
 		promptArgsJson: text("prompt_args_json").notNull().default("[]"),
+		// Args that resume a previous session; the session id is appended after
+		// them. Empty means the agent has no id-based resume.
+		resumeArgsJson: text("resume_args_json").notNull().default("[]"),
 		envJson: text("env_json").notNull().default("{}"),
 		displayOrder: integer("display_order").notNull(),
 		createdAt: integer("created_at")
@@ -193,9 +209,11 @@ export const workspaces = sqliteTable(
 	"workspaces",
 	{
 		id: text().primaryKey(),
-		projectId: text("project_id")
-			.notNull()
-			.references(() => projects.id, { onDelete: "cascade" }),
+		// Null = a project-less "session" workspace (managed folder under
+		// ~/.superset/sessions, its own standalone git repo).
+		projectId: text("project_id").references(() => projects.id, {
+			onDelete: "cascade",
+		}),
 		worktreePath: text("worktree_path").notNull(),
 		branch: text().notNull(),
 		headSha: text("head_sha"),
@@ -214,7 +232,10 @@ export const workspaces = sqliteTable(
 		// Empty string means "not yet backfilled from cloud" — the startup
 		// backfill sweep targets these rows.
 		name: text().notNull().default(""),
-		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
+		type: text()
+			.$type<"main" | "worktree" | "session">()
+			.notNull()
+			.default("worktree"),
 		taskId: text("task_id"),
 		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
@@ -224,10 +245,15 @@ export const workspaces = sqliteTable(
 		updatedAt: integer("updated_at").notNull().default(0),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
-		cloudSyncedAt: integer("cloud_synced_at"),
+		// Tombstone: null = live. Set at the destroy commit point; rows are
+		// kept forever and surface on the board's Merged/Deleted columns.
+		archivedAt: integer("archived_at"),
+		// "merged" when the linked PR was merged at destroy time.
+		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
+		index("workspaces_archived_at_idx").on(table.archivedAt),
 		index("workspaces_upstream_ref_idx").on(
 			table.upstreamOwner,
 			table.upstreamRepo,
@@ -239,39 +265,3 @@ export const workspaces = sqliteTable(
 			.where(sql`type = 'main'`),
 	],
 );
-
-/**
- * Registry of ACP agent sessions (docs/acp-sessions.md). One row per
- * session, kept fresh on every state emit. Rows survive host restarts so the
- * manager can list them as `offline` and resurrect on demand via the
- * adapter's `session/load` — the journal itself is not persisted; transcript
- * replay comes from the agent harness's own on-disk session store.
- */
-export const acpSessions = sqliteTable(
-	"acp_sessions",
-	{
-		sessionId: text("session_id").primaryKey(),
-		workspaceId: text("workspace_id").notNull(),
-		/** Adapter-side ACP session id — the `session/load` key. */
-		acpSessionId: text("acp_session_id").notNull(),
-		harness: text().notNull().$type<HarnessKind>(),
-		cwd: text().notNull(),
-		title: text(),
-		lastStopReason: text("last_stop_reason").$type<StopReason>(),
-		createdAt: integer("created_at").notNull(),
-		updatedAt: integer("updated_at").notNull(),
-	},
-	(table) => [index("acp_sessions_workspace_id_idx").on(table.workspaceId)],
-);
-
-/**
- * Tombstones for workspaces deleted while the cloud was unreachable. The
- * reconciler drains this into `v2Workspace.delete` calls; rows are removed
- * once the cloud confirms. Dual-write era only — dropped in R3.
- */
-export const workspaceCloudDeletes = sqliteTable("workspace_cloud_deletes", {
-	id: text().primaryKey(),
-	queuedAt: integer("queued_at")
-		.notNull()
-		.$defaultFn(() => Date.now()),
-});

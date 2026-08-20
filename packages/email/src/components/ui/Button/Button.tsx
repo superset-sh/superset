@@ -10,8 +10,8 @@ interface ButtonProps {
 export function Button({ href, children, variant = "primary" }: ButtonProps) {
 	const className =
 		variant === "primary"
-			? "inline-block rounded-lg bg-primary text-white px-6 py-3 text-base font-semibold no-underline text-center"
-			: "inline-block rounded-lg bg-white border border-border text-foreground px-6 py-3 text-base font-semibold no-underline text-center";
+			? "inline-block rounded-md bg-primary text-white px-5 py-3 text-[14px] font-medium no-underline text-center"
+			: "inline-block rounded-md bg-white border border-solid border-border text-foreground px-5 py-3 text-[14px] font-medium no-underline text-center";
 
 	return (
 		<ReactEmailButton href={href} className={className}>

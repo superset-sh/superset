@@ -10,7 +10,7 @@ Allow: /api/llms.txt
 Disallow: /api/
 Disallow: /_next/
 
-# AI assistants and AI search crawlers — explicitly welcome
+# AI assistants and AI search crawlers: explicitly welcome
 User-Agent: ChatGPT-User
 Allow: /
 
@@ -29,7 +29,7 @@ Allow: /
 User-Agent: GoogleOther
 Allow: /
 
-# Bulk-scraping crawlers — not welcome
+# Bulk-scraping crawlers: not welcome
 User-Agent: CCBot
 Disallow: /
 

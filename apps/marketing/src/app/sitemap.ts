@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
 import { getBlogPosts } from "@/lib/blog";
+import { getCategoryPages } from "@/lib/category";
 import { getChangelogEntries } from "@/lib/changelog";
 import { getComparisonPages } from "@/lib/compare";
 import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
@@ -90,6 +91,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.8,
 		},
 		{
+			url: `${baseUrl}/mcp-install`,
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.8,
+		},
+		{
 			url: `${baseUrl}/roadmap`,
 			lastModified: new Date(),
 			changeFrequency: "weekly",
@@ -129,6 +136,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		priority: 0.7,
 	}));
 
+	const categoryPages: MetadataRoute.Sitemap = getCategoryPages().map(
+		(page) => ({
+			url: `${baseUrl}${page.url}`,
+			lastModified: new Date(page.lastUpdated || page.date),
+			changeFrequency: "weekly" as const,
+			priority: 0.9,
+		}),
+	);
+
 	const comparisonPages: MetadataRoute.Sitemap = getComparisonPages().map(
 		(page) => ({
 			url: `${baseUrl}/compare/${page.slug}`,
@@ -160,6 +176,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		...blogPages,
 		...changelogPages,
 		...teamPages,
+		...categoryPages,
 		...comparisonPages,
 		...legalPages,
 		...themePages,

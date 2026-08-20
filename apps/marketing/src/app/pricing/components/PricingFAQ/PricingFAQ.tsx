@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useMemo, useState } from "react";
 import { HiPlus } from "react-icons/hi2";
 import type { FAQItem } from "@/app/components/FAQSection";
@@ -50,7 +50,7 @@ function FAQAccordionItem({
 			</button>
 			<AnimatePresence initial={false}>
 				{isOpen && (
-					<motion.div
+					<m.div
 						id={contentId}
 						role="region"
 						aria-labelledby={contentId}
@@ -63,7 +63,7 @@ function FAQAccordionItem({
 						<p className="pb-5 text-sm text-muted-foreground leading-relaxed pr-8">
 							{item.answer}
 						</p>
-					</motion.div>
+					</m.div>
 				)}
 			</AnimatePresence>
 		</div>

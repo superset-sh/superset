@@ -14,18 +14,15 @@ import {
 import friendlyWords from "friendly-words";
 import type { StatusResult } from "simple-git";
 import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
-import { GitEnvironmentError } from "./git-errors";
+import { GitEnvironmentError, NotGitRepoError } from "./git-errors";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 import { resolveTrackingRemoteName } from "./upstream-ref";
 
 const execFileAsync = promisify(execFile);
 
-export class NotGitRepoError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = "NotGitRepoError";
-	}
-}
+// Moved to git-errors.ts (next to GitEnvironmentError and the classifier);
+// re-exported so existing importers keep working.
+export { NotGitRepoError };
 
 function getPathCreatedAt(path: string): number | null {
 	const stats = statSync(path);
@@ -1495,24 +1492,53 @@ export async function listBranches(
  * @param repoPath - Path to the repository
  * @returns The current branch name, or null if in detached HEAD state
  */
-export async function getCurrentBranch(
+export type CurrentBranch =
+	| { kind: "branch"; branch: string }
+	| { kind: "detached" };
+
+/**
+ * Reads HEAD, distinguishing a genuinely detached HEAD from a repository we
+ * cannot read at all. Real git failures (not a repository, permission wall,
+ * git missing) propagate rather than collapsing into "detached", so they
+ * stay visible instead of being reported to the user as a HEAD problem.
+ */
+export async function readCurrentBranch(
 	repoPath: string,
-): Promise<string | null> {
+): Promise<CurrentBranch> {
 	const git = await getSimpleGitWithShellPath(repoPath);
+
+	let revparseError: unknown;
 	try {
-		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
-		const trimmed = branch.trim();
+		const trimmed = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 		if (trimmed && trimmed !== "HEAD") {
-			return trimmed;
+			return { kind: "branch", branch: trimmed };
 		}
-	} catch {
-		// Fall back to symbolic-ref below for unborn HEAD repos.
+	} catch (error) {
+		// An unborn HEAD (fresh repo, no commits) fails here but still
+		// resolves through symbolic-ref below, so hold the error rather than
+		// giving up on it.
+		revparseError = error;
 	}
 
 	try {
-		const branch = await git.raw(["symbolic-ref", "--short", "HEAD"]);
-		const trimmed = branch.trim();
-		return trimmed || null;
+		const trimmed = (await git.raw(["symbolic-ref", "--short", "HEAD"])).trim();
+		if (trimmed) return { kind: "branch", branch: trimmed };
+	} catch {
+		// symbolic-ref fails on a detached HEAD, which is only meaningful if
+		// revparse got far enough to tell us HEAD is readable. If it did not,
+		// the repository itself is the problem and that error is the real one.
+		if (revparseError) throw revparseError;
+	}
+
+	return { kind: "detached" };
+}
+
+export async function getCurrentBranch(
+	repoPath: string,
+): Promise<string | null> {
+	try {
+		const head = await readCurrentBranch(repoPath);
+		return head.kind === "branch" ? head.branch : null;
 	} catch {
 		return null;
 	}

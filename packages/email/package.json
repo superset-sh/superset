@@ -15,9 +15,10 @@
 	},
 	"private": true,
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev --dir src/emails",
 		"export": "email export --dir src/emails",
-		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"sync:automations": "bun scripts/sync-automations.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"type": "module",
@@ -30,7 +31,7 @@
 		"drizzle-orm": "0.45.2",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
-		"resend": "4.8.0",
+		"resend": "6.18.0",
 		"tailwindcss": "4.2.2",
 		"zod": "4.4.3"
 	}

@@ -52,7 +52,7 @@ The dev desktop app exposes the Chrome DevTools Protocol, so you (or your coding
 2. Confirm you're attached to *this* workspace's app: fetch `http://127.0.0.1:<port>/json/list` and check the page target's URL matches your workspace's `DESKTOP_VITE_PORT` from `.env`. Never assume a responding CDP endpoint is yours.
 3. Navigate the real UI to the state you changed (real clicks and input, not injected DOM state), then capture with `Page.captureScreenshot`.
 
-For the full workflow — attaching over WebSocket, matching the right renderer, and repairing auth — see [`apps/desktop/AGENTS.md`](./apps/desktop/AGENTS.md) ("Verifying renderer changes via CDP") and the "CDP UI Verification" section of [`AGENTS.md`](./AGENTS.md) for what counts as end-to-end evidence. `apps/desktop/scripts/cdp-smoke-integrations.ts` is a working example script.
+For the full workflow — attaching over WebSocket, matching the right renderer, repairing auth, and what counts as end-to-end evidence — see [`.agents/skills/cdp-verification/SKILL.md`](./.agents/skills/cdp-verification/SKILL.md). `apps/desktop/scripts/cdp-smoke-integrations.ts` is a working example script.
 
 ## Style
 

@@ -6,21 +6,44 @@ import { command } from "../../lib/command";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
 import { resolveOrganizationFromContext } from "../../lib/resolve-org";
 
+type HealthResult = {
+	healthy: boolean;
+	/** undefined = host-service predates the field (pre-#6415). */
+	cloudRegistered?: boolean;
+	registrationError?: string | null;
+};
+
 async function checkHealth(
 	endpoint: string,
 	authToken: string,
-): Promise<boolean> {
+): Promise<HealthResult> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 2_000);
 	try {
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 2_000);
 		const res = await fetch(`${endpoint}/trpc/health.check`, {
 			signal: controller.signal,
 			headers: { Authorization: `Bearer ${authToken}` },
 		});
-		clearTimeout(timeout);
-		return res.ok;
+		if (!res.ok) return { healthy: false };
+		const body = (await res.json()) as {
+			result?: { data?: { json?: Record<string, unknown> } };
+		};
+		const payload = body.result?.data?.json;
+		return {
+			healthy: true,
+			cloudRegistered:
+				typeof payload?.cloudRegistered === "boolean"
+					? payload.cloudRegistered
+					: undefined,
+			registrationError:
+				typeof payload?.registrationError === "string"
+					? payload.registrationError
+					: undefined,
+		};
 	} catch {
-		return false;
+		return { healthy: false };
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
@@ -28,12 +51,14 @@ async function fetchHostName(
 	api: ApiClient,
 	organizationId: string,
 	hostId: string,
-): Promise<string | null> {
+): Promise<{ name: string | null; listed: boolean | null }> {
 	try {
 		const hosts = await api.host.list.query({ organizationId });
-		return hosts.find((host) => host.id === hostId)?.name ?? null;
+		const host = hosts.find((row) => row.id === hostId);
+		return { name: host?.name ?? null, listed: !!host };
 	} catch {
-		return null;
+		// API unreachable — unknown, not evidence of a missing registration.
+		return { name: null, listed: null };
 	}
 }
 
@@ -77,27 +102,45 @@ export default command({
 			};
 		}
 
-		const [healthy, hostName] = await Promise.all([
+		const [health, cloudHost] = await Promise.all([
 			checkHealth(manifest.endpoint, manifest.authToken),
 			fetchHostName(ctx.api, organization.id, localHostId),
 		]);
 		const uptime = formatDistanceToNowStrict(new Date(manifest.startedAt));
 
+		// A running host that isn't cloud-registered is invisible to hosts
+		// list/automations while every local check passes (#6415). Trust the
+		// host-service's own registration state when it reports one; fall
+		// back to the cloud host list for older host-services.
+		const cloudRegistered =
+			health.cloudRegistered ??
+			(cloudHost.listed === null ? undefined : cloudHost.listed);
+		const registrationWarning =
+			health.healthy && cloudRegistered === false
+				? `\nWarning: not registered with the cloud for ${organization.name}${
+						health.registrationError ? ` (${health.registrationError})` : ""
+					} — hosts list and automations won't see this machine\nHint: check host-service.log; registration retries automatically, or run: superset stop && superset start`
+				: "";
+
 		return {
 			data: {
 				running: true,
-				healthy,
+				healthy: health.healthy,
 				pid: manifest.pid,
 				port: Number.parseInt(new URL(manifest.endpoint).port || "0", 10),
 				endpoint: manifest.endpoint,
 				organizationId: organization.id,
 				hostId: localHostId,
-				hostName,
+				hostName: cloudHost.name,
+				...(cloudRegistered === undefined ? {} : { cloudRegistered }),
+				...(health.registrationError
+					? { registrationError: health.registrationError }
+					: {}),
 				uptimeSec: Math.floor((Date.now() - manifest.startedAt) / 1000),
 			},
-			message: `${organization.name}: ${hostName ? `${hostName} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, up ${uptime})${
-				healthy ? "" : " — not responding to health check"
-			}`,
+			message: `${organization.name}: ${cloudHost.name ? `${cloudHost.name} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, up ${uptime})${
+				health.healthy ? "" : " — not responding to health check"
+			}${registrationWarning}`,
 		};
 	},
 });

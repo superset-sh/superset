@@ -1,0 +1,1 @@
+export { stripHtml } from "./stripHtml";

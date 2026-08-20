@@ -1,0 +1,108 @@
+---
+title: "Superset vs Cindy (2026): Agent Workspace vs the General-Purpose AI Agent App"
+description: "Compare Superset and Cindy for running AI coding agents in parallel. See how a developer agent workspace differs from Cindy's cross-platform general-purpose agent app."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - cindy
+keywords:
+  - superset vs cindy
+  - cindy alternative
+  - cindy ai agent
+  - makecindy
+  - ai agent orchestration
+  - parallel coding agents
+---
+
+Superset and Cindy overlap on one job -- running Claude Code and Codex sessions in parallel with tracked, reviewable changes -- but they come from different directions. Superset is a developer workspace: worktrees, terminals, diffs, automations, built for shipping code. Cindy is an open-source general-purpose AI agent app ("consider it done") that happens to be strong at coding: it wraps agent harnesses in a continuous workspace with memory and tools, adds multi-agent planner/worker/reviewer collaboration, and ships on desktop and mobile.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Cindy** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | General-purpose AI agent that runs tasks locally, including parallel coding via Claude Code and Codex |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Open-source general-purpose agent app |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code and Codex harnesses; models incl. Claude, GPT, Grok, Gemini, DeepSeek, Kimi, Qwen, local endpoints |
+| **Multi-agent** | Parallel worktree workspaces; orchestrate via CLI/MCP/SDK | Built-in planner + parallel workers + reviewer collaboration on one task |
+| **Isolation / review** | Automatic Git worktree per task, built-in diff editor | Workspace change tracking with per-turn file changes, undo/reapply |
+| **Platforms** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | macOS, Windows, Linux + iOS, iPadOS, Android |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Telegram ingestion, plugins; task-centric rather than scheduled |
+| **License** | Source-available (ELv2) | Open source (Apache-2.0) |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free BYO keys; Plus $20/mo managed models |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Cindy?
+
+Cindy is an open-source (Apache-2.0) AI agent app whose tagline is "consider it done." It runs locally on macOS, Windows, and Linux, with companion apps for iOS, iPadOS, and Android, and wraps agent harnesses -- Claude Code and Codex today -- in a continuous workspace with memory and tools, letting you switch harness or model mid-task. Its multi-agent feature assigns one task a planner, multiple parallel workers (each a different model/harness combination), and an independent reviewer, with collaborative runs exportable and importable across devices. Workspace change tracking shows exact per-turn file changes with undo and reapply, a split view shows up to eight task panes, Telegram groups can feed tasks in, and a plugin ecosystem extends it. Cindy is free with your own API keys or subscriptions, with a $20/month Plus tier for managed model access. It launched in July 2026 and is evolving very quickly.
+
+## Key Differences
+
+### Developer Workspace vs General Agent
+
+Superset is built for one audience: developers shipping code with parallel agents, so everything orbits Git -- worktrees, branches, diffs, PRs. Cindy is a general agent that does files, browsing, and connected apps, with coding as a headline use case. That makes Cindy more versatile for mixed personal automation, and Superset deeper for engineering: worktree-per-task isolation on real branches, persistent terminals, port management, and one-click handoff to your IDE. Cindy's change tracking (per-turn diffs with undo) is genuinely useful, but it is workspace-level capture, not branch-level Git isolation.
+
+### Multi-Agent Models
+
+Cindy builds team structure into a single task: a planner decomposes the work, parallel workers on different models attack it, and an independent reviewer checks the result -- all managed inside the app, shareable as a package. Superset's parallelism is workspace-shaped: many agents on many tasks, each isolated in a worktree, orchestrated interactively or programmatically through the CLI, MCP server, and SDK. Cindy's model is compelling for one hard task; Superset's for a portfolio of tasks moving in parallel.
+
+### Mobile and Messaging
+
+Cindy ships real mobile apps (iOS, iPadOS, Android) and ingests tasks from Telegram groups. Superset's mobile app is on its roadmap, and its chat-ops surface is a Slack bot aimed at team workflows. If steering agents from your phone today is a hard requirement, Cindy delivers it now.
+
+### Maturity
+
+Cindy's repo appeared in late July 2026 and is iterating at multiple releases per day -- impressive velocity, with the churn that implies. Superset has been shipping longer, has enterprise features (SSO, audit logs), and offers a stability contract teams can adopt. Fast-moving and exciting versus established and supported is a real axis here.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Cindy is free with your own API keys, local models, or existing Claude/Codex subscriptions, with a Plus tier at $20/month for its managed model service and team/enterprise plans announced as coming. Model usage is your own cost under both tools' BYO options.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Ship code and want Git-native isolation: worktree per task, branches, diffs, PRs
+- Run scheduled or unattended agent sessions through automations and an SDK
+- Want CLI and MCP surfaces plus remote and cloud workspaces
+- Need team and enterprise features
+
+**Choose Cindy if you:**
+
+- Want one agent app for general tasks -- files, browsing, connected apps -- plus coding
+- Like the planner/workers/reviewer structure on a single hard task
+- Want native mobile apps and Telegram integration today
+- Prefer Apache-2.0 open source with an optional managed-model subscription
+
+**Verdict:** Cindy is one of the fastest-moving projects in the agent space and its planner/worker/reviewer collaboration is a genuinely fresh take. But it is a general-purpose agent app with coding features, while Superset is a purpose-built engineering workspace. For running a fleet of coding agents against real repositories with isolation, review, and automation, Superset is the deeper tool; keep an eye on Cindy, especially if your agent needs extend beyond code.
+
+---
+
+## Frequently Asked Questions
+
+### Do Superset and Cindy compete directly?
+
+Partially. Both run Claude Code and Codex in parallel with tracked changes. Superset is developer-focused with Git worktree isolation per task; Cindy is a general-purpose agent app whose multi-agent coding runs happen inside its own workspace model.
+
+### Is Cindy open source?
+
+Yes, Apache-2.0, free with your own keys, with a $20/month Plus tier for managed models. Superset is source-available under the Elastic License 2.0 with a free tier and paid Pro.
+
+### Which supports more coding agents?
+
+Superset runs any terminal agent -- Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and custom CLIs. Cindy wraps Claude Code and Codex harnesses today (with more planned), across a wide range of models including local endpoints.
+
+### Does either work from a phone?
+
+Cindy has native iOS, iPadOS, and Android apps and can take tasks from Telegram. Superset's mobile app is on its public roadmap; today its remote workflows run through cloud workspaces and its Slack bot.

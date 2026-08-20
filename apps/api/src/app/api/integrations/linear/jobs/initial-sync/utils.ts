@@ -12,6 +12,7 @@ export interface LinearIssue {
 	dueDate: string | null;
 	createdAt: string;
 	url: string;
+	branchName: string;
 	startedAt: string | null;
 	completedAt: string | null;
 	assignee: {
@@ -101,6 +102,7 @@ const ISSUES_QUERY = `
         dueDate
         createdAt
         url
+        branchName
         startedAt
         completedAt
         assignee {
@@ -209,6 +211,7 @@ export function mapIssueToTask(
 		estimate: issue.estimate,
 		dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 		labels: issue.labels.nodes.map((l) => l.name),
+		branch: issue.branchName || null,
 		startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
 		completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
 		createdAt: new Date(issue.createdAt),

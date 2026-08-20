@@ -488,6 +488,7 @@ describe("buildV2TerminalEnv", () => {
 		},
 		shell: "/bin/zsh",
 		supersetHomeDir: "/Users/test/.superset",
+		organizationId: "org-1",
 		cwd: "/tmp/workspace",
 		terminalId: "term-1",
 		workspaceId: "ws-1",
@@ -507,6 +508,7 @@ describe("buildV2TerminalEnv", () => {
 			COLORTERM: "truecolor",
 			PWD: "/tmp/workspace",
 			SUPERSET_TERMINAL_ID: "term-1",
+			SUPERSET_ORGANIZATION_ID: "org-1",
 			SUPERSET_WORKSPACE_ID: "ws-1",
 			SUPERSET_WORKSPACE_PATH: "/tmp/workspace",
 			SUPERSET_ROOT_PATH: "/tmp/repo",
@@ -620,6 +622,7 @@ describe("v2 env contract boundary", () => {
 			},
 			shell: "/bin/zsh",
 			supersetHomeDir: "/Users/test/.superset",
+			organizationId: "org-abc",
 			cwd: "/tmp/ws",
 			terminalId: "t-1",
 			workspaceId: "w-1",
@@ -634,6 +637,7 @@ describe("v2 env contract boundary", () => {
 		expect(env.HOST_SERVICE_SECRET).toBeUndefined();
 		expect(env.AUTH_TOKEN).toBeUndefined();
 		expect(env.ORGANIZATION_ID).toBeUndefined();
+		expect(env.SUPERSET_ORGANIZATION_ID).toBe("org-abc");
 		expect(env.NODE_ENV).toBeUndefined();
 		expect(env.VITE_SECRET).toBeUndefined();
 		expect(env.npm_package_name).toBeUndefined();

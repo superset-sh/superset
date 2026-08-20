@@ -8,6 +8,7 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiOutlinePaperAirplane, HiOutlinePlus } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface OrgUser {
 	id: string;
@@ -32,6 +33,7 @@ export function AddMemberButton({
 	const [isOpen, setIsOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+	const utils = cloudTrpc.useUtils();
 
 	// Snapshot of who was a member when the popover opened. Sort against this
 	// so toggling a checkbox doesn't reorder the row under the cursor.
@@ -83,6 +85,7 @@ export function AddMemberButton({
 					userId: user.id,
 				});
 			}
+			await utils.organization.listTeams.invalidate();
 		} catch (error) {
 			toast.error(
 				error instanceof Error

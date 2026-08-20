@@ -27,10 +27,11 @@ export default command({
 				local: options.local ?? undefined,
 			}) ?? getHostId();
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 		const projects = await target.client.project.list.query();
 

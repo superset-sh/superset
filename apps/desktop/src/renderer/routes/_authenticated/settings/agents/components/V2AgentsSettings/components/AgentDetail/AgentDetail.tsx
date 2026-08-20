@@ -81,6 +81,9 @@ export function AgentDetail({
 	const [promptArgsText, setPromptArgsText] = useState(
 		joinArgs(config.promptArgs),
 	);
+	const [resumeArgsText, setResumeArgsText] = useState(
+		joinArgs(config.resumeArgs),
+	);
 	const [promptTransport, setPromptTransport] = useState<PromptTransport>(
 		config.promptTransport,
 	);
@@ -95,6 +98,7 @@ export function AgentDetail({
 			}),
 		);
 		setPromptArgsText(joinArgs(config.promptArgs));
+		setResumeArgsText(joinArgs(config.resumeArgs));
 		setPromptTransport(config.promptTransport);
 	}, [
 		config.label,
@@ -102,6 +106,7 @@ export function AgentDetail({
 		config.args,
 		config.env,
 		config.promptArgs,
+		config.resumeArgs,
 		config.promptTransport,
 	]);
 
@@ -197,6 +202,14 @@ export function AgentDetail({
 		if (changed) updateMutation.mutate({ promptArgs: args });
 	};
 
+	const handleResumeArgsBlur = () => {
+		const args = parseArgs(resumeArgsText);
+		const changed =
+			args.length !== config.resumeArgs.length ||
+			args.some((arg, i) => arg !== config.resumeArgs[i]);
+		if (changed) updateMutation.mutate({ resumeArgs: args });
+	};
+
 	const handleTransportChange = (next: PromptTransport) => {
 		if (next === promptTransport) return;
 		const prev = promptTransport;
@@ -244,6 +257,9 @@ export function AgentDetail({
 					promptArgsText={promptArgsText}
 					onPromptArgsTextChange={setPromptArgsText}
 					onPromptArgsBlur={handlePromptArgsBlur}
+					resumeArgsText={resumeArgsText}
+					onResumeArgsTextChange={setResumeArgsText}
+					onResumeArgsBlur={handleResumeArgsBlur}
 					promptTransport={promptTransport}
 					onPromptTransportChange={handleTransportChange}
 				/>
@@ -318,9 +334,9 @@ export function AgentDetail({
 											Restore {config.label} to defaults?
 										</AlertDialogTitle>
 										<AlertDialogDescription>
-											This replaces its label, command, arguments, prompt
-											settings, environment variables, and icon with the current
-											bundled configuration.
+											This replaces its label, command, arguments, prompt and
+											resume settings, environment variables, and icon with the
+											current bundled configuration.
 										</AlertDialogDescription>
 									</AlertDialogHeader>
 									<AlertDialogFooter>

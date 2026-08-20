@@ -120,6 +120,62 @@
       "when": 1786079574715,
       "tag": "0016_ambitious_sally_floyd",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1786081753000,
+      "tag": "0017_nappy_satana",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1786081753249,
+      "tag": "0018_backfill_agent_resume_args",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1786175667423,
+      "tag": "0019_loud_wolverine",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1786297592534,
+      "tag": "0020_overrated_dreaming_celestial",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1786380983362,
+      "tag": "0021_heal_orphaned_terminal_session_workspace_refs",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1786644873924,
+      "tag": "0022_kind_roxanne_simpson",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1786681360097,
+      "tag": "0023_gorgeous_pixie",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1787007811544,
+      "tag": "0024_odd_war_machine",
+      "breakpoints": true
     }
   ]
 }

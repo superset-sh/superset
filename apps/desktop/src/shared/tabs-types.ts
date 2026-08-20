@@ -12,7 +12,6 @@ export type PaneType =
 	| "terminal"
 	| "webview"
 	| "file-viewer"
-	| "chat"
 	| "devtools"
 	| "comment";
 
@@ -150,7 +149,6 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
-	chat?: ChatPaneState; // For chat panes
 	browser?: BrowserPaneState; // For browser (webview) panes
 	devtools?: DevToolsPaneState; // For devtools panes
 	comment?: CommentPaneState; // For comment panes
@@ -162,30 +160,6 @@ export interface Pane {
 }
 
 export type WorkspaceRunState = NonNullable<Pane["workspaceRun"]>["state"];
-
-// TODO: `initialFiles` stores base64 data URLs inline. This bloats
-// the pane layout state in localStorage (v2WorkspaceLocalState
-// collection). Migrate to IndexedDB blob storage — store file
-// references here, actual blobs in IndexedDB keyed by session/pane ID.
-// See renderer/lib/pending-attachment-store.ts for the IndexedDB pattern.
-export interface ChatLaunchConfig {
-	initialPrompt?: string;
-	draftInput?: string;
-	initialFiles?: Array<{
-		data: string;
-		mediaType: string;
-		filename?: string;
-	}>;
-	metadata?: {
-		model?: string;
-	};
-	retryCount?: number;
-}
-
-export interface ChatPaneState {
-	sessionId: string | null;
-	launchConfig?: ChatLaunchConfig | null;
-}
 
 /**
  * Single entry in the browser pane's navigation history

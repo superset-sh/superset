@@ -13,6 +13,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -28,8 +29,9 @@ import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
 import { AgentModelSelect } from "renderer/components/AgentModelSelect";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { LinkedIssuePill } from "renderer/components/Chat/ChatInterface/components/ChatInputFooter/components/LinkedIssuePill";
-import { IssueLinkCommand } from "renderer/components/Chat/ChatInterface/components/IssueLinkCommand";
+import { GitHubStarPill } from "renderer/components/GitHubStarPill";
+import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
+import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -43,11 +45,18 @@ import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { SupersetIcon } from "renderer/routes/_authenticated/onboarding/providers/components/SupersetIcon";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attachments";
 import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prompt-context";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
+import {
+	type PromptCardsVariant,
+	useNewWorkspacePromptCardsVariant,
+} from "../../hooks/useNewWorkspacePromptCardsVariant";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
+import { CLOUD_HOST_ID } from "../DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
 import { GitHubIssueLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand";
@@ -72,11 +81,29 @@ import {
 } from "../DashboardNewWorkspaceForm/PromptGroup/types";
 import { useSelectedHostProjectIds } from "../DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { AttachmentCard } from "./components/AttachmentCard";
+import { SamplePromptCards } from "./components/SamplePromptCards";
 import { SamplePrompts } from "./components/SamplePrompts";
+import { PROMPT_PLACEHOLDERS } from "./components/SamplePrompts/constants";
+import { useSamplePromptSelection } from "./hooks/useSamplePromptSelection";
+
+/** Nested prefixes of one fixed pool — only the form factor varies by arm. */
+const PROMPT_COUNTS: Record<PromptCardsVariant, number> = {
+	control: 3,
+	cards2: 2,
+	cards4: 4,
+};
+
+const PROMPT_LAYOUTS: Record<PromptCardsVariant, string> = {
+	control: "rows",
+	cards2: "cards2",
+	cards4: "cards4",
+};
 
 interface NewWorkspaceScreenProps {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	/** Open with "No project" (session) preselected. */
+	preSelectedSession?: boolean;
 }
 
 /**
@@ -88,12 +115,19 @@ interface NewWorkspaceScreenProps {
 export function NewWorkspaceScreen({
 	isOpen,
 	preSelectedProjectId,
+	preSelectedSession = false,
 }: NewWorkspaceScreenProps) {
 	const navigate = useNavigate();
 	const [promptSeed, setPromptSeed] = useState(0);
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const { closeModal, draft, updateDraft, resetKey } =
-		useDashboardNewWorkspaceDraft();
+	const {
+		closeModal,
+		draft,
+		updateDraft,
+		selectProject,
+		selectSession,
+		resetKey,
+	} = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
 	const hostService = useLocalHostService();
 	const { activeHostUrl, machineId } = hostService;
@@ -105,6 +139,12 @@ export function NewWorkspaceScreen({
 	);
 	const setLastHostId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastHostId,
+	);
+	const samplePromptsDismissed = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.samplePromptsDismissed,
+	);
+	const setSamplePromptsDismissed = useV2WorkspaceCreateDefaultsStore(
+		(state) => state.setSamplePromptsDismissed,
 	);
 
 	useEffect(() => {
@@ -118,9 +158,6 @@ export function NewWorkspaceScreen({
 	// case (Esc-cancelled drags, drops outside the window) that an enter/leave
 	// counter gets permanently stuck on.
 	const [isDraggingFiles, setIsDraggingFiles] = useState(false);
-	// Source paths for dropped/picked files, keyed by filename — the attachment
-	// items only keep an object URL, and Finder reveal needs the original path.
-	const attachmentPathsRef = useRef(new Map<string, string>());
 	useEffect(() => {
 		if (!isOpen) return;
 		let timer: number | null = null;
@@ -132,8 +169,8 @@ export function NewWorkspaceScreen({
 					// Attachment items only expose the basename, so the map is
 					// name-keyed; a second same-named file from elsewhere makes the
 					// name ambiguous — poison it so no card reveals the wrong file.
-					const existing = attachmentPathsRef.current.get(file.name);
-					attachmentPathsRef.current.set(
+					const existing = newWorkspaceAttachmentPaths.get(file.name);
+					newWorkspaceAttachmentPaths.set(
 						file.name,
 						existing !== undefined && existing !== path ? "" : path,
 					);
@@ -199,8 +236,22 @@ export function NewWorkspaceScreen({
 	// modal) — re-applying on every draft change would snap the picker back
 	// and make switching projects impossible.
 	const appliedPreSelectionRef = useRef<string | null>(null);
+	const appliedSessionPreselectionRef = useRef(false);
+	// Re-arm per intent so a second session-open cycle on a reused screen
+	// instance applies again.
+	useEffect(() => {
+		if (!preSelectedSession) appliedSessionPreselectionRef.current = false;
+	}, [preSelectedSession]);
+	useEffect(() => {
+		if (!preSelectedProjectId) appliedPreSelectionRef.current = null;
+	}, [preSelectedProjectId]);
 	useEffect(() => {
 		if (!isOpen || !areProjectsReady) return;
+		if (preSelectedSession && !appliedSessionPreselectionRef.current) {
+			appliedSessionPreselectionRef.current = true;
+			selectSession();
+			return;
+		}
 		const isValid = (id: string | null | undefined) =>
 			Boolean(id && projects.some((project) => project.id === id));
 		if (
@@ -209,11 +260,12 @@ export function NewWorkspaceScreen({
 			isValid(preSelectedProjectId)
 		) {
 			appliedPreSelectionRef.current = preSelectedProjectId;
-			if (draft.selectedProjectId !== preSelectedProjectId) {
-				updateDraft({ selectedProjectId: preSelectedProjectId });
-			}
+			selectProject(preSelectedProjectId);
 			return;
 		}
+		// An explicit "No project" (session) choice must survive project-list
+		// updates — never auto-select over it.
+		if (draft.isSession) return;
 		if (isValid(draft.selectedProjectId)) return;
 		const { lastProjectId } = useV2WorkspaceCreateDefaultsStore.getState();
 		updateDraft({
@@ -225,10 +277,34 @@ export function NewWorkspaceScreen({
 		isOpen,
 		areProjectsReady,
 		preSelectedProjectId,
+		preSelectedSession,
 		draft.selectedProjectId,
+		draft.isSession,
 		projects,
+		selectProject,
+		selectSession,
 		updateDraft,
 	]);
+
+	// One suggestion per open. resetKey only bumps on resetDraft, so ordinary
+	// modal reopens roll their own counter; the tiptap Placeholder extension
+	// freezes its text at editor mount, so the roll also rides the editor key.
+	const [placeholderRoll, setPlaceholderRoll] = useState(0);
+	const wasOpenRef = useRef(isOpen);
+	useEffect(() => {
+		if (isOpen && !wasOpenRef.current) {
+			setPlaceholderRoll((roll) => roll + 1);
+		}
+		wasOpenRef.current = isOpen;
+	}, [isOpen]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: re-roll per draft reset and per open
+	const promptPlaceholder = useMemo(
+		() =>
+			PROMPT_PLACEHOLDERS[
+				Math.floor(Math.random() * PROMPT_PLACEHOLDERS.length)
+			] ?? "What do you want to do?",
+		[resetKey, placeholderRoll],
+	);
 
 	const projectId = draft.selectedProjectId;
 	const selectedProject = projects.find((project) => project.id === projectId);
@@ -295,6 +371,9 @@ export function NewWorkspaceScreen({
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
 		const id = draft.hostId ?? machineId;
+		// A cloud workspace's sandbox doesn't exist yet, and "cloud" is a
+		// sentinel — resolving it would address a machine that isn't there.
+		if (id === CLOUD_HOST_ID) return null;
 		if (!id || !activeOrganizationId) return null;
 		return (
 			resolveHostUrl({
@@ -306,6 +385,34 @@ export function NewWorkspaceScreen({
 			}) ?? null
 		);
 	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
+
+	const promptCardsVariant = useNewWorkspacePromptCardsVariant(isOpen);
+	const promptLayout =
+		promptCardsVariant === null ? "rows" : PROMPT_LAYOUTS[promptCardsVariant];
+
+	// One signal drives both the prompt tier and the dismiss affordance: has
+	// this person shipped anything yet. `main` is auto-created for every new
+	// account, so it cannot count.
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const hasRealWorkspace = hostWorkspaces.some(
+		(workspace) => workspace.type !== "main",
+	);
+
+	const samplePromptTier = hasRealWorkspace ? "returning" : "first-run";
+	const { prompts: samplePrompts, isPending: samplePromptsPending } =
+		useSamplePromptSelection(
+			samplePromptTier,
+			launchHostUrl,
+			projectId,
+			promptCardsVariant === null ? 0 : PROMPT_COUNTS[promptCardsVariant],
+		);
+
+	// Logged so the prompt-cards experiment can account for lost exposure.
+	const handleDismissSamplePrompts = useCallback(() => {
+		track("new_workspace_sample_prompts_dismissed", { layout: promptLayout });
+		setSamplePromptsDismissed(true);
+	}, [promptLayout, setSamplePromptsDismissed]);
+
 	const { agents: v2Agents, isFetched: v2AgentsFetched } =
 		useV2AgentChoices(launchHostUrl);
 	const selectableAgentIds = useMemo(
@@ -389,7 +496,7 @@ export function NewWorkspaceScreen({
 		linkedPR: draft.linkedPR,
 		linkedIssues: draft.linkedIssues,
 	});
-	const createWorkspace = useSubmitWorkspace(
+	const { submitWorkspace: createWorkspace, isCreating } = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
@@ -400,8 +507,11 @@ export function NewWorkspaceScreen({
 
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!projectId) return "Select a project";
+		if (!projectId && !draft.isSession) return "Select a project";
 		const selectedHostId = draft.hostId ?? machineId;
+		// A cloud workspace is provisioned on submit, so there is no host whose
+		// readiness could block it.
+		if (selectedHostId === CLOUD_HOST_ID) return null;
 		if (!selectedHostId) return "No active host";
 		if (selectedHostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === selectedHostId);
@@ -410,7 +520,14 @@ export function NewWorkspaceScreen({
 			return "Host service is not running";
 		}
 		return null;
-	}, [projectId, draft.hostId, machineId, activeHostUrl, otherHosts]);
+	}, [
+		projectId,
+		draft.isSession,
+		draft.hostId,
+		machineId,
+		activeHostUrl,
+		otherHosts,
+	]);
 
 	const handleGoToSetup = useCallback(() => {
 		if (!selectedProject?.id) return;
@@ -444,7 +561,6 @@ export function NewWorkspaceScreen({
 			handleGoToSetup();
 			return;
 		}
-		if (isPromptEmpty) return;
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
@@ -462,7 +578,6 @@ export function NewWorkspaceScreen({
 		draft.hostId,
 		handleGoToSetup,
 		hostService,
-		isPromptEmpty,
 		machineId,
 		needsSetup,
 		submitBlocker,
@@ -541,21 +656,46 @@ export function NewWorkspaceScreen({
 				<h1 className="text-center text-3xl font-medium text-foreground/90">
 					What should we build next?
 				</h1>
+				<GitHubStarPill surface="new_workspace" reserveSpace />
 			</div>
 			<div className="relative flex w-full max-w-[640px] flex-col px-6 pb-8">
 				<AnimatePresence initial={false}>
-					{isPromptEmpty && (
-						<motion.div
-							key="sample-prompts"
-							initial={{ opacity: 0, y: 12 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, transition: { duration: 0 } }}
-							transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-							className="absolute inset-x-6 bottom-full mb-1"
-						>
-							<SamplePrompts onSelect={applyPrompt} />
-						</motion.div>
-					)}
+					{isPromptEmpty &&
+						promptCardsVariant !== null &&
+						!samplePromptsPending &&
+						!samplePromptsDismissed && (
+							<motion.div
+								key="sample-prompts"
+								initial={{ opacity: 0, y: 12 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, transition: { duration: 0 } }}
+								transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
+								// In flow, not absolute: the heading above is the flex-1
+								// spacer, so it absorbs this block's height and the composer
+								// stays put. Positioning it out of flow let tall suggestion
+								// sets overlap the heading instead.
+								className="mb-1"
+							>
+								{promptCardsVariant === "control" ? (
+									<SamplePrompts
+										prompts={samplePrompts}
+										onSelect={applyPrompt}
+										onDismiss={handleDismissSamplePrompts}
+										canDismiss={hasRealWorkspace}
+										tier={samplePromptTier}
+									/>
+								) : (
+									<SamplePromptCards
+										prompts={samplePrompts}
+										onSelect={applyPrompt}
+										onDismiss={handleDismissSamplePrompts}
+										canDismiss={hasRealWorkspace}
+										layout={promptLayout}
+										tier={samplePromptTier}
+									/>
+								)}
+							</motion.div>
+						)}
 				</AnimatePresence>
 				<PromptInput
 					onSubmit={handleSubmit}
@@ -601,7 +741,7 @@ export function NewWorkspaceScreen({
 							))}
 							{visibleFiles.map((file) => {
 								const sourcePath = file.filename
-									? attachmentPathsRef.current.get(file.filename) || null
+									? newWorkspaceAttachmentPaths.get(file.filename) || null
 									: null;
 								return (
 									<AttachmentCard
@@ -620,13 +760,13 @@ export function NewWorkspaceScreen({
 						</div>
 					)}
 					<MarkdownEditor
-						key={`${resetKey}-${promptSeed}`}
+						key={`${resetKey}-${promptSeed}-${placeholderRoll}`}
 						content={draft.prompt}
 						onChange={(markdown) => updateDraft({ prompt: markdown })}
 						onPasteFiles={(files) => attachments.add(files)}
 						onEnterSubmit={handleSubmit}
 						autoFocus={draft.prompt ? "end" : "start"}
-						placeholder="What do you want to do?"
+						placeholder={promptPlaceholder}
 						className="flex flex-col min-h-[80px] max-h-[200px] px-3 pt-3"
 						editorClassName="overflow-y-auto text-sm"
 						features={{
@@ -655,6 +795,7 @@ export function NewWorkspaceScreen({
 									models={modelSupport.models}
 									value={selectedModel}
 									onValueChange={setSelectedModel}
+									defaultLabel="Default model"
 									triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 								/>
 							)}
@@ -663,6 +804,7 @@ export function NewWorkspaceScreen({
 									models={effortSupport.efforts}
 									value={selectedEffort}
 									onValueChange={setSelectedEffort}
+									defaultLabel="Default effort"
 									triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 								/>
 							)}
@@ -726,13 +868,17 @@ export function NewWorkspaceScreen({
 							</Tooltip>
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-								disabled={needsSetup || isPromptEmpty}
+								disabled={needsSetup || isCreating}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();
 								}}
 							>
-								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+								{isCreating ? (
+									<Spinner className="size-3.5 text-muted-foreground" />
+								) : (
+									<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+								)}
 							</PromptInputSubmit>
 						</div>
 					</PromptInputFooter>
@@ -749,9 +895,14 @@ export function NewWorkspaceScreen({
 						<ProjectPickerPill
 							selectedProject={selectedProject}
 							projects={projects}
+							isSessionSelected={draft.isSession}
 							onSelectProject={(selectedProjectId) => {
+								if (selectedProjectId === null) {
+									selectSession();
+									return;
+								}
 								setLastProjectId(selectedProjectId);
-								updateDraft({ selectedProjectId });
+								selectProject(selectedProjectId);
 							}}
 						/>
 						{draft.linkedPR ? (
@@ -759,7 +910,7 @@ export function NewWorkspaceScreen({
 								<LuGitPullRequest className="size-3 shrink-0" />
 								based off PR #{draft.linkedPR.prNumber}
 							</span>
-						) : (
+						) : draft.isSession ? null : (
 							<CompareBaseBranchPicker {...pickerProps} />
 						)}
 					</div>

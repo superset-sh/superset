@@ -1,6 +1,16 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
-import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
+import {
+	type HostServiceClient,
+	requireHostTarget,
+	resolveHostTarget,
+} from "../../../lib/host-target";
+
+async function findProject(client: HostServiceClient, projectId: string) {
+	const projects = await client.project.list.query();
+	return projects.find((project) => project.id === projectId) ?? null;
+}
 
 export default command({
 	description:
@@ -21,6 +31,12 @@ export default command({
 		),
 		allowRelocate: boolean().desc(
 			"Permit re-importing at a different path if the project is already set up here",
+		),
+		repoUrl: string().desc(
+			"Repo clone URL, when the target host doesn't know the project yet",
+		),
+		name: string().desc(
+			"Project name, when the target host doesn't know it yet",
 		),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -67,10 +83,11 @@ export default command({
 			local: options.local ?? undefined,
 		});
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const mode = options.parentDir
@@ -84,8 +101,40 @@ export default command({
 					allowRelocate: options.allowRelocate ?? false,
 				};
 
+		// Projects are host-owned: a host that has never seen this project has
+		// no way to learn its repo. Prefer explicit flags, then this machine's
+		// own row for the project (the usual "adopt my project onto another
+		// box" case), and only skip origin when the target already has it.
+		let origin: { repoCloneUrl: string | null; name?: string } | undefined;
+		if (options.repoUrl || options.name) {
+			origin = {
+				repoCloneUrl: options.repoUrl ?? null,
+				name: options.name ?? undefined,
+			};
+		} else if (!(await findProject(target.client, projectId))) {
+			const source =
+				target.hostId === getHostId()
+					? null
+					: await resolveHostTarget({
+							requestedHostId: getHostId(),
+							organizationId,
+							userJwt: ctx.bearer,
+							api: ctx.api,
+						})
+							.then((local) => findProject(local.client, projectId))
+							.catch(() => null);
+			if (!source) {
+				throw new CLIError(
+					`Host ${target.hostId} doesn't have project ${projectId}`,
+					"Pass --repo-url <url> (and --name <name>) so the host knows what to set up.",
+				);
+			}
+			origin = { repoCloneUrl: source.repoUrl, name: source.name };
+		}
+
 		const result = await target.client.project.setup.mutate({
 			projectId,
+			origin,
 			mode,
 		});
 

@@ -36,7 +36,10 @@ mock.module("../../../lib/upload-attachments", () => ({
 
 const { default: createAgentCommand } = await import("./command");
 
-function invoke(effort?: string) {
+function invoke(
+	effort?: string,
+	overrides: Record<string, unknown> = { prompt: "Review this diff" },
+) {
 	return createAgentCommand.run({
 		ctx: {
 			config: { organizationId: "org-1" },
@@ -47,8 +50,8 @@ function invoke(effort?: string) {
 			workspace: "00000000-0000-4000-8000-000000000001",
 			host: "host-1",
 			agent: "codex",
-			prompt: "Review this diff",
 			effort,
+			...overrides,
 		} as never,
 		signal: new AbortController().signal,
 	});
@@ -81,5 +84,23 @@ describe("agents create", () => {
 			effort: undefined,
 			attachmentIds: undefined,
 		});
+	});
+
+	test("resumes a previous session without a prompt", async () => {
+		await invoke(undefined, { resumeSession: "abc-123" });
+
+		expect(runInput).toEqual({
+			workspaceId: "00000000-0000-4000-8000-000000000001",
+			agent: "codex",
+			prompt: "",
+			resumeSessionId: "abc-123",
+			effort: undefined,
+			attachmentIds: undefined,
+		});
+	});
+
+	test("rejects a launch with neither prompt nor resume session", async () => {
+		await expect(invoke(undefined, {})).rejects.toThrow(/Missing --prompt/);
+		expect(runInput).toBeUndefined();
 	});
 });

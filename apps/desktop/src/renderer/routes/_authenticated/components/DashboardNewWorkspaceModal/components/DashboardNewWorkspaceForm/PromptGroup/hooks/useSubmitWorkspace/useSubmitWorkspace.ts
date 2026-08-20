@@ -2,11 +2,13 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
 import { usePromptHistoryStore } from "renderer/stores/prompt-history";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
+import { CLOUD_HOST_ID } from "../../../components/DevicePicker/DevicePicker";
 import type { WorkspaceCreateAgent } from "../../types";
 import type { UseUploadAttachmentsApi } from "../useUploadAttachments";
 import { resolveNames } from "./resolveNames";
@@ -30,12 +32,20 @@ export function useSubmitWorkspace(
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
+	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
+	const utils = cloudTrpc.useUtils();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	return useCallback(async () => {
-		if (!projectId) {
+	const isSession = draft.isSession;
+
+	const submitWorkspace = useCallback(async () => {
+		if (!projectId && !isSession) {
 			toast.error("Select a project first");
+			return;
+		}
+		if (isSession && draft.linkedPR !== null) {
+			toast.error("Checking out a PR requires a project");
 			return;
 		}
 		if (!activeOrganizationId) {
@@ -62,6 +72,61 @@ export function useSubmitWorkspace(
 		}
 
 		const { branchName, workspaceName } = resolveNames(draft);
+
+		// Cloud workspaces are provisioned by the API, not the local host, so
+		// they bypass the host `workspaces.create` path entirely.
+		if (hostId === CLOUD_HOST_ID) {
+			if (!projectId) {
+				toast.error("Cloud workspaces require a project");
+				return;
+			}
+			try {
+				// A typed name wins; otherwise the API names it from the prompt,
+				// since nothing about a cloud workspace runs on this device.
+				// Returns as soon as the row exists — the sandbox is still being
+				// provisioned behind it, which the workspace screen renders.
+				const created = await createCloudWorkspace.mutateAsync({
+					organizationId: activeOrganizationId,
+					projectId,
+					name: workspaceName ?? undefined,
+					prompt: draft.prompt.trim() || undefined,
+					branch: branchName ?? "main",
+				});
+				closeAndResetDraft();
+				// The cloud list is what both the sidebar and the workspace route
+				// read, and nothing used to tell it a workspace had been created —
+				// the row appeared whenever the poll next came round, which is why
+				// creating one felt like nothing had happened. Seeded rather than
+				// only invalidated because the route we're about to open decides
+				// between "provisioning" and "doesn't exist" off this list, and
+				// even one refetch round trip is long enough to flash the wrong
+				// one. Cancelled first so an in-flight fetch from before the
+				// create can't land on top of the patch.
+				const listInput = { organizationId: activeOrganizationId };
+				await utils.cloudWorkspace.list.cancel(listInput);
+				utils.cloudWorkspace.list.setData(listInput, (rows) =>
+					rows ? [created, ...rows] : [created],
+				);
+				void navigate({
+					to: "/v2-workspace/$workspaceId",
+					params: { workspaceId: created.id },
+				}).catch((error) => {
+					console.error(
+						"[useSubmitWorkspace] failed to open cloud workspace",
+						error,
+					);
+				});
+				// Server truth on top of the patch — the generated name lands here.
+				void utils.cloudWorkspace.list.invalidate();
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Could not create cloud workspace",
+				);
+			}
+			return;
+		}
 
 		const isPrCheckout = draft.linkedPR !== null;
 
@@ -108,20 +173,32 @@ export function useSubmitWorkspace(
 
 		const trimmedPrompt = draft.prompt.trim();
 		const workspaceId = crypto.randomUUID();
-		const snapshot = {
-			id: workspaceId,
-			projectId,
-			name: isPrCheckout ? prName : (workspaceName ?? undefined),
-			branch: isPrCheckout ? undefined : (branchName ?? undefined),
-			pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
-			baseBranch: draft.baseBranch ?? undefined,
-			taskId: linkedTaskId,
-			agents,
-			namingPrompt:
-				!isPrCheckout && !wantAgent && trimmedPrompt
-					? trimmedPrompt
-					: undefined,
-		};
+		const snapshot = isSession
+			? {
+					id: workspaceId,
+					projectId: null,
+					name: workspaceName ?? undefined,
+					agents,
+					namingPrompt: !wantAgent && trimmedPrompt ? trimmedPrompt : undefined,
+				}
+			: {
+					id: workspaceId,
+					projectId: projectId as string,
+					name: isPrCheckout ? prName : (workspaceName ?? undefined),
+					branch: isPrCheckout ? undefined : (branchName ?? undefined),
+					skipBranchPrefix:
+						!isPrCheckout && branchName !== null && draft.branchNameFromProvider
+							? true
+							: undefined,
+					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
+					baseBranch: draft.baseBranch ?? undefined,
+					taskId: linkedTaskId,
+					agents,
+					namingPrompt:
+						!isPrCheckout && !wantAgent && trimmedPrompt
+							? trimmedPrompt
+							: undefined,
+				};
 
 		if (trimmedPrompt) {
 			usePromptHistoryStore.getState().recordPrompt(trimmedPrompt);
@@ -166,7 +243,9 @@ export function useSubmitWorkspace(
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,
+		createCloudWorkspace,
 		draft,
+		isSession,
 		matchRoute,
 		machineId,
 		navigate,
@@ -177,5 +256,12 @@ export function useSubmitWorkspace(
 		selectedEffort,
 		submit,
 		uploadAttachments,
+		utils,
 	]);
+
+	// Cloud creation is the one path the user waits on, now only for as long as
+	// it takes to record the workspace — the sandbox comes up behind the
+	// workspace screen. Returned so the submit control can carry its own
+	// pending state for that moment rather than looking inert.
+	return { submitWorkspace, isCreating: createCloudWorkspace.isPending };
 }

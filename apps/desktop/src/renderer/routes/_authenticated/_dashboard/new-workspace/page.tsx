@@ -2,15 +2,17 @@ import { PromptInputProvider } from "@superset/ui/ai-elements/prompt-input";
 import { createFileRoute } from "@tanstack/react-router";
 import { NewWorkspaceScreen } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/NewWorkspaceScreen";
 import { DashboardNewWorkspaceDraftProvider } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceDraftContext";
+import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-attachments";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/new-workspace/",
 )({
 	validateSearch: (
 		search: Record<string, unknown>,
-	): { projectId?: string } => ({
+	): { projectId?: string; session?: boolean } => ({
 		projectId:
 			typeof search.projectId === "string" ? search.projectId : undefined,
+		session: search.session === true ? true : undefined,
 	}),
 	component: NewWorkspacePage,
 });
@@ -20,11 +22,15 @@ export const Route = createFileRoute(
  * route. Store opens are redirected here by DashboardNewWorkspaceModal.
  */
 function NewWorkspacePage() {
-	const { projectId } = Route.useSearch();
+	const { projectId, session } = Route.useSearch();
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={() => {}}>
-			<PromptInputProvider>
-				<NewWorkspaceScreen isOpen preSelectedProjectId={projectId ?? null} />
+			<PromptInputProvider attachmentsStore={newWorkspaceAttachmentsStore}>
+				<NewWorkspaceScreen
+					isOpen
+					preSelectedProjectId={projectId ?? null}
+					preSelectedSession={session === true}
+				/>
 				{/* Window-drag surface replacing the hidden TopBar's drag region.
 				    Stops short of the top-right corner so the screen's naming
 				    instructions + prompt history buttons underneath stay

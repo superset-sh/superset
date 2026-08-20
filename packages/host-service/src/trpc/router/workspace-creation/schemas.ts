@@ -25,6 +25,9 @@ export const adoptInputSchema = z.object({
 
 export const githubSearchInputSchema = z.object({
 	projectId: z.string(),
+	// Batch mode: search every listed project in shared GitHub Search calls.
+	// When absent, only `projectId` is searched (legacy single-project mode).
+	projectIds: z.array(z.string()).min(1).max(50).optional(),
 	query: z.string().optional(),
 	limit: z.number().min(1).max(100).optional(),
 	includeClosed: z.boolean().optional(),

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	isMergeConflictError,
 	isNoPullRequestFoundMessage,
 	isUpstreamMissingError,
 } from "./git-utils";
@@ -34,6 +35,32 @@ describe("git-operations error handling", () => {
 		test("does not falsely detect other errors as upstream deleted", () => {
 			for (const message of otherErrorMessages) {
 				expect(isUpstreamMissingError(message)).toBe(false);
+			}
+		});
+	});
+
+	describe("isMergeConflictError", () => {
+		const mergeConflictMessages = [
+			"CONFLICT (content): Merge conflict in src/file.ts\nAutomatic merge failed; fix conflicts and then commit the result.",
+			"error: could not apply abc1234... my commit\nhint: Resolve all conflicts manually, mark them as resolved with",
+			"CONFLICT (modify/delete): file.ts deleted in HEAD",
+		];
+
+		const otherErrorMessages = [
+			"Your configuration specifies to merge with the ref 'refs/heads/feature-branch' from the remote, but no such ref was fetched.",
+			"error: failed to push some refs to 'origin' (non-fast-forward)",
+			"fatal: not a git repository",
+		];
+
+		test("detects rebase/merge conflict errors", () => {
+			for (const message of mergeConflictMessages) {
+				expect(isMergeConflictError(message)).toBe(true);
+			}
+		});
+
+		test("does not falsely detect other errors as merge conflicts", () => {
+			for (const message of otherErrorMessages) {
+				expect(isMergeConflictError(message)).toBe(false);
 			}
 		});
 	});

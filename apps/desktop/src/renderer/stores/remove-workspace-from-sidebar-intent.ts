@@ -3,7 +3,8 @@ import { create } from "zustand";
 export interface RemoveFromSidebarTarget {
 	workspaceId: string;
 	workspaceName: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	isMain: boolean;
 	tick: number;
 }

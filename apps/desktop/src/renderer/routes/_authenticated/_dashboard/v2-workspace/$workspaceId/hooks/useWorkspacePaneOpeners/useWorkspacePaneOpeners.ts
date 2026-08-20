@@ -4,7 +4,6 @@ import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/provide
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
 	ChatV3PaneData,
 	CommentPaneData,
 	DiffFocusSide,
@@ -12,6 +11,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspacePaneOpeners({
@@ -36,7 +36,6 @@ export function useWorkspacePaneOpeners({
 		changeKey?: string,
 	) => void;
 	addTerminalTab: () => Promise<void>;
-	addChatTab: () => void;
 	addChatV3Tab: () => void;
 	addBrowserTab: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
@@ -111,13 +110,15 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addBlankTerminalTab = useCallback(async () => {
-		const terminalId = await launcher.create();
+	const addBlankTerminalTab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
+					data: {
+						terminalId: launcher.mint(),
+						createOnAttach: true,
+					} as TerminalPaneData,
 				},
 			],
 		});
@@ -125,7 +126,7 @@ export function useWorkspacePaneOpeners({
 
 	const addTerminalTab = useCallback(async () => {
 		if (newTabPresets.length === 0) {
-			await addBlankTerminalTab();
+			addBlankTerminalTab();
 			return;
 		}
 
@@ -135,17 +136,6 @@ export function useWorkspacePaneOpeners({
 			await executePreset(preset, { target: "new-tab" });
 		}
 	}, [addBlankTerminalTab, executePreset, newTabPresets]);
-
-	const addChatTab = useCallback(() => {
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "chat",
-					data: { sessionId: null } as ChatPaneData,
-				},
-			],
-		});
-	}, [store]);
 
 	const addChatV3Tab = useCallback(() => {
 		store.getState().addTab({
@@ -158,18 +148,19 @@ export function useWorkspacePaneOpeners({
 		});
 	}, [store]);
 
+	const defaultBrowserUrl = useDefaultBrowserUrl();
 	const addBrowserTab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "browser",
 					data: {
-						url: "about:blank",
+						url: defaultBrowserUrl,
 					} as BrowserPaneData,
 				},
 			],
 		});
-	}, [store]);
+	}, [store, defaultBrowserUrl]);
 
 	const openCommentPane = useCallback(
 		(comment: CommentPaneData) => {
@@ -201,7 +192,6 @@ export function useWorkspacePaneOpeners({
 	return {
 		openDiffPane,
 		addTerminalTab,
-		addChatTab,
 		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,

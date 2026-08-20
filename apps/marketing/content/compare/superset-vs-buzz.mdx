@@ -1,0 +1,108 @@
+---
+title: "Superset vs Buzz (2026): Agent Workspace vs Block's Human-Agent Collaboration Platform"
+description: "Compare Superset and Buzz by Block. See how a parallel coding-agent workspace differs from a Nostr-based collaboration platform where humans and AI agents share rooms."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - buzz
+keywords:
+  - superset vs buzz
+  - buzz alternative
+  - buzz by block
+  - buzz.xyz
+  - block buzz agents
+  - ai agent collaboration
+---
+
+Superset and Buzz both put AI agents to work alongside developers, but they answer different questions. Superset answers "how do I run many coding agents in parallel on my machines and review what they produce?" Buzz, an open-source platform from Block launched in July 2026, answers "where do humans and agents work together as a team?" It is closer to a Slack-plus-GitHub hybrid built on Nostr, where agents are cryptographically identified members of your channels, than to a parallel-agent coding environment.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Buzz** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | A shared workspace (channels, threads, repos, workflows) where humans and agents collaborate |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Collaboration platform for human-agent teams, built on Nostr |
+| **Core unit** | Workspace (worktree + terminals + review) | Community on a relay (channels, threads, git events) |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Agent-agnostic via ACP/MCP (goose, Codex, Claude Code); agents hold their own Nostr keys |
+| **Isolation** | Automatic Git worktree per task | Single local clone per project; no per-task worktrees |
+| **Code review** | Built-in diff/file editor per worktree | Patches (NIP-34 events) reviewed in channels; Git integration self-described as early |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | YAML workflows with message/reaction/schedule/webhook triggers |
+| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Linux, Windows alpha), hosted beta at buzz.xyz, self-host; mobile in development |
+| **License** | Source-available (ELv2) | Open source (Apache-2.0) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Buzz?
+
+Buzz is Block's free, open-source collaboration workspace where humans and AI agents work together, launched in July 2026. Every participant -- human or agent -- holds their own cryptographic keypair on the Nostr protocol, so agents are members with their own channel memberships and audit trails rather than bots behind an API key. A community lives on a relay you can self-host, and it bundles channels, threads, DMs, voice huddles, canvases, git repositories, patch review as signed events, and YAML workflows triggered by messages, reactions, schedules, or webhooks. Agents can be powered by any LLM or harness, including Claude Code, Codex, and Block's goose, and Buzz's own agent stack runs headless coding sessions over ACP with an MCP-provided shell. It ships as a desktop app for macOS, Linux, and Windows (alpha), a hosted beta at buzz.xyz, and a self-hostable stack, all Apache-2.0.
+
+## Key Differences
+
+### Coding Environment vs Team Workspace
+
+Superset is where the coding work happens: agents run in terminals inside isolated worktrees, you watch diffs accumulate, review, and merge. Buzz is where the team coordinates: agents and humans share channels, patches land as signed events in the room, CI posts results, and the merge decision happens next to the discussion. Buzz's own framing is replacing "chat, forges, bots, CI dashboards... and a pile of glue code" with one workspace. They are less substitutes than different layers -- but if the question is which tool runs and manages your parallel coding agents day to day, that is Superset's job, not Buzz's.
+
+### Isolation and Parallelism
+
+Superset creates a Git worktree per task automatically, so a dozen agents can work the same repo on separate branches without collisions, each with persistent terminals and reviewable diffs. Buzz projects work against a single local clone, and its desktop terminal button opens your OS terminal at the checkout rather than orchestrating embedded sessions. You can run many agents behind Buzz at the protocol level, but coordination is channel-centric and its Git integration is, in Block's own words, still early.
+
+### Identity and Decentralization
+
+Buzz's most distinctive idea is agent identity: every agent holds a portable Nostr keypair, so its history and reputation travel across any Nostr-compatible system, and teams that self-host a relay own all their data. Superset's model is more conventional -- your machines, your repos, your provider subscriptions -- with the novelty spent on orchestration depth rather than protocol-level identity. If cryptographic agent identity and relay ownership matter to you, Buzz is genuinely different from everything else in this space.
+
+### Automation
+
+Both automate. Superset schedules agent sessions as automations with a TypeScript SDK and a Slack bot, aimed at recurring coding work like nightly dependency bumps or triage. Buzz uses YAML workflows triggered by messages, reactions, schedules, or webhooks, aimed at team processes in the workspace. Superset's automations produce worktrees and diffs you review; Buzz's workflows produce activity in channels.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Buzz is free and open source (Apache-2.0), with a hosted beta at buzz.xyz and no paid plans announced as of August 2026. In both cases you pay the underlying model providers for agent usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want to run many coding agents in parallel with worktree isolation and reviewable diffs
+- Need persistent terminals, an in-app browser, and a diff editor around your agents
+- Run scheduled coding automations with an SDK and Slack integration
+- Want remote and cloud workspaces on your own devices
+
+**Choose Buzz if you:**
+
+- Want a shared workspace where agents are team members, not tools
+- Care about portable, cryptographic agent identity and self-hosted data via Nostr
+- Want channels, threads, voice, canvases, repos, and workflows in one open-source platform
+- Are building human-agent team processes rather than a parallel coding pipeline
+
+**Verdict:** These tools solve different problems and can genuinely coexist: Buzz as the team layer where humans and agents communicate and decide, Superset as the execution layer where coding agents actually run in parallel and produce reviewable work. If you have to pick one for AI-assisted software development today, Superset covers the coding workflow end to end; Buzz is the more experimental bet on what human-agent teams look like.
+
+---
+
+## Frequently Asked Questions
+
+### Is Buzz a coding-agent orchestrator like Superset?
+
+Not primarily. Buzz is a collaboration workspace -- channels, threads, repos, and workflows shared by humans and agents. It can host headless agent coding sessions, but it does not provide per-task Git worktree isolation or embedded terminal orchestration the way Superset does.
+
+### Is Buzz open source?
+
+Yes. Buzz is Apache-2.0 and self-hostable, with a hosted beta at buzz.xyz. Superset is source-available under the Elastic License 2.0 with a free tier and paid Pro.
+
+### Can they be used together?
+
+There is no built-in integration, but they occupy different layers: teams could coordinate in Buzz while individual engineers run their parallel agents in Superset. Superset's Slack bot plays a similar coordination role for Slack-based teams.
+
+### Does Buzz support Claude Code and Codex?
+
+Yes. Buzz is model- and harness-agnostic: agents can be powered by Claude Code, Codex, goose, or any LLM, connected over ACP with MCP-provided tools. Superset runs those same agents as interactive terminal sessions inside isolated worktrees.

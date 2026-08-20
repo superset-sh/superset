@@ -3,8 +3,20 @@ import {
 	getRoleSortPriority,
 	type OrganizationRole,
 } from "@superset/shared/auth";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -18,9 +30,8 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
 	HiOutlineClipboardDocument,
 	HiOutlineClipboardDocumentCheck,
@@ -28,8 +39,8 @@ import {
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -81,19 +92,20 @@ function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
 export function OrganizationSettings({
 	visibleItems,
 }: OrganizationSettingsProps) {
-	const { data: session } = authClient.useSession();
+	const { data: session, refetch: refetchSession } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
+	const navigate = useNavigate();
 	const searchQuery = useSettingsSearchQuery();
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [nameValue, setNameValue] = useState("");
+	const [deleteConfirmValue, setDeleteConfirmValue] = useState("");
+	const [isDeletingOrg, setIsDeletingOrg] = useState(false);
 
-	const { data: organizations, isReady } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations, isPending } =
+		cloudTrpc.organization.list.useQuery(undefined);
 
 	const organization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -122,39 +134,41 @@ export function OrganizationSettings({
 	);
 	const showId = isItemVisible(SETTING_ITEM_ID.ORGANIZATION_ID, visibleItems);
 	const { copyToClipboard, copied } = useCopyToClipboard();
+	const showDelete = isItemVisible(
+		SETTING_ITEM_ID.ORGANIZATION_DELETE,
+		visibleItems,
+	);
 	const showMembersList = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		visibleItems,
 	);
 
-	const { data: membersData, isReady: membersReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.innerJoin({ users: collections.users }, ({ members, users }) =>
-					eq(members.userId, users.id),
-				)
-				.select(({ members, users }) => ({
-					...users,
-					...members,
-					memberId: members.id,
-				}))
-				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc"),
-		[collections, activeOrganizationId],
-	);
+	const { data: membersData, isPending: membersPending } =
+		cloudTrpc.organization.listMembers.useQuery({ includeDeactivated: true });
 
-	const members: TeamMember[] = (membersData ?? [])
-		.map((m) => ({
-			...m,
-			role: m.role as OrganizationRole,
-		}))
-		.sort((a, b) => {
-			const priorityDiff =
-				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
-			if (priorityDiff !== 0) return priorityDiff;
-			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		});
+	const members: TeamMember[] = useMemo(() => {
+		if (!activeOrganizationId) return [];
+		return (membersData ?? [])
+			.map((m) => ({
+				memberId: m.id,
+				userId: m.userId,
+				organizationId: activeOrganizationId,
+				role: m.role as OrganizationRole,
+				createdAt: m.createdAt,
+				name: m.user.name,
+				email: m.user.email,
+				image: m.user.image,
+				deletionRequestedAt: m.user.deletionRequestedAt,
+			}))
+			.sort((a, b) => {
+				const priorityDiff =
+					getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
+				if (priorityDiff !== 0) return priorityDiff;
+				return (
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				);
+			});
+	}, [membersData, activeOrganizationId]);
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 	const currentMemberFromData = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMemberFromData?.role;
@@ -191,11 +205,48 @@ export function OrganizationSettings({
 			});
 
 			setLogoPreview(uploadResult.url);
+			await utils.organization.list.invalidate();
 			toast.success("Logo updated");
 		} catch (error) {
 			console.error("[organization-settings] Logo upload failed:", error);
 			toast.error("Failed to update logo");
 		}
+	}
+
+	async function deleteOrganization(): Promise<void> {
+		if (!organization) return;
+		const { error } = await authClient.organization.delete({
+			organizationId: organization.id,
+		});
+		if (error) throw new Error(error.message);
+
+		// The server nulls the active org during deletion; explicitly move the
+		// session to the next org (or none) and re-enter the root gates, same
+		// as the leave-organization flow.
+		const remaining = (organizations ?? []).filter(
+			(o) => o.id !== organization.id,
+		);
+		await authClient.organization.setActive({
+			organizationId: remaining[0]?.id ?? null,
+		});
+		await refetchSession();
+		await utils.invalidate();
+		navigate({ to: "/" });
+	}
+
+	function handleDeleteOrganization(): void {
+		setIsDeletingOrg(true);
+		toast.promise(
+			deleteOrganization().finally(() => {
+				setIsDeletingOrg(false);
+				setDeleteConfirmValue("");
+			}),
+			{
+				loading: "Deleting organization...",
+				success: "Organization deleted",
+				error: (err) => err.message || "Failed to delete organization",
+			},
+		);
 	}
 
 	async function handleNameBlur(): Promise<void> {
@@ -211,6 +262,7 @@ export function OrganizationSettings({
 				id: organization.id,
 				name: nameValue,
 			});
+			await utils.organization.list.invalidate();
 			toast.success("Organization name updated");
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
@@ -229,7 +281,7 @@ export function OrganizationSettings({
 		);
 	}
 
-	if (!organization && !isReady) {
+	if (!organization && isPending) {
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<Skeleton className="h-7 w-40 mb-8" />
@@ -413,7 +465,7 @@ export function OrganizationSettings({
 										</p>
 									</div>
 
-									{!membersReady && members.length === 0 ? (
+									{membersPending && members.length === 0 ? (
 										<div className="border rounded-lg divide-y divide-border">
 											{[0, 1, 2].map((i) => (
 												<div key={i} className="flex items-center gap-4 p-4">
@@ -458,7 +510,13 @@ export function OrganizationSettings({
 																			image={member.image}
 																		/>
 																		<div className="flex items-center gap-2">
-																			<span className="font-medium">
+																			<span
+																				className={
+																					member.deletionRequestedAt
+																						? "font-medium text-muted-foreground"
+																						: "font-medium"
+																				}
+																			>
 																				{member.name || "Unknown"}
 																			</span>
 																			{isCurrentUserRow && (
@@ -467,6 +525,14 @@ export function OrganizationSettings({
 																					className="text-[10px] h-4 px-1.5"
 																				>
 																					You
+																				</Badge>
+																			)}
+																			{member.deletionRequestedAt && (
+																				<Badge
+																					variant="outline"
+																					className="text-[10px] h-4 px-1.5 text-muted-foreground"
+																				>
+																					Deactivated
 																				</Badge>
 																			)}
 																		</div>
@@ -517,6 +583,52 @@ export function OrganizationSettings({
 							)}
 						</section>
 					)}
+
+					{showDelete && isOwner && (
+						<section>
+							<SettingsRow label="Delete organization">
+								<AlertDialog
+									onOpenChange={(open) => {
+										if (!open) setDeleteConfirmValue("");
+									}}
+								>
+									<AlertDialogTrigger asChild>
+										<Button variant="destructive" disabled={isDeletingOrg}>
+											{isDeletingOrg ? "Deleting…" : "Delete organization"}
+										</Button>
+									</AlertDialogTrigger>
+									<AlertDialogContent>
+										<AlertDialogHeader>
+											<AlertDialogTitle>
+												Delete {organization.name}?
+											</AlertDialogTitle>
+											<AlertDialogDescription>
+												{members.length > 1
+													? `All data will be permanently deleted for all ${members.length} members — this cannot be undone.`
+													: "All of the organization's data will be permanently deleted — this cannot be undone."}{" "}
+												Type the organization name to confirm.
+											</AlertDialogDescription>
+										</AlertDialogHeader>
+										<Input
+											value={deleteConfirmValue}
+											onChange={(e) => setDeleteConfirmValue(e.target.value)}
+											placeholder={organization.name}
+										/>
+										<AlertDialogFooter>
+											<AlertDialogCancel>Cancel</AlertDialogCancel>
+											<AlertDialogAction
+												variant="destructive"
+												disabled={deleteConfirmValue !== organization.name}
+												onClick={handleDeleteOrganization}
+											>
+												Delete organization
+											</AlertDialogAction>
+										</AlertDialogFooter>
+									</AlertDialogContent>
+								</AlertDialog>
+							</SettingsRow>
+						</section>
+					)}
 				</div>
 			</div>
 
@@ -526,6 +638,7 @@ export function OrganizationSettings({
 					onOpenChange={setIsSlugDialogOpen}
 					organizationId={organization.id}
 					currentSlug={organization.slug}
+					onSuccess={() => utils.organization.list.invalidate()}
 				/>
 			)}
 		</>

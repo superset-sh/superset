@@ -25,6 +25,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/lib/terminal/terminal-runtime.ts",
 		["terminal-buffer:*", "terminal-dims:*"],
 	],
+	["src/renderer/lib/terminal/terminal-seq-anchor.ts", ["terminal-seq:*"]],
 	[
 		"src/renderer/lib/terminal/terminal-buffer-gc.ts",
 		["terminal-buffer-persisted-at"],
@@ -64,7 +65,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	["src/renderer/stores/ringtone/store.ts", ["ringtone-storage"]],
 	["src/renderer/stores/settings.ts", ["settings"]],
-	["src/renderer/stores/chat-preferences/store.ts", ["chat-preferences"]],
 	[
 		"src/renderer/stores/markdown-preferences/store.ts",
 		["markdown-preferences"],
@@ -79,7 +79,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["workspace-sidebar-store"],
 	],
 	[
-		"src/renderer/stores/sidebar-workspaces-collapse.ts",
+		"src/renderer/stores/sidebar-sections-collapse.ts",
 		["sidebar-workspaces-collapse"],
 	],
 	["src/renderer/stores/v2-local-override.ts", ["v2-local-override-v2"]],
@@ -98,6 +98,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["v2-available-banner-v1"],
 	],
 	["src/renderer/stores/hiring-banner/store.ts", ["hiring-banner-v1"]],
+	["src/renderer/stores/star-nag/store.ts", ["star-nag-v1"]],
 	[
 		"src/renderer/stores/terminal-close-confirm/store.ts",
 		["terminal-close-confirm-v1"],
@@ -115,6 +116,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["desktop-notice-dismissals-v1", "v2-setup-card-dismissals-v1"],
 	],
 	["src/renderer/stores/workspace-agents-row.ts", ["workspace-agents-row"]],
+	[
+		"src/renderer/routes/_authenticated/_dashboard/usage/utils/usageLastSection/usageLastSection.ts",
+		["usage-last-section-v1"],
+	],
 	["src/renderer/stores/inline-workspace-ports.ts", ["inline-workspace-ports"]],
 	["src/renderer/hotkeys/stores/hotkeyOverridesStore.ts", ["hotkey-overrides"]],
 	[
@@ -160,11 +165,15 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["lastViewedWorkspaceId"],
 	],
 	[
+		"src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx",
+		["lastViewedWorkspaceId"],
+	],
+	[
 		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/richInputOpenStore.ts",
 		["superset.terminalRichInputOpen"],
 	],
 	[
-		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/components/AgentCommentComposer/hooks/useDiffCommentTarget/useDiffCommentTarget.ts",
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/hooks/useDiffCommentTarget/useDiffCommentTarget.ts",
 		[
 			"lastSelectedDiffCommentNewAgentConfigId",
 			"lastSelectedDiffCommentPlacement",

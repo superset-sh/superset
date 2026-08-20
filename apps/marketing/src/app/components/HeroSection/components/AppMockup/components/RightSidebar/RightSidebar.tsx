@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { LuArrowRight, LuGitPullRequest, LuPlay } from "react-icons/lu";
 import { FILE_CHANGES } from "../../constants";
 import type { ActiveDemo } from "../../types";
@@ -16,7 +16,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 	const isDiff = activeDemo === "See Changes";
 
 	return (
-		<motion.div
+		<m.div
 			className="relative flex shrink-0 flex-col overflow-hidden border-l border-border/60 bg-card text-[11px]"
 			initial={{ width: 236 }}
 			animate={{ width: isDiff ? 380 : 236 }}
@@ -62,20 +62,22 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 
 			<div className="bg-background px-3 pt-3 pb-2">
 				<div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/60">
-					<span className="tabular-nums text-emerald-400/85">+1,128</span>
-					<span className="tabular-nums text-rose-400/75">−98</span>
+					<span className="tabular-nums text-emerald-400/85">+393</span>
+					<span className="tabular-nums text-rose-400/75">−42</span>
 					<span className="text-muted-foreground/45">·</span>
-					<span>10 files</span>
+					<span>5 files</span>
 					<span className="text-muted-foreground/45">·</span>
 					<span className="flex items-center gap-1">
 						<LuArrowRight className="size-2.5" />
-						main
+						<span className="rounded-sm bg-foreground/[0.07] px-1 py-px">
+							main
+						</span>
 					</span>
 				</div>
 			</div>
 
 			<div className="relative flex-1 bg-background">
-				<motion.div
+				<m.div
 					className="absolute inset-0 flex flex-col"
 					initial={{ opacity: 1 }}
 					animate={{ opacity: isDiff ? 0 : 1 }}
@@ -94,9 +96,9 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 							/>
 						))}
 					</div>
-				</motion.div>
+				</m.div>
 
-				<motion.div
+				<m.div
 					className="absolute inset-0 flex flex-col bg-background"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: isDiff ? 1 : 0 }}
@@ -154,9 +156,9 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 							Comment
 						</button>
 					</div>
-				</motion.div>
+				</m.div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }
 

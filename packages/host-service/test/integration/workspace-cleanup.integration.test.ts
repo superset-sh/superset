@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import {
+	chmodSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	renameSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -20,7 +22,7 @@ import {
 } from "../../src/terminal/env";
 import { __resetSessionsForTesting } from "../../src/terminal/terminal";
 import { __setAccountShellForTesting } from "../../src/terminal/user-shell";
-import { cloudFlows, cloudOk } from "../helpers/cloud-fakes";
+import { cloudFlows } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
 import {
@@ -28,7 +30,7 @@ import {
 	createFeatureWorktreeScenario,
 	type FeatureWorktreeScenario,
 } from "../helpers/scenarios";
-import { seedProject, seedWorkspace } from "../helpers/seed";
+import { seedProject, seedPullRequest, seedWorkspace } from "../helpers/seed";
 
 describe("workspaceCleanup.destroy integration", () => {
 	let scenario: FeatureWorktreeScenario;
@@ -113,16 +115,9 @@ describe("workspaceCleanup.destroy integration", () => {
 				workspaceId: scenario.featureWorkspaceId,
 			}),
 		).rejects.toThrow(/uncommitted changes/i);
-
-		// Cloud delete should NOT have been called — we're past the dirty check.
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(false);
 	});
 
-	test("force=true skips preflight and runs cloud delete + db cleanup", async () => {
+	test("force=true skips preflight and runs db cleanup", async () => {
 		writeFileSync(join(scenario.worktreePath, "dirty.txt"), "uncommitted");
 
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
@@ -130,19 +125,16 @@ describe("workspaceCleanup.destroy integration", () => {
 			force: true,
 		});
 		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(true);
 
+		// The row survives as an archived tombstone (mark-first soft delete).
 		const remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(true);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
+		expect(remaining[0]?.archiveReason).toBe("deleted");
 	});
 
 	test("force=true removes a locked worktree whose directory still exists", async () => {
@@ -169,7 +161,7 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
-	test("teardown failure blocks local and cloud delete until force retry", async () => {
+	test("teardown failure blocks the local delete until force retry", async () => {
 		teardownTmp = mkdtempSync(join(tmpdir(), "workspace-cleanup-teardown-"));
 		const socketPath = join(teardownTmp, "pty-daemon.sock");
 		const teardownWrites: string[] = [];
@@ -217,11 +209,6 @@ describe("workspaceCleanup.destroy integration", () => {
 			}),
 		).rejects.toThrow(/Teardown script failed/i);
 		expect(teardownWrites).toHaveLength(1);
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(false);
 		expect(existsSync(scenario.worktreePath)).toBe(true);
 		let remaining = scenario.host.db
 			.select()
@@ -229,41 +216,71 @@ describe("workspaceCleanup.destroy integration", () => {
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
 		expect(remaining).toHaveLength(1);
+		// The blocking teardown failure un-archived the mark-first tombstone —
+		// the workspace is live and retryable.
+		expect(remaining[0]?.archivedAt).toBeNull();
 
+		// The teardown-failed retry carries both consents: force (git) and
+		// skipTeardown — force alone would run the failing script again.
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 			force: true,
+			skipTeardown: true,
 		});
 		expect(result.success).toBe(true);
 		expect(result.worktreeRemoved).toBe(true);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(true);
 
 		remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
 	});
 
-	test("clean worktree destroys without force and removes db row", async () => {
+	test("destroying a workspace with a merged PR archives with reason 'merged'", async () => {
+		const { id: prId } = seedPullRequest(scenario.host, {
+			projectId: scenario.projectId,
+			prNumber: 4242,
+			state: "merged",
+			headBranch: scenario.branch,
+		});
+		scenario.host.db
+			.update(workspaces)
+			.set({ pullRequestId: prId })
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.run();
+
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 		});
 		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(true);
 
 		const remaining = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archiveReason).toBe("merged");
+	});
+
+	test("clean worktree destroys without force and archives the db row", async () => {
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+		});
+		expect(result.success).toBe(true);
+
+		const remaining = scenario.host.db
+			.select()
+			.from(workspaces)
+			.where(eq(workspaces.id, scenario.featureWorkspaceId))
+			.all();
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
+		expect(remaining[0]?.archiveReason).toBe("deleted");
 	});
 
 	test("deleteBranch=true also removes the branch after worktree teardown", async () => {
@@ -356,45 +373,160 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
-	test("cloud delete failure still completes locally", async () => {
-		let cloudDeleteCalls = 0;
-		scenario.host.setApi("v2Workspace.delete.mutate", () => {
-			cloudDeleteCalls += 1;
-			throw new Error("cloud delete unavailable");
+	test("missing project repo: worktree inside the managed root is deleted directly", async () => {
+		// The project repo was moved or deleted outside Superset. There is no
+		// repository to run `git worktree remove` in, so the saga must delete
+		// the (dangling) worktree folder itself and still complete — every
+		// retry used to 500 on "Failed to open project repo" (HOST-SERVICE-3A).
+		await scenario.dispose();
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		const worktreeBaseDir = mkdtempSync(
+			join(tmpdir(), "host-service-worktrees-"),
+		);
+		const { id: projectId } = seedProject(host, {
+			repoPath: repo.repoPath,
+			worktreeBaseDir,
 		});
-
-		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
-			workspaceId: scenario.featureWorkspaceId,
+		const worktreePath = join(worktreeBaseDir, projectId, "feature-gone");
+		mkdirSync(join(worktreeBaseDir, projectId), { recursive: true });
+		await repo.git.raw(["worktree", "add", "-b", "feature/gone", worktreePath]);
+		const { id: workspaceId } = seedWorkspace(host, {
+			projectId,
+			worktreePath,
+			branch: "feature/gone",
 		});
-		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(false);
-		expect(result.worktreeRemoved).toBe(true);
-		expect(
-			result.warnings.some((w) => w.includes("Legacy cloud cleanup failed")),
-		).toBe(true);
-		expect(cloudDeleteCalls).toBe(1);
-		expect(existsSync(scenario.worktreePath)).toBe(false);
+		rmSync(repo.repoPath, { recursive: true, force: true });
 
-		// Local row is gone — the local delete is the commit point.
-		const remaining = scenario.host.db
-			.select()
-			.from(workspaces)
-			.where(eq(workspaces.id, scenario.featureWorkspaceId))
-			.all();
-		expect(remaining).toHaveLength(0);
+		try {
+			const result = await host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId,
+				deleteBranch: true,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(true);
+			expect(result.branchDeleted).toBe(false);
+			expect(result.warnings).toEqual([]);
+			expect(existsSync(worktreePath)).toBe(false);
+
+			const remaining = host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, workspaceId))
+				.all();
+			expect(remaining[0]?.archivedAt).not.toBeNull();
+		} finally {
+			await host.dispose();
+			repo.dispose();
+			rmSync(worktreeBaseDir, { recursive: true, force: true });
+		}
 	});
 
-	test("cloud delete failure does not block the opted-in branch delete", async () => {
-		scenario.host.setApi("v2Workspace.delete.mutate", () => {
-			throw new Error("cloud delete unavailable");
+	test("missing project repo: worktree outside the managed root is left on disk with a warning", async () => {
+		// An adopted (or corrupt) worktreePath outside the project's managed
+		// worktrees root must never be rm -rf'd — the delete still succeeds,
+		// the folder stays, and the caller is told why.
+		await scenario.dispose();
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		const outside = mkdtempSync(join(tmpdir(), "host-service-adopted-"));
+		const worktreeBaseDir = mkdtempSync(
+			join(tmpdir(), "host-service-worktrees-"),
+		);
+		const { id: projectId } = seedProject(host, {
+			repoPath: repo.repoPath,
+			worktreeBaseDir,
 		});
+		const worktreePath = join(outside, "feature-adopted");
+		await repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/adopted",
+			worktreePath,
+		]);
+		const { id: workspaceId } = seedWorkspace(host, {
+			projectId,
+			worktreePath,
+			branch: "feature/adopted",
+		});
+		rmSync(repo.repoPath, { recursive: true, force: true });
 
+		try {
+			const result = await host.trpc.workspaceCleanup.destroy.mutate({
+				workspaceId,
+			});
+			expect(result.success).toBe(true);
+			expect(result.worktreeRemoved).toBe(false);
+			expect(result.warnings).toHaveLength(1);
+			expect(result.warnings[0]).toMatch(/outside the managed worktrees root/);
+			expect(existsSync(worktreePath)).toBe(true);
+		} finally {
+			await host.dispose();
+			repo.dispose();
+			rmSync(outside, { recursive: true, force: true });
+			rmSync(worktreeBaseDir, { recursive: true, force: true });
+		}
+	});
+
+	test("unreadable project repo is not treated as missing: destroy still throws and the worktree stays", async () => {
+		// existsSync says false for EPERM/EACCES too. A repo this process merely
+		// cannot read (macOS privacy protection, a permissions accident) must not
+		// take the direct-delete branch — the worktree may hold uncommitted work
+		// and the repo is intact. The old "failed to open" throw stays.
+		// root ignores mode bits; Windows has neither getuid nor POSIX traversal denial
+		if (process.platform === "win32" || process.getuid?.() === 0) return;
+		await scenario.dispose();
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		const worktreeBaseDir = mkdtempSync(
+			join(tmpdir(), "host-service-worktrees-"),
+		);
+		const lockedParent = mkdtempSync(join(tmpdir(), "host-service-locked-"));
+		const lockedRepo = join(lockedParent, "repo");
+		const { id: projectId } = seedProject(host, {
+			repoPath: lockedRepo,
+			worktreeBaseDir,
+		});
+		const worktreePath = join(worktreeBaseDir, projectId, "feature-locked");
+		mkdirSync(join(worktreeBaseDir, projectId), { recursive: true });
+		await repo.git.raw([
+			"worktree",
+			"add",
+			"-b",
+			"feature/locked",
+			worktreePath,
+		]);
+		const { id: workspaceId } = seedWorkspace(host, {
+			projectId,
+			worktreePath,
+			branch: "feature/locked",
+		});
+		// Park the repo under a parent this process cannot traverse, so
+		// stat(repoPath) fails with EACCES rather than ENOENT.
+		renameSync(repo.repoPath, lockedRepo);
+		chmodSync(lockedParent, 0o000);
+
+		try {
+			await expect(
+				host.trpc.workspaceCleanup.destroy.mutate({ workspaceId, force: true }),
+			).rejects.toThrow(/Failed to open project repo/);
+			expect(existsSync(worktreePath)).toBe(true);
+		} finally {
+			chmodSync(lockedParent, 0o755);
+			await host.dispose();
+			rmSync(lockedParent, { recursive: true, force: true });
+			repo.dispose();
+			rmSync(worktreeBaseDir, { recursive: true, force: true });
+		}
+	});
+
+	test("opted-in branch delete runs after the local commit point", async () => {
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 			deleteBranch: true,
 		});
 		expect(result.success).toBe(true);
-		expect(result.cloudDeleted).toBe(false);
 		expect(result.branchDeleted).toBe(true);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
 
@@ -406,25 +538,18 @@ describe("workspaceCleanup.destroy integration", () => {
 			.from(workspaces)
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
-		expect(remaining).toHaveLength(0);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]?.archivedAt).not.toBeNull();
 	});
 
-	test("returns success when no local workspace row exists, still calls cloud delete", async () => {
+	test("returns success when no local workspace row exists", async () => {
 		await scenario.dispose();
-		const fresh = await createBasicScenario({
-			hostOptions: {
-				apiOverrides: {
-					"v2Workspace.getFromHost.query": () => null,
-					"v2Workspace.delete.mutate": cloudOk.workspaceDelete(),
-				},
-			},
-		});
+		const fresh = await createBasicScenario();
 		try {
 			const result = await fresh.host.trpc.workspaceCleanup.destroy.mutate({
 				workspaceId: randomUUID(),
 			});
 			expect(result.success).toBe(true);
-			expect(result.cloudDeleted).toBe(true);
 		} finally {
 			await fresh.dispose();
 		}

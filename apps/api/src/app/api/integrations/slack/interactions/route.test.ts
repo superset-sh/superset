@@ -14,16 +14,17 @@ mock.module("@/lib/analytics", () => ({
 
 mock.module("@superset/db/client", () => ({
 	db: {
-		query: { usersSlackUsers: { findFirst: findSlackUser } },
+		query: { userIdentities: { findFirst: findSlackUser } },
 		update: () => ({ set: () => ({ where: async () => undefined }) }),
 		delete: () => ({ where: async () => undefined }),
 	},
 }));
 
 mock.module("@superset/db/schema", () => ({
-	usersSlackUsers: {
-		slackUserId: "slackUserId",
-		teamId: "teamId",
+	userIdentities: {
+		provider: "provider",
+		externalId: "externalId",
+		externalScopeId: "externalScopeId",
 		id: "id",
 	},
 }));

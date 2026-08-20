@@ -4,23 +4,34 @@ import { getHostId } from "@superset/shared/host-info";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
-import { env } from "../env";
+import type { ApiClient } from "../api-client";
 import { isProcessAlive, readManifest } from "../host/manifest";
+import { getRelayUrl } from "../host/relay-url";
 
 export type HostServiceClient = ReturnType<
 	typeof createTRPCClient<HostServiceRouter>
 >;
+
+/** Base WebSocket origin + auth token for the host's WS routes (terminals, CDP). */
+export interface HostWsEndpoint {
+	/** e.g. `ws://127.0.0.1:5123` (local) or `wss://relay/hosts/<key>` (remote). */
+	baseWsUrl: string;
+	/** Passed as the `?token=` query param on WS routes. */
+	token: string;
+}
 
 export type ResolvedHostTarget =
 	| {
 			kind: "local";
 			hostId: string;
 			client: HostServiceClient;
+			ws: HostWsEndpoint;
 	  }
 	| {
 			kind: "remote";
 			hostId: string;
 			client: HostServiceClient;
+			ws: HostWsEndpoint;
 	  };
 
 export interface ResolveHostTargetOptions {
@@ -32,11 +43,13 @@ export interface ResolveHostTargetOptions {
 	requestedHostId: string;
 	organizationId: string;
 	userJwt: string;
+	/** Resolves the relay a remote host is on; unused for local targets. */
+	api: ApiClient;
 }
 
-export function resolveHostTarget(
+export async function resolveHostTarget(
 	options: ResolveHostTargetOptions,
-): ResolvedHostTarget {
+): Promise<ResolvedHostTarget> {
 	const localHostId = getHostId();
 	const targetHostId = options.requestedHostId;
 
@@ -69,17 +82,22 @@ export function resolveHostTarget(
 					}),
 				],
 			}),
+			ws: {
+				baseWsUrl: manifest.endpoint.replace(/^http/, "ws"),
+				token: manifest.authToken,
+			},
 		};
 	}
 
 	const routingKey = buildHostRoutingKey(options.organizationId, targetHostId);
+	const relayUrl = await getRelayUrl(options.api);
 	return {
 		kind: "remote",
 		hostId: targetHostId,
 		client: createTRPCClient<HostServiceRouter>({
 			links: [
 				httpBatchLink({
-					url: `${env.RELAY_URL}/hosts/${routingKey}/trpc`,
+					url: `${relayUrl}/hosts/${routingKey}/trpc`,
 					transformer: SuperJSON,
 					headers: {
 						Authorization: `Bearer ${options.userJwt}`,
@@ -88,5 +106,9 @@ export function resolveHostTarget(
 				}),
 			],
 		}),
+		ws: {
+			baseWsUrl: `${relayUrl.replace(/^http/, "ws")}/hosts/${routingKey}`,
+			token: options.userJwt,
+		},
 	};
 }

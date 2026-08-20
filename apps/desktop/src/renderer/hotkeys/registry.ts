@@ -308,16 +308,6 @@ export const HOTKEYS_REGISTRY = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	},
-	SPLIT_WITH_CHAT: {
-		key: {
-			mac: L("meta+shift+e"),
-			windows: L("ctrl+alt+e"),
-			linux: L("ctrl+alt+e"),
-		},
-		label: "Split with New Chat",
-		category: "Layout",
-		description: "Split the current pane and open a new chat pane",
-	},
 	SPLIT_WITH_BROWSER: {
 		key: {
 			mac: L("meta+shift+s"),
@@ -408,15 +398,6 @@ export const HOTKEYS_REGISTRY = {
 			linux: L("ctrl+shift+t"),
 		},
 		label: "New Terminal",
-		category: "Terminal",
-	},
-	NEW_CHAT: {
-		key: {
-			mac: L("meta+shift+t"),
-			windows: L("ctrl+shift+alt+t"),
-			linux: L("ctrl+shift+alt+t"),
-		},
-		label: "New Chat",
 		category: "Terminal",
 	},
 	REOPEN_TAB: {

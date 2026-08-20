@@ -1,0 +1,1 @@
+export { CategoryArticle } from "./CategoryArticle";

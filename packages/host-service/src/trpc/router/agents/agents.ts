@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
@@ -20,6 +19,8 @@ import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
+import { toTerminalSessionError } from "../terminal/errors";
+import { resolveDefaultAccountEnv } from "../usage/default-account";
 
 interface ResolvedHostAgentConfig {
 	id: string;
@@ -29,6 +30,7 @@ interface ResolvedHostAgentConfig {
 	args: string[];
 	promptTransport: "argv" | "stdin";
 	promptArgs: string[];
+	resumeArgs: string[];
 	env: Record<string, string>;
 }
 
@@ -75,6 +77,7 @@ function rowToConfig(
 		args: parseArgv(row.argsJson),
 		promptTransport: row.promptTransport as "argv" | "stdin",
 		promptArgs: parseArgv(row.promptArgsJson),
+		resumeArgs: parseArgv(row.resumeArgsJson),
 		env: parseEnv(row.envJson),
 	};
 }
@@ -116,15 +119,28 @@ export function resolveHostAgentConfig(
  * codex/opencode/copilot don't get stray prompt-mode flags during promptless
  * launches — emptiness is only knowable after sanitization, so the check
  * lives here rather than in the router's zod schema.
+ *
+ * `resumeSessionId` splices the config's `resumeArgs` plus the session id
+ * after the base args (e.g. "claude … --resume <id>"), restoring a previous
+ * session instead of starting a fresh one. A prompt may still follow it.
  */
 export function buildAgentCommandString(
 	config: ResolvedHostAgentConfig,
 	rawPrompt: string,
 	modelArgs: string[] = [],
-	randomId: string = crypto.randomUUID(),
+	options: { resumeSessionId?: string; randomId?: string } = {},
 ): string {
+	const randomId = options.randomId ?? crypto.randomUUID();
 	const prompt = sanitizePromptForPty(rawPrompt);
-	const baseArgv = [config.command, ...config.args, ...modelArgs];
+	const resumeArgv = options.resumeSessionId
+		? [...config.resumeArgs, sanitizePromptForPty(options.resumeSessionId)]
+		: [];
+	const baseArgv = [
+		config.command,
+		...config.args,
+		...modelArgs,
+		...resumeArgv,
+	];
 
 	if (prompt === "") {
 		return buildArgvCommand(baseArgv);
@@ -161,14 +177,16 @@ export interface AgentRunInput {
 	attachmentIds?: string[];
 	model?: string;
 	effort?: string;
+	/** Session id of a previous run of this agent to restore (e.g. a killed
+	 * session's `agentSessionId`). The prompt may be empty when resuming. */
+	resumeSessionId?: string;
 }
 
-export type AgentRunResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
-
-const SUPERSET_AGENT_ID = "superset";
-const SUPERSET_AGENT_LABEL = "Superset";
+export type AgentRunResult = {
+	kind: "terminal";
+	sessionId: string;
+	label: string;
+};
 
 /**
  * Validate an explicit effort override before launch. Omitting effort always
@@ -198,6 +216,32 @@ export function validateAgentEffortSelection(
 }
 
 /**
+ * Validate an explicit resume request before launch. Resumability is a
+ * per-config capability: configs without `resumeArgs` have no id-based
+ * resume form to splice the session id into.
+ */
+export function validateAgentResumeSelection(
+	config: Pick<ResolvedHostAgentConfig, "label" | "resumeArgs">,
+	resumeSessionId: string | undefined,
+): void {
+	if (resumeSessionId === undefined) return;
+
+	if (config.resumeArgs.length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${config.label} does not support resuming a session by id. Omit resumeSessionId to start a new session.`,
+		});
+	}
+
+	if (sanitizePromptForPty(resumeSessionId).trim() === "") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid resume session id for ${config.label}.`,
+		});
+	}
+}
+
+/**
  * Preflight a host-scoped launch before any larger workflow (such as
  * workspace creation) performs side effects.
  */
@@ -206,14 +250,6 @@ export function validateAgentLaunchEffort(
 	input: Pick<AgentRunInput, "agent" | "effort">,
 ): void {
 	if (!input.effort) return;
-	if (input.agent === SUPERSET_AGENT_ID) {
-		validateAgentEffortSelection(
-			SUPERSET_AGENT_ID,
-			SUPERSET_AGENT_LABEL,
-			input.effort,
-		);
-		return;
-	}
 
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
@@ -223,64 +259,6 @@ export function validateAgentLaunchEffort(
 		});
 	}
 	validateAgentEffortSelection(config.presetId, config.label, input.effort);
-}
-
-async function resolveAttachmentsAsFiles(
-	attachmentIds: string[],
-): Promise<Array<{ data: string; mediaType: string; filename?: string }>> {
-	return attachmentIds.map((attachmentId) => {
-		const resolved = resolveAttachmentPath(attachmentId);
-		if (!resolved) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: `Attachment not found: ${attachmentId}`,
-			});
-		}
-		const bytes = readFileSync(resolved.path);
-		const data = `data:${resolved.metadata.mediaType};base64,${bytes.toString("base64")}`;
-		return {
-			data,
-			mediaType: resolved.metadata.mediaType,
-			...(resolved.metadata.originalFilename
-				? { filename: resolved.metadata.originalFilename }
-				: {}),
-		};
-	});
-}
-
-async function runChatAgent(
-	ctx: HostServiceContext,
-	input: AgentRunInput,
-	label: string,
-): Promise<AgentRunResult> {
-	const sessionId = crypto.randomUUID();
-	const files = await resolveAttachmentsAsFiles(input.attachmentIds ?? []);
-
-	await ctx.api.chat.createSession.mutate({
-		sessionId,
-		v2WorkspaceId: input.workspaceId,
-	});
-
-	// Errors surface via `getSnapshot.displayState.errorMessage` when a
-	// chat pane attaches.
-	void ctx.runtime.chat
-		.sendMessage({
-			sessionId,
-			workspaceId: input.workspaceId,
-			payload: {
-				content: input.prompt,
-				...(files.length > 0 ? { files } : {}),
-			},
-			...(input.model ? { metadata: { model: input.model } } : {}),
-		})
-		.catch((error) => {
-			console.error(
-				`[runChatAgent] sendMessage failed for ${sessionId}:`,
-				error,
-			);
-		});
-
-	return { kind: "chat", sessionId, label };
 }
 
 /**
@@ -304,6 +282,7 @@ export function buildTerminalAgentLaunch(
 		});
 	}
 	validateAgentEffortSelection(config.presetId, config.label, input.effort);
+	validateAgentResumeSelection(config, input.resumeSessionId);
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
@@ -320,13 +299,18 @@ export function buildTerminalAgentLaunch(
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
 	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
-	const command = buildAgentCommandString(config, prompt, [
-		...modelArgs,
-		...effortArgs,
-	]);
+	const command = buildAgentCommandString(
+		config,
+		prompt,
+		[...modelArgs, ...effortArgs],
+		{ resumeSessionId: input.resumeSessionId },
+	);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
+	// Host-default provider account (Usage tab switcher). Per-agent env wins,
+	// so a "Claude (work)" agent with its own CLAUDE_CONFIG_DIR stays pinned.
+	const accountEnv = resolveDefaultAccountEnv(db, config.presetId);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`,
+		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
 		label: config.label,
 	};
 }
@@ -347,10 +331,7 @@ async function runTerminalAgent(
 	});
 
 	if ("error" in result) {
-		throw new TRPCError({
-			code: "INTERNAL_SERVER_ERROR",
-			message: result.error,
-		});
+		throw toTerminalSessionError(result);
 	}
 
 	return {
@@ -358,11 +339,6 @@ async function runTerminalAgent(
 		sessionId: result.terminalId,
 		label,
 	};
-}
-
-/** Sugar agents that run as chat sessions rather than terminal commands. */
-export function isChatAgent(agent: string): boolean {
-	return agent === SUPERSET_AGENT_ID;
 }
 
 export async function runAgentInWorkspace(
@@ -380,14 +356,6 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
-	if (input.agent === SUPERSET_AGENT_ID) {
-		validateAgentEffortSelection(
-			SUPERSET_AGENT_ID,
-			SUPERSET_AGENT_LABEL,
-			input.effort,
-		);
-		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
-	}
 	return runTerminalAgent(ctx, input);
 }
 
@@ -397,10 +365,13 @@ export const agentsRouter = router({
 			z.object({
 				workspaceId: z.string().uuid(),
 				agent: z.string().min(1),
-				prompt: z.string().min(1),
+				// Optional: an empty prompt launches the bare agent (the builder
+				// drops promptArgs).
+				prompt: z.string().default(""),
 				attachmentIds: z.array(z.string().uuid()).optional(),
 				model: z.string().min(1).optional(),
 				effort: z.string().min(1).optional(),
+				resumeSessionId: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),

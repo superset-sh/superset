@@ -6,14 +6,40 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { posthog } from "./lib/analytics";
+
+export interface ApiClientInfo {
+	product: "desktop" | "mobile" | "cli";
+	version: string;
+}
+
+export const CLIENT_VERSION_HEADER = "x-superset-client";
+
+const CLIENT_HEADER_PATTERN =
+	/^(desktop|mobile|cli)\/(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/;
+
+// Absent or unparseable header = web or a pre-header build, both treated as
+// always-current.
+export function parseClientHeader(headers: Headers): ApiClientInfo | null {
+	const match = headers
+		.get(CLIENT_VERSION_HEADER)
+		?.match(CLIENT_HEADER_PATTERN);
+	const product = match?.[1];
+	const version = match?.[2];
+	if (!product || !version) return null;
+	return { product: product as ApiClientInfo["product"], version };
+}
 
 export type TRPCContext = {
 	session: Session | null;
 	auth: typeof auth;
 	headers: Headers;
+	client: ApiClientInfo | null;
 };
 
-export const createTRPCContext = (opts: TRPCContext): TRPCContext => opts;
+export const createTRPCContext = (
+	opts: Omit<TRPCContext, "client">,
+): TRPCContext => ({ ...opts, client: parseClientHeader(opts.headers) });
 
 const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,
@@ -33,9 +59,47 @@ export const createTRPCRouter = t.router;
 
 export const createCallerFactory = t.createCallerFactory;
 
-export const publicProcedure = t.procedure;
+const API_CALL_SAMPLE_RATE = 0.01;
+
+// Per-procedure, per-client-version usage telemetry: the evidence source for
+// deprecating procedures once no in-window client version still calls them.
+function captureApiCall(
+	client: ApiClientInfo | null,
+	distinctId: string,
+	path: string,
+) {
+	if (!client || Math.random() >= API_CALL_SAMPLE_RATE) return;
+	posthog.capture({
+		distinctId,
+		event: "api_procedure_called",
+		properties: {
+			procedure: path,
+			client_product: client.product,
+			client_version: client.version,
+		},
+	});
+}
+
+const clientTelemetry = t.middleware(async ({ ctx, path, next }) => {
+	captureApiCall(
+		ctx.client,
+		ctx.session?.user.id ?? "api-unauthenticated",
+		path,
+	);
+	return next();
+});
+
+export const publicProcedure = t.procedure.use(clientTelemetry);
+
+/** The only procedures a pending-deletion account may call. */
+const PENDING_DELETION_ALLOWED_PROCEDURES = new Set([
+	"user.me",
+	"user.deleteAccount",
+	"user.reactivateAccount",
+]);
 
 export const protectedProcedure = t.procedure
+	.use(clientTelemetry)
 	.use(async ({ ctx, next }) => {
 		if (!ctx.session) {
 			throw new TRPCError({
@@ -45,6 +109,18 @@ export const protectedProcedure = t.procedure
 		}
 
 		return next({ ctx: { ...ctx, session: ctx.session } });
+	})
+	.use(async ({ ctx, path, next }) => {
+		if (
+			ctx.session.user.deletionRequestedAt &&
+			!PENDING_DELETION_ALLOWED_PROCEDURES.has(path)
+		) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Account is pending deletion.",
+			});
+		}
+		return next();
 	})
 	.use(async ({ ctx, next }) => {
 		const sessionOrgId = ctx.session.session.activeOrganizationId ?? null;
@@ -88,69 +164,77 @@ function resolveActiveOrganizationId(
 	return requestedOrganizationId;
 }
 
-export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
-	const authHeader = ctx.headers.get("authorization");
-	const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-	const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+export const jwtProcedure = t.procedure
+	.use(async ({ ctx, next }) => {
+		const authHeader = ctx.headers.get("authorization");
+		const bearer = authHeader?.startsWith("Bearer ")
+			? authHeader.slice(7)
+			: null;
+		const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
 
-	if (bearer) {
-		try {
-			const { payload } = await ctx.auth.api.verifyJWT({
-				body: { token: bearer },
-			});
-			if (payload?.sub) {
-				const organizationIds = Array.isArray(payload.organizationIds)
-					? payload.organizationIds.filter(
-							(id): id is string => typeof id === "string",
-						)
-					: [];
-				return next({
-					ctx: {
-						userId: payload.sub,
-						email: (payload.email as string) ?? "",
-						organizationIds,
-						activeOrganizationId: resolveActiveOrganizationId(
-							organizationIds,
-							headerOrgId,
-						),
-					},
+		if (bearer) {
+			try {
+				const { payload } = await ctx.auth.api.verifyJWT({
+					body: { token: bearer },
 				});
+				if (payload?.sub) {
+					const organizationIds = Array.isArray(payload.organizationIds)
+						? payload.organizationIds.filter(
+								(id): id is string => typeof id === "string",
+							)
+						: [];
+					return next({
+						ctx: {
+							userId: payload.sub,
+							email: (payload.email as string) ?? "",
+							organizationIds,
+							activeOrganizationId: resolveActiveOrganizationId(
+								organizationIds,
+								headerOrgId,
+							),
+						},
+					});
+				}
+			} catch (error) {
+				// A live session is the legit fallback for an unverifiable token
+				// (expired/missing). A TRPCError from verifyJWT is an explicit
+				// rejection (revoked/forged) — surface it instead of laundering
+				// it into session auth.
+				if (error instanceof TRPCError) throw error;
 			}
-		} catch (error) {
-			// A live session is the legit fallback for an unverifiable token
-			// (expired/missing). A TRPCError from verifyJWT is an explicit
-			// rejection (revoked/forged) — surface it instead of laundering
-			// it into session auth.
-			if (error instanceof TRPCError) throw error;
 		}
-	}
 
-	if (ctx.session) {
-		const userId = ctx.session.user.id;
-		const memberRows = await db.query.members.findMany({
-			where: eq(members.userId, userId),
-			columns: { organizationId: true },
-		});
-		const organizationIds = memberRows.map((row) => row.organizationId);
-		return next({
-			ctx: {
-				userId,
-				email: ctx.session.user.email ?? "",
-				organizationIds,
-				activeOrganizationId: headerOrgId
-					? resolveActiveOrganizationId(organizationIds, headerOrgId)
-					: (ctx.session.session.activeOrganizationId ??
-						organizationIds[0] ??
-						null),
-			},
-		});
-	}
+		if (ctx.session) {
+			const userId = ctx.session.user.id;
+			const memberRows = await db.query.members.findMany({
+				where: eq(members.userId, userId),
+				columns: { organizationId: true },
+			});
+			const organizationIds = memberRows.map((row) => row.organizationId);
+			return next({
+				ctx: {
+					userId,
+					email: ctx.session.user.email ?? "",
+					organizationIds,
+					activeOrganizationId: headerOrgId
+						? resolveActiveOrganizationId(organizationIds, headerOrgId)
+						: (ctx.session.session.activeOrganizationId ??
+							organizationIds[0] ??
+							null),
+				},
+			});
+		}
 
-	throw new TRPCError({
-		code: "UNAUTHORIZED",
-		message: "Not authenticated. Provide a bearer JWT, x-api-key, or session.",
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message:
+				"Not authenticated. Provide a bearer JWT, x-api-key, or session.",
+		});
+	})
+	.use(async ({ ctx, path, next }) => {
+		captureApiCall(ctx.client, ctx.userId, path);
+		return next();
 	});
-});
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	if (!ctx.session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {

@@ -1,1 +1,0 @@
-export { PermissionCard } from "./PermissionCard";

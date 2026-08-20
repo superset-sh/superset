@@ -19,6 +19,10 @@ export interface LoadAddonsResult {
 // Once WebGL fails, skip it for all subsequent runtimes (VS Code pattern).
 let suggestedRendererType: "webgl" | "dom" | undefined;
 
+// Truecolor-heavy TUIs mint unbounded glyph variants, growing the WebGL glyph
+// atlas without bound (SUPER-1793); reset it after this many page adds.
+const ATLAS_PAGE_ADDS_BEFORE_RESET = 32;
+
 /**
  * Load optional addons onto an already-opened terminal. Returns a cleanup
  * function and addon instances. WebGL is deferred to rAF to avoid
@@ -78,6 +82,16 @@ export function loadAddons(
 				webglAddon = null;
 				suggestedRendererType = "dom";
 				terminal.refresh(0, terminal.rows - 1);
+			});
+			// Subscribe before loadAddon: the first page-add fires during activation.
+			let atlasPageAdds = 0;
+			webglAddon.onAddTextureAtlasCanvas(() => {
+				if (++atlasPageAdds >= ATLAS_PAGE_ADDS_BEFORE_RESET) {
+					atlasPageAdds = 0;
+					// Defer: the event fires mid-glyph-draw; clearing synchronously
+					// would wipe the atlas under the in-flight rasterization.
+					queueMicrotask(() => webglAddon?.clearTextureAtlas());
+				}
 			});
 			terminal.loadAddon(webglAddon);
 		} catch {

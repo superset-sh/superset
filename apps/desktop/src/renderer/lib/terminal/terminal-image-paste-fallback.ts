@@ -20,6 +20,15 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 // listeners, so `stopImmediatePropagation` cleanly preempts the bracketed-paste
 // wrap.
 
+/**
+ * Replaces the Ctrl+V forward for terminals whose PTY runs on another machine
+ * (relay-reached host, cloud sandbox): the TUI over there reads *its own* OS
+ * clipboard, which never holds the user's local screenshot. The override
+ * receives the clipboard's File entries so the caller can ship the bytes to
+ * the workspace and paste a path instead.
+ */
+export type ImagePasteOverride = (files: File[]) => void;
+
 export function isNonTextPaste(event: ClipboardEvent): boolean {
 	const data = event.clipboardData;
 	if (!data) return false;
@@ -30,19 +39,27 @@ export function isNonTextPaste(event: ClipboardEvent): boolean {
 export function handleImagePasteFallback(
 	event: ClipboardEvent,
 	terminal: XTerm,
+	getOverride?: () => ImagePasteOverride | null,
 ): void {
 	if (!isNonTextPaste(event)) return;
 	event.preventDefault();
 	event.stopImmediatePropagation();
+	const override = getOverride?.() ?? null;
+	if (override) {
+		// File handles stay readable after dispatch; the list itself doesn't.
+		override(Array.from(event.clipboardData?.files ?? []));
+		return;
+	}
 	terminal.input("\x16", true);
 }
 
 export function installImagePasteFallback(
 	terminal: XTerm,
 	wrapper: HTMLElement,
+	getOverride?: () => ImagePasteOverride | null,
 ): () => void {
 	const handler = (event: ClipboardEvent) => {
-		handleImagePasteFallback(event, terminal);
+		handleImagePasteFallback(event, terminal, getOverride);
 	};
 
 	wrapper.addEventListener("paste", handler, { capture: true });

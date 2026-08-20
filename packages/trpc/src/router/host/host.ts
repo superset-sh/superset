@@ -1,8 +1,7 @@
 import { db, dbWs } from "@superset/db/client";
 import {
 	subscriptions,
-	v2Clients,
-	v2ClientTypeValues,
+	users,
 	v2Hosts,
 	v2UsersHosts,
 } from "@superset/db/schema";
@@ -11,13 +10,53 @@ import {
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
-import { parseHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	buildHostRoutingKey,
+	parseHostRoutingKey,
+} from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { jwtProcedure, protectedProcedure } from "../../trpc";
+import { emitAppFirstOpened } from "../../lib/activation-events";
+import { fetchRelayPresence } from "../../lib/relay-presence";
+import { resolveUserRelayUrl } from "../../lib/relay-url";
+import { jwtProcedure } from "../../trpc";
+
+// Registering a first host means the app is installed and running, so it
+// also marks the user as first-opened for the activation automation.
+async function emitFirstHostEvent(userId: string) {
+	try {
+		const [hostCount] = await db
+			.select({ value: count() })
+			.from(v2Hosts)
+			.where(eq(v2Hosts.createdByUserId, userId));
+		if (hostCount?.value !== 1) return;
+
+		const user = await db.query.users.findFirst({
+			columns: { email: true, createdAt: true },
+			where: eq(users.id, userId),
+		});
+		if (!user) return;
+		await emitAppFirstOpened(user, userId, "host.ensure");
+	} catch (error) {
+		console.error(
+			`[host.ensure] Failed to emit first-open event for ${userId}:`,
+			error,
+		);
+	}
+}
 
 export const hostRouter = {
+	/**
+	 * The relay every client and host of this user must use. Resolved here so
+	 * one authenticated answer serves the desktop, its host-service, the CLI
+	 * and the web app — client-side flag evaluation raced identification and
+	 * silently fell back, which split hosts and clients across two relays.
+	 */
+	relayEndpoint: jwtProcedure.query(async ({ ctx }) => {
+		return { url: await resolveUserRelayUrl(ctx.userId) };
+	}),
+
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
@@ -51,10 +90,26 @@ export const hostRouter = {
 					),
 				);
 
+			// The relay's DOs are the presence authority; the DB flag is only
+			// the fallback for hosts still on the v1 relay, which keeps writing
+			// it. Callers' own bearer token is forwarded for the access checks.
+			const bearer = ctx.headers.get("authorization")?.slice("Bearer ".length);
+			const presence = bearer
+				? await fetchRelayPresence(
+						await resolveUserRelayUrl(ctx.userId),
+						bearer,
+						rows.map((row) =>
+							buildHostRoutingKey(row.organizationId, row.machineId),
+						),
+					)
+				: null;
+
 			return rows.map((row) => ({
 				id: row.machineId,
 				name: row.name,
-				online: row.isOnline,
+				online:
+					presence?.[buildHostRoutingKey(row.organizationId, row.machineId)]
+						?.online ?? row.isOnline,
 				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
 			}));
@@ -123,55 +178,11 @@ export const hostRouter = {
 					});
 			}
 
+			if (inserted) {
+				await emitFirstHostEvent(ctx.userId);
+			}
+
 			return host;
-		}),
-
-	ensureClient: protectedProcedure
-		.input(
-			z.object({
-				machineId: z.string().min(1),
-				type: z.enum(v2ClientTypeValues),
-			}),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.activeOrganizationId;
-			if (!organizationId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "No active organization selected",
-				});
-			}
-
-			const userId = ctx.session.user.id;
-
-			const [client] = await dbWs
-				.insert(v2Clients)
-				.values({
-					organizationId,
-					userId,
-					machineId: input.machineId,
-					type: input.type,
-				})
-				.onConflictDoUpdate({
-					target: [
-						v2Clients.organizationId,
-						v2Clients.userId,
-						v2Clients.machineId,
-					],
-					set: {
-						type: input.type,
-					},
-				})
-				.returning();
-
-			if (!client) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to ensure client",
-				});
-			}
-
-			return client;
 		}),
 
 	checkAccess: jwtProcedure

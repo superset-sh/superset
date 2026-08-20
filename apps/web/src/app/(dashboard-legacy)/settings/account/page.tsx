@@ -1,0 +1,107 @@
+"use client";
+
+import { authClient } from "@superset/auth/client";
+import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
+import { Button } from "@superset/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useTRPC } from "@/trpc/react";
+
+export default function AccountSettingsPage() {
+	const trpc = useTRPC();
+	const router = useRouter();
+	const { data: session } = authClient.useSession();
+	const user = session?.user;
+	const [isSigningOut, setIsSigningOut] = useState(false);
+
+	const deleteAccount = useMutation(
+		trpc.user.deleteAccount.mutationOptions({
+			onSuccess: async () => {
+				await authClient.signOut();
+				router.replace("/sign-in");
+			},
+		}),
+	);
+
+	return (
+		<div className="max-w-2xl space-y-8">
+			<div>
+				<h2 className="text-xl font-medium">Account</h2>
+				{user && (
+					<p className="mt-1 text-sm text-muted-foreground">
+						{user.name} · {user.email}
+					</p>
+				)}
+			</div>
+
+			<div className="flex items-center justify-between gap-8 border-t pt-6">
+				<div>
+					<div className="text-sm font-medium">Sign out</div>
+				</div>
+				<Button
+					variant="outline"
+					disabled={isSigningOut}
+					onClick={async () => {
+						setIsSigningOut(true);
+						try {
+							await authClient.signOut();
+						} finally {
+							router.replace("/sign-in");
+						}
+					}}
+				>
+					Sign out
+				</Button>
+			</div>
+
+			<div className="flex items-center justify-between gap-8 border-t pt-6">
+				<div>
+					<div className="text-sm font-medium">Delete account</div>
+					{deleteAccount.error && (
+						<div className="mt-1 text-sm text-destructive">
+							{deleteAccount.error.message}
+						</div>
+					)}
+				</div>
+				<AlertDialog>
+					<AlertDialogTrigger asChild>
+						<Button variant="destructive" disabled={deleteAccount.isPending}>
+							{deleteAccount.isPending ? "Deleting…" : "Delete account"}
+						</Button>
+					</AlertDialogTrigger>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete account?</AlertDialogTitle>
+							<AlertDialogDescription>
+								All of your data will be permanently deleted after{" "}
+								{ACCOUNT_DELETION_GRACE_DAYS} days — sign back in before then to
+								restore your account.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								variant="destructive"
+								onClick={() => deleteAccount.mutate()}
+							>
+								Delete account
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			</div>
+		</div>
+	);
+}

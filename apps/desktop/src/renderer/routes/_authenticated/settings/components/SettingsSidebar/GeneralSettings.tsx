@@ -10,6 +10,7 @@ import {
 	HiOutlineCpuChip,
 	HiOutlineCreditCard,
 	HiOutlineFolder,
+	HiOutlineGlobeAlt,
 	HiOutlineKey,
 	HiOutlineLink,
 	HiOutlineLockClosed,
@@ -38,6 +39,7 @@ type SettingsRoute =
 	| "/settings/ringtones"
 	| "/settings/keyboard"
 	| "/settings/behavior"
+	| "/settings/browser"
 	| "/settings/git"
 	| "/settings/agents"
 	| "/settings/terminal"
@@ -129,6 +131,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				icon: <HiOutlineLink className="h-4 w-4" />,
 			},
 			{
+				id: "/settings/browser",
+				section: "browser",
+				label: "Browser",
+				icon: <HiOutlineGlobeAlt className="h-4 w-4" />,
+			},
+			{
 				id: "/settings/models",
 				section: "models",
 				label: "Models",
@@ -189,7 +197,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 			{
 				id: "/settings/security",
 				section: "security",
-				label: "Security",
+				label: "Remote Workspaces",
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
 			},
 			{

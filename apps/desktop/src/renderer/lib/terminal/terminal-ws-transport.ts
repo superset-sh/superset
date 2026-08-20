@@ -7,6 +7,17 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { ensureFreshJwt } from "renderer/lib/auth-client";
 import { posthog } from "renderer/lib/posthog";
 import {
+	type AttachRetryState,
+	clearAttachRetryableMessage,
+	createAttachRetryState,
+	DIAGNOSE_AFTER_ATTEMPTS,
+	effectiveFailureCount,
+	noteAttachRetryableMessage,
+	recordFailedConnection,
+	resetAttachRetryState,
+	shouldSurfaceDiagnosis,
+} from "./attach-retry-diagnosis";
+import {
 	classifyTerminalFailure,
 	type TerminalFailureClassification,
 } from "./terminalConnectionDiagnostics";
@@ -34,7 +45,17 @@ type TerminalServerMessage =
 	// destroyed (not found / disposed / exited), not a transient attach failure.
 	| { type: "error"; message: string; code?: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "title"; title: string | null };
+	| { type: "title"; title: string | null }
+	// Stream-position anchor from a seq-aware host. Arrives after any
+	// host-synthesized bytes (mode preamble/notice) and before catch-up/live
+	// PTY bytes; sets our counter and arms per-frame counting so the next
+	// dial can request exactly the bytes we missed. Old hosts never send it.
+	| {
+			type: "synced";
+			epoch: string;
+			seq: number;
+			mode: "exact" | "tail" | "reanchor";
+	  };
 
 export interface TerminalTransport {
 	connectionState: ConnectionState;
@@ -93,6 +114,20 @@ export interface TerminalTransport {
 	 * read live from the socket's `retryCount` (see maybeSurfaceDiagnosis).
 	 */
 	_diagnosisLogged: boolean;
+	/**
+	 * Consecutive attach-retryable failures + the server's latest reason.
+	 * partysocket's retryCount resets after 5s of uptime, and a wedged-daemon
+	 * cycle keeps the WS open ~15s before failing — so this counter, reset
+	 * only on a real `attached`, is what actually reaches the diagnosis
+	 * threshold for that outage (see attach-retry-diagnosis.ts).
+	 */
+	_attachRetry: AttachRetryState;
+	/** Internal: the current connection delivered `attached` — its close is a
+	 * disconnect, not a failed attempt. Reset in the close handler. */
+	_connAttached: boolean;
+	/** Internal: the current connection got an attach-retryable error frame
+	 * (already logged); its guaranteed follow-up close skips the generic log. */
+	_connHadRetryableError: boolean;
 	/** Internal: last `_whoowns` preflight probe, used to classify a failure. */
 	_lastProbe: RelayAffinityProbe | null;
 	/**
@@ -111,6 +146,36 @@ export interface TerminalTransport {
 	 * with no output still gets replay on the next connect.
 	 */
 	_hasReceivedBytes: boolean;
+	/**
+	 * Position in the host's output stream: every byte of `epoch` up to `seq`
+	 * has been written into this xterm. Seeded from the persisted anchor on
+	 * runtime rebuild, re-anchored by each `synced` message, advanced by every
+	 * counted binary frame. Sent as `?seq=` on each dial so the host can
+	 * deliver exactly the missed bytes.
+	 */
+	seqAnchor: { epoch: string; seq: number } | null;
+	/**
+	 * Armed by `synced`, disarmed on attach/close. While disarmed, binary
+	 * frames are host-synthesized (mode preamble/notice) or from a pre-seq
+	 * host and must not advance the anchor.
+	 */
+	_seqCounting: boolean;
+	/**
+	 * True once any connection on this transport delivered a `synced` — i.e.
+	 * the host speaks seq and every PTY byte since has been counted. Decides
+	 * whether the anchor survives persistence (see getPersistableSeqAnchor).
+	 */
+	_seqEverSynced: boolean;
+	/** Binary frames arrived on the current connection (reset on `attached`).
+	 * With `_seqCounting` still false at close time, it means a pre-seq host
+	 * fed the xterm uncounted bytes — the anchor is invalidated. */
+	_bytesSinceAttach: boolean;
+	/**
+	 * True when the xterm was born with content (restored snapshot or seeded
+	 * from a sibling instance). Without an anchor, such an xterm must never
+	 * request the ring tail (`seq=new`) — it would double-paint.
+	 */
+	_xtermHadContent: boolean;
 	/** Internal: wall-clock-gap watchdog for laptop sleep/wake detection. */
 	_livenessTimer: ReturnType<typeof setInterval> | null;
 	/** Internal: Date.now() at the last watchdog tick. */
@@ -118,6 +183,13 @@ export interface TerminalTransport {
 	/** Internal: bound resume handler shared by the online/focus/visibility
 	 * listeners, so they can be removed on teardown. */
 	_resumeListener: (() => void) | null;
+	/**
+	 * Internal: removes the textarea focus/blur listeners that keep the
+	 * host's declared focus state current. The host aggregates the declared
+	 * state across sockets, so it must track live focus changes — xterm's
+	 * in-band \x1b[I/\x1b[O reports bypass that aggregation.
+	 */
+	_disposeFocusListeners: (() => void) | null;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -125,26 +197,19 @@ let logIdCounter = 0;
 
 const BASE_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_DELAY = 10_000;
-// How many consecutive failed dials (partysocket `retryCount`) before the header
-// shows *why* the terminal is down. Below this the socket is quietly (and
-// quickly) retrying — a network blip or host-service restart usually recovers
-// inside the window (retryCount resets after a stable connection). The socket
-// keeps retrying forever regardless; this only gates the user-facing diagnosis.
-const DIAGNOSE_AFTER_ATTEMPTS = 10;
 
 function isWindowHidden(): boolean {
 	return typeof document !== "undefined" && document.hidden;
 }
 
 // Once partysocket has failed DIAGNOSE_AFTER_ATTEMPTS consecutive dials, surface
-// why the terminal is down. Driven off partysocket's `retryCount` — the
-// authoritative per-attempt counter that increments on every failed dial and
-// resets after a stable connection — rather than counting close events: dial
-// failures (host unreachable, upgrade rejected) arrive as synthetic string-code
-// closes + error events that a hand-rolled close-counter misses, so a purely
-// close-counting gate would leave a genuinely-offline terminal retrying
-// silently with no header explanation. The socket keeps retrying forever
-// regardless; this only decides when (and whether) the header explains it.
+// why the terminal is down. Driven off the max of partysocket's `retryCount`
+// (per-dial counter — covers dial failures that arrive as synthetic
+// string-code closes + error events a close-counter would miss) and our own
+// attach-retryable streak (covers the wedged-daemon cycle, where each failed
+// attempt holds the WS open past partysocket's 5s minUptime and retryCount
+// keeps resetting to 0). The socket keeps retrying forever regardless; this
+// only decides when (and whether) the header explains it.
 function maybeSurfaceDiagnosis(
 	transport: TerminalTransport,
 	closeEvent: { code?: unknown; reason?: unknown } | null,
@@ -154,13 +219,27 @@ function maybeSurfaceDiagnosis(
 	// looking at — its failures may be a suspend artifact. The socket keeps
 	// retrying; the resume listener force-redials the moment it's back.
 	if (isWindowHidden()) return;
-	if ((transport._socket?.retryCount ?? 0) < DIAGNOSE_AFTER_ATTEMPTS) return;
+	if (
+		!shouldSurfaceDiagnosis(
+			transport._attachRetry,
+			transport._socket?.retryCount ?? 0,
+		)
+	) {
+		return;
+	}
 
 	// Keep the header diagnosis fresh every cycle; log + emit telemetry once.
-	const diagnosis = classifyTerminalFailure(
-		transport._lastProbe,
-		isRelayHostUrl(transport.currentUrl),
-	);
+	// An attach-retryable reason (daemon stalled) beats the probe
+	// classification — the connection itself is fine in that outage. It's
+	// cleared whenever a connection fails some other way, so it always
+	// describes the CURRENT failure mode, never a past blip.
+	const diagnosis: TerminalFailureClassification = transport._attachRetry
+		.lastMessage
+		? { category: "unknown", message: transport._attachRetry.lastMessage }
+		: classifyTerminalFailure(
+				transport._lastProbe,
+				isRelayHostUrl(transport.currentUrl),
+			);
 	transport.lastDiagnosis = diagnosis;
 	if (transport._diagnosisLogged) return;
 	transport._diagnosisLogged = true;
@@ -181,7 +260,10 @@ function maybeSurfaceDiagnosis(
 				: undefined,
 		preflight_status: transport._lastProbe?.status ?? null,
 		tunnel_region: transport._lastProbe?.region ?? null,
-		reconnect_attempts: transport._socket?.retryCount ?? 0,
+		reconnect_attempts: effectiveFailureCount(
+			transport._attachRetry,
+			transport._socket?.retryCount ?? 0,
+		),
 		category: diagnosis.category,
 	});
 }
@@ -282,13 +364,22 @@ export function createTransport(
 		_titleNotifyTimer: null,
 		_writeCoalescer: null,
 		_diagnosisLogged: false,
+		_attachRetry: createAttachRetryState(),
+		_connAttached: false,
+		_connHadRetryableError: false,
 		_lastProbe: null,
 		_localToken: null,
 		_terminated: false,
 		_hasReceivedBytes: false,
+		seqAnchor: null,
+		_seqCounting: false,
+		_seqEverSynced: false,
+		_bytesSinceAttach: false,
+		_xtermHadContent: false,
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
 		_resumeListener: null,
+		_disposeFocusListeners: null,
 	};
 }
 
@@ -311,6 +402,7 @@ function forceReconnect(transport: TerminalTransport) {
 	if (!socket) return;
 	transport._diagnosisLogged = false;
 	transport.lastDiagnosis = null;
+	resetAttachRetryState(transport._attachRetry);
 	setConnectionState(transport, "connecting");
 	// reconnect() also resets partysocket's retryCount, so the diagnosis budget
 	// starts fresh.
@@ -461,9 +553,24 @@ export function connect(
 	transport.currentUrl = wsUrl;
 	transport._localToken = extractToken(wsUrl);
 	transport._terminal = terminal;
+	// Keep the host's declared focus state current across live focus changes,
+	// not just at attach — the host writes the aggregate across all attached
+	// clients, so a pane whose focus only travelled in-band would be invisible
+	// to it and an unfocused sibling could clobber the program's state.
+	if (!transport._disposeFocusListeners && terminal.textarea) {
+		const textarea = terminal.textarea;
+		const send = () => sendFocusState(transport);
+		textarea.addEventListener("focus", send);
+		textarea.addEventListener("blur", send);
+		transport._disposeFocusListeners = () => {
+			textarea.removeEventListener("focus", send);
+			textarea.removeEventListener("blur", send);
+		};
+	}
 	transport._terminated = false;
 	transport._diagnosisLogged = false;
 	transport.lastDiagnosis = null;
+	resetAttachRetryState(transport._attachRetry);
 	// Recreate per connect so the coalescer always targets the current terminal;
 	// dispose flushes anything the previous socket left pending.
 	transport._writeCoalescer?.dispose();
@@ -484,10 +591,22 @@ export function connect(
 		// buildUrl/getToken read transport state live, so a URL swap or token
 		// rotation is picked up on the next dial without recreating the socket.
 		buildUrl: () => {
-			const current = stripToken(transport.currentUrl ?? base);
-			return transport._hasReceivedBytes
-				? appendQueryParam(current, "replay", "0")
-				: current;
+			let current = stripToken(transport.currentUrl ?? base);
+			// Legacy replay suppression — read by pre-seq hosts only.
+			if (transport._hasReceivedBytes) {
+				current = appendQueryParam(current, "replay", "0");
+			}
+			// Stream position for seq-aware hosts: exact anchor when we have
+			// one; "new" (dump the tail) only for a genuinely virgin xterm;
+			// "none" (reanchor, send nothing) when the xterm has content of
+			// unknown position. Pre-seq hosts ignore the param.
+			const anchor = transport.seqAnchor;
+			const seqValue = anchor
+				? `${anchor.epoch}:${anchor.seq}`
+				: transport._xtermHadContent || transport._hasReceivedBytes
+					? "none"
+					: "new";
+			return appendQueryParam(current, "seq", seqValue);
 		},
 		getToken: () =>
 			isRelayHostUrl(transport.currentUrl)
@@ -544,11 +663,15 @@ function attachSocketListeners(
 			// Queue PTY bytes; the coalescer batches them into one xterm.write per
 			// animation frame. There's no output ACK back to host-service:
 			// back-pressure lives entirely on the host side, which bounds this
-			// socket's send buffer and drops us (we reconnect and replay) if we
-			// fall hopelessly behind. A slow renderer can never wedge the shell —
-			// it just loses some scrollback.
+			// socket's send buffer and drops us (we reconnect and catch up by
+			// seq) if we fall hopelessly behind. A slow renderer can never wedge
+			// the shell.
+			if (transport._seqCounting && transport.seqAnchor) {
+				transport.seqAnchor.seq += data.byteLength;
+			}
 			transport._writeCoalescer?.push(new Uint8Array(data));
 			transport._hasReceivedBytes = true;
+			transport._bytesSinceAttach = true;
 			return;
 		}
 
@@ -569,26 +692,87 @@ function attachSocketListeners(
 		if (message.type === "attached") {
 			transport.lastDiagnosis = null;
 			transport._diagnosisLogged = false;
+			// Only a real attach ends the failure streak — WS opens don't count
+			// (a wedged daemon serves a successful upgrade every failed cycle).
+			transport._connAttached = true;
+			resetAttachRetryState(transport._attachRetry);
 			// A successful attach means the session exists again (re-created or
 			// respawned under the same id) — its scrollback is worth keeping.
 			transport.sessionEnded = false;
+			// Counting stays disarmed until this attach's `synced` arrives —
+			// bytes before it are host-synthesized (preamble/notice) or from a
+			// pre-seq host, and neither advances the stream position.
+			transport._seqCounting = false;
+			transport._bytesSinceAttach = false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
 		}
 
+		if (message.type === "synced") {
+			transport.seqAnchor = { epoch: message.epoch, seq: message.seq };
+			transport._seqCounting = true;
+			transport._seqEverSynced = true;
+			// Re-assert current keyboard focus so the running program's focus
+			// state can't stay stale across the reattach (tmux does the same on
+			// client attach). xterm's own DECSET-1004 self-report fires while
+			// the preamble parses, but on a rebuilt pane it can read the focus
+			// class before pane focus settles and report the wrong state — so
+			// this must land at the PTY *after* that report. `synced` arrives
+			// behind the preamble frame: flush it into xterm, then queue an
+			// empty write whose callback runs once the preamble (and any
+			// self-report it triggered) has parsed. The host forwards the state
+			// only when the program enabled mode 1004.
+			transport._writeCoalescer?.flushSync();
+			terminal.write("", () => sendFocusState(transport));
+			return;
+		}
+
 		if (message.type === "error") {
+			// Transient host-side attach failure (pty-daemon stalled/restarting).
+			// Don't mark terminated: the server closes the socket and partysocket's
+			// capped-backoff loop keeps re-dialing the same create-on-attach URL, so
+			// the pane becomes a live shell once the daemon recovers (host-side
+			// inflight dedupe + already-exists adoption keep the retry idempotent).
+			if (message.code === "attach-retryable") {
+				// The failure is COUNTED by the close handler (every connection
+				// that never attached counts once); here we just record the
+				// server's reason and log it. The guaranteed follow-up close
+				// carries the 1013 into the diagnosis + telemetry.
+				noteAttachRetryableMessage(transport._attachRetry, message.message);
+				transport._connHadRetryableError = true;
+				if (
+					!isWindowHidden() &&
+					effectiveFailureCount(
+						transport._attachRetry,
+						transport._socket?.retryCount ?? 0,
+					) < DIAGNOSE_AFTER_ATTEMPTS
+				) {
+					pushLog(
+						transport,
+						"warn",
+						`Terminal not ready: ${message.message} Retrying automatically.`,
+					);
+				}
+				return;
+			}
 			transport.lastDiagnosis = {
 				category: "unknown",
 				message: message.message,
 			};
 			pushLog(transport, "error", message.message);
-			// Server closes after this; reconnecting would just hit the same error.
-			transport._terminated = true;
 			if (message.code === "session-gone") {
+				// The session is permanently destroyed — reconnecting can't revive it.
+				transport._terminated = true;
 				markSessionEnded(transport);
+				socket.close();
+				return;
 			}
-			socket.close();
+			// Any other error may be transient (e.g. a daemon-open timeout while the
+			// pty-daemon is stalled). The server closes the socket after this frame;
+			// let that close drive the normal reconnect/backoff path instead of
+			// terminating — a later attempt re-runs create-on-attach and succeeds
+			// once the host recovers.
 			return;
 		}
 
@@ -615,24 +799,57 @@ function attachSocketListeners(
 		// Render whatever arrived before the close instead of holding it for a
 		// frame that may never come (e.g. hidden window).
 		transport._writeCoalescer?.flushSync();
+		// A connection that delivered bytes but never a `synced` was a pre-seq
+		// host (downgrade skew): those bytes advanced the xterm without
+		// advancing the anchor, so the anchor is poisoned — drop it rather
+		// than let a later exact catch-up re-deliver painted bytes.
+		if (transport._bytesSinceAttach && !transport._seqCounting) {
+			transport.seqAnchor = null;
+		}
+		// Otherwise the anchor keeps its last-counted position and the next
+		// attach's `synced` re-arms counting.
+		transport._seqCounting = false;
 		setConnectionState(transport, "closed");
+		// Per-connection outcome flags; consumed once per close.
+		const connAttached = transport._connAttached;
+		const hadRetryableError = transport._connHadRetryableError;
+		transport._connAttached = false;
+		transport._connHadRetryableError = false;
 		// Deliberate/terminal closes (PTY exit, fatal error, cleanup) don't
 		// reconnect — partysocket won't re-dial after close(). Synthetic
 		// dial-error closes carry a string code and are logged via the error
-		// handler; the diagnosis itself is driven off retryCount either way.
+		// handler; they still fall through to the failure counting below.
 		if (transport._terminated || closeEvent.code === 1000) return;
+
+		// Every connection that ends without ever attaching is one failed
+		// attempt — attach-retryable cycles, silent >5s-held closes (host died
+		// mid-attach, proxy idle-timeout), and failed dials alike. This is the
+		// counter partysocket's minUptime reset can't erase. A non-retryable
+		// failure mode drops the stored daemon reason so the diagnosis
+		// classifies from the live probe instead.
+		if (!connAttached) {
+			recordFailedConnection(transport._attachRetry);
+			if (!hadRetryableError) {
+				clearAttachRetryableMessage(transport._attachRetry);
+			}
+		}
 
 		// Log real server closes (numeric code) below the threshold; past it the
 		// header diagnosis conveys the state, and a hidden window shouldn't spam.
+		// Attach-retryable closes were already logged from the error frame.
 		if (
 			typeof closeEvent.code === "number" &&
+			!hadRetryableError &&
 			!isWindowHidden() &&
-			(transport._socket?.retryCount ?? 0) < DIAGNOSE_AFTER_ATTEMPTS
+			effectiveFailureCount(
+				transport._attachRetry,
+				transport._socket?.retryCount ?? 0,
+			) < DIAGNOSE_AFTER_ATTEMPTS
 		) {
 			pushLog(
 				transport,
 				"warn",
-				`WebSocket closed while connected to ${formatWsEndpoint(transport.currentUrl)} (${formatCloseDetails(closeEvent)}). Reconnecting (attempt ${transport._socket?.retryCount ?? 0}/${DIAGNOSE_AFTER_ATTEMPTS})...`,
+				`WebSocket closed while connected to ${formatWsEndpoint(transport.currentUrl)} (${formatCloseDetails(closeEvent)}). Reconnecting (attempt ${effectiveFailureCount(transport._attachRetry, transport._socket?.retryCount ?? 0)}/${DIAGNOSE_AFTER_ATTEMPTS})...`,
 			);
 		}
 		maybeSurfaceDiagnosis(transport, closeEvent);
@@ -646,7 +863,10 @@ function attachSocketListeners(
 		// error every retry cycle. A hidden window stays quiet.
 		if (
 			!isWindowHidden() &&
-			(transport._socket?.retryCount ?? 0) < DIAGNOSE_AFTER_ATTEMPTS
+			effectiveFailureCount(
+				transport._attachRetry,
+				transport._socket?.retryCount ?? 0,
+			) < DIAGNOSE_AFTER_ATTEMPTS
 		) {
 			pushLog(
 				transport,
@@ -677,6 +897,7 @@ export function reconnect(transport: TerminalTransport) {
 	transport._terminated = false;
 	transport._diagnosisLogged = false;
 	transport.lastDiagnosis = null;
+	resetAttachRetryState(transport._attachRetry);
 	setConnectionState(transport, "connecting");
 	// reconnect() also resets partysocket's retryCount → fresh diagnosis budget.
 	transport._socket.reconnect();
@@ -684,6 +905,8 @@ export function reconnect(transport: TerminalTransport) {
 
 export function disconnect(transport: TerminalTransport) {
 	teardownLiveness(transport);
+	transport._disposeFocusListeners?.();
+	transport._disposeFocusListeners = null;
 	if (transport._socket) {
 		transport._socket.close();
 		transport._socket = null;
@@ -697,8 +920,37 @@ export function disconnect(transport: TerminalTransport) {
 	transport._diagnosisLogged = false;
 	transport._terminated = false;
 	transport.lastDiagnosis = null;
+	resetAttachRetryState(transport._attachRetry);
 	setTerminalTitle(transport, undefined);
 	setConnectionState(transport, "disconnected");
+}
+
+/**
+ * The anchor worth persisting next to the buffer snapshot, or null when it
+ * can't be trusted: a pre-seq host advanced the xterm without ever sending
+ * `synced` (`_hasReceivedBytes` without `_seqEverSynced`), so a stale value
+ * would make a future exact catch-up re-deliver bytes already painted. A
+ * restored anchor with no bytes received since restore is still valid.
+ */
+export function getPersistableSeqAnchor(
+	transport: TerminalTransport,
+): { epoch: string; seq: number } | null {
+	if (!transport.seqAnchor) return null;
+	if (transport._seqEverSynced || !transport._hasReceivedBytes) {
+		return { ...transport.seqAnchor };
+	}
+	return null;
+}
+
+function sendFocusState(transport: TerminalTransport) {
+	const socket = transport._socket;
+	if (!socket || socket.readyState !== WebSocket.OPEN) return;
+	const textarea = transport._terminal?.textarea ?? null;
+	const focused =
+		textarea !== null &&
+		document.hasFocus() &&
+		document.activeElement === textarea;
+	socket.send(JSON.stringify({ type: "focus", focused }));
 }
 
 export function sendResize(
@@ -727,6 +979,8 @@ export function sendDispose(transport: TerminalTransport) {
 
 export function disposeTransport(transport: TerminalTransport) {
 	teardownLiveness(transport);
+	transport._disposeFocusListeners?.();
+	transport._disposeFocusListeners = null;
 	if (transport._socket) {
 		transport._socket.close();
 		transport._socket = null;
@@ -742,6 +996,7 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.sessionEnded = false;
 	transport._onSessionEnded = null;
 	transport.lastDiagnosis = null;
+	resetAttachRetryState(transport._attachRetry);
 	setTerminalTitle(transport, undefined);
 	transport.stateListeners.clear();
 	if (transport._titleNotifyTimer !== null) {

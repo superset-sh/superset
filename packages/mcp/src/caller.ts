@@ -51,5 +51,6 @@ export function createMcpCaller(ctx: McpContext): McpCaller {
 		session,
 		auth,
 		headers,
+		client: null,
 	});
 }

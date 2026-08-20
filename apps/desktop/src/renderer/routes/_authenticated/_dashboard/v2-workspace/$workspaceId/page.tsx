@@ -14,6 +14,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
+import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
 import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
@@ -58,7 +59,6 @@ import type { V2WorkspaceUrlOpenTarget } from "./utils/openUrlInV2Workspace";
 
 interface WorkspaceSearch {
 	terminalId?: string;
-	chatSessionId?: string;
 	focusRequestId?: string;
 	openUrl?: string;
 	openUrlTarget?: V2WorkspaceUrlOpenTarget;
@@ -82,7 +82,6 @@ export const Route = createFileRoute(
 	component: V2WorkspacePage,
 	validateSearch: (raw: Record<string, unknown>): WorkspaceSearch => ({
 		terminalId: parseNonEmptyString(raw.terminalId),
-		chatSessionId: parseNonEmptyString(raw.chatSessionId),
 		focusRequestId: parseNonEmptyString(raw.focusRequestId),
 		openUrl: parseNonEmptyString(raw.openUrl),
 		openUrlTarget: parseOpenUrlTarget(raw.openUrlTarget),
@@ -96,7 +95,6 @@ function V2WorkspacePage() {
 		{ id: workspace.id },
 		{
 			refetchOnWindowFocus: true,
-			retry: false,
 		},
 	);
 
@@ -123,7 +121,6 @@ function V2WorkspacePage() {
 function V2WorkspaceContent() {
 	const {
 		terminalId,
-		chatSessionId,
 		focusRequestId,
 		openUrl,
 		openUrlTarget,
@@ -163,7 +160,6 @@ function V2WorkspaceContent() {
 		store,
 		workspaceId,
 		terminalId,
-		chatSessionId,
 		focusRequestId,
 	});
 	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });
@@ -201,7 +197,6 @@ function V2WorkspaceContent() {
 	const {
 		openDiffPane,
 		addTerminalTab,
-		addChatTab,
 		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
@@ -334,7 +329,6 @@ function V2WorkspaceContent() {
 							renderAddTabMenu={() => (
 								<AddTabMenu
 									onAddTerminal={addTerminalTab}
-									onAddChat={addChatTab}
 									onAddChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onAddBrowser={addBrowserTab}
 									showPresetsBar={showPresetsBar}
@@ -370,10 +364,19 @@ function V2WorkspaceContent() {
 							}
 							renderTabBarTrailing={() => (
 								<div className="flex items-center gap-1">
-									<BackgroundTerminalsButton
-										workspaceId={workspaceId}
-										store={store}
-									/>
+									{/* The expanded sidebar's header owns the ports pill; the
+									    tab bar only hosts it for the collapsed rail, where
+									    neither the header cluster nor the TopBar is visible. */}
+									{tabBarHostsChrome && <TopBarPortsDropdown />}
+									{/* Until the pane layout hydrates, tabs read as empty and
+									    every running terminal miscounts as "background", so the
+									    button would flash a bogus count on navigation. */}
+									{isLayoutReady && (
+										<BackgroundTerminalsButton
+											workspaceId={workspaceId}
+											store={store}
+										/>
+									)}
 									{workspaceRunButton}
 									<RightSidebarToggle />
 									{!isMac && <WindowControls />}
@@ -382,7 +385,6 @@ function V2WorkspaceContent() {
 							renderEmptyState={() => (
 								<WorkspaceEmptyState
 									onOpenBrowser={addBrowserTab}
-									onOpenChat={addChatTab}
 									onOpenChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onOpenQuickOpen={handleQuickOpen}
 									onOpenTerminal={addTerminalTab}

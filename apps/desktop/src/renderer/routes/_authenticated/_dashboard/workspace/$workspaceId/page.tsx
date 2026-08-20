@@ -156,7 +156,6 @@ function WorkspacePage() {
 		splitPaneHorizontal,
 		openPreset,
 	} = useTabsWithPresets(workspace?.projectId);
-	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const reopenClosedTab = useTabsStore((s) => s.reopenClosedTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -213,10 +212,9 @@ function WorkspacePage() {
 	);
 
 	useHotkey("NEW_GROUP", () => addTab(workspaceId));
-	useHotkey("NEW_CHAT", () => addChatTab(workspaceId));
 	useHotkey("REOPEN_TAB", () => {
 		if (!reopenClosedTab(workspaceId)) {
-			addChatTab(workspaceId);
+			addTab(workspaceId);
 		}
 	});
 	useHotkey("NEW_BROWSER", () => addBrowserTab(workspaceId));
@@ -387,16 +385,6 @@ function WorkspacePage() {
 			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
 			if (!target) return;
 			splitPaneHorizontal(activeTabId, target.paneId, target.path);
-		}
-	});
-
-	useHotkey("SPLIT_WITH_CHAT", () => {
-		if (activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
-			if (!target) return;
-			splitPaneVertical(activeTabId, target.paneId, target.path, {
-				paneType: "chat",
-			});
 		}
 	});
 

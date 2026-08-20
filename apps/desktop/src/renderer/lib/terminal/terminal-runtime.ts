@@ -1,3 +1,4 @@
+import { FRESH_SHELL_INPUT_MODE_RESET } from "@superset/shared/leaked-input-mode-reclaim";
 import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
@@ -24,9 +25,13 @@ import {
 	TERMINAL_DIMS_KEY_PREFIX,
 	touchTerminalStatePersistedAt,
 } from "./terminal-buffer-gc";
-import { installImagePasteFallback } from "./terminal-image-paste-fallback";
+import {
+	type ImagePasteOverride,
+	installImagePasteFallback,
+} from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { persistSeqAnchor } from "./terminal-seq-anchor";
 import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
@@ -54,6 +59,19 @@ export interface TerminalRuntime {
 	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
 	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
+	/**
+	 * When set, image/file pastes call this with the clipboard files instead
+	 * of forwarding Ctrl+V — used for workspaces whose PTY runs on another
+	 * machine, where the TUI can't see the local clipboard.
+	 */
+	imagePasteOverride: ImagePasteOverride | null;
+	/**
+	 * How this runtime's xterm was seeded: from the persisted localStorage
+	 * snapshot (its seq anchor pairs with it), from a sibling instance's
+	 * serialize (content of unknown stream position), or empty. Drives the
+	 * transport's `?seq=` attach mode.
+	 */
+	initialContent: "restored" | "seeded" | "none";
 }
 
 function createTerminal(
@@ -109,15 +127,17 @@ function persistBuffer(
 	}
 }
 
-function restoreBuffer(terminalId: string, terminal: XTerm) {
+function restoreBuffer(terminalId: string, terminal: XTerm): boolean {
 	try {
 		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
 		if (data) {
 			terminal.write(data);
 			// Restored-but-never-detached terminals must stay fresh for boot GC.
 			touchTerminalStatePersistedAt(terminalId);
+			return true;
 		}
 	} catch {}
+	return false;
 }
 
 /**
@@ -183,6 +203,7 @@ function clearPersistedDimensions(terminalId: string) {
 export function clearPersistedRuntimeState(terminalId: string): void {
 	clearPersistedBuffer(terminalId);
 	clearPersistedDimensions(terminalId);
+	persistSeqAnchor(terminalId, null);
 	removeTerminalStatePersistedAt(terminalId);
 }
 
@@ -306,18 +327,25 @@ export function createRuntime(
 	const addonsResult = loadAddons(terminal, {
 		ligatures: appearance.ligatures,
 	});
+	let initialContent: TerminalRuntime["initialContent"] = "none";
 	if (options.initialBuffer !== undefined) {
 		terminal.write(options.initialBuffer);
-	} else {
-		restoreBuffer(terminalId, terminal);
+		if (options.initialBuffer.length > 0) initialContent = "seeded";
+	} else if (restoreBuffer(terminalId, terminal)) {
+		initialContent = "restored";
+	}
+	if (initialContent !== "none") {
+		// SerializeAddon snapshots bake in whatever input-reporting modes were
+		// active at capture (?1002/?1003 mouse tracking, ?1h app cursor, …).
+		// Replaying them arms this fresh xterm before it has seen a single
+		// prompt marker, so the reclaimer above brands them shell-owned and can
+		// never reclaim them if the TUI turns out to be dead. Reset them now:
+		// the attach preamble re-asserts the session's real modes moments
+		// later, so a live TUI loses nothing.
+		terminal.write(FRESH_SHELL_INPUT_MODE_RESET);
 	}
 
-	const disposeImagePasteFallback = installImagePasteFallback(
-		terminal,
-		wrapper,
-	);
-
-	return {
+	const runtime: TerminalRuntime = {
 		terminalId,
 		terminal,
 		fitAddon,
@@ -334,8 +362,17 @@ export function createRuntime(
 		_disposeAddons: addonsResult.dispose,
 		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
 		ligaturesEnabled: appearance.ligatures,
-		_disposeImagePasteFallback: disposeImagePasteFallback,
+		_disposeImagePasteFallback: null,
+		imagePasteOverride: null,
+		initialContent,
 	};
+	runtime._disposeImagePasteFallback = installImagePasteFallback(
+		terminal,
+		wrapper,
+		() => runtime.imagePasteOverride,
+	);
+
+	return runtime;
 }
 
 export function attachToContainer(
@@ -377,8 +414,10 @@ export function attachToContainer(
 	}
 }
 
-export function detachFromContainer(runtime: TerminalRuntime) {
-	persistBuffer(runtime.terminalId, runtime.serializeAddon);
+/** Returns whether the buffer snapshot was persisted, so callers can keep
+ * paired state (the seq anchor) coherent with it. */
+export function detachFromContainer(runtime: TerminalRuntime): boolean {
+	const persisted = persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -389,6 +428,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
 	runtime.container = null;
+	return persisted;
 }
 
 export function updateRuntimeAppearance(

@@ -1,12 +1,20 @@
 import type { FsService } from "../core/service";
+import type {
+	FsCreateUniqueResult,
+	FsRemoveEmptyDirectoryResult,
+	FsRemoveFileIfUnchangedResult,
+} from "../fs";
 import {
 	copyPath,
 	createDirectory,
+	createUniqueEntry,
 	deletePath,
 	getMetadata,
 	listDirectory,
 	movePath,
 	readFile,
+	removeEmptyDirectory,
+	removeFileIfUnchanged,
 	writeFile,
 } from "../fs";
 import { normalizeAbsolutePath } from "../paths";
@@ -17,6 +25,29 @@ import type { FsWatcherManager, WatchPathOptions } from "../watch";
 
 export interface FsHostService extends FsService {
 	close(): Promise<void>;
+
+	/**
+	 * Host-only provisional-entry lifecycle, used by editors that create an entry
+	 * on disk before letting the user name it inline.
+	 *
+	 * Deliberately not on `FsService`: that interface is mirrored by
+	 * `createFsClient` through `FsRequestMap`, and nothing consumes these over
+	 * that transport. Widening it would add remote surface for no caller.
+	 */
+	createUniqueEntry(input: {
+		parentAbsolutePath: string;
+		baseName: string;
+		kind: "directory" | "file";
+	}): Promise<FsCreateUniqueResult>;
+
+	removeEmptyDirectory(input: {
+		absolutePath: string;
+	}): Promise<FsRemoveEmptyDirectoryResult>;
+
+	removeFileIfUnchanged(input: {
+		absolutePath: string;
+		revision: string;
+	}): Promise<FsRemoveFileIfUnchangedResult>;
 }
 
 export interface FsHostServiceOptions {
@@ -177,6 +208,30 @@ export function createFsHostService(
 				rootPath,
 				absolutePath: input.absolutePath,
 				recursive: input.recursive,
+			});
+		},
+
+		async createUniqueEntry(input) {
+			return await createUniqueEntry({
+				rootPath,
+				parentAbsolutePath: input.parentAbsolutePath,
+				baseName: input.baseName,
+				kind: input.kind,
+			});
+		},
+
+		async removeEmptyDirectory(input) {
+			return await removeEmptyDirectory({
+				rootPath,
+				absolutePath: input.absolutePath,
+			});
+		},
+
+		async removeFileIfUnchanged(input) {
+			return await removeFileIfUnchanged({
+				rootPath,
+				absolutePath: input.absolutePath,
+				revision: input.revision,
 			});
 		},
 

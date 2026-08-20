@@ -1,8 +1,8 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
+import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { getFlattenedV2WorkspaceIds } from "../../utils/getFlattenedV2WorkspaceIds";
 import { resolveWorkspaceRemovalNavigationTarget } from "./navigationTarget";
@@ -26,7 +26,6 @@ export function useNavigateAwayFromWorkspace() {
 		() => new Set(workspaces.map((workspace) => workspace.id)),
 		[workspaces],
 	);
-	const { isDeleting } = useDeletingWorkspaces();
 
 	const navigateAwayFromWorkspace = useCallback(
 		(
@@ -47,8 +46,12 @@ export function useNavigateAwayFromWorkspace() {
 				// "unknown", not "gone" — prefer navigating to it over home; the
 				// workspace route's own not-found handling covers a true miss.
 				isWorkspaceValid: (id) => !isReady || workspaceIds.has(id),
+				// Rows mid-destroy stay listed until the archive commit lands
+				// (after teardown) — exclude every in-flight destroy, not just
+				// the caller's own batch. Read at call time for freshness.
 				isWorkspaceDeleting: (id) =>
-					additionalDeletingWorkspaceIds?.has(id) === true || isDeleting(id),
+					additionalDeletingWorkspaceIds?.has(id) === true ||
+					useDeletingWorkspacesStore.getState().deletingIds.has(id),
 			});
 
 			if (!target) return;
@@ -58,11 +61,14 @@ export function useNavigateAwayFromWorkspace() {
 				}).catch(reportRemovalNavigationError);
 				return;
 			}
-			void navigate({ to: "/", replace: true }).catch(
+			// Straight to the v2 empty state — "/" detours through the v1
+			// workspace index, which can restore stale pre-migration state
+			// (SUPER-1814).
+			void navigate({ to: "/new-workspace", replace: true }).catch(
 				reportRemovalNavigationError,
 			);
 		},
-		[collections, workspaceIds, isDeleting, matchRoute, navigate, isReady],
+		[collections, workspaceIds, matchRoute, navigate, isReady],
 	);
 
 	return { navigateAwayFromWorkspace };

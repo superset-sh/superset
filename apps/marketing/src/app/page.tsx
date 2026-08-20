@@ -13,11 +13,17 @@ import { HeroSection } from "./components/HeroSection";
 const TrustedBySection = dynamic(() =>
 	import("./components/TrustedBySection").then((mod) => mod.TrustedBySection),
 );
+const HowItWorksSection = dynamic(() =>
+	import("./components/HowItWorksSection").then((mod) => mod.HowItWorksSection),
+);
 const FeaturesSection = dynamic(() =>
 	import("./components/FeaturesSection").then((mod) => mod.FeaturesSection),
 );
 const WallOfLoveSection = dynamic(() =>
 	import("./components/WallOfLoveSection").then((mod) => mod.WallOfLoveSection),
+);
+const SecuritySection = dynamic(() =>
+	import("./components/SecuritySection").then((mod) => mod.SecuritySection),
 );
 const FAQSection = dynamic(() =>
 	import("./components/FAQSection").then((mod) => mod.FAQSection),
@@ -40,8 +46,10 @@ export default function Home() {
 			<ServiceJsonLd />
 			<HeroSection />
 			<TrustedBySection />
+			<HowItWorksSection />
 			<FeaturesSection />
 			<WallOfLoveSection />
+			<SecuritySection />
 			<FAQSection />
 			<CTASection />
 		</main>

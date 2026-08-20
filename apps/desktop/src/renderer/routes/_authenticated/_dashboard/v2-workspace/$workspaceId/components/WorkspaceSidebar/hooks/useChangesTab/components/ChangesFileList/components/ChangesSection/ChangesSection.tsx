@@ -49,6 +49,9 @@ export function ChangesSection({
 		void utils.git.getDiff.invalidate({
 			workspaceId: stagingActions.workspaceId,
 		});
+		void utils.git.getDiffBulk.invalidate({
+			workspaceId: stagingActions.workspaceId,
+		});
 	};
 
 	const discardAllUnstaged = workspaceTrpc.git.discardAllUnstaged.useMutation({

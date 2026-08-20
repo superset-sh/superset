@@ -1,33 +1,78 @@
+import { Button } from "@superset/ui/button";
 import {
-	InputGroup,
-	InputGroupAddon,
-	InputGroupButton,
-	InputGroupInput,
-} from "@superset/ui/input-group";
+	DropdownMenu,
+	DropdownMenuCheckboxItem,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { cn } from "@superset/ui/utils";
 import {
-	Select,
-	SelectContent,
-	SelectGroup,
-	SelectItem,
-	SelectLabel,
-	SelectSeparator,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
-import { LuFolders, LuLaptop, LuMonitor, LuSearch, LuX } from "react-icons/lu";
+	LuArchive,
+	LuArrowDownUp,
+	LuBot,
+	LuFolder,
+	LuGitPullRequest,
+	LuLaptop,
+	LuList,
+	LuListFilter,
+	LuMonitor,
+	LuMonitorSmartphone,
+	LuPin,
+	LuSquareKanban,
+	LuTerminal,
+} from "react-icons/lu";
+import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
+import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type {
 	V2WorkspaceHostOption,
 	V2WorkspaceProjectOption,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
+	DEVICE_FILTER_ALL_DEVICES,
 	DEVICE_FILTER_THIS_DEVICE,
-	PROJECT_FILTER_ALL,
+	PROJECT_FILTER_SESSIONS,
 	useV2WorkspacesFilterStore,
+	V2_WORKSPACES_AGENT_STATUS_FILTERS,
+	V2_WORKSPACES_AGENT_STATUS_LABELS,
+	V2_WORKSPACES_BOARD_LANES,
+	V2_WORKSPACES_PIN_FILTER_LABELS,
+	V2_WORKSPACES_PIN_FILTERS,
+	V2_WORKSPACES_PR_STATE_FILTERS,
+	V2_WORKSPACES_SORT_LABELS,
+	V2_WORKSPACES_SORT_MODES,
+	type V2WorkspacesAgentStatusFilter,
+	type V2WorkspacesArchivedWindow,
+	type V2WorkspacesPinFilter,
+	type V2WorkspacesPrStateFilter,
+	type V2WorkspacesSortMode,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { BOARD_COLUMN_LABELS } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
+import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
-import { DeviceFilterTriggerLabel } from "./components/DeviceFilterTriggerLabel";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
-import { ProjectFilterTriggerLabel } from "./components/ProjectFilterTriggerLabel";
+
+const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, string> = {
+	open: "Open",
+	draft: "Draft",
+	queued: "Queued",
+	merged: "Merged",
+	closed: "Closed",
+};
+
+const ARCHIVED_WINDOW_LABELS: Record<V2WorkspacesArchivedWindow, string> = {
+	none: "Hidden",
+	week: "Past week",
+	month: "Past month",
+	all: "All",
+};
 
 interface V2WorkspacesHeaderProps {
 	hostOptions: V2WorkspaceHostOption[];
@@ -39,11 +84,19 @@ interface V2WorkspacesHeaderProps {
 	projectsById: Map<string, { projectName: string; iconUrl: string | null }>;
 }
 
+/** Muted right-aligned summary of a submenu's current selection. */
+function SubmenuValue({ children }: { children: React.ReactNode }) {
+	return (
+		<span className="ml-auto max-w-[8rem] truncate pl-3 text-xs text-muted-foreground">
+			{children}
+		</span>
+	);
+}
+
 export function V2WorkspacesHeader({
 	hostOptions,
 	projectOptions,
 	hostsById,
-	projectsById,
 }: V2WorkspacesHeaderProps) {
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
 	const setSearchQuery = useV2WorkspacesFilterStore(
@@ -55,178 +108,439 @@ export function V2WorkspacesHeader({
 	const setDeviceFilter = useV2WorkspacesFilterStore(
 		(state) => state.setDeviceFilter,
 	);
-	const projectFilter = useV2WorkspacesFilterStore(
-		(state) => state.projectFilter,
+	const projectFilters = useV2WorkspacesFilterStore(
+		(state) => state.projectFilters,
 	);
-	const setProjectFilter = useV2WorkspacesFilterStore(
-		(state) => state.setProjectFilter,
+	const setProjectFilters = useV2WorkspacesFilterStore(
+		(state) => state.setProjectFilters,
 	);
+	const prStateFilters = useV2WorkspacesFilterStore(
+		(state) => state.prStateFilters,
+	);
+	const setPrStateFilters = useV2WorkspacesFilterStore(
+		(state) => state.setPrStateFilters,
+	);
+	const agentStatusFilters = useV2WorkspacesFilterStore(
+		(state) => state.agentStatusFilters,
+	);
+	const setAgentStatusFilters = useV2WorkspacesFilterStore(
+		(state) => state.setAgentStatusFilters,
+	);
+	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
+	const setPinFilter = useV2WorkspacesFilterStore(
+		(state) => state.setPinFilter,
+	);
+	const viewMode = useV2WorkspacesFilterStore((state) => state.viewMode);
+	const setViewMode = useV2WorkspacesFilterStore((state) => state.setViewMode);
+	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
+	const setSortMode = useV2WorkspacesFilterStore((state) => state.setSortMode);
+	const archivedWindow = useV2WorkspacesFilterStore(
+		(state) => state.archivedWindow,
+	);
+	const setArchivedWindow = useV2WorkspacesFilterStore(
+		(state) => state.setArchivedWindow,
+	);
+	const hiddenLanes = useV2WorkspacesFilterStore((state) => state.hiddenLanes);
+	const toggleLane = useV2WorkspacesFilterStore((state) => state.toggleLane);
 
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
-	const selectedRemoteHostFromOptions = remoteHosts.find(
-		(host) => host.hostId === deviceFilter,
-	);
-	const selectedHostFallback =
-		!selectedRemoteHostFromOptions && deviceFilter !== DEVICE_FILTER_THIS_DEVICE
-			? hostsById.get(deviceFilter)
-			: undefined;
-	const selectedHostLabel = selectedRemoteHostFromOptions
-		? {
-				hostName: selectedRemoteHostFromOptions.hostName,
-				isOnline: selectedRemoteHostFromOptions.isOnline,
-			}
-		: selectedHostFallback
-			? {
-					hostName: selectedHostFallback.hostName,
-					isOnline: selectedHostFallback.isOnline,
-				}
-			: undefined;
+	const deviceLabel =
+		deviceFilter === DEVICE_FILTER_THIS_DEVICE
+			? "This device"
+			: deviceFilter === DEVICE_FILTER_ALL_DEVICES
+				? "All devices"
+				: (remoteHosts.find((host) => host.hostId === deviceFilter)?.hostName ??
+					hostsById.get(deviceFilter)?.hostName ??
+					"Unknown device");
 
-	const selectedProjectFromOptions = projectOptions.find(
-		(project) => project.projectId === projectFilter,
-	);
-	const selectedProjectFallback =
-		!selectedProjectFromOptions && projectFilter !== PROJECT_FILTER_ALL
-			? projectsById.get(projectFilter)
-			: undefined;
-	const selectedProjectLabel = selectedProjectFromOptions
-		? {
-				projectName: selectedProjectFromOptions.projectName,
-				iconUrl: selectedProjectFromOptions.iconUrl,
-			}
-		: selectedProjectFallback
-			? {
-					projectName: selectedProjectFallback.projectName,
-					iconUrl: selectedProjectFallback.iconUrl,
-				}
-			: undefined;
+	const projectFilterOptions = [
+		...projectOptions.map((project) => ({
+			value: project.projectId,
+			label: project.projectName,
+			icon: (
+				<V2WorkspaceProjectIcon
+					projectName={project.projectName}
+					iconUrl={project.iconUrl}
+					size="sm"
+				/>
+			),
+		})),
+		{
+			value: PROJECT_FILTER_SESSIONS,
+			label: "Sessions",
+			icon: <LuTerminal className="size-3.5" />,
+		},
+	];
+
+	const toggleIn = (values: string[], value: string) =>
+		values.includes(value)
+			? values.filter((entry) => entry !== value)
+			: [...values, value];
+
+	const activeFilterCount =
+		(projectFilters.length > 0 ? 1 : 0) +
+		(prStateFilters.length > 0 ? 1 : 0) +
+		(agentStatusFilters.length > 0 ? 1 : 0) +
+		(pinFilter !== "all" ? 1 : 0) +
+		(deviceFilter !== DEVICE_FILTER_THIS_DEVICE ? 1 : 0);
+
+	const clearFilters = () => {
+		setProjectFilters([]);
+		setPrStateFilters([]);
+		setAgentStatusFilters([]);
+		setPinFilter("all");
+		setDeviceFilter(DEVICE_FILTER_THIS_DEVICE);
+	};
 
 	return (
-		<div className="border-b border-border">
-			<div className="flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4">
-				<h1 className="text-sm font-semibold tracking-tight">Workspaces</h1>
+		<div
+			data-workspaces-toolbar
+			className="@container shrink-0 border-b border-border px-4 py-2"
+		>
+			<div className="flex flex-col items-stretch gap-2 @4xl:flex-row @4xl:items-center @4xl:justify-between">
+				<div className="flex min-w-0 items-center gap-3 overflow-x-auto hide-scrollbar">
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className={cn(
+									"h-8 gap-1.5 font-normal",
+									activeFilterCount === 0 && "text-muted-foreground",
+								)}
+							>
+								<LuListFilter className="size-3.5" />
+								Filter
+								{activeFilterCount > 0 ? (
+									<span className="flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-medium text-accent-foreground">
+										{activeFilterCount}
+									</span>
+								) : null}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="start" className="min-w-[14rem]">
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuFolder className="size-3.5" />
+										Project
+									</span>
+									{projectFilters.length > 0 ? (
+										<SubmenuValue>{projectFilters.length}</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="max-h-[60vh] min-w-[12rem] overflow-y-auto">
+									{projectFilterOptions.map((option) => (
+										<DropdownMenuCheckboxItem
+											key={option.value}
+											checked={projectFilters.includes(option.value)}
+											onSelect={(event) => event.preventDefault()}
+											onCheckedChange={() =>
+												setProjectFilters(
+													toggleIn(projectFilters, option.value),
+												)
+											}
+										>
+											<span className="flex min-w-0 items-center gap-2">
+												{option.icon}
+												<span className="min-w-0 flex-1 truncate">
+													{option.label}
+												</span>
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuGitPullRequest className="size-3.5" />
+										PR state
+									</span>
+									{prStateFilters.length > 0 ? (
+										<SubmenuValue>
+											{prStateFilters
+												.map((state) => PR_STATE_LABELS[state])
+												.join(", ")}
+										</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[10rem]">
+									{V2_WORKSPACES_PR_STATE_FILTERS.map((state) => (
+										<DropdownMenuCheckboxItem
+											key={state}
+											checked={prStateFilters.includes(state)}
+											onSelect={(event) => event.preventDefault()}
+											onCheckedChange={() =>
+												setPrStateFilters(
+													toggleIn(
+														prStateFilters,
+														state,
+													) as V2WorkspacesPrStateFilter[],
+												)
+											}
+										>
+											<span className="flex items-center gap-2">
+												<PRIcon state={state} className="size-3.5" />
+												{PR_STATE_LABELS[state]}
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuBot className="size-3.5" />
+										Agent
+									</span>
+									{agentStatusFilters.length > 0 ? (
+										<SubmenuValue>
+											{agentStatusFilters
+												.map(
+													(status) => V2_WORKSPACES_AGENT_STATUS_LABELS[status],
+												)
+												.join(", ")}
+										</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[11rem]">
+									{V2_WORKSPACES_AGENT_STATUS_FILTERS.map((status) => (
+										<DropdownMenuCheckboxItem
+											key={status}
+											checked={agentStatusFilters.includes(status)}
+											onSelect={(event) => event.preventDefault()}
+											onCheckedChange={() =>
+												setAgentStatusFilters(
+													toggleIn(
+														agentStatusFilters,
+														status,
+													) as V2WorkspacesAgentStatusFilter[],
+												)
+											}
+										>
+											{V2_WORKSPACES_AGENT_STATUS_LABELS[status]}
+										</DropdownMenuCheckboxItem>
+									))}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuPin className="size-3.5" />
+										Pinned
+									</span>
+									{pinFilter !== "all" ? (
+										<SubmenuValue>
+											{V2_WORKSPACES_PIN_FILTER_LABELS[pinFilter]}
+										</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[10rem]">
+									<DropdownMenuRadioGroup
+										value={pinFilter}
+										onValueChange={(next) =>
+											setPinFilter(next as V2WorkspacesPinFilter)
+										}
+									>
+										{V2_WORKSPACES_PIN_FILTERS.map((filter) => (
+											<DropdownMenuRadioItem key={filter} value={filter}>
+												{V2_WORKSPACES_PIN_FILTER_LABELS[filter]}
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<span className="flex items-center gap-2">
+										<LuMonitorSmartphone className="size-3.5" />
+										Device
+									</span>
+									{deviceFilter !== DEVICE_FILTER_THIS_DEVICE ? (
+										<SubmenuValue>{deviceLabel}</SubmenuValue>
+									) : null}
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent className="min-w-[14rem]">
+									<DropdownMenuRadioGroup
+										value={deviceFilter}
+										onValueChange={setDeviceFilter}
+									>
+										<DropdownMenuRadioItem value={DEVICE_FILTER_ALL_DEVICES}>
+											<DeviceOptionLabel
+												icon={<LuMonitorSmartphone className="size-3.5" />}
+												label="All devices"
+											/>
+										</DropdownMenuRadioItem>
+										<DropdownMenuRadioItem value={DEVICE_FILTER_THIS_DEVICE}>
+											<DeviceOptionLabel
+												icon={<LuLaptop className="size-3.5" />}
+												label="This device"
+											/>
+										</DropdownMenuRadioItem>
+										{remoteHosts.length > 0 ? (
+											<>
+												<DropdownMenuSeparator />
+												<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+													Other devices
+												</DropdownMenuLabel>
+												{remoteHosts.map((host) => (
+													<DropdownMenuRadioItem
+														key={host.hostId}
+														value={host.hostId}
+													>
+														<DeviceOptionLabel
+															icon={<LuMonitor className="size-3.5" />}
+															label={host.hostName}
+															isOnline={host.isOnline}
+														/>
+													</DropdownMenuRadioItem>
+												))}
+											</>
+										) : null}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+
+							{activeFilterCount > 0 ? (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className="justify-center text-xs text-muted-foreground"
+										onSelect={clearFilters}
+									>
+										Clear filters
+									</DropdownMenuItem>
+								</>
+							) : null}
+						</DropdownMenuContent>
+					</DropdownMenu>
+
+					<div className="h-4 w-px shrink-0 bg-border" />
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8 gap-1.5 font-normal text-muted-foreground"
+							>
+								<LuArrowDownUp className="size-3.5" />
+								Display
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="start" className="min-w-[12rem]">
+							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+								Sort by
+							</DropdownMenuLabel>
+							<DropdownMenuRadioGroup
+								value={sortMode}
+								onValueChange={(next) =>
+									setSortMode(next as V2WorkspacesSortMode)
+								}
+							>
+								{V2_WORKSPACES_SORT_MODES.map((mode) => (
+									<DropdownMenuRadioItem key={mode} value={mode}>
+										{V2_WORKSPACES_SORT_LABELS[mode]}
+									</DropdownMenuRadioItem>
+								))}
+							</DropdownMenuRadioGroup>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+								<span className="flex items-center gap-1.5">
+									<LuArchive className="size-3" />
+									Archived
+								</span>
+							</DropdownMenuLabel>
+							<DropdownMenuRadioGroup
+								value={archivedWindow}
+								onValueChange={(next) =>
+									setArchivedWindow(next as V2WorkspacesArchivedWindow)
+								}
+							>
+								{(
+									Object.keys(
+										ARCHIVED_WINDOW_LABELS,
+									) as V2WorkspacesArchivedWindow[]
+								).map((window) => (
+									<DropdownMenuRadioItem key={window} value={window}>
+										{ARCHIVED_WINDOW_LABELS[window]}
+									</DropdownMenuRadioItem>
+								))}
+							</DropdownMenuRadioGroup>
+							{viewMode === "board" && (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+										Lanes
+									</DropdownMenuLabel>
+									{V2_WORKSPACES_BOARD_LANES.map((lane) => (
+										<DropdownMenuCheckboxItem
+											key={lane}
+											checked={!hiddenLanes.includes(lane)}
+											onCheckedChange={() => toggleLane(lane)}
+											onSelect={(event) => event.preventDefault()}
+										>
+											<span className="flex items-center gap-1.5">
+												<BoardColumnIcon column={lane} className="size-3" />
+												{BOARD_COLUMN_LABELS[lane]}
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 
 				{/* Window-drag leaf standing in for the hidden TopBar. */}
-				<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
+				<div className="drag hidden min-w-0 flex-1 self-stretch @4xl:block" />
 
-				<div className="flex flex-wrap items-center gap-2">
-					<InputGroup className="w-72">
-						<InputGroupAddon align="inline-start">
-							<LuSearch className="size-4" />
-						</InputGroupAddon>
-						<InputGroupInput
-							type="text"
-							placeholder="Search workspaces…"
-							value={searchQuery}
-							onChange={(event) => setSearchQuery(event.target.value)}
-						/>
-						{searchQuery ? (
-							<InputGroupAddon align="inline-end">
-								<InputGroupButton
-									size="icon-xs"
-									aria-label="Clear search"
-									onClick={() => setSearchQuery("")}
-								>
-									<LuX />
-								</InputGroupButton>
-							</InputGroupAddon>
-						) : null}
-					</InputGroup>
+				<div className="flex shrink-0 items-center gap-2">
+					<fieldset
+						className="flex items-center rounded-md border bg-muted/30 p-0.5"
+						aria-label="Workspace layout"
+					>
+						<button
+							type="button"
+							aria-pressed={viewMode === "list"}
+							className={cn(
+								"flex h-6 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								viewMode === "list"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+							onClick={() => setViewMode("list")}
+						>
+							<LuList className="size-3.5" />
+							List
+						</button>
+						<button
+							type="button"
+							aria-pressed={viewMode === "board"}
+							className={cn(
+								"flex h-6 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								viewMode === "board"
+									? "bg-background text-foreground shadow-sm"
+									: "text-muted-foreground hover:text-foreground",
+							)}
+							onClick={() => setViewMode("board")}
+						>
+							<LuSquareKanban className="size-3.5" />
+							Board
+						</button>
+					</fieldset>
 
-					<Select value={projectFilter} onValueChange={setProjectFilter}>
-						<SelectTrigger size="sm" className="min-w-[12rem]">
-							<SelectValue placeholder="Filter projects">
-								<ProjectFilterTriggerLabel
-									projectFilter={projectFilter}
-									selectedProject={selectedProjectLabel}
-								/>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end" className="min-w-[16rem]">
-							<SelectGroup>
-								<SelectItem value={PROJECT_FILTER_ALL}>
-									<span className="flex w-full min-w-0 items-center gap-2">
-										<LuFolders className="size-3.5" />
-										<span className="min-w-0 flex-1 truncate">
-											All projects
-										</span>
-									</span>
-								</SelectItem>
-							</SelectGroup>
-
-							{projectOptions.length > 0 ? (
-								<>
-									<SelectSeparator />
-									<SelectGroup>
-										<SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-											Projects
-										</SelectLabel>
-										{projectOptions.map((project) => (
-											<SelectItem
-												key={project.projectId}
-												value={project.projectId}
-											>
-												<span className="flex w-full min-w-0 items-center gap-2">
-													<V2WorkspaceProjectIcon
-														projectName={project.projectName}
-														iconUrl={project.iconUrl}
-														size="sm"
-													/>
-													<span className="min-w-0 flex-1 truncate">
-														{project.projectName}
-													</span>
-													<span className="tabular-nums text-xs text-muted-foreground">
-														{project.count}
-													</span>
-												</span>
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</>
-							) : null}
-						</SelectContent>
-					</Select>
-
-					<Select value={deviceFilter} onValueChange={setDeviceFilter}>
-						<SelectTrigger size="sm" className="min-w-[12rem]">
-							<SelectValue placeholder="Filter devices">
-								<DeviceFilterTriggerLabel
-									deviceFilter={deviceFilter}
-									selectedRemoteHost={selectedHostLabel}
-								/>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end" className="min-w-[16rem]">
-							<SelectGroup>
-								<SelectItem value={DEVICE_FILTER_THIS_DEVICE}>
-									<DeviceOptionLabel
-										icon={<LuLaptop className="size-3.5" />}
-										label="This device"
-									/>
-								</SelectItem>
-							</SelectGroup>
-
-							{remoteHosts.length > 0 ? (
-								<>
-									<SelectSeparator />
-									<SelectGroup>
-										<SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-											Other devices
-										</SelectLabel>
-										{remoteHosts.map((host) => (
-											<SelectItem key={host.hostId} value={host.hostId}>
-												<DeviceOptionLabel
-													icon={<LuMonitor className="size-3.5" />}
-													label={host.hostName}
-													isOnline={host.isOnline}
-												/>
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</>
-							) : null}
-						</SelectContent>
-					</Select>
+					<WorkItemsSearch
+						value={searchQuery}
+						onChange={setSearchQuery}
+						placeholder="Search workspaces…"
+						label="Search workspaces"
+					/>
 				</div>
 			</div>
 		</div>

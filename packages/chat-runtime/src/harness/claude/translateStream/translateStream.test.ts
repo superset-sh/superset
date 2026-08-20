@@ -333,9 +333,13 @@ describe("ClaudeTranslator", () => {
 			usage: { input_tokens: 1, output_tokens: 1 },
 		});
 
-		expect(events.at(-1)).toMatchObject({
+		expect(events.at(-2)).toMatchObject({
 			kind: "turn",
 			turn: { usage: { costUsd: 0 } },
+		});
+		expect(events.at(-1)).toEqual({
+			kind: "session",
+			session: { status: "idle" },
 		});
 	});
 });

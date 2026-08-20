@@ -30,7 +30,6 @@ interface SetupProjectModalProps {
 	repoCloneUrl: string | null;
 	isRemoteTarget: boolean;
 	onChanged?: () => void;
-	onConflict: (conflict: { id: string; name: string }) => void;
 }
 
 export function SetupProjectModal({
@@ -43,7 +42,6 @@ export function SetupProjectModal({
 	repoCloneUrl,
 	isRemoteTarget,
 	onChanged,
-	onConflict,
 }: SetupProjectModalProps) {
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
@@ -147,15 +145,6 @@ export function SetupProjectModal({
 		setWorking(true);
 		try {
 			const client = getHostServiceClientByUrl(hostUrl);
-			const precheck = await client.project.findBackfillConflict.query({
-				projectId,
-				repoPath: trimmed,
-			});
-			if (precheck.conflict) {
-				onConflict(precheck.conflict);
-				onOpenChange(false);
-				return;
-			}
 			const result = await client.project.setup.mutate({
 				projectId,
 				origin: { repoCloneUrl, name: projectName },

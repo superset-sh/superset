@@ -2,7 +2,27 @@ import { describe, expect, test } from "bun:test";
 import {
 	migrateTasksFilterState,
 	tasksSearchFromFilters,
+	useTasksFilterStore,
 } from "./tasks-filter-state";
+
+describe("useTasksFilterStore.setProjectFilters", () => {
+	test("does not notify subscribers when filters are unchanged", () => {
+		// Views sync filters back through an effect keyed on this array, so an
+		// always-fresh reference here regresses into an infinite update loop.
+		const { setProjectFilters } = useTasksFilterStore.getState();
+		setProjectFilters(["project-1", "project-2"]);
+		const before = useTasksFilterStore.getState().projectFilters;
+		let notifications = 0;
+		const unsubscribe = useTasksFilterStore.subscribe(() => {
+			notifications += 1;
+		});
+		setProjectFilters(["project-1", "project-2"]);
+		unsubscribe();
+		expect(useTasksFilterStore.getState().projectFilters).toBe(before);
+		expect(notifications).toBe(0);
+		useTasksFilterStore.getState().setProjectFilters([]);
+	});
+});
 
 describe("tasksSearchFromFilters", () => {
 	test("keeps default task filters out of the URL", () => {
@@ -12,7 +32,7 @@ describe("tasksSearchFromFilters", () => {
 				assignee: null,
 				search: "",
 				typeTab: "tasks",
-				projectFilter: null,
+				projectFilters: [],
 				linearProjectFilter: null,
 				includeClosedIssues: false,
 			}),
@@ -26,7 +46,7 @@ describe("tasksSearchFromFilters", () => {
 				assignee: "me",
 				search: "remote host",
 				typeTab: "issues",
-				projectFilter: "project-1",
+				projectFilters: ["project-1", "project-2"],
 				linearProjectFilter: null,
 				includeClosedIssues: true,
 			}),
@@ -35,7 +55,7 @@ describe("tasksSearchFromFilters", () => {
 			assignee: "me",
 			search: "remote host",
 			type: "issues",
-			project: "project-1",
+			projects: "project-1,project-2",
 			state: "all",
 		});
 	});
@@ -47,12 +67,12 @@ describe("tasksSearchFromFilters", () => {
 				assignee: null,
 				search: "",
 				typeTab: "tasks",
-				projectFilter: "project-1",
+				projectFilters: ["project-1"],
 				linearProjectFilter: "linear-project-1",
 				includeClosedIssues: true,
 			}),
 		).toEqual({
-			project: "project-1",
+			projects: "project-1",
 			linearProject: "linear-project-1",
 		});
 	});
@@ -67,15 +87,44 @@ describe("migrateTasksFilterState", () => {
 			}),
 		).toMatchObject({
 			typeTab: "tasks",
-			projectFilter: "project-1",
+			projectFilters: ["project-1"],
 			includeClosedIssues: false,
 		});
 	});
 
 	test("survives corrupt persisted values", () => {
-		expect(migrateTasksFilterState(null)).toMatchObject({
+		expect(
+			migrateTasksFilterState({
+				tab: "waiting",
+				viewMode: "grid",
+				linearProjectFilter: 42,
+				projectFilters: ["project-1", false, "project-1"],
+			}),
+		).toMatchObject({
+			tab: "all",
 			typeTab: "tasks",
+			viewMode: "table",
 			includeClosedIssues: false,
+			linearProjectFilter: null,
+			projectFilters: ["project-1"],
+		});
+		expect(migrateTasksFilterState(null)).toMatchObject({
+			tab: "all",
+			typeTab: "tasks",
+			viewMode: "table",
+			includeClosedIssues: false,
+			linearProjectFilter: null,
+			projectFilters: [],
+		});
+	});
+
+	test("normalizes a persisted Linear project filter", () => {
+		expect(
+			migrateTasksFilterState({
+				linearProjectFilter: "  linear-project-1  ",
+			}),
+		).toMatchObject({
+			linearProjectFilter: "linear-project-1",
 		});
 	});
 });

@@ -7,12 +7,17 @@ import { OrganizationAvatar } from "@/screens/(authenticated)/components/Organiz
 export function OrganizationHeaderButton({
 	name,
 	logo,
+	isLoading,
 	onPress,
 }: {
 	name?: string;
 	logo?: string | null;
+	isLoading?: boolean;
 	onPress: () => void;
 }) {
+	// Naming an organization we have not loaded yet would be a guess, and the
+	// guess is wrong for everyone who belongs to more than one.
+	if (isLoading) return null;
 	return (
 		<Stack.Toolbar placement="left">
 			<Stack.Toolbar.View hidesSharedBackground>

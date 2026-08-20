@@ -1,4 +1,5 @@
 import { getHostId } from "@superset/shared/host-info";
+import type { ApiClient } from "../api-client";
 import { type HostServiceClient, resolveHostTarget } from "../host-target";
 
 export type HostWorkspaceRow = Awaited<
@@ -8,6 +9,7 @@ export type HostWorkspaceRow = Awaited<
 export interface HostWorkspacesOptions {
 	organizationId: string;
 	userJwt: string;
+	api: ApiClient;
 	/** Explicit host; defaults to this machine. */
 	hostId?: string;
 }
@@ -20,10 +22,11 @@ export async function listWorkspacesOnHost(
 	options: HostWorkspacesOptions,
 ): Promise<{ hostId: string; workspaces: HostWorkspaceRow[] }> {
 	const hostId = options.hostId ?? getHostId();
-	const target = resolveHostTarget({
+	const target = await resolveHostTarget({
 		requestedHostId: hostId,
 		organizationId: options.organizationId,
 		userJwt: options.userJwt,
+		api: options.api,
 	});
 	return { hostId, workspaces: await target.client.workspace.list.query() };
 }

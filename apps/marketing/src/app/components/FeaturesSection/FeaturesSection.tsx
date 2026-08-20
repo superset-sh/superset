@@ -1,22 +1,28 @@
 "use client";
 
+import { AutomationsDemo } from "./components/AutomationsDemo";
+import { CliDemo } from "./components/CliDemo";
 import { FeatureDemo } from "./components/FeatureDemo";
 import { IsolationDemo } from "./components/IsolationDemo";
 import { OpenInDemo } from "./components/OpenInDemo";
 import { ParallelExecutionDemo } from "./components/ParallelExecutionDemo";
+import { RemoteWorkspacesDemo } from "./components/RemoteWorkspacesDemo";
 import { UniversalCompatibilityDemo } from "./components/UniversalCompatibilityDemo";
 import { FEATURES } from "./constants";
 
 const DEMO_COMPONENTS = [
 	ParallelExecutionDemo,
+	AutomationsDemo,
 	UniversalCompatibilityDemo,
 	IsolationDemo,
+	RemoteWorkspacesDemo,
+	CliDemo,
 	OpenInDemo,
 ];
 
 export function FeaturesSection() {
 	return (
-		<section className="relative py-24 sm:py-32">
+		<section id="features" className="relative py-24 sm:py-32">
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				{/* Feature Rows */}
 				<div className="space-y-24 sm:space-y-32">
@@ -47,7 +53,7 @@ export function FeaturesSection() {
 
 								{/* Demo */}
 								<div className={`${isReversed ? "lg:order-1" : "lg:order-2"}`}>
-									<FeatureDemo colors={feature.colors}>
+									<FeatureDemo>
 										{DemoComponent && <DemoComponent />}
 									</FeatureDemo>
 								</div>

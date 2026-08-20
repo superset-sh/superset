@@ -1,8 +1,8 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
+import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { MOCK_ORG_ID } from "shared/constants";
 import {
 	type KnownHostRow,
@@ -14,14 +14,14 @@ import {
 export type { KnownHostRow } from "./useKnownHosts.utils";
 
 /**
- * Org host list for query-target derivation, decoupled from Electric's sync
- * lifecycle. The Electric `v2Hosts` collection stays the live source, but its
- * rows are persisted to IndexedDB and served from that snapshot whenever the
- * collection is empty and not yet ready (cold start before hydration, resync
- * truncation). A ready-but-empty collection is authoritative: the snapshot
- * must not resurrect an org's deleted last host.
+ * Org host list for query-target derivation, decoupled from the cloud query's
+ * fetch lifecycle. `v2Host.list` stays the live source, but its rows are
+ * persisted to IndexedDB and served from that snapshot whenever the query has
+ * no data yet (cold start before the first response, offline boot). A settled
+ * empty response is authoritative: the snapshot must not resurrect an org's
+ * deleted last host.
  *
- * Without this, an Electric flicker empties the host target list and every
+ * Without this, an empty read empties the host target list and every
  * host-derived read path (workspaces, projects, PR chips, ports) drops its
  * rows — a full sidebar clear (verified 2026-08-01; see
  * apps/desktop/docs/SIDEBAR_STATE_RESILIENCE.md).
@@ -30,27 +30,43 @@ export function useKnownHosts(): {
 	hosts: KnownHostRow[];
 	organizationId: string | null;
 	/**
-	 * True once the host list is trustworthy: Electric reached ready, or this
+	 * True once the host list is trustworthy: the cloud query answered, or this
 	 * org's IndexedDB snapshot loaded. Until then the list may be missing
 	 * remote hosts entirely — gate "host/workspace doesn't exist" conclusions
 	 * on this, never row rendering.
 	 */
 	settled: boolean;
 } {
-	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const organizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 
-	const { data: liveRows = [], isReady: liveReady } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
+	// Presence drives the fan-out targets the sidebar polls while the window is
+	// backgrounded, so this refresh has to keep running there too.
+	const hostsQuery = cloudTrpc.v2Host.list.useQuery(undefined, {
+		refetchInterval: 30_000,
+		refetchIntervalInBackground: true,
+	});
+	// The query key carries no org (the server scopes by active org), so right
+	// after a switch this cache entry still holds the prior org's rows. Rows
+	// carry their owning org: a non-empty response with no row for the active
+	// org is a foreign read, not an answer for this org.
+	const hostRows = hostsQuery.data;
+	const liveReady =
+		hostRows !== undefined &&
+		(hostRows.length === 0 ||
+			hostRows.some((host) => host.organizationId === organizationId));
+	const liveRows = useMemo<KnownHostRow[]>(
+		() =>
+			(hostRows ?? [])
+				.filter((host) => host.organizationId === organizationId)
+				.map((host) => ({
+					organizationId: host.organizationId,
+					machineId: host.machineId,
+					isOnline: host.isOnline,
+				})),
+		[hostRows, organizationId],
 	);
 
 	// The snapshot carries its owning org so a prior org's rows can never be
@@ -71,16 +87,18 @@ export function useKnownHosts(): {
 		};
 	}, [organizationId]);
 
-	// Persist only once the collection is ready: a partial pre-sync result
-	// must not overwrite the snapshot, and a ready-but-empty list must (so
-	// deleting the org's last host doesn't leave a ghost on the next boot).
+	// Persist only once the query has answered: a pre-response empty list must
+	// not overwrite the snapshot, and an answered empty list must (so deleting
+	// the org's last host doesn't leave a ghost on the next boot). The org is
+	// part of the fingerprint so two orgs that both answer empty each get their
+	// own write instead of the second being deduped away.
 	const lastPersistedRef = useRef<string | null>(null);
 	useEffect(() => {
 		if (!organizationId || !liveReady) return;
-		const fingerprint = JSON.stringify(liveRows);
+		const fingerprint = `${organizationId}:${JSON.stringify(liveRows)}`;
 		if (lastPersistedRef.current === fingerprint) return;
 		lastPersistedRef.current = fingerprint;
-		saveKnownHostsSnapshot(organizationId, liveRows as KnownHostRow[]);
+		saveKnownHostsSnapshot(organizationId, liveRows);
 	}, [organizationId, liveReady, liveRows]);
 
 	const hosts = useMemo(() => {
@@ -88,16 +106,21 @@ export function useKnownHosts(): {
 			snapshot && snapshot.organizationId === organizationId
 				? snapshot.rows
 				: undefined;
-		return resolveKnownHosts(
-			liveRows as KnownHostRow[],
-			snapshotRows,
-			liveReady,
-		);
+		return resolveKnownHosts(liveRows, snapshotRows, liveReady);
 	}, [liveRows, liveReady, snapshot, organizationId]);
+
+	const presence = useHostsPresence(hosts);
+	const hostsWithPresence = useMemo(() => {
+		if (!presence) return hosts;
+		return hosts.map((host) => ({
+			...host,
+			isOnline: presence.get(host.machineId) ?? host.isOnline,
+		}));
+	}, [hosts, presence]);
 
 	const settled =
 		liveReady ||
 		(snapshot !== null && snapshot.organizationId === organizationId);
 
-	return { hosts, organizationId, settled };
+	return { hosts: hostsWithPresence, organizationId, settled };
 }

@@ -1334,7 +1334,7 @@ describe("ptyDaemonSocketPath", () => {
 		return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 	};
 
-	test("every production home keeps the legacy org-only path", () => {
+	test("default production homes keep the legacy org-only path", () => {
 		expect(ptyDaemonSocketPath(ORG, { NODE_ENV: "production" })).toBe(
 			legacyPath(),
 		);
@@ -1344,12 +1344,63 @@ describe("ptyDaemonSocketPath", () => {
 				SUPERSET_HOME_DIR: path.join(os.homedir(), ".superset"),
 			}),
 		).toBe(legacyPath());
+	});
+
+	test("equivalent spellings of one custom home share a socket", () => {
+		const canonical = ptyDaemonSocketPath(ORG, {
+			NODE_ENV: "production",
+			SUPERSET_HOME_DIR: "/tmp/custom-home-alias",
+		});
 		expect(
 			ptyDaemonSocketPath(ORG, {
 				NODE_ENV: "production",
-				SUPERSET_HOME_DIR: "/tmp/custom-production-home",
+				SUPERSET_HOME_DIR: "/tmp/custom-home-alias/",
 			}),
-		).toBe(legacyPath());
+		).toBe(canonical);
+		expect(
+			ptyDaemonSocketPath(ORG, {
+				NODE_ENV: "production",
+				SUPERSET_HOME_DIR: "/tmp/elsewhere/../custom-home-alias",
+			}),
+		).toBe(canonical);
+	});
+
+	test("any non-default home is namespaced, regardless of NODE_ENV", () => {
+		// Two instances of the same org must never share a socket — a test
+		// or custom-home instance on the org-only socket can adopt/reap/kill
+		// another instance's PTYs. Existing daemons stay adoptable through
+		// the manifest's stored socketPath, so this costs no continuity.
+		for (const NODE_ENV of ["production", "test", undefined]) {
+			expect(
+				ptyDaemonSocketPath(ORG, {
+					NODE_ENV,
+					SUPERSET_HOME_DIR: "/tmp/custom-home-a",
+				}),
+			).not.toBe(legacyPath());
+		}
+	});
+
+	test("test-runner contexts require an isolated home", () => {
+		expect(() => ptyDaemonSocketPath(ORG, { NODE_ENV: "test" })).toThrow(
+			/isolated temp dir/,
+		);
+		expect(() =>
+			ptyDaemonSocketPath(ORG, {
+				NODE_ENV: "test",
+				SUPERSET_HOME_DIR: path.join(os.homedir(), ".superset"),
+			}),
+		).toThrow(/isolated temp dir/);
+		expect(() =>
+			ptyDaemonSocketPath(ORG, {
+				NODE_TEST_CONTEXT: "child-v8",
+			} as NodeJS.ProcessEnv),
+		).toThrow(/isolated temp dir/);
+		expect(
+			ptyDaemonSocketPath(ORG, {
+				NODE_ENV: "test",
+				SUPERSET_HOME_DIR: "/tmp/isolated-test-home",
+			}),
+		).not.toBe(legacyPath());
 	});
 
 	test("non-default development homes get their own stable daemon socket", () => {

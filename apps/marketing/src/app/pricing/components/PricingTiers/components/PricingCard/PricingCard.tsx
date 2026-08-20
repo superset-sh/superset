@@ -55,15 +55,18 @@ export function PricingCard({ tier, isYearly }: PricingCardProps) {
 				{cadence && <p className="text-xs text-muted-foreground">{cadence}</p>}
 			</div>
 
-			<Button asChild variant={tier.cta.variant} size="lg" className="w-full">
-				{tier.cta.external ? (
-					<a href={tier.cta.href} target="_blank" rel="noopener noreferrer">
-						{tier.cta.label}
-					</a>
-				) : (
-					<Link href={tier.cta.href}>{tier.cta.label}</Link>
-				)}
-			</Button>
+			<div className="flex flex-col gap-2">
+				<Button asChild variant={tier.cta.variant} size="lg" className="w-full">
+					{tier.cta.external ? (
+						<a href={tier.cta.href} target="_blank" rel="noopener noreferrer">
+							{tier.cta.label}
+						</a>
+					) : (
+						<Link href={tier.cta.href}>{tier.cta.label}</Link>
+					)}
+				</Button>
+				<CtaNote note={tier.ctaNote} />
+			</div>
 
 			<ul className="flex flex-col gap-3 border-t border-border pt-6">
 				{tier.features.map((feature) => (
@@ -77,6 +80,27 @@ export function PricingCard({ tier, isYearly }: PricingCardProps) {
 				))}
 			</ul>
 		</div>
+	);
+}
+
+function CtaNote({ note }: { note: PricingTier["ctaNote"] }) {
+	if (!note) {
+		return <p className="h-4" aria-hidden="true" />;
+	}
+	if (note.href) {
+		return (
+			<a
+				href={note.href}
+				target="_blank"
+				rel="noopener noreferrer"
+				className="text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+			>
+				{note.label}
+			</a>
+		);
+	}
+	return (
+		<p className="text-center text-xs text-muted-foreground">{note.label}</p>
 	);
 }
 

@@ -9,7 +9,7 @@ relatedSlugs:
   - roadmap-to-100-agents
 ---
 
-Running one AI coding agent is useful. Running ten at once is a different game entirely. But running ten agents in the same working directory is a disaster — they step on each other's files, create merge conflicts mid-edit, and leave your codebase in an unpredictable state.
+Running one AI coding agent is useful. Running ten at once is a different game entirely. But running ten agents in the same working directory is a disaster: they step on each other's files, create merge conflicts mid-edit, and leave your codebase in an unpredictable state.
 
 Superset solves this with Git worktrees. Every agent gets its own branch and its own copy of the working directory, all backed by the same Git object store. No duplication, no conflicts, no chaos. This post walks through how it works in practice.
 
@@ -21,17 +21,17 @@ When you run a coding agent like Claude Code or Codex, the agent reads files, wr
 
 Git worktrees eliminate this problem at the filesystem level. Each worktree is a separate checkout with its own:
 
-- **Working directory** — files on disk that the agent can read and modify
-- **Branch** — an isolated ref that tracks the agent's changes
-- **Index** — a separate staging area for commits
+- **Working directory**: files on disk that the agent can read and modify
+- **Branch**: an isolated ref that tracks the agent's changes
+- **Index**: a separate staging area for commits
 
 What's shared across all worktrees:
 
-- **Object store** — commits, trees, and blobs exist exactly once
-- **Refs** — branches created in one worktree are visible in all others
-- **Config** — repository settings, remotes, hooks
+- **Object store**: commits, trees, and blobs exist exactly once
+- **Refs**: branches created in one worktree are visible in all others
+- **Config**: repository settings, remotes, hooks
 
-This means creating a new worktree is fast (seconds, not minutes) and cheap (megabytes, not gigabytes). You're not cloning the repo — you're checking out another copy of the files while sharing the entire history.
+This means creating a new worktree is fast (seconds, not minutes) and cheap (megabytes, not gigabytes). You're not cloning the repo. You're checking out another copy of the files while sharing the entire history.
 
 ---
 
@@ -41,7 +41,7 @@ Here's what happens when you create a new task in Superset:
 
 ### 1. Create a Task
 
-You describe what you want done — "add input validation to the signup form" or "refactor the payment service to use the new API." Superset creates a new Git worktree and checks out a fresh branch.
+You describe what you want done: "add input validation to the signup form" or "refactor the payment service to use the new API." Superset creates a new Git worktree and checks out a fresh branch.
 
 ```
 ~/my-project/                          # Your main working tree
@@ -60,7 +60,7 @@ The agent runs inside its worktree. It can:
 - Run builds and tests
 - Make commits to its branch
 
-Meanwhile, your main working directory is untouched. You can keep coding, run your dev server, or create more tasks — each in its own worktree.
+Meanwhile, your main working directory is untouched. You can keep coding, run your dev server, or create more tasks, each in its own worktree.
 
 ### 3. Review the Diff
 
@@ -68,13 +68,15 @@ When the agent finishes, Superset shows you a diff of everything it changed. The
 
 ### 4. Merge or Iterate
 
-If the changes look good, merge the branch. If not, give the agent feedback and let it iterate — still in its own worktree, still isolated from everything else.
+If the changes look good, merge the branch. If not, give the agent feedback and let it iterate, still in its own worktree, still isolated from everything else.
 
 ---
 
 ## Running Multiple Agents in Parallel
 
 The real power of worktrees shows up when you're running multiple agents simultaneously. Here's a typical session:
+
+![Claude streaming a billing migration in one Superset workspace while other agents run in parallel workspaces](/images/readme/agents-working.gif)
 
 ```
 Task 1: "Write unit tests for the auth module"
@@ -87,7 +89,7 @@ Task 2: "Refactor database queries to use prepared statements"
 
 Task 3: "Update API documentation for v2 endpoints"
   → Branch: agent/api-docs
-  → Status: Complete — ready for review
+  → Status: Complete, ready for review
 
 Task 4: "Fix the race condition in the websocket handler"
   → Branch: agent/ws-fix
@@ -100,9 +102,9 @@ Each task has its own worktree and branch. Agent 1 can't accidentally break Agen
 
 Superset's persistent daemon manages all agent sessions via Unix domain sockets. This architecture means:
 
-- **Sessions survive crashes** — close and reopen Superset, your agents are still running
-- **Priority-based scheduling** — the focused pane gets full resources, background tabs hydrate gradually
-- **No interference** — each agent's terminal session is completely independent
+- **Sessions survive crashes**: close and reopen Superset, your agents are still running
+- **Priority-based scheduling**: the focused pane gets full resources, background tabs hydrate gradually
+- **No interference**: each agent's terminal session is completely independent
 
 ---
 
@@ -114,12 +116,12 @@ Begin with 2-3 parallel agents to get comfortable with the review workflow. As y
 
 ### Choose the Right Agent for Each Task
 
-Different agents have different strengths. Superset is agent-agnostic — use whatever works best for the job:
+Different agents have different strengths. Superset is agent-agnostic. Use whatever works best for the job:
 
-- **Claude Code** — strong at complex refactors, architectural changes, and multi-file edits
-- **Codex** — fast for well-scoped tasks with clear specifications
-- **Aider** — good for iterative changes with tight feedback loops
-- **OpenCode** — flexible with 75+ model providers, great for cost optimization
+- **Claude Code**: strong at complex refactors, architectural changes, and multi-file edits
+- **Codex**: fast for well-scoped tasks with clear specifications
+- **Aider**: good for iterative changes with tight feedback loops
+- **OpenCode**: flexible with 75+ model providers, great for cost optimization
 
 ### Organize Your Tasks
 
@@ -146,15 +148,15 @@ Why worktrees instead of containers, VMs, or separate clones?
 | **Docker containers** | Minutes | Medium (image layers) | Depends on mount | Volume-based, complex |
 | **VMs** | Minutes | High (full OS) | No | Network-based, slow |
 
-Worktrees win on every axis that matters for coding agents: they're fast to create, cheap on disk, share git history natively, and use standard git merging. The agent doesn't know or care that it's in a worktree — it just sees a normal git repository.
+Worktrees win on every axis that matters for coding agents: they're fast to create, cheap on disk, share git history natively, and use standard git merging. The agent doesn't know or care that it's in a worktree: it just sees a normal git repository.
 
 ---
 
 ## When Worktrees Aren't Enough
 
-Worktrees isolate files and branches, but they share the runtime environment. If two agents both need to run `npm install` with conflicting dependencies, they'll still conflict at the system level. For full environment isolation, you'd layer containers on top of worktrees — but for the vast majority of coding tasks, worktree-level isolation is sufficient and dramatically simpler.
+Worktrees isolate files and branches, but they share the runtime environment. If two agents both need to run `npm install` with conflicting dependencies, they'll still conflict at the system level. For full environment isolation, you'd layer containers on top of worktrees, but for the vast majority of coding tasks, worktree-level isolation is sufficient and dramatically simpler.
 
-The other limitation is the one-branch rule: Git doesn't allow the same branch to be checked out in multiple worktrees simultaneously. This is actually a feature — it prevents the exact class of bugs that parallel work creates. Superset enforces unique branches per task by default.
+The other limitation is the one-branch rule: Git doesn't allow the same branch to be checked out in multiple worktrees simultaneously. This is actually a feature: it prevents the exact class of bugs that parallel work creates. Superset enforces unique branches per task by default.
 
 ---
 
@@ -163,11 +165,11 @@ The other limitation is the one-branch rule: Git doesn't allow the same branch t
 If you're already using a CLI coding agent, adding Superset takes about two minutes:
 
 1. **Download Superset** from [superset.sh](https://superset.sh)
-2. **Open your project** — Superset detects your git repository automatically
-3. **Create a task** — describe what you want done, pick your agent
-4. **Watch it work** — the agent runs in its own worktree while you keep coding
+2. **Open your project**: Superset detects your git repository automatically
+3. **Create a task**: describe what you want done, pick your agent
+4. **Watch it work**: the agent runs in its own worktree while you keep coding
 
-The first time you see three agents working in parallel — each on its own branch, none interfering with each other — the workflow clicks. It's not three times faster (review is still human-speed), but it's dramatically more throughput than running agents one at a time.
+The first time you see three agents working in parallel (each on its own branch, none interfering with each other), the workflow clicks. It's not three times faster (review is still human-speed), but it's dramatically more throughput than running agents one at a time.
 
 Git worktrees have been in Git since 2015. They were designed for a world where humans needed to work on multiple branches. Turns out, they're even more useful in a world where AI agents do.
 

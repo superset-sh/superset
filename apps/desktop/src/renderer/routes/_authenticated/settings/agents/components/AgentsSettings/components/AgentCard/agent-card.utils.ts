@@ -22,20 +22,10 @@ export function getPreviewPrompt(preset: ResolvedAgentConfig): string {
 }
 
 export function getPreviewNoPromptCommand(preset: ResolvedAgentConfig): string {
-	if (preset.kind !== "terminal") {
-		return "Superset opens a chat pane without a shell command.";
-	}
-
 	return preset.command.trim() || "No command configured.";
 }
 
 export function getPreviewTaskCommand(preset: ResolvedAgentConfig): string {
-	if (preset.kind !== "terminal") {
-		return preset.model
-			? `Superset opens with model ${preset.model}.`
-			: "Superset opens with the rendered task prompt.";
-	}
-
 	return (
 		buildFileCommandFromAgentConfig({
 			filePath: `.superset/task-${SAMPLE_TASK.slug}.md`,
@@ -63,8 +53,6 @@ export function getAgentFieldValue(
 				: "";
 		case "taskPromptTemplate":
 			return preset.taskPromptTemplate;
-		case "model":
-			return preset.kind === "chat" ? (preset.model ?? "") : "";
 	}
 }
 
@@ -124,10 +112,5 @@ export function buildAgentFieldPatch({
 			}
 			return { patch: { taskPromptTemplate: value } };
 		}
-		case "model":
-			if (preset.kind !== "chat") {
-				return { error: "Model override is only available for chat agents." };
-			}
-			return { patch: { model: value || null } };
 	}
 }

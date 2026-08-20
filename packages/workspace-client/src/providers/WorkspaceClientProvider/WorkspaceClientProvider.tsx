@@ -8,9 +8,22 @@ const STALE_TIME_MS = 5_000;
 const GC_TIME_MS = 30 * 60 * 1_000;
 const MAX_TIMEOUT_RETRIES = 2;
 const TIMEOUT_RETRY_BASE_DELAY_MS = 300;
+const MAX_CONNECTION_RETRIES = 3;
+const CONNECTION_RETRY_BASE_DELAY_MS = 700;
 
 function isTimeoutError(error: unknown): boolean {
 	return error instanceof TRPCClientError && error.data?.code === "TIMEOUT";
+}
+
+// True for a request that never got a real response — connection-refused
+// during a host-service restart, a dropped stream, DNS failure. tRPC only
+// populates `data` from a parsed server error envelope, so its absence means
+// the failure was transport-level, not the server rejecting the request.
+// Without retrying these, a query in flight during a restart settles into a
+// permanent error that only a manual refetch clears, even though
+// host-service is back within a second or two.
+function isConnectionError(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data == null;
 }
 
 export interface WorkspaceClientContextValue {
@@ -57,16 +70,22 @@ function getWorkspaceClients(
 				refetchOnWindowFocus: false,
 				// Retry server-side TIMEOUT errors a couple of times — these come
 				// from `queryProcedure`'s middleware when a host-service query
-				// (filesystem, git) takes longer than its budget. Other errors
-				// fall back to a single retry as before.
+				// (filesystem, git) takes longer than its budget. Connection-level
+				// failures (host-service restarting) get their own bounded retry.
+				// Other errors fall back to a single retry as before.
 				retry: (failureCount, error) => {
 					if (isTimeoutError(error)) return failureCount < MAX_TIMEOUT_RETRIES;
+					if (isConnectionError(error))
+						return failureCount < MAX_CONNECTION_RETRIES;
 					return failureCount < 1;
 				},
-				retryDelay: (attempt, error) =>
-					isTimeoutError(error)
-						? TIMEOUT_RETRY_BASE_DELAY_MS * (attempt + 1)
-						: Math.min(1000 * 2 ** attempt, 30_000),
+				retryDelay: (attempt, error) => {
+					if (isTimeoutError(error))
+						return TIMEOUT_RETRY_BASE_DELAY_MS * (attempt + 1);
+					if (isConnectionError(error))
+						return CONNECTION_RETRY_BASE_DELAY_MS * (attempt + 1);
+					return Math.min(1000 * 2 ** attempt, 30_000);
+				},
 				staleTime: STALE_TIME_MS,
 				gcTime: GC_TIME_MS,
 			},
@@ -79,6 +98,13 @@ function getWorkspaceClients(
 				url: `${hostUrl}/trpc`,
 				transformer: superjson,
 				headers: headers ?? (() => ({})),
+				// host-service is a local connection with no HTTP cache in front of
+				// it, so there's no upside to GET. Forcing POST puts query inputs in
+				// the request body instead of the URL — without this, a query with a
+				// large input (e.g. git.getDiffBulk's file-path list) can produce a
+				// GET URL long enough to blow past the server's HTTP header-size
+				// limit, failing even the CORS preflight before it reaches the route.
+				methodOverride: "POST",
 			}),
 		],
 	});

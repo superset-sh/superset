@@ -1,14 +1,18 @@
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo, useRef } from "react";
 import { useHotkey } from "renderer/hotkeys";
+import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
-import type { DashboardSidebarProject } from "../../types";
+import type {
+	DashboardSidebarProject,
+	DashboardSidebarWorkspace,
+} from "../../types";
 import { getProjectChildrenWorkspaces } from "../../utils/projectChildren";
 
 interface WorkspaceLocation {
-	projectId: string;
+	/** Null for the Sessions section — no project row to expand. */
+	projectId: string | null;
 	projectIsCollapsed: boolean;
 	sectionId: string | null;
 	sectionIsCollapsed: boolean;
@@ -50,17 +54,24 @@ function useStableWorkspaceShortcutLabels(
 
 export function useDashboardSidebarShortcuts(
 	groups: DashboardSidebarProject[],
+	sessionWorkspaces: DashboardSidebarWorkspace[] = [],
 ) {
 	const navigate = useNavigate();
 	const { toggleProjectCollapsed, toggleSectionCollapsed } =
 		useDashboardSidebarState();
-	const { isDeleting } = useDeletingWorkspaces();
+	const deletingIds = useDeletingWorkspacesStore((state) => state.deletingIds);
 	const flattenedWorkspaces = useMemo(
 		() =>
-			groups
-				.flatMap((project) => getProjectChildrenWorkspaces(project.children))
-				.filter((workspace) => !isDeleting(workspace.id)),
-		[groups, isDeleting],
+			[
+				// Sessions render above the project groups.
+				...sessionWorkspaces,
+				...groups.flatMap((project) =>
+					getProjectChildrenWorkspaces(project.children),
+				),
+				// A destroy in flight keeps its row until the archive commit —
+				// don't hand shortcuts a workspace that is about to vanish.
+			].filter((workspace) => !deletingIds.has(workspace.id)),
+		[groups, sessionWorkspaces, deletingIds],
 	);
 	const workspaceShortcutLabels =
 		useStableWorkspaceShortcutLabels(flattenedWorkspaces);
@@ -88,14 +99,22 @@ export function useDashboardSidebarShortcuts(
 				}
 			}
 		}
+		for (const workspace of sessionWorkspaces) {
+			map.set(workspace.id, {
+				projectId: null,
+				projectIsCollapsed: false,
+				sectionId: null,
+				sectionIsCollapsed: false,
+			});
+		}
 		return map;
-	}, [groups]);
+	}, [groups, sessionWorkspaces]);
 
 	const revealWorkspace = useCallback(
 		(workspaceId: string) => {
 			const location = workspaceLocations.get(workspaceId);
 			if (!location) return;
-			if (location.projectIsCollapsed) {
+			if (location.projectId !== null && location.projectIsCollapsed) {
 				toggleProjectCollapsed(location.projectId);
 			}
 			if (location.sectionId && location.sectionIsCollapsed) {

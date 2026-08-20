@@ -11,6 +11,7 @@ import { useCallback } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import {
 	actionLabel,
+	type FolderTierMap,
 	type LinkAction,
 	type LinkTierMap,
 } from "renderer/lib/clickPolicy";
@@ -21,6 +22,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { FolderLinkTierMapper } from "../FolderLinkTierMapper";
 import { LinkTierMapper } from "../LinkTierMapper";
 
 const PORT_ACTIONS: LinkAction[] = ["pane", "newTab", "external"];
@@ -36,10 +38,12 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 		setFileLinks,
 		setUrlLinks,
 		setSidebarFileLinks,
+		setFolderLinks,
 		setPortOpenAction,
 	} = useV2UserPreferences();
 
 	const showFile = isItemVisible(SETTING_ITEM_ID.LINKS_FILE, visibleItems);
+	const showFolder = isItemVisible(SETTING_ITEM_ID.LINKS_FOLDER, visibleItems);
 	const showUrl = isItemVisible(SETTING_ITEM_ID.LINKS_URL, visibleItems);
 	const showSidebar = isItemVisible(
 		SETTING_ITEM_ID.LINKS_SIDEBAR_FILE,
@@ -61,6 +65,14 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 			toast.success("Changes saved");
 		},
 		[setUrlLinks],
+	);
+
+	const handleFolderChange = useCallback(
+		(next: FolderTierMap) => {
+			setFolderLinks(next);
+			toast.success("Changes saved");
+		},
+		[setFolderLinks],
 	);
 
 	const handleSidebarChange = useCallback(
@@ -147,6 +159,16 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 						onChange={handleFileChange}
 						idPrefix="links-file"
 						surface="file"
+					/>
+				)}
+
+				{showFolder && (
+					<FolderLinkTierMapper
+						title="Folder links"
+						description="Applies to folder paths in terminal output. Folders can't open in the file viewer, so clicks reveal in the sidebar, open the external editor, or open Finder."
+						value={preferences.folderLinks}
+						onChange={handleFolderChange}
+						idPrefix="links-folder"
 					/>
 				)}
 

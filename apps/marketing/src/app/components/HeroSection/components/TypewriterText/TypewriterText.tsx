@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useEffect, useState } from "react";
 
 interface TextSegment {
@@ -8,6 +8,8 @@ interface TextSegment {
 	className?: string;
 	style?: React.CSSProperties;
 	render?: (visibleText: string) => React.ReactNode;
+	/** Overrides the caret style while this segment is being typed */
+	cursorClassName?: string;
 }
 
 interface TypewriterTextProps {
@@ -18,6 +20,7 @@ interface TypewriterTextProps {
 	speed?: number;
 	delay?: number;
 	showCursor?: boolean;
+	cursorClassName?: string;
 }
 
 export function TypewriterText({
@@ -28,6 +31,7 @@ export function TypewriterText({
 	speed = 50,
 	delay = 500,
 	showCursor = true,
+	cursorClassName,
 }: TypewriterTextProps) {
 	const fullText = segments
 		? segments.map((s) => s.text).join("")
@@ -57,6 +61,33 @@ export function TypewriterText({
 
 	const isTypingComplete = isTyping && displayedText.length === fullText.length;
 
+	// The caret remounts as it moves between segments; only its very first
+	// appearance (before any text) grows in from a square dot
+	const isFirstAppearance = displayedText.length === 0;
+
+	const renderCursor = (override?: string) =>
+		showCursor ? (
+			<m.span
+				className={
+					override ??
+					cursorClassName ??
+					"inline-block ml-0.5 w-3 -mr-3.5 h-[0.72em] bg-brand"
+				}
+				style={{ originY: 1 }}
+				initial={isFirstAppearance ? { scaleY: 0.13 } : false}
+				animate={
+					isTypingComplete
+						? { opacity: 0, scaleY: 1 }
+						: { opacity: 1, scaleY: 1 }
+				}
+				transition={
+					isTypingComplete
+						? { duration: 0.25, delay: 0.5 }
+						: { scaleY: { duration: 0.35, delay: 0.15, ease: "easeOut" } }
+				}
+			/>
+		) : null;
+
 	const renderText = () => {
 		if (!segments) return displayedText;
 
@@ -71,18 +102,9 @@ export function TypewriterText({
 				0,
 				Math.min(segment.text.length, displayedText.length - segStart),
 			);
-
-			if (segment.render) {
-				return (
-					<span
-						key={segment.text}
-						className={segment.className}
-						style={segment.style}
-					>
-						{segment.render(visibleText)}
-					</span>
-				);
-			}
+			// The caret lives inside the segment being typed so decorated
+			// segments (e.g. corner-brackets) keep it within their box
+			const holdsCursor = displayedText.length <= charIndex;
 
 			return (
 				<span
@@ -90,7 +112,8 @@ export function TypewriterText({
 					className={segment.className}
 					style={segment.style}
 				>
-					{visibleText}
+					{segment.render ? segment.render(visibleText) : visibleText}
+					{holdsCursor && renderCursor(segment.cursorClassName)}
 				</span>
 			);
 		});
@@ -99,24 +122,7 @@ export function TypewriterText({
 	return (
 		<span className={className} style={style}>
 			{renderText()}
-			{showCursor && (
-				<motion.span
-					className="inline-block ml-0.5 w-3 -mr-3.5 h-[1em] bg-current translate-y-0.5"
-					animate={
-						isTypingComplete ? { opacity: [1, 1, 0, 0] } : { opacity: 1 }
-					}
-					transition={
-						isTypingComplete
-							? {
-									duration: 1.5,
-									times: [0, 0.5, 0.5, 1],
-									repeat: Number.POSITIVE_INFINITY,
-									ease: "linear",
-								}
-							: {}
-					}
-				/>
-			)}
+			{(!segments || displayedText.length === 0) && renderCursor()}
 		</span>
 	);
 }

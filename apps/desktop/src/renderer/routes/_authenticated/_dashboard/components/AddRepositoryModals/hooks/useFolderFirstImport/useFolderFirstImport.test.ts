@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+// Static import so the real store loads (with real react) before the partial
+// "react" mock below registers.
+import * as gitInitConfirmActual from "renderer/stores/git-init-confirm";
 
 const hostUrl = "http://host-service";
 const repoPath = "/repos/octocat";
@@ -73,7 +76,10 @@ mock.module(
 	}),
 );
 
+// Spread the real module — bun's mock.module is process-global, and a partial
+// mock would break other test files importing the real store.
 mock.module("renderer/stores/git-init-confirm", () => ({
+	...gitInitConfirmActual,
 	useRequestGitInitConfirm: () => requestGitInitMock,
 }));
 

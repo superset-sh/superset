@@ -14,6 +14,7 @@ interface WorkspaceItemProps {
 	pr?: string;
 	isActive?: boolean;
 	status?: WorkspaceStatus;
+	icon?: "cloud" | "branch";
 }
 
 export function WorkspaceItem({
@@ -22,9 +23,10 @@ export function WorkspaceItem({
 	del,
 	isActive,
 	status,
+	icon,
 }: WorkspaceItemProps) {
-	const isCloud = name === "see changes";
-	const isBranch = name === "forward ports";
+	const isCloud = icon === "cloud";
+	const isBranch = icon === "branch";
 	return (
 		<div
 			className={`relative flex h-7 cursor-pointer items-center gap-2.5 pl-4 pr-3 text-[11px] ${
@@ -61,12 +63,19 @@ export function WorkspaceItem({
 			</span>
 
 			{add !== undefined && (
-				<span
-					className={`shrink-0 font-mono text-[10px] tabular-nums ${isActive ? "" : "opacity-60"}`}
-				>
-					<span className="text-emerald-400/80">+{add}</span>
-					{del !== undefined && del > 0 && (
-						<span className="ml-1 text-rose-400/75">−{del}</span>
+				<span className="shrink-0 font-mono text-[10px] tabular-nums">
+					{isActive ? (
+						<>
+							<span className="text-emerald-400/80">+{add}</span>
+							{del !== undefined && del > 0 && (
+								<span className="ml-1 text-rose-400/75">−{del}</span>
+							)}
+						</>
+					) : (
+						<span className="text-muted-foreground/45">
+							+{add}
+							{del !== undefined && del > 0 && <> −{del}</>}
+						</span>
 					)}
 				</span>
 			)}

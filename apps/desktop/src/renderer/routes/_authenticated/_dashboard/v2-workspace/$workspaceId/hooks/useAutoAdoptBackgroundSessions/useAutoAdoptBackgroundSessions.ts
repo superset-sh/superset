@@ -39,7 +39,7 @@ export function useAutoAdoptBackgroundSessions({
 	workspaceId,
 	isLayoutReady,
 }: UseAutoAdoptBackgroundSessionsArgs): void {
-	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
+	const sessionsQuery = workspaceTrpc.terminal.list.useQuery(
 		{ workspaceId },
 		{ enabled: isLayoutReady, refetchOnWindowFocus: false },
 	);

@@ -1,11 +1,12 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
-import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
+import { integrationConnections } from "@superset/db/schema";
 import { findOrgMembership } from "@superset/db/utils";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { env } from "@/env";
+import { upsertIdentity } from "@/lib/integrations/upsertIdentity";
 
 export async function GET(request: Request) {
 	const url = new URL(request.url);
@@ -23,7 +24,12 @@ export async function GET(request: Request) {
 			.update(decoded)
 			.digest("hex");
 
-		if (sig !== expectedSig) {
+		const provided = Buffer.from(sig, "hex");
+		const expected = Buffer.from(expectedSig, "hex");
+		if (
+			provided.length !== expected.length ||
+			!timingSafeEqual(provided, expected)
+		) {
 			return new Response("Invalid signature", { status: 401 });
 		}
 
@@ -79,21 +85,14 @@ export async function GET(request: Request) {
 		);
 	}
 
-	await db
-		.insert(usersSlackUsers)
-		.values({
-			slackUserId: payload.slackUserId,
-			teamId: payload.teamId,
-			userId: session.user.id,
-			organizationId: connection.organizationId,
-		})
-		.onConflictDoUpdate({
-			target: [usersSlackUsers.slackUserId, usersSlackUsers.teamId],
-			set: {
-				userId: session.user.id,
-				organizationId: connection.organizationId,
-			},
-		});
+	await upsertIdentity({
+		userId: session.user.id,
+		organizationId: connection.organizationId,
+		provider: "slack",
+		externalId: payload.slackUserId,
+		// A Slack user id is only unique within a workspace.
+		externalScopeId: payload.teamId,
+	});
 
 	return Response.redirect(
 		`${env.NEXT_PUBLIC_WEB_URL}/integrations/slack/linked`,

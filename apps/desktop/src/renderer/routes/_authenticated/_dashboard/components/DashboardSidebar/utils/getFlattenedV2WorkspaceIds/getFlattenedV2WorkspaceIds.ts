@@ -22,6 +22,17 @@ export function getFlattenedV2WorkspaceIds(
 
 	const result: string[] = [];
 
+	// Sessions (null projectId) render in the top-level Sessions section
+	// ABOVE the project groups, ordered by tabOrder.
+	const sessionWorkspaces = visibleWorkspaces
+		.filter((workspace) => workspace.sidebarState.projectId === null)
+		.sort(
+			(left, right) => left.sidebarState.tabOrder - right.sidebarState.tabOrder,
+		);
+	for (const workspace of sessionWorkspaces) {
+		result.push(workspace.workspaceId);
+	}
+
 	for (const project of projects) {
 		const projectWorkspaces = visibleWorkspaces.filter(
 			(workspace) => workspace.sidebarState.projectId === project.projectId,

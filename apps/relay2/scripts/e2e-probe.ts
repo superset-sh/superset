@@ -87,6 +87,30 @@ const wsBase = RELAY.replace(/^http/, "ws");
 	check("_whoowns 200", res.status === 200, `status=${res.status}`);
 }
 
+// 1b. /presence reports the host online with a fresh lastSeenAt
+{
+	const res = await fetch(
+		`${RELAY}/presence?hostIds=${encodeURIComponent(HOST_ID)},bogus-org:bogus-machine&token=${encodeURIComponent(jwt)}`,
+	);
+	const body = (await res.json()) as {
+		hosts: Record<string, { online: boolean; lastSeenAt: number | null }>;
+	};
+	const info = body.hosts[HOST_ID];
+	check("presence 200", res.status === 200, `status=${res.status}`);
+	check("presence online", info?.online === true, JSON.stringify(info));
+	check(
+		"presence lastSeenAt fresh",
+		typeof info?.lastSeenAt === "number" &&
+			Date.now() - info.lastSeenAt < 60_000,
+		JSON.stringify(info),
+	);
+	check(
+		"presence omits denied host",
+		!("bogus-org:bogus-machine" in body.hosts),
+		JSON.stringify(Object.keys(body.hosts)),
+	);
+}
+
 // 2. WS stream: echo round-trips, text + binary, with RTT stats
 {
 	const ws = new WebSocket(
@@ -224,6 +248,18 @@ const wsBase = RELAY.replace(/^http/, "ws");
 		`${RELAY}/hosts/${HOST_ID}/_whoowns?token=${encodeURIComponent(jwt)}`,
 	);
 	check("_whoowns 503 after close", res.status === 503, `status=${res.status}`);
+
+	const presence = await fetch(
+		`${RELAY}/presence?hostIds=${encodeURIComponent(HOST_ID)}&token=${encodeURIComponent(jwt)}`,
+	);
+	const body = (await presence.json()) as {
+		hosts: Record<string, { online: boolean }>;
+	};
+	check(
+		"presence offline after close",
+		body.hosts[HOST_ID]?.online === false,
+		JSON.stringify(body.hosts[HOST_ID]),
+	);
 }
 
 local.stop(true);

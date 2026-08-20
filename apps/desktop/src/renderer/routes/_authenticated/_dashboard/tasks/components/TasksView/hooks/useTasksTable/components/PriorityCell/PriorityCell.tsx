@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import type { CellContext } from "@tanstack/react-table";
 import { useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { PriorityIcon } from "../../../../components/shared/PriorityIcon";
 import { ALL_PRIORITIES } from "../../../../utils/sorting";
 import type { TaskWithStatus } from "../../useTasksTable";
@@ -25,7 +25,7 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 };
 
 export function PriorityCell({ info }: PriorityCellProps) {
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
 	const task = info.row.original;

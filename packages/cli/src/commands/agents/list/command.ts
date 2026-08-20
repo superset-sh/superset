@@ -25,22 +25,13 @@ export default command({
 			local: options.local ?? undefined,
 		});
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
-		const terminalConfigs =
-			await target.client.settings.agentConfigs.list.query();
-		return [
-			...terminalConfigs,
-			{
-				id: "superset",
-				presetId: "superset",
-				label: "Superset",
-				command: "(superset runtime)",
-			},
-		];
+		return await target.client.settings.agentConfigs.list.query();
 	},
 });

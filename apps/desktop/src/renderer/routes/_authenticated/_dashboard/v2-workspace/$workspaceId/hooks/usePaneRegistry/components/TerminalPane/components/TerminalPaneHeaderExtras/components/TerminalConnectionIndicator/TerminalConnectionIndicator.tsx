@@ -102,6 +102,12 @@ export function TerminalConnectionIndicator({
 			terminalInstanceId,
 		),
 	);
+	const terminated = useSyncExternalStore(subscribe, () =>
+		terminalRuntimeRegistry.isConnectionTerminated(
+			terminalId,
+			terminalInstanceId,
+		),
+	);
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 	const [showLog, setShowLog] = useState(false);
 
@@ -152,8 +158,11 @@ export function TerminalConnectionIndicator({
 
 	// Three failure modes so copy + colour name the fix that applies. Amber =
 	// still working itself out (auto-retry, or a stall that usually self-heals);
-	// red = we've stopped trying and need the user.
-	const gaveUp = diagnosis !== null && connectionState === "closed";
+	// red = we've stopped trying and need the user. A surfaced diagnosis alone
+	// isn't red: the transport keeps auto-retrying through long outages (wedged
+	// daemon, offline host) and self-heals — red is reserved for terminated.
+	const gaveUp =
+		diagnosis !== null && connectionState === "closed" && terminated;
 	const mode = daemonUnreachable
 		? "unresponsive"
 		: gaveUp

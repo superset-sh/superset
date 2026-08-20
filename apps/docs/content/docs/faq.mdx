@@ -34,13 +34,13 @@ These aren't self-serve yet; email [support@superset.sh](mailto:support@superset
 ## Workspaces and Git
 
 **Do I need a git repo?**
-Yes. Every project must be a git repository; workspaces are git worktrees. For a fresh folder, run `git init && git add -A && git commit -m "init"` first.
+For projects, yes: every project must be a git repository, and its workspaces are git worktrees. For a fresh folder, run `git init && git add -A && git commit -m "init"` first. If you just want a scratch space without setting up a repo, create a [session](/workspaces#sessions) instead.
 
 **Same branch in multiple workspaces?**
 No. One branch = one workspace. Create a new branch if needed.
 
 **Where are workspaces stored on disk?**
-`~/.superset/worktrees/`, as ordinary git worktrees. Deleting a workspace removes its worktree; Superset never deletes worktrees behind your back.
+`~/.superset/worktrees/`, as ordinary git worktrees (sessions live at `~/.superset/sessions/`). Deleting a workspace removes its worktree; Superset never deletes worktrees behind your back.
 
 **I already have worktrees from another tool.**
 Use the **Import** tab in the New Workspace modal to bring existing worktrees in. See [Workspaces](/workspaces).
@@ -73,8 +73,8 @@ Yes. Terminals are backed by a background daemon, so running processes and scrol
 **Can I open a remote workspace's ports on my Mac?**
 Not yet; the ports panel shows ports on the host machine. Workaround: `ssh -L 3000:localhost:3000 user@host` or a tailnet.
 
-**Why was my automation run skipped?**
-Runs are marked `skipped (offline)` when the target device isn't relay-connected at fire time. See [Troubleshooting](/troubleshooting#automation-run-was-skipped).
+**Why did my automation run fail while my machine was asleep?**
+Runs fail when the target device isn't relay-connected at fire time. Use **Retry all** once it's back. See [Troubleshooting](/troubleshooting#automation-run-failed-while-the-device-was-offline).
 
 ## Privacy
 

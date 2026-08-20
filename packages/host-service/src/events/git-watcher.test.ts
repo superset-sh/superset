@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, jest, test } from "bun:test";
 import {
 	collectWorktreeBatchPaths,
 	DEBOUNCE_MS,
+	filterGitIgnoredEvents,
 	GIT_DIR_DEBOUNCE_MS,
 	type GitChangedEvent,
 	GitWatcher,
@@ -19,6 +20,10 @@ interface GitWatcherInternals {
 	addWorktreePaths(workspaceId: string, paths: Iterable<string>): void;
 	getOrCreateBatch(workspaceId: string): unknown;
 	scheduleFlush(workspaceId: string): void;
+	getOrCreateIgnoredDirsState(workspaceId: string): {
+		dirs: ReadonlySet<string>;
+		rulesChanged: boolean;
+	};
 }
 
 function createWatcher(): GitWatcher {
@@ -99,6 +104,111 @@ describe("collectWorktreeBatchPaths", () => {
 		);
 
 		expect([...paths]).toEqual(["src/duplicate.ts", "src/later.ts"]);
+	});
+});
+
+describe("filterGitIgnoredEvents", () => {
+	const worktree = "/repo";
+	const ignored = new Set(["dist", "apps/web/.next"]);
+
+	test("drops events inside ignored dirs, keeps everything else", () => {
+		const { events, sawGitignoreChange } = filterGitIgnoredEvents(
+			[
+				{ kind: "create", absolutePath: "/repo/dist/bundle.js" },
+				{ kind: "update", absolutePath: "/repo/apps/web/.next/cache/x" },
+				{ kind: "update", absolutePath: "/repo/apps/web/.next" },
+				{ kind: "update", absolutePath: "/repo/src/app.ts" },
+				{ kind: "create", absolutePath: "/repo/distant/file.ts" },
+			],
+			worktree,
+			ignored,
+		);
+		expect(events.map((e) => e.absolutePath)).toEqual([
+			"/repo/src/app.ts",
+			"/repo/distant/file.ts",
+		]);
+		expect(sawGitignoreChange).toBe(false);
+	});
+
+	test("keeps a rename unless both endpoints are ignored", () => {
+		const { events } = filterGitIgnoredEvents(
+			[
+				{
+					kind: "rename",
+					absolutePath: "/repo/src/kept.ts",
+					oldAbsolutePath: "/repo/dist/old.js",
+				},
+				{
+					kind: "rename",
+					absolutePath: "/repo/dist/a.js",
+					oldAbsolutePath: "/repo/dist/b.js",
+				},
+			],
+			worktree,
+			ignored,
+		);
+		expect(events.map((e) => e.absolutePath)).toEqual(["/repo/src/kept.ts"]);
+	});
+
+	test("flags .gitignore changes at any depth and never drops them", () => {
+		const { events, sawGitignoreChange } = filterGitIgnoredEvents(
+			[
+				{ kind: "update", absolutePath: "/repo/apps/web/.gitignore" },
+				{ kind: "update", absolutePath: "/repo/dist/junk.js" },
+			],
+			worktree,
+			ignored,
+		);
+		expect(events.map((e) => e.absolutePath)).toEqual([
+			"/repo/apps/web/.gitignore",
+		]);
+		expect(sawGitignoreChange).toBe(true);
+	});
+
+	test("fails open on an empty set and on paths outside the worktree", () => {
+		const outside = { kind: "update" as const, absolutePath: "/other/x" };
+		expect(filterGitIgnoredEvents([outside], worktree, ignored).events).toEqual(
+			[outside],
+		);
+		const inside = {
+			kind: "update" as const,
+			absolutePath: "/repo/dist/x.js",
+		};
+		expect(
+			filterGitIgnoredEvents([inside], worktree, new Set()).events,
+		).toEqual([inside]);
+	});
+});
+
+describe("GitWatcher ignore-rule staleness flag", () => {
+	test(".git/info/exclude events flag the ignored set for a native-prune check", () => {
+		const watcher = createWatcher();
+		const state = internals(watcher).getOrCreateIgnoredDirsState("workspace-1");
+		expect(state.rulesChanged).toBe(false);
+
+		internals(watcher).handleGitDirEvent("workspace-1", "info/exclude");
+		expect(state.rulesChanged).toBe(true);
+	});
+
+	test("unrelated .git events do not flag the ignored set", () => {
+		const watcher = createWatcher();
+		const state = internals(watcher).getOrCreateIgnoredDirsState("workspace-1");
+		internals(watcher).handleGitDirEvent("workspace-1", "index");
+		internals(watcher).handleGitDirEvent("workspace-1", "refs/heads/main");
+		expect(state.rulesChanged).toBe(false);
+	});
+
+	test("a .gitignore change in the worktree stream clears the set and flags it", () => {
+		const watcher = createWatcher();
+		const state = internals(watcher).getOrCreateIgnoredDirsState("workspace-1");
+		(state as { dirs: ReadonlySet<string> }).dirs = new Set(["buildout"]);
+
+		const filtered = filterGitIgnoredEvents(
+			[{ kind: "update", absolutePath: "/repo/.gitignore" }],
+			"/repo",
+			state.dirs,
+		);
+		expect(filtered.sawGitignoreChange).toBe(true);
 	});
 });
 

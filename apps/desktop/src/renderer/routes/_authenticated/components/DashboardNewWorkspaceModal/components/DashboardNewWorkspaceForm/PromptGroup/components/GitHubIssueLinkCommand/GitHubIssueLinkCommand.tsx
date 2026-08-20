@@ -79,7 +79,6 @@ export function GitHubIssueLinkCommand({
 			});
 		},
 		enabled: !!projectId && !!hostUrl && open,
-		retry: false,
 	});
 
 	const lastToastedError = useRef<string | null>(null);

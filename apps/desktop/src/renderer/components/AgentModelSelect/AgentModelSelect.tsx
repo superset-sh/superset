@@ -17,6 +17,9 @@ interface AgentModelSelectProps {
 	disabled?: boolean;
 	triggerClassName?: string;
 	contentClassName?: string;
+	/** Trigger/item text for the default option — two adjacent selects both
+	 * reading "Default" are indistinguishable, so callers name theirs. */
+	defaultLabel?: string;
 }
 
 export function AgentModelSelect({
@@ -26,6 +29,7 @@ export function AgentModelSelect({
 	disabled,
 	triggerClassName,
 	contentClassName,
+	defaultLabel = "Default",
 }: AgentModelSelectProps) {
 	const selectedValue =
 		value !== null && models.some((model) => model.id === value)
@@ -43,10 +47,10 @@ export function AgentModelSelect({
 			disabled={disabled}
 		>
 			<SelectTrigger className={triggerClassName}>
-				<SelectValue placeholder="Default" />
+				<SelectValue placeholder={defaultLabel} />
 			</SelectTrigger>
 			<SelectContent className={contentClassName}>
-				<SelectItem value={DEFAULT_MODEL_VALUE}>Default</SelectItem>
+				<SelectItem value={DEFAULT_MODEL_VALUE}>{defaultLabel}</SelectItem>
 				{models.map((model) => (
 					<SelectItem key={model.id} value={model.id}>
 						{model.label}

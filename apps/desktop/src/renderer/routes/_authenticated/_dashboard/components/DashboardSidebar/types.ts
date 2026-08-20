@@ -5,7 +5,7 @@ export type DashboardSidebarWorkspaceHostType =
 	| "remote-device"
 	| "cloud";
 
-export type DashboardSidebarWorkspaceType = "main" | "worktree";
+export type DashboardSidebarWorkspaceType = "main" | "worktree" | "session";
 
 export interface DashboardSidebarWorkspacePullRequestCheck {
 	name: string;
@@ -26,7 +26,8 @@ export interface DashboardSidebarWorkspacePullRequest {
 
 export interface DashboardSidebarWorkspace {
 	id: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
 	type: DashboardSidebarWorkspaceType;
@@ -53,7 +54,8 @@ export interface DashboardSidebarWorkspace {
  * group.
  */
 export type DashboardSidebarPinnedWorkspace = DashboardSidebarWorkspace & {
-	projectName: string;
+	/** Null for project-less "session" workspaces. */
+	projectName: string | null;
 	projectIconUrl: string | null;
 };
 

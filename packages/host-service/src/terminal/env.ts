@@ -35,6 +35,21 @@ import { getShellBootstrapEnv } from "./shell-launch.ts";
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedMacosSystemCertAvailable: boolean | null = null;
 
+/**
+ * Agent credentials, forwarded to terminals in sandbox mode only.
+ *
+ * The rule everywhere else is that PTY env comes from a login-shell snapshot
+ * and never from this process — a local machine's host-service env is
+ * Electron's, and leaking it into every terminal would hand agents things
+ * they have no business reading. A sandbox has no user, no rc files and no
+ * login shell, so the process env is the *only* way a credential can arrive,
+ * and these keys are exactly what was provisioned for the agents to use.
+ *
+ * Read from `process.env` rather than the validated `env` so that importing
+ * this module doesn't require a fully-populated host environment.
+ */
+const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
+
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
 		return cachedMacosSystemCertAvailable;
@@ -164,6 +179,7 @@ interface BuildV2TerminalEnvParams {
 	baseEnv: Record<string, string>;
 	shell: string;
 	supersetHomeDir: string;
+	organizationId: string;
 	themeType?: "dark" | "light";
 	cwd: string;
 	terminalId: string;
@@ -175,8 +191,9 @@ interface BuildV2TerminalEnvParams {
 	agentHookVersion: string;
 	/**
 	 * tRPC URL for the host-service notifications.hook mutation.
-	 * Endpoint is unauthenticated by design — it only broadcasts chimes,
-	 * no state change. See the router for rationale.
+	 * Endpoint is unauthenticated by design — it broadcasts chimes and
+	 * nudges the workspace's linked task to In Progress (idempotent,
+	 * forward-only). See the router for rationale.
 	 */
 	hostAgentHookUrl?: string;
 }
@@ -192,6 +209,7 @@ export function buildV2TerminalEnv(
 		baseEnv,
 		shell,
 		supersetHomeDir,
+		organizationId,
 		themeType,
 		cwd,
 		terminalId,
@@ -231,6 +249,13 @@ export function buildV2TerminalEnv(
 	env.PWD = cwd;
 
 	env.SUPERSET_TERMINAL_ID = terminalId;
+	// Scope CLI commands launched in this terminal to the same organization as
+	// the org-specific host-service that owns the workspace. This is routing
+	// metadata, not a credential; the CLI still uses its own authenticated
+	// session, but no longer consults that session's unrelated active-org choice.
+	if (organizationId) {
+		env.SUPERSET_ORGANIZATION_ID = organizationId;
+	}
 	env.SUPERSET_WORKSPACE_ID = workspaceId;
 	env.SUPERSET_WORKSPACE_PATH = workspacePath;
 	env.SUPERSET_ROOT_PATH = rootPath;
@@ -239,14 +264,27 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
 	// v2 — agent posts to host-service so the renderer can play the sound
 	// client-side. No auth token: the endpoint is unauthenticated by design
-	// (it only broadcasts chimes). The notify-hook script falls back to
-	// the electron endpoint when this URL isn't set.
+	// (chimes plus an idempotent linked-task In Progress nudge). The
+	// notify-hook script falls back to the electron endpoint when this URL
+	// isn't set.
 	if (hostAgentHookUrl) {
 		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
 	}
 
 	if (supersetHomeDir) {
 		env.SUPERSET_HOME_DIR = supersetHomeDir;
+	}
+
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+		for (const key of SANDBOX_AGENT_CREDENTIAL_KEYS) {
+			const value = process.env[key];
+			if (value) env[key] = value;
+		}
+		// The sandbox runs as root, and Claude refuses
+		// `--dangerously-skip-permissions` under root unless told it is inside a
+		// sandbox — which is exactly what this is. Without it the builtin Claude
+		// agent exits on launch with "cannot be used with root/sudo privileges".
+		env.IS_SANDBOX = "1";
 	}
 
 	// Electron child processes can't access macOS Keychain for TLS cert verification,

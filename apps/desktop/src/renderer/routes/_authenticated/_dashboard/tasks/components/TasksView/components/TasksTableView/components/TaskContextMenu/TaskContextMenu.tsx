@@ -9,16 +9,15 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { useLiveQuery } from "@tanstack/react-db";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import {
 	HiOutlineDocumentDuplicate,
 	HiOutlineTrash,
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import { AssigneeMenuItems } from "../../../shared/AssigneeMenuItems";
@@ -38,17 +37,17 @@ export function TaskContextMenu({
 	task,
 	onDelete,
 }: TaskContextMenuProps) {
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
+	const [open, setOpen] = useState(false);
 
-	const { data: allStatuses } = useLiveQuery(
-		(q) => q.from({ taskStatuses: collections.taskStatuses }),
-		[collections],
+	const { data: allStatuses } = cloudTrpc.task.statuses.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
-	const { data: allUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
+	const { data: members } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
 	const sortedStatuses = useMemo(() => {
@@ -56,7 +55,10 @@ export function TaskContextMenu({
 		return [...allStatuses].sort(compareStatusesForDropdown);
 	}, [allStatuses]);
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
+	const users = useMemo(
+		() => (members ?? []).map((member) => member.user),
+		[members],
+	);
 
 	const handleStatusChange = (status: SelectTaskStatus) => {
 		taskActions.updateStatus(task.id, status.id);
@@ -88,7 +90,7 @@ export function TaskContextMenu({
 	};
 
 	return (
-		<ContextMenu>
+		<ContextMenu onOpenChange={setOpen}>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent className="w-64">
 				<ContextMenuSub>
