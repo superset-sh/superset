@@ -16,7 +16,10 @@ import {
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import { and, eq, sql } from "drizzle-orm";
-import { fetchRelayPresence } from "../../lib/relay-presence";
+import {
+	fetchRelayPresence,
+	mergeHostPresence,
+} from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 import { promptWithTriggerContext } from "./triggerContext";
 
@@ -332,11 +335,12 @@ async function pickOnlineHost(
 		),
 	);
 	return (
-		candidates.find((host) => {
-			const info =
-				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)];
-			return info ? info.online : host.isOnline;
-		}) ?? null
+		candidates.find((host) =>
+			mergeHostPresence(
+				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)],
+				host.isOnline,
+			),
+		) ?? null
 	);
 }
 

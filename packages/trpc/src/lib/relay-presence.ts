@@ -1,6 +1,27 @@
-interface PresenceInfo {
+export interface PresenceInfo {
 	online: boolean;
 	lastSeenAt: number | null;
+}
+
+/**
+ * Merges one host's relay presence with the legacy `v2_hosts.is_online` flag.
+ *
+ * The relay's answer wins only where the relay has actually seen the host.
+ * `{online: false, lastSeenAt: null}` is the Durable Object's answer for a
+ * host it has *never* seen — during a relay migration that describes every
+ * host still tunneled to the previous relay, and taking it at face value
+ * rendered the whole fleet offline while the v1 relay kept the DB flag
+ * current. No entry at all means the same thing via a different path (the
+ * batch omits denied hosts). Both fall back to the DB flag; an explicit
+ * sighting (`lastSeenAt` set) makes the relay authoritative either way.
+ */
+export function mergeHostPresence(
+	info: PresenceInfo | undefined,
+	dbIsOnline: boolean,
+): boolean {
+	if (!info) return dbIsOnline;
+	if (info.online) return true;
+	return info.lastSeenAt === null ? dbIsOnline : false;
 }
 
 const HEALTH_TTL_MS = 5 * 60_000;

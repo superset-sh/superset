@@ -18,7 +18,10 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { emitAppFirstOpened } from "../../lib/activation-events";
-import { fetchRelayPresence } from "../../lib/relay-presence";
+import {
+	fetchRelayPresence,
+	mergeHostPresence,
+} from "../../lib/relay-presence";
 import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { jwtProcedure } from "../../trpc";
 
@@ -107,9 +110,10 @@ export const hostRouter = {
 			return rows.map((row) => ({
 				id: row.machineId,
 				name: row.name,
-				online:
-					presence?.[buildHostRoutingKey(row.organizationId, row.machineId)]
-						?.online ?? row.isOnline,
+				online: mergeHostPresence(
+					presence?.[buildHostRoutingKey(row.organizationId, row.machineId)],
+					row.isOnline,
+				),
 				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
 			}));
