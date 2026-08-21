@@ -33,7 +33,9 @@ import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
+import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { loadCustomSessionData } from "./lib/load-custom-session-data";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import {
@@ -305,6 +307,7 @@ export const auth = betterAuth({
 			jwks: {
 				keyPairConfig: { alg: "RS256" },
 			},
+			adapter: jwksAdapter(),
 			jwt: {
 				issuer: env.NEXT_PUBLIC_API_URL,
 				audience: env.NEXT_PUBLIC_API_URL,
@@ -872,22 +875,39 @@ export const auth = betterAuth({
 		customSession(
 			async ({ user, session: baseSession }) => {
 				const session = baseSession as typeof sessions.$inferSelect;
+				const userId = session.userId ?? user.id;
+
+				// Memberships, the active organization's plan and the user's own
+				// flags in one statement. This runs on every authenticated request
+				// in the product, so each extra round trip here is a region-crossing
+				// hop the whole fleet pays for.
+				const data = await loadCustomSessionData({
+					userId,
+					activeOrganizationId: session.activeOrganizationId ?? null,
+				});
+
 				const { activeOrganizationId, allMemberships, membership } =
-					await resolveSessionOrganizationState({
-						userId: session.userId ?? user.id,
-						session,
-					});
+					await resolveSessionOrganizationState(
+						{ userId, session },
+						{ listMemberships: async () => data.memberships },
+					);
 
 				const organizationIds = [
 					...new Set(allMemberships.map((m) => m.organizationId)),
 				];
 
+				// Same statuses the rest of the app gates on — this is the value
+				// the paywall falls back to when the activePlan query can't be
+				// reached, so an "active"-only read here would strand trialing
+				// and past_due organizations on a cold start.
 				let plan: string | null = null;
-				if (activeOrganizationId) {
-					// Same statuses the rest of the app gates on — this is the value
-					// the paywall falls back to when the activePlan query can't be
-					// reached, so an "active"-only read here would strand trialing
-					// and past_due orgs on a cold start.
+				if (activeOrganizationId === data.planOrganizationId) {
+					plan = data.plan;
+				} else if (activeOrganizationId) {
+					// A concurrent request moved the session's active organization
+					// after the query above ran, so the plan it found belongs to the
+					// wrong one. Rare enough to be worth a second read rather than
+					// serialising the common path behind it.
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, activeOrganizationId),
@@ -897,19 +917,11 @@ export const auth = betterAuth({
 					plan = subscription?.plan ?? null;
 				}
 
-				// additionalFields declares onboardedAt for client typing, but the
-				// drizzle adapter doesn't surface it on the passed-in user — read it
-				// explicitly so the onboarding gate is deterministic.
-				const userRow = await db.query.users.findFirst({
-					where: eq(authSchema.users.id, user.id),
-					columns: { onboardedAt: true, deletionRequestedAt: true },
-				});
-
 				return {
 					user: {
 						...user,
-						onboardedAt: userRow?.onboardedAt ?? null,
-						deletionRequestedAt: userRow?.deletionRequestedAt ?? null,
+						onboardedAt: data.onboardedAt,
+						deletionRequestedAt: data.deletionRequestedAt,
 					},
 					session: {
 						...session,
