@@ -224,7 +224,11 @@ export function DashboardSidebarWorkspaceItem({
 					onClick={handleClick}
 					isCreatePending={isPending}
 					pullRequestState={pullRequest?.state ?? null}
-					aria-label={isPending ? `Creating workspace: ${name}` : undefined}
+					aria-label={
+						isPending
+							? `Creating ${workspace.type === "session" ? "session" : "workspace"}: ${name}`
+							: undefined
+					}
 				/>
 			</div>
 		);
