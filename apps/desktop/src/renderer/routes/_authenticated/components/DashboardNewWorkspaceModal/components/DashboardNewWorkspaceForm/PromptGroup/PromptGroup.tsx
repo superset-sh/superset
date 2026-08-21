@@ -553,7 +553,10 @@ export function PromptGroup({
 					onPasteFiles={(files) => attachments.add(files)}
 					autoFocus={promptSeed > 0 || prompt ? "end" : "start"}
 					placeholder="What do you want to do?"
-					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
+					// Grows with content until the modal hits its height cap
+					// (max-h mirrors the DialogContent cap minus the fixed chrome
+					// around the editor), then scrolls internally.
+					className="flex flex-col min-h-[100px] max-h-[calc(min(80vh,720px)-160px)] px-3 pt-3"
 					editorClassName="overflow-y-auto text-sm"
 					features={{
 						slashCommand: false,

@@ -9,8 +9,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
+import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-attachments";
 import {
 	useCloseNewWorkspaceModal,
@@ -18,7 +19,14 @@ import {
 	usePreSelectedProjectId,
 	usePreSelectedSession,
 } from "renderer/stores/new-workspace-modal";
+import {
+	NEW_WORKSPACE_MODAL_DEFAULT_WIDTH,
+	NEW_WORKSPACE_MODAL_MAX_WIDTH,
+	NEW_WORKSPACE_MODAL_MIN_WIDTH,
+	useNewWorkspaceWidthStore,
+} from "renderer/stores/new-workspace-width";
 import { DashboardNewWorkspaceModalContent } from "./components/DashboardNewWorkspaceModalContent";
+import { SymmetricResizeHandles } from "./components/SymmetricResizeHandles";
 import {
 	DashboardNewWorkspaceDraftProvider,
 	useDashboardNewWorkspaceDraft,
@@ -50,6 +58,13 @@ export function DashboardNewWorkspaceModal() {
 	const navigate = useNavigate();
 	const variant = useNewWorkspaceScreenVariant(isOpen);
 	const isScreen = variant === "test";
+	const storedWidth = useNewWorkspaceWidthStore((state) => state.modalWidth);
+	const setStoredWidth = useNewWorkspaceWidthStore(
+		(state) => state.setModalWidth,
+	);
+	/** Width while a resize drag is in flight; persisted on release. */
+	const [liveWidth, setLiveWidth] = useState<number | null>(null);
+	const modalWidth = liveWidth ?? storedWidth;
 
 	// Test arm: the create surface is a page, not a modal. Store opens (the
 	// "+" button, hotkey, onboarding hand-off) redirect to the route instead.
@@ -92,12 +107,34 @@ export function DashboardNewWorkspaceModal() {
 					<DialogContent
 						showCloseButton={false}
 						onFocusOutside={(e) => e.preventDefault()}
-						className="bg-popover text-popover-foreground sm:max-w-[680px] flex flex-col overflow-hidden p-0"
+						// Top-anchored so the modal grows downward as the prompt grows,
+						// instead of re-centering under the caret on every line.
+						className={cn(
+							"bg-popover text-popover-foreground max-h-[min(80vh,720px)] !top-[calc(50%-min(40vh,360px))] !translate-y-0 flex flex-col overflow-hidden p-0",
+							modalWidth === null
+								? "sm:max-w-[680px]"
+								: "sm:max-w-[calc(100%-2rem)]",
+						)}
+						style={modalWidth === null ? undefined : { width: modalWidth }}
 					>
 						<DashboardNewWorkspaceModalContent
 							isOpen={isOpen}
 							preSelectedProjectId={preSelectedProjectId}
 							preSelectedSession={preSelectedSession}
+						/>
+						<SymmetricResizeHandles
+							currentWidth={modalWidth ?? NEW_WORKSPACE_MODAL_DEFAULT_WIDTH}
+							minWidth={NEW_WORKSPACE_MODAL_MIN_WIDTH}
+							maxWidth={NEW_WORKSPACE_MODAL_MAX_WIDTH}
+							onWidthChange={setLiveWidth}
+							onWidthCommit={(width) => {
+								setStoredWidth(width);
+								setLiveWidth(null);
+							}}
+							onReset={() => {
+								setStoredWidth(null);
+								setLiveWidth(null);
+							}}
 						/>
 					</DialogContent>
 				</Dialog>

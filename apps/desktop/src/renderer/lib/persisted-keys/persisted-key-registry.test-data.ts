@@ -73,6 +73,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	["src/renderer/stores/ports/store.ts", ["ports-store"]],
 	["src/renderer/stores/search-dialog-state.ts", ["search-dialog-store"]],
 	["src/renderer/stores/sidebar-state.ts", ["sidebar-store"]],
+	["src/renderer/stores/new-workspace-width.ts", ["new-workspace-width"]],
 	[
 		"src/renderer/stores/workspace-sidebar-state.ts",
 		["workspace-sidebar-store"],
