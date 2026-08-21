@@ -254,10 +254,14 @@ export function summarizeSchedules(triggers: TriggerRow[]): ScheduleSummary {
 	};
 }
 
-/** Schedule summaries for many automations, keyed by automation id. */
+/**
+ * Schedule summaries for many automations, keyed by automation id. Fetches
+ * every trigger kind so `triggerCount` can tell an event-only automation
+ * apart from one with no triggers at all (untitled automations start empty).
+ */
 export async function scheduleSummariesFor(
 	automationIds: string[],
-): Promise<Map<string, ScheduleSummary>> {
+): Promise<Map<string, ScheduleSummary & { triggerCount: number }>> {
 	if (automationIds.length === 0) return new Map();
 
 	const rows = await db
@@ -268,12 +272,7 @@ export async function scheduleSummariesFor(
 			nextRunAt: automationTriggers.nextRunAt,
 		})
 		.from(automationTriggers)
-		.where(
-			and(
-				inArray(automationTriggers.automationId, automationIds),
-				eq(automationTriggers.kind, "schedule"),
-			),
-		);
+		.where(inArray(automationTriggers.automationId, automationIds));
 
 	const byAutomation = new Map<string, TriggerRow[]>();
 	for (const row of rows) {
@@ -283,10 +282,13 @@ export async function scheduleSummariesFor(
 	}
 
 	return new Map(
-		automationIds.map((id) => [
-			id,
-			summarizeSchedules(byAutomation.get(id) ?? []),
-		]),
+		automationIds.map((id) => {
+			const triggers = byAutomation.get(id) ?? [];
+			return [
+				id,
+				{ ...summarizeSchedules(triggers), triggerCount: triggers.length },
+			];
+		}),
 	);
 }
 
@@ -333,5 +335,8 @@ export async function getAutomationForUser(
 	}
 
 	const summaries = await scheduleSummariesFor([automation.id]);
-	return { ...automation, ...(summaries.get(automation.id) ?? NO_SCHEDULE) };
+	return {
+		...automation,
+		...(summaries.get(automation.id) ?? { ...NO_SCHEDULE, triggerCount: 0 }),
+	};
 }

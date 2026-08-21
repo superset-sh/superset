@@ -134,6 +134,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["pull-requests-filter-state"],
 	],
 	[
+		"src/renderer/routes/_authenticated/_dashboard/pull-requests/stores/pullRequestsSplitViewStore/pullRequestsSplitViewStore.ts",
+		["pull-requests-split-view-state"],
+	],
+	[
 		"src/renderer/components/PostHogUserIdentifier/PostHogUserIdentifier.tsx",
 		["active_organization_id"],
 	],

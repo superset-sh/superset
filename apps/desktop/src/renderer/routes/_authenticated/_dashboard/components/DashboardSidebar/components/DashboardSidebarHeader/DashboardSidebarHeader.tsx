@@ -160,6 +160,7 @@ export function DashboardSidebarHeader({
 		authorFilter: lastPullRequestsAuthorFilter,
 		reviewFilter: lastPullRequestsReviewFilter,
 		includeClosed: lastPullRequestsIncludeClosed,
+		mergedOnly: lastPullRequestsMergedOnly,
 	} = usePullRequestsFilterStore();
 
 	const handleWorkspacesClick = () => {
@@ -198,17 +199,16 @@ export function DashboardSidebarHeader({
 	};
 
 	const handlePullRequestsClick = () => {
-		gateFeature(GATED_FEATURES.TASKS, () => {
-			navigate({
-				to: "/pull-requests",
-				search: pullRequestsSearchFromFilters({
-					search: lastPullRequestsSearch,
-					projectFilters: lastPullRequestsProjectFilters,
-					authorFilter: lastPullRequestsAuthorFilter,
-					reviewFilter: lastPullRequestsReviewFilter,
-					includeClosed: lastPullRequestsIncludeClosed,
-				}),
-			});
+		navigate({
+			to: "/pull-requests",
+			search: pullRequestsSearchFromFilters({
+				search: lastPullRequestsSearch,
+				projectFilters: lastPullRequestsProjectFilters,
+				authorFilter: lastPullRequestsAuthorFilter,
+				reviewFilter: lastPullRequestsReviewFilter,
+				includeClosed: lastPullRequestsIncludeClosed,
+				mergedOnly: lastPullRequestsMergedOnly,
+			}),
 		});
 	};
 

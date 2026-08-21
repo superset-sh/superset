@@ -94,10 +94,13 @@ export function AutomationRow({
 	onDelete,
 }: AutomationRowProps) {
 	const navigate = useNavigate();
-	// No rrule means the automation is driven by events rather than a clock.
+	// No rrule but some trigger means the automation is driven by events
+	// rather than a clock; no triggers at all means it never fires.
 	const scheduleLabel = automation.rrule
 		? describeSchedule(automation.rrule)
-		: "Event triggered";
+		: automation.triggerCount > 0
+			? "Event triggered"
+			: "No triggers";
 
 	const openDetail = () =>
 		navigate({

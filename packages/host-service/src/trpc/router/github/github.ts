@@ -462,7 +462,7 @@ interface PullRequestDetailQuery {
  * non-500 code (500s page Sentry) and GitHub's own wording, which is the only
  * text that says which of them happened.
  */
-function mergeRejectionError(error: unknown): TRPCError {
+export function mergeRejectionError(error: unknown): TRPCError {
 	const status =
 		typeof error === "object" && error !== null && "status" in error
 			? Number((error as { status: unknown }).status)

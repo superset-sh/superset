@@ -2,9 +2,11 @@ import { cn } from "@superset/ui/utils";
 import {
 	LuCircleDot,
 	LuGitMerge,
-	LuGitPullRequest,
+	LuGitPullRequestArrow,
 	LuListChecks,
 } from "react-icons/lu";
+
+const ICON_STROKE_WIDTH = 1;
 
 export type PRState = "open" | "merged" | "closed" | "draft" | "queued";
 
@@ -33,17 +35,26 @@ export function PRIcon({ state, className }: PRIconProps) {
 	const baseClass = cn(stateStyles[state], className);
 
 	if (state === "merged") {
-		return <LuGitMerge className={baseClass} />;
+		return <LuGitMerge className={baseClass} strokeWidth={ICON_STROKE_WIDTH} />;
 	}
 
 	if (state === "closed") {
-		return <LuCircleDot className={baseClass} />;
+		return (
+			<LuCircleDot className={baseClass} strokeWidth={ICON_STROKE_WIDTH} />
+		);
 	}
 
 	if (state === "queued") {
-		return <LuListChecks className={baseClass} />;
+		return (
+			<LuListChecks className={baseClass} strokeWidth={ICON_STROKE_WIDTH} />
+		);
 	}
 
 	// open or draft
-	return <LuGitPullRequest className={baseClass} />;
+	return (
+		<LuGitPullRequestArrow
+			className={baseClass}
+			strokeWidth={ICON_STROKE_WIDTH}
+		/>
+	);
 }
