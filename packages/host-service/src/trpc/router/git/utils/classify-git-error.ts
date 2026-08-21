@@ -37,13 +37,17 @@ const XCODE_SELECT_NO_TOOLS_PATTERN =
 // filter pipe dying as "the remote end hung up unexpectedly". A required
 // filter aborts the whole command, so everything touching a filtered path —
 // including the status snapshot we poll — fails until the helper is installed.
-// Both halves are required, in the order git emits them: git reports the
-// remote end hanging up for ordinary network failures too, and the shell says
-// "command not found" for hooks and other programs that are not filters.
+// All three parts are required, in the order git emits them. The filter's own
+// invocation must appear on the command-not-found line: without it this would
+// also claim a remote host that lacks git-receive-pack, and a failing hook that
+// happens to precede a network drop — both of which print the same pair. Only
+// `filter.<name>.process` speaks the packet protocol whose pipe dying produces
+// "the remote end hung up unexpectedly", so requiring it costs no real case;
+// `.clean`/`.smudge` failures say "external filter ... failed" instead.
 // Filters that are installed and then fail — refusing a file, missing a key —
 // say "external filter ... failed" instead and stay unclassified.
 const FILTER_HELPER_MISSING_PATTERN =
-	/: command not found$[\s\S]*?^fatal: the remote end hung up unexpectedly/im;
+	/filter-process.*: command not found$[\s\S]*?^fatal: the remote end hung up unexpectedly/im;
 // Git cannot read a tree object its own refs point at — a damaged or
 // incompletely fetched object store (a truncated packfile, most often). Every
 // command that walks a commit fails until the repository is repaired.

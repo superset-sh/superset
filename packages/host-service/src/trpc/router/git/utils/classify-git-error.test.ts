@@ -305,6 +305,29 @@ describe("rethrowEnvironmentalGitError", () => {
 		).toBeNull();
 	});
 
+	test("does not claim the same pair from a non-filter source", () => {
+		// A remote host without git, and a failing hook followed by a network
+		// drop, both print "command not found" and then the remote hanging up.
+		// Neither is a missing filter helper, and the filter's own invocation on
+		// the command-not-found line is what separates them.
+		expect(
+			capture(
+				new Error(
+					"bash: git-receive-pack: command not found\n" +
+						"fatal: The remote end hung up unexpectedly\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					".git/hooks/post-checkout: line 3: some-linter: command not found\n" +
+						"fatal: the remote end hung up unexpectedly\n",
+				),
+			),
+		).toBeNull();
+	});
+
 	test("does not claim either half of the missing-helper pair alone", () => {
 		// Neither sentence is distinctive by itself. Git reports the remote end
 		// hanging up for ordinary network failures, and the shell says "command
