@@ -22,7 +22,8 @@ export type SettingsSection =
 	| "permissions"
 	| "security"
 	| "project"
-	| "hosts";
+	| "hosts"
+	| "workspaces";
 
 interface SettingsState {
 	activeSection: SettingsSection;
