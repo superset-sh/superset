@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import {
 	CatchBoundary,
 	createFileRoute,
@@ -9,6 +10,7 @@ import {
 import { useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
 import { Redirect } from "renderer/components/Redirect";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -16,12 +18,15 @@ import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/comp
 import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
+import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
@@ -52,6 +57,9 @@ function DashboardLayout() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { machineId } = useLocalHostService();
+	const { projects: hostProjects } = useHostProjects();
+	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
 	useDevSeedV2Sidebar();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -120,6 +128,50 @@ function DashboardLayout() {
 		openNewWorkspaceModal(
 			currentWorkspace?.projectId ?? currentV2Workspace?.projectId ?? undefined,
 		),
+	);
+	useHotkey(
+		"QUICK_CREATE_WORKSPACE",
+		() => {
+			const projectId =
+				currentV2Workspace?.projectId ??
+				useV2WorkspaceCreateDefaultsStore.getState().lastProjectId ??
+				hostProjects[0]?.id ??
+				null;
+
+			// Nothing to quick-create into yet — fall back to the modal so the
+			// user can add or pick a project, same as v1 falling back to "Open
+			// Project" when it had no current project to infer.
+			if (!projectId || !machineId) {
+				openNewWorkspaceModal();
+				return;
+			}
+
+			const workspaceId = crypto.randomUUID();
+			const { completed } = submitWorkspaceCreate({
+				hostId: machineId,
+				snapshot: { id: workspaceId, projectId },
+			});
+			void navigate({
+				to: "/v2-workspace/$workspaceId",
+				params: { workspaceId },
+			}).catch((error) => {
+				console.error("[QuickCreateWorkspace] failed to open workspace", error);
+			});
+			toast.promise(
+				completed.then((outcome) => {
+					if (!outcome.ok) throw new Error(outcome.error);
+				}),
+				{
+					loading: "Creating workspace...",
+					success: "Workspace created",
+					error: (error) =>
+						error instanceof Error
+							? error.message
+							: "Failed to create workspace",
+				},
+			);
+		},
+		{ enabled: isV2CloudEnabled },
 	);
 
 	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
