@@ -73,10 +73,12 @@ export function PluginsView() {
 
 	const installedPlugins = visiblePlugins.filter(isInstalled);
 	const featured = visiblePlugins.filter((plugin) => plugin.featured);
+	// Featured plugins appear in their category section too — Featured is a
+	// spotlight, not a home.
 	const byCategory = PLUGIN_CATEGORIES.map((category) => ({
 		category,
 		plugins: visiblePlugins.filter(
-			(plugin) => !plugin.featured && plugin.interface.category === category,
+			(plugin) => plugin.interface.category === category,
 		),
 	})).filter(({ plugins }) => plugins.length > 0);
 

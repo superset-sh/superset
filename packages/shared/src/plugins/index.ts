@@ -31,11 +31,9 @@ export type PluginMcpServerConfig =
 	  };
 
 export const PLUGIN_CATEGORIES = [
-	"Project management",
 	"Productivity",
 	"Communication",
 	"Developer tools",
-	"Monitoring",
 	"Design",
 	"Data & APIs",
 ] as const;
@@ -236,7 +234,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		name: "linear",
 		version: "1.0.0",
 		description: "Plan and build products",
-		interface: { displayName: "Linear", category: "Project management" },
+		interface: { displayName: "Linear", category: "Productivity" },
 		mcpServers: {
 			linear: { type: "http", url: "https://mcp.linear.app/mcp" },
 		},
@@ -266,7 +264,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		name: "sentry",
 		version: "1.0.0",
 		description: "Debug with production error context",
-		interface: { displayName: "Sentry", category: "Monitoring" },
+		interface: { displayName: "Sentry", category: "Developer tools" },
 		mcpServers: {
 			sentry: { type: "http", url: "https://mcp.sentry.dev/mcp" },
 		},
@@ -397,7 +395,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		name: "monday",
 		version: "1.0.0",
 		description: "Manage boards, items, and workflows",
-		interface: { displayName: "monday.com", category: "Project management" },
+		interface: { displayName: "monday.com", category: "Productivity" },
 		mcpServers: {
 			monday: { type: "http", url: "https://mcp.monday.com/mcp" },
 		},
