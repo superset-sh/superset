@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	buildSearchQuery,
 	chunkProjectRepos,
+	collectChunkResults,
 	GITHUB_SEARCH_QUERY_MAX_LENGTH,
 	githubRateLimitError,
 	isGithubNotFoundError,
@@ -217,6 +218,42 @@ describe("resolveProjectRepos", () => {
 		expect(resolveProjectRepos(["no-remote"], false, resolve)).rejects.toThrow(
 			"no GitHub remote",
 		);
+	});
+});
+
+describe("collectChunkResults", () => {
+	const rateLimited = () =>
+		Object.assign(new Error("API rate limit exceeded for user"), {
+			status: 403,
+		});
+
+	test("keeps the chunks that answered and reports the failures", async () => {
+		const settled = await Promise.allSettled([
+			Promise.resolve("web"),
+			Promise.reject(
+				new Error("Validation Failed: repositories cannot be searched"),
+			),
+			Promise.resolve("api"),
+		]);
+		const { results, failures } = collectChunkResults(settled);
+		expect(results).toEqual(["web", "api"]);
+		expect(failures).toHaveLength(1);
+	});
+
+	test("surfaces the failure when every chunk failed", async () => {
+		const settled = await Promise.allSettled([
+			Promise.reject(new Error("Connect Timeout Error")),
+			Promise.reject(new Error("Bad credentials")),
+		]);
+		expect(() => collectChunkResults(settled)).toThrow("Connect Timeout Error");
+	});
+
+	test("surfaces a rate limit even when other chunks answered", async () => {
+		const settled = await Promise.allSettled([
+			Promise.resolve("web"),
+			Promise.reject(rateLimited()),
+		]);
+		expect(() => collectChunkResults(settled)).toThrow("rate limit exceeded");
 	});
 });
 

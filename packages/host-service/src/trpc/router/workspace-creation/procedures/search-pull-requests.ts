@@ -19,6 +19,7 @@ import { githubSearchInputSchema } from "../schemas";
 import {
 	buildSearchQuery,
 	chunkProjectRepos,
+	collectChunkResults,
 	formatRepoList,
 	githubRateLimitError,
 	isGithubNotFoundError,
@@ -1181,11 +1182,22 @@ export const searchPullRequests = protectedProcedure
 			}
 
 			const chunks = chunkProjectRepos(projectRepos, qualifiers);
-			const chunkResults = await Promise.all(
-				chunks.map((chunk) =>
-					octokitSearchPullRequests(octokit, chunk, qualifiers, page, limit),
+			// One chunk failing (a repo this token cannot see, a timed-out
+			// request) must not blank the repos that answered — this is the
+			// last resort, so throwing here empties the whole list.
+			const { results: chunkResults, failures } = collectChunkResults(
+				await Promise.allSettled(
+					chunks.map((chunk) =>
+						octokitSearchPullRequests(octokit, chunk, qualifiers, page, limit),
+					),
 				),
 			);
+			if (failures.length > 0) {
+				console.warn(
+					`[workspaceCreation.searchPullRequests] ${failures.length} of ${chunks.length} search chunks failed; returning the rest`,
+					failures,
+				);
+			}
 			const merged = mergeByUpdatedAtDesc(
 				chunkResults.map((result) => result.items),
 			);

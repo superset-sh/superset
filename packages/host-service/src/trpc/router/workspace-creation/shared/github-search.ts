@@ -93,6 +93,32 @@ export function chunkProjectRepos(
 	return chunks;
 }
 
+/**
+ * Keep the chunks that answered. A chunk fails on its own terms — GitHub
+ * rejects the whole query when it names a repo the token cannot see, a
+ * request times out — and one such failure must not blank the repos that
+ * did answer. The failure only surfaces when every chunk failed, so a total
+ * outage still reports rather than returning a silently empty page.
+ */
+export function collectChunkResults<T>(settled: PromiseSettledResult<T>[]): {
+	results: T[];
+	failures: unknown[];
+} {
+	const results = settled.flatMap((result) =>
+		result.status === "fulfilled" ? [result.value] : [],
+	);
+	const failures = settled.flatMap((result) =>
+		result.status === "rejected" ? [result.reason] : [],
+	);
+	for (const failure of failures) {
+		// A rate limit is account-wide, not per-chunk: keeping a partial page
+		// would hide why the rest is missing and would flap between polls.
+		if (isGithubRateLimitError(failure)) throw failure;
+	}
+	if (results.length === 0 && failures.length > 0) throw failures[0];
+	return { results, failures };
+}
+
 // REST search items carry `repository_url` like
 // https://api.github.com/repos/<owner>/<name>.
 const REPOSITORY_URL_RE = /\/repos\/([^/]+)\/([^/]+)\/?$/;
