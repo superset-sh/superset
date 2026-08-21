@@ -21,6 +21,22 @@ const NOT_A_WORK_TREE_PATTERN = /this operation must be run in a work tree/i;
 // mistakes too, and those must keep reporting as 500s.
 const SIMPLE_GIT_BASE_DIR_MISSING_PATTERN =
 	/cannot use simple-git on a directory that does not exist/i;
+// The macOS Command Line Tools stub. /usr/bin/git is a shim that forwards to
+// the active developer directory; with no tools installed it prints this and
+// exits non-zero instead of running git, so every git command fails the same
+// way until the user installs them. Anchored on the stub's own prefix at the
+// start of a line together with its refusal sentence: `xcode-select` has other
+// complaints that are not "git cannot run here", and git names Xcode paths in
+// ordinary failures all the time.
+const XCODE_SELECT_NO_TOOLS_PATTERN =
+	/^xcode-select: .*no developer tools were found/im;
+// Git cannot read a tree object its own refs point at — a damaged or
+// incompletely fetched object store (a truncated packfile, most often). Every
+// command that walks a commit fails until the repository is repaired.
+// Requiring the object id keeps this off git's other "unable to read"
+// failures, which name blobs, loose files and stdin rather than this damage.
+const UNREADABLE_TREE_OBJECT_PATTERN =
+	/unable to read tree \(?[0-9a-f]{7,64}\)?/i;
 
 /**
  * Rethrows environmental git failures as typed non-500 TRPCErrors — the same
@@ -63,6 +79,20 @@ export function rethrowEnvironmentalGitError(error: unknown): void {
 			code: "PRECONDITION_FAILED",
 			message: error.message,
 			cause: { kind: "GIT_ENVIRONMENT" },
+		});
+	}
+	if (XCODE_SELECT_NO_TOOLS_PATTERN.test(error.message)) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: error.message,
+			cause: { kind: "GIT_ENVIRONMENT" },
+		});
+	}
+	if (UNREADABLE_TREE_OBJECT_PATTERN.test(error.message)) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: error.message,
+			cause: { kind: "GIT_REPO_DAMAGED" },
 		});
 	}
 }

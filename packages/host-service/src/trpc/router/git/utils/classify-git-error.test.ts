@@ -127,4 +127,116 @@ describe("rethrowEnvironmentalGitError", () => {
 			capture(new Error("Unable to find path to repository in parent tree")),
 		).toBeNull();
 	});
+
+	test("Command Line Tools missing → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		// Verbatim stub output: on macOS /usr/bin/git forwards to the Command
+		// Line Tools, and prints this instead of running when they are absent.
+		const message =
+			"xcode-select: note: No developer tools were found, requesting install.\n" +
+			"If developer tools are located at a non-default location on disk, use `sudo xcode-select --switch path/to/Xcode.app` to specify the Xcode that you wish to use for command line developer tools, and cancel the installation dialog.\n" +
+			"See `man xcode-select` for more details.\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("unreadable tree object → PRECONDITION_FAILED / GIT_REPO_DAMAGED", () => {
+		const message =
+			"fatal: unable to read tree f3cfda51e445b3c911572cf9ae3dc34d78fc4c35\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_REPO_DAMAGED");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("unreadable tree object behind a truncated packfile", () => {
+		// The same condition with git's own diagnosis of the damage in front of
+		// it, and git's parenthesised phrasing of the sentence.
+		const thrown = capture(
+			new Error(
+				"error: file .git/objects/pack/pack-816a419ea2792b300adb04c1f8bc739065981ebe.pack is far too short to be a packfile\n" +
+					"fatal: unable to read tree (f3cfda51e445b3c911572cf9ae3dc34d78fc4c35)\n",
+			),
+		);
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_REPO_DAMAGED");
+	});
+
+	test("does not claim unrelated Xcode and developer-tools output", () => {
+		// The stub is identified by its own prefix *and* its refusal sentence.
+		// Neither half alone is distinctive: git says "Xcode" whenever a path
+		// contains it, and xcode-select has other, unrelated complaints that are
+		// not "git cannot run here".
+		expect(
+			capture(
+				new Error(
+					"xcode-select: error: tool 'xcodebuild' requires Xcode, but active developer directory '/Library/Developer/CommandLineTools' is a command line tools instance\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: pathspec 'ios/Runner.xcodeproj/project.pbxproj' did not match any files known to git\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"error: unable to stat 'Library/Developer/Xcode/DerivedData/Runner/info.plist'\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("does not claim git's other 'unable to read' failures", () => {
+		// Git says "unable to read" about several object kinds and about plain
+		// files. Only the tree variant names the damage this branch describes;
+		// the rest are ordinary failures that must keep reporting as 500s.
+		expect(
+			capture(
+				new Error(
+					"fatal: unable to read d83d2d027bcd790f397d1ef07c663ca57d44cac2\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"error: unable to read sha1 file of src/index.ts (e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(new Error("error: unable to read asciidoc from stdin\n")),
+		).toBeNull();
+	});
+
+	test("keeps the working-directory branch ahead of the damaged-repo branch", () => {
+		// "unable to read current working directory" is an environment failure,
+		// not object-store damage — the new branch must not reclassify it.
+		const thrown = capture(
+			new Error(
+				"fatal: Unable to read current working directory: Operation not permitted\n",
+			),
+		);
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+	});
+
+	test("genuine failures on the getStatus path still report as 500s", () => {
+		// Real messages seen in this Sentry group that this change deliberately
+		// leaves unclassified: a resource exhaustion bug we would want to hear
+		// about, and a missing third-party filter binary that is a separate
+		// condition from the two named here.
+		expect(capture(new Error("spawn git EAGAIN"))).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"git-lfs filter-process: git-lfs: command not found\nfatal: the remote end hung up unexpectedly\n",
+				),
+			),
+		).toBeNull();
+	});
 });
