@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo } from "react";
-import { HiringBanner } from "renderer/components/HiringBanner";
-import { PaymentFailedBanner } from "renderer/components/PaymentFailedBanner";
+import {
+	SidebarCardSlot,
+	useHiringCard,
+	usePaymentFailedCard,
+} from "renderer/components/SidebarCardSlot";
 import { StarNagCard } from "renderer/components/StarNagCard";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
-import { SetupScriptCard } from "./SetupScriptCard";
+import { useSetupScriptCard } from "./SetupScriptCard";
 import { SidebarDropZone } from "./SidebarDropZone";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
 import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
@@ -25,6 +28,15 @@ export function WorkspaceSidebar({
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
 	const clearSelection = useWorkspaceSelectionStore((s) => s.clearSelection);
+
+	// Ordered by priority for the single card slot below — blocking first,
+	// then actionable, then nags.
+	const paymentFailedCard = usePaymentFailedCard({ surface: "v1" });
+	const setupScriptCard = useSetupScriptCard({
+		projectId: activeProjectId,
+		projectName: activeProjectName,
+	});
+	const hiringCard = useHiringCard({ surface: "v1" });
 
 	const projectShortcutIndices = useMemo(
 		() =>
@@ -112,14 +124,10 @@ export function WorkspaceSidebar({
 
 			{!isCollapsed && <PortsList />}
 
-			<SetupScriptCard
+			<SidebarCardSlot
 				isCollapsed={isCollapsed}
-				projectId={activeProjectId}
-				projectName={activeProjectName}
+				entries={[paymentFailedCard, setupScriptCard, hiringCard]}
 			/>
-
-			<PaymentFailedBanner surface="v1" isCollapsed={isCollapsed} />
-			<HiringBanner surface="v1" isCollapsed={isCollapsed} />
 			<StarNagCard isCollapsed={isCollapsed} />
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />

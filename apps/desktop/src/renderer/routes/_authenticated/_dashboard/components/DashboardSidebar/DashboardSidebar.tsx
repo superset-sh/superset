@@ -10,8 +10,11 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
-import { HiringBanner } from "renderer/components/HiringBanner";
-import { PaymentFailedBanner } from "renderer/components/PaymentFailedBanner";
+import {
+	SidebarCardSlot,
+	useHiringCard,
+	usePaymentFailedCard,
+} from "renderer/components/SidebarCardSlot";
 import { StarNagCard } from "renderer/components/StarNagCard";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
@@ -29,7 +32,7 @@ import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSid
 import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { SectionDragSpacer } from "./components/SectionDragSpacer";
-import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
+import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
 import { useDashboardSidebarDnd } from "./hooks/useSidebarDnd";
@@ -234,6 +237,16 @@ export function DashboardSidebar({
 		return null;
 	}, [groups, pinnedWorkspaces, activeV2WorkspaceId]);
 
+	// Ordered by priority for the single card slot below — blocking first,
+	// then actionable, then nags.
+	const paymentFailedCard = usePaymentFailedCard({ surface: "v2" });
+	const setupScriptCard = useV2SetupScriptCard({
+		hostUrl: activeHostUrl,
+		projectId: activeV2Project?.id ?? null,
+		projectName: activeV2Project?.name ?? null,
+	});
+	const hiringCard = useHiringCard({ surface: "v2" });
+
 	const handleReorderProjects = useCallback(
 		(reordered: string[]) => {
 			setProjectOrder(reordered);
@@ -312,15 +325,10 @@ export function DashboardSidebar({
 										)}
 										<SectionDragSpacer />
 									</OverflowFadeContainer>
-									{!isCollapsed && activeV2Project && activeHostUrl && (
-										<V2SetupScriptCard
-											hostUrl={activeHostUrl}
-											projectId={activeV2Project.id}
-											projectName={activeV2Project.name}
-										/>
-									)}
-									<PaymentFailedBanner surface="v2" isCollapsed={isCollapsed} />
-									<HiringBanner surface="v2" isCollapsed={isCollapsed} />
+									<SidebarCardSlot
+										isCollapsed={isCollapsed}
+										entries={[paymentFailedCard, setupScriptCard, hiringCard]}
+									/>
 									<StarNagCard isCollapsed={isCollapsed} />
 									<div
 										className={cn(
