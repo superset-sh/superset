@@ -30,6 +30,20 @@ const SIMPLE_GIT_BASE_DIR_MISSING_PATTERN =
 // ordinary failures all the time.
 const XCODE_SELECT_NO_TOOLS_PATTERN =
 	/^xcode-select: .*no developer tools were found/im;
+// A content filter's helper program is not installed on this machine. Git runs
+// `filter.<name>.process`/`.clean` through the shell with the configured
+// command as the shell's $0, so an absent helper fails as
+// `<filter command>: <helper>: command not found`, and git then reports the
+// filter pipe dying as "the remote end hung up unexpectedly". A required
+// filter aborts the whole command, so everything touching a filtered path —
+// including the status snapshot we poll — fails until the helper is installed.
+// Both halves are required, in the order git emits them: git reports the
+// remote end hanging up for ordinary network failures too, and the shell says
+// "command not found" for hooks and other programs that are not filters.
+// Filters that are installed and then fail — refusing a file, missing a key —
+// say "external filter ... failed" instead and stay unclassified.
+const FILTER_HELPER_MISSING_PATTERN =
+	/: command not found$[\s\S]*?^fatal: the remote end hung up unexpectedly/im;
 // Git cannot read a tree object its own refs point at — a damaged or
 // incompletely fetched object store (a truncated packfile, most often). Every
 // command that walks a commit fails until the repository is repaired.
@@ -82,6 +96,13 @@ export function rethrowEnvironmentalGitError(error: unknown): void {
 		});
 	}
 	if (XCODE_SELECT_NO_TOOLS_PATTERN.test(error.message)) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: error.message,
+			cause: { kind: "GIT_ENVIRONMENT" },
+		});
+	}
+	if (FILTER_HELPER_MISSING_PATTERN.test(error.message)) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message: error.message,

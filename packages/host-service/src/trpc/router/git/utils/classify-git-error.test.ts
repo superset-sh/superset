@@ -242,15 +242,95 @@ describe("rethrowEnvironmentalGitError", () => {
 	});
 
 	test("genuine failures on the getStatus path still report as 500s", () => {
-		// Real messages seen in this Sentry group that this change deliberately
-		// leaves unclassified: a resource exhaustion bug we would want to hear
-		// about, and a missing third-party filter binary that is a separate
-		// condition from the two named here.
+		// A resource exhaustion bug we would want to hear about.
 		expect(capture(new Error("spawn git EAGAIN"))).toBeNull();
+	});
+
+	test("missing filter helper → PRECONDITION_FAILED / GIT_ENVIRONMENT", () => {
+		// Verbatim from the Sentry group: a repository configured for git-lfs on
+		// a machine without the helper installed. Git runs the filter through the
+		// shell, which cannot find the helper, and git then reports the filter
+		// pipe dying. Polled status re-reports it indefinitely.
+		const message =
+			"git-lfs filter-process: git-lfs: command not found\n" +
+			"fatal: the remote end hung up unexpectedly\n";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("missing filter helper is not specific to git-lfs", () => {
+		// The branch names the shape git produces for any filter helper it cannot
+		// execute, not one vendor's binary. Reproduced against a repository whose
+		// `filter.<name>.process` points at a program that is not installed.
+		const thrown = capture(
+			new Error(
+				"fake-lfs-helper filter-process: fake-lfs-helper: command not found\n" +
+					"fatal: the remote end hung up unexpectedly\n",
+			),
+		);
+		expect(thrown?.code).toBe("PRECONDITION_FAILED");
+		expect(causeKind(thrown)).toBe("GIT_ENVIRONMENT");
+	});
+
+	test("keeps installed filters that fail for their own reasons as 500s", () => {
+		// Git emits a family of similar-looking filter failures that are not a
+		// missing helper. The helper ran and refused, so nothing about the
+		// machine's setup is wrong in the way this branch names — these must keep
+		// reporting as 500s. Both messages are real traffic from the same group.
 		expect(
 			capture(
 				new Error(
-					"git-lfs filter-process: git-lfs: command not found\nfatal: the remote end hung up unexpectedly\n",
+					"git-secret-protector: AES key for filter 'secrets-dev' is not cached locally. Run: git-secret-protector pull-aes-key secrets-dev\n" +
+						"error: external filter 'git-secret-protector encrypt %f' failed 1\n" +
+						"error: external filter 'git-secret-protector encrypt %f' failed\n" +
+						"fatal: infra/secrets.tfvars: clean filter 'secrets-dev' failed\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					'unknown command ""\n' +
+						"error: external filter 'git-lfs filter-process' failed\n" +
+						"fatal: assets/img/hash.png: clean filter 'lfs' failed\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error("fatal: assets/img/hash.png: clean filter 'lfs' failed\n"),
+			),
+		).toBeNull();
+	});
+
+	test("does not claim either half of the missing-helper pair alone", () => {
+		// Neither sentence is distinctive by itself. Git reports the remote end
+		// hanging up for ordinary network failures, and the shell says "command
+		// not found" for hooks and other programs that are not filters — matching
+		// on one half would silence a broken clone or a broken hook.
+		expect(
+			capture(
+				new Error(
+					"fatal: the remote end hung up unexpectedly\n" +
+						"fatal: early EOF\n" +
+						"fatal: index-pack failed\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					".git/hooks/pre-commit: line 2: definitely-not-installed-linter: command not found\n",
+				),
+			),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"error: cannot run definitely-not-a-real-ssh: No such file or directory\n" +
+						"fatal: unable to fork\n",
 				),
 			),
 		).toBeNull();
