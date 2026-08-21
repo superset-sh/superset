@@ -15,8 +15,12 @@ import {
 } from "./github";
 import {
 	agentCommands,
+	attachments,
 	chatSessions,
+	files,
 	integrationConnections,
+	pages,
+	pageVersions,
 	projects,
 	subscriptions,
 	taskStatuses,
@@ -26,6 +30,7 @@ import {
 	v2Projects,
 	v2UsersHosts,
 	v2Workspaces,
+	workspacePages,
 	workspaces,
 } from "./schema";
 
@@ -331,5 +336,65 @@ export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
 	workspace: one(workspaces, {
 		fields: [chatSessions.workspaceId],
 		references: [workspaces.id],
+	}),
+}));
+
+export const pagesRelations = relations(pages, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [pages.organizationId],
+		references: [organizations.id],
+	}),
+	createdBy: one(users, {
+		fields: [pages.createdByUserId],
+		references: [users.id],
+	}),
+	versions: many(pageVersions),
+	workspaceLinks: many(workspacePages),
+}));
+
+export const pageVersionsRelations = relations(pageVersions, ({ one }) => ({
+	page: one(pages, {
+		fields: [pageVersions.pageId],
+		references: [pages.id],
+	}),
+	createdBy: one(users, {
+		fields: [pageVersions.createdByUserId],
+		references: [users.id],
+	}),
+}));
+
+// No `workspace` relation: `workspaceId` is a bare uuid that may name a row in
+// cloud_workspaces or one that only exists in a machine's local host.db.
+export const workspacePagesRelations = relations(workspacePages, ({ one }) => ({
+	page: one(pages, {
+		fields: [workspacePages.pageId],
+		references: [pages.id],
+	}),
+}));
+
+export const filesRelations = relations(files, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [files.organizationId],
+		references: [organizations.id],
+	}),
+	createdBy: one(users, {
+		fields: [files.createdByUserId],
+		references: [users.id],
+	}),
+	// A file's lifetime is the count of these: no attachments means the sweep
+	// may collect it.
+	attachments: many(attachments),
+}));
+
+// No `parent` relation: parentId is a bare uuid whose table depends on
+// parentKind, and may name a row Neon does not hold at all.
+export const attachmentsRelations = relations(attachments, ({ one }) => ({
+	file: one(files, {
+		fields: [attachments.fileId],
+		references: [files.id],
+	}),
+	createdBy: one(users, {
+		fields: [attachments.createdByUserId],
+		references: [users.id],
 	}),
 }));

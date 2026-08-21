@@ -617,6 +617,20 @@
       "when": 1787099734268,
       "tag": "0087_scope_unification",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1787291950262,
+      "tag": "0088_add_pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1787298472923,
+      "tag": "0089_add_files_and_attachments",
+      "breakpoints": true
     }
   ]
 }
