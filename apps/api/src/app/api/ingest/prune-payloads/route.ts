@@ -8,8 +8,11 @@ export const dynamic = "force-dynamic";
  * How long a raw payload is worth keeping. Nothing reads it back — its only use
  * is inspecting a delivery by hand, which is a days-old question, not a
  * months-old one. Everything identifying the event outlives it.
+ *
+ * At ~1.16M events/day and ~5.2KB per payload this is roughly 4.8GB/day, so the
+ * window is what sets the table's steady-state size.
  */
-const RETAIN_DAYS = 14;
+const RETAIN_DAYS = 7;
 
 /** Small enough that one statement is a short transaction on a 90M-row table. */
 const BATCH_SIZE = 5_000;

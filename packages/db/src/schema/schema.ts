@@ -922,7 +922,10 @@ export const automationEvents = pgTable(
 		actorIsExternal: boolean("actor_is_external"),
 
 		// Its own copy: ingest is prunable and the prompt needs this at dispatch.
-		payload: jsonb().notNull(),
+		// Nullable because the pruner nulls it once the row ages out, the same
+		// way ingest.webhook_events works. NULL means pruned, not "arrived
+		// empty" — every row is written with a payload.
+		payload: jsonb(),
 
 		// Provenance pointer, deliberately not a foreign key, so ingest stays
 		// prunable. Null for webhook and superset events.
