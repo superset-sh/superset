@@ -2,6 +2,9 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "superset-relay2",
 	"main": "src/index.ts",
+	// Also reachable at the workers.dev URL; both serve the same Durable
+	// Objects, so hosts and clients may mix hostnames during migration.
+	"routes": [{ "pattern": "relay2.superset.sh", "custom_domain": true }],
 	"compatibility_date": "2026-07-01",
 	"compatibility_flags": ["nodejs_als"],
 	"vars": {
