@@ -41,25 +41,44 @@ async function resolveRelayUrl(
 	return fallback;
 }
 
-// The relay advertises its protocol on /health ({proto: 2} for tunnel v2);
-// anything else — including the v1 relay's {ok, region} and any probe
-// failure — selects the v1 client. Negotiating here keeps protocol choice
-// between host and relay instead of adding config plumbing through every
-// spawner (desktop, CLI, env).
+// The relay advertises its protocol on /health ({proto: 2} for tunnel v2;
+// the v1 relay answers {ok, region} with no proto). Negotiating here keeps
+// protocol choice between host and relay instead of adding config plumbing
+// through every spawner (desktop, CLI, env).
+//
+// Only a healthy 200 gets to decide. An unreachable or erroring relay must
+// not be mistaken for a v1 relay: during the relay2 cutover the deleted
+// scratch worker answered every probe with an error page, and the old
+// v1-on-failure fallback wedged hosts in a silent v1 reconnect loop against
+// an endpoint that spoke neither protocol — and once a protocol is picked it
+// sticks for the client's lifetime, so per-reconnect URL re-resolution alone
+// can't recover it. Throwing instead sends the caller back through
+// registration, which re-resolves the relay URL and re-negotiates, so a
+// relay that moved is picked up on the next attempt.
 async function detectRelayProto(relayUrl: string): Promise<1 | 2> {
+	let lastFailure: unknown;
 	for (let attempt = 0; attempt < 3; attempt++) {
+		if (attempt > 0) {
+			await new Promise((r) => setTimeout(r, 1_000 * attempt).unref());
+		}
 		try {
 			const res = await fetch(new URL("/health", relayUrl), {
 				signal: AbortSignal.timeout(5_000),
 			});
-			if (!res.ok) return 1;
-			const data = (await res.json()) as { proto?: number };
-			return data.proto === 2 ? 2 : 1;
-		} catch {
-			await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
+			if (res.ok) {
+				const data = (await res.json()) as { proto?: number };
+				return data.proto === 2 ? 2 : 1;
+			}
+			lastFailure = new Error(`/health responded ${res.status}`);
+		} catch (error) {
+			lastFailure = error;
 		}
 	}
-	return 1;
+	throw new Error(
+		`relay ${relayUrl} health probe failed: ${
+			lastFailure instanceof Error ? lastFailure.message : lastFailure
+		}`,
+	);
 }
 
 const REGISTER_RETRY_BASE_MS = 30_000;
@@ -74,6 +93,7 @@ export async function connectRelay(
 	// cloud-invisible (issue #6415) — so retry with backoff until it lands,
 	// and record the outcome where health.check can report it.
 	for (let attempt = 0; ; attempt++) {
+		let registered = false;
 		try {
 			const host = await options.api.host.ensure.mutate({
 				organizationId: options.organizationId,
@@ -81,6 +101,15 @@ export async function connectRelay(
 				name: getHostName(),
 			});
 			recordRegistrationSuccess();
+			registered = true;
+			// Registration is the slow-moving failure this backoff was built
+			// for. Once it lands, the remaining steps fail in relay-outage
+			// shapes that resolve on the relay's schedule, not ours — without
+			// the reset, a sustained outage walks the delay up to
+			// REGISTER_RETRY_MAX_MS and the host can lag almost five minutes
+			// behind the relay coming back, versus the tunnel clients'
+			// seconds-scale reconnects.
+			attempt = 0;
 			console.log(`[host-service] registered as host ${host.machineId}`);
 
 			const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
@@ -104,7 +133,12 @@ export async function connectRelay(
 			void tunnel.connect();
 			return tunnel;
 		} catch (error) {
-			recordRegistrationFailure(error);
+			// A failure past this point is a relay problem, not a registration
+			// problem: the host is registered, and overwriting that state
+			// would make health.check and superset status warn that the host
+			// is missing from the fleet when it isn't. The console.error
+			// below keeps the relay failure observable.
+			if (!registered) recordRegistrationFailure(error);
 			const delay = Math.min(
 				REGISTER_RETRY_BASE_MS * 2 ** attempt,
 				REGISTER_RETRY_MAX_MS,

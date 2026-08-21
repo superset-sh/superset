@@ -335,6 +335,13 @@ async function pickOnlineHost(
 		candidates.find((host) => {
 			const info =
 				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)];
+			// Deliberately NOT host.list's mergeHostPresence: dispatch acts over
+			// `relayUrl`, so a host this relay has never seen is unreachable
+			// through it no matter what the DB flag says — selecting one fails
+			// the dispatch and shadows a later candidate genuinely online here.
+			// Where the relay answered, it is authoritative; the DB flag only
+			// decides when presence is unavailable (v1 relay / fetch failure),
+			// in which case dispatch reaches hosts the v1 way.
 			return info ? info.online : host.isOnline;
 		}) ?? null
 	);
