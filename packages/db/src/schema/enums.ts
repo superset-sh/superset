@@ -149,3 +149,15 @@ export const desktopNoticeCtaActionValues = [
 	"install-update",
 	"open-url",
 ] as const;
+
+// `everyone` is not offered by the API yet; Postgres cannot drop an enum value.
+export const pageVisibilityValues = ["just_me", "org", "everyone"] as const;
+export const pageVisibilityEnum = z.enum(pageVisibilityValues);
+export type PageVisibility = z.infer<typeof pageVisibilityEnum>;
+
+// New kinds arrive via ALTER TYPE ... ADD VALUE. Postgres refuses to *use* a
+// new value in the transaction that added it, so adding and backfilling are
+// two migrations.
+export const attachmentParentKindValues = ["page_version"] as const;
+export const attachmentParentKindEnum = z.enum(attachmentParentKindValues);
+export type AttachmentParentKind = z.infer<typeof attachmentParentKindEnum>;

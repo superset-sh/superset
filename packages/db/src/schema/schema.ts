@@ -18,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { organizations, users } from "./auth";
 import {
+	attachmentParentKindValues,
 	automationPromptSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
@@ -28,6 +29,7 @@ import {
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
 	integrationProviderValues,
+	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
 	v2ClientTypeValues,
@@ -63,6 +65,11 @@ export const v2UsersHostRole = pgEnum(
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
 	v2WorkspaceTypeValues,
+);
+export const pageVisibility = pgEnum("page_visibility", pageVisibilityValues);
+export const attachmentParentKind = pgEnum(
+	"attachment_parent_kind",
+	attachmentParentKindValues,
 );
 
 export const taskStatuses = pgTable(
@@ -1146,3 +1153,181 @@ export const desktopNotices = pgTable(
 
 export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
 export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
+
+// Latest version is derived from max(page_versions.version); what a page *is*
+// comes from its latest version's content_type.
+export const pages = pgTable(
+	"pages",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		// Frozen once minted: a retitle never moves a shared link.
+		slug: text().notNull(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		title: text().notNull(),
+		description: text(),
+		visibility: pageVisibility().notNull().default("org"),
+		// Null serves the latest; set pins the viewer to that version.
+		sharedVersion: integer("shared_version"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("pages_slug_unique").on(table.slug),
+		index("pages_organization_id_idx").on(table.organizationId),
+		index("pages_created_by_user_id_idx").on(table.createdByUserId),
+	],
+);
+
+export type InsertPage = typeof pages.$inferInsert;
+export type SelectPage = typeof pages.$inferSelect;
+
+// Immutable once written — hence no updatedAt. A correction is a new version.
+export const pageVersions = pgTable(
+	"page_versions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		version: integer().notNull(),
+		label: text(),
+		blobPathname: text("blob_pathname").notNull(),
+		contentType: text("content_type").notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		sha256: text().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+	},
+	(table) => [
+		// Also the race guard for two concurrent publishes computing the same
+		// max(version) + 1.
+		unique("page_versions_page_id_version_unique").on(
+			table.pageId,
+			table.version,
+		),
+		index("page_versions_page_id_idx").on(table.pageId),
+	],
+);
+
+export type InsertPageVersion = typeof pageVersions.$inferInsert;
+export type SelectPageVersion = typeof pageVersions.$inferSelect;
+
+// Republish resolution, not identity: answers "which page am I updating?" so a
+// second publish adds a version instead of minting a new page.
+export const workspacePages = pgTable(
+	"workspace_pages",
+	{
+		// No FK: local workspaces live in their machine's SQLite, so Neon has no
+		// row to reference.
+		workspaceId: uuid("workspace_id").notNull(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		// Relative to the workspace root; compared for equality, never resolved.
+		entryPath: text("entry_path").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.workspaceId, table.pageId] }),
+		// The lookup key; without it one page could be reached from two paths.
+		uniqueIndex("workspace_pages_workspace_id_entry_path_unique").on(
+			table.workspaceId,
+			table.entryPath,
+		),
+		index("workspace_pages_page_id_idx").on(table.pageId),
+	],
+);
+
+export type InsertWorkspacePage = typeof workspacePages.$inferInsert;
+export type SelectWorkspacePage = typeof workspacePages.$inferSelect;
+
+// Parentless by design: assets are uploaded before the version they attach to
+// exists, so an unattached file is normal. Lifetime is a refcount over
+// `attachments`, collected by a sweep rather than a cascade.
+export const files = pgTable(
+	"files",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		blobPathname: text("blob_pathname").notNull(),
+		filename: text().notNull(),
+		contentType: text("content_type").notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		sha256: text().notNull(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		// Structural invariant only; the precise allowlist lives in app code.
+		// LIKE rather than equality because a media type is case-insensitive and
+		// may carry parameters, and because a `;` literal breaks drizzle-kit's
+		// statement splitter.
+		check(
+			"files_never_a_page",
+			sql`lower(btrim(${table.contentType})) NOT LIKE 'text/html%' AND lower(btrim(${table.contentType})) NOT LIKE 'text/markdown%'`,
+		),
+		index("files_organization_id_idx").on(table.organizationId),
+		index("files_org_sha256_idx").on(table.organizationId, table.sha256),
+	],
+);
+
+export type InsertFile = typeof files.$inferInsert;
+export type SelectFile = typeof files.$inferSelect;
+
+// A file placed on a parent; access is the parent's access. `parent_id` has no
+// FK so a parent can live outside Neon. Integrity is the sweep's job — an
+// ancestor cascade deletes rows without running any application code.
+export const attachments = pgTable(
+	"attachments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		fileId: uuid("file_id")
+			.notNull()
+			.references(() => files.id, { onDelete: "cascade" }),
+		parentKind: attachmentParentKind("parent_kind").notNull(),
+		parentId: uuid("parent_id").notNull(),
+		label: text(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		index("attachments_parent_idx").on(table.parentKind, table.parentId),
+		index("attachments_file_id_idx").on(table.fileId),
+		// One row per file per parent, so a repeat attach cannot inflate the
+		// refcount the sweep reads.
+		unique("attachments_parent_file_unique").on(
+			table.parentKind,
+			table.parentId,
+			table.fileId,
+		),
+	],
+);
+
+export type InsertAttachment = typeof attachments.$inferInsert;
+export type SelectAttachment = typeof attachments.$inferSelect;
