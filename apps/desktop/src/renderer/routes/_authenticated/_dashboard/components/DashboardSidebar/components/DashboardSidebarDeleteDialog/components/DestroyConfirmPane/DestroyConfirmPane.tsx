@@ -9,8 +9,9 @@ import {
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { Label } from "@superset/ui/label";
-import { useEffect, useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import { shouldConfirmDeleteDialogKey } from "../../utils/shouldConfirmDeleteDialogKey";
+import { focusPrimaryDialogAction } from "./focusPrimaryDialogAction";
 
 interface DestroyConfirmPaneProps {
 	open: boolean;
@@ -44,6 +45,8 @@ export function DestroyConfirmPane({
 }: DestroyConfirmPaneProps) {
 	const checkboxId = useId();
 	const hasWarnings = hasChanges || hasUnpushedCommits;
+	const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
+	const cancelButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	useEffect(() => {
 		if (!open || !canConfirm) return;
@@ -60,7 +63,15 @@ export function DestroyConfirmPane({
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+			<AlertDialogContent
+				className="max-w-[340px] gap-0 p-0"
+				onOpenAutoFocus={(event) =>
+					focusPrimaryDialogAction(event, [
+						confirmButtonRef.current,
+						cancelButtonRef.current,
+					])
+				}
+			>
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						Delete {isSession ? "session" : "workspace"} "{workspaceName}"?
@@ -117,6 +128,7 @@ export function DestroyConfirmPane({
 				)}
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
 					<Button
+						ref={cancelButtonRef}
 						variant="ghost"
 						size="sm"
 						className="h-7 px-3 text-xs"
@@ -125,6 +137,7 @@ export function DestroyConfirmPane({
 						Cancel
 					</Button>
 					<Button
+						ref={confirmButtonRef}
 						variant="destructive"
 						size="sm"
 						className="h-7 px-3 text-xs"
