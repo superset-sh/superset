@@ -16,10 +16,7 @@ import {
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import { and, eq, sql } from "drizzle-orm";
-import {
-	fetchRelayPresence,
-	mergeHostPresence,
-} from "../../lib/relay-presence";
+import { fetchRelayPresence } from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 import { promptWithTriggerContext } from "./triggerContext";
 
@@ -335,12 +332,18 @@ async function pickOnlineHost(
 		),
 	);
 	return (
-		candidates.find((host) =>
-			mergeHostPresence(
-				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)],
-				host.isOnline,
-			),
-		) ?? null
+		candidates.find((host) => {
+			const info =
+				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)];
+			// Deliberately NOT host.list's mergeHostPresence: dispatch acts over
+			// `relayUrl`, so a host this relay has never seen is unreachable
+			// through it no matter what the DB flag says — selecting one fails
+			// the dispatch and shadows a later candidate genuinely online here.
+			// Where the relay answered, it is authoritative; the DB flag only
+			// decides when presence is unavailable (v1 relay / fetch failure),
+			// in which case dispatch reaches hosts the v1 way.
+			return info ? info.online : host.isOnline;
+		}) ?? null
 	);
 }
 
