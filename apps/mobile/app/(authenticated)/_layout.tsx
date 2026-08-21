@@ -120,7 +120,10 @@ export default function AuthenticatedLayout() {
 						presentation: "formSheet",
 						sheetAllowedDetents: [0.65],
 						sheetGrabberVisible: true,
-						headerShown: false,
+						// The workspace name is the sheet's own centred headline, so
+						// the bar carries no title — only the native close button.
+						...glassHeaderOptions,
+						title: "",
 					}}
 				/>
 				<Stack.Screen
