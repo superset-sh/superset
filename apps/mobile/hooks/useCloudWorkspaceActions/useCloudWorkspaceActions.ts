@@ -1,7 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { clearSandboxAccess } from "@/lib/sandbox-access";
 import { apiClient } from "@/lib/trpc/client";
+
+const LIST_KEY = ["cloud", "cloudWorkspace", "list"];
 
 /**
  * Rename and delete for cloud workspaces go to the API, not the sandbox: the
@@ -13,10 +16,7 @@ export function useCloudWorkspaceActions() {
 	const queryClient = useQueryClient();
 
 	const invalidate = useCallback(
-		() =>
-			queryClient.invalidateQueries({
-				queryKey: ["cloud", "cloudWorkspace", "list"],
-			}),
+		() => queryClient.invalidateQueries({ queryKey: LIST_KEY }),
 		[queryClient],
 	);
 
@@ -30,11 +30,21 @@ export function useCloudWorkspaceActions() {
 
 	const remove = useCallback(
 		async (id: string) => {
-			await apiClient.cloudWorkspace.delete.mutate({ id });
-			clearSandboxAccess(id);
-			await invalidate();
+			// The row goes when the user asks, not when the provider finishes
+			// tearing the sandbox down; the invalidate below is what restores it
+			// if the delete never landed.
+			queryClient.setQueriesData<CloudWorkspaceRow[]>(
+				{ queryKey: LIST_KEY },
+				(rows) => rows?.filter((row) => row.id !== id),
+			);
+			try {
+				await apiClient.cloudWorkspace.delete.mutate({ id });
+				clearSandboxAccess(id);
+			} finally {
+				await invalidate();
+			}
 		},
-		[invalidate],
+		[invalidate, queryClient],
 	);
 
 	return { rename, remove };
