@@ -65,3 +65,7 @@ export default function AuthenticatedLayout() {
 
 - **`apps/mobile` is iOS-only.** No Android fallbacks or platform guards for iOS-only APIs, and
   Android incompatibility isn't a blocker until Android is explicitly in scope.
+- **Bottom sheets are expo-router `formSheet` routes** — `...glassHeaderOptions` gives the native
+  title and ✕, the body is RN + uniwind (never `@expo/ui` SwiftUI content, which can't be themed to
+  match ours), and the list stays the screen's only layout child or it cold-mounts at zero height.
+  Copy `PullRequestsSheet` and its route entry.
