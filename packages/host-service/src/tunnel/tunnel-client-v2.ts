@@ -5,6 +5,8 @@ import {
 } from "@superset/shared/tunnel-v2-protocol";
 import ReconnectingWebSocket from "partysocket/ws";
 
+import { reportTunnelRescue } from "../sentry";
+
 const PING_INTERVAL_MS = 30_000;
 const INBOUND_SILENCE_TIMEOUT_MS = 75_000;
 const WATCHDOG_INTERVAL_MS = 10_000;
@@ -23,7 +25,10 @@ function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
 	return Promise.race([
 		promise,
 		new Promise<T>((resolve) => {
-			setTimeout(() => resolve(fallback), URL_PROVIDER_STEP_TIMEOUT_MS).unref?.();
+			setTimeout(
+				() => resolve(fallback),
+				URL_PROVIDER_STEP_TIMEOUT_MS,
+			).unref?.();
 		}),
 	]);
 }
@@ -98,6 +103,9 @@ export class TunnelClientV2 {
 					"[host-service:tunnel-v2] token fetch failed; connecting unauthenticated so the retry cycle survives:",
 					error instanceof Error ? error.message : error,
 				);
+				reportTunnelRescue("v2_token_fetch_failed", {
+					message: error instanceof Error ? error.message.slice(0, 200) : "",
+				});
 			}
 			const url = new URL("/v2/control", toWs(this.relayUrl));
 			url.searchParams.set("hostId", this.options.hostId);
@@ -168,6 +176,7 @@ export class TunnelClientV2 {
 				console.warn(
 					`[host-service:tunnel-v2] control not open for ${stuckFor}ms, kicking reconnect`,
 				);
+				reportTunnelRescue("v2_control_stuck", { stuckForMs: stuckFor });
 				control.reconnect();
 			}
 		}, WATCHDOG_INTERVAL_MS);
