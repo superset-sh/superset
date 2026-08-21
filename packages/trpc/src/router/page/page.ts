@@ -21,10 +21,6 @@ import {
 } from "./schema";
 import { assertWorkspaceAccess } from "./workspace-access";
 
-/**
- * An `org` page is readable by anyone in the organization; a `just_me` page
- * only by whoever created it.
- */
 function visibilityFilter(userId: string) {
 	return or(
 		eq(pages.visibility, "org"),
@@ -75,10 +71,7 @@ async function latestVersionNumber(pageId: string): Promise<number | null> {
 }
 
 export const pageRouter = {
-	/**
-	 * Publish a file as a new version of a page, creating the page when this is
-	 * the first one. Every publish is a new version — there is no dedup.
-	 */
+	// Every publish is a new version; there is no dedup.
 	publish: protectedProcedure
 		.input(publishPageSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -96,8 +89,8 @@ export const pageRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const userId = ctx.session.user.id;
 
-			// Same gate as publish: a workspaceId is caller-supplied, so filtering
-			// by one must not become a way to probe another tenant's workspaces.
+			// Same gate as publish: a caller-supplied workspaceId must not become
+			// a way to probe another tenant.
 			if (input?.workspaceId) {
 				await assertWorkspaceAccess({
 					executor: db,
@@ -106,8 +99,6 @@ export const pageRouter = {
 				});
 			}
 
-			// One row per page, carrying its newest version — DISTINCT ON beats
-			// fetching every version and reducing in memory.
 			const latest = db
 				.selectDistinctOn([pageVersions.pageId], {
 					pageId: pageVersions.pageId,
@@ -173,7 +164,6 @@ export const pageRouter = {
 			...page,
 			url: pageUrl(page.slug),
 			latestVersion,
-			// A null pin serves the latest; a set one pins the viewer to it.
 			servedVersion: page.sharedVersion ?? latestVersion,
 		};
 	}),
@@ -204,11 +194,7 @@ export const pageRouter = {
 				.orderBy(desc(pageVersions.version));
 		}),
 
-	/**
-	 * A version's metadata plus a URL to fetch its bytes. Access is checked
-	 * here; the returned blob URL is unguessable but not itself gated, so it
-	 * should be treated as short-lived even though it does not expire.
-	 */
+	// The returned blob URL is unguessable but not itself gated.
 	pull: protectedProcedure
 		.input(pullPageSchema)
 		.query(async ({ ctx, input }) => {

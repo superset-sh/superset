@@ -20,7 +20,7 @@ CREATE TABLE "files" (
 	"sha256" text NOT NULL,
 	"created_by_user_id" uuid,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "files_never_a_page" CHECK ("files"."content_type" NOT IN ('text/html', 'text/markdown'))
+	CONSTRAINT "files_never_a_page" CHECK (lower(btrim("files"."content_type")) NOT LIKE 'text/html%' AND lower(btrim("files"."content_type")) NOT LIKE 'text/markdown%')
 );
 --> statement-breakpoint
 ALTER TABLE "attachments" ADD CONSTRAINT "attachments_file_id_files_id_fk" FOREIGN KEY ("file_id") REFERENCES "public"."files"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

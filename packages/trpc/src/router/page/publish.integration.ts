@@ -131,7 +131,7 @@ describe("publish", () => {
 
 		expect(result.version).toBe(1);
 		expect(result.title).toBe("Q3 Launch Microsite");
-		expect(result.slug).toMatch(/^q3-launch-microsite-[a-z0-9]{5}$/);
+		expect(result.slug).toMatch(/^q3-launch-microsite-[a-z0-9]{6}$/);
 		expect(result.url).toBe(
 			`${process.env.NEXT_PUBLIC_WEB_URL}/p/${result.slug}`,
 		);
@@ -202,12 +202,34 @@ describe("publish", () => {
 		expect(first.id).toBe(second.id);
 	});
 
+	test("republishing moves updatedAt, so list ordering resurfaces it", async () => {
+		const first = await publish({
+			title: "Bumped",
+			entryPath: "bump/index.html",
+			workspaceId: WORKSPACE,
+		});
+		const [before] = await db
+			.select({ updatedAt: pages.updatedAt })
+			.from(pages)
+			.where(eq(pages.id, first.id));
+
+		await publish({ entryPath: "bump/index.html", workspaceId: WORKSPACE });
+
+		const [after] = await db
+			.select({ updatedAt: pages.updatedAt })
+			.from(pages)
+			.where(eq(pages.id, first.id));
+		// No metadata flag was passed, which used to mean no write at all.
+		expect(after?.updatedAt.getTime()).toBeGreaterThan(
+			before?.updatedAt.getTime() ?? 0,
+		);
+	});
+
 	test("pageId targets a page explicitly, ignoring the workspace edge", async () => {
 		const target = await publish({
 			entryPath: "explicit/a.html",
 			workspaceId: WORKSPACE,
 		});
-		// A different entry_path that would otherwise mint a new page.
 		const republished = await publish({
 			pageId: target.id,
 			entryPath: "explicit/somewhere-else.html",
@@ -216,6 +238,30 @@ describe("publish", () => {
 
 		expect(republished.id).toBe(target.id);
 		expect(republished.version).toBe(2);
+	});
+
+	test("pageId does not bind the entry_path to the targeted page", async () => {
+		const target = await publish({ title: "One Off Target" });
+		await publish({
+			pageId: target.id,
+			entryPath: "oneoff/index.html",
+			workspaceId: WORKSPACE,
+		});
+
+		const links = await db
+			.select()
+			.from(workspacePages)
+			.where(eq(workspacePages.entryPath, "oneoff/index.html"));
+		expect(links).toHaveLength(0);
+
+		// The path is still free, so a plain publish mints its own page.
+		const plain = await publish({
+			entryPath: "oneoff/index.html",
+			workspaceId: WORKSPACE,
+			title: "Its Own Page",
+		});
+		expect(plain.id).not.toBe(target.id);
+		expect(plain.version).toBe(1);
 	});
 
 	test("publishing with no workspace creates an unlinked page", async () => {
@@ -231,11 +277,11 @@ describe("publish", () => {
 	test("titles the page from the filename when none is given", async () => {
 		const result = await publish({ filename: "quarterly-report.html" });
 		expect(result.title).toBe("quarterly report");
-		expect(result.slug).toMatch(/^quarterly-report-[a-z0-9]{5}$/);
+		expect(result.slug).toMatch(/^quarterly-report-[a-z0-9]{6}$/);
 	});
 
 	test("rejects a non-html content type", async () => {
-		expect(publish({ contentType: "image/png" })).rejects.toThrow(
+		await expect(publish({ contentType: "image/png" })).rejects.toThrow(
 			/Unsupported content type/,
 		);
 	});
@@ -263,7 +309,7 @@ describe("visibility", () => {
 
 		// Same organization, different member — the org check alone would let
 		// this through, which is exactly the hole being closed.
-		expect(
+		await expect(
 			publishPage({
 				input: {
 					content: html("<h1>overwritten</h1>"),
@@ -346,7 +392,7 @@ describe("workspace access", () => {
 
 	test("refuses a cloud workspace belonging to another org", async () => {
 		const foreign = await makeCloudWorkspace(OTHER_ORG, `foreign-${suffix}`);
-		expect(
+		await expect(
 			publish({ entryPath: "cloud/other.html", workspaceId: foreign.id }),
 		).rejects.toThrow(/not found/i);
 	});
@@ -399,7 +445,7 @@ describe("attachments", () => {
 
 	test("refuses to attach a file from another organization", async () => {
 		const foreign = await makeFile(OTHER_ORG, `sha-${suffix}-2`);
-		expect(
+		await expect(
 			publish({ title: "Cross Org", fileIds: [foreign.id] }),
 		).rejects.toThrow(/not found/i);
 	});

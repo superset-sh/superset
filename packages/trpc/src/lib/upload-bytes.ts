@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 
-// Everything an upload can be rejected for before it reaches Postgres or Blob.
-// Shared by page publishing and file uploads, which differ only in their
-// allowlist and size cap.
+const DATA_URL_PREFIX_SLACK = 256;
 
-/** Accepts a bare base64 payload or a full `data:...;base64,...` URL. */
+// Upper bound: four base64 chars carry three bytes, so this never rejects a
+// payload that would have passed.
+function maxEncodedLength(maxBytes: number): number {
+	return Math.ceil(maxBytes / 3) * 4 + DATA_URL_PREFIX_SLACK;
+}
+
 export function decodeBase64Content(content: string): Buffer {
 	const base64 = content.includes("base64,")
 		? (content.split("base64,")[1] ?? content)
@@ -28,6 +31,15 @@ export function validateUploadBytes({
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Unsupported content type: ${contentType}`,
+		});
+	}
+
+	// Checked on the encoded string first, so an oversized payload is not
+	// decoded into a Buffer before being rejected.
+	if (content.length > maxEncodedLength(maxBytes)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `File too large. Maximum is ${maxBytes / 1024 / 1024}MB`,
 		});
 	}
 

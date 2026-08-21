@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { CLIError } from "@superset/cli-framework";
+import {
+	isPageAssetContentType,
+	PAGE_ASSET_CONTENT_TYPES,
+} from "@superset/shared/page-content-types";
 import mimeTypes from "mime-types";
 import type { ApiClient } from "../../../lib/api-client";
 import type { AssetReference } from "./assets";
@@ -14,35 +18,45 @@ export interface UploadedAsset {
 	reused: boolean;
 }
 
-/**
- * Upload a page's assets, a few at a time.
- *
- * These become `files` rows with no parent — the page version they attach to
- * does not exist yet, and cannot, because its HTML is not final until these
- * URLs come back. Files uploaded for a publish that then fails are collected
- * by the orphan sweep, which is why an unattached file is a normal state.
- */
+// Uploads create `files` rows with no parent: the version they attach to does
+// not exist until the HTML is final, which needs these URLs.
 export async function uploadAssets(
 	api: ApiClient,
 	assets: AssetReference[],
 ): Promise<UploadedAsset[]> {
-	const results: UploadedAsset[] = new Array(assets.length);
+	// All types checked before any upload starts, so an unsupported reference
+	// cannot fail the publish after earlier assets have already been stored.
+	const typed = assets.map((asset) => ({
+		asset,
+		filename: basename(asset.absolutePath),
+		contentType: mimeTypes.lookup(basename(asset.absolutePath)) || null,
+	}));
+
+	const unsupported = typed.filter(
+		(entry) => !entry.contentType || !isPageAssetContentType(entry.contentType),
+	);
+	if (unsupported.length > 0) {
+		throw new CLIError(
+			`Cannot publish ${unsupported.length === 1 ? "an asset" : "assets"} of this type: ${unsupported
+				.map(
+					(entry) =>
+						`${entry.asset.reference} (${entry.contentType ?? "unknown"})`,
+				)
+				.join(", ")}`,
+			`Pages support ${PAGE_ASSET_CONTENT_TYPES.join(", ")}. Inline anything else into the HTML.`,
+		);
+	}
+
+	const results: UploadedAsset[] = new Array(typed.length);
 	let next = 0;
 
 	const worker = async (): Promise<void> => {
 		while (true) {
 			const index = next++;
-			const asset = assets[index];
-			if (!asset) return;
-
-			const filename = basename(asset.absolutePath);
-			const contentType = mimeTypes.lookup(filename);
-			if (!contentType) {
-				throw new CLIError(
-					`Could not determine the media type of ${asset.reference}`,
-					"Use a recognizable file extension (.png, .jpg, .gif, .svg)",
-				);
-			}
+			const entry = typed[index];
+			if (!entry) return;
+			const { asset, filename, contentType } = entry;
+			if (!contentType) return;
 
 			const bytes = readFileSync(asset.absolutePath);
 			const uploaded = await api.file.upload.mutate({
@@ -61,7 +75,7 @@ export async function uploadAssets(
 	};
 
 	await Promise.all(
-		Array.from({ length: Math.min(UPLOAD_CONCURRENCY, assets.length) }, () =>
+		Array.from({ length: Math.min(UPLOAD_CONCURRENCY, typed.length) }, () =>
 			worker(),
 		),
 	);

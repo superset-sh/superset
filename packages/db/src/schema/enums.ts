@@ -150,18 +150,14 @@ export const desktopNoticeCtaActionValues = [
 	"open-url",
 ] as const;
 
-// `everyone` exists in the database enum but is not offered by the API: a
-// public-without-a-session page needs the pages origin to enforce it, which
-// does not exist yet. Postgres cannot drop an enum value, so it stays.
+// `everyone` is not offered by the API yet; Postgres cannot drop an enum value.
 export const pageVisibilityValues = ["just_me", "org", "everyone"] as const;
 export const pageVisibilityEnum = z.enum(pageVisibilityValues);
 export type PageVisibility = z.infer<typeof pageVisibilityEnum>;
 
-// What an attachment hangs off. Stored as a pgEnum so a typo is a database
-// error rather than a silently unreachable row; new kinds arrive by adding a
-// value here (ALTER TYPE ... ADD VALUE). Note that Postgres refuses to *use* a
-// newly added value in the transaction that added it, so adding a kind and
-// backfilling rows with it are two migrations.
+// New kinds arrive via ALTER TYPE ... ADD VALUE. Postgres refuses to *use* a
+// new value in the transaction that added it, so adding and backfilling are
+// two migrations.
 export const attachmentParentKindValues = ["page_version"] as const;
 export const attachmentParentKindEnum = z.enum(attachmentParentKindValues);
 export type AttachmentParentKind = z.infer<typeof attachmentParentKindEnum>;

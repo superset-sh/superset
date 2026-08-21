@@ -1,20 +1,20 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
-import { CLIError, number, positional, string } from "@superset/cli-framework";
+import { CLIError, number, positional } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { pageRefFromArg } from "../pageRef";
 
+const DOWNLOAD_TIMEOUT_MS = 30_000;
+
 export default command({
-	description: "Fetch a published version back to disk",
+	description: "Write a published version's HTML to stdout",
 	args: [positional("page").required().desc("Page id or slug")],
 	options: {
 		version: number()
 			.alias("v")
 			.desc("Version to fetch (defaults to the one currently served)"),
-		out: string()
-			.alias("o")
-			.desc("Directory to write into (defaults to the current directory)"),
 	},
+	// stdout rather than an --out dir: the published bytes are not the source
+	// file (assets were rewritten to blob URLs), and where a copy lands is the
+	// caller's business.
 	run: async ({ ctx, args, options }) => {
 		const ref = pageRefFromArg(args.page as string);
 
@@ -26,24 +26,32 @@ export default command({
 			...(options.version ? { version: options.version } : {}),
 		});
 
-		const response = await fetch(version.downloadUrl);
+		let response: Response;
+		try {
+			response = await fetch(version.downloadUrl, {
+				signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+			});
+		} catch (error) {
+			throw new CLIError(
+				`Could not download version ${version.version}`,
+				error instanceof Error && error.name === "TimeoutError"
+					? `The blob store did not respond within ${DOWNLOAD_TIMEOUT_MS / 1000}s`
+					: error instanceof Error
+						? error.message
+						: String(error),
+			);
+		}
+
 		if (!response.ok) {
 			throw new CLIError(
 				`Could not download version ${version.version}`,
 				`The blob store answered ${response.status}`,
 			);
 		}
-		const bytes = Buffer.from(await response.arrayBuffer());
 
-		const dir = resolve(process.cwd(), options.out ?? ".");
-		mkdirSync(dir, { recursive: true });
-		// basename() so a slug can never write outside the chosen directory.
-		const target = resolve(dir, `${basename(version.slug)}.html`);
-		writeFileSync(target, bytes);
+		process.stdout.write(Buffer.from(await response.arrayBuffer()));
 
-		return {
-			data: { ...version, path: target, sizeBytes: bytes.length },
-			message: `Wrote v${version.version} of "${version.title}" to ${target}`,
-		};
+		// Nothing returned: a summary would corrupt redirected output.
+		return undefined;
 	},
 });

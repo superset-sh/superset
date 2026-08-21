@@ -1,11 +1,12 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { collectAssetReferences, rewriteAssetReferences } from "./assets";
 
 let dir: string;
 let htmlPath: string;
+let outsideFile: string;
 
 beforeAll(() => {
 	dir = mkdtempSync(join(tmpdir(), "pages-assets-"));
@@ -15,10 +16,20 @@ beforeAll(() => {
 	writeFileSync(join(dir, "hero@2x.jpg"), "jpg-bytes-2x");
 	writeFileSync(join(dir, "styles.css"), "css");
 	writeFileSync(join(dir, "bg.gif"), "gif-bytes");
+
+	// A sibling of the page directory, inside the same project root.
+	mkdirSync(join(dir, "site"), { recursive: true });
+	mkdirSync(join(dir, "shared"), { recursive: true });
+	writeFileSync(join(dir, "shared", "mark.png"), "png-bytes");
+
+	// A real file one level above the project root, so the only thing keeping
+	// it out is the containment check.
+	outsideFile = join(dirname(dir), `escaped-${Date.now()}.png`);
+	writeFileSync(outsideFile, "png-bytes");
 });
 
 const refs = (html: string) =>
-	collectAssetReferences(html, htmlPath)
+	collectAssetReferences(html, htmlPath, dir)
 		.map((asset) => asset.reference)
 		.sort();
 
@@ -67,6 +78,32 @@ describe("collectAssetReferences", () => {
 		expect(refs(`<img src="./logo.png"><img src="./logo.png">`)).toEqual([
 			"./logo.png",
 		]);
+	});
+
+	test("ignores a reference that climbs out of the containment root", () => {
+		// The file genuinely exists — the point is that containment excludes it,
+		// not that resolution failed. Proven by showing the same reference IS
+		// found once the root is widened to include it.
+		const escaped = `../${basename(outsideFile)}`;
+		expect(refs(`<img src="${escaped}">`)).toEqual([]);
+		expect(
+			collectAssetReferences(
+				`<img src="${escaped}">`,
+				htmlPath,
+				dirname(dir),
+			).map((a) => a.reference),
+		).toEqual([escaped]);
+	});
+
+	test("allows a sibling directory inside the containment root", () => {
+		// `../shared/logo.png` is an ordinary layout and must keep working.
+		const nestedHtml = join(dir, "site", "index.html");
+		const found = collectAssetReferences(
+			`<img src="../shared/mark.png">`,
+			nestedHtml,
+			dir,
+		);
+		expect(found.map((a) => a.reference)).toEqual(["../shared/mark.png"]);
 	});
 
 	test("resolves the file to an absolute path on disk", () => {

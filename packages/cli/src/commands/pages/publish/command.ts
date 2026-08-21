@@ -46,16 +46,18 @@ export default command({
 
 		const html = readFileSync(filePath, "utf8");
 
-		// Assets first: the HTML cannot be finalised until their URLs exist, and
-		// they cannot be attached until the version does. Files are parentless
-		// precisely so this ordering works.
-		const assets = collectAssetReferences(html, filePath);
+		// Containment boundary; without a workspace it is the HTML's directory.
+		const rootDir = process.env.SUPERSET_WORKSPACE_PATH;
+
+		// Assets first: the HTML is not final until their URLs exist.
+		const assets = collectAssetReferences(html, filePath, rootDir);
 		const uploaded = await uploadAssets(ctx.api, assets);
 		const finalHtml = uploaded.length
 			? rewriteAssetReferences(
 					html,
 					filePath,
 					new Map(uploaded.map((asset) => [asset.reference, asset.url])),
+					rootDir,
 				)
 			: html;
 

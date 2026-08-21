@@ -9,8 +9,6 @@ export default command({
 		),
 	},
 	run: async ({ ctx, options }) => {
-		// An explicit --workspace wins; otherwise scope to the workspace we are
-		// standing in, when there is one.
 		const workspaceId = options.workspace ?? process.env.SUPERSET_WORKSPACE_ID;
 		return await ctx.api.page.list.query(
 			workspaceId ? { workspaceId } : undefined,

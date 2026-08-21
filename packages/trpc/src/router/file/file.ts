@@ -9,15 +9,8 @@ import { requireActiveOrgMembership } from "../utils/active-org";
 import { validateFileUpload } from "./upload-rules";
 
 export const fileRouter = {
-	/**
-	 * Put bytes in the media library and return a URL for them.
-	 *
-	 * No parent: a file is created before the thing that references it exists.
-	 * Publishing a page uploads its assets, rewrites the HTML to point at the
-	 * URLs returned here, and only then creates the version the attachments
-	 * hang off — so an unattached file is the normal mid-flight state, not a
-	 * leak. The sweep collects any that never get attached.
-	 */
+	// No parent: a file exists before the version that references it, so an
+	// unattached file is the normal mid-flight state.
 	upload: protectedProcedure
 		.input(
 			z.object({
@@ -31,10 +24,7 @@ export const fileRouter = {
 			const userId = ctx.session.user.id;
 			const { buffer, sha256 } = validateFileUpload(input);
 
-			// Same bytes already in this org: reuse the row rather than storing a
-			// second copy. Files are immutable, so an existing row is as good as a
-			// fresh one — and it keeps a page republished ten times from uploading
-			// its unchanged logo ten times.
+			// Same bytes in this org: reuse the row rather than store a second copy.
 			const [existing] = await db
 				.select()
 				.from(files)
@@ -46,13 +36,47 @@ export const fileRouter = {
 				)
 				.limit(1);
 			if (existing) {
+				// A row can outlive its blob. The bytes are in hand, so re-upload and
+				// re-point rather than fail; sha256 is unchanged either way.
+				const reusedUrl = await head(existing.blobPathname)
+					.then((meta) => meta.url)
+					.catch(() => null);
+				if (reusedUrl) {
+					return {
+						id: existing.id,
+						filename: existing.filename,
+						contentType: existing.contentType,
+						sizeBytes: existing.sizeBytes,
+						sha256: existing.sha256,
+						url: reusedUrl,
+						reused: true,
+					};
+				}
+
+				console.warn("[files] blob missing for existing row, re-uploading", {
+					fileId: existing.id,
+					pathname: existing.blobPathname,
+				});
+				const replacement = await put(
+					`files/${organizationId}/${sha256}/${input.filename}`,
+					buffer,
+					{
+						access: "public",
+						contentType: input.contentType,
+						addRandomSuffix: true,
+					},
+				);
+				await db
+					.update(files)
+					.set({ blobPathname: replacement.pathname })
+					.where(eq(files.id, existing.id));
 				return {
 					id: existing.id,
 					filename: existing.filename,
 					contentType: existing.contentType,
 					sizeBytes: existing.sizeBytes,
 					sha256: existing.sha256,
-					url: (await head(existing.blobPathname)).url,
+					url: replacement.url,
 					reused: true,
 				};
 			}
@@ -63,10 +87,7 @@ export const fileRouter = {
 				{
 					access: "public",
 					contentType: input.contentType,
-					// The bytes are world-readable once the URL is known, so the random
-					// suffix is what stops a private page's assets being reachable by
-					// guessing a path. Access is still enforced by whatever serves the
-					// parent; this is defence in depth, not the gate.
+					// Defence in depth, not the gate.
 					addRandomSuffix: true,
 				},
 			);

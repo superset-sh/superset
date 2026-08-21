@@ -42,27 +42,29 @@ describe("generateBasePageSlug", () => {
 describe("generatePageSlugSuffix", () => {
 	test("is five characters from the readable alphabet", () => {
 		const suffix = generatePageSlugSuffix();
-		expect(suffix).toMatch(/^[a-z0-9]{5}$/);
+		expect(suffix).toMatch(/^[a-z0-9]{6}$/);
 	});
 
 	test("maps random bytes through the alphabet", () => {
 		// 0 -> 'a', 1 -> 'b', 36 wraps back to 'a', 35 -> '9'.
-		expect(generatePageSlugSuffix(fixedRandom(0, 1, 36, 35, 2))).toBe("aba9c");
+		expect(generatePageSlugSuffix(fixedRandom(0, 1, 36, 35, 2, 3))).toBe(
+			"aba9cd",
+		);
 	});
 });
 
 describe("mintPageSlug", () => {
 	test("always appends a suffix, even when no collision exists", () => {
 		expect(
-			mintPageSlug("Q3 Launch Microsite", fixedRandom(23, 6, 5, 1, 0)),
-		).toBe("q3-launch-microsite-xgfba");
+			mintPageSlug("Q3 Launch Microsite", fixedRandom(23, 6, 5, 1, 0, 17)),
+		).toBe("q3-launch-microsite-xgfbar");
 	});
 
 	test("gives two pages with the same title different slugs", () => {
-		const first = mintPageSlug("Report", fixedRandom(0, 0, 0, 0, 0));
-		const second = mintPageSlug("Report", fixedRandom(1, 1, 1, 1, 1));
+		const first = mintPageSlug("Report", fixedRandom(0, 0, 0, 0, 0, 0));
+		const second = mintPageSlug("Report", fixedRandom(1, 1, 1, 1, 1, 1));
 		expect(first).not.toBe(second);
-		expect(first).toBe("report-aaaaa");
-		expect(second).toBe("report-bbbbb");
+		expect(first).toBe("report-aaaaaa");
+		expect(second).toBe("report-bbbbbb");
 	});
 });

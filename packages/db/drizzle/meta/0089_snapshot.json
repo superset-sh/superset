@@ -1,5 +1,5 @@
 {
-  "id": "2b139621-2d0a-418d-b664-c077ebd9c95f",
+  "id": "70e089b2-ab4e-4570-9bf1-982ba1683226",
   "prevId": "868c9d50-4e78-4a0e-96e1-a55d612aa62b",
   "version": "7",
   "dialect": "postgresql",
@@ -4784,7 +4784,7 @@
       "checkConstraints": {
         "files_never_a_page": {
           "name": "files_never_a_page",
-          "value": "\"files\".\"content_type\" NOT IN ('text/html', 'text/markdown')"
+          "value": "lower(btrim(\"files\".\"content_type\")) NOT LIKE 'text/html%' AND lower(btrim(\"files\".\"content_type\")) NOT LIKE 'text/markdown%'"
         }
       },
       "isRLSEnabled": false

@@ -144,6 +144,10 @@
 			"types": "./src/agent-permissions-migration.ts",
 			"default": "./src/agent-permissions-migration.ts"
 		},
+		"./page-content-types": {
+			"types": "./src/page-content-types.ts",
+			"default": "./src/page-content-types.ts"
+		},
 		"./page-slug": {
 			"types": "./src/page-slug.ts",
 			"default": "./src/page-slug.ts"

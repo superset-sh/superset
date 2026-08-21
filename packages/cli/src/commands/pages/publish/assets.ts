@@ -1,19 +1,9 @@
 import { existsSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { parse } from "node-html-parser";
 
-/**
- * Finding the local files a page references, and pointing them somewhere else
- * once they are uploaded.
- *
- * Only *static* references can be found this way. HTML that builds a path at
- * runtime — `"./assets/" + name` — is invisible here and will break once the
- * page is served from another origin. No static rewrite can fix that, so it is
- * a documented limit rather than a bug to chase.
- */
-
-// Attributes that carry a URL, by tag. `srcset` is handled separately: it is a
-// comma-separated list of "url descriptor" pairs, not a single reference.
+// Static references only: HTML that builds a path at runtime is invisible here.
+// `srcset` is handled separately — it is a list of "url descriptor" pairs.
 const URL_ATTRIBUTES: Record<string, readonly string[]> = {
 	img: ["src"],
 	source: ["src"],
@@ -28,32 +18,25 @@ const URL_ATTRIBUTES: Record<string, readonly string[]> = {
 
 const SRCSET_TAGS = ["img", "source"] as const;
 
-// `url(...)` inside a <style> block or a style="" attribute.
 const CSS_URL = /url\(\s*(['"]?)([^'")]+)\1\s*\)/g;
 
 export interface AssetReference {
 	/** Exactly as written in the HTML, e.g. "./logo.png?v=2". */
 	reference: string;
-	/** Where that resolves on disk. */
 	absolutePath: string;
 }
 
-/**
- * A reference we should upload: relative, and pointing at a file that exists.
- *
- * Absolute URLs, protocol-relative URLs, `data:`, and bare anchors are left
- * alone — they already resolve without us. A relative path with nothing behind
- * it is also left alone rather than turned into a dead link.
- */
+// `rootDir` is the containment boundary — the workspace root, not the HTML's own
+// directory, so `../shared/logo.png` works while `../../../.ssh/id_rsa` does not.
 function resolveLocalReference(
 	reference: string,
 	baseDir: string,
+	rootDir: string,
 ): string | null {
 	const trimmed = reference.trim();
 	if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("//")) {
 		return null;
 	}
-	// Any scheme at all — http:, https:, data:, blob:, mailto:, tel:.
 	if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) return null;
 
 	// A query or fragment is part of the URL, never part of the filename.
@@ -68,11 +51,14 @@ function resolveLocalReference(
 	}
 
 	const absolute = resolve(baseDir, decoded);
+
+	const withinRoot = relative(rootDir, absolute);
+	if (withinRoot.startsWith("..") || isAbsolute(withinRoot)) return null;
+
 	if (!existsSync(absolute) || !statSync(absolute).isFile()) return null;
 	return absolute;
 }
 
-/** Each "url descriptor" entry of a srcset, with the descriptor preserved. */
 function splitSrcset(value: string): { url: string; descriptor: string }[] {
 	return value
 		.split(",")
@@ -87,6 +73,7 @@ function splitSrcset(value: string): { url: string; descriptor: string }[] {
 function eachReference(
 	html: string,
 	baseDir: string,
+	rootDir: string,
 	visit: (reference: string, absolutePath: string) => string | undefined,
 ): string {
 	const root = parse(html, {
@@ -95,7 +82,7 @@ function eachReference(
 	});
 
 	const apply = (reference: string): string | undefined => {
-		const absolutePath = resolveLocalReference(reference, baseDir);
+		const absolutePath = resolveLocalReference(reference, baseDir, rootDir);
 		if (!absolutePath) return undefined;
 		return visit(reference, absolutePath);
 	};
@@ -156,35 +143,35 @@ function eachReference(
 	return root.toString();
 }
 
-/** Every local file this page references, deduplicated by reference string. */
 export function collectAssetReferences(
 	html: string,
 	htmlPath: string,
+	rootDir?: string,
 ): AssetReference[] {
 	const baseDir = dirname(resolve(htmlPath));
 	const found = new Map<string, AssetReference>();
-	eachReference(html, baseDir, (reference, absolutePath) => {
-		found.set(reference, { reference, absolutePath });
-		return undefined; // discovery only — leave the document untouched
-	});
+	eachReference(
+		html,
+		baseDir,
+		rootDir ?? baseDir,
+		(reference, absolutePath) => {
+			found.set(reference, { reference, absolutePath });
+			return undefined;
+		},
+	);
 	return [...found.values()];
 }
 
-/**
- * Point every reference at its uploaded URL.
- *
- * The document is re-serialized, so attribute quoting may normalise even where
- * nothing changed. That is cosmetic — it does not alter how the page renders —
- * and is the price of rewriting through a parser rather than by string
- * substitution, which would also hit the same path written in body text.
- */
+// Parsed rather than string-substituted, so the same path written in body text
+// is left alone.
 export function rewriteAssetReferences(
 	html: string,
 	htmlPath: string,
 	urlByReference: Map<string, string>,
+	rootDir?: string,
 ): string {
 	const baseDir = dirname(resolve(htmlPath));
-	return eachReference(html, baseDir, (reference) =>
+	return eachReference(html, baseDir, rootDir ?? baseDir, (reference) =>
 		urlByReference.get(reference),
 	);
 }

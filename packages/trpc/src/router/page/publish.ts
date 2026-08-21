@@ -64,9 +64,7 @@ async function runPublish({
 	sha256: string;
 }) {
 	// The blob upload sits inside the transaction so a failed version insert
-	// rolls the page back with it. Publishing is low-frequency and the payload
-	// is capped at 3 MB, so holding the connection across the upload is cheaper
-	// than reconciling a page that exists with no version under it.
+	// rolls the page back with it.
 	let uploadedUrl: string | null = null;
 	try {
 		return await dbWs.transaction(async (tx) => {
@@ -81,9 +79,7 @@ async function runPublish({
 				? await applyMetadata({ tx, page: existing, input })
 				: await createPage({ tx, input, organizationId, userId });
 
-			if (input.workspaceId && input.entryPath) {
-				// Before binding this id to a page: an unchecked workspaceId lets
-				// one member squat another's republish key.
+			if (!input.pageId && input.workspaceId && input.entryPath) {
 				await assertWorkspaceAccess({
 					executor: tx,
 					workspaceId: input.workspaceId,
@@ -96,9 +92,6 @@ async function runPublish({
 						pageId: page.id,
 						entryPath: input.entryPath,
 					})
-					// The link may already exist, or that (workspace, entry_path) may
-					// already belong to another page. An explicit --page wins for this
-					// publish either way; it does not steal an existing link.
 					.onConflictDoNothing();
 			}
 
@@ -116,10 +109,8 @@ async function runPublish({
 				{
 					access: "public",
 					contentType: input.contentType,
-					// The bytes are world-readable once the URL is known, so the random
-					// suffix is what keeps a just_me page from being reachable by
-					// guessing its path. Visibility is still enforced by whatever serves
-					// the page; this is defence in depth, not the gate.
+					// Defence in depth, not the gate: the bytes are world-readable
+					// once the URL is known.
 					addRandomSuffix: true,
 				},
 			);
@@ -183,13 +174,8 @@ async function runPublish({
 
 type Tx = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];
 
-/**
- * Which page is this publish updating?
- *
- * `--page <id>` is the explicit form and wins. Otherwise the workspace edge
- * answers it, which is what makes republishing the same file from the same
- * workspace add a version. Neither resolving means we are creating a new page.
- */
+// `--page <id>` wins; otherwise the workspace edge answers it. Neither
+// resolving means a new page.
 async function resolveTargetPage({
 	tx,
 	input,
@@ -215,7 +201,6 @@ async function resolveTargetPage({
 		if (!page) {
 			throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
 		}
-		// An explicit --page must not reach someone else's private page.
 		assertPageReadable(page, userId);
 		return page;
 	}
@@ -240,11 +225,8 @@ async function resolveTargetPage({
 	return null;
 }
 
-/**
- * Metadata flags update the page when passed and leave it alone when omitted.
- * The slug is never among them: it is minted once and frozen, so a retitle
- * moves the display name and never a link someone already shared.
- */
+// The slug is never patched here. The write happens even with no flags passed
+// because `list` orders by updatedAt.
 async function applyMetadata({
 	tx,
 	page,
@@ -254,11 +236,10 @@ async function applyMetadata({
 	page: SelectPage;
 	input: PublishPageInput;
 }): Promise<SelectPage> {
-	const patch: Partial<SelectPage> = {};
+	const patch: Partial<SelectPage> = { updatedAt: new Date() };
 	if (input.title !== undefined) patch.title = input.title;
 	if (input.description !== undefined) patch.description = input.description;
 	if (input.visibility !== undefined) patch.visibility = input.visibility;
-	if (Object.keys(patch).length === 0) return page;
 
 	const [updated] = await tx
 		.update(pages)
@@ -301,15 +282,8 @@ async function createPage({
 	return page;
 }
 
-/**
- * Bind uploaded files to the version that references them.
- *
- * This is what gives a file a lifetime: the sweep collects files with no
- * attachments, so a version's assets survive exactly as long as the version
- * does. Attaching to the version rather than the page is deliberate — a
- * `shared_version` pin has to keep serving what was published, which it cannot
- * do if a later version dropping an asset frees the blob out from under it.
- */
+// Attached to the version, not the page: a pinned version must keep serving
+// what it published, so a later version dropping an asset cannot free the blob.
 async function attachFiles({
 	tx,
 	pageVersionId,
@@ -326,9 +300,8 @@ async function attachFiles({
 	if (fileIds.length === 0) return;
 
 	const unique = [...new Set(fileIds)];
-	// Confirm every id belongs to this org before attaching. Without it a
-	// caller could attach another organization's file and, through the page,
-	// read bytes it was never granted.
+	// Without this a caller could attach another org's file and read it through
+	// the page.
 	const owned = await tx
 		.select({ id: files.id })
 		.from(files)

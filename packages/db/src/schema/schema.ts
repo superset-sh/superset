@@ -1154,21 +1154,13 @@ export const desktopNotices = pgTable(
 export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
 export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
 
-/**
- * A published page: one title, one URL, many versions.
- *
- * No `current_version` column — the latest is `max(page_versions.version)`,
- * derived. No `type` column either: what a page *is* comes from its latest
- * version's `content_type`, and the viewer picks a renderer off that mime.
- */
+// Latest version is derived from max(page_versions.version); what a page *is*
+// comes from its latest version's content_type.
 export const pages = pgTable(
 	"pages",
 	{
 		id: uuid().primaryKey().defaultRandom(),
-		// The public URL path (/p/<slug>). Minted once from the title plus a
-		// short random suffix, then frozen: a retitle moves the display name and
-		// never a link someone already shared. Nothing secret to rotate — access
-		// is enforced per request, not by URL obscurity.
+		// Frozen once minted: a retitle never moves a shared link.
 		slug: text().notNull(),
 		organizationId: uuid("organization_id")
 			.notNull()
@@ -1179,7 +1171,7 @@ export const pages = pgTable(
 		title: text().notNull(),
 		description: text(),
 		visibility: pageVisibility().notNull().default("org"),
-		// Null serves the latest version; set pins the viewer to that one.
+		// Null serves the latest; set pins the viewer to that version.
 		sharedVersion: integer("shared_version"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -1199,12 +1191,7 @@ export const pages = pgTable(
 export type InsertPage = typeof pages.$inferInsert;
 export type SelectPage = typeof pages.$inferSelect;
 
-/**
- * One published version's bytes and metadata.
- *
- * Immutable once written — hence no `updatedAt`. A correction is a new
- * version, which is the whole point of the table.
- */
+// Immutable once written — hence no updatedAt. A correction is a new version.
 export const pageVersions = pgTable(
 	"page_versions",
 	{
@@ -1213,14 +1200,10 @@ export const pageVersions = pgTable(
 			.notNull()
 			.references(() => pages.id, { onDelete: "cascade" }),
 		version: integer().notNull(),
-		// What changed in this version, when the publisher said. Display-only;
-		// it is what makes the version picker read as a changelog.
 		label: text(),
-		// This version's bytes, owned exclusively and written once.
 		blobPathname: text("blob_pathname").notNull(),
 		contentType: text("content_type").notNull(),
 		sizeBytes: integer("size_bytes").notNull(),
-		// Integrity now; blob dedup later without a backfill.
 		sha256: text().notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -1230,8 +1213,8 @@ export const pageVersions = pgTable(
 		}),
 	},
 	(table) => [
-		// Also the race guard: two concurrent publishes computing the same
-		// `max(version) + 1` collide here instead of both landing.
+		// Also the race guard for two concurrent publishes computing the same
+		// max(version) + 1.
 		unique("page_versions_page_id_version_unique").on(
 			table.pageId,
 			table.version,
@@ -1243,40 +1226,26 @@ export const pageVersions = pgTable(
 export type InsertPageVersion = typeof pageVersions.$inferInsert;
 export type SelectPageVersion = typeof pageVersions.$inferSelect;
 
-/**
- * Republish *resolution*, not identity.
- *
- * A page's identity is its id, and its URL is its slug. This edge only
- * answers the publish tool's default question — "which page am I updating?"
- * — so that publishing the same file from the same workspace twice adds a
- * version instead of minting a second page. `--page <id>` is the explicit
- * form, and the only form once the workspace link is gone.
- */
+// Republish resolution, not identity: answers "which page am I updating?" so a
+// second publish adds a version instead of minting a new page.
 export const workspacePages = pgTable(
 	"workspace_pages",
 	{
-		// Whatever $SUPERSET_WORKSPACE_ID names: a cloud_workspaces row inside a
-		// sandbox, or a host.db workspace on a machine someone owns. No FK —
-		// local workspaces live in their own machine's SQLite, so Neon has no
-		// row to reference. Same bare-uuid trade v2_workspaces.project_id took.
-		// An orphaned row is inert: nothing queries a dead workspace id.
+		// No FK: local workspaces live in their machine's SQLite, so Neon has no
+		// row to reference.
 		workspaceId: uuid("workspace_id").notNull(),
 		pageId: uuid("page_id")
 			.notNull()
 			.references(() => pages.id, { onDelete: "cascade" }),
-		// Path of the published file, relative to the workspace root. Opaque to
-		// Neon — compared for equality, never resolved.
+		// Relative to the workspace root; compared for equality, never resolved.
 		entryPath: text("entry_path").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
 	},
 	(table) => [
-		// Stops one page being linked twice into the same workspace...
 		primaryKey({ columns: [table.workspaceId, table.pageId] }),
-		// ...while this is what actually makes (workspace, entry_path) a lookup
-		// key. Different constraints: without it, one page could be reachable
-		// from two paths in the same workspace.
+		// The lookup key; without it one page could be reached from two paths.
 		uniqueIndex("workspace_pages_workspace_id_entry_path_unique").on(
 			table.workspaceId,
 			table.entryPath,
@@ -1288,20 +1257,9 @@ export const workspacePages = pgTable(
 export type InsertWorkspacePage = typeof workspacePages.$inferInsert;
 export type SelectWorkspacePage = typeof workspacePages.$inferSelect;
 
-/**
- * The media library: bytes with no access model of their own.
- *
- * A file is reachable only through an attachment, and takes its parent's
- * access. It is created before any parent exists — the publish flow uploads a
- * page's assets, rewrites the HTML to point at them, and only then creates the
- * version those attachments hang off. That is why this table is org-scoped and
- * parentless, and why an unattached file is normal rather than a bug.
- *
- * Nothing deletes a file by cascade: it may be attached to several parents, so
- * lifetime is a refcount. A scheduled sweep collects files with no attachments
- * older than a grace window, deleting blob and row together — a trigger cannot,
- * because dropping the row loses `blob_pathname` and leaks the blob forever.
- */
+// Parentless by design: assets are uploaded before the version they attach to
+// exists, so an unattached file is normal. Lifetime is a refcount over
+// `attachments`, collected by a sweep rather than a cascade.
 export const files = pgTable(
 	"files",
 	{
@@ -1309,13 +1267,10 @@ export const files = pgTable(
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
-		// Written once, never rewritten.
 		blobPathname: text("blob_pathname").notNull(),
-		// Original name, for display and download.
 		filename: text().notNull(),
 		contentType: text("content_type").notNull(),
 		sizeBytes: integer("size_bytes").notNull(),
-		// Integrity now; blob dedup later without a backfill.
 		sha256: text().notNull(),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
@@ -1325,11 +1280,13 @@ export const files = pgTable(
 			.defaultNow(),
 	},
 	(table) => [
-		// The structural invariant only: a file is never a page. The precise
-		// media allowlist lives in app code, where widening it costs no migration.
+		// Structural invariant only; the precise allowlist lives in app code.
+		// LIKE rather than equality because a media type is case-insensitive and
+		// may carry parameters, and because a `;` literal breaks drizzle-kit's
+		// statement splitter.
 		check(
 			"files_never_a_page",
-			sql`${table.contentType} NOT IN ('text/html', 'text/markdown')`,
+			sql`lower(btrim(${table.contentType})) NOT LIKE 'text/html%' AND lower(btrim(${table.contentType})) NOT LIKE 'text/markdown%'`,
 		),
 		index("files_organization_id_idx").on(table.organizationId),
 		index("files_org_sha256_idx").on(table.organizationId, table.sha256),
@@ -1339,33 +1296,18 @@ export const files = pgTable(
 export type InsertFile = typeof files.$inferInsert;
 export type SelectFile = typeof files.$inferSelect;
 
-/**
- * A file placed on a parent. Access is the parent's access.
- *
- * `parent_id` carries no foreign key on purpose. A parent may be a row in Neon
- * today and a workspace that only exists in a machine's local host.db
- * tomorrow, and one generic column serves both — the same trade
- * `workspace_pages.workspace_id` takes.
- *
- * Integrity is therefore the sweep's job, not Postgres's, and that is the
- * stronger arrangement here: deleting an organization cascades pages away
- * inside the database without running any application code, so cleanup that
- * lived only in a delete handler would silently orphan every row beneath it.
- * App code removes attachments promptly on the happy path; the sweep drops
- * rows whose parent no longer exists, and is what stops orphans pinning blobs
- * alive forever.
- */
+// A file placed on a parent; access is the parent's access. `parent_id` has no
+// FK so a parent can live outside Neon. Integrity is the sweep's job — an
+// ancestor cascade deletes rows without running any application code.
 export const attachments = pgTable(
 	"attachments",
 	{
 		id: uuid().primaryKey().defaultRandom(),
-		// The one real FK worth keeping: both sides are ours, both live in Neon.
 		fileId: uuid("file_id")
 			.notNull()
 			.references(() => files.id, { onDelete: "cascade" }),
 		parentKind: attachmentParentKind("parent_kind").notNull(),
 		parentId: uuid("parent_id").notNull(),
-		// Optional display name override; the file's own filename otherwise.
 		label: text(),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
@@ -1377,8 +1319,8 @@ export const attachments = pgTable(
 	(table) => [
 		index("attachments_parent_idx").on(table.parentKind, table.parentId),
 		index("attachments_file_id_idx").on(table.fileId),
-		// One row per file per parent. Attaching the same image twice is a no-op
-		// rather than a duplicate that inflates the refcount and defeats the sweep.
+		// One row per file per parent, so a repeat attach cannot inflate the
+		// refcount the sweep reads.
 		unique("attachments_parent_file_unique").on(
 			table.parentKind,
 			table.parentId,
