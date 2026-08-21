@@ -3,8 +3,8 @@ import {
 	SidebarCardSlot,
 	useHiringCard,
 	usePaymentFailedCard,
+	useStarNagCard,
 } from "renderer/components/SidebarCardSlot";
-import { StarNagCard } from "renderer/components/StarNagCard";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
@@ -36,6 +36,7 @@ export function WorkspaceSidebar({
 		projectId: activeProjectId,
 		projectName: activeProjectName,
 	});
+	const starNagCard = useStarNagCard({ isCollapsed });
 	const hiringCard = useHiringCard({ surface: "v1" });
 
 	const projectShortcutIndices = useMemo(
@@ -126,9 +127,8 @@ export function WorkspaceSidebar({
 
 			<SidebarCardSlot
 				isCollapsed={isCollapsed}
-				entries={[paymentFailedCard, setupScriptCard, hiringCard]}
+				entries={[paymentFailedCard, setupScriptCard, starNagCard, hiringCard]}
 			/>
-			<StarNagCard isCollapsed={isCollapsed} />
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />

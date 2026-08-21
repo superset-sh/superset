@@ -26,7 +26,8 @@ export function SidebarCardSlot({
 	entries,
 }: SidebarCardSlotProps) {
 	const entry = entries.find((candidate) => candidate != null) ?? null;
-	const visibleId = isCollapsed ? null : (entry?.id ?? null);
+	const visibleKey =
+		isCollapsed || !entry ? null : (entry.shownKey ?? entry.id);
 
 	// Held in a ref so an inline `onShown` closure re-identifying on every
 	// render can't re-fire the impression — it fires when the winner changes.
@@ -34,9 +35,9 @@ export function SidebarCardSlot({
 	onShownRef.current = entry?.onShown;
 
 	useEffect(() => {
-		if (!visibleId) return;
+		if (!visibleKey) return;
 		onShownRef.current?.();
-	}, [visibleId]);
+	}, [visibleKey]);
 
 	return (
 		<AnimatePresence mode="wait">

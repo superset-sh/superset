@@ -17,6 +17,13 @@ export interface SidebarCardEntry {
 	onDismiss?: () => void;
 	className?: string;
 	children?: ReactNode;
+	/**
+	 * Re-counts the impression when this changes. For cards whose "really
+	 * shown" condition can change while `id` stays put — the star nag's button
+	 * can appear after its card already won the slot, and only that counts as
+	 * an impression of the star ask. Defaults to `id`.
+	 */
+	shownKey?: string;
 	/** Fired once each time this entry becomes the visible card. */
 	onShown?: () => void;
 }

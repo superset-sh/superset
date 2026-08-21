@@ -14,8 +14,8 @@ import {
 	SidebarCardSlot,
 	useHiringCard,
 	usePaymentFailedCard,
+	useStarNagCard,
 } from "renderer/components/SidebarCardSlot";
-import { StarNagCard } from "renderer/components/StarNagCard";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
@@ -245,6 +245,7 @@ export function DashboardSidebar({
 		projectId: activeV2Project?.id ?? null,
 		projectName: activeV2Project?.name ?? null,
 	});
+	const starNagCard = useStarNagCard({ isCollapsed });
 	const hiringCard = useHiringCard({ surface: "v2" });
 
 	const handleReorderProjects = useCallback(
@@ -327,9 +328,13 @@ export function DashboardSidebar({
 									</OverflowFadeContainer>
 									<SidebarCardSlot
 										isCollapsed={isCollapsed}
-										entries={[paymentFailedCard, setupScriptCard, hiringCard]}
+										entries={[
+											paymentFailedCard,
+											setupScriptCard,
+											starNagCard,
+											hiringCard,
+										]}
 									/>
-									<StarNagCard isCollapsed={isCollapsed} />
 									<div
 										className={cn(
 											isCollapsed
