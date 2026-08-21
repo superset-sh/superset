@@ -67,11 +67,17 @@ export async function POST(request: Request): Promise<Response> {
 				  ${cursor ? sql`AND received_at >= ${cursor}::timestamptz` : sql``}
 				ORDER BY received_at
 				LIMIT ${BATCH_SIZE}
+				-- Two runs can overlap (a QStash retry, or a slow run still going
+				-- when the next tick fires). Without this they select the same
+				-- rows and the second re-clears what the first already did,
+				-- doubling the dead tuples and overstating the count.
+				FOR UPDATE SKIP LOCKED
 			)
 			UPDATE automation_events e
 			SET payload = NULL
 			FROM batch
 			WHERE e.id = batch.id
+			  AND e.payload IS NOT NULL
 			RETURNING batch.received_at
 		`);
 

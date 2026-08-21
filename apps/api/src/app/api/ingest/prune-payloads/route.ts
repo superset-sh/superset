@@ -9,8 +9,10 @@ export const dynamic = "force-dynamic";
  * is inspecting a delivery by hand, which is a days-old question, not a
  * months-old one. Everything identifying the event outlives it.
  *
- * At ~1.16M events/day and ~5.2KB per payload this is roughly 4.8GB/day, so the
- * window is what sets the table's steady-state size.
+ * At ~1.16M events/day this is 5-6GB/day: 424GB of TOAST across 102.1M rows
+ * works out to ~4.8GB/day of what is actually on disk, while sampling
+ * pg_column_size gives ~5.2KB per payload and so ~6GB/day. Either way the
+ * window, not the rate, is what sets the table's steady-state size.
  */
 const RETAIN_DAYS = 7;
 

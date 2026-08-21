@@ -961,6 +961,12 @@ export const automationEvents = pgTable(
 			t.receivedAt,
 		),
 		index("automation_events_resource_idx").on(t.resourceKey),
+		// The pruner scans oldest-first for rows that still have a body. Without
+		// this the planner walks automation_events_org_received_idx end to end and
+		// sorts, per batch. Partial, so it shrinks as the backlog drains.
+		index("automation_events_prunable_idx")
+			.on(t.receivedAt)
+			.where(sql`${t.payload} IS NOT NULL`),
 	],
 );
 

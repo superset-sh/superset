@@ -1,5 +1,5 @@
 {
-  "id": "5f8fd1c4-ea35-46d3-9af3-c29fa0e383af",
+  "id": "50119485-f885-410e-8ca0-512d6114a017",
   "prevId": "85e73ff3-15cf-49d7-b3ba-65f3e871759d",
   "version": "7",
   "dialect": "postgresql",
@@ -3033,6 +3033,22 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "automation_events_prunable_idx": {
+          "name": "automation_events_prunable_idx",
+          "columns": [
+            {
+              "expression": "received_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"automation_events\".\"payload\" IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
