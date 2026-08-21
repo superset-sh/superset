@@ -1,14 +1,38 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { markdownNotFoundBody } from "@/lib/markdown-not-found";
 
 const MD_TWIN_PATTERN = /^\/(blog|compare|changelog)\/([^/]+)\.md$/;
+const CONTENT_PAGE_PATTERN = /^\/(blog|compare|changelog)\/[^/.]+$/;
 
 // Top-level category guide pages (content/category/*.mdx). Proxy runs on the
 // edge without fs access, so the slugs are duplicated here; keep in sync.
 const CATEGORY_SLUGS = ["parallel-coding-agents", "agent-orchestration"];
 
+// Static pages with a hand-built markdown twin in app/md/[...path]/route.ts.
+const PAGE_SLUGS = ["pricing", "mcp-install", "team", "enterprise"];
+
+// Markdown documents served by their own route handlers; never 404 these here.
+const MARKDOWN_ROUTES = new Set([
+	"/index.md",
+	"/agents.md",
+	"/auth.md",
+	"/llms.md",
+]);
+
+// AI assistants and AI search crawlers that prefer markdown. Search-engine
+// indexers (Googlebot, Bingbot) are deliberately absent: they get the HTML.
+const MARKDOWN_BOT_UA =
+	/GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|DeepSeekBot|DuckAssistBot|Meta-ExternalAgent|ora-agent/i;
+
 function acceptsMarkdown(request: NextRequest): boolean {
 	const accept = request.headers.get("accept") ?? "";
 	return accept.includes("text/markdown");
+}
+
+function prefersMarkdown(request: NextRequest): boolean {
+	if (acceptsMarkdown(request)) return true;
+	const userAgent = request.headers.get("user-agent") ?? "";
+	return MARKDOWN_BOT_UA.test(userAgent);
 }
 
 function rewriteTo(request: NextRequest, pathname: string): NextResponse {
@@ -16,48 +40,56 @@ function rewriteTo(request: NextRequest, pathname: string): NextResponse {
 	url.pathname = pathname;
 	url.search = "";
 	const response = NextResponse.rewrite(url);
-	response.headers.set("Vary", "Accept");
+	response.headers.set("Vary", "Accept, User-Agent");
 	return response;
+}
+
+// Path of the markdown twin for a page path, or undefined if there is none.
+function markdownTwinFor(pathname: string): string | undefined {
+	if (pathname === "/") return "/index.md";
+	const bare = pathname.replace(/^\//, "");
+	if (CATEGORY_SLUGS.includes(bare)) return `/md/category/${bare}`;
+	if (PAGE_SLUGS.includes(bare)) return `/md/page/${bare}`;
+	if (CONTENT_PAGE_PATTERN.test(pathname)) return `/md${pathname}`;
+	return undefined;
+}
+
+function markdownNotFound(): NextResponse {
+	return new NextResponse(markdownNotFoundBody(), {
+		status: 404,
+		headers: {
+			"Content-Type": "text/markdown; charset=utf-8",
+			"Cache-Control": "public, max-age=300, s-maxage=300",
+		},
+	});
 }
 
 export default function proxy(request: NextRequest) {
 	const { pathname, searchParams } = request.nextUrl;
 
-	if (pathname === "/") {
-		// Machine-readable homepage view for agents.
-		if (searchParams.get("mode") === "agent") {
-			return rewriteTo(request, "/agents.md");
-		}
-		// Markdown content negotiation (acceptmarkdown.com).
-		if (acceptsMarkdown(request)) {
-			return rewriteTo(request, "/index.md");
-		}
-		return NextResponse.next();
+	// Machine-readable homepage view for agents.
+	if (pathname === "/" && searchParams.get("mode") === "agent") {
+		return rewriteTo(request, "/agents.md");
 	}
 
-	// Category guide pages: /parallel-coding-agents(.md) -> markdown twin.
-	for (const slug of CATEGORY_SLUGS) {
-		if (pathname === `/${slug}.md`) {
-			return rewriteTo(request, `/md/category/${slug}`);
+	// Explicit .md URLs: /pricing.md, /blog/foo.md, /parallel-coding-agents.md.
+	if (pathname.endsWith(".md")) {
+		if (MARKDOWN_ROUTES.has(pathname)) return NextResponse.next();
+		const twinMatch = pathname.match(MD_TWIN_PATTERN);
+		if (twinMatch) {
+			return rewriteTo(request, `/md/${twinMatch[1]}/${twinMatch[2]}`);
 		}
-		if (pathname === `/${slug}` && acceptsMarkdown(request)) {
-			return rewriteTo(request, `/md/category/${slug}`);
-		}
+		const twin = markdownTwinFor(pathname.slice(0, -3));
+		if (twin) return rewriteTo(request, twin);
+		// Unknown .md path: a real 404 with a markdown body agents can follow.
+		return markdownNotFound();
 	}
 
-	// .md twins for content pages: /blog/foo.md -> markdown source.
-	const twinMatch = pathname.match(MD_TWIN_PATTERN);
-	if (twinMatch) {
-		return rewriteTo(request, `/md/${twinMatch[1]}/${twinMatch[2]}`);
-	}
-
-	// Accept negotiation on content pages that have a markdown twin. Segments
-	// with an extension (llms.txt, feed.xml) are files, not pages, so skip them.
-	if (
-		/^\/(blog|compare|changelog)\/[^/.]+$/.test(pathname) &&
-		acceptsMarkdown(request)
-	) {
-		return rewriteTo(request, `/md${pathname}`);
+	// Content negotiation (acceptmarkdown.com) and AI-bot UAs: serve the
+	// markdown twin of any page that has one.
+	if (prefersMarkdown(request)) {
+		const twin = markdownTwinFor(pathname);
+		if (twin) return rewriteTo(request, twin);
 	}
 
 	return NextResponse.next();
@@ -65,13 +97,7 @@ export default function proxy(request: NextRequest) {
 
 export const config = {
 	matcher: [
-		"/",
-		"/blog/:slug",
-		"/compare/:slug",
-		"/changelog/:slug",
-		"/parallel-coding-agents",
-		"/parallel-coding-agents.md",
-		"/agent-orchestration",
-		"/agent-orchestration.md",
+		// Everything except Next internals and static assets.
+		"/((?!_next/|api/|favicon\\.ico|.*\\.(?:png|jpe?g|gif|svg|webp|ico|woff2?|ttf|css|js|map|xml|txt|json)$).*)",
 	],
 };

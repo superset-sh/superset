@@ -1,10 +1,14 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { createMcpServer } from "@superset/mcp";
-import { getRequestOrigin } from "@/lib/oauth-metadata";
+import {
+	createDocsMcpServer,
+	DOCS_BASE_URL,
+	DOCS_MCP_NAME,
+	DOCS_MCP_VERSION,
+} from "@/lib/docs-mcp-server";
 
 async function listTools() {
-	const server = createMcpServer();
+	const server = createDocsMcpServer();
 	const [serverTransport, clientTransport] =
 		InMemoryTransport.createLinkedPair();
 	await server.connect(serverTransport);
@@ -14,6 +18,7 @@ async function listTools() {
 		const { tools } = await client.listTools();
 		return tools.map((tool) => ({
 			name: tool.name,
+			...(tool.title ? { title: tool.title } : {}),
 			description: tool.description,
 			...(tool.annotations ? { annotations: tool.annotations } : {}),
 			inputSchema: tool.inputSchema,
@@ -24,25 +29,20 @@ async function listTools() {
 	}
 }
 
-export async function GET(request: Request): Promise<Response> {
-	const origin = getRequestOrigin(request);
-
+export async function GET(): Promise<Response> {
 	const card = {
-		name: "superset",
-		title: "Superset",
+		name: DOCS_MCP_NAME,
+		title: "Superset docs",
 		icon: "https://superset.sh/apple-touch-icon.png",
+		version: DOCS_MCP_VERSION,
+		kind: "docs",
 		description:
-			"Superset MCP server: create Git-worktree workspaces, launch coding-agent sessions, schedule automations, open terminals, and manage tasks on behalf of a Superset user.",
-		version: "0.1.0",
-		serverUrl: `${origin}/mcp`,
+			"Read-only search and retrieval over the Superset documentation. Every page is also an MCP resource addressed by its canonical URL. No authentication.",
+		serverUrl: `${DOCS_BASE_URL}/mcp`,
 		transport: "streamable-http",
-		documentationUrl: "https://docs.superset.sh/mcp-server",
-		authentication: {
-			type: "oauth2",
-			resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource`,
-			description:
-				"OAuth 2.1 authorization code + PKCE with RFC 7591 dynamic client registration, or a user-issued Superset API key as a Bearer token. Walkthrough: https://superset.sh/auth.md",
-		},
+		documentationUrl: `${DOCS_BASE_URL}/mcp-server`,
+		authentication: { type: "none" },
+		capabilities: { tools: true, resources: true },
 		tools: await listTools(),
 	};
 

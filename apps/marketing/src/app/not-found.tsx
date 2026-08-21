@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -33,6 +34,38 @@ export default function NotFound() {
 					>
 						Take me home
 					</Link>
+					<nav aria-label="Where to look next">
+						<p className="text-xs font-mono text-muted-foreground mb-2">
+							Where to look next
+						</p>
+						<ul className="text-sm text-muted-foreground space-y-1">
+							<li>
+								<a href={COMPANY.DOCS_URL} className="hover:text-foreground">
+									Documentation
+								</a>
+							</li>
+							<li>
+								<Link href="/blog" className="hover:text-foreground">
+									Blog
+								</Link>
+							</li>
+							<li>
+								<Link href="/changelog" className="hover:text-foreground">
+									Changelog
+								</Link>
+							</li>
+							<li>
+								<a href="/sitemap.xml" className="hover:text-foreground">
+									Sitemap
+								</a>
+							</li>
+							<li>
+								<a href="/llms.txt" className="hover:text-foreground">
+									llms.txt (index for AI agents)
+								</a>
+							</li>
+						</ul>
+					</nav>
 				</div>
 			</div>
 		</main>

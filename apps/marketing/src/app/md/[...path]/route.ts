@@ -1,9 +1,22 @@
 import { COMPANY } from "@superset/shared/constants";
+import { MCP_CAPABILITIES } from "@/app/mcp-install/components/McpCapabilities/constants";
+import {
+	COMPARISON_SECTIONS,
+	PRICING_FAQ_ITEMS,
+	PRICING_TIERS,
+} from "@/app/pricing/constants";
 import { getBlogPost } from "@/lib/blog";
 import { getCategoryPage } from "@/lib/category";
 import { getChangelogEntry } from "@/lib/changelog";
 import { getComparisonPage } from "@/lib/compare";
-import { MARKDOWN_HEADERS, stripMdxSyntax } from "@/lib/llms";
+import {
+	buildFrontmatter,
+	MARKDOWN_HEADERS,
+	MCP_SERVER_URL,
+	stripMdxSyntax,
+} from "@/lib/llms";
+import { markdownNotFound } from "@/lib/markdown-not-found";
+import { getAllPeople } from "@/lib/people";
 
 interface MarkdownPage {
 	title: string;
@@ -14,8 +27,175 @@ interface MarkdownPage {
 	content: string;
 }
 
+function cell(value: string | boolean | null): string {
+	if (value === true) return "Yes";
+	if (value === false || value === null) return "No";
+	return value;
+}
+
+function pricingPage(): MarkdownPage {
+	const baseUrl = COMPANY.MARKETING_URL;
+	const tiers = PRICING_TIERS.map((tier) => {
+		const price =
+			tier.price.kind === "variable"
+				? `${tier.price.monthly.display} ${tier.price.monthly.note} (${tier.price.monthly.cadence}) or ${tier.price.yearly.display} ${tier.price.yearly.note} (${tier.price.yearly.cadence})`
+				: `${tier.price.display} (${tier.price.note})`;
+		return [
+			`### ${tier.name}`,
+			"",
+			tier.description,
+			"",
+			`- **Price**: ${price}`,
+			...tier.features.map((feature) => `- ${feature}`),
+			`- [${tier.cta.label}](${tier.cta.href.startsWith("/") ? baseUrl + tier.cta.href : tier.cta.href})`,
+			"",
+		];
+	});
+	const tierNames = PRICING_TIERS.map((tier) => tier.name);
+	const comparison = COMPARISON_SECTIONS.flatMap((section) => [
+		`### ${section.title}`,
+		"",
+		`| | ${tierNames.join(" | ")} |`,
+		`|---|${tierNames.map(() => "---").join("|")}|`,
+		...section.rows.map(
+			(row) =>
+				`| ${row.label}${row.badge ? ` (${row.badge.label})` : ""} | ${row.values.map(cell).join(" | ")} |`,
+		),
+		"",
+	]);
+	const faq = PRICING_FAQ_ITEMS.flatMap((item) => [
+		`### ${item.question}`,
+		"",
+		item.answer,
+		"",
+	]);
+	return {
+		title: `${COMPANY.NAME} pricing`,
+		url: `${baseUrl}/pricing`,
+		description:
+			"Free for individuals. Pro is $20 per user/month (or $15 billed yearly). Enterprise adds SSO, SCIM, audit logs, and an SLA.",
+		content: [
+			"## Plans",
+			"",
+			...tiers.flat(),
+			"## Compare plans",
+			"",
+			...comparison,
+			"## FAQ",
+			"",
+			...faq,
+		].join("\n"),
+	};
+}
+
+function mcpInstallPage(): MarkdownPage {
+	const baseUrl = COMPANY.MARKETING_URL;
+	const docsUrl = COMPANY.DOCS_URL;
+	return {
+		title: `Install the ${COMPANY.NAME} MCP server in your client`,
+		url: `${baseUrl}/mcp-install`,
+		description: `Connect Claude, Codex, Cursor, or any MCP client to ${COMPANY.NAME}. Create tasks, spin up workspaces, launch agents, and run automations straight from your AI agent.`,
+		content: [
+			`Server URL: ${MCP_SERVER_URL} (Streamable HTTP). Authentication: OAuth 2.1 + PKCE with dynamic client registration, or a Superset API key as a Bearer token. Walkthrough: ${baseUrl}/auth.md`,
+			"",
+			"## Generic MCP client config",
+			"",
+			"```json",
+			JSON.stringify(
+				{ mcpServers: { superset: { type: "http", url: MCP_SERVER_URL } } },
+				null,
+				2,
+			),
+			"```",
+			"",
+			"## One-line installs",
+			"",
+			`- Claude Code: \`claude mcp add --transport http superset ${MCP_SERVER_URL}\``,
+			`- Codex: \`codex mcp add superset --url ${MCP_SERVER_URL}\``,
+			`- Other clients: see ${docsUrl}/mcp-server`,
+			"",
+			"## What the server can do",
+			"",
+			...MCP_CAPABILITIES.map(
+				(capability) =>
+					`- **${capability.category}**: ${capability.description}`,
+			),
+			"",
+			"## Resources",
+			"",
+			`- [MCP server docs](${docsUrl}/mcp-server)`,
+			`- [MCP server card](${baseUrl}/.well-known/mcp/server-card.json): full tool catalog with input schemas`,
+			`- [Agent auth guide](${baseUrl}/auth.md)`,
+		].join("\n"),
+	};
+}
+
+function teamPage(): MarkdownPage {
+	const baseUrl = COMPANY.MARKETING_URL;
+	const people = getAllPeople();
+	return {
+		title: `About ${COMPANY.NAME}`,
+		url: `${baseUrl}/team`,
+		description:
+			"What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents.",
+		content: [
+			"## Team",
+			"",
+			...people.flatMap((person) => [
+				`### ${person.name}`,
+				"",
+				person.role,
+				...(person.bio ? ["", person.bio] : []),
+				...(person.github ? [`- GitHub: ${person.github}`] : []),
+				...(person.twitter ? [`- X: ${person.twitter}`] : []),
+				...(person.linkedin ? [`- LinkedIn: ${person.linkedin}`] : []),
+				"",
+			]),
+			"## Contact",
+			"",
+			`- Founders: ${COMPANY.FOUNDERS_EMAIL}`,
+			`- [Join us](${COMPANY.JOIN_US_URL})`,
+		].join("\n"),
+	};
+}
+
+function enterprisePage(): MarkdownPage {
+	const baseUrl = COMPANY.MARKETING_URL;
+	const enterprise = PRICING_TIERS.find((tier) => tier.id === "enterprise");
+	return {
+		title: `${COMPANY.NAME} for enterprise`,
+		url: `${baseUrl}/enterprise`,
+		description: `Bring ${COMPANY.NAME} to your team. Enterprise plans add SSO, SCIM, audit logs, an uptime SLA, and custom contracts.`,
+		content: [
+			"## What Enterprise includes",
+			"",
+			...(enterprise?.features ?? []).map((feature) => `- ${feature}`),
+			"",
+			"## Where your code runs",
+			"",
+			"On your machines. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset never proxies model API calls.",
+			"",
+			"## Get in touch",
+			"",
+			`- Contact sales: ${baseUrl}/enterprise`,
+			`- Security and compliance: ${COMPANY.TRUST_URL}`,
+			`- Email: ${COMPANY.FOUNDERS_EMAIL}`,
+		].join("\n"),
+	};
+}
+
+const STATIC_PAGES: Record<string, () => MarkdownPage> = {
+	pricing: pricingPage,
+	"mcp-install": mcpInstallPage,
+	team: teamPage,
+	enterprise: enterprisePage,
+};
+
 function loadPage(section: string, slug: string): MarkdownPage | undefined {
 	const baseUrl = COMPANY.MARKETING_URL;
+	if (section === "page") {
+		return STATIC_PAGES[slug]?.();
+	}
 	if (section === "blog") {
 		const post = getBlogPost(slug);
 		if (!post) return undefined;
@@ -25,7 +205,7 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			date: post.date,
 			author: post.author.name,
 			description: post.description,
-			content: post.content,
+			content: stripMdxSyntax(post.content),
 		};
 	}
 	if (section === "compare") {
@@ -36,7 +216,7 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			url: `${baseUrl}/compare/${page.slug}`,
 			date: page.lastUpdated ?? page.date,
 			description: page.description,
-			content: page.content,
+			content: stripMdxSyntax(page.content),
 		};
 	}
 	if (section === "category") {
@@ -47,7 +227,7 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			url: `${baseUrl}${page.url}`,
 			date: page.lastUpdated ?? page.date,
 			description: page.description,
-			content: page.content,
+			content: stripMdxSyntax(page.content),
 		};
 	}
 	if (section === "changelog") {
@@ -58,7 +238,7 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			url: `${baseUrl}/changelog/${entry.slug}`,
 			date: entry.date,
 			description: entry.description,
-			content: entry.content,
+			content: stripMdxSyntax(entry.content),
 		};
 	}
 	return undefined;
@@ -70,15 +250,19 @@ export async function GET(
 ) {
 	const { path } = await params;
 	const [section, slug] = path;
-	if (path.length !== 2 || !section || !slug) {
-		return new Response("Not found", { status: 404 });
-	}
-	const page = loadPage(section, slug);
+	const page =
+		path.length === 2 && section && slug ? loadPage(section, slug) : undefined;
 	if (!page) {
-		return new Response("Not found", { status: 404 });
+		return markdownNotFound();
 	}
 
 	const lines = [
+		...buildFrontmatter({
+			title: page.title,
+			description: page.description ?? page.title,
+			canonical: page.url,
+			lastUpdated: page.date,
+		}),
 		`# ${page.title}`,
 		"",
 		...(page.description ? [page.description, ""] : []),
@@ -86,7 +270,7 @@ export async function GET(
 		...(page.date ? [`Date: ${page.date}`] : []),
 		...(page.author ? [`Author: ${page.author}`] : []),
 		"",
-		stripMdxSyntax(page.content),
+		page.content,
 		"",
 	];
 
