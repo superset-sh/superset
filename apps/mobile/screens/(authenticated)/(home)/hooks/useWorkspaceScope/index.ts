@@ -1,0 +1,1 @@
+export { useWorkspaceScope } from "./useWorkspaceScope";

@@ -22,7 +22,7 @@ export function HostOfflineView({ hostName }: { hostName: string }) {
 			</View>
 			<Button
 				variant="secondary"
-				onPress={() => router.push("/(authenticated)/(home)/filter/host")}
+				onPress={() => router.push("/(authenticated)/(home)/filter/scope")}
 			>
 				<Text>Switch host</Text>
 			</Button>

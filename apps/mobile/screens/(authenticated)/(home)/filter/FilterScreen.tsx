@@ -1,12 +1,16 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useRouter } from "expo-router";
+import { Cloud } from "lucide-react-native";
 import { View } from "react-native";
+import { Icon } from "@/components/ui/icon";
+import { useCloudWorkspaceItems } from "@/hooks/useCloudWorkspaceItems";
 import { useTheme } from "@/hooks/useTheme";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
 } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
+import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
@@ -15,6 +19,12 @@ export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const selectedHost = useSelectedHost();
+	const { items: cloudItems, isReady: cloudReady } = useCloudWorkspaceItems();
+	const scope = useWorkspaceScope({
+		isReady: cloudReady,
+		count: cloudItems.length,
+	});
+	const cloud = scope === "cloud";
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
 	const sortLabel =
@@ -33,18 +43,24 @@ export function FilterScreen() {
 						color={theme.mutedForeground}
 					/>
 				}
-				label="Host"
+				label="Scope"
 				trailing={
 					<ListRowValue
-						value={selectedHost?.name ?? ""}
+						value={cloud ? "Cloud" : (selectedHost?.name ?? "")}
 						accessory={
-							selectedHost ? (
+							cloud ? (
+								<Icon
+									as={Cloud}
+									className="text-muted-foreground size-4"
+									strokeWidth={2}
+								/>
+							) : selectedHost ? (
 								<HostStatusDot isOnline={selectedHost.isOnline} />
 							) : undefined
 						}
 					/>
 				}
-				onPress={() => router.push("/(authenticated)/(home)/filter/host")}
+				onPress={() => router.push("/(authenticated)/(home)/filter/scope")}
 			/>
 			<ListRow
 				icon={
