@@ -1,11 +1,6 @@
 import type { AppRouter } from "@superset/host-service";
-import { getHostServiceQueryMethodOverride } from "@superset/workspace-client/host-transport";
-import {
-	createTRPCClient,
-	httpBatchStreamLink,
-	TRPCClientError,
-} from "@trpc/client";
-import superjson from "superjson";
+import { createHostServiceTransportLinks } from "@superset/workspace-client/host-transport";
+import { createTRPCClient, TRPCClientError } from "@trpc/client";
 import { getHostServiceHeaders } from "./host-service-auth";
 
 const clientCache = new Map<
@@ -24,23 +19,13 @@ export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {
 	if (cached) return cached;
 
 	const client = createTRPCClient<AppRouter>({
-		links: [
-			// Streaming batch link: same-tick calls share one HTTP request and
-			// one CORS preflight, but each result streams as soon as it's ready
-			// — no slowest-in-batch latency (the reason #3879 unbatched the old
-			// buffering httpBatchLink). All renderer clients share Chromium's
-			// 6-connections-per-origin pool with every other host-service
-			// request, so sockets are the scarce resource here.
-			httpBatchStreamLink({
-				url: `${hostUrl}/trpc`,
-				transformer: superjson,
-				headers: () => getHostServiceHeaders(hostUrl),
-				// Keep large local query inputs out of the URL. Remote hosts can be one
-				// release behind the desktop, though, so they retain GET until the
-				// server-side POST-query capability can be assumed fleet-wide.
-				methodOverride: getHostServiceQueryMethodOverride(hostUrl),
-			}),
-		],
+		// Same-tick calls share one streaming HTTP request and one CORS
+		// preflight. The shared transport also negotiates POST-query support so
+		// rolling remote-host upgrades do not trade compatibility for URL size.
+		links: createHostServiceTransportLinks({
+			hostUrl,
+			headers: () => getHostServiceHeaders(hostUrl),
+		}),
 	});
 
 	clientCache.set(hostUrl, client);

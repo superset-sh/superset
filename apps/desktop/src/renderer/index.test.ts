@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 
-const indexHtml = readFileSync(
-	join(import.meta.dir, "renderer", "index.html"),
-	"utf8",
-);
+const indexHtml = await Bun.file(new URL("index.html", import.meta.url)).text();
 const contentSecurityPolicy = indexHtml.match(
 	/<meta http-equiv="Content-Security-Policy" content="([^"]+)"/,
 )?.[1];

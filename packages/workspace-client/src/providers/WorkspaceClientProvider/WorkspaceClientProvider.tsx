@@ -1,8 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchStreamLink, TRPCClientError } from "@trpc/client";
+import { TRPCClientError } from "@trpc/client";
 import { createContext, type ReactNode, useContext } from "react";
-import superjson from "superjson";
-import { getHostServiceQueryMethodOverride } from "../../lib/hostTransport";
+import { createHostServiceTransportLinks } from "../../lib/hostTransport";
 import { workspaceTrpc } from "../../workspace-trpc";
 
 const STALE_TIME_MS = 5_000;
@@ -94,17 +93,7 @@ function getWorkspaceClients(
 	});
 
 	const trpcClient = workspaceTrpc.createClient({
-		links: [
-			httpBatchStreamLink({
-				url: `${hostUrl}/trpc`,
-				transformer: superjson,
-				headers: headers ?? (() => ({})),
-				// Keep large local query inputs out of the URL. Remote hosts can be one
-				// release behind the desktop, though, so they retain GET until the
-				// server-side POST-query capability can be assumed fleet-wide.
-				methodOverride: getHostServiceQueryMethodOverride(hostUrl),
-			}),
-		],
+		links: createHostServiceTransportLinks({ hostUrl, headers }),
 	});
 
 	const getWsToken = wsToken ?? (() => null);

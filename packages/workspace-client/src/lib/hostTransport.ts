@@ -1,23 +1,89 @@
+import type { AppRouter } from "@superset/host-service/trpc";
+import {
+	type HTTPBatchStreamLinkOptions,
+	httpBatchStreamLink,
+	type Operation,
+	retryLink,
+	splitLink,
+	type TRPCClientError,
+	type TRPCLink,
+} from "@trpc/client";
+import superjson from "superjson";
+
+type QueryMethodOverride = "POST" | undefined;
+
+interface HostServiceQueryMethodPolicy {
+	getMethodOverride: () => QueryMethodOverride;
+	retryWithoutMethodOverride: (options: {
+		attempts: number;
+		error: TRPCClientError<AppRouter>;
+		op: Pick<Operation, "type">;
+	}) => boolean;
+}
+
+export type HostServiceFetch = NonNullable<
+	HTTPBatchStreamLinkOptions<AppRouter["_def"]["_config"]["$types"]>["fetch"]
+>;
+
+interface HostServiceTransportOptions {
+	fetch?: HostServiceFetch;
+	hostUrl: string;
+	headers?: () => Record<string, string>;
+}
+
 /**
- * Query method override supported by the host-service endpoint at `hostUrl`.
- *
- * The desktop and its loopback host service ship together, so the local
- * server supports tRPC's POST query override. Remote hosts can be one release
- * behind the desktop and older host services reject POST query procedures
- * with METHOD_NOT_SUPPORTED, so relay and sandbox URLs retain tRPC's default
- * GET-for-query behavior.
+ * Optimistically uses POST queries, then remembers an explicit old-host
+ * rejection and retries that client's queries with tRPC's default GET method.
  */
-export function getHostServiceQueryMethodOverride(
-	hostUrl: string,
-): "POST" | undefined {
-	try {
-		const hostname = new URL(hostUrl).hostname;
-		return hostname === "127.0.0.1" ||
-			hostname === "localhost" ||
-			hostname === "[::1]"
-			? "POST"
-			: undefined;
-	} catch {
-		return undefined;
-	}
+export function createHostServiceQueryMethodPolicy(): HostServiceQueryMethodPolicy {
+	let methodOverride: QueryMethodOverride = "POST";
+
+	return {
+		getMethodOverride: () => methodOverride,
+		retryWithoutMethodOverride: ({ attempts, error, op }) => {
+			const shouldRetry =
+				op.type === "query" &&
+				attempts === 1 &&
+				error.data?.code === "METHOD_NOT_SUPPORTED" &&
+				error.data.httpStatus === 405;
+			if (shouldRetry) methodOverride = undefined;
+			return shouldRetry;
+		},
+	};
+}
+
+/**
+ * Creates an adaptive host-service transport. Current hosts keep POST queries
+ * so large inputs stay out of URLs; previous-release hosts are detected by
+ * their 405/METHOD_NOT_SUPPORTED response and retried once with GET. Mutations
+ * remain POST in both branches.
+ */
+export function createHostServiceTransportLinks({
+	fetch,
+	hostUrl,
+	headers = () => ({}),
+}: HostServiceTransportOptions): TRPCLink<AppRouter>[] {
+	const queryMethodPolicy = createHostServiceQueryMethodPolicy();
+	const linkOptions = {
+		url: `${hostUrl}/trpc`,
+		transformer: superjson,
+		headers,
+		...(fetch ? { fetch } : {}),
+	};
+	const getCompatibleLink = httpBatchStreamLink(linkOptions);
+	const postQueryLink = httpBatchStreamLink({
+		...linkOptions,
+		methodOverride: "POST",
+	});
+
+	return [
+		retryLink<AppRouter>({
+			retry: (options) => queryMethodPolicy.retryWithoutMethodOverride(options),
+		}),
+		splitLink<AppRouter>({
+			condition: () => queryMethodPolicy.getMethodOverride() === "POST",
+			true: postQueryLink,
+			false: getCompatibleLink,
+		}),
+	];
 }
