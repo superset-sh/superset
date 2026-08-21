@@ -92,6 +92,7 @@ export async function connectRelay(
 				getAuthToken: () => options.authProvider.getJwt(),
 				localPort: options.localPort,
 				hostServiceSecret: options.hostServiceSecret,
+				resolveRelayUrl: () => resolveRelayUrl(options.api, options.relayUrl),
 			};
 
 			const proto = await detectRelayProto(relayUrl);
