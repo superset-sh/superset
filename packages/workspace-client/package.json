@@ -11,6 +11,10 @@
 		"./relay-socket": {
 			"types": "./src/lib/relaySocket/index.ts",
 			"default": "./src/lib/relaySocket/index.ts"
+		},
+		"./host-transport": {
+			"types": "./src/lib/hostTransport.ts",
+			"default": "./src/lib/hostTransport.ts"
 		}
 	},
 	"scripts": {
