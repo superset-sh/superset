@@ -69,13 +69,6 @@ function OnboardingDashboardPage() {
 	return (
 		<>
 			<div className="-mt-4">
-				<p className="mb-6 flex items-center gap-2 text-xs text-muted-foreground">
-					<span className="relative flex size-1.5">
-						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-						<span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-					</span>
-					Detecting automatically · statuses update as you install or sign in
-				</p>
 				<div className="divide-y divide-border">
 					<OnboardingRow
 						icon={<SiGithub className="size-4.5" />}
