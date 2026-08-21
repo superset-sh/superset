@@ -122,8 +122,9 @@ export function WorkspaceCreatingState({
 				{stuck && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
-							This is taking longer than usual. The {isSession ? "session" : "workspace"} may
-							already be ready — reloading can pick it up.
+							This is taking longer than usual. The{" "}
+							{isSession ? "session" : "workspace"} may already be ready —
+							reloading can pick it up.
 						</p>
 						<Button
 							size="sm"
