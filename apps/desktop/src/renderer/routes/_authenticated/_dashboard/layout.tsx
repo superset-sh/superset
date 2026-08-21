@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
 import { Redirect } from "renderer/components/Redirect";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { useQuickCreateWorkspace } from "renderer/hooks/useQuickCreateWorkspace";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
@@ -52,6 +53,7 @@ function DashboardLayout() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const quickCreateWorkspace = useQuickCreateWorkspace();
 	useDevSeedV2Sidebar();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -75,6 +77,7 @@ function DashboardLayout() {
 		matchRoute({ to: "/tasks", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
 		matchRoute({ to: "/usage", fuzzy: true }) !== false ||
+		matchRoute({ to: "/plugins", fuzzy: true }) !== false ||
 		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;
 	const versionMismatch =
 		(isV2CloudEnabled && onV1WorkspaceRoute) ||
@@ -120,6 +123,11 @@ function DashboardLayout() {
 		openNewWorkspaceModal(
 			currentWorkspace?.projectId ?? currentV2Workspace?.projectId ?? undefined,
 		),
+	);
+	useHotkey(
+		"QUICK_CREATE_WORKSPACE",
+		() => quickCreateWorkspace(currentV2Workspace?.projectId ?? null),
+		{ enabled: isV2CloudEnabled },
 	);
 
 	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);

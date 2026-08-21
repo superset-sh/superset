@@ -1,0 +1,1 @@
+export { PluginKindBadges } from "./PluginKindBadges";
