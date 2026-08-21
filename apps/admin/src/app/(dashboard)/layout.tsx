@@ -18,7 +18,6 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { env } from "@/env";
-import { api } from "@/trpc/server";
 
 import { AppSidebar } from "./components/AppSidebar";
 
@@ -39,16 +38,9 @@ export default async function DashboardLayout({
 		redirect(env.NEXT_PUBLIC_WEB_URL);
 	}
 
-	const trpc = await api();
-	const user = await trpc.user.me.query();
-
-	if (!user) {
-		redirect(env.NEXT_PUBLIC_WEB_URL);
-	}
-
 	return (
 		<SidebarProvider>
-			<AppSidebar user={user} />
+			<AppSidebar user={session.user} />
 			<SidebarInset>
 				<header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
 					<SidebarTrigger className="-ml-1" />

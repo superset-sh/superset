@@ -27,6 +27,10 @@
 		"./insight-registry": {
 			"types": "./src/router/analytics/insight-registry.ts",
 			"default": "./src/router/analytics/insight-registry.ts"
+		},
+		"./business-metrics": {
+			"types": "./src/router/analytics/business.ts",
+			"default": "./src/router/analytics/business.ts"
 		}
 	},
 	"scripts": {
