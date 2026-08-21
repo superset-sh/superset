@@ -41,25 +41,44 @@ async function resolveRelayUrl(
 	return fallback;
 }
 
-// The relay advertises its protocol on /health ({proto: 2} for tunnel v2);
-// anything else — including the v1 relay's {ok, region} and any probe
-// failure — selects the v1 client. Negotiating here keeps protocol choice
-// between host and relay instead of adding config plumbing through every
-// spawner (desktop, CLI, env).
+// The relay advertises its protocol on /health ({proto: 2} for tunnel v2;
+// the v1 relay answers {ok, region} with no proto). Negotiating here keeps
+// protocol choice between host and relay instead of adding config plumbing
+// through every spawner (desktop, CLI, env).
+//
+// Only a healthy 200 gets to decide. An unreachable or erroring relay must
+// not be mistaken for a v1 relay: during the relay2 cutover the deleted
+// scratch worker answered every probe with an error page, and the old
+// v1-on-failure fallback wedged hosts in a silent v1 reconnect loop against
+// an endpoint that spoke neither protocol — and once a protocol is picked it
+// sticks for the client's lifetime, so per-reconnect URL re-resolution alone
+// can't recover it. Throwing instead sends the caller back through
+// registration, which re-resolves the relay URL and re-negotiates, so a
+// relay that moved is picked up on the next attempt.
 async function detectRelayProto(relayUrl: string): Promise<1 | 2> {
+	let lastFailure: unknown;
 	for (let attempt = 0; attempt < 3; attempt++) {
+		if (attempt > 0) {
+			await new Promise((r) => setTimeout(r, 1_000 * attempt).unref());
+		}
 		try {
 			const res = await fetch(new URL("/health", relayUrl), {
 				signal: AbortSignal.timeout(5_000),
 			});
-			if (!res.ok) return 1;
-			const data = (await res.json()) as { proto?: number };
-			return data.proto === 2 ? 2 : 1;
-		} catch {
-			await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
+			if (res.ok) {
+				const data = (await res.json()) as { proto?: number };
+				return data.proto === 2 ? 2 : 1;
+			}
+			lastFailure = new Error(`/health responded ${res.status}`);
+		} catch (error) {
+			lastFailure = error;
 		}
 	}
-	return 1;
+	throw new Error(
+		`relay ${relayUrl} health probe failed: ${
+			lastFailure instanceof Error ? lastFailure.message : lastFailure
+		}`,
+	);
 }
 
 const REGISTER_RETRY_BASE_MS = 30_000;
