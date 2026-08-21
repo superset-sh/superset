@@ -17,6 +17,7 @@ import { OrganizationInvitationEmail } from "@superset/email/emails/team/invitat
 import { MemberAddedEmail } from "@superset/email/emails/team/member-added";
 import { MemberRemovedEmail } from "@superset/email/emails/team/member-removed";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
 import { betterAuth } from "better-auth";
@@ -883,10 +884,14 @@ export const auth = betterAuth({
 
 				let plan: string | null = null;
 				if (activeOrganizationId) {
+					// Same statuses the rest of the app gates on — this is the value
+					// the paywall falls back to when the activePlan query can't be
+					// reached, so an "active"-only read here would strand trialing
+					// and past_due orgs on a cold start.
 					const subscription = await db.query.subscriptions.findFirst({
 						where: and(
 							eq(subscriptions.referenceId, activeOrganizationId),
-							eq(subscriptions.status, "active"),
+							inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 						),
 					});
 					plan = subscription?.plan ?? null;
