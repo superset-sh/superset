@@ -105,6 +105,38 @@ describe("runQuitCleanup", () => {
 		expect(h.forceExit).toHaveBeenCalledWith(0);
 	});
 
+	test("waits for the analytics drain before force-exiting", async () => {
+		let resolveDrain: () => void = () => {};
+		const drain = new Promise<void>((resolve) => {
+			resolveDrain = resolve;
+		});
+		const h = createHarness({ flushAnalytics: () => drain });
+
+		let finished = false;
+		const run = runQuitCleanup(h.deps).then(() => {
+			finished = true;
+		});
+		await Promise.resolve();
+		expect(finished).toBe(false);
+		expect(h.forceExit).not.toHaveBeenCalled();
+
+		resolveDrain();
+		await run;
+		expect(h.forceExit).toHaveBeenCalledWith(0);
+	});
+
+	test("force-exits even if the analytics drain rejects", async () => {
+		const h = createHarness({
+			flushAnalytics: async () => {
+				throw new Error("network down");
+			},
+		});
+
+		await runQuitCleanup(h.deps);
+
+		expect(h.forceExit).toHaveBeenCalledWith(0);
+	});
+
 	test("force-exits even if cleanup throws", async () => {
 		const h = createHarness({
 			stopHostServices: () => {

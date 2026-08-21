@@ -20,6 +20,8 @@ export interface QuitCleanupDeps {
 	disposeTerminalHostClient: () => void;
 	shutdownPersistence: () => void;
 	disposeTray: () => void;
+	/** Time-bounded analytics drain so quit-time captures reach the wire. */
+	flushAnalytics?: () => Promise<void>;
 	forceExit: (code: number) => void;
 	scheduleTimer?: (callback: () => void, delayMs: number) => void;
 	logError?: (message: string, error: unknown) => void;
@@ -36,11 +38,16 @@ export async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 		shutdownPersistence,
 		disposeTray,
 		forceExit,
+		flushAnalytics,
 		scheduleTimer = (callback, delayMs) => {
 			setTimeout(callback, delayMs);
 		},
 		logError = (message, error) => console.error(message, error),
 	} = deps;
+
+	// Start draining quit-time analytics captures while cleanup runs; awaited
+	// (already time-bounded by the implementation) before the forced exit.
+	const analyticsDrain = flushAnalytics?.().catch(() => {});
 
 	try {
 		stopHostServices();
@@ -67,5 +74,6 @@ export async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 		return;
 	}
 
+	await analyticsDrain;
 	forceExit(0);
 }

@@ -29,6 +29,7 @@ import {
 	PLATFORM,
 	PROTOCOL_SCHEME,
 } from "shared/constants";
+import { flushAnalytics } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
@@ -47,6 +48,7 @@ import {
 import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
+import { startResourceDigest, stopResourceDigest } from "./lib/resource-digest";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
@@ -245,6 +247,7 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
+	stopResourceDigest();
 	await runQuitCleanup({
 		isDev,
 		forceFullCleanup,
@@ -254,6 +257,7 @@ app.on("before-quit", async (event) => {
 		disposeTerminalHostClient,
 		shutdownPersistence: shutdownTanstackDbPersistence,
 		disposeTray,
+		flushAnalytics,
 		forceExit: (code) => app.exit(code),
 	});
 });
@@ -511,6 +515,7 @@ if (!gotTheLock) {
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
+		startResourceDigest();
 		initTray();
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);

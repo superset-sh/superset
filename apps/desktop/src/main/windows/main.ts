@@ -9,6 +9,7 @@ import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
 import { isExpectedRendererExit } from "main/lib/renderer-exit";
+import { recordWindowUnresponsive } from "main/lib/resource-digest";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
 import {
 	env,
@@ -167,18 +168,27 @@ export async function MainWindow() {
 				}
 			},
 		);
-
-		window.on("unresponsive", () => {
-			log.warn("[main-window] Renderer became unresponsive", {
-				url: window.webContents.getURL(),
-			});
-		});
-		window.on("responsive", () => {
-			log.info("[main-window] Renderer became responsive", {
-				url: window.webContents.getURL(),
-			});
-		});
 	}
+
+	// A hung renderer produces no crash and no exception, so without this
+	// production hangs are invisible to both Sentry and the resource digest.
+	let unresponsiveSince: number | null = null;
+	window.on("unresponsive", () => {
+		unresponsiveSince = Date.now();
+		log.warn("[main-window] Renderer became unresponsive", {
+			url: window.webContents.getURL(),
+		});
+		recordWindowUnresponsive();
+		Sentry.captureMessage("renderer unresponsive", { level: "error" });
+	});
+	window.on("responsive", () => {
+		const durationMs = unresponsiveSince ? Date.now() - unresponsiveSince : 0;
+		unresponsiveSince = null;
+		log.info("[main-window] Renderer became responsive", {
+			url: window.webContents.getURL(),
+			durationMs,
+		});
+	});
 
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);

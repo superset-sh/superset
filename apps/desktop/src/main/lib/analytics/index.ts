@@ -37,6 +37,26 @@ export function setUserId(id: string | null): void {
 	userId = id;
 }
 
+/**
+ * Drain captures onto the wire before process exit. `flushAt: 1` starts the
+ * HTTP send at capture time, but `app.exit()` right after a quit-time capture
+ * kills the request mid-flight; awaiting this (time-bounded) closes that race.
+ * The client is unusable afterwards, so only call it from the quit path.
+ */
+export async function flushAnalytics(timeoutMs = 2_000): Promise<void> {
+	if (!posthog) return;
+	try {
+		await Promise.race([
+			posthog.shutdown(timeoutMs),
+			new Promise<void>((resolve) => {
+				setTimeout(resolve, timeoutMs).unref?.();
+			}),
+		]);
+	} catch {
+		// Losing a final telemetry event must never block quit.
+	}
+}
+
 export function track(
 	event: string,
 	properties?: Record<string, unknown>,
