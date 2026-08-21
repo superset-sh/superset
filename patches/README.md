@@ -117,3 +117,61 @@ native change: a dev client needs a fresh native build to pick it up.
 with its same-day expo-modules-core) carries the fix upstream. Delete the patch
 and the `patchedDependencies` entry then; the guard test reads the installed
 Swift file, so it keeps passing on its own.
+
+## node-pty (`node-pty@<version>.patch`)
+
+**Why:** DESKTOP-101 / DESKTOP-107 / DESKTOP-10J. The desktop main process
+initialises the Sentry Electron SDK, whose `SentryMinidump` integration starts
+Electron's `crashReporter`. On macOS that points the *task* Mach exception port
+at Crashpad's handler, and macOS inherits task exception ports across
+fork/exec — including into grandchildren. Superset is terminal-centric, so every
+shell, coding agent, compiler and test runner a user starts is a descendant of
+the app and reports its crashes to our handler, which writes a minidump into our
+Crashpad database. The SDK then uploads it under our DSN as a fatal Superset
+crash. Measured over seven days: 4960 of 5141 minidump events (96.5%) came from
+processes that are not ours, ~700/day, each carrying an unrelated program's
+memory, file paths and command line.
+
+**What it changes** (`src/unix/spawn-helper.cc`): node-pty `posix_spawn`s a
+small `spawn-helper` executable which sets up the controlling terminal and then
+`execvp`s the real command — the one point that is inside the pty child and
+before the user's program. The patch clears the inherited task exception ports
+there. The masks are named explicitly rather than using `EXC_MASK_ALL`, which
+deliberately excludes `EXC_MASK_CRASH` and would therefore compile, run, and
+silently do nothing. Clearing to `MACH_PORT_NULL` does not cost the user their
+own crash logs — macOS still writes its usual report to
+`~/Library/Logs/DiagnosticReports`.
+
+The boundary is process ancestry, not a tag or heuristic: only processes
+launched *into a pty* are detached. Electron's own main, renderer, GPU and
+utility processes, and the node children the app spawns with
+`child_process.spawn` (host-service, pty daemon — the renderer/node OOM family
+this was measured against), are not spawned through node-pty and keep reporting
+exactly as before. The known, accepted gap is that a Superset binary a user runs
+*themselves* in a terminal (e.g. the bundled `superset` CLI) is on the detached
+side.
+
+`spawn-helper` is compiled from this source by the node-gyp rebuild that
+`bun run install:deps` and electron-builder's `npmRebuild` perform, and
+node-pty's loader prefers `build/Release` over the bundled `prebuilds/`, so the
+patched helper is the one that ships.
+
+**Guard test:** `apps/desktop/src/pty-crash-ports-patch.test.ts`.
+
+**Regenerating after a version bump** (~5 min):
+
+```bash
+bun patch node-pty@<new-version>
+# in node_modules/node-pty/src/unix/spawn-helper.cc, before execvp():
+#   task_set_exception_ports(mach_task_self(),
+#                            EXC_MASK_CRASH | EXC_MASK_RESOURCE | EXC_MASK_GUARD,
+#                            MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE);
+#   guarded by #if defined(__APPLE__), with #include <mach/mach.h>
+bun patch --commit 'node_modules/node-pty'
+bun test apps/desktop/src/pty-crash-ports-patch.test.ts
+```
+
+**Removing:** upstream could do this properly for every embedder by setting the
+ports on the spawn attributes it already builds in `pty_posix_spawn`
+(`posix_spawnattr_setexceptionports_np`). If node-pty ships that, drop the patch
+and the `patchedDependencies` entry.

@@ -1,0 +1,34 @@
+diff --git a/src/unix/spawn-helper.cc b/src/unix/spawn-helper.cc
+index 8066328f5d16b59f5278e2f49d6478950ec721d4..5d67d647c6fbf7479565169db199cc754acc3629 100644
+--- a/src/unix/spawn-helper.cc
++++ b/src/unix/spawn-helper.cc
+@@ -3,6 +3,10 @@
+ #include <string.h>
+ #include <unistd.h>
+ 
++#if defined(__APPLE__)
++#include <mach/mach.h>
++#endif
++
+ int main (int argc, char** argv) {
+   char *slave_path = ttyname(STDIN_FILENO);
+   // open implicit attaches a process to a terminal device if:
+@@ -18,6 +22,18 @@ int main (int argc, char** argv) {
+     _exit(1);
+   }
+ 
++#if defined(__APPLE__)
++  // macOS inherits task-level Mach exception ports across fork/exec, so anything
++  // started in a pty keeps reporting crashes to whatever crash handler the
++  // embedding application registered. Drop that registration before exec so pty
++  // children are not attributed to the embedder. EXC_MASK_ALL deliberately
++  // excludes EXC_MASK_CRASH, so the masks Crashpad registers are named here
++  // explicitly. The OS crash reporter still records these crashes.
++  task_set_exception_ports(mach_task_self(),
++                           EXC_MASK_CRASH | EXC_MASK_RESOURCE | EXC_MASK_GUARD,
++                           MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE);
++#endif
++
+   execvp(file, argv);
+   return 1;
+ }
