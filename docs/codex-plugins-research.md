@@ -22,7 +22,7 @@ Distribution is a **universal plugin directory shared between ChatGPT and Codex*
 
 Entry point is `.codex-plugin/plugin.json`:
 
-```json
+```jsonc
 {
   "name": "my-plugin",            // stable kebab-case id
   "version": "1.0.0",             // semver; acts as cache key — bumps force reinstall
@@ -34,7 +34,7 @@ Entry point is `.codex-plugin/plugin.json`:
 }
 ```
 
-```
+```text
 plugin-name/
 ├── .codex-plugin/plugin.json   # required manifest
 ├── skills/<skill-name>/SKILL.md

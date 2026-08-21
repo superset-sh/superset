@@ -17,7 +17,7 @@ Plan gating uses the existing `isPaidPlan()` (`packages/shared/src/billing.ts`) 
 | Term | Definition |
 | --- | --- |
 | **Plugin** | The installable unit. A versioned bundle of any of: skills, MCP server configs, connector requirements. Manifest-driven. |
-| **Skill** | `SKILL.md` folder (existing format; `name`, `description`, optional `argument-hint`, optional `agents/openai.yaml` sidecar). Instruction-only → low-risk review lane. |
+| **Skill** | `SKILL.md` folder (existing format; `name`, `description`, optional `argument-hint`, optional `agents/openai.yaml` sidecar). Instruction-only skills get the low-risk review lane; a skill bundling `scripts/` is executable code and reviews in the gated lane like MCP servers until sandboxing/signing is defined. |
 | **MCP server** | Remote (`url` + auth) or local (`command`/`args`) tool server entry the plugin ships. Remote-first for org plugins. |
 | **Connector** | A required org integration (`integration_connections.provider`) the plugin's MCP servers depend on, e.g. "needs Linear". Declared, not embedded. |
 | **Marketplace scope** | Where a plugin is published: **Superset-curated** (public registry), **Org** (private to one org), **Personal/local** (a repo or directory the user points at). Same three-tab model as Codex. |
@@ -41,13 +41,13 @@ Superset-native manifest, deliberately isomorphic to the Codex/Claude plugin sha
 }
 ```
 
-Rules carried over from Codex research: relative `./` paths only; version bump forces re-materialization; MCP tool names get namespaced per server to avoid collisions. Org-scope plugins may only declare **remote** MCP servers unless an org admin explicitly allows stdio (`command`) servers — arbitrary local processes are the highest-risk component and default-off for pushed plugins.
+Rules carried over from Codex research: relative `./` paths only — and a `./` prefix is necessary, not sufficient: the materializer canonicalizes every resolved target (symlinks included) and rejects anything outside the plugin root; version bump forces re-materialization; MCP tool names get namespaced per server to avoid collisions. Org-scope plugins may only declare **remote** MCP servers unless an org admin explicitly allows stdio (`command`) servers — arbitrary local processes are the highest-risk component and default-off for pushed plugins.
 
 ## 4. User experience
 
 ### 4.1 Individual (free tier)
 
-- **Catalog surface:** new desktop settings section `settings/plugins` (none exists today — verified against all 28 settings routes) with tabs **Superset / Org / Personal**, each listing plugins with the Apps-vs-MCPs-vs-Skills contents badged per card. Web mirror later; desktop first since materialization is host-local.
+- **Catalog surface:** the MVP (PR #6722) shipped this as a sidebar page at `apps/desktop/src/renderer/routes/_authenticated/_dashboard/plugins/` backed by a desktop-local electron tRPC router (`apps/desktop/src/lib/trpc/routers/plugins/`), not the settings section originally sketched here — tabs **Superset / Org / Personal** and the cloud `plugin` router below remain future work. Web mirror later; desktop first since materialization is host-local.
 - **Install:** one click → plugin resolved, cached under `~/.superset/plugins/<scope>/<name>/<version>/`, then **materialized** into every agent CLI the user has (see §5.2). Uninstall/disable reverses it without touching user-owned files.
 - **Invocation:** unchanged — skills surface through each agent's native discovery (`.agents/skills/`), MCP tools through each agent's native config. We manage config, not runtime.
 - **CLI parity:** `superset plugins list|install|remove|sync` (no `mcp`/`plugins` command exists today across the 16 CLI command dirs).
@@ -109,7 +109,7 @@ Follow house conventions: uuid PK `defaultRandom()`, `organizationId` FK cascade
 
 | Table | Purpose / key columns |
 | --- | --- |
-| `plugins` | Registry entry. `scope` enum (`curated`/`org`), `organization_id` (null for curated), `name`, `source` jsonb (git/tarball/registry ref), latest `version`, `manifest` jsonb, `content_hash`, `published_by_user_id`, `archived_at`. Unique `(organization_id, name)`. |
+| `plugins` | Registry entry. `scope` enum (`curated`/`org`), `organization_id` (null for curated), `name`, `source` jsonb (git/tarball/registry ref), latest `version`, `manifest` jsonb, `content_hash`, `published_by_user_id`, `archived_at`. Unique `(organization_id, name)` for org rows plus a partial unique index on `name` where `organization_id IS NULL` — Postgres treats NULLs as distinct, so curated names need their own uniqueness guarantee. |
 | `plugin_versions` | Immutable version rows: `plugin_id`, `version`, `manifest` jsonb, `content_hash`. Enables rollback + install pinning. |
 | `plugin_policies` | `organization_id`, `plugin_id`, `state` pgEnum (`installed_by_default`/`available`/`not_available`), `roles` text[] (null = all), `team_ids` uuid[] (null = all), `allow_stdio_servers` bool default false, `updated_by_user_id`. |
 | `plugin_installs` | Adoption source of truth. `organization_id` (nullable — free users), `user_id`, `plugin_id`, `version`, `origin` enum (`user`/`policy`), `status` enum (`installed`/`disabled`/`removed`), `last_synced_at`, `host_fingerprint`. |

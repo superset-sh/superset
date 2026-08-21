@@ -135,10 +135,12 @@ function syncClaudeMcpServers(
 	const filePath = path.join(homeDir, ".claude.json");
 	const tracked = ledger.files[filePath] ?? {};
 
+	let rawAtRead: string | null = null;
 	let root: Record<string, unknown>;
 	if (fs.existsSync(filePath)) {
 		try {
-			const parsed = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+			rawAtRead = fs.readFileSync(filePath, "utf-8");
+			const parsed = JSON.parse(rawAtRead);
 			if (!isPlainObject(parsed)) {
 				console.warn(
 					`[agent-setup] Expected ${filePath} to contain a JSON object; skipping Claude MCP sync`,
@@ -211,6 +213,28 @@ function syncClaudeMcpServers(
 		nextTracked[name] = valueHash;
 	}
 
+	// Concurrency guard: Claude Code rewrites this file while it runs, and a
+	// write landing between our read and our write would be clobbered wholesale
+	// (the file holds far more than mcpServers). If the file changed since we
+	// read it, skip this round — ledger untouched — and let the next sync
+	// converge. A write inside the remaining read-check-rename window can still
+	// lose, but the window is milliseconds instead of the whole merge.
+	if (mutated) {
+		try {
+			const rawNow = fs.existsSync(filePath)
+				? fs.readFileSync(filePath, "utf-8")
+				: null;
+			if (rawNow !== rawAtRead) {
+				console.warn(
+					`[agent-setup] ${filePath} changed during sync; skipping this round`,
+				);
+				return;
+			}
+		} catch {
+			return;
+		}
+	}
+
 	if (Object.keys(nextTracked).length === 0) {
 		delete ledger.files[filePath];
 	} else {
@@ -240,6 +264,13 @@ function codexServerTable(name: string, config: PluginMcpServerConfig): string {
 	const lines = [`[mcp_servers.${name}]`];
 	if ("url" in config) {
 		lines.push(`url = ${tomlString(config.url)}`);
+		if (config.headers && Object.keys(config.headers).length > 0) {
+			// Codex's key for static request headers is `http_headers`.
+			const pairs = Object.entries(config.headers)
+				.map(([key, val]) => `${tomlString(key)} = ${tomlString(val)}`)
+				.join(", ");
+			lines.push(`http_headers = { ${pairs} }`);
+		}
 	} else {
 		lines.push(`command = ${tomlString(config.command)}`);
 		if (config.args && config.args.length > 0) {
@@ -376,8 +407,16 @@ export function readExternallyConfiguredMcpServers(
 	}
 
 	const codexPath = path.join(homeDir, ".codex", "config.toml");
-	if (fs.existsSync(codexPath)) {
-		const content = fs.readFileSync(codexPath, "utf-8");
+	let codexContent: string | null = null;
+	try {
+		codexContent = fs.existsSync(codexPath)
+			? fs.readFileSync(codexPath, "utf-8")
+			: null;
+	} catch {
+		// Unreadable file contributes nothing, per the contract above.
+	}
+	if (codexContent !== null) {
+		const content = codexContent;
 		const start = content.indexOf(CODEX_MARKER_START);
 		const end = content.indexOf(CODEX_MARKER_END);
 		const outsideBlock =
