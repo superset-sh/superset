@@ -169,6 +169,16 @@ export class TunnelClient {
 		}
 	}
 
+	/**
+	 * Whether the relay WebSocket is currently open. Callers use this to report
+	 * relay connectivity honestly — the socket is opened fire-and-forget and may
+	 * never complete (e.g. the relay answering the WS upgrade with an HTTP 404),
+	 * so a successful local health check does not imply the tunnel is up.
+	 */
+	isConnected(): boolean {
+		return this.socket?.readyState === WebSocket.OPEN;
+	}
+
 	close(): void {
 		this.closed = true;
 		this.stopWatchdog();
