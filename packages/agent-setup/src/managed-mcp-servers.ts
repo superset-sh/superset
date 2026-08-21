@@ -426,15 +426,25 @@ export function readExternallyConfiguredMcpServers(
 		// Line-level parse of each [mcp_servers.<name>] table: enough for
 		// matching (url/command), no TOML parser needed.
 		const tables = outsideBlock.split(/^\s*\[/m);
+		// Values may be TOML basic ("...") or literal ('...') strings; both
+		// are read so a single-quoted url still matches for dedup.
+		const stringValue = (source: string, key: string) => {
+			const match = source.match(
+				new RegExp(`^\\s*${key}\\s*=\\s*(?:"([^"]+)"|'([^']+)')`, "m"),
+			);
+			return match?.[1] ?? match?.[2];
+		};
 		for (const table of tables) {
 			const header = table.match(/^mcp_servers\.([A-Za-z0-9_-]+)\]/);
 			const name = header?.[1];
 			if (name === undefined || byName.has(name)) continue;
-			const url = table.match(/^\s*url\s*=\s*"([^"]+)"/m)?.[1];
-			const command = table.match(/^\s*command\s*=\s*"([^"]+)"/m)?.[1];
+			const url = stringValue(table, "url");
+			const command = stringValue(table, "command");
 			const argsRaw = table.match(/^\s*args\s*=\s*\[([^\]]*)\]/m)?.[1];
 			const args = argsRaw
-				? [...argsRaw.matchAll(/"([^"]*)"/g)].map((m) => m[1] ?? "")
+				? [...argsRaw.matchAll(/"([^"]*)"|'([^']*)'/g)].map(
+						(m) => m[1] ?? m[2] ?? "",
+					)
 				: undefined;
 			byName.set(name, {
 				name,

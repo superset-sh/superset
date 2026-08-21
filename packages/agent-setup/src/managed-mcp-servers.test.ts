@@ -327,6 +327,22 @@ describe("readExternallyConfiguredMcpServers", () => {
 		]);
 	});
 
+	it("reads single-quoted (TOML literal) Codex values", () => {
+		mkdirSync(path.dirname(codexToml), { recursive: true });
+		writeFileSync(
+			codexToml,
+			"[mcp_servers.my-linear]\nurl = 'https://mcp.linear.app/mcp'\n",
+		);
+
+		expect(readExternal()).toEqual([
+			{
+				name: "my-linear",
+				url: "https://mcp.linear.app/mcp",
+				source: "Codex",
+			},
+		]);
+	});
+
 	it("returns empty when no configs exist", () => {
 		expect(readExternal()).toEqual([]);
 	});
