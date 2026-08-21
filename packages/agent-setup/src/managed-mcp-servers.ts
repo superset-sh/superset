@@ -497,7 +497,21 @@ export function syncManagedMcpServers(
 	const codexDesired = desiredForScope("Codex");
 	const spec = codexMcpSpec(codexDesired, homeDir);
 	if (Object.keys(codexDesired).length === 0) {
-		removeManagedTomlBlock(spec);
+		// Only reap when our marker block is actually present: this runs at
+		// every desktop boot for every user, and removeManagedTomlBlock would
+		// otherwise whitespace-normalize a config we never wrote into.
+		try {
+			if (
+				fs.existsSync(spec.getFilePath()) &&
+				fs
+					.readFileSync(spec.getFilePath(), "utf-8")
+					.includes(CODEX_MARKER_START)
+			) {
+				removeManagedTomlBlock(spec);
+			}
+		} catch {
+			// Unreadable: nothing of ours to reap.
+		}
 	} else {
 		ensureManagedTomlBlock(spec);
 	}

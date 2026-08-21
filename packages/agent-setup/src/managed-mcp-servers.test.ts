@@ -216,6 +216,18 @@ describe("syncManagedMcpServers — Codex", () => {
 
 		expect(existsSync(codexToml)).toBe(false);
 	});
+
+	it("leaves an unrelated config byte-for-byte untouched when nothing is installed", () => {
+		mkdirSync(path.dirname(codexToml), { recursive: true });
+		// Trailing whitespace on purpose: the empty-desired boot sync must not
+		// normalize a config we never wrote into.
+		const original = 'model = "gpt-5"\n\n\n';
+		writeFileSync(codexToml, original);
+
+		run({});
+
+		expect(readFileSync(codexToml, "utf-8")).toBe(original);
+	});
 });
 
 describe("syncManagedMcpServers — per-agent external scoping", () => {
