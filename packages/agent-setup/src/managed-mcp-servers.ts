@@ -2,9 +2,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type {
-	ExternalMcpServer,
-	PluginMcpServerConfig,
+import {
+	type ExternalMcpServer,
+	isServerSatisfiedExternally,
+	type PluginMcpServerConfig,
 } from "@superset/shared/plugins";
 import { writeFileIfChanged } from "./agent-wrappers-common";
 import {
@@ -413,6 +414,12 @@ export function readExternallyConfiguredMcpServers(
  * Converges every managed agent config on `desired` (server name → config).
  * Installing writes entries, uninstalling reaps them; call sites pass the
  * full desired set derived from installed plugins, never deltas.
+ *
+ * Servers the user already configured themselves satisfy the plugin — but
+ * only for the agent they configured them in: a hand-written Codex table
+ * must not suppress (or reap) the Claude entry, and vice versa. Each
+ * writer's desired set is therefore filtered against externals from its own
+ * scope only.
  */
 export function syncManagedMcpServers(
 	desired: Record<string, PluginMcpServerConfig>,
@@ -420,13 +427,27 @@ export function syncManagedMcpServers(
 ): void {
 	const homeDir = options.homeDir ?? os.homedir();
 	const supersetHomeDir = options.supersetHomeDir ?? resolveSupersetHomeDir();
+	const external = readExternallyConfiguredMcpServers(options);
+
+	const desiredForScope = (sourcePrefix: string) => {
+		const scoped = external.filter(
+			(server) =>
+				server.source === undefined || server.source.startsWith(sourcePrefix),
+		);
+		return Object.fromEntries(
+			Object.entries(desired).filter(
+				([name, config]) => !isServerSatisfiedExternally(name, config, scoped),
+			),
+		);
+	};
 
 	const ledger = readLedger(supersetHomeDir);
-	syncClaudeMcpServers(desired, homeDir, ledger);
+	syncClaudeMcpServers(desiredForScope("Claude Code"), homeDir, ledger);
 	writeLedger(supersetHomeDir, ledger);
 
-	const spec = codexMcpSpec(desired, homeDir);
-	if (Object.keys(desired).length === 0) {
+	const codexDesired = desiredForScope("Codex");
+	const spec = codexMcpSpec(codexDesired, homeDir);
+	if (Object.keys(codexDesired).length === 0) {
 		removeManagedTomlBlock(spec);
 	} else {
 		ensureManagedTomlBlock(spec);

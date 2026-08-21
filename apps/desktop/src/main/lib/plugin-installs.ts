@@ -1,15 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-	readExternallyConfiguredMcpServers,
-	syncManagedMcpServers,
-} from "@superset/agent-setup";
+import { syncManagedMcpServers } from "@superset/agent-setup";
 import { getBundledPluginDir } from "@superset/agent-setup/config";
 import { settings } from "@superset/local-db";
 import {
 	getPluginByName,
 	type InstalledPlugin,
-	isServerSatisfiedExternally,
 	type PluginMcpServerConfig,
 	SUPERSET_MANAGED_SKILLS,
 } from "@superset/shared/plugins";
@@ -43,20 +39,15 @@ function desiredMcpServers(
 	installed: InstalledPlugin[],
 ): Record<string, PluginMcpServerConfig> {
 	const desired: Record<string, PluginMcpServerConfig> = {};
-	// Servers the user already wrote themselves satisfy the plugin — never
-	// write a duplicate copy. If the user later removes their entry, the next
-	// sync sees it unsatisfied and materializes ours (self-healing).
-	const external = readExternallyConfiguredMcpServers();
 	for (const install of installed) {
 		// Disabled installs and unknown names (a catalog entry removed after
 		// install) contribute nothing, so their servers reap on the next sync.
+		// Per-agent skipping of servers the user configured themselves happens
+		// inside syncManagedMcpServers, scoped to each agent's own config.
 		if (install.enabled === false) continue;
 		const plugin = getPluginByName(install.name);
 		if (!plugin) continue;
-		for (const [name, config] of Object.entries(plugin.mcpServers)) {
-			if (isServerSatisfiedExternally(name, config, external)) continue;
-			desired[name] = config;
-		}
+		Object.assign(desired, plugin.mcpServers);
 	}
 	return desired;
 }

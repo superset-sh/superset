@@ -48,7 +48,10 @@ export function SkillIcon({ skillName, className }: SkillIconProps) {
 			<img
 				src={iconUri}
 				alt=""
-				className={cn("shrink-0 rounded-md object-contain", className ?? "size-8")}
+				className={cn(
+					"shrink-0 rounded-md object-contain",
+					className ?? "size-8",
+				)}
 			/>
 		);
 	}

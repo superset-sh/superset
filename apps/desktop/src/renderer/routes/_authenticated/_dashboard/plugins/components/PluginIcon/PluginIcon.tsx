@@ -5,7 +5,6 @@ import { LuBookOpen, LuDrama, LuPuzzle } from "react-icons/lu";
 import { SiGooglechrome, SiSentry, SiStripe, SiVercel } from "react-icons/si";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import circlebackIconUrl from "renderer/assets/icons/circleback-icon.png";
-import convexIconUrl from "renderer/assets/icons/convex-icon.png";
 import figmaIconUrl from "renderer/assets/icons/figma-icon.svg";
 import granolaIconUrl from "renderer/assets/icons/granola-icon.svg";
 import linearIconUrl from "renderer/assets/icons/linear-icon.svg";
@@ -30,7 +29,6 @@ import superhumanIconUrl from "renderer/assets/icons/superhuman-icon.png";
 const FULL_BLEED_ICONS: Record<string, string> = {
 	linear: linearIconUrl,
 	posthog: posthogIconUrl,
-	convex: convexIconUrl,
 	notion: notionIconUrl,
 	supabase: supabaseIconUrl,
 	superhuman: superhumanIconUrl,

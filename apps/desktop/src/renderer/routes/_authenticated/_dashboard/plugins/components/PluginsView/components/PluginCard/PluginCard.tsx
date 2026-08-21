@@ -40,6 +40,9 @@ export function PluginCard({
 			tabIndex={0}
 			onClick={() => onOpen(plugin)}
 			onKeyDown={(event) => {
+				// Only when the card itself is focused — Enter on a nested
+				// button (Install, ···) must not also navigate.
+				if (event.target !== event.currentTarget) return;
 				if (event.key === "Enter" || event.key === " ") {
 					event.preventDefault();
 					onOpen(plugin);

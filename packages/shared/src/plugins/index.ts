@@ -91,12 +91,17 @@ function urlHost(value: string): string | null {
 	}
 }
 
-/** "npx -y @playwright/mcp@latest" → "@playwright/mcp" */
+/**
+ * "npx -y @playwright/mcp@latest" → "@playwright/mcp". Only the first
+ * non-flag arg names the package — scanning further would match subcommands
+ * (e.g. a literal `mcp` arg) and create false matches against unrelated
+ * servers.
+ */
 function packageFromArgs(args: readonly string[] | undefined): string | null {
 	for (const arg of args ?? []) {
 		if (arg.startsWith("-")) continue;
 		const match = arg.match(/^(@?[^@]+(?:\/[^@]+)?)(?:@[^@]*)?$/);
-		if (match?.[1]?.includes("mcp")) return match[1];
+		return match?.[1] ?? null;
 	}
 	return null;
 }
@@ -341,15 +346,6 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		interface: { displayName: "Supabase", category: "Data & APIs" },
 		mcpServers: {
 			supabase: { type: "http", url: "https://mcp.supabase.com/mcp" },
-		},
-	},
-	{
-		name: "convex",
-		version: "1.0.0",
-		description: "Query and manage your Convex backend",
-		interface: { displayName: "Convex", category: "Data & APIs" },
-		mcpServers: {
-			convex: { command: "npx", args: ["-y", "convex@latest", "mcp", "start"] },
 		},
 	},
 	{

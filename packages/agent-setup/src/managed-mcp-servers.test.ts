@@ -218,6 +218,49 @@ describe("syncManagedMcpServers — Codex", () => {
 	});
 });
 
+describe("syncManagedMcpServers — per-agent external scoping", () => {
+	it("a Codex-only user server does not suppress the Claude write", () => {
+		mkdirSync(path.dirname(codexToml), { recursive: true });
+		writeFileSync(
+			codexToml,
+			'[mcp_servers.linear]\nurl = "https://mcp.linear.app/mcp"\n',
+		);
+
+		run({ linear: LINEAR });
+
+		expect(readClaude().mcpServers).toEqual({
+			linear: { type: "http", url: "https://mcp.linear.app/mcp" },
+		});
+		// Codex side stays the user's single table, no managed block added.
+		const content = readFileSync(codexToml, "utf-8");
+		expect(content.match(/\[mcp_servers\.linear\]/g)?.length).toBe(1);
+		expect(content).not.toContain("superset managed mcp servers");
+	});
+
+	it("a Claude-scope user server suppresses Claude but not Codex", () => {
+		writeFileSync(
+			claudeJson,
+			JSON.stringify({
+				projects: {
+					"/repo/a": {
+						mcpServers: {
+							"linear-server": {
+								type: "http",
+								url: "https://mcp.linear.app/mcp",
+							},
+						},
+					},
+				},
+			}),
+		);
+
+		run({ linear: LINEAR });
+
+		expect(readClaude().mcpServers).toBeUndefined();
+		expect(readFileSync(codexToml, "utf-8")).toContain("[mcp_servers.linear]");
+	});
+});
+
 describe("readExternallyConfiguredMcpServers", () => {
 	function readExternal() {
 		return readExternallyConfiguredMcpServers({
