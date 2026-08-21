@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { HiringBanner } from "renderer/components/HiringBanner";
+import { PaymentFailedBanner } from "renderer/components/PaymentFailedBanner";
 import { StarNagCard } from "renderer/components/StarNagCard";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
@@ -117,6 +118,7 @@ export function WorkspaceSidebar({
 				projectName={activeProjectName}
 			/>
 
+			<PaymentFailedBanner surface="v1" isCollapsed={isCollapsed} />
 			<HiringBanner surface="v1" isCollapsed={isCollapsed} />
 			<StarNagCard isCollapsed={isCollapsed} />
 
