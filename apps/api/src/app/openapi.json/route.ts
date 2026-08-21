@@ -360,6 +360,13 @@ const SPEC = {
 					"302": {
 						description:
 							"Redirect to the consent UI, then to redirect_uri with ?code=...&state=...",
+						headers: {
+							Location: {
+								description:
+									"Consent UI, or redirect_uri with code and state query parameters appended.",
+								schema: { type: "string", format: "uri" },
+							},
+						},
 					},
 				},
 			},
