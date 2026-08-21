@@ -6,32 +6,59 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { LuCheck, LuEllipsis, LuTrash2 } from "react-icons/lu";
-import { PluginIcon } from "../PluginIcon";
+import { LuCheck, LuEllipsis, LuPause, LuPlay, LuTrash2 } from "react-icons/lu";
+import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import { PluginKindBadges } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginKindBadges";
 
 interface PluginCardProps {
 	plugin: PluginCatalogEntry;
+	/** Installed record OR satisfied by the user's own config — one state. */
 	isInstalled: boolean;
+	/** Installed but disabled: record kept, nothing materialized. */
+	isDisabled: boolean;
 	isBusy: boolean;
+	onOpen: (plugin: PluginCatalogEntry) => void;
 	onInstall: (plugin: PluginCatalogEntry) => void;
 	onUninstall: (plugin: PluginCatalogEntry) => void;
+	onSetEnabled: (name: string, enabled: boolean) => void;
 }
 
 export function PluginCard({
 	plugin,
 	isInstalled,
+	isDisabled,
 	isBusy,
+	onOpen,
 	onInstall,
 	onUninstall,
+	onSetEnabled,
 }: PluginCardProps) {
 	return (
-		<div className="flex items-center gap-3 rounded-lg border border-border/60 bg-background p-3 transition-colors hover:border-border">
+		// biome-ignore lint/a11y/useSemanticElements: the card nests real buttons (Install, ··· menu); a native <button> cannot contain them
+		<div
+			role="button"
+			tabIndex={0}
+			onClick={() => onOpen(plugin)}
+			onKeyDown={(event) => {
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					onOpen(plugin);
+				}
+			}}
+			className="flex cursor-pointer items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-fill-hover"
+		>
 			<PluginIcon pluginName={plugin.name} />
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-1.5 text-sm font-medium text-foreground">
 					{plugin.interface.displayName}
-					{isInstalled && (
+					<PluginKindBadges plugin={plugin} />
+					{isInstalled && !isDisabled && (
 						<LuCheck className="size-3.5 shrink-0 text-muted-foreground" />
+					)}
+					{isDisabled && (
+						<span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+							Disabled
+						</span>
 					)}
 				</div>
 				<p className="truncate text-xs text-muted-foreground">
@@ -46,11 +73,23 @@ export function PluginCard({
 							size="icon-xs"
 							className="shrink-0 text-muted-foreground"
 							aria-label={`${plugin.interface.displayName} options`}
+							onClick={(event) => event.stopPropagation()}
 						>
 							<LuEllipsis className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
+						<DropdownMenuItem
+							disabled={isBusy}
+							onSelect={() => onSetEnabled(plugin.name, isDisabled)}
+						>
+							{isDisabled ? (
+								<LuPlay className="size-4" />
+							) : (
+								<LuPause className="size-4" />
+							)}
+							{isDisabled ? "Enable" : "Disable"}
+						</DropdownMenuItem>
 						<DropdownMenuItem
 							variant="destructive"
 							disabled={isBusy}
@@ -67,7 +106,10 @@ export function PluginCard({
 					size="sm"
 					className="shrink-0 rounded-full"
 					disabled={isBusy}
-					onClick={() => onInstall(plugin)}
+					onClick={(event) => {
+						event.stopPropagation();
+						onInstall(plugin);
+					}}
 				>
 					Install
 				</Button>

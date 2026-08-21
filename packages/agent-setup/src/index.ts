@@ -77,6 +77,7 @@ export {
 	writeSharedDisabledAgentIds,
 } from "./disabled-agent-hooks";
 export {
+	readExternallyConfiguredMcpServers,
 	type SyncManagedMcpServersOptions,
 	syncManagedMcpServers,
 } from "./managed-mcp-servers";

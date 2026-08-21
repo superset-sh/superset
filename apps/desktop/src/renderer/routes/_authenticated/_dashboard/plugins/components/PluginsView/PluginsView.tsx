@@ -1,76 +1,58 @@
 import {
+	isPluginExternallyConfigured,
 	PLUGIN_CATALOG,
 	PLUGIN_CATEGORIES,
 	type PluginCatalogEntry,
 } from "@superset/shared/plugins";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { toast } from "@superset/ui/sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { LuSearch } from "react-icons/lu";
+import { LuSearch, LuSettings2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { posthog } from "renderer/lib/posthog";
+import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+import { usePluginMutations } from "renderer/routes/_authenticated/_dashboard/plugins/hooks/usePluginMutations";
+import { ManageInstalledDialog } from "./components/ManageInstalledDialog";
 import { PluginCard } from "./components/PluginCard";
-import { PluginIcon } from "./components/PluginIcon";
 import { SkillsList } from "./components/SkillsList";
-
-/** Scopes mirror the Codex marketplace model; only Public ships in the MVP. */
-const COMING_SOON_SCOPES = ["Superset", "Personal"] as const;
 
 export function PluginsView() {
 	const [search, setSearch] = useState("");
+	const [isManageOpen, setIsManageOpen] = useState(false);
+	const navigate = useNavigate();
 
-	const utils = electronTrpc.useUtils();
 	const { data: installed } = electronTrpc.plugins.listInstalled.useQuery();
 	const installedNames = useMemo(
 		() => new Set((installed ?? []).map((entry) => entry.name)),
 		[installed],
 	);
+	const disabledNames = useMemo(
+		() =>
+			new Set(
+				(installed ?? [])
+					.filter((entry) => entry.enabled === false)
+					.map((entry) => entry.name),
+			),
+		[installed],
+	);
+	const { data: externalServers } =
+		electronTrpc.plugins.listExternalServers.useQuery();
+	// One state: an install record OR the user's own config both count as
+	// installed (having it = installed).
+	const isInstalled = (plugin: PluginCatalogEntry) =>
+		installedNames.has(plugin.name) ||
+		isPluginExternallyConfigured(plugin, externalServers ?? []);
 
-	const installMutation = electronTrpc.plugins.install.useMutation({
-		onSuccess: (_data, variables) => {
-			void utils.plugins.listInstalled.invalidate();
-			posthog.capture("plugin_installed", { plugin: variables.name });
-		},
-		onError: (error) => {
-			toast.error("Install failed", { description: error.message });
-		},
-	});
-	const uninstallMutation = electronTrpc.plugins.uninstall.useMutation({
-		onSuccess: (_data, variables) => {
-			void utils.plugins.listInstalled.invalidate();
-			posthog.capture("plugin_uninstalled", { plugin: variables.name });
-		},
-		onError: (error) => {
-			toast.error("Uninstall failed", { description: error.message });
-		},
-	});
-	const isBusy = installMutation.isPending || uninstallMutation.isPending;
+	const { install, uninstall, setEnabled, isBusy } = usePluginMutations();
 
-	const handleInstall = (plugin: PluginCatalogEntry) => {
-		installMutation.mutate(
-			{ name: plugin.name },
-			{
-				onSuccess: () => {
-					toast.success(`${plugin.interface.displayName} installed`, {
-						description: "Takes effect in new agent sessions.",
-					});
-				},
-			},
-		);
-	};
-
-	const handleUninstall = (plugin: PluginCatalogEntry) => {
-		uninstallMutation.mutate(
-			{ name: plugin.name },
-			{
-				onSuccess: () => {
-					toast.success(`${plugin.interface.displayName} uninstalled`);
-				},
-			},
-		);
+	const handleOpen = (plugin: PluginCatalogEntry) => {
+		navigate({
+			to: "/plugins/$pluginName",
+			params: { pluginName: plugin.name },
+		});
 	};
 
 	const query = search.trim().toLowerCase();
@@ -89,9 +71,7 @@ export function PluginsView() {
 		);
 	}, [query]);
 
-	const installedPlugins = visiblePlugins.filter((plugin) =>
-		installedNames.has(plugin.name),
-	);
+	const installedPlugins = visiblePlugins.filter(isInstalled);
 	const featured = visiblePlugins.filter((plugin) => plugin.featured);
 	const byCategory = PLUGIN_CATEGORIES.map((category) => ({
 		category,
@@ -104,10 +84,13 @@ export function PluginsView() {
 		<PluginCard
 			key={plugin.name}
 			plugin={plugin}
-			isInstalled={installedNames.has(plugin.name)}
+			isInstalled={isInstalled(plugin)}
+			isDisabled={disabledNames.has(plugin.name)}
 			isBusy={isBusy}
-			onInstall={handleInstall}
-			onUninstall={handleUninstall}
+			onOpen={handleOpen}
+			onInstall={(target) => install(target.name)}
+			onUninstall={(target) => uninstall(target.name)}
+			onSetEnabled={setEnabled}
 		/>
 	);
 
@@ -139,49 +122,52 @@ export function PluginsView() {
 
 					{installedPlugins.length > 0 && (
 						<section className="flex flex-col gap-3">
-							<h2 className="text-sm font-semibold text-foreground">
-								Installed
-							</h2>
+							<div className="flex items-center justify-between">
+								<h2 className="text-sm font-semibold text-foreground">
+									Installed
+								</h2>
+								<Tooltip delayDuration={300}>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon-xs"
+											className="text-muted-foreground"
+											aria-label="Manage plugins"
+											onClick={() => setIsManageOpen(true)}
+										>
+											<LuSettings2 className="size-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent>Manage plugins</TooltipContent>
+								</Tooltip>
+							</div>
 							<div className="flex flex-wrap gap-2">
 								{installedPlugins.map((plugin) => (
 									<Tooltip key={plugin.name} delayDuration={300}>
 										<TooltipTrigger asChild>
-											<span>
+											<button
+												type="button"
+												aria-label={plugin.interface.displayName}
+												onClick={() => handleOpen(plugin)}
+												className={cn(
+													disabledNames.has(plugin.name) && "opacity-40",
+												)}
+											>
 												<PluginIcon
 													pluginName={plugin.name}
 													className="size-8"
 												/>
-											</span>
+											</button>
 										</TooltipTrigger>
 										<TooltipContent>
 											{plugin.interface.displayName}
+											{disabledNames.has(plugin.name) ? " (disabled)" : ""}
 										</TooltipContent>
 									</Tooltip>
 								))}
 							</div>
 						</section>
 					)}
-
-					<div className="flex items-center gap-1.5">
-						<span className="rounded-full bg-fill-selected px-3 py-1 text-xs font-medium text-foreground">
-							Public
-						</span>
-						{COMING_SOON_SCOPES.map((scope) => (
-							<Tooltip key={scope} delayDuration={300}>
-								<TooltipTrigger asChild>
-									<span
-										className={cn(
-											"cursor-default rounded-full px-3 py-1 text-xs font-medium",
-											"text-muted-foreground/60",
-										)}
-									>
-										{scope}
-									</span>
-								</TooltipTrigger>
-								<TooltipContent>Coming soon</TooltipContent>
-							</Tooltip>
-						))}
-					</div>
 
 					{featured.length > 0 && (
 						<section className="flex flex-col gap-3">
@@ -210,6 +196,15 @@ export function PluginsView() {
 							No plugins match "{search.trim()}"
 						</p>
 					)}
+
+					<ManageInstalledDialog
+						open={isManageOpen}
+						onOpenChange={setIsManageOpen}
+						installed={installed ?? []}
+						isBusy={isBusy}
+						onSetEnabled={setEnabled}
+						onUninstall={uninstall}
+					/>
 				</TabsContent>
 
 				<TabsContent value="skills" className="flex flex-col gap-6">

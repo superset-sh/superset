@@ -10,7 +10,10 @@ import {
 import os from "node:os";
 import path from "node:path";
 import type { PluginMcpServerConfig } from "@superset/shared/plugins";
-import { syncManagedMcpServers } from "./managed-mcp-servers";
+import {
+	readExternallyConfiguredMcpServers,
+	syncManagedMcpServers,
+} from "./managed-mcp-servers";
 
 const TEST_ROOT = path.join(
 	os.tmpdir(),
@@ -212,5 +215,76 @@ describe("syncManagedMcpServers — Codex", () => {
 		run({});
 
 		expect(existsSync(codexToml)).toBe(false);
+	});
+});
+
+describe("readExternallyConfiguredMcpServers", () => {
+	function readExternal() {
+		return readExternallyConfiguredMcpServers({
+			homeDir: HOME_DIR,
+			supersetHomeDir: SUPERSET_HOME,
+		});
+	}
+
+	it("reports user-defined servers but never ledger-tracked ones", () => {
+		writeFileSync(
+			claudeJson,
+			JSON.stringify({ mcpServers: { notion: { command: "notion-mcp" } } }),
+		);
+
+		run({ linear: LINEAR });
+
+		expect(readExternal()).toEqual([
+			{ name: "notion", command: "notion-mcp", source: "Claude Code" },
+		]);
+	});
+
+	it("sweeps Claude project scopes, carrying urls for matching", () => {
+		writeFileSync(
+			claudeJson,
+			JSON.stringify({
+				projects: {
+					"/repo/a": {
+						mcpServers: {
+							"linear-server": {
+								type: "http",
+								url: "https://mcp.linear.app/mcp",
+							},
+						},
+					},
+				},
+			}),
+		);
+
+		expect(readExternal()).toEqual([
+			{
+				name: "linear-server",
+				url: "https://mcp.linear.app/mcp",
+				source: "Claude Code (project: a)",
+			},
+		]);
+	});
+
+	it("reports Codex tables outside the managed block only", () => {
+		mkdirSync(path.dirname(codexToml), { recursive: true });
+		writeFileSync(
+			codexToml,
+			'[mcp_servers.posthog]\ncommand = "posthog-mcp"\nargs = ["--stdio"]\n',
+		);
+
+		run({ linear: LINEAR });
+
+		expect(readExternal()).toEqual([
+			{
+				name: "posthog",
+				command: "posthog-mcp",
+				args: ["--stdio"],
+				source: "Codex",
+			},
+		]);
+	});
+
+	it("returns empty when no configs exist", () => {
+		expect(readExternal()).toEqual([]);
 	});
 });

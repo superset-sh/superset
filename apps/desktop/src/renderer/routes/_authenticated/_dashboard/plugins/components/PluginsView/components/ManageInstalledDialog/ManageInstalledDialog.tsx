@@ -1,0 +1,93 @@
+import {
+	getPluginByName,
+	type InstalledPlugin,
+} from "@superset/shared/plugins";
+import { Button } from "@superset/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@superset/ui/dialog";
+import { Switch } from "@superset/ui/switch";
+import { LuTrash2 } from "react-icons/lu";
+import { PluginIcon } from "renderer/routes/_authenticated/_dashboard/plugins/components/PluginIcon";
+
+interface ManageInstalledDialogProps {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	installed: InstalledPlugin[];
+	isBusy: boolean;
+	onSetEnabled: (name: string, enabled: boolean) => void;
+	onUninstall: (name: string) => void;
+}
+
+export function ManageInstalledDialog({
+	open,
+	onOpenChange,
+	installed,
+	isBusy,
+	onSetEnabled,
+	onUninstall,
+}: ManageInstalledDialogProps) {
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-lg">
+				<DialogHeader>
+					<DialogTitle>Manage plugins</DialogTitle>
+					<DialogDescription>
+						Disabling keeps a plugin installed but removes its servers from your
+						agents. Changes take effect in new agent sessions.
+					</DialogDescription>
+				</DialogHeader>
+				{installed.length === 0 ? (
+					<p className="py-4 text-sm text-muted-foreground">
+						Nothing installed yet.
+					</p>
+				) : (
+					<div className="flex flex-col divide-y divide-border/60">
+						{installed.map((entry) => {
+							const plugin = getPluginByName(entry.name);
+							const isEnabled = entry.enabled !== false;
+							return (
+								<div key={entry.name} className="flex items-center gap-3 py-3">
+									<PluginIcon pluginName={entry.name} className="size-8" />
+									<div className="min-w-0 flex-1">
+										<div className="text-sm font-medium text-foreground">
+											{plugin?.interface.displayName ?? entry.name}
+										</div>
+										<p className="truncate text-xs text-muted-foreground">
+											v{entry.version}
+											{plugin
+												? ` · ${Object.keys(plugin.mcpServers).join(", ")}`
+												: " · no longer in the catalog"}
+										</p>
+									</div>
+									<Switch
+										checked={isEnabled}
+										disabled={isBusy}
+										aria-label={`${plugin?.interface.displayName ?? entry.name} enabled`}
+										onCheckedChange={(checked) =>
+											onSetEnabled(entry.name, checked)
+										}
+									/>
+									<Button
+										variant="ghost"
+										size="icon-xs"
+										className="shrink-0 text-muted-foreground hover:text-destructive"
+										disabled={isBusy}
+										aria-label={`Uninstall ${plugin?.interface.displayName ?? entry.name}`}
+										onClick={() => onUninstall(entry.name)}
+									>
+										<LuTrash2 className="size-4" />
+									</Button>
+								</div>
+							);
+						})}
+					</div>
+				)}
+			</DialogContent>
+		</Dialog>
+	);
+}

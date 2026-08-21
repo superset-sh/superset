@@ -2,7 +2,10 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { PluginMcpServerConfig } from "@superset/shared/plugins";
+import type {
+	ExternalMcpServer,
+	PluginMcpServerConfig,
+} from "@superset/shared/plugins";
 import { writeFileIfChanged } from "./agent-wrappers-common";
 import {
 	ensureManagedTomlBlock,
@@ -285,6 +288,125 @@ function codexMcpSpec(
 			].join("\n");
 		},
 	};
+}
+
+/**
+ * Server names the user configured in agent configs *outside* Superset:
+ * `mcpServers` keys in ~/.claude.json the ledger doesn't track, plus
+ * `[mcp_servers.<name>]` tables in Codex's config.toml outside our managed
+ * block. Read-only — lets the catalog mark such plugins "already set up"
+ * instead of offering Install. Unreadable files contribute nothing.
+ */
+export function readExternallyConfiguredMcpServers(
+	options: SyncManagedMcpServersOptions = {},
+): ExternalMcpServer[] {
+	const homeDir = options.homeDir ?? os.homedir();
+	const supersetHomeDir = options.supersetHomeDir ?? resolveSupersetHomeDir();
+	const ledger = readLedger(supersetHomeDir);
+	const byName = new Map<string, ExternalMcpServer>();
+
+	const record = (name: string, config: unknown, source: string) => {
+		if (byName.has(name) || !isPlainObject(config)) return;
+		byName.set(name, {
+			name,
+			...(typeof config.url === "string" ? { url: config.url } : {}),
+			...(typeof config.command === "string"
+				? { command: config.command }
+				: {}),
+			...(Array.isArray(config.args)
+				? {
+						args: config.args.filter((a): a is string => typeof a === "string"),
+					}
+				: {}),
+			source,
+		});
+	};
+
+	// Claude: user scope (mcpServers keys the ledger doesn't track) plus every
+	// project scope — `claude mcp add` defaults to project scope, so most
+	// hand-added servers live under projects[*].mcpServers.
+	const claudePath = path.join(homeDir, ".claude.json");
+	const tracked = ledger.files[claudePath] ?? {};
+	if (fs.existsSync(claudePath)) {
+		try {
+			const root = JSON.parse(fs.readFileSync(claudePath, "utf-8"));
+			if (isPlainObject(root)) {
+				if (isPlainObject(root.mcpServers)) {
+					for (const [name, config] of Object.entries(root.mcpServers)) {
+						if (!(name in tracked)) record(name, config, "Claude Code");
+					}
+				}
+				if (isPlainObject(root.projects)) {
+					for (const [projectPath, project] of Object.entries(root.projects)) {
+						if (!isPlainObject(project)) continue;
+						if (!isPlainObject(project.mcpServers)) continue;
+						for (const [name, config] of Object.entries(project.mcpServers)) {
+							record(
+								name,
+								config,
+								`Claude Code (project: ${path.basename(projectPath)})`,
+							);
+						}
+					}
+				}
+			}
+		} catch {
+			// Unparseable file: report nothing rather than guessing.
+		}
+	}
+
+	// Cursor's global config; tolerate the JSONC comments Cursor allows.
+	const cursorPath = path.join(homeDir, ".cursor", "mcp.json");
+	if (fs.existsSync(cursorPath)) {
+		try {
+			const raw = fs
+				.readFileSync(cursorPath, "utf-8")
+				.replace(/\/\*[\s\S]*?\*\//g, "")
+				.replace(/^\s*\/\/.*$/gm, "");
+			const root = JSON.parse(raw);
+			if (isPlainObject(root) && isPlainObject(root.mcpServers)) {
+				for (const [name, config] of Object.entries(root.mcpServers)) {
+					record(name, config, "Cursor");
+				}
+			}
+		} catch {
+			// Best effort only.
+		}
+	}
+
+	const codexPath = path.join(homeDir, ".codex", "config.toml");
+	if (fs.existsSync(codexPath)) {
+		const content = fs.readFileSync(codexPath, "utf-8");
+		const start = content.indexOf(CODEX_MARKER_START);
+		const end = content.indexOf(CODEX_MARKER_END);
+		const outsideBlock =
+			start !== -1 && end !== -1
+				? content.slice(0, start) + content.slice(end + CODEX_MARKER_END.length)
+				: content;
+		// Line-level parse of each [mcp_servers.<name>] table: enough for
+		// matching (url/command), no TOML parser needed.
+		const tables = outsideBlock.split(/^\s*\[/m);
+		for (const table of tables) {
+			const header = table.match(/^mcp_servers\.([A-Za-z0-9_-]+)\]/);
+			const name = header?.[1];
+			if (name === undefined || byName.has(name)) continue;
+			const url = table.match(/^\s*url\s*=\s*"([^"]+)"/m)?.[1];
+			const command = table.match(/^\s*command\s*=\s*"([^"]+)"/m)?.[1];
+			const argsRaw = table.match(/^\s*args\s*=\s*\[([^\]]*)\]/m)?.[1];
+			const args = argsRaw
+				? [...argsRaw.matchAll(/"([^"]*)"/g)].map((m) => m[1] ?? "")
+				: undefined;
+			byName.set(name, {
+				name,
+				...(url ? { url } : {}),
+				...(command ? { command } : {}),
+				...(args ? { args } : {}),
+				source: "Codex",
+			});
+		}
+	}
+
+	return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

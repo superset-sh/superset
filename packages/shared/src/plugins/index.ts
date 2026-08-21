@@ -33,6 +33,7 @@ export type PluginMcpServerConfig =
 export const PLUGIN_CATEGORIES = [
 	"Project management",
 	"Productivity",
+	"Communication",
 	"Developer tools",
 	"Monitoring",
 	"Design",
@@ -62,9 +63,162 @@ export interface PluginCatalogEntry {
 	 * is tracked by the materialization ledger, not the name.
 	 */
 	mcpServers: Record<string, PluginMcpServerConfig>;
+	/** Names of skills the plugin bundles (Codex manifests point `skills` at a directory; a resolved entry lists them). */
+	skills?: readonly string[];
 	/** Curation attribute, not manifest vocabulary: surfaces in Featured. */
 	featured?: boolean;
 }
+
+/**
+ * An MCP server found in the user's agent configs that Superset didn't write
+ * — any scope (Claude user/project, Codex, Cursor). Carries enough of the
+ * config to match against catalog entries by more than name: people name
+ * servers freely ("linear-server"), so identity comes from where the server
+ * points, not what it's called.
+ */
+export interface ExternalMcpServer {
+	name: string;
+	url?: string;
+	command?: string;
+	args?: readonly string[];
+	/** Where it was found, for display: "Claude Code (project)", "Codex", … */
+	source?: string;
+}
+
+function urlHost(value: string): string | null {
+	try {
+		return new URL(value).hostname;
+	} catch {
+		return null;
+	}
+}
+
+/** "npx -y @playwright/mcp@latest" → "@playwright/mcp" */
+function packageFromArgs(args: readonly string[] | undefined): string | null {
+	for (const arg of args ?? []) {
+		if (arg.startsWith("-")) continue;
+		const match = arg.match(/^(@?[^@]+(?:\/[^@]+)?)(?:@[^@]*)?$/);
+		if (match?.[1]?.includes("mcp")) return match[1];
+	}
+	return null;
+}
+
+function externalMatchesConfig(
+	server: ExternalMcpServer,
+	catalogName: string,
+	config: PluginMcpServerConfig,
+): boolean {
+	if (server.name === catalogName) return true;
+	if ("url" in config && server.url) {
+		const catalogHost = urlHost(config.url);
+		if (catalogHost !== null && catalogHost === urlHost(server.url)) {
+			return true;
+		}
+	}
+	if ("command" in config) {
+		const pkg = packageFromArgs(config.args);
+		if (pkg !== null) {
+			const haystack = [server.command ?? "", ...(server.args ?? [])].join(" ");
+			if (haystack.includes(pkg)) return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Whether one catalog server is already covered by an entry the user wrote
+ * themselves — matched by name, remote URL hostname, or the npm package a
+ * stdio server runs (people name servers freely, e.g. "linear-server").
+ * The materializer skips satisfied servers so installing never duplicates.
+ */
+export function isServerSatisfiedExternally(
+	catalogName: string,
+	config: PluginMcpServerConfig,
+	external: readonly ExternalMcpServer[],
+): boolean {
+	return external.some((server) =>
+		externalMatchesConfig(server, catalogName, config),
+	);
+}
+
+/** The user's own config entries that correspond to this plugin. */
+export function getMatchingExternalServers(
+	plugin: PluginCatalogEntry,
+	external: readonly ExternalMcpServer[],
+): ExternalMcpServer[] {
+	const entries = Object.entries(plugin.mcpServers);
+	return external.filter((server) =>
+		entries.some(([name, config]) =>
+			externalMatchesConfig(server, name, config),
+		),
+	);
+}
+
+/** Whether the user already has any of this plugin's servers configured themselves. */
+export function isPluginExternallyConfigured(
+	plugin: PluginCatalogEntry,
+	external: readonly ExternalMcpServer[],
+): boolean {
+	return getMatchingExternalServers(plugin, external).length > 0;
+}
+
+/** What a plugin puts on your machine, for at-a-glance labeling in the UI. */
+export type PluginComponentKind = "mcp" | "cli" | "skills";
+
+/**
+ * Derived from the manifest so labels can't drift from behavior: a remote
+ * `url` server is "mcp", a `command` server runs a local process ("cli"),
+ * bundled skills are "skills".
+ */
+export function getPluginComponentKinds(
+	plugin: PluginCatalogEntry,
+): PluginComponentKind[] {
+	const kinds = new Set<PluginComponentKind>();
+	for (const config of Object.values(plugin.mcpServers)) {
+		kinds.add("url" in config ? "mcp" : "cli");
+	}
+	if (plugin.skills && plugin.skills.length > 0) {
+		kinds.add("skills");
+	}
+	return [...kinds];
+}
+
+/**
+ * The managed skills the `superset` plugin provisions into every agent CLI
+ * (see packages/agent-setup/src/managed-skills.ts). The Plugins page lists
+ * these read-only on its Skills tab; they are not installable units in the
+ * MVP.
+ */
+export const SUPERSET_MANAGED_SKILLS = [
+	{
+		name: "10x",
+		description: "Personalized audit of Superset features you're not using yet",
+	},
+	{
+		name: "automate",
+		description: "Turn a recurring chore into a Superset automation",
+	},
+	{
+		name: "browser",
+		description: "Drive web pages from the in-app browser panes",
+	},
+	{
+		name: "computer",
+		description: "Drive native desktop apps and system browsers",
+	},
+	{
+		name: "contribute",
+		description: "Set up an open-source contribution to Superset",
+	},
+	{ name: "doctor", description: "Diagnose and fix Superset problems" },
+	{ name: "feedback", description: "Report bugs and request features" },
+	{
+		name: "orchestrate",
+		description: "Coordinate multiple coding agents across workspaces",
+	},
+	{ name: "setup", description: "Make a repository Superset-ready" },
+	{ name: "standup", description: "Digest of what your Superset agents did" },
+] as const;
 
 export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 	{
@@ -75,6 +229,7 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		mcpServers: {
 			superset: { type: "http", url: "https://api.superset.sh/mcp" },
 		},
+		skills: SUPERSET_MANAGED_SKILLS.map((skill) => skill.name),
 		featured: true,
 	},
 	{
@@ -164,6 +319,90 @@ export const PLUGIN_CATALOG: readonly PluginCatalogEntry[] = [
 		featured: true,
 	},
 	{
+		name: "slack",
+		version: "1.0.0",
+		description: "Read and send messages in your workspace",
+		interface: { displayName: "Slack", category: "Communication" },
+		mcpServers: {
+			slack: { type: "http", url: "https://mcp.slack.com/mcp" },
+		},
+	},
+	{
+		name: "vercel",
+		version: "1.0.0",
+		description: "Manage deployments, projects, and logs",
+		interface: { displayName: "Vercel", category: "Developer tools" },
+		mcpServers: {
+			vercel: { type: "http", url: "https://mcp.vercel.com" },
+		},
+	},
+	{
+		name: "supabase",
+		version: "1.0.0",
+		description: "Manage your Supabase projects and data",
+		interface: { displayName: "Supabase", category: "Data & APIs" },
+		mcpServers: {
+			supabase: { type: "http", url: "https://mcp.supabase.com/mcp" },
+		},
+	},
+	{
+		name: "convex",
+		version: "1.0.0",
+		description: "Query and manage your Convex backend",
+		interface: { displayName: "Convex", category: "Data & APIs" },
+		mcpServers: {
+			convex: { command: "npx", args: ["-y", "convex@latest", "mcp", "start"] },
+		},
+	},
+	{
+		name: "posthog",
+		version: "1.0.0",
+		description: "Query analytics, insights, and feature flags",
+		interface: { displayName: "PostHog", category: "Data & APIs" },
+		mcpServers: {
+			posthog: { type: "http", url: "https://mcp.posthog.com/mcp" },
+		},
+	},
+	{
+		name: "superhuman",
+		version: "1.0.0",
+		description: "Search and manage your email",
+		interface: { displayName: "Superhuman", category: "Communication" },
+		mcpServers: {
+			superhuman: {
+				type: "http",
+				url: "https://mcp.mail.superhuman.com/mcp",
+			},
+		},
+	},
+	{
+		name: "granola",
+		version: "1.0.0",
+		description: "Search and use your meeting notes",
+		interface: { displayName: "Granola", category: "Productivity" },
+		mcpServers: {
+			granola: { type: "http", url: "https://mcp.granola.ai/mcp" },
+		},
+	},
+	{
+		name: "circleback",
+		version: "1.0.0",
+		description: "Meeting notes, action items, and transcripts",
+		interface: { displayName: "Circleback", category: "Productivity" },
+		mcpServers: {
+			circleback: { type: "http", url: "https://circleback.ai/api/mcp" },
+		},
+	},
+	{
+		name: "monday",
+		version: "1.0.0",
+		description: "Manage boards, items, and workflows",
+		interface: { displayName: "monday.com", category: "Project management" },
+		mcpServers: {
+			monday: { type: "http", url: "https://mcp.monday.com/mcp" },
+		},
+	},
+	{
 		name: "chrome-devtools",
 		version: "1.0.0",
 		description: "Inspect and debug pages with Chrome DevTools",
@@ -193,41 +432,10 @@ export interface InstalledPlugin {
 	name: string;
 	version: string;
 	installedAt: string;
+	/**
+	 * false = keep the install record but materialize nothing (Codex's
+	 * `enabled = false` semantics). Absent means enabled — records written
+	 * before this field existed stay active.
+	 */
+	enabled?: boolean;
 }
-
-/**
- * The managed skills the `superset` plugin already provisions into every
- * agent CLI (see packages/agent-setup/src/managed-skills.ts). The Plugins
- * page lists these read-only on its Skills tab; they are not installable
- * units in the MVP.
- */
-export const SUPERSET_MANAGED_SKILLS = [
-	{
-		name: "10x",
-		description: "Personalized audit of Superset features you're not using yet",
-	},
-	{
-		name: "automate",
-		description: "Turn a recurring chore into a Superset automation",
-	},
-	{
-		name: "browser",
-		description: "Drive web pages from the in-app browser panes",
-	},
-	{
-		name: "computer",
-		description: "Drive native desktop apps and system browsers",
-	},
-	{
-		name: "contribute",
-		description: "Set up an open-source contribution to Superset",
-	},
-	{ name: "doctor", description: "Diagnose and fix Superset problems" },
-	{ name: "feedback", description: "Report bugs and request features" },
-	{
-		name: "orchestrate",
-		description: "Coordinate multiple coding agents across workspaces",
-	},
-	{ name: "setup", description: "Make a repository Superset-ready" },
-	{ name: "standup", description: "Digest of what your Superset agents did" },
-] as const;

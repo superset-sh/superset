@@ -1,7 +1,11 @@
+import { readExternallyConfiguredMcpServers } from "@superset/agent-setup";
 import { TRPCError } from "@trpc/server";
 import {
+	getBundledSkillContent,
+	getBundledSkillIcons,
 	getInstalledPlugins,
 	installPlugin,
+	setPluginEnabled,
 	uninstallPlugin,
 } from "main/lib/plugin-installs";
 import { z } from "zod";
@@ -17,6 +21,27 @@ export const createPluginsRouter = () => {
 		listInstalled: publicProcedure.query(() => {
 			return getInstalledPlugins();
 		}),
+
+		/**
+		 * MCP server names the user configured directly in their agent configs
+		 * (outside Superset). The catalog marks matching plugins "already set
+		 * up" instead of offering Install — we never manage those entries.
+		 */
+		listExternalServers: publicProcedure.query(() => {
+			return readExternallyConfiguredMcpServers();
+		}),
+
+		/** Per-skill icon data URIs shipped inside skill folders (icon.svg|png). */
+		listSkillIcons: publicProcedure.query(() => {
+			return getBundledSkillIcons();
+		}),
+
+		/** SKILL.md body of a bundled managed skill, for the preview modal. */
+		getSkillContent: publicProcedure
+			.input(z.object({ name: z.string().min(1) }))
+			.query(({ input }) => {
+				return { content: getBundledSkillContent(input.name) };
+			}),
 
 		install: publicProcedure
 			.input(z.object({ name: z.string().min(1) }))
@@ -35,6 +60,12 @@ export const createPluginsRouter = () => {
 			.input(z.object({ name: z.string().min(1) }))
 			.mutation(({ input }) => {
 				return { installed: uninstallPlugin(input.name) };
+			}),
+
+		setEnabled: publicProcedure
+			.input(z.object({ name: z.string().min(1), enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				return { installed: setPluginEnabled(input.name, input.enabled) };
 			}),
 	});
 };
