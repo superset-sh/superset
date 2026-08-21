@@ -14,7 +14,10 @@ function cspDirective(name: string): string[] {
 }
 
 describe("renderer content security policy", () => {
-	test("allows HTTP requests to the production Relay 2 origin", () => {
-		expect(cspDirective("connect-src")).toContain("https://relay2.superset.sh");
+	test.each([
+		"https://relay2.superset.sh",
+		"https://superset-relay2.avi-6ac.workers.dev",
+	])("allows HTTP requests to Relay 2 origin %s", (origin) => {
+		expect(cspDirective("connect-src")).toContain(origin);
 	});
 });

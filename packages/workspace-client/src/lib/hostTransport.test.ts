@@ -5,6 +5,7 @@ import superjson from "superjson";
 import {
 	createHostServiceQueryMethodPolicy,
 	createHostServiceTransportLinks,
+	HOST_SERVICE_POST_QUERY_REPROBE_MS,
 	type HostServiceFetch,
 } from "./hostTransport";
 
@@ -50,8 +51,9 @@ describe("createHostServiceQueryMethodPolicy", () => {
 		expect(policy.getMethodOverride()).toBe("POST");
 	});
 
-	test("retries an old host's rejected POST query with GET", () => {
-		const policy = createHostServiceQueryMethodPolicy();
+	test("retries an old host with GET, then re-probes POST after a cooldown", () => {
+		let now = 0;
+		const policy = createHostServiceQueryMethodPolicy(() => now);
 
 		expect(
 			policy.retryWithoutMethodOverride({
@@ -61,6 +63,12 @@ describe("createHostServiceQueryMethodPolicy", () => {
 			}),
 		).toBe(true);
 		expect(policy.getMethodOverride()).toBeUndefined();
+
+		now = HOST_SERVICE_POST_QUERY_REPROBE_MS - 1;
+		expect(policy.getMethodOverride()).toBeUndefined();
+
+		now = HOST_SERVICE_POST_QUERY_REPROBE_MS;
+		expect(policy.getMethodOverride()).toBe("POST");
 	});
 
 	test("does not retry mutations or repeat a fallback", () => {
@@ -104,11 +112,13 @@ describe("createHostServiceQueryMethodPolicy", () => {
 });
 
 describe("createHostServiceTransportLinks", () => {
-	test("retries a rejected POST query as GET", async () => {
+	test("retries a rejected POST as GET and re-probes POST after a cooldown", async () => {
 		const methods: string[] = [];
+		let now = 0;
 		const fetch: HostServiceFetch = async (_url, options) => {
-			methods.push(options?.method ?? "GET");
-			return methods.length === 1
+			const method = options?.method ?? "GET";
+			methods.push(method);
+			return method === "POST" && now < HOST_SERVICE_POST_QUERY_REPROBE_MS
 				? trpcErrorResponse("METHOD_NOT_SUPPORTED", 405)
 				: trpcErrorResponse("NOT_FOUND", 404);
 		};
@@ -116,11 +126,15 @@ describe("createHostServiceTransportLinks", () => {
 			links: createHostServiceTransportLinks({
 				fetch,
 				hostUrl: "https://relay2.superset.sh/hosts/org:old-host",
+				now: () => now,
 			}),
 		});
 
 		await expect(client.query("health.check")).rejects.toThrow("NOT_FOUND");
-		expect(methods).toEqual(["POST", "GET"]);
+		await expect(client.query("health.check")).rejects.toThrow("NOT_FOUND");
+		now = HOST_SERVICE_POST_QUERY_REPROBE_MS;
+		await expect(client.query("health.check")).rejects.toThrow("NOT_FOUND");
+		expect(methods).toEqual(["POST", "GET", "GET", "POST"]);
 	});
 
 	test("keeps POST after a capable host returns an application error", async () => {
