@@ -93,6 +93,7 @@ export async function connectRelay(
 	// cloud-invisible (issue #6415) — so retry with backoff until it lands,
 	// and record the outcome where health.check can report it.
 	for (let attempt = 0; ; attempt++) {
+		let registered = false;
 		try {
 			const host = await options.api.host.ensure.mutate({
 				organizationId: options.organizationId,
@@ -100,6 +101,15 @@ export async function connectRelay(
 				name: getHostName(),
 			});
 			recordRegistrationSuccess();
+			registered = true;
+			// Registration is the slow-moving failure this backoff was built
+			// for. Once it lands, the remaining steps fail in relay-outage
+			// shapes that resolve on the relay's schedule, not ours — without
+			// the reset, a sustained outage walks the delay up to
+			// REGISTER_RETRY_MAX_MS and the host can lag almost five minutes
+			// behind the relay coming back, versus the tunnel clients'
+			// seconds-scale reconnects.
+			attempt = 0;
 			console.log(`[host-service] registered as host ${host.machineId}`);
 
 			const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
@@ -123,7 +133,12 @@ export async function connectRelay(
 			void tunnel.connect();
 			return tunnel;
 		} catch (error) {
-			recordRegistrationFailure(error);
+			// A failure past this point is a relay problem, not a registration
+			// problem: the host is registered, and overwriting that state
+			// would make health.check and superset status warn that the host
+			// is missing from the fleet when it isn't. The console.error
+			// below keeps the relay failure observable.
+			if (!registered) recordRegistrationFailure(error);
 			const delay = Math.min(
 				REGISTER_RETRY_BASE_MS * 2 ** attempt,
 				REGISTER_RETRY_MAX_MS,
