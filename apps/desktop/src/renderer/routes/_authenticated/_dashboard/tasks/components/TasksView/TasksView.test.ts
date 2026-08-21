@@ -68,6 +68,7 @@ describe("Tasks and pull requests navigation", () => {
 
 		expect(source).toContain('label: "Linear"');
 		expect(source).toContain('label: "GitHub issues"');
+		expect(source).toContain('label: "Plain"');
 		expect(source).not.toContain('label: "PRs"');
 	});
 

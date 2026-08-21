@@ -213,6 +213,11 @@ export const integrationConnections = pgTable(
 		disconnectedAt: timestamp("disconnected_at"),
 		disconnectReason: text("disconnect_reason"),
 
+		// Webhook signing secret for providers that verify per-connection (Plain).
+		// Deliberately absent from the electric-proxy column allowlist, like the
+		// OAuth tokens above.
+		webhookSecret: text("webhook_secret"),
+
 		externalOrgId: text("external_org_id"),
 		externalOrgName: text("external_org_name"),
 

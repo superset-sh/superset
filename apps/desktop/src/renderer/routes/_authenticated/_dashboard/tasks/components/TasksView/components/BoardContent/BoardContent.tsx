@@ -11,6 +11,7 @@ interface BoardContentProps {
 	searchQuery: string;
 	assigneeFilter: string | null;
 	linearProjectFilter: string | null;
+	taskSource?: "tasks" | "plain";
 	onTaskClick: (task: TaskWithStatus) => void;
 }
 
@@ -19,6 +20,7 @@ export function BoardContent({
 	searchQuery,
 	assigneeFilter,
 	linearProjectFilter,
+	taskSource = "tasks",
 	onTaskClick,
 }: BoardContentProps) {
 	const {
@@ -33,12 +35,13 @@ export function BoardContent({
 		searchQuery,
 		assigneeFilter,
 		linearProjectFilter,
+		taskSource,
 	});
 
 	useAutoLoadEmptyPages({
 		isEmpty: data.length === 0,
 		isLoading: isLoadingTasks,
-		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearProjectFilter ?? ""}`,
+		filterKey: `${taskSource}\0${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearProjectFilter ?? ""}`,
 		hasNextPage: hasNextTasksPage,
 		isFetchingNextPage: isFetchingNextTasksPage,
 		onLoadMore: fetchNextTasksPage,

@@ -297,6 +297,15 @@ const INTEGRATION_KEYWORDS: Record<IntegrationProvider, string[]> = {
 		"triggers",
 		"automations",
 	],
+	plain: [
+		"support",
+		"threads",
+		"tickets",
+		"customers",
+		"tasks",
+		"sync",
+		"customer support",
+	],
 };
 
 const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(

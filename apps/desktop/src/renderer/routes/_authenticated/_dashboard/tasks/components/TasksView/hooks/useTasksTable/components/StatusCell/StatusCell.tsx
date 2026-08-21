@@ -14,6 +14,7 @@ import {
 } from "../../../../components/shared/StatusIcon";
 import { StatusMenuItems } from "../../../../components/shared/StatusMenuItems";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
+import { statusesForTask } from "../../../../utils/statusesForTask";
 import type { TaskWithStatus } from "../../useTasksTable";
 
 interface StatusCellProps {
@@ -32,8 +33,10 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const currentStatus = taskWithStatus.status;
 
 	const sortedStatuses = useMemo(() => {
-		return [...(allStatuses ?? [])].sort(compareStatusesForDropdown);
-	}, [allStatuses]);
+		return statusesForTask(allStatuses ?? [], taskWithStatus).sort(
+			compareStatusesForDropdown,
+		);
+	}, [allStatuses, taskWithStatus]);
 
 	const handleSelectStatus = (newStatus: SelectTaskStatus) => {
 		if (newStatus.id === currentStatus.id) {

@@ -9,6 +9,7 @@ import { BsMicrosoftTeams } from "react-icons/bs";
 import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { SiLinear, SiNotion, SiSentry } from "react-icons/si";
+import { PlainIcon } from "renderer/components/icons/PlainIcon";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -42,6 +43,7 @@ const INTEGRATION_ICONS: Record<IntegrationProvider, React.ReactNode> = {
 	microsoft_teams: <BsMicrosoftTeams className="size-5" />,
 	sentry: <SiSentry className="size-5" />,
 	google: <FaGoogle className="size-5" />,
+	plain: <PlainIcon className="size-5" />,
 };
 
 interface ProviderState {
@@ -118,6 +120,7 @@ export function IntegrationsSettings({
 
 	const linearConnection = integrations?.find((i) => i.provider === "linear");
 	const slackConnection = integrations?.find((i) => i.provider === "slack");
+	const plainConnection = integrations?.find((i) => i.provider === "plain");
 
 	const providerStates: Record<IntegrationProvider, ProviderState> = {
 		linear: {
@@ -154,6 +157,11 @@ export function IntegrationsSettings({
 			isConnected: !!googleConnection && !googleConnection.needsReconnect,
 			connectedOrgName: googleConnection?.email,
 			isLoading: isGooglePending,
+		},
+		plain: {
+			isConnected: !!plainConnection,
+			connectedOrgName: plainConnection?.externalOrgName,
+			isLoading: isIntegrationsPending,
 		},
 	};
 

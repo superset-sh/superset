@@ -49,7 +49,7 @@ function TaskDetailPage() {
 			tab: tab ?? "all",
 			assignee: assignee ?? null,
 			search: searchQuery ?? "",
-			typeTab: type === "issues" ? "issues" : "tasks",
+			typeTab: type === "issues" || type === "plain" ? type : "tasks",
 			projectFilters: resolveProjectFilterParams(projects, project, []),
 			linearProjectFilter: linearProject ?? null,
 			includeClosedIssues: state === "all",

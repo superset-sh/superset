@@ -9,6 +9,7 @@ import { googleRouter } from "./google";
 import { linearRouter } from "./linear";
 import { microsoftTeamsRouter } from "./microsoft-teams";
 import { notionRouter } from "./notion";
+import { plainRouter } from "./plain";
 import { sentryRouter } from "./sentry";
 import { slackRouter } from "./slack";
 import { triggerOptionsRouter } from "./trigger-options";
@@ -20,6 +21,7 @@ export const integrationRouter = {
 	linear: linearRouter,
 	microsoftTeams: microsoftTeamsRouter,
 	notion: notionRouter,
+	plain: plainRouter,
 	sentry: sentryRouter,
 	slack: slackRouter,
 	...triggerOptionsRouter,
