@@ -191,6 +191,22 @@ describe("rethrowEnvironmentalGitError", () => {
 		).toBeNull();
 	});
 
+	test("does not claim the refusal sentence when git is not the one refusing", () => {
+		// A hook that shells out to an Xcode tool can print the stub's sentence
+		// into git's stderr while git itself failed for its own reason. Only a
+		// line that *starts* with the stub's prefix means "git cannot run here";
+		// matching the sentence alone would silence the hook failure.
+		expect(
+			capture(
+				new Error(
+					"hint: The '.git/hooks/pre-commit' hook was ignored because it's not set as executable.\n" +
+						"No developer tools were found, requesting install.\n" +
+						"error: cannot run .git/hooks/pre-commit: No such file or directory\n",
+				),
+			),
+		).toBeNull();
+	});
+
 	test("does not claim git's other 'unable to read' failures", () => {
 		// Git says "unable to read" about several object kinds and about plain
 		// files. Only the tree variant names the damage this branch describes;
