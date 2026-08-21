@@ -31,7 +31,6 @@ import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/util
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
-import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
@@ -100,22 +99,15 @@ function homeListItemKey(item: HomeListItem): string {
 
 export function HomeScreen() {
 	const router = useRouter();
-	const [sheetOpen, setSheetOpen] = useState(false);
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
 	const [refreshing, setRefreshing] = useState(false);
-	const { width, height: windowHeight } = useWindowDimensions();
+	const { height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
 	const queryClient = useQueryClient();
-	const {
-		isLoadingOrganizations,
-		organizations,
-		activeOrganization,
-		activeOrganizationId,
-		switchOrganization,
-	} = useOrganizations();
+	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
 
 	const selectedHost = useSelectedHost();
 	const pinnedAt = usePinnedWorkspacesStore((state) => state.pinnedAt);
@@ -550,11 +542,6 @@ export function HomeScreen() {
 		],
 	);
 
-	const handleSwitchOrganization = (organizationId: string) => {
-		setSheetOpen(false);
-		switchOrganization(organizationId);
-	};
-
 	const scopeBar = (
 		<ScopeBar
 			scope={scope ?? "host"}
@@ -613,7 +600,7 @@ export function HomeScreen() {
 				logo={activeOrganization?.logo}
 				onPress={() => {
 					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-					setSheetOpen(true);
+					router.push("/(authenticated)/(home)/organizations");
 				}}
 			/>
 			{!cloudScope && selectedHost && !selectedHost.isOnline ? (
@@ -668,14 +655,6 @@ export function HomeScreen() {
 			    the composer has to find a sandbox workspace as readily as a
 			    machine's to start an agent in it. */}
 			<NewChatWidget workspaces={composerWorkspaces} />
-			<OrganizationSwitcherSheet
-				isPresented={sheetOpen}
-				onIsPresentedChange={setSheetOpen}
-				organizations={organizations}
-				activeOrganizationId={activeOrganizationId}
-				onSwitchOrganization={handleSwitchOrganization}
-				width={width}
-			/>
 		</>
 	);
 }
