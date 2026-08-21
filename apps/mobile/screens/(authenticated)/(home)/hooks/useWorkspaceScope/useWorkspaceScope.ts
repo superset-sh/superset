@@ -1,45 +1,26 @@
-import { useMemo } from "react";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useFeatureFlag } from "posthog-react-native";
 import {
 	useWorkspacesFilterStore,
 	type WorkspaceScope,
 } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
-import { useSelectedHost } from "../useSelectedHost";
-
-interface CloudReadiness {
-	/** False while the cloud list is still loading — see the wait below. */
-	isReady: boolean;
-	count: number;
-}
 
 /**
- * Which scope the list is under: Cloud, or the selected machine. A hand-picked
- * scope always wins. Until someone picks one, a cold start whose remembered
- * machine is asleep opens on Cloud instead — the sandbox rows are the ones you
- * can actually work in, and the alternative is a screen of offline placeholder.
+ * Which scope the list is under: Cloud, or the selected machine. The pick is
+ * the user's alone — an asleep machine still shows as itself, offline, rather
+ * than quietly moving you somewhere your work isn't.
  *
- * Null until both the saved pick and the cloud list have answered: guessing
- * "host" first and correcting to "cloud" a moment later re-scopes the screen
- * under someone mid-read, which is the flicker this wait buys out.
+ * Cloud is internal-only, so a saved Cloud pick reads as "host" for everyone
+ * the flag is off for; otherwise turning it off would strand them on a scope
+ * they can no longer reach or leave.
  */
-export function useWorkspaceScope(
-	cloud: CloudReadiness,
-): WorkspaceScope | null {
+export function useWorkspaceScope(): WorkspaceScope {
 	const scope = useWorkspacesFilterStore((store) => store.scope);
-	const scopePicked = useWorkspacesFilterStore((store) => store.scopePicked);
-	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
-	const selectedHost = useSelectedHost();
+	const cloudEnabled = useCloudScopeEnabled();
+	return scope === "cloud" && cloudEnabled ? "cloud" : "host";
+}
 
-	return useMemo(() => {
-		if (!hasHydrated) return null;
-		if (scopePicked) return scope;
-		if (!cloud.isReady) return null;
-		return cloud.count > 0 && !selectedHost?.isOnline ? "cloud" : "host";
-	}, [
-		hasHydrated,
-		scopePicked,
-		scope,
-		cloud.isReady,
-		cloud.count,
-		selectedHost?.isOnline,
-	]);
+/** Whether Cloud is offered as a scope at all. */
+export function useCloudScopeEnabled(): boolean {
+	return Boolean(useFeatureFlag(FEATURE_FLAGS.CLOUD_WORKSPACES));
 }

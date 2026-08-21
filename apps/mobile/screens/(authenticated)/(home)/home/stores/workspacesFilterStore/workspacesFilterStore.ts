@@ -15,13 +15,6 @@ export const SORT_OPTIONS: { value: WorkspaceSort; label: string }[] = [
 interface WorkspacesFilterStore {
 	hostFilter: string | null;
 	scope: WorkspaceScope;
-	/**
-	 * False until the scope was picked by hand. Until then the home screen may
-	 * open on Cloud when the remembered machine is asleep; after it, the pick
-	 * stands even when the machine goes offline — a scope that moves under you
-	 * is worse than an empty list you chose.
-	 */
-	scopePicked: boolean;
 	sort: WorkspaceSort;
 	/** False until AsyncStorage has answered — the saved filter isn't here yet. */
 	hasHydrated: boolean;
@@ -35,23 +28,21 @@ export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
 		(set) => ({
 			hostFilter: null,
 			scope: "host",
-			scopePicked: false,
 			sort: "updatedAt",
 			hasHydrated: false,
 			// Picking a machine is also how you leave Cloud; the machine is
 			// remembered either way so Cloud → machine returns you where you were.
 			setHostFilter: (machineId) =>
-				set({ hostFilter: machineId, scope: "host", scopePicked: true }),
-			setScopeCloud: () => set({ scope: "cloud", scopePicked: true }),
+				set({ hostFilter: machineId, scope: "host" }),
+			setScopeCloud: () => set({ scope: "cloud" }),
 			setSort: (sort) => set({ sort }),
 		}),
 		{
 			name: "workspaces-filter",
 			storage: createJSONStorage(() => AsyncStorage),
-			partialize: ({ hostFilter, scope, scopePicked, sort }) => ({
+			partialize: ({ hostFilter, scope, sort }) => ({
 				hostFilter,
 				scope,
-				scopePicked,
 				sort,
 			}),
 			// Rehydration is async — measured at ~165ms on a cold start — so

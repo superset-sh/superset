@@ -3,7 +3,6 @@ import { Stack, useRouter } from "expo-router";
 import { Cloud } from "lucide-react-native";
 import { View } from "react-native";
 import { Icon } from "@/components/ui/icon";
-import { useCloudWorkspaceItems } from "@/hooks/useCloudWorkspaceItems";
 import { useTheme } from "@/hooks/useTheme";
 import {
 	SORT_OPTIONS,
@@ -19,12 +18,7 @@ export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const selectedHost = useSelectedHost();
-	const { items: cloudItems, isReady: cloudReady } = useCloudWorkspaceItems();
-	const scope = useWorkspaceScope({
-		isReady: cloudReady,
-		count: cloudItems.length,
-	});
-	const cloud = scope === "cloud";
+	const cloud = useWorkspaceScope() === "cloud";
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
 	const sortLabel =

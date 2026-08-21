@@ -118,11 +118,7 @@ export function HomeScreen() {
 		cache: cloudCache,
 		isReady: cloudReady,
 	} = useCloudWorkspaceItems();
-	const scope = useWorkspaceScope({
-		isReady: cloudReady,
-		count: cloudItems.length,
-	});
-	const cloudScope = scope === "cloud";
+	const cloudScope = useWorkspaceScope() === "cloud";
 	// Every addressed sandbox is a host of its own for the terminal fan-out,
 	// so cloud rows get session marks and attention like any other row. Lazier
 	// than the machine host on purpose: each sandbox is its own request, and a
@@ -544,7 +540,7 @@ export function HomeScreen() {
 
 	const scopeBar = (
 		<ScopeBar
-			scope={scope ?? "host"}
+			scope={cloudScope ? "cloud" : "host"}
 			hostName={selectedHost?.name ?? null}
 			hostOnline={selectedHost?.isOnline ?? false}
 			sortLabel={

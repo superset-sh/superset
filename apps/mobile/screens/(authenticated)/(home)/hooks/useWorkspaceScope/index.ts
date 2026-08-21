@@ -1,1 +1,4 @@
-export { useWorkspaceScope } from "./useWorkspaceScope";
+export {
+	useCloudScopeEnabled,
+	useWorkspaceScope,
+} from "./useWorkspaceScope";
