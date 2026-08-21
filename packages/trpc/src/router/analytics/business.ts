@@ -7,6 +7,7 @@ import { env } from "../../env";
 import {
 	claimMetricCache,
 	clearMetricCache,
+	isMetricCacheAvailable,
 	readMetricCache,
 	writeMetricCache,
 } from "../../lib/metric-cache";
@@ -206,6 +207,12 @@ async function advanceSigmaMrr({
 } = {}): Promise<MrrResult> {
 	if (!env.STRIPE_SECRET_KEY) {
 		return { available: false, reason: "STRIPE_SECRET_KEY not configured" };
+	}
+	// Without the shared cache there is nowhere to keep the pending run, so
+	// every poll would start another Sigma query and none would ever be
+	// collected. Say so rather than burning runs.
+	if (!isMetricCacheAvailable()) {
+		return { available: false, reason: "metric cache not configured" };
 	}
 
 	if (!ignoreCache) {

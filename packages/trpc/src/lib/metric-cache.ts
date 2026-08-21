@@ -57,7 +57,9 @@ export async function claimMetricCache<T>(
 	value: T,
 	ttlSeconds: number,
 ): Promise<boolean> {
-	if (!redis) return true;
+	// No shared cache means no way to agree on an owner, and claiming anyway
+	// would let every caller start the work the claim exists to serialise.
+	if (!redis) return false;
 	try {
 		const claimed = await redis.set(`${PREFIX}:${key}`, value, {
 			nx: true,

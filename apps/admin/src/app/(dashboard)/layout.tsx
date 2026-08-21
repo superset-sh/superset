@@ -40,7 +40,13 @@ export default async function DashboardLayout({
 
 	return (
 		<SidebarProvider>
-			<AppSidebar user={session.user} />
+			<AppSidebar
+				user={{
+					name: session.user.name,
+					email: session.user.email,
+					image: session.user.image,
+				}}
+			/>
 			<SidebarInset>
 				<header className="bg-background sticky top-0 flex h-16 shrink-0 items-center gap-2 border-b px-4">
 					<SidebarTrigger className="-ml-1" />
