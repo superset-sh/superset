@@ -97,6 +97,34 @@ describe("kimi agent registration", () => {
 	});
 });
 
+describe("kiro agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("kiro");
+		expect(AGENT_LABELS.kiro).toBe("Kiro");
+	});
+
+	it("seeds prompt launches into the interactive chat positionally", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "kiro-1234",
+			agent: "kiro",
+		});
+
+		expect(command).toStartWith(
+			"kiro-cli chat --trust-all-tools \"$(cat <<'SUPERSET_PROMPT_kiro1234'",
+		);
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset args and id-based resume from the base command", () => {
+		const preset = getPresetById("kiro");
+		expect(preset?.command).toBe("kiro-cli");
+		expect(preset?.args).toEqual(["chat", "--trust-all-tools"]);
+		expect(preset?.promptArgs).toEqual([]);
+		expect(preset?.resumeArgs).toEqual(["--resume-id"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");
