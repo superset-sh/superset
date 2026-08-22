@@ -63,7 +63,7 @@ export const SAMPLE_PROMPTS: Record<string, SamplePrompt> = {
 		id: "explain-superset",
 		label: "Get more out of Superset",
 		description:
-			"Learn the workflow that fits this repo — parallel workspaces and agent setup.",
+			"Learn the workflow that fits this repo: parallel workspaces and agent setup.",
 		prompt:
 			"Read https://docs.superset.sh and figure out how I should be using Superset for this specific repository. Cover how to run several workspaces in parallel without them colliding, what belongs in .superset/config.json, and which agent settings suit this codebase. Be concrete about this repo rather than generic, and end with the two or three changes worth making first.",
 	},

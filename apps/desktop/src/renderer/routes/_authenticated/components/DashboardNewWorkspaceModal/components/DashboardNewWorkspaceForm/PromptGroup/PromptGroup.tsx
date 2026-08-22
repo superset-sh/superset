@@ -30,7 +30,10 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
-import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import {
+	resolveHostUrl,
+	useHostUrl,
+} from "renderer/hooks/host-service/useHostTargetUrl";
 import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
@@ -39,11 +42,13 @@ import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
+import { useCloneAccessPlan } from "renderer/routes/_authenticated/hooks/useCloneAccessPlan";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prompt-context";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
+import { ClonePlanPill } from "../../ClonePlanPill";
 import { DevicePicker } from "../components/DevicePicker";
 import { CLOUD_HOST_ID } from "../components/DevicePicker/DevicePicker";
 import { useWorkspaceHostOptions } from "../components/DevicePicker/hooks/useWorkspaceHostOptions";
@@ -105,6 +110,31 @@ export function PromptGroup({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const needsSetup = selectedProject?.needsSetup === true;
+	// Creation subsumes setup: with a linked repo we clone as the first step
+	// of the create instead of detouring through settings. Repo-less projects
+	// (import-only) and cloud targets keep the settings path.
+	const setupHostId = draft.isSession ? null : (draft.hostId ?? machineId);
+	const canInlineSetup =
+		needsSetup &&
+		!!selectedProject?.repoUrl &&
+		setupHostId !== null &&
+		setupHostId !== CLOUD_HOST_ID;
+	const setupHostUrl = useHostUrl(canInlineSetup ? setupHostId : null);
+	const setupPlan = useCloneAccessPlan({
+		hostUrl: canInlineSetup ? setupHostUrl : null,
+		repoCloneUrl: selectedProject?.repoUrl ?? null,
+		enabled: canInlineSetup,
+	});
+	// `~` expands host-side, so the tilde default holds even before the
+	// host's home directory has resolved.
+	const setupFirst =
+		canInlineSetup && selectedProject?.repoUrl
+			? {
+					repoCloneUrl: selectedProject.repoUrl,
+					projectName: selectedProject.name,
+					parentDir: setupPlan.parentDir.trim() || "~/.superset/projects",
+				}
+			: null;
 	const persistedBaseBranchDefault = useV2WorkspaceCreateDefaultsStore(
 		(state) =>
 			projectId ? (state.baseBranchesByProjectId[projectId] ?? null) : null,
@@ -127,6 +157,8 @@ export function PromptGroup({
 			params: { projectId: targetProjectId },
 			search: {
 				hostId: draft.hostId ?? machineId ?? undefined,
+				// Opens the setup modal directly on the settings page.
+				focus: "setup",
 			},
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
@@ -349,9 +381,10 @@ export function PromptGroup({
 		effortSupport ? selectedEffort : null,
 		uploadAttachments,
 		promptContext,
+		setupFirst,
 	);
 	const handleSubmit = useCallback(() => {
-		if (needsSetup) {
+		if (needsSetup && !canInlineSetup) {
 			handleGoToSetup();
 			return;
 		}
@@ -368,6 +401,7 @@ export function PromptGroup({
 		void createWorkspace();
 	}, [
 		activeHostUrl,
+		canInlineSetup,
 		createWorkspace,
 		draft.hostId,
 		handleGoToSetup,
@@ -650,7 +684,7 @@ export function PromptGroup({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={needsSetup || isCreating}
+							disabled={(needsSetup && !canInlineSetup) || isCreating}
 							onClick={(e) => {
 								e.preventDefault();
 								handleSubmit();
@@ -704,7 +738,19 @@ export function PromptGroup({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								{!draft.isSession && (
+								{draft.isSession ? null : canInlineSetup ? (
+									<ClonePlanPill
+										hostName={
+											setupHostId === machineId
+												? "this device"
+												: (otherHosts.find((host) => host.id === setupHostId)
+														?.name ?? "this host")
+										}
+										isRemoteTarget={setupHostId !== machineId}
+										plan={setupPlan}
+										onOpenSettings={handleGoToSetup}
+									/>
+								) : (
 									<CompareBaseBranchPicker {...pickerProps} />
 								)}
 							</motion.div>
@@ -712,7 +758,7 @@ export function PromptGroup({
 					</AnimatePresence>
 				</div>
 				<div className="flex items-center gap-1.5">
-					{needsSetup ? (
+					{needsSetup && !canInlineSetup ? (
 						<Button
 							type="button"
 							variant="outline"

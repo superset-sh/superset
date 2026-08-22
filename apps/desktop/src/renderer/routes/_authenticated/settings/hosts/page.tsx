@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { AddHostGuide } from "./components/AddHostGuide";
 
 export const Route = createFileRoute("/_authenticated/settings/hosts/")({
 	component: HostsIndexPage,
@@ -33,11 +34,9 @@ function HostsIndexPage() {
 
 	if (hosts.length === 0) {
 		if (isPending) return null;
-		return (
-			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
-				No hosts yet.
-			</div>
-		);
+		// The guide polls the same hosts query; the moment the new host
+		// registers, the redirect effect above lands on its settings page.
+		return <AddHostGuide />;
 	}
 
 	return null;

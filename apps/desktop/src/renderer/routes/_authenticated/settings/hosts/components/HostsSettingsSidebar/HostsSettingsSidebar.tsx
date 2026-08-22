@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { LuPlus } from "react-icons/lu";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
@@ -64,6 +65,18 @@ export function HostsSettingsSidebar({
 		<SettingsListSidebar
 			searchPlaceholder="Filter hosts..."
 			searchAriaLabel="Filter hosts"
+			listHeader={
+				<Link
+					to="/settings/hosts/new"
+					className={settingsListItemClass(
+						false,
+						"gap-2 text-muted-foreground",
+					)}
+				>
+					<LuPlus className="size-3.5 shrink-0" />
+					<span className="truncate flex-1">Add host…</span>
+				</Link>
+			}
 			groups={listGroups}
 			filterRow={(row, q) => row.name.toLowerCase().includes(q.toLowerCase())}
 			getRowKey={(row) => row.id}

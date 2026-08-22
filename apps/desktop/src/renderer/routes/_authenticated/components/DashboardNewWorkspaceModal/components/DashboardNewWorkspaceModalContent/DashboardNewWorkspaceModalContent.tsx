@@ -42,6 +42,7 @@ export function DashboardNewWorkspaceModalContent({
 				name: project.name,
 				githubOwner: project.repoOwner,
 				githubRepoName: project.repoName,
+				repoUrl: project.repoUrl,
 				iconUrl: resolveProjectIconUrl(project),
 				needsSetup:
 					setUpProjectIds === null

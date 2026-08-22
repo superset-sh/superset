@@ -8,7 +8,10 @@ import { type ReactNode, useState } from "react";
 import { HiArrowUpRight } from "react-icons/hi2";
 import { SiGithub, SiOpenai } from "react-icons/si";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { GhAuthDialog, type GhAuthDialogMode } from "./components/GhAuthDialog";
+import {
+	GhAuthDialog,
+	type GhAuthDialogMode,
+} from "../components/GhAuthDialog";
 import {
 	type Provider,
 	ProviderConnectModal,

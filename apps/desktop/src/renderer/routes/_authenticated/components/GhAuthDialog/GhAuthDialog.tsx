@@ -15,12 +15,12 @@ import {
 	LuTriangleAlert,
 } from "react-icons/lu";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	GH_AUTH_COMMAND,
+	GH_INSTALL_COMMAND,
+} from "renderer/utils/classifyCloneError";
 import stripAnsi from "strip-ansi";
 import { GhAuthTerminal } from "./GhAuthTerminal";
-
-const GH_AUTH_COMMAND =
-	"gh auth login --hostname github.com --git-protocol https --web";
-const GH_INSTALL_COMMAND = `brew install gh && ${GH_AUTH_COMMAND}`;
 
 const ONE_TIME_CODE_PATTERN = /one-time code: ([A-Z0-9]{4}-[A-Z0-9]{4})/;
 

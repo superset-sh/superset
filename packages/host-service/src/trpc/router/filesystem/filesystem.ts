@@ -8,6 +8,7 @@ import {
 	ProjectNotFoundError,
 	WorkspaceNotFoundError,
 } from "../../../runtime/filesystem/filesystem";
+import { expandTildeAbsolute } from "../../../runtime/paths";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 
@@ -77,24 +78,6 @@ async function withFsErrorTranslation<T>(fn: () => Promise<T>): Promise<T> {
 	} catch (error) {
 		translateFsError(error);
 	}
-}
-
-function expandTildeAbsolute(input: string): string {
-	const trimmed = input.trim();
-	if (trimmed.startsWith("~")) {
-		const home = homedir();
-		const rest = trimmed.slice(1);
-		if (rest === "" || rest.startsWith("/") || rest.startsWith("\\")) {
-			return normalize(join(home, rest));
-		}
-	}
-	if (!isAbsolute(trimmed)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: "Path must be absolute or start with ~",
-		});
-	}
-	return normalize(trimmed);
 }
 
 function getFilesystemService(ctx: HostServiceContext, workspaceId: string) {

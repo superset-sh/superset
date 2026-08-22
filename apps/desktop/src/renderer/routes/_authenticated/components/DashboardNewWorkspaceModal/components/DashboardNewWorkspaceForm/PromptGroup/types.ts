@@ -19,6 +19,8 @@ export interface ProjectOption {
 	name: string;
 	githubOwner: string | null;
 	githubRepoName: string | null;
+	/** Clone URL from the host fan-out; null for local-only (import) projects. */
+	repoUrl: string | null;
 	iconUrl: string | null;
 	// True when the currently-selected host doesn't yet have this project
 	// set up. null when we couldn't check (offline / unreachable host).
