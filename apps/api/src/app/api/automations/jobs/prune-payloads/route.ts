@@ -36,6 +36,16 @@ const TIME_BUDGET_MS = 20_000;
  */
 const PAYLOAD_READBACK_PROVIDERS = ["google_calendar"];
 
+/**
+ * Built as an explicit list rather than passing the array as one bind
+ * parameter: drizzle sends a JS array as a record, and Postgres will not cast
+ * that to text[], so `<> ALL($1)` fails on every run.
+ */
+const excludedProviders = sql.join(
+	PAYLOAD_READBACK_PROVIDERS.map((provider) => sql`${provider}`),
+	sql`, `,
+);
+
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
 	const rejected = await verifyQstashRequest(
@@ -59,7 +69,7 @@ export async function POST(request: Request): Promise<Response> {
 				FROM automation_events
 				WHERE payload IS NOT NULL
 				  AND received_at < now() - ${`${RETAIN_DAYS} days`}::interval
-				  AND provider <> ALL(${PAYLOAD_READBACK_PROVIDERS})
+				  AND provider NOT IN (${excludedProviders})
 				  -- A row still awaiting its handoff is re-dispatched from
 				  -- dispatch_input rather than payload, but leaving it whole
 				  -- keeps the sweep's inputs untouched for the cost of a few rows.
