@@ -32,6 +32,16 @@ final class ComposerModel {
   /// and taps back out; it never owns the list.
   var attachments: [ComposerAttachment] = []
 
+  /// The currently selected agent. Nil hides the picker, which is what the
+  /// terminal surface wants. The list itself lives in React Native — see
+  /// `ComposerModelPicker`.
+  var selectedModel: ComposerMenuOption?
+
+  /// Frame 4's header row — project+branch and target. Same shape as the model
+  /// options; their menus arrive with the data at cutover, so for now a press
+  /// is reported and the caller decides what to present.
+  var headerChips: [ComposerMenuOption] = []
+
   /// Bumped to ask the composer to take or resign focus. A counter rather than
   /// a Bool so two consecutive requests of the same kind both land — the second
   /// would otherwise be a no-op change and never fire an observer.
@@ -47,6 +57,7 @@ final class ComposerModel {
   @ObservationIgnored var onAttachmentsPress: (() -> Void)?
   @ObservationIgnored var onDictatePress: (() -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
+  @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onRemoveAttachment: ((String) -> Void)?
   @ObservationIgnored var onAttachmentPress: ((String) -> Void)?
   /// Lets the caller restore the composer only when it was actually open —

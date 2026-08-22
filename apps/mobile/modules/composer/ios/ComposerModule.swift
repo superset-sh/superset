@@ -11,6 +11,7 @@ public final class ComposerModule: Module {
         "onAttachmentsPress",
         "onDictatePress",
         "onModelPress",
+        "onChipPress",
         "onRemoveAttachment",
         "onAttachmentPress",
         "onExpandedChange"
@@ -26,6 +27,14 @@ public final class ComposerModule: Module {
 
       Prop("attachments") { (view: ComposerAnchorView, attachments: [ComposerAttachment]) in
         view.overlay.model.attachments = attachments
+      }
+
+      Prop("selectedModel") { (view: ComposerAnchorView, model: ComposerMenuOption?) in
+        view.overlay.model.selectedModel = model
+      }
+
+      Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
+        view.overlay.model.headerChips = chips
       }
 
       /// React Native clears the draft once its own delivery succeeded, so a
@@ -61,6 +70,7 @@ final class ComposerAnchorView: ExpoView {
   private let onAttachmentsPress = EventDispatcher()
   private let onDictatePress = EventDispatcher()
   private let onModelPress = EventDispatcher()
+  private let onChipPress = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
   private let onAttachmentPress = EventDispatcher()
   private let onExpandedChange = EventDispatcher()
@@ -72,6 +82,7 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onAttachmentsPress = { [weak self] in self?.onAttachmentsPress([:]) }
     overlay.model.onDictatePress = { [weak self] in self?.onDictatePress([:]) }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
+    overlay.model.onChipPress = { [weak self] id in self?.onChipPress(["id": id]) }
     overlay.model.onRemoveAttachment = { [weak self] id in
       self?.onRemoveAttachment(["id": id])
     }

@@ -30,6 +30,9 @@ enum ComposerMetrics {
   /// Frame 4: growth clamps rather than filling the screen.
   static let maxLines = 12
   static let grabberSize = CGSize(width: 36, height: 5)
+  static let modelIconSize: CGFloat = 16
+  static let modelIconRadius: CGFloat = 4
+  static let chipSpacing: CGFloat = 12
   /// Frames 6/10: square thumbnails with the remove badge overlapping the
   /// top-right corner and bleeding slightly outside it.
   static let thumbnailSize: CGFloat = 56
@@ -154,6 +157,10 @@ struct ComposerRootView: View {
     VStack(spacing: 0) {
       if isExpanded {
         grabber
+        if !model.headerChips.isEmpty {
+          headerRow
+            .transition(.opacity)
+        }
         if !model.attachments.isEmpty {
           ComposerCarousel(
             attachments: model.attachments,
@@ -311,17 +318,33 @@ struct ComposerRootView: View {
   }
 
   private var modelPicker: some View {
-    Button { model.onModelPress?() } label: {
-      HStack(spacing: 4) {
-        Text("Claude Sonnet 4.5")
-        Image(systemName: "chevron.down")
-          .font(.system(size: 11, weight: .semibold))
-      }
-      .foregroundStyle(.secondary)
-      .lineLimit(1)
-    }
-    .buttonStyle(.plain)
+    ComposerModelPicker(
+      selected: model.selectedModel,
+      onPress: { model.onModelPress?() }
+    )
     .padding(.leading, ComposerMetrics.pickerGap - ComposerMetrics.rowSpacing)
     .padding(.trailing, ComposerMetrics.textInset)
+  }
+
+  /// Frame 4: `superset main ⌄` · `☁ Cloud ⌄`, above the editor. Absent on the
+  /// session surface (frame 13), which is simply an empty array.
+  private var headerRow: some View {
+    HStack(spacing: ComposerMetrics.chipSpacing) {
+      ForEach(model.headerChips) { chip in
+        Button { model.onChipPress?(chip.id) } label: {
+          HStack(spacing: 4) {
+            Text(chip.label)
+            Image(systemName: "chevron.down")
+              .font(.system(size: 11, weight: .semibold))
+          }
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+        }
+        .buttonStyle(.plain)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(.horizontal, ComposerMetrics.textInset + ComposerMetrics.rowPadding)
+    .padding(.bottom, ComposerMetrics.textInset)
   }
 }

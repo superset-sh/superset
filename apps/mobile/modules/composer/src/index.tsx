@@ -13,10 +13,13 @@ interface NativeComposerViewProps {
 	placeholder?: string;
 	backdrop?: ComposerBackdrop;
 	attachments?: ComposerAttachment[];
+	selectedModel?: ComposerMenuOption;
+	headerChips?: ComposerMenuOption[];
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
 	onDictatePress?: () => void;
 	onModelPress?: () => void;
+	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
 	onAttachmentPress?: (event: { nativeEvent: { id: string } }) => void;
 	onExpandedChange?: (event: { nativeEvent: { expanded: boolean } }) => void;
@@ -40,6 +43,19 @@ export type ComposerBackdrop = "dim" | "passthrough";
  * is shared with the attachments sheet — so the composer renders a description
  * of it and reports removals and taps back out.
  */
+/**
+ * One entry in a composer picker.
+ *
+ * `iconUri` must be a local file URI, not a Metro asset reference — SwiftUI
+ * cannot read the latter. Resolve bundled art with `expo-asset` first; see
+ * `useAgentIconUri`.
+ */
+export interface ComposerMenuOption {
+	id: string;
+	label: string;
+	iconUri?: string;
+}
+
 export interface ComposerAttachment {
 	id: string;
 	uri: string;
@@ -62,6 +78,14 @@ export interface ComposerProps {
 	backdrop?: ComposerBackdrop;
 	attachments?: ComposerAttachment[];
 	/**
+	 * The selected agent, shown as brand mark + name. Omit to hide the picker —
+	 * what the terminal surface wants. The list itself stays in React Native:
+	 * the real pickers are `formSheet` routes with searchable lists.
+	 */
+	selectedModel?: ComposerMenuOption;
+	/** Frame 4's header row. Empty on the session surface (frame 13). */
+	headerChips?: ComposerMenuOption[];
+	/**
 	 * Never clears the composer — the caller clears through the ref once its own
 	 * delivery succeeded, so a failed send keeps the draft.
 	 */
@@ -69,6 +93,7 @@ export interface ComposerProps {
 	onAttachmentsPress?: () => void;
 	onDictatePress?: () => void;
 	onModelPress?: () => void;
+	onChipPress?: (id: string) => void;
 	onRemoveAttachment?: (id: string) => void;
 	onAttachmentPress?: (id: string) => void;
 	/**
@@ -96,10 +121,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			placeholder = "",
 			backdrop = "dim",
 			attachments,
+			selectedModel,
+			headerChips,
 			onSubmit,
 			onAttachmentsPress,
 			onDictatePress,
 			onModelPress,
+			onChipPress,
 			onRemoveAttachment,
 			onAttachmentPress,
 			onExpandedChange,
@@ -120,10 +148,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				placeholder={placeholder}
 				backdrop={backdrop}
 				attachments={attachments}
+				selectedModel={selectedModel}
+				headerChips={headerChips}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}
 				onDictatePress={onDictatePress}
 				onModelPress={onModelPress}
+				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onRemoveAttachment={(event) =>
 					onRemoveAttachment?.(event.nativeEvent.id)
 				}

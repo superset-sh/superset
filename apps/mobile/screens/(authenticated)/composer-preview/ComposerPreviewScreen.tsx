@@ -8,6 +8,7 @@ import { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { usePromptInputAttachments } from "@/components/ai-elements/prompt-input";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/components/GlassComposer/hooks/useAttachmentsSheet";
+import { useMockModelOptions } from "./hooks/useMockModelOptions";
 
 /**
  * Development scaffolding for the native composer rewrite — not linked from
@@ -37,6 +38,14 @@ export function ComposerPreviewScreen() {
 	const wasExpanded = useRef(false);
 	const openAttachmentsSheet = useAttachmentsSheet();
 	const attachments = usePromptInputAttachments();
+	// Mock until cutover, when these come from the host's agent configs and the
+	// selected target's projects and branches.
+	const modelOptions = useMockModelOptions();
+	const [selectedModelId, setSelectedModelId] = useState("claude");
+	const headerChips = [
+		{ id: "project", label: "superset main" },
+		{ id: "target", label: "Cloud" },
+	];
 
 	return (
 		<View className="flex-1 bg-background">
@@ -110,10 +119,25 @@ export function ComposerPreviewScreen() {
 						},
 					});
 				}}
+				selectedModel={modelOptions.find(
+					(option) => option.id === selectedModelId,
+				)}
+				headerChips={headerChips}
+				// The real picker is the existing `new-session/agent` formSheet; this
+				// stands in for it until cutover.
+				onModelPress={() => {
+					const next =
+						modelOptions[
+							(modelOptions.findIndex((o) => o.id === selectedModelId) + 1) %
+								Math.max(1, modelOptions.length)
+						];
+					if (next) setSelectedModelId(next.id);
+					setLastEvent("model picker");
+				}}
+				onChipPress={(id) => setLastEvent(`chip ${id}`)}
 				onRemoveAttachment={(id) => attachments.remove(id)}
 				onAttachmentPress={(id) => setLastEvent(`open attachment ${id}`)}
 				onDictatePress={() => setLastEvent("dictate")}
-				onModelPress={() => setLastEvent("model")}
 			/>
 		</View>
 	);
