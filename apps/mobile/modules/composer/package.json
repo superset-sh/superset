@@ -1,7 +1,7 @@
 {
 	"name": "@superset/composer",
 	"version": "0.0.1",
-	"main": "src/index.tsx",
+	"main": "src/index.ts",
 	"private": true,
 	"peerDependencies": {
 		"expo": "*",

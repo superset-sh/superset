@@ -180,30 +180,35 @@ export function NewChatWidget({
 	// Collapse BOTH dimensions: a width-0 proposal makes Text wrap one glyph
 	// per line, leaving a tall invisible column that clipped() hides but layout
 	// still counts.
-	// Frame 4's header row, as data. A picked workspace target replaces the
-	// project/branch pair, the way the old `header` slot swapped them out.
-	const headerChips = chatTarget
-		? [
-				{
-					id: "clear-target",
-					label: `New agent in ${chatTarget.workspaceName}`,
-				},
-			]
-		: [
-				{
-					id: "project",
-					label: selectedTarget
-						? isCloudTarget
-							? `${selectedTarget.projectName} · Cloud`
-							: selectedTarget.projectName
-						: "No project",
-					avatar: true,
-					iconUri: selectedTarget?.projectIconUrl ?? undefined,
-				},
-				...(branchLabel
-					? [{ id: "branch", label: branchLabel, muted: true }]
-					: []),
-			];
+	// Frame 4's header row, as data. A target picked at runtime replaces the
+	// project/branch pair, the way the old `header` slot swapped them out —
+	// but only a *picked* one. `fixedTarget` pins the composer to a workspace
+	// and is not the user's to clear, so it gets no chips at all: the chip's
+	// press only clears `storeTarget`, which would leave it stuck on screen.
+	const headerChips = fixedTarget
+		? []
+		: storeTarget
+			? [
+					{
+						id: "clear-target",
+						label: `New agent in ${storeTarget.workspaceName}`,
+					},
+				]
+			: [
+					{
+						id: "project",
+						label: selectedTarget
+							? isCloudTarget
+								? `${selectedTarget.projectName} · Cloud`
+								: selectedTarget.projectName
+							: "No project",
+						avatar: true,
+						iconUri: selectedTarget?.projectIconUrl ?? undefined,
+					},
+					...(branchLabel
+						? [{ id: "branch", label: branchLabel, muted: true }]
+						: []),
+				];
 
 	// No agent chip for a cloud target: nothing launches on create (parity
 	// with desktop; the sandbox-side launch is a follow-up).

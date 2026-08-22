@@ -136,7 +136,7 @@
 		"@types/react": "19.2.14",
 		"@xterm/addon-fit": "0.12.0-beta.289",
 		"@xterm/xterm": "6.1.0-beta.289",
-		"babel-preset-expo": "56.0.11",
+		"babel-preset-expo": "57.0.7",
 		"expo-mcp": "0.2.4",
 		"storybook": "10.4.2",
 		"typescript": "6.0.3"
