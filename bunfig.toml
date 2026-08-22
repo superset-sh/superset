@@ -2,3 +2,21 @@
 linker = "isolated" # Prevent hoisting from resolving `path-scurry@2` to `lru-cache@6` (missing `LRUCache`), which breaks the `@superset/desktop` postinstall native rebuild.
 exact = true
 minimumReleaseAge = 259200
+# Expo SDK 57 landed inside the 3-day window. CI installs frozen from the
+# lockfile and is unaffected, but a fresh `bun install` re-resolves and fails on
+# every one of these. Excluding them keeps the repo installable from scratch.
+# Remove once the pins age past the window — they are exact, so this list only
+# ever covers versions we already chose.
+minimumReleaseAgeExcludes = [
+  "@expo/ui",
+  "expo",
+  "expo-asset",
+  "expo-constants",
+  "expo-dev-client",
+  "expo-file-system",
+  "expo-image-manipulator",
+  "expo-image-picker",
+  "expo-linking",
+  "expo-modules-core",
+  "expo-router",
+]
