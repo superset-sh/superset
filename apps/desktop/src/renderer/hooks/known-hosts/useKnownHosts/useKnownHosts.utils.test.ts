@@ -7,6 +7,7 @@ function makeHost(overrides: Partial<KnownHostRow> = {}): KnownHostRow {
 	return {
 		organizationId: ORG,
 		machineId: "machine-a",
+		name: "Machine A",
 		isOnline: true,
 		...overrides,
 	};
