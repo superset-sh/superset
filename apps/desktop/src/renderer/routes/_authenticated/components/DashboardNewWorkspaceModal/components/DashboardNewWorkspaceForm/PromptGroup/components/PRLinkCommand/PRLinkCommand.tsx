@@ -79,7 +79,6 @@ export function PRLinkCommand({
 			});
 		},
 		enabled: !!projectId && !!hostUrl && open,
-		retry: false,
 	});
 
 	// One toast per error transition — without this, the dropdown's

@@ -44,6 +44,14 @@ interface ThemeState {
 	/** Set which theme to use for a given system mode (light or dark) */
 	setSystemThemePreference: (mode: "light" | "dark", themeId: string) => void;
 
+	/** Replace theme state from an external canonical source (CLI settings nudge) */
+	applyExternalThemeState: (external: {
+		activeThemeId: string;
+		customThemes: Theme[];
+		systemLightThemeId?: string;
+		systemDarkThemeId?: string;
+	}) => void;
+
 	/** Add a custom theme */
 	addCustomTheme: (theme: Theme) => void;
 	/** Add or replace custom themes by ID */
@@ -180,6 +188,47 @@ export const useThemeStore = create<ThemeState>()(
 
 					set({
 						activeThemeId: themeId,
+						activeTheme: theme,
+						terminalTheme,
+					});
+				},
+
+				applyExternalThemeState: (external: {
+					activeThemeId: string;
+					customThemes: Theme[];
+					systemLightThemeId?: string;
+					systemDarkThemeId?: string;
+				}) => {
+					// Canonical themeState changed outside the renderer (CLI write +
+					// /settings-changed nudge). Replace state wholesale and re-apply.
+					const customThemes = Array.isArray(external.customThemes)
+						? external.customThemes.filter(
+								(theme) =>
+									typeof theme === "object" &&
+									theme !== null &&
+									typeof theme.id === "string",
+							)
+						: [];
+					const systemLightThemeId =
+						external.systemLightThemeId ?? DEFAULT_LIGHT_THEME_ID;
+					const systemDarkThemeId =
+						external.systemDarkThemeId ?? DEFAULT_DARK_THEME_ID;
+					const resolvedId = resolveThemeId(
+						external.activeThemeId,
+						systemLightThemeId,
+						systemDarkThemeId,
+						customThemes,
+					);
+					const theme =
+						findTheme(resolvedId, customThemes) ??
+						findTheme(DEFAULT_THEME_ID, customThemes);
+					if (!theme) return;
+					const { terminalTheme } = applyTheme(theme);
+					set({
+						activeThemeId: external.activeThemeId,
+						customThemes,
+						systemLightThemeId,
+						systemDarkThemeId,
 						activeTheme: theme,
 						terminalTheme,
 					});

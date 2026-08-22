@@ -12,21 +12,22 @@ import {
 } from "@superset/ui/form";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Redirect } from "renderer/components/Redirect";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { z } from "zod";
 
 export const Route = createFileRoute("/create-organization/")({
 	component: CreateOrganization,
 });
 
-// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
-const signInRedirect = <Navigate to="/sign-in" replace />;
+const signInRedirect = <Redirect to="/sign-in" replace />;
 
 const formSchema = z.object({
 	name: z.string().min(1, "Organization name is required").max(100),
@@ -139,6 +140,13 @@ export function CreateOrganization() {
 			});
 
 			await authClient.organization.setActive({
+				organizationId: organization.id,
+			});
+			// This route lives outside the authenticated layout, so navigating
+			// back remounts CollectionsProvider, which seeds from the window
+			// registry first. Without moving the window too, the registry's old
+			// org wins and you are not taken into the org you just created.
+			await electronTrpcClient.window.setActiveOrg.mutate({
 				organizationId: organization.id,
 			});
 

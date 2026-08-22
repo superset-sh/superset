@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray, isNull } from "drizzle-orm";
@@ -58,6 +59,13 @@ const PROJECT_REFRESH_INTERVAL_MS = 5 * 60_000;
 // PROJECT_REFRESH). Otherwise the cache is always stale at poll time and
 // each tick fires fresh GitHub calls for the same upstream branch.
 const REPO_PULL_REQUEST_CACHE_TTL_MS = 60_000;
+// A fetch that keeps failing (payload over maxBuffer, revoked auth, …) must
+// not respawn `gh` at full cadence forever: each consecutive failure doubles
+// the effective TTL of the cached rejection, capped here.
+const REPO_PULL_REQUEST_CACHE_MAX_TTL_MS = 30 * 60_000;
+// Re-probe cadence for worktrees observed missing on disk. existsSync-only —
+// cheap enough to run every tick; spawning git against a missing dir is not.
+const MISSING_WORKTREE_PROBE_INTERVAL_MS = 30_000;
 // Dedup + link-assignment key. Branch stays case-sensitive: `feature` and
 // `Feature` are distinct branches with distinct PRs, so collapsing them here
 // would mislink. Case drift is tolerated only in the fallback in
@@ -102,6 +110,8 @@ export interface PullRequestRuntimeManagerOptions {
 	 * event loop (app wiring passes a worker-pool-backed reader). Defaults
 	 * to reading in-process via `git`. */
 	readWorkspaceRefs?: (worktreePath: string) => Promise<WorkspaceRefsSnapshot>;
+	/** Test seam for the missing-worktree gate. Defaults to `existsSync`. */
+	worktreeExists?: (worktreePath: string) => boolean;
 }
 
 interface NormalizedRepoIdentity {
@@ -170,15 +180,31 @@ export class PullRequestRuntimeManager {
 	>();
 	private readonly pullRequestHeadCache = new Map<
 		string,
-		{ promise: Promise<GitHubPullRequestNode | null>; fetchedAt: number }
+		{
+			promise: Promise<GitHubPullRequestNode | null>;
+			fetchedAt: number;
+			consecutiveFailures: number;
+		}
 	>();
 	private readonly openPullRequestsCache = new Map<
 		string,
-		{ promise: Promise<GitHubPullRequestNode[]>; fetchedAt: number }
+		{
+			promise: Promise<GitHubPullRequestNode[]>;
+			fetchedAt: number;
+			consecutiveFailures: number;
+		}
 	>();
 	private readonly readWorkspaceRefs: (
 		worktreePath: string,
 	) => Promise<WorkspaceRefsSnapshot>;
+	private readonly worktreeExists: (worktreePath: string) => boolean;
+	// Worktrees deleted out from under us (external `rm`, crashed teardown).
+	// While a workspace is listed here, sync attempts cost one existsSync and
+	// spawn no git; the probe timer re-enters the normal sync path when the
+	// directory reappears. One log line per transition, never per attempt.
+	private readonly missingWorktrees = new Map<string, string>();
+	private missingWorktreeProbeTimer: ReturnType<typeof setInterval> | null =
+		null;
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
@@ -189,6 +215,7 @@ export class PullRequestRuntimeManager {
 		this.readWorkspaceRefs =
 			options.readWorkspaceRefs ??
 			(async (worktreePath) => readWorkspaceRefs(await this.git(worktreePath)));
+		this.worktreeExists = options.worktreeExists ?? existsSync;
 	}
 
 	start() {
@@ -245,10 +272,14 @@ export class PullRequestRuntimeManager {
 	stop() {
 		if (this.safetyNetTimer) clearInterval(this.safetyNetTimer);
 		if (this.projectRefreshTimer) clearInterval(this.projectRefreshTimer);
+		if (this.missingWorktreeProbeTimer)
+			clearInterval(this.missingWorktreeProbeTimer);
 		this.unsubscribeFromGitWatcher?.();
 		this.unsubscribeFromWorkspaceEvents?.();
 		this.safetyNetTimer = null;
 		this.projectRefreshTimer = null;
+		this.missingWorktreeProbeTimer = null;
+		this.missingWorktrees.clear();
 		this.unsubscribeFromGitWatcher = null;
 		this.unsubscribeFromWorkspaceEvents = null;
 	}
@@ -479,11 +510,17 @@ export class PullRequestRuntimeManager {
 			.from(workspaces)
 			.where(eq(workspaces.id, workspaceId))
 			.get();
-		if (!workspace) return;
+		if (!workspace) {
+			this.forgetMissingWorktree(workspaceId);
+			return;
+		}
 		// Session workspaces (null projectId) have no remote and no PRs; the
 		// GitWatcher still fires for their repos, so gate here too. Archived
 		// workspaces are frozen tombstones — never resync or relink them.
-		if (workspace.projectId === null || workspace.archivedAt !== null) return;
+		if (workspace.projectId === null || workspace.archivedAt !== null) {
+			this.forgetMissingWorktree(workspaceId);
+			return;
+		}
 
 		const projectId = await this.syncWorkspaceRow(workspace);
 		if (projectId) await this.refreshProject(projectId);
@@ -492,6 +529,14 @@ export class PullRequestRuntimeManager {
 	private async syncWorkspaceRow(
 		workspace: typeof workspaces.$inferSelect,
 	): Promise<string | null> {
+		// A worktree deleted outside the app is a routine lifecycle state, not
+		// an error to retry: skip the git spawn entirely until the directory is
+		// back on disk (external restore, workspace repair).
+		if (!this.worktreeExists(workspace.worktreePath)) {
+			this.noteWorktreeMissing(workspace.id, workspace.worktreePath);
+			return null;
+		}
+		this.noteWorktreePresent(workspace.id);
 		try {
 			const { branch, headSha, upstream } = await this.readWorkspaceRefs(
 				workspace.worktreePath,
@@ -527,11 +572,7 @@ export class PullRequestRuntimeManager {
 					upstreamRepo,
 					upstreamBranch,
 					pullRequestId,
-					// Branch is cloud-mirrored; flag the row so the reconciler
-					// pushes the rename (other fields here are machine-state).
-					...(branch !== workspace.branch
-						? { updatedAt: Date.now(), cloudSyncedAt: null }
-						: {}),
+					...(branch !== workspace.branch ? { updatedAt: Date.now() } : {}),
 				})
 				// Guard: the workspace can archive during the awaited ref read;
 				// a tombstone's branch/PR link is frozen.
@@ -551,6 +592,38 @@ export class PullRequestRuntimeManager {
 				},
 			);
 			return null;
+		}
+	}
+
+	private noteWorktreeMissing(workspaceId: string, worktreePath: string): void {
+		if (this.missingWorktrees.has(workspaceId)) return;
+		this.missingWorktrees.set(workspaceId, worktreePath);
+		console.warn(
+			"[host-service:pull-request-runtime] Worktree missing on disk; pausing branch sync until it reappears",
+			{ workspaceId, worktreePath },
+		);
+		this.missingWorktreeProbeTimer ??= setInterval(() => {
+			for (const [id, path] of this.missingWorktrees) {
+				if (this.worktreeExists(path)) void this.enqueueWorkspaceSync(id);
+			}
+		}, MISSING_WORKTREE_PROBE_INTERVAL_MS);
+	}
+
+	private noteWorktreePresent(workspaceId: string): void {
+		const worktreePath = this.missingWorktrees.get(workspaceId);
+		if (worktreePath === undefined) return;
+		this.forgetMissingWorktree(workspaceId);
+		console.warn(
+			"[host-service:pull-request-runtime] Worktree reappeared; resuming branch sync",
+			{ workspaceId, worktreePath },
+		);
+	}
+
+	private forgetMissingWorktree(workspaceId: string): void {
+		if (!this.missingWorktrees.delete(workspaceId)) return;
+		if (this.missingWorktrees.size === 0 && this.missingWorktreeProbeTimer) {
+			clearInterval(this.missingWorktreeProbeTimer);
+			this.missingWorktreeProbeTimer = null;
 		}
 	}
 
@@ -724,10 +797,13 @@ export class PullRequestRuntimeManager {
 				remoteName: project.remoteName,
 			};
 		} else {
-			const git = await this.git(project.repoPath);
 			const remoteName = "origin";
 			let remoteUrl: string;
+			// The construct sits inside the try: a repoPath that vanished from
+			// disk throws GitConstructError, which is "no repo" here, not a
+			// refresh failure to warn about every sweep.
 			try {
+				const git = await this.git(project.repoPath);
 				const value = await git.remote(["get-url", remoteName]);
 				if (typeof value !== "string") {
 					return null;
@@ -911,28 +987,47 @@ export class PullRequestRuntimeManager {
 	// retried, hit the same 403, and re-evicted. Network blips heal at the
 	// next TTL boundary instead.
 	private cachedGitHubFetch<T>(
-		cache: Map<string, { promise: Promise<T>; fetchedAt: number }>,
+		cache: Map<
+			string,
+			{ promise: Promise<T>; fetchedAt: number; consecutiveFailures: number }
+		>,
 		cacheKey: string,
 		options: { bypassCache?: boolean },
 		fetcher: () => Promise<T>,
 	): Promise<T> {
-		if (!options.bypassCache) {
-			const cached = cache.get(cacheKey);
-			if (
-				cached &&
-				Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
-			) {
+		const cached = cache.get(cacheKey);
+		if (!options.bypassCache && cached) {
+			const ttl = Math.min(
+				REPO_PULL_REQUEST_CACHE_TTL_MS * 2 ** cached.consecutiveFailures,
+				REPO_PULL_REQUEST_CACHE_MAX_TTL_MS,
+			);
+			if (Date.now() - cached.fetchedAt < ttl) {
 				return cached.promise;
 			}
 		}
 
-		const fetchedAt = Date.now();
-		const promise = fetcher();
-		// Observer to silence unhandledRejection warnings; real consumers
-		// observe the rejection via their own await on the cached promise.
-		promise.catch(() => {});
-		cache.set(cacheKey, { promise, fetchedAt });
-		return promise;
+		// Carry the failure streak forward so an in-flight retry keeps the
+		// backed-off TTL until it actually resolves.
+		const entry = {
+			promise: fetcher(),
+			fetchedAt: Date.now(),
+			consecutiveFailures: cached?.consecutiveFailures ?? 0,
+		};
+		// The rejection observer also silences unhandledRejection warnings;
+		// real consumers observe it via their own await on the cached promise.
+		entry.promise.then(
+			() => {
+				entry.consecutiveFailures = 0;
+			},
+			() => {
+				// Re-anchor at the failure: a fetch that out-lives its own backoff
+				// window before rejecting must not be retried immediately.
+				entry.fetchedAt = Date.now();
+				entry.consecutiveFailures += 1;
+			},
+		);
+		cache.set(cacheKey, entry);
+		return entry.promise;
 	}
 
 	private async getCachedPullRequestByHead(

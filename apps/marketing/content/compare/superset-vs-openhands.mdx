@@ -24,8 +24,8 @@ OpenHands (formerly OpenDevin) is an open-source platform for autonomous AI soft
 |---|---|---|
 | **Category** | Agent orchestration workspace | Autonomous agent platform |
 | **Execution** | Local Git worktrees on your machine | Sandboxed runtime (Docker) or OpenHands Cloud |
-| **AI approach** | Agent-agnostic — Claude Code, Codex, Aider, Superset Chat, any CLI agent | Model-agnostic agent framework (via LiteLLM) |
-| **Parallelism** | Core feature — 100+ agents across isolated worktrees | Multiple sessions, typically one sandbox per task |
+| **AI approach** | Agent-agnostic: Claude Code, Codex, Aider, Superset Chat, any CLI agent | Model-agnostic agent framework (via LiteLLM) |
+| **Parallelism** | Core feature: 100+ agents across isolated worktrees | Multiple sessions, typically one sandbox per task |
 | **Interface** | Desktop app: terminals, diff/file editor, chat, in-app browser | Web UI / CLI over a sandboxed agent |
 | **Pricing** | Free tier + Pro $20/seat/mo (bring your own API keys) | Open source (MIT) to self-host; Cloud is usage-based |
 
@@ -47,11 +47,11 @@ OpenHands, from All Hands AI, is an open-source platform for autonomous AI agent
 
 ### Sandboxed Runtime vs Local Worktrees
 
-OpenHands executes agents inside a sandbox (Docker or cloud), which is great for isolation and reproducibility but adds a runtime layer between the agent and your working copy. Superset runs agents directly on your machine, each in its own Git worktree — no container to manage, and the code stays in your local repo the whole time.
+OpenHands executes agents inside a sandbox (Docker or cloud), which is great for isolation and reproducibility but adds a runtime layer between the agent and your working copy. Superset runs agents directly on your machine, each in its own Git worktree: no container to manage, and the code stays in your local repo the whole time.
 
 ### Autonomous Agent vs Agent Orchestrator
 
-OpenHands is itself the agent: one framework that plans and executes. Superset does not ship its own single autonomous engine — it orchestrates the agents you already use (Claude Code, Codex, Aider, and more), letting you pick the right one per task and run several side by side.
+OpenHands is itself the agent: one framework that plans and executes. Superset does not ship its own single autonomous engine: it orchestrates the agents you already use (Claude Code, Codex, Aider, and more), letting you pick the right one per task and run several side by side.
 
 ### Review and Workspace Surface
 
@@ -65,7 +65,7 @@ Superset keeps everything local in Git worktrees and is source-available. OpenHa
 
 ## Pricing
 
-Superset offers a free tier and a Pro plan at $20/seat/month. You also pay for your agents' API keys (for example Anthropic for Claude Code or OpenAI for Codex) — transparent provider costs, no platform credit system.
+Superset offers a free tier and a Pro plan at $20/seat/month. You also pay for your agents' API keys (for example Anthropic for Claude Code or OpenAI for Codex): transparent provider costs, no platform credit system.
 
 OpenHands is open source under MIT, so self-hosting is free apart from the model API and the compute you run the sandbox on. OpenHands Cloud is a managed, usage-based option if you would rather not run the runtime yourself.
 
@@ -101,4 +101,4 @@ No. Superset runs agents directly on your machine in isolated Git worktrees rath
 
 ### Can I self-host either tool?
 
-OpenHands is open source (MIT) and designed to be self-hosted, with a managed cloud option. Superset is a source-available (ELv2) local-first desktop app — it already runs entirely on your machine, with a free tier and a $20/seat/month Pro plan.
+OpenHands is open source (MIT) and designed to be self-hosted, with a managed cloud option. Superset is a source-available (ELv2) local-first desktop app: it already runs entirely on your machine, with a free tier and a $20/seat/month Pro plan.

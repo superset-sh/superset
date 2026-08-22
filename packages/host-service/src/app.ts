@@ -1,44 +1,41 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/chat-legacy/server/desktop";
-import { eq } from "drizzle-orm";
+import { ChatService } from "@superset/provider-auth/server";
+import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
-import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
-import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
-import {
-	AcpSessionManager,
-	registerAcpSessionStreamRoute,
-	SqliteAcpSessionPersistence,
-} from "./runtime/acp-sessions";
 import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
-import { ChatRuntimeManager } from "./runtime/chat";
+import { registerBrowserCdpRoute } from "./runtime/browser-bridge/browser-cdp-route";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitEnvResolver, createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
-import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
+import {
+	readSandboxIdentity,
+	runSandboxSelfSeed,
+} from "./runtime/sandbox-self-seed";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
 	TerminalAgentStore,
 } from "./terminal-agents";
 import { appRouter } from "./trpc/router";
+import { provisionSelectedAccounts } from "./trpc/router/usage/account-provisioning";
 import {
 	execGh as defaultExecGh,
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
-import type { ApiClient } from "./types";
+import type { ApiClient, BrowserBridgeConfig } from "./types";
 import { getHostWorkerPool } from "./workers/host-worker-pool";
 import { gitWorkspaceRefsTask } from "./workers/tasks/git";
 
@@ -49,28 +46,26 @@ export interface CreateAppOptions {
 		cloudApiUrl: string;
 		migrationsFolder: string;
 		allowedOrigins: string[];
+		/** Loopback surface for driving desktop browser panes; desktop-only. */
+		browserBridge?: BrowserBridgeConfig;
 	};
 	providers: {
 		auth: ApiAuthProvider;
 		hostAuth: HostAuthProvider;
 		credentials: GitCredentialProvider;
-		modelResolver: ModelProviderRuntimeResolver;
 	};
 	/**
 	 * Test-harness override hooks. Production never sets these — `createApp`
 	 * builds each subsystem itself when omitted. `db` is overridden so tests
 	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
-	 * prod uses it on bundled Node). `api`, `github`, `chatRuntime`, and
-	 * `chatService` are overridden to keep tests off the network and out of
-	 * mastra storage.
+	 * prod uses it on bundled Node). `api`, `github`, and `chatService` are
+	 * overridden to keep tests off the network and out of provider-auth storage.
 	 */
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
-	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
-	acpSessions?: AcpSessionManager;
 }
 
 export interface CreateAppResult {
@@ -89,15 +84,26 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ??
 		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
+	// A sandbox is provisioned for exactly one workspace, and the env says
+	// which. Seeding it here rather than from the API keeps the schema in one
+	// place and leaves provisioning with nothing to orchestrate.
+	const sandboxIdentity = readSandboxIdentity();
+	if (sandboxIdentity) runSandboxSelfSeed(db, sandboxIdentity);
 	const git = createGitFactory(providers.credentials);
 	const github =
 		options.github ??
 		(async () => {
 			const token = await providers.credentials.getToken("github.com");
 			if (!token) {
-				throw new Error(
-					"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
-				);
+				// Expected precondition failure (user has no GitHub auth), not an
+				// internal error — every procedure calling ctx.github() inherits
+				// this classification.
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
+					cause: { kind: "NO_GITHUB_TOKEN" },
+				});
 			}
 			return new Octokit({ auth: token });
 		});
@@ -133,43 +139,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		},
 	});
 	pullRequestRuntime.start();
-	const chatRuntime =
-		options.chatRuntime ??
-		new ChatRuntimeManager({
-			db,
-			runtimeResolver: providers.modelResolver,
-		});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
-	// auth storage; the `host.auth.*` router proxies to it.
+	// per-workspace. ChatService is a long-lived singleton wrapping the
+	// provider auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
-	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
-	// adapter child processes. Fully parallel to the mastra chat runtime.
-	// Pre-release, so internal-channel only: the desktop coordinator spawns
-	// hosts with SUPERSET_ACP_SESSIONS=1 on canary/dev builds, never on
-	// stable. Without it the harness is inert — no WS route, every RPC except
-	// the `list` capability probe rejected. Tests that inject a manager opt
-	// in implicitly.
-	const acpSessionsEnabled =
-		options.acpSessions !== undefined ||
-		process.env.SUPERSET_ACP_SESSIONS === "1";
-	const acpSessions =
-		options.acpSessions ??
-		new AcpSessionManager({
-			resolveWorkspaceCwd: (workspaceId) => {
-				const workspace = db.query.workspaces
-					.findFirst({ where: eq(workspaces.id, workspaceId) })
-					.sync();
-				if (!workspace) {
-					throw new Error(`Workspace not found: ${workspaceId}`);
-				}
-				return workspace.worktreePath;
-			},
-			// Registry rows only (workspace binding, adapter session id, title)
-			// — the journal stays in-memory; a restarted host lists these as
-			// `offline` and resurrects on demand via the adapter's session/load.
-			persistence: new SqliteAcpSessionPersistence(db),
-		});
 
 	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
 	// the routes sit behind the same auth as every other host route, and the
@@ -179,10 +152,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const chatV3 = createChatV3Mount({ db, dbPath: config.dbPath });
 
 	const runtime = {
-		acpSessions,
-		acpSessionsEnabled,
 		auth: chatService,
-		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
 	};
@@ -225,24 +195,23 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
 	// Startup sweeps run in the background so they don't block server
-	// startup. Ordering matters: the backfills fill identity fields on
-	// pre-existing rows before the main-workspace sweep touches them.
+	// startup. Ordering matters: the project backfill fills identity fields
+	// on pre-existing rows before the main-workspace sweep touches them.
+	//
+	// None of them run in a sandbox. Every one repairs state a long-lived
+	// machine accumulates — rows that predate a column, a delete a previous
+	// process crashed out of — and a sandbox is provisioned fresh with exactly
+	// one project and one workspace, seeded by us, that no earlier build ever
+	// touched. There is nothing to recover, so the sweeps can only invent:
+	// the main-workspace sweep already added a phantom second workspace here
+	// before bootstrap started seeding `type='main'`.
 	void (async () => {
+		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
 		await runProjectBackfill({
-			api,
 			db,
 			eventBus,
-			organizationId: config.organizationId,
 		}).catch((err) => {
 			console.warn("[host-service] project backfill failed:", err);
-		});
-		await runWorkspaceBackfill({
-			api,
-			db,
-			eventBus,
-			organizationId: config.organizationId,
-		}).catch((err) => {
-			console.warn("[host-service] workspace backfill failed:", err);
 		});
 		// Backfill `kind='main'` workspaces for projects already set up before
 		// this column shipped. Idempotent — only does real work the first
@@ -271,6 +240,12 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}).catch((err) => {
 			console.warn("[host-service] archived-workspace reconcile failed:", err);
 		});
+		// Re-share the default account's Claude/Codex config into the selected
+		// provider profiles. Last: it touches no host state the sweeps above
+		// repair, and a slow filesystem must not delay them.
+		await provisionSelectedAccounts(db).catch((err) => {
+			console.warn("[host-service] account provisioning failed:", err);
+		});
 	})();
 
 	const wsAuth: MiddlewareHandler = async (c, next) => {
@@ -283,29 +258,35 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
-	app.use("/acp-sessions/*", wsAuth);
 	app.use("/chat-v3/*", wsAuth);
+	app.use("/browser/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
+	registerBrowserCdpRoute({
+		app,
+		upgradeWebSocket,
+		getBridge: () => config.browserBridge,
+	});
 	registerWorkspaceTerminalRoute({
 		app,
 		db,
 		eventBus,
 		upgradeWebSocket,
 	});
-	if (acpSessionsEnabled) {
-		registerAcpSessionStreamRoute({
-			app,
-			sessions: acpSessions,
-			upgradeWebSocket,
-		});
-	}
 	registerChatV3Routes({ app, db, mount: chatV3, upgradeWebSocket });
 
 	app.use(
 		"/trpc/*",
 		trpcServer({
 			router: appRouter,
+			// Renderer clients send every request (including queries) as POST —
+			// see WorkspaceClientProvider/host-service-client's methodOverride —
+			// so a query with a large input (e.g. git.getDiffBulk's file-path
+			// list, or a same-tick batch across many workspaces) doesn't produce
+			// a GET URL long enough to blow past the header-size limit. Without
+			// this flag trpc's default HTTP-method map rejects those POSTs with
+			// METHOD_NOT_SUPPORTED before the query ever runs.
+			allowMethodOverride: true,
 			createContext: async (_opts, c) => {
 				const isAuthenticated = await providers.hostAuth.validate(c.req.raw);
 				return {
@@ -322,6 +303,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					isAuthenticated,
 					clientMachineId:
 						c.req.header("x-superset-client-machine-id") ?? undefined,
+					browserBridge: config.browserBridge,
 				} as Record<string, unknown>;
 			},
 		}),
@@ -336,11 +318,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
-		}
-		try {
-			await acpSessions.dispose();
-		} catch (err) {
-			console.warn("[host-service] acpSessions.dispose failed:", err);
 		}
 		try {
 			await chatV3.dispose();

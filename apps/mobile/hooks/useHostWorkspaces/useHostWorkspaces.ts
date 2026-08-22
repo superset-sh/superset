@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
 	type HostWorkspaceRow,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 
 export type { HostWorkspaceRow } from "@/lib/host-service/client";
@@ -33,8 +33,6 @@ export interface HostWorkspacesCacheOps {
 	resolveHostUrl: (hostId: string) => string | null;
 	/** Optimistically upsert a row into the host's cached list. */
 	upsertWorkspace: (row: HostWorkspaceRow) => void;
-	/** Optimistically drop a row from the host's cached list. */
-	removeWorkspace: (hostId: string, workspaceId: string) => void;
 	/** Rollback hammer: refetch the host's list after a failed write. */
 	invalidateHost: (hostId: string) => void;
 }
@@ -60,7 +58,7 @@ export function useHostWorkspaces(
 	const queryClient = useQueryClient();
 
 	const hostUrl = host?.isOnline
-		? buildRelayHostUrl(host.organizationId, host.machineId)
+		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 	const machineId = host?.machineId ?? null;
 	const queryKey = getHostWorkspacesQueryKey(machineId, hostUrl);
@@ -105,12 +103,6 @@ export function useHostWorkspaces(
 								)
 							: [...rows, row];
 					},
-				);
-			},
-			removeWorkspace: (hostId, workspaceId) => {
-				if (hostId !== machineId) return;
-				queryClient.setQueryData<HostWorkspaceRow[] | undefined>(key, (rows) =>
-					rows?.filter((row) => row.id !== workspaceId),
 				);
 			},
 			invalidateHost: (hostId) => {

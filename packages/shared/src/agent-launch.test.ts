@@ -45,37 +45,12 @@ describe("normalizeAgentLaunchRequest", () => {
 		});
 	});
 
-	it("maps legacy chat launch params", () => {
-		const normalized = normalizeAgentLaunchRequest({
-			workspaceId: "ws-1",
-			openChatPane: true,
-			paneId: "pane-1",
-			chatLaunchConfig: {
-				initialPrompt: "summarize this task",
-				model: "anthropic/claude-sonnet-4",
-				retryCount: 3,
-			},
-		});
-
-		expect(normalized).toEqual({
-			kind: "chat",
-			workspaceId: "ws-1",
-			agentType: "superset",
-			chat: {
-				paneId: "pane-1",
-				initialPrompt: "summarize this task",
-				model: "anthropic/claude-sonnet-4",
-				retryCount: 3,
-			},
-		});
-	});
-
 	it("throws when legacy request has no launch payload", () => {
 		expect(() =>
 			normalizeAgentLaunchRequest({
 				workspaceId: "ws-1",
 			}),
-		).toThrow("missing terminal command or chat launch config");
+		).toThrow("missing terminal command");
 	});
 
 	it("keeps reuseExistingPane on terminal requests", () => {
@@ -149,23 +124,6 @@ describe("buildSetupPaneLaunchRequest", () => {
 			chained: false,
 			request: splitRequest("setup-pane"),
 		});
-	});
-
-	it("passes chat requests through unchanged", () => {
-		const request: AgentLaunchRequest = {
-			kind: "chat",
-			workspaceId: "ws-1",
-			chat: {},
-		};
-
-		expect(
-			buildSetupPaneLaunchRequest({
-				request,
-				setupCommands: ["bun install"],
-				setupPaneId: "setup-pane",
-				waitForSetup: true,
-			}),
-		).toEqual({ request, chained: false });
 	});
 
 	it("splits instead of chaining when the agent command must not auto-execute", () => {

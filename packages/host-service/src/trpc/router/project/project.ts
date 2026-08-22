@@ -16,7 +16,7 @@ import {
 } from "../../../projects/local-project-store";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
-import { protectedProcedure, router } from "../../index";
+import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
 import {
 	normalizeSparseCheckoutPaths,
 	parseSparseCheckoutPaths,
@@ -443,7 +443,9 @@ export const projectRouter = router({
 
 			const byId = new Map<string, FindByPathCandidate>();
 
-			// Cloud lookup for every URL we know about.
+			// Cloud lookup for every URL we know about. This is the last
+			// consumer of the cloud v2_projects table; it dies with the v1
+			// importer (the only caller that sets walkAllRemotes).
 			const cloudErrors: { url: string; message: string }[] = [];
 			for (const parsed of urlsToQuery.values()) {
 				try {
@@ -496,7 +498,7 @@ export const projectRouter = router({
 			return { candidates, cloudErrors };
 		}),
 
-	create: protectedProcedure
+	create: machineOnlyProcedure
 		.input(
 			z.object({
 				name: z.string().min(1),
@@ -559,15 +561,15 @@ export const projectRouter = router({
 			}
 		}),
 
-	setup: protectedProcedure
+	setup: machineOnlyProcedure
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
 				/**
 				 * Repo coordinates supplied by the caller (from the host
-				 * fan-out) so a local-first project created on ANOTHER host —
-				 * which has no cloud row — can be set up on this device. When
-				 * present, the legacy cloud lookup is skipped entirely.
+				 * fan-out) so a local-first project created on ANOTHER host can
+				 * be set up on this device. Required whenever this host has no
+				 * local row for the project — nothing else knows the repo.
 				 */
 				origin: z
 					.object({
@@ -595,23 +597,23 @@ export const projectRouter = router({
 				.where(eq(projects.id, input.projectId))
 				.get();
 
-			// Local-first rows complete setup without any cloud round-trip.
-			// Caller-supplied origin coordinates come next (cross-host setup
-			// of local-first projects); the legacy cloud lookup only serves
-			// old clients adopting a cloud-created project.
-			const cloudProject =
-				existing || input.origin
-					? null
-					: await ctx.api.v2Project.get.query({
-							organizationId: ctx.organizationId,
-							id: input.projectId,
-						});
-			const origin = cloudProject
-				? { repoCloneUrl: cloudProject.repoCloneUrl, name: cloudProject.name }
-				: {
-						repoCloneUrl: input.origin?.repoCloneUrl ?? null,
-						name: input.origin?.name,
-					};
+			// Projects are host-owned, so a local row is this host's only
+			// self-contained source of repo coordinates. Without one the
+			// caller must supply them from the host fan-out — there is no
+			// registry left to ask.
+			if (!existing && !input.origin) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message:
+						input.mode.kind === "clone"
+							? `Project ${input.projectId} is not set up on this host. Pass origin.repoCloneUrl to clone it.`
+							: `Project ${input.projectId} is not set up on this host. Pass origin to import it.`,
+				});
+			}
+			const origin = {
+				repoCloneUrl: input.origin?.repoCloneUrl ?? null,
+				name: input.origin?.name,
+			};
 
 			const allowRelocate =
 				input.mode.kind === "import" && input.mode.allowRelocate;
@@ -725,15 +727,6 @@ export const projectRouter = router({
 						};
 					}
 
-					// Legacy adopt only: tell the old cloud row about the remote
-					// it was missing. Local-first rows never write cloud-side.
-					if (cloudProject && !cloudProject.repoCloneUrl && resolved.parsed) {
-						await ctx.api.v2Project.linkRepoCloneUrl.mutate({
-							organizationId: ctx.organizationId,
-							id: input.projectId,
-							repoCloneUrl: resolved.parsed.url,
-						});
-					}
 					persistLocalProject(ctx, input.projectId, resolved, {
 						name: origin.name,
 					});
@@ -764,16 +757,12 @@ export const projectRouter = router({
 	 *      an error — the local table is what the UI lists from, so a
 	 *      swallowed failure would toast "Deleted" over a surviving row.
 	 *
-	 *   4. Fire-and-forget legacy-cloud v2Project.delete (cascades old cloud
-	 *      workspace mirrors). Never awaited — a blackholed network must not
-	 *      stall the local commit point.
-	 *
 	 * The on-disk repo directory is NEVER auto-removed. The user's code is
 	 * their code; deletion of the working tree must be an explicit action,
 	 * not a side-effect of project removal. Returns repoPath so a future
 	 * UI can offer an explicit "delete files too" follow-up.
 	 */
-	remove: protectedProcedure
+	remove: machineOnlyProcedure
 		.input(z.object({ projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const localProject = ctx.db.query.projects
@@ -820,18 +809,6 @@ export const projectRouter = router({
 					message: `Failed to delete project locally: ${err instanceof Error ? err.message : String(err)}`,
 				});
 			}
-
-			void ctx.api.v2Project.delete
-				.mutate({
-					organizationId: ctx.organizationId,
-					id: input.projectId,
-				})
-				.catch((err) => {
-					console.warn(
-						"[project.remove] legacy cloud cleanup failed; frozen mirror row may remain",
-						{ projectId: input.projectId, err },
-					);
-				});
 
 			return { success: true, repoPath: localProject.repoPath };
 		}),

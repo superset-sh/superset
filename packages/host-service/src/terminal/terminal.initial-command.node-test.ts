@@ -107,7 +107,7 @@ describe("initialCommand delivery", () => {
 			listed: true,
 			initialCommand: command,
 		});
-		assert.ok(!("error" in session), JSON.stringify(session));
+		assert.ok(!("error" in session), "error" in session ? session.error : "");
 		if ("error" in session) return;
 
 		// The command round-trips byte-for-byte, so nothing was truncated and
@@ -148,7 +148,7 @@ describe("initialCommand delivery", () => {
 				listed: true,
 				initialCommand: command,
 			});
-			assert.ok(!("error" in session), JSON.stringify(session));
+			assert.ok(!("error" in session), "error" in session ? session.error : "");
 			if ("error" in session) return;
 
 			await waitFor(
@@ -181,7 +181,7 @@ describe("initialCommand delivery", () => {
 			listed: true,
 			initialCommand: command,
 		});
-		assert.ok(!("error" in session), JSON.stringify(session));
+		assert.ok(!("error" in session), "error" in session ? session.error : "");
 		if ("error" in session) return;
 
 		const staged = () =>

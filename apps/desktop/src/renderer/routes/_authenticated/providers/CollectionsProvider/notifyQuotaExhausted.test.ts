@@ -1,4 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
+import { toast } from "@superset/ui/sonner";
 
 interface ToastCall {
 	level: "warning" | "success";
@@ -12,19 +13,25 @@ interface ToastCall {
 
 const toastCalls: ToastCall[] = [];
 
-// Only sonner is mocked. `terminal-buffer-gc` is deliberately left alone:
-// `mock.module` replaces a module for the whole test process, so stubbing it
-// here would silently hand its own test file a stub to assert against.
-mock.module("@superset/ui/sonner", () => ({
-	toast: {
-		warning: (title: string, options?: ToastCall["options"]) => {
-			toastCalls.push({ level: "warning", title, options });
-		},
-		success: (title: string, options?: ToastCall["options"]) => {
-			toastCalls.push({ level: "success", title, options });
-		},
-	},
-}));
+// The implementation is intercepted by patching the real `toast` object's
+// methods, not by `mock.module`: whichever test file loads first, the
+// implementation holds a binding to this same object, so the patch applies
+// even when another file already imported the implementation transitively
+// (mock.module registered here would come too late in that order).
+// `terminal-buffer-gc` is deliberately left alone so its own test file never
+// asserts against a stub.
+const realWarning = toast.warning;
+const realSuccess = toast.success;
+toast.warning = ((title: string, options?: ToastCall["options"]) => {
+	toastCalls.push({ level: "warning", title, options });
+}) as typeof toast.warning;
+toast.success = ((title: string, options?: ToastCall["options"]) => {
+	toastCalls.push({ level: "success", title, options });
+}) as typeof toast.success;
+afterAll(() => {
+	toast.warning = realWarning;
+	toast.success = realSuccess;
+});
 
 const { describeClearedSnapshots, notifyQuotaExhausted } = await import(
 	"./notifyQuotaExhausted"

@@ -31,7 +31,7 @@ export async function generateMetadata({
 	}
 
 	const kind = theme.type === "dark" ? "Dark" : "Light";
-	const title = `${theme.name} — ${kind} Theme for Superset`;
+	const title = `${theme.name}: ${kind} Theme for Superset`;
 	const description = `${theme.description} Download the ${theme.name} ${kind.toLowerCase()} theme for Superset, the local-first AI coding workspace.`;
 	const url = `${COMPANY.MARKETING_URL}/marketplace/themes/${theme.slug}`;
 

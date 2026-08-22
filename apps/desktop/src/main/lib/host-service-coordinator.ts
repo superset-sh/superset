@@ -12,7 +12,7 @@ import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { env as mainEnv } from "../env.main";
 import { SUPERSET_HOME_DIR } from "./app-environment";
-import { isInternalBuild } from "./build-channel";
+import { getBrowserBridgeInfo } from "./browser/browser-bridge-info";
 import { acquireSpawnLock } from "./host-service-lock";
 import {
 	isProcessAlive,
@@ -71,6 +71,15 @@ interface HostServiceProcess {
 	port: number;
 	secret: string;
 	status: HostServiceStatus;
+	spawnedAt: number;
+	/** Rolling tail of the child's stdout/stderr, attached to crash reports. */
+	outputTail: string;
+	/**
+	 * Every secret handed to this child. `outputTail` is raw child output, so
+	 * anything the child logs (a request header, an env dump in a stack trace)
+	 * can land in a crash report — strip these before it reaches telemetry.
+	 */
+	redactions: string[];
 	/**
 	 * True when this instance spawned the child and owns its lifecycle (may
 	 * SIGTERM it and remove its manifest). False when the entry was *adopted*
@@ -104,6 +113,19 @@ const START_OR_ADOPT_DEADLINE_MS = SPAWN_LOCK_STALE_MS + HEALTH_POLL_TIMEOUT_MS;
 
 /** Poll interval while waiting for a peer instance's spawn to go healthy. */
 const ADOPT_WAIT_INTERVAL_MS = 250;
+
+/**
+ * A Node abort dumps ~5KB of native + JS backtrace on the way down, so a
+ * smaller window would evict the assertion line and every app log before it.
+ */
+const MAX_OUTPUT_TAIL_BYTES = 16_384;
+
+/**
+ * `exit` fires before the child's piped stdio has drained, so the crash report
+ * waits this long for the last output — a native abort message is written on
+ * the way down and would otherwise be missed.
+ */
+const CRASH_REPORT_FLUSH_MS = 500;
 
 // High, uncommon user-space range: above usual web/dev server ports and below
 // macOS's default ephemeral range, while still falling back if occupied.
@@ -291,11 +313,23 @@ export class HostServiceCoordinator extends EventEmitter {
 			try {
 				if (instance.pid > 0) killProcess(instance.pid, "SIGTERM");
 			} catch {}
-			removeManifest(organizationId);
+			this.removeManifestIfHeldBy(organizationId, instance.pid);
 		}
 
 		this.instances.delete(organizationId);
 		this.emitStatus(organizationId, "stopped", previousStatus);
+	}
+
+	/**
+	 * Remove the manifest only when `pid` holds it. Another live instance may
+	 * have claimed it since we spawned; deleting that claim would strand the
+	 * CLI ("host service isn't running") while the claimant still serves. An
+	 * unreadable manifest is left alone too — a torn read of a concurrent
+	 * writer's claim must not read as license to delete.
+	 */
+	private removeManifestIfHeldBy(organizationId: string, pid: number): void {
+		if (readManifest(organizationId)?.pid !== pid) return;
+		removeManifest(organizationId);
 	}
 
 	stopAll(): void {
@@ -632,6 +666,11 @@ export class HostServiceCoordinator extends EventEmitter {
 			port,
 			secret: manifest.authToken,
 			status: "running",
+			spawnedAt: manifest.startedAt,
+			outputTail: "",
+			// Adopted children are owned by another app instance: we never see
+			// their stdio, so outputTail stays empty and this is belt-and-braces.
+			redactions: [manifest.authToken],
 			owned: false,
 		});
 		this.rememberPort(organizationId, port);
@@ -662,6 +701,15 @@ export class HostServiceCoordinator extends EventEmitter {
 			port,
 			secret,
 			status: "starting",
+			spawnedAt: Date.now(),
+			outputTail: "",
+			// Redact every live credential in the child env from crash tails
+			// shipped to Sentry — incl. the browser-bridge secret.
+			redactions: [
+				secret,
+				config.authToken,
+				getBrowserBridgeInfo()?.secret,
+			].filter((value): value is string => Boolean(value)),
 			owned: true,
 		};
 		this.instances.set(organizationId, instance);
@@ -678,34 +726,41 @@ export class HostServiceCoordinator extends EventEmitter {
 			path.join(manifestDir(organizationId), "host-service.log"),
 			MAX_HOST_LOG_BYTES,
 		);
-		// Dev: pipe child stdout/stderr through this process so log lines
-		// land in the developer's `bun dev` terminal. Production: hard-back
-		// stdio with the rotating log file.
+		// Output is piped rather than handing the log fd straight to the child so
+		// the coordinator can keep a tail of it for crash reports; it is written
+		// through to the same rotating log file (and, in dev, to this process's
+		// stdout/stderr) so logging is unchanged.
 		const isDev = !app.isPackaged;
-		const stdio: childProcess.StdioOptions = isDev
-			? ["ignore", "pipe", "pipe"]
-			: logFd >= 0
-				? ["ignore", logFd, logFd]
-				: ["ignore", "ignore", "ignore"];
+		const logStream =
+			logFd >= 0 ? fs.createWriteStream("", { fd: logFd }) : null;
+		// An unhandled stream error would take down the main process; losing log
+		// lines must not.
+		logStream?.on("error", () => {});
 
 		let child: ReturnType<typeof childProcess.spawn>;
 		try {
 			child = childProcess.spawn(process.execPath, [this.scriptPath], {
 				detached: false,
-				stdio,
+				stdio: ["ignore", "pipe", "pipe"],
 				env: childEnv,
 				// Avoid a flashing CMD window on Windows.
 				windowsHide: true,
 			});
-		} finally {
-			if (logFd >= 0) {
-				try {
-					fs.closeSync(logFd);
-				} catch {
-					// Best-effort — child has its own dup of the fd.
-				}
-			}
+		} catch (error) {
+			logStream?.end();
+			throw error;
 		}
+
+		for (const source of [child.stdout, child.stderr]) {
+			source?.on("error", () => {});
+			source?.on("data", (chunk: Buffer) => {
+				instance.outputTail = (
+					instance.outputTail + chunk.toString("utf8")
+				).slice(-MAX_OUTPUT_TAIL_BYTES);
+				logStream?.write(chunk);
+			});
+		}
+		child.once("close", () => logStream?.end());
 
 		// In dev, fan child output through to parent stdout/stderr with a
 		// prefix so it's identifiable in `bun dev`.
@@ -717,6 +772,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		const childPid = child.pid;
 		if (!childPid) {
+			logStream?.end();
 			this.instances.delete(organizationId);
 			throw new Error("Failed to spawn host service process");
 		}
@@ -742,7 +798,12 @@ export class HostServiceCoordinator extends EventEmitter {
 			if (this.instances.get(organizationId) === instance) {
 				this.instances.delete(organizationId);
 			}
-			if (!isStartAllowed()) removeManifest(organizationId);
+			// Whether cancelled or failed-to-start, the dying child must not
+			// leave a manifest naming its dead pid (the CLI would report
+			// "manifest is stale" instead of the clean no-manifest path).
+			if (childPid != null) {
+				this.removeManifestIfHeldBy(organizationId, childPid);
+			}
 			throw new Error(
 				!isStartAllowed()
 					? "Host service start cancelled"
@@ -768,6 +829,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const organizationDir = manifestDir(organizationId);
 		const row = localDb.select().from(settings).get();
 		const exposeViaRelay = row?.exposeHostServiceViaRelay ?? false;
+		const browserBridge = getBrowserBridgeInfo();
 
 		const childEnv = await getProcessEnvWithShellPath({
 			...(process.env as Record<string, string>),
@@ -805,13 +867,12 @@ export class HostServiceCoordinator extends EventEmitter {
 			SUPERSET_LEGACY_WORKTREE_BASE_DIR: row?.worktreeBaseDir ?? "",
 			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
+			// BROWSER_BRIDGE_URL/SECRET are set (or stripped) after the shell-env
+			// merge below, alongside RELAY_URL, so an inherited value can't leak
+			// into a standalone host.
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: config.cloudApiUrl,
-			// Pre-release ACP session harness, internal-channel only: enabled on
-			// canary and dev builds, never on stable. The host gates its router
-			// and WS stream route on this env var.
-			...(isInternalBuild() ? { SUPERSET_ACP_SESSIONS: "1" } : {}),
 			// Namespaced so terminals/agents spawned by the host service don't
 			// inherit a generic SENTRY_DSN — third-party tools with a Sentry SDK
 			// auto-pick it up and report into our project.
@@ -838,6 +899,17 @@ export class HostServiceCoordinator extends EventEmitter {
 			childEnv.RELAY_URL = effectiveRelayUrl;
 		} else {
 			delete childEnv.RELAY_URL;
+		}
+
+		// Same enforce-after-merge for the browser bridge: when this process has
+		// no bridge, strip any inherited BROWSER_BRIDGE_* so the child can't
+		// connect to a stale/unintended bridge from the shell env.
+		if (browserBridge) {
+			childEnv.BROWSER_BRIDGE_URL = browserBridge.endpoint;
+			childEnv.BROWSER_BRIDGE_SECRET = browserBridge.secret;
+		} else {
+			delete childEnv.BROWSER_BRIDGE_URL;
+			delete childEnv.BROWSER_BRIDGE_SECRET;
 		}
 
 		return childEnv;
@@ -883,7 +955,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const previousStatus = current.status;
 		this.rememberPort(organizationId, current.port);
 		this.instances.delete(organizationId);
-		removeManifest(organizationId);
+		this.removeManifestIfHeldBy(organizationId, childPid);
 		this.emitStatus(organizationId, "stopped", previousStatus);
 
 		if (previousStatus !== "running") return;
@@ -895,21 +967,32 @@ export class HostServiceCoordinator extends EventEmitter {
 		// so the supervisor is the only place these are observable. Imported
 		// lazily: a static @sentry/electron import needs electron APIs the
 		// coordinator tests' stub does not provide.
-		void import("@sentry/electron/main")
-			.then((Sentry) =>
-				Sentry.captureMessage(`host-service crashed (${cause})`, {
-					level: "error",
-					tags: {
-						exit_code: String(code ?? "none"),
-						exit_signal: signal ?? "none",
-					},
-					extra: {
-						organizationId,
-						respawnAttempts: this.respawns.get(organizationId)?.attempts ?? 0,
-					},
-				}),
-			)
-			.catch(() => {});
+		const respawnAttempts = this.respawns.get(organizationId)?.attempts ?? 0;
+		const flushTimer = setTimeout(() => {
+			void import("@sentry/electron/main")
+				.then((Sentry) =>
+					Sentry.captureMessage(`host-service crashed (${cause})`, {
+						level: "error",
+						tags: {
+							exit_code: String(code ?? "none"),
+							exit_signal: signal ?? "none",
+						},
+						extra: {
+							organizationId,
+							respawnAttempts,
+							pid: childPid,
+							version: app.getVersion(),
+							uptimeMs: Date.now() - current.spawnedAt,
+							outputTail: current.redactions.reduce(
+								(tail, secret) => tail.split(secret).join("[redacted]"),
+								current.outputTail,
+							),
+						},
+					}),
+				)
+				.catch(() => {});
+		}, CRASH_REPORT_FLUSH_MS);
+		flushTimer.unref?.();
 		this.scheduleRespawn(organizationId, cause);
 	}
 

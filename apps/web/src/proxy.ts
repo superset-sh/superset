@@ -26,6 +26,24 @@ export default async function proxy(req: NextRequest) {
 		return NextResponse.redirect(signInUrl);
 	}
 
+	// Pending-deletion accounts only get the recovery page; API routes stay
+	// reachable so the reactivate mutation itself can go through.
+	const isApiRoute =
+		pathname.startsWith("/api") || pathname.startsWith("/trpc");
+	if (
+		session?.user.deletionRequestedAt &&
+		!isApiRoute &&
+		!isPublicRoute(pathname)
+	) {
+		if (pathname !== "/account-pending-deletion") {
+			return NextResponse.redirect(
+				new URL("/account-pending-deletion", req.url),
+			);
+		}
+	} else if (session && pathname === "/account-pending-deletion") {
+		return NextResponse.redirect(new URL("/", req.url));
+	}
+
 	if (
 		session &&
 		isInternalRoute(pathname) &&

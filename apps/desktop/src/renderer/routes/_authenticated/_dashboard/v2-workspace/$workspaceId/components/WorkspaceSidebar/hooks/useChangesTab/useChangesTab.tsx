@@ -96,6 +96,7 @@ export function useChangesTab({
 			void utils.git.getStatus.invalidate({ workspaceId });
 			void utils.git.listCommits.invalidate({ workspaceId });
 			void utils.git.getDiff.invalidate({ workspaceId });
+			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		// The picker re-renders from getBaseBranch, so a rejected change
 		// silently snaps back without this.
@@ -154,6 +155,7 @@ export function useChangesTab({
 			await Promise.all([
 				utils.git.getStatus.invalidate({ workspaceId }),
 				utils.git.getDiff.invalidate({ workspaceId }),
+				utils.git.getDiffBulk.invalidate({ workspaceId }),
 				utils.git.listCommits.invalidate({ workspaceId }),
 				utils.git.listBranches.invalidate({ workspaceId }),
 				utils.git.getBaseBranch.invalidate({ workspaceId }),

@@ -49,7 +49,7 @@ const RESOURCES_TO_COPY = [
 		dest: resolve(__dirname, "..", devPath, "resources/chat-migrations"),
 	},
 	{
-		src: resolve(__dirname, "../src/main/lib/agent-setup/templates"),
+		src: resolve(__dirname, "../../../packages/agent-setup/templates"),
 		dest: resolve(__dirname, "..", devPath, "main/templates"),
 	},
 	// Must come after the templates copy above: copyDir wipes its dest, and
@@ -88,13 +88,6 @@ export function htmlEnvTransformPlugin(): Plugin {
 				.replace(
 					/%NEXT_PUBLIC_API_URL%/g,
 					process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
-				)
-				.replace(
-					/%NEXT_PUBLIC_ELECTRIC_URL%/g,
-					new URL(
-						process.env.NEXT_PUBLIC_ELECTRIC_URL ||
-							"https://electric-proxy.avi-6ac.workers.dev",
-					).origin,
 				)
 				.replace(
 					/%NEXT_PUBLIC_STREAMS_URL%/g,

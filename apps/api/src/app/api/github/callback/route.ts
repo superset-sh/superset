@@ -1,63 +1,32 @@
 import { db } from "@superset/db/client";
-import { githubInstallations, members } from "@superset/db/schema";
+import { githubInstallations } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
 import { and, eq, ne } from "drizzle-orm";
 
 import { env } from "@/env";
-import { verifySignedState } from "@/lib/oauth-state";
+import { resolveCallback } from "@/lib/integrations/resolveCallback";
 import { githubApp } from "../octokit";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
+
+const settingsUrl = `${env.NEXT_PUBLIC_WEB_URL}/integrations/github`;
 
 /**
  * Callback handler for GitHub App installation.
  * GitHub redirects here after the user installs/configures the app.
  */
 export async function GET(request: Request) {
-	const url = new URL(request.url);
-	const installationId = url.searchParams.get("installation_id");
-	const setupAction = url.searchParams.get("setup_action");
-	const state = url.searchParams.get("state");
-
-	if (setupAction === "cancel") {
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=installation_cancelled`,
-		);
+	if (new URL(request.url).searchParams.get("setup_action") === "cancel") {
+		return Response.redirect(`${settingsUrl}?error=installation_cancelled`);
 	}
 
-	if (!installationId || !state) {
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=missing_params`,
-		);
-	}
-
-	// Verify signed state (prevents forgery)
-	const stateData = verifySignedState(state);
-	if (!stateData) {
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=invalid_state`,
-		);
-	}
-
-	const { organizationId, userId } = stateData;
-
-	// Re-verify membership at callback time (defense-in-depth)
-	const membership = await db.query.members.findFirst({
-		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
-		),
+	const callback = await resolveCallback(request, {
+		params: ["installation_id"],
+		redirect: (error) => Response.redirect(`${settingsUrl}?error=${error}`),
 	});
-
-	if (!membership) {
-		console.error("[github/callback] Membership verification failed:", {
-			organizationId,
-			userId,
-		});
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=unauthorized`,
-		);
-	}
+	if (callback instanceof Response) return callback;
+	const { organizationId, userId, params } = callback;
+	const installationId = params.installation_id;
 
 	try {
 		const octokit = await githubApp.getInstallationOctokit(
@@ -75,7 +44,7 @@ export async function GET(request: Request) {
 
 		if (!installationResult) {
 			return Response.redirect(
-				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=installation_fetch_failed`,
+				`${settingsUrl}?error=installation_fetch_failed`,
 			);
 		}
 
@@ -103,9 +72,7 @@ export async function GET(request: Request) {
 			});
 
 		if (existingForInstallation) {
-			return Response.redirect(
-				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=already_connected`,
-			);
+			return Response.redirect(`${settingsUrl}?error=already_connected`);
 		}
 
 		// Save the installation to our database
@@ -135,9 +102,7 @@ export async function GET(request: Request) {
 			.returning();
 
 		if (!savedInstallation) {
-			return Response.redirect(
-				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=save_failed`,
-			);
+			return Response.redirect(`${settingsUrl}?error=save_failed`);
 		}
 
 		// Queue initial sync job
@@ -155,18 +120,12 @@ export async function GET(request: Request) {
 				"[github/callback] Failed to queue initial sync job:",
 				error,
 			);
-			return Response.redirect(
-				`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?warning=sync_queue_failed`,
-			);
+			return Response.redirect(`${settingsUrl}?warning=sync_queue_failed`);
 		}
 
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?success=github_installed`,
-		);
+		return Response.redirect(`${settingsUrl}?success=github_installed`);
 	} catch (error) {
 		console.error("[github/callback] Unexpected error:", error);
-		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=unexpected`,
-		);
+		return Response.redirect(`${settingsUrl}?error=unexpected`);
 	}
 }

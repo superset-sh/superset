@@ -1,0 +1,121 @@
+---
+title: "AI Agent Orchestration for Software Development"
+description: "What agent orchestration means for coding: the primitives (isolation, sessions, review, scheduling, programmatic control), the patterns, and when you actually need it."
+date: 2026-08-17
+lastUpdated: 2026-08-17
+keywords:
+  - agent orchestration
+  - ai agent orchestration
+  - coding agent orchestration
+  - orchestrate coding agents
+  - multi agent development
+  - agent automation
+  - mcp agent control
+---
+
+Agent orchestration is everything around the coding agents: where they run, how they stay alive, who watches them, and how their output gets reviewed and merged. The agents write the code. Orchestration decides where, when, and under what supervision they run.
+
+If [parallel coding agents](/parallel-coding-agents) is the workflow, orchestration is the infrastructure that makes the workflow repeatable.
+
+![The agent orchestration loop: you, schedules, and other agents (over MCP, CLI, or SDK) dispatch work into an orchestration layer of isolated worktree-agent-terminal sessions, which produce per-task diffs you review, merge, or discard](/images/guides/orchestration-loop.svg)
+
+---
+
+## Orchestration vs. just running agents
+
+You do not need orchestration to run one agent, and you barely need it for two. You need it when any of these becomes true:
+
+- You dispatch more work than you can watch, so status has to come to you.
+- Work should start without you: on a schedule, from a ticket, from CI, or from another agent.
+- More than one person (or agent) needs to see what the fleet is doing.
+- Losing a session's state (a laptop sleep, an app restart) costs real work.
+
+If your agents stop the moment you close your laptop lid, you have sessions, not orchestration.
+
+## The primitives
+
+Homegrown or product, orchestration setups end up with the same six pieces.
+
+### Isolated workspaces
+
+Each unit of work gets its own working directory and branch, almost always a [Git worktree](/compare/git-worktrees-for-ai-agents). Isolation is what makes everything downstream composable: independent diffs, independent lifecycle, independent failure.
+
+### Persistent sessions
+
+Agent sessions need to survive the app restarting, the terminal closing, and the machine sleeping. Without persistence, orchestration degrades into re-prompting. In Superset this is a terminal daemon that owns the sessions; the app is just a view onto them.
+
+### Status and monitoring
+
+A fleet view: which agents are running, which are waiting for input, which finished, what changed. This is the piece that turns "check every tab in rotation" into "get pulled in only when needed".
+
+![An agent finishing its task and the workspace status flipping from working to done in the sidebar](/images/readme/agent-monitoring.gif)
+
+### Review and merge
+
+Per-task diffs, reviewed centrally, merged or discarded independently. Orchestration without a review surface just moves the bottleneck from dispatching to merging.
+
+### Scheduling and automations
+
+Recurring prompts on a schedule: nightly dependency bumps, morning triage of new issues, a weekly dead-code sweep. Scheduled runs are where agent work compounds, because they happen whether or not anyone remembered to ask.
+
+![A team's scheduled agent automations: daily standup digests, Linear ticket grooming, CRM syncs, each running an agent prompt on a schedule in its own workspace](/changelog/automations.png)
+
+### Programmatic control
+
+An API for the whole loop, so scripts and other agents can create workspaces, launch agents with a prompt, read terminals, and collect results. The emerging standard here is [MCP](https://docs.superset.sh/mcp-server) (Model Context Protocol): expose orchestration as tools, and any MCP-capable agent can drive it. This is how agent-managing-agents setups work in practice, and Superset ships an MCP server, a [CLI](https://docs.superset.sh/cli/getting-started), and a [TypeScript SDK](https://docs.superset.sh/sdk/getting-started) for exactly this.
+
+![The superset CLI menu: agents, automations, hosts, projects, tasks, terminals, and workspaces, all scriptable from any shell](/changelog/2026-08-09-cli-browser.png)
+
+## Common patterns
+
+**Fan-out.** Split a large task into independent subtasks, launch an agent per subtask, review the diffs as they land. The default pattern, and the reason isolation is non-negotiable.
+
+**Pipeline.** One agent's output is the next agent's input: implement, then review, then document. Useful when steps genuinely depend on each other; wasteful when they do not.
+
+**Scheduled maintenance.** Automations that run a prompt on cron: dependency updates, log triage, test flake hunts. The highest ratio of value to attention of any pattern here.
+
+**Agent drives agents.** A coordinating agent (a chat session, a CI job, another product) uses an orchestrator's MCP server to spawn workers, watch them, and gather results. This is the pattern behind most "agent swarm" demos, minus the demo.
+
+**Race and pick.** Launch two or three agents on the same task with different approaches or different models, keep the best diff, discard the rest. Cheap insurance on tasks where approach matters more than effort.
+
+## Two schools of orchestration
+
+Tools in this category split on one design question: who decomposes the work?
+
+**Coordinator-led** tools put an AI in charge of planning. [Augment Intent](/compare/superset-vs-augment-intent), for example, has a coordinator agent draft a spec, fan tasks out to implementor agents, and run a verifier over the result. You approve at checkpoints. This buys hands-off breadth on well-scoped features and costs you control over decomposition.
+
+**Developer-led** tools keep decomposition with you and make dispatch, isolation, monitoring, and review as fast as possible. Superset, [Conductor](/compare/superset-vs-conductor), and [Zed's Parallel Agents](/compare/superset-vs-zed) are in this school. It matches how senior engineers already split work, and it degrades gracefully: when a task is fuzzy, you scope it, not a planning agent.
+
+Neither is strictly better. Coordinator-led shines on PR-sized features with clear requirements. Developer-led wins when task boundaries need judgment: legacy code, fuzzy specs, work that touches shared modules.
+
+## When you don't need orchestration
+
+Some setups don't need it:
+
+- One agent, watched interactively: your terminal is fine.
+- Two or three simultaneous tasks, rarely: worktrees by hand and a little discipline work.
+- Cloud-delegated single tasks (an agent that takes an issue and returns a PR): that is a hosted agent, and its platform does the orchestration for you.
+
+The moment multiple concurrent local agents are routine, the tax of hand-rolling (lost sessions, stale worktrees, unreviewed diffs) usually exceeds the cost of adopting a workspace built for it.
+
+## Frequently Asked Questions
+
+### What is AI agent orchestration in software development?
+
+The layer around coding agents that handles workspace isolation, launching, session persistence, monitoring, review, scheduling, and programmatic control. Agents do the coding; orchestration makes running many of them reliable and repeatable.
+
+### How is orchestration different from a multi-agent framework?
+
+Frameworks like LangChain or agent SDKs are for building agents and wiring them together in code. Orchestration in the development-workflow sense is for running existing coding agents (Claude Code, Codex, OpenCode) against real repositories, with isolation and review. You can use both: a framework-built agent can drive an orchestrator over MCP.
+
+### Can one AI agent manage other coding agents?
+
+Yes. Expose orchestration as MCP tools and any MCP-capable agent can create workspaces, launch agents with prompts, watch their terminals, and collect diffs. Superset ships an MCP server for this, so a chat agent or a CI job can run a fleet without a human in the dispatch loop.
+
+### How do scheduled agent runs work?
+
+You define a prompt, an agent, and a schedule; the orchestrator creates a fresh workspace at the appointed time, runs the agent, and leaves the result for review. Superset calls these automations. Typical uses: nightly dependency bumps, issue triage, recurring cleanup passes.
+
+### What should I look for in an agent orchestration tool?
+
+Worktree-per-task isolation, sessions that survive restarts, a fleet status view, per-task diff review, scheduling, and an API or MCP server. Then the softer criteria: does it support the agents you actually use, and does it run where your code runs (local machine, remote hosts, or both).

@@ -181,7 +181,9 @@ export function useTerminalColdRestore({
 		});
 
 		// The replayed scrollback is sanitized, but the xterm may still carry
-		// armed modes from the pre-crash session.
+		// armed modes from the pre-crash session: the brand-new shell knows
+		// nothing about them, so scrolling would spray mouse reports into the
+		// prompt as garbage text. Disarm before handing the pane over.
 		disarmStaleInputModes(xterm);
 
 		// Add visual separator. The replayed scrollback can leave the cursor

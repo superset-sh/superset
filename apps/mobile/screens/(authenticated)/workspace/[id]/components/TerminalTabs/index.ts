@@ -1,0 +1,1 @@
+export { TerminalTabs } from "./TerminalTabs";

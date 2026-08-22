@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { LuArrowRight, LuGitPullRequest, LuPlay } from "react-icons/lu";
 import { FILE_CHANGES } from "../../constants";
 import type { ActiveDemo } from "../../types";
@@ -16,7 +16,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 	const isDiff = activeDemo === "See Changes";
 
 	return (
-		<motion.div
+		<m.div
 			className="relative flex shrink-0 flex-col overflow-hidden border-l border-border/60 bg-card text-[11px]"
 			initial={{ width: 236 }}
 			animate={{ width: isDiff ? 380 : 236 }}
@@ -77,7 +77,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 			</div>
 
 			<div className="relative flex-1 bg-background">
-				<motion.div
+				<m.div
 					className="absolute inset-0 flex flex-col"
 					initial={{ opacity: 1 }}
 					animate={{ opacity: isDiff ? 0 : 1 }}
@@ -96,9 +96,9 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 							/>
 						))}
 					</div>
-				</motion.div>
+				</m.div>
 
-				<motion.div
+				<m.div
 					className="absolute inset-0 flex flex-col bg-background"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: isDiff ? 1 : 0 }}
@@ -156,9 +156,9 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 							Comment
 						</button>
 					</div>
-				</motion.div>
+				</m.div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }
 

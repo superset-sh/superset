@@ -1,4 +1,5 @@
 export { createGitEnvResolver, createGitFactory } from "./git";
+export { listGitIgnoredDirs } from "./ignored-dirs";
 export type { ResolvedRef, ResolveRefOptions } from "./refs";
 export {
 	asLocalRef,

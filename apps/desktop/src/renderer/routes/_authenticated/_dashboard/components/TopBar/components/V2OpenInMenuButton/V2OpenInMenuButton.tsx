@@ -96,8 +96,11 @@ export function V2OpenInMenuButton({
 						className={cn(
 							// Icon-only when the nearest @container is narrow; the branch
 							// label comes back once there's room (right sidebar is resizable,
-							// so viewport breakpoints don't apply here).
-							"group flex h-6 items-center justify-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-1.5 text-xs font-medium @[240px]:pr-2",
+							// so viewport breakpoints don't apply here). The threshold is
+							// higher than the PR badge's so the badge (with its merge
+							// chevron) keeps space priority and never clips in the 240-320px
+							// dead zone (#6385).
+							"group flex h-6 items-center justify-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-1.5 text-xs font-medium @[320px]:pr-2",
 							"transition-all duration-150 ease-out",
 							"hover:bg-secondary hover:border-border",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -114,7 +117,7 @@ export function V2OpenInMenuButton({
 						)}
 						{branch && (
 							<OverflowFadeText
-								className="hidden max-w-[140px] text-muted-foreground tabular-nums @[240px]:inline-block"
+								className="hidden max-w-[140px] text-muted-foreground tabular-nums @[320px]:inline-block"
 								title={branch}
 							>
 								/{branch}

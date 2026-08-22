@@ -1,0 +1,1 @@
+export { mergedSubLabel } from "./mergedSubLabel";

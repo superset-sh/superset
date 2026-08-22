@@ -3,6 +3,11 @@ import { TipTapMarkdownRenderer } from "renderer/components/MarkdownRenderer/com
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
 import { useMarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/hooks/useMarkdownSearch";
 import type { ViewProps } from "../../types";
+import { splitFrontMatter } from "./splitFrontMatter";
+
+// Beyond this size the per-keystroke merge in preserveSourceFormatting gets
+// expensive; fall back to a read-only preview and leave editing to CodeView.
+const MAX_EDITABLE_LENGTH = 1_500_000;
 
 export function MarkdownPreviewView({
 	document,
@@ -21,6 +26,11 @@ export function MarkdownPreviewView({
 		return null;
 	}
 
+	const editable = document.content.value.length <= MAX_EDITABLE_LENGTH;
+	// TipTap mangles YAML front matter (no node for it) — keep it out of the
+	// editor and re-attach the verbatim block to every emission.
+	const { frontMatter, body } = splitFrontMatter(document.content.value);
+
 	return (
 		<div className="relative h-full">
 			<MarkdownSearch
@@ -36,7 +46,18 @@ export function MarkdownPreviewView({
 				onClose={search.closeSearch}
 			/>
 			<div ref={containerRef} className="h-full overflow-auto p-4">
-				<TipTapMarkdownRenderer value={document.content.value} />
+				{frontMatter !== "" && (
+					<div className="mx-auto mb-2 max-w-3xl select-text text-xs text-muted-foreground">
+						Front matter hidden — switch to the Markdown view to edit it
+					</div>
+				)}
+				<TipTapMarkdownRenderer
+					value={body}
+					editable={editable}
+					preserveSourceFormatting
+					onChange={(next) => document.setContent(frontMatter + next)}
+					onSave={() => void document.save()}
+				/>
 			</div>
 		</div>
 	);

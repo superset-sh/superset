@@ -14,11 +14,11 @@ import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggl
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
 	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useWorkspaceHotkeys({
@@ -39,6 +39,7 @@ export function useWorkspaceHotkeys({
 	onBeforeCloseTab?: WorkspaceProps<PaneViewerData>["onBeforeCloseTab"];
 }) {
 	const { setRightSidebarOpen, setRightSidebarTab } = useV2UserPreferences();
+	const defaultBrowserUrl = useDefaultBrowserUrl();
 	const visiblePresets = useMemo(
 		() => matchedPresets.filter((preset) => preset.pinnedToBar !== false),
 		[matchedPresets],
@@ -62,19 +63,13 @@ export function useWorkspaceHotkeys({
 		await addTerminalTab();
 	});
 
-	useHotkey("NEW_CHAT", () => {
-		store.getState().addTab({
-			panes: [{ kind: "chat", data: { sessionId: null } as ChatPaneData }],
-		});
-	});
-
 	useHotkey("NEW_BROWSER", () => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "browser",
 					data: {
-						url: "about:blank",
+						url: defaultBrowserUrl,
 					} as BrowserPaneData,
 				},
 			],
@@ -277,21 +272,6 @@ export function useWorkspaceHotkeys({
 		});
 	});
 
-	useHotkey("SPLIT_WITH_CHAT", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "chat",
-				data: { sessionId: null } as ChatPaneData,
-			},
-		});
-	});
-
 	useHotkey("SPLIT_WITH_BROWSER", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
@@ -303,7 +283,7 @@ export function useWorkspaceHotkeys({
 			newPane: {
 				kind: "browser",
 				data: {
-					url: "about:blank",
+					url: defaultBrowserUrl,
 				} as BrowserPaneData,
 			},
 		});

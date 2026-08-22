@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { ReactNode } from "react";
 import {
 	HiOutlineCodeBracket,
@@ -38,7 +38,7 @@ export function SecuritySection() {
 		<section id="security" className="relative py-24 sm:py-32">
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				{/* Heading */}
-				<motion.div
+				<m.div
 					className="mb-16 space-y-4"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
@@ -57,10 +57,10 @@ export function SecuritySection() {
 						Your code stays local by default, with explicit control over
 						connected services.
 					</p>
-				</motion.div>
+				</m.div>
 
 				{/* Features Grid */}
-				<motion.div
+				<m.div
 					className="grid grid-cols-1 md:grid-cols-3 gap-6"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
@@ -68,7 +68,7 @@ export function SecuritySection() {
 					transition={{ duration: 0.5, delay: 0.2 }}
 				>
 					{SECURITY_FEATURES.map((feature, index) => (
-						<motion.div
+						<m.div
 							key={feature.title}
 							className="relative p-6 rounded-[2px] border border-foreground/[0.1] bg-foreground/[0.03]"
 							initial={{ opacity: 0, y: 20 }}
@@ -85,9 +85,9 @@ export function SecuritySection() {
 							<p className="text-sm leading-relaxed text-muted-foreground">
 								{feature.description}
 							</p>
-						</motion.div>
+						</m.div>
 					))}
-				</motion.div>
+				</m.div>
 			</div>
 		</section>
 	);

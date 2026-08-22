@@ -1,5 +1,5 @@
-import { Heading, Section, Text } from "@react-email/components";
-import { EmailLayout } from "../../components";
+import { Heading, Hr, Text } from "@react-email/components";
+import { DetailRow, EmailLayout } from "../../components";
 
 interface SubscriptionStartedEmailProps {
 	ownerName?: string | null;
@@ -22,49 +22,36 @@ export function SubscriptionStartedEmail({
 
 	return (
 		<EmailLayout preview={`Welcome to Superset ${planName}!`}>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
-				Welcome to <strong>Superset {planName}</strong>! 🎉
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
+				Welcome to Superset {planName}
 			</Heading>
 
-			<Text className="text-base leading-[26px] mb-4 text-foreground">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				Hi {ownerName ?? "there"},
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-2">
 				Thanks for upgrading <strong>{organizationName}</strong> to the{" "}
 				<strong>{planName}</strong> plan. Your subscription is now active.
 			</Text>
 
-			<Section className="bg-[#f9fafb] rounded-lg p-4 mb-4">
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>Plan:</strong> {planName}
-				</Text>
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>Billing:</strong> {amount}/{intervalText}
-				</Text>
-				<Text className="text-sm leading-5 text-foreground m-0">
-					<strong>Seats:</strong> {seatCount}
-				</Text>
-			</Section>
+			<Hr className="border-border my-4" />
+			<DetailRow label="Plan" value={planName} />
+			<DetailRow label="Billing" value={`${amount}/${intervalText}`} />
+			<DetailRow label="Seats" value={String(seatCount)} />
+			<Hr className="border-border my-4" />
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				With {planName}, you now have access to:
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-2">
+				{planName} includes:
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-1">
+			<Text className="text-[15px] leading-7 text-foreground m-0 mb-6">
 				✓ Unlimited team members
-			</Text>
-			<Text className="text-base leading-[26px] text-foreground mb-1">
-				✓ Advanced workflow automation
-			</Text>
-			<Text className="text-base leading-[26px] text-foreground mb-1">
-				✓ Priority support
-			</Text>
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				✓ And much more...
+				<br />✓ Remote workspaces
+				<br />✓ Linear and Slack integrations
 			</Text>
 
-			<Text className="text-xs leading-5 text-muted">
+			<Text className="text-[13px] leading-5 text-muted m-0">
 				You're receiving this because you're an owner of {organizationName}.
 			</Text>
 		</EmailLayout>

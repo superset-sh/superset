@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
 import {
@@ -40,7 +40,7 @@ export function OpenInDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full max-w-sm"
 			initial={{ opacity: 0, y: 20 }}
@@ -78,7 +78,7 @@ export function OpenInDemo() {
 					</div>
 
 					{/* Open in button */}
-					<motion.div
+					<m.div
 						className="inline-flex items-stretch"
 						initial={{ opacity: 0, scale: 0.95 }}
 						animate={
@@ -106,13 +106,13 @@ export function OpenInDemo() {
 						>
 							<HiChevronDown className="w-3.5 h-3.5" />
 						</button>
-					</motion.div>
+					</m.div>
 				</div>
 
 				{/* File tree */}
 				<div className="py-2">
 					{FILE_TREE.map((item, index) => (
-						<motion.div
+						<m.div
 							key={item.name}
 							className={`flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors ${
 								item.selected
@@ -138,20 +138,20 @@ export function OpenInDemo() {
 								</>
 							)}
 							<span>{item.name}</span>
-						</motion.div>
+						</m.div>
 					))}
 				</div>
 			</div>
 
 			{/* Dropdown Menu - positioned outside window for overflow effect */}
-			<motion.div
+			<m.div
 				className="absolute -right-10 top-[104px] z-10 w-44 overflow-hidden rounded-lg border border-border bg-card py-1.5 shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 				initial={{ opacity: 0, y: -8 }}
 				animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -8 }}
 				transition={{ duration: 0.3, delay: 0.4 }}
 			>
 				{IDE_OPTIONS.map((ide, index) => (
-					<motion.div
+					<m.div
 						key={ide.id}
 						className="flex cursor-pointer items-center justify-between px-3 py-1.5 text-muted-foreground transition-colors hover:bg-foreground/[0.04] hover:text-foreground/90"
 						initial={{ opacity: 0, x: -10 }}
@@ -175,9 +175,9 @@ export function OpenInDemo() {
 								{ide.shortcut}
 							</span>
 						)}
-					</motion.div>
+					</m.div>
 				))}
-			</motion.div>
-		</motion.div>
+			</m.div>
+		</m.div>
 	);
 }

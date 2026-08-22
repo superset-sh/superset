@@ -1,4 +1,8 @@
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
+import {
+	assignAttachmentFileName,
+	WORKSPACE_ATTACHMENTS_DIR,
+} from "@superset/shared/workspace-attachments";
 import { launchCommandInPane } from "renderer/lib/terminal/launch-command";
 import type { AgentSessionLaunchContext, LaunchResultPayload } from "../types";
 
@@ -112,7 +116,7 @@ async function writeAttachmentFiles(
 	// recursive — a plain mkdir ENOENTs and kills the whole agent launch.
 	const attachmentsDirectory = joinAbsolutePath(
 		workspace.worktreePath,
-		".superset/attachments",
+		WORKSPACE_ATTACHMENTS_DIR,
 	);
 	await electronTrpcClient.filesystem.createDirectory.mutate({
 		workspaceId,
@@ -120,7 +124,6 @@ async function writeAttachmentFiles(
 		recursive: true,
 	});
 
-	// Track all used filenames to prevent collisions (includes user and generated names)
 	const usedFilenames = new Set<string>();
 	const writtenPaths: string[] = [];
 
@@ -128,46 +131,13 @@ async function writeAttachmentFiles(
 		const { file, base64Data } = parsedFiles[i];
 		if (!file) continue;
 
-		// Generate unique filename
-		let fileName: string;
-
-		if (!file.filename) {
-			// Generated names: find next available attachment_N
-			let index = i + 1;
-			do {
-				fileName = `attachment_${index}`;
-				index++;
-			} while (usedFilenames.has(fileName));
-		} else {
-			// Sanitize filename
-			const sanitized = file.filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-
-			// Handle empty sanitized filename (e.g., "!!!" becomes "")
-			if (!sanitized.trim()) {
-				let index = i + 1;
-				do {
-					fileName = `attachment_${index}`;
-					index++;
-				} while (usedFilenames.has(fileName));
-			} else if (usedFilenames.has(sanitized)) {
-				// Find unique name by appending _1, _2, etc. if needed
-				const parts = sanitized.split(".");
-				const ext = parts.length > 1 ? parts.pop() : undefined;
-				const base = parts.join(".");
-
-				let counter = 1;
-				do {
-					fileName = ext
-						? `${base}_${counter}.${ext}`
-						: `${sanitized}_${counter}`;
-					counter++;
-				} while (usedFilenames.has(fileName));
-			} else {
-				fileName = sanitized;
-			}
-		}
-
-		usedFilenames.add(fileName);
+		// Must assign identically to the prompt renderer
+		// (agent-launch-request.ts), which runs over the same list.
+		const fileName = assignAttachmentFileName({
+			rawName: file.filename,
+			index: i,
+			used: usedFilenames,
+		});
 
 		const absolutePath = joinAbsolutePath(attachmentsDirectory, fileName);
 		await electronTrpcClient.filesystem.writeFile.mutate({
@@ -177,7 +147,7 @@ async function writeAttachmentFiles(
 		});
 
 		// Return relative path from workspace root
-		writtenPaths.push(`.superset/attachments/${fileName}`);
+		writtenPaths.push(`${WORKSPACE_ATTACHMENTS_DIR}/${fileName}`);
 	}
 
 	return writtenPaths;

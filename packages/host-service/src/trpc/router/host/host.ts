@@ -6,6 +6,7 @@ import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import type { ApiClient } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+import { rethrowCloudUnreachable } from "./cloud-api-error";
 
 // Auto-derived from this package's package.json so callers can report exactly
 // which bundled host-service build is currently serving requests.
@@ -30,9 +31,15 @@ async function getOrganization(
 		return cachedOrganization.data;
 	}
 
-	const organization = await api.organization.getByIdFromJwt.query({
-		id: organizationId,
-	});
+	let organization: { id: string; name: string; slug: string } | null;
+	try {
+		organization = await api.organization.getByIdFromJwt.query({
+			id: organizationId,
+		});
+	} catch (error) {
+		rethrowCloudUnreachable(error);
+		throw error;
+	}
 	if (!organization) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",

@@ -1,0 +1,7 @@
+extends: metric
+message: "Flesch-Kincaid grade level is %s; aim below 11 for marketing prose."
+link: https://github.com/superset-sh/superset/blob/main/apps/marketing/docs/copywriting-references.md
+level: suggestion
+formula: |
+  (0.39 * (words / sentences)) + (11.8 * (syllables / words)) - 15.59
+condition: "> 11"

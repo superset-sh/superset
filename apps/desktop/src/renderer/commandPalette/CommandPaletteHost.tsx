@@ -1,13 +1,14 @@
+import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect } from "react";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { CommandContextProvider } from "./core/ContextProvider";
 import { useFrameStackStore } from "./core/frames";
 import { registerAllModules } from "./modules";
-import { checkResourcesCommand } from "./modules/resources/commands";
 import { CommandPalette } from "./ui/CommandPalette/CommandPalette";
 import { DeleteWorkspaceMount } from "./ui/DeleteWorkspaceMount/DeleteWorkspaceMount";
 import { FolderImportMount } from "./ui/FolderImportMount/FolderImportMount";
+import { QuickCreateWorkspaceMount } from "./ui/QuickCreateWorkspaceMount/QuickCreateWorkspaceMount";
 import { RemoveFromSidebarMount } from "./ui/RemoveFromSidebarMount/RemoveFromSidebarMount";
 import { SetPreferredOpenInAppMount } from "./ui/SetPreferredOpenInAppMount/SetPreferredOpenInAppMount";
 
@@ -25,6 +26,7 @@ export function CommandPaletteHost({ children }: { children?: ReactNode }) {
 			<RemoveFromSidebarMount />
 			<SetPreferredOpenInAppMount />
 			<FolderImportMount />
+			<QuickCreateWorkspaceMount />
 			{children}
 		</CommandContextProvider>
 	);
@@ -33,13 +35,13 @@ export function CommandPaletteHost({ children }: { children?: ReactNode }) {
 function CommandPaletteTrigger() {
 	const setOpen = useFrameStackStore((s) => s.setOpen);
 	const reset = useFrameStackStore((s) => s.reset);
-	const pushFrame = useFrameStackStore((s) => s.pushFrame);
+	const navigate = useNavigate();
 	useHotkey("OPEN_COMMAND_PALETTE", () => setOpen(true));
 
 	const openResources = () => {
-		setOpen(true);
+		setOpen(false);
 		reset();
-		pushFrame(checkResourcesCommand);
+		void navigate({ to: "/usage/resources" });
 	};
 
 	// Keeps CHECK_RESOURCES on the renderer's own hotkey binding (rather than a

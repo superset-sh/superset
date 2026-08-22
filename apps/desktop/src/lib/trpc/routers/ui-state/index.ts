@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
+import { getKey } from "main/lib/window-registry/window-registry";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -38,23 +39,13 @@ const fileViewerStateSchema = z.object({
 	oldPath: z.string().optional(),
 });
 
-const chatLaunchConfigSchema = z.object({
-	initialPrompt: z.string().optional(),
-	metadata: z
-		.object({
-			model: z.string().optional(),
-		})
-		.optional(),
-	retryCount: z.number().int().min(0).optional(),
-});
-
 /**
  * Zod schema for Pane
  */
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview", "file-viewer", "chat", "devtools"]),
+	type: z.enum(["terminal", "webview", "file-viewer", "devtools"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	status: z.enum(["idle", "working", "permission", "review"]).optional(),
@@ -63,12 +54,6 @@ const paneSchema = z.object({
 	cwd: z.string().nullable().optional(),
 	cwdConfirmed: z.boolean().optional(),
 	fileViewer: fileViewerStateSchema.optional(),
-	chat: z
-		.object({
-			sessionId: z.string().nullable(),
-			launchConfig: chatLaunchConfigSchema.nullable().optional(),
-		})
-		.optional(),
 	browser: z
 		.object({
 			currentUrl: z.string(),
@@ -268,16 +253,37 @@ const themeStateSchema = z.object({
  */
 export const createUiStateRouter = () => {
 	return router({
-		// Tabs state procedures
+		// Tabs state procedures — scoped to the calling window. Each window is
+		// its own renderer persisting its whole layout, so a single shared
+		// record let the last writer win and made every window restore the same
+		// layout. `ctx.senderWindow` resolves the window's persisted key.
 		tabs: router({
-			get: publicProcedure.query((): TabsState => {
-				return appState.data.tabsState;
+			get: publicProcedure.query(({ ctx }): TabsState => {
+				const key = ctx.senderWindow ? getKey(ctx.senderWindow.id) : null;
+				if (!key) return appState.data.tabsState;
+				// A window with no record yet inherits the pre-multi-window
+				// layout, so an existing user's tabs survive the upgrade. Second
+				// and later windows fall back to it too, which is the same thing
+				// they did before this change.
+				return (
+					appState.data.tabsStateByWindow?.[key] ?? appState.data.tabsState
+				);
 			}),
 
 			set: publicProcedure
 				.input(tabsStateSchema)
-				.mutation(async ({ input }) => {
-					appState.data.tabsState = input;
+				.mutation(async ({ ctx, input }) => {
+					const key = ctx.senderWindow ? getKey(ctx.senderWindow.id) : null;
+					if (key) {
+						appState.data.tabsStateByWindow = {
+							...appState.data.tabsStateByWindow,
+							[key]: input,
+						};
+					} else {
+						// No resolvable window (e.g. a <webview> guest): fall back to
+						// the shared record rather than dropping the write.
+						appState.data.tabsState = input;
+					}
 					await writeAppState();
 					return { success: true };
 				}),

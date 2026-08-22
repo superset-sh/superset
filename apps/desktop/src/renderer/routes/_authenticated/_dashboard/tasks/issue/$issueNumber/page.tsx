@@ -78,7 +78,6 @@ function IssueDetailPage() {
 			});
 		},
 		enabled: !!hostUrl && !!project && !!projectId && issueNumber !== null,
-		retry: false,
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
 	});

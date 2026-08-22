@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
-import { resolve } from "node:path";
+import { describe, expect, setSystemTime, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
@@ -53,13 +55,14 @@ function seedWorkspace(
 		upstreamRepo?: string | null;
 		upstreamBranch?: string | null;
 		pullRequestId?: string | null;
+		worktreePath?: string;
 	},
 ) {
 	db.insert(schema.workspaces)
 		.values({
 			id: w.id,
 			projectId: PROJECT_ID,
-			worktreePath: `/repo/.worktrees/${w.id}`,
+			worktreePath: w.worktreePath ?? `/repo/.worktrees/${w.id}`,
 			branch: w.branch,
 			createdAt: Date.now(),
 			headSha: w.headSha ?? null,
@@ -148,6 +151,7 @@ function createManager(
 		readWorkspaceRefs?: (
 			worktreePath: string,
 		) => Promise<WorkspaceRefsSnapshot>;
+		worktreeExists?: (worktreePath: string) => boolean;
 	} = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -169,6 +173,9 @@ function createManager(
 			}) as never),
 		gitWatcher: { onChanged: () => () => {} } as never,
 		readWorkspaceRefs: overrides.readWorkspaceRefs,
+		// Seeded worktree paths are fabricated; default the disk gate open so
+		// sync-path tests exercise the git read, not the missing-dir skip.
+		worktreeExists: overrides.worktreeExists ?? (() => true),
 	});
 }
 
@@ -199,6 +206,22 @@ function makePrNode(pr: {
 		},
 		base: { repo: { full_name: `${REPO.owner}/${REPO.name}` } },
 	};
+}
+
+// Typed handle on the private per-repo sweep entrypoint under test; keeps
+// tsc (no private dot-access) and biome (no bracket-access) both satisfied.
+function openPullRequestsSweeper(manager: PullRequestRuntimeManager) {
+	const accessible = manager as unknown as {
+		getCachedOpenPullRequests(repo: {
+			provider: "github";
+			owner: string;
+			name: string;
+			url: string;
+			remoteName: string;
+			defaultBranch: string | null;
+		}): Promise<unknown[]>;
+	};
+	return accessible.getCachedOpenPullRequests.bind(accessible);
 }
 
 // Silences the expected warnings the manager logs on handled failures.
@@ -612,6 +635,123 @@ describe("PullRequestRuntimeManager refresh", () => {
 
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBe("pr-existing");
 	});
+
+	// A permanently failing fetch (payload over maxBuffer, revoked auth) must
+	// not respawn gh at full 60s-TTL cadence forever: consecutive failures
+	// double the cached rejection's TTL, and a success resets the streak.
+	test("backs off repeated open-PR sweep failures and resets on success", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let attempts = 0;
+			let failing = true;
+			const manager = createManager(db, {
+				execGh: async () => {
+					attempts += 1;
+					if (failing) throw new Error("sweep unavailable");
+					return [];
+				},
+				github: (async () => {
+					throw new Error("octokit unavailable");
+				}) as never,
+			});
+			const repo = {
+				provider: "github" as const,
+				owner: REPO.owner,
+				name: REPO.name,
+				url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			};
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+			const sweep = () =>
+				withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
+
+			// Trigger every 20s for 10 minutes. Without backoff the 60s TTL
+			// admits 11 fetches; doubling admits only t=0, 2min, 6min.
+			for (let t = 0; t <= 10 * 60_000; t += 20_000) {
+				setSystemTime(new Date(t0 + t));
+				await sweep();
+			}
+			expect(attempts).toBe(3);
+
+			// The t=6min failure backed off to 8min: retry fires at 14min.
+			failing = false;
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000));
+			await sweep();
+			expect(attempts).toBe(4);
+
+			// Success resets the streak: the base 60s TTL applies again.
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000 + 61_000));
+			await sweep();
+			expect(attempts).toBe(5);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	// A fetch that out-lives its own backoff window before rejecting must
+	// anchor the backoff at the rejection, not the fetch start — otherwise
+	// the cached rejection is born expired and the next trigger refetches
+	// immediately, so slow failures never back off.
+	test("anchors failure backoff at rejection time for slow failures", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let attempts = 0;
+			let rejectInFlight: ((error: Error) => void) | undefined;
+			const manager = createManager(db, {
+				execGh: () => {
+					attempts += 1;
+					if (attempts === 1) {
+						return new Promise((_, reject) => {
+							rejectInFlight = reject;
+						});
+					}
+					return Promise.reject(new Error("sweep unavailable"));
+				},
+				github: (async () => {
+					throw new Error("octokit unavailable");
+				}) as never,
+			});
+			const repo = {
+				provider: "github" as const,
+				owner: REPO.owner,
+				name: REPO.name,
+				url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			};
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+			const sweep = () =>
+				withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
+
+			// The fetch hangs past its own post-failure window (120s after the
+			// first failure) and only then rejects.
+			const slow = sweep();
+			expect(attempts).toBe(1);
+			setSystemTime(new Date(t0 + 130_000));
+			rejectInFlight?.(new Error("slow failure"));
+			await slow;
+
+			// Anchored at fetch start the window would already be consumed and
+			// this trigger would refetch; anchored at the rejection it holds.
+			setSystemTime(new Date(t0 + 131_000));
+			await sweep();
+			expect(attempts).toBe(1);
+
+			// The full window measured from the failure elapses: retry admitted.
+			setSystemTime(new Date(t0 + 130_000 + 121_000));
+			await sweep();
+			expect(attempts).toBe(2);
+		} finally {
+			setSystemTime();
+		}
+	});
 });
 
 // Routes gh REST/GraphQL calls to fixtures keyed by the exact head branch, so
@@ -953,5 +1093,174 @@ describe("workspace-created event trigger", () => {
 
 		expect(refsReads()).toBe(0);
 		expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("missing-worktree degraded state", () => {
+	const createdEvent: WorkspaceChangedEvent = {
+		workspaceId: "ws-dead",
+		eventType: "created",
+		workspace: null,
+		occurredAt: 1,
+	};
+
+	function createGatedManager(db: HostDb, disk: { exists: boolean }) {
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({
+				"feat/dead": makePrNode({
+					number: 7001,
+					headRef: "feat/dead",
+					headSha: "sha-dead",
+				}),
+			}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/dead",
+					headSha: "sha-dead",
+					upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/dead" },
+				};
+			},
+			worktreeExists: () => disk.exists,
+		});
+		return { manager, refsReads: () => refsReads };
+	}
+
+	async function withCapturedWarnings<T>(
+		fn: () => Promise<T>,
+	): Promise<{ result: T; warnings: string[] }> {
+		const original = console.warn;
+		const warnings: string[] = [];
+		console.warn = (...args: unknown[]) => {
+			warnings.push(String(args[0]));
+		};
+		try {
+			return { result: await fn(), warnings };
+		} finally {
+			console.warn = original;
+		}
+	}
+
+	test("skips git reads and logs one line while the worktree is missing", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-dead", branch: "feat/dead" });
+		const disk = { exists: false };
+		const { manager, refsReads } = createGatedManager(db, disk);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		const { warnings } = await withCapturedWarnings(async () => {
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+		});
+
+		expect(refsReads()).toBe(0);
+		expect(getWorkspace(db, "ws-dead")?.pullRequestId).toBeNull();
+		expect(
+			warnings.filter((w) => w.includes("Worktree missing on disk")),
+		).toHaveLength(1);
+
+		manager.stop();
+	});
+
+	test("resumes sync and logs degraded-exit when the worktree reappears", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-dead", branch: "feat/dead" });
+		const disk = { exists: false };
+		const { manager, refsReads } = createGatedManager(db, disk);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		const { warnings } = await withCapturedWarnings(async () => {
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+			expect(refsReads()).toBe(0);
+
+			disk.exists = true;
+			bus.emit(createdEvent);
+			await waitFor(() => Boolean(getWorkspace(db, "ws-dead")?.pullRequestId));
+		});
+
+		expect(refsReads()).toBeGreaterThan(0);
+		const ws = getWorkspace(db, "ws-dead");
+		expect(ws?.headSha).toBe("sha-dead");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 7001)?.id);
+		expect(
+			warnings.filter((w) => w.includes("Worktree reappeared")),
+		).toHaveLength(1);
+
+		manager.stop();
+	});
+
+	// Constructed WITHOUT worktreeExists: pins the `?? existsSync` production
+	// default against a real directory, which every other test stubs out.
+	test("default disk gate uses the real filesystem when nothing is injected", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		const dir = mkdtempSync(join(tmpdir(), "prm-default-gate-"));
+		seedWorkspace(db, {
+			id: "ws-real",
+			branch: "feat/real",
+			worktreePath: dir,
+		});
+		let refsReads = 0;
+		const manager = new PullRequestRuntimeManager({
+			db,
+			execGh: routeGh({
+				"feat/real": makePrNode({
+					number: 7002,
+					headRef: "feat/real",
+					headSha: "sha-real",
+				}),
+			}) as never,
+			git: (async () => {
+				throw new Error("git should not be used");
+			}) as never,
+			github: (async () => {
+				throw new Error("octokit should not be used");
+			}) as never,
+			gitWatcher: { onChanged: () => () => {} } as never,
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/real",
+					headSha: "sha-real",
+					upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/real" },
+				};
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+		const event: WorkspaceChangedEvent = {
+			workspaceId: "ws-real",
+			eventType: "created",
+			workspace: null,
+			occurredAt: 1,
+		};
+
+		try {
+			bus.emit(event);
+			await waitFor(() => refsReads > 0);
+			expect(refsReads).toBeGreaterThan(0);
+
+			const seen = refsReads;
+			rmSync(dir, { recursive: true, force: true });
+			const { warnings } = await withCapturedWarnings(async () => {
+				bus.emit(event);
+				await waitFor(() => refsReads > seen, 100);
+			});
+			expect(refsReads).toBe(seen);
+			expect(
+				warnings.filter((w) => w.includes("Worktree missing on disk")),
+			).toHaveLength(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+			manager.stop();
+		}
 	});
 });

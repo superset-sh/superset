@@ -34,4 +34,34 @@ describe("selectWorktreesToPlace", () => {
 
 		expect(result).toEqual([{ id: "wt-new", projectId: "p1" }]);
 	});
+
+	it("places session workspaces with no project (e.g. automation runs)", () => {
+		const result = selectWorktreesToPlace(
+			[{ id: "sess-1", projectId: null, type: "session" }],
+			new Set(),
+		);
+
+		expect(result).toEqual([{ id: "sess-1", projectId: null }]);
+	});
+
+	it("skips sessions that already have a row", () => {
+		const result = selectWorktreesToPlace(
+			[
+				{ id: "sess-seen", projectId: null, type: "session" },
+				{ id: "sess-new", projectId: null, type: "session" },
+			],
+			new Set(["sess-seen"]),
+		);
+
+		expect(result).toEqual([{ id: "sess-new", projectId: null }]);
+	});
+
+	it("never places a worktree missing its project", () => {
+		const result = selectWorktreesToPlace(
+			[{ id: "wt-broken", projectId: null, type: "worktree" }],
+			new Set(),
+		);
+
+		expect(result).toEqual([]);
+	});
 });

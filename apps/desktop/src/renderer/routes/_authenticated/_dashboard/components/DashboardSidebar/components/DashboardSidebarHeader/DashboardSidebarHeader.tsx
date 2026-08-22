@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -8,10 +9,18 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useRef } from "react";
 import { GoGitPullRequest } from "react-icons/go";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
-import { LuClock, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
+import {
+	LuClock,
+	LuGauge,
+	LuLayers,
+	LuPlus,
+	LuPuzzle,
+	LuSearch,
+} from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -22,12 +31,14 @@ import { useFrameStackStore } from "renderer/commandPalette";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { SidebarKbdHint } from "renderer/components/SidebarKbdHint";
 import { ZoomStable } from "renderer/components/ZoomStable";
+import { env } from "renderer/env.renderer";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
+import { TopBarPortsDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/TopBarPortsDropdown";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	pullRequestsSearchFromFilters,
@@ -37,6 +48,10 @@ import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
+import {
+	getUsageLastSection,
+	usageSectionPath,
+} from "renderer/routes/_authenticated/_dashboard/usage/utils/usageLastSection";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
@@ -120,6 +135,14 @@ export function DashboardSidebarHeader({
 		fuzzy: true,
 	});
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
+	const isUsageOpen = !!matchRoute({ to: "/usage", fuzzy: true });
+	const isPluginsOpen = !!matchRoute({ to: "/plugins", fuzzy: true });
+	// `?? false`: the hook returns undefined until PostHog flags resolve.
+	// Dev builds bypass the flag — the local dev account isn't in the
+	// @superset.sh release condition.
+	const isPluginsEnabled =
+		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
+		env.NODE_ENV === "development";
 	const { myFailedCount } = useFailedAutomations();
 
 	const {
@@ -137,6 +160,7 @@ export function DashboardSidebarHeader({
 		authorFilter: lastPullRequestsAuthorFilter,
 		reviewFilter: lastPullRequestsReviewFilter,
 		includeClosed: lastPullRequestsIncludeClosed,
+		mergedOnly: lastPullRequestsMergedOnly,
 	} = usePullRequestsFilterStore();
 
 	const handleWorkspacesClick = () => {
@@ -164,18 +188,27 @@ export function DashboardSidebarHeader({
 		});
 	};
 
+	const handleUsageClick = () => {
+		// Reopen whichever Usage section (token / machine resources) was
+		// visited last.
+		navigate({ to: usageSectionPath(getUsageLastSection()) });
+	};
+
+	const handlePluginsClick = () => {
+		navigate({ to: "/plugins" });
+	};
+
 	const handlePullRequestsClick = () => {
-		gateFeature(GATED_FEATURES.TASKS, () => {
-			navigate({
-				to: "/pull-requests",
-				search: pullRequestsSearchFromFilters({
-					search: lastPullRequestsSearch,
-					projectFilters: lastPullRequestsProjectFilters,
-					authorFilter: lastPullRequestsAuthorFilter,
-					reviewFilter: lastPullRequestsReviewFilter,
-					includeClosed: lastPullRequestsIncludeClosed,
-				}),
-			});
+		navigate({
+			to: "/pull-requests",
+			search: pullRequestsSearchFromFilters({
+				search: lastPullRequestsSearch,
+				projectFilters: lastPullRequestsProjectFilters,
+				authorFilter: lastPullRequestsAuthorFilter,
+				reviewFilter: lastPullRequestsReviewFilter,
+				includeClosed: lastPullRequestsIncludeClosed,
+				mergedOnly: lastPullRequestsMergedOnly,
+			}),
 		});
 	};
 
@@ -324,6 +357,48 @@ export function DashboardSidebarHeader({
 						<TooltipContent side="right">Pull requests</TooltipContent>
 					</Tooltip>
 
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleUsageClick}
+								aria-label="Usage"
+								aria-current={isUsageOpen ? "page" : undefined}
+								className={cn(
+									"flex size-7 items-center justify-center rounded-md transition-colors",
+									isUsageOpen
+										? "bg-fill-selected text-muted-foreground"
+										: "text-muted-foreground hover:bg-fill-hover",
+								)}
+							>
+								<LuGauge className="size-3.5" strokeWidth={1.5} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Usage</TooltipContent>
+					</Tooltip>
+
+					{isPluginsEnabled && (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handlePluginsClick}
+									aria-label="Plugins"
+									aria-current={isPluginsOpen ? "page" : undefined}
+									className={cn(
+										"flex size-7 items-center justify-center rounded-md transition-colors",
+										isPluginsOpen
+											? "bg-fill-selected text-muted-foreground"
+											: "text-muted-foreground hover:bg-fill-hover",
+									)}
+								>
+									<LuPuzzle className="size-3.5" strokeWidth={1.5} />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Plugins</TooltipContent>
+						</Tooltip>
+					)}
+
 					<DropdownMenu>
 						<Tooltip delayDuration={700}>
 							<TooltipTrigger asChild>
@@ -393,9 +468,12 @@ export function DashboardSidebarHeader({
 					className="drag h-full shrink-0"
 					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
 				/>
-				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
+				<ZoomStable enabled={isMac} className="flex items-center gap-1">
 					<SidebarToggle />
 					<NavigationControls />
+					{/* Lives here (persistent chrome) rather than the workspace tab
+					    bar, which remounts on every navigation. */}
+					<TopBarPortsDropdown align="start" />
 				</ZoomStable>
 				<div className="drag h-full min-w-0 flex-1" />
 			</div>
@@ -503,6 +581,46 @@ export function DashboardSidebarHeader({
 				<GoGitPullRequest className="size-3.5 shrink-0 text-muted-foreground" />
 				<span className="flex-1 text-left">Pull requests</span>
 			</button>
+
+			<button
+				type="button"
+				onClick={handleUsageClick}
+				aria-label="Usage"
+				aria-current={isUsageOpen ? "page" : undefined}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					isUsageOpen
+						? "bg-fill-selected text-foreground"
+						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+				)}
+			>
+				<LuGauge
+					className="size-3.5 shrink-0 text-muted-foreground"
+					strokeWidth={1.5}
+				/>
+				<span className="flex-1 text-left">Usage</span>
+			</button>
+
+			{isPluginsEnabled && (
+				<button
+					type="button"
+					onClick={handlePluginsClick}
+					aria-label="Plugins"
+					aria-current={isPluginsOpen ? "page" : undefined}
+					className={cn(
+						"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+						isPluginsOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<LuPuzzle
+						className="size-3.5 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">Plugins</span>
+				</button>
+			)}
 		</div>
 	);
 }

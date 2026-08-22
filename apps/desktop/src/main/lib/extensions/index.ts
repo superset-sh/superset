@@ -1,9 +1,9 @@
 import type { Dirent } from "node:fs";
 import { existsSync, readdirSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { app, session } from "electron";
 import { env } from "main/env.main";
+import { getChromiumUserDataDirs } from "../browser/chromium-profiles";
 
 const APP_PARTITION = "persist:superset";
 const REACT_DEVTOOLS_EXTENSION_ID = "fmkadmapgofadopljbjfkapdkoienihi";
@@ -36,46 +36,6 @@ function compareVersionLikeStrings(a: string, b: string): number {
 	}
 
 	return 0;
-}
-
-function getChromiumUserDataDirs(): string[] {
-	const homeDir = os.homedir();
-
-	if (process.platform === "darwin") {
-		return [
-			path.join(homeDir, "Library/Application Support/Google/Chrome"),
-			path.join(homeDir, "Library/Application Support/Google/Chrome Beta"),
-			path.join(homeDir, "Library/Application Support/Google/Chrome Canary"),
-			path.join(homeDir, "Library/Application Support/Chromium"),
-			path.join(
-				homeDir,
-				"Library/Application Support/BraveSoftware/Brave-Browser",
-			),
-			path.join(homeDir, "Library/Application Support/Arc/User Data"),
-		];
-	}
-
-	if (process.platform === "win32") {
-		const localAppData = process.env.LOCALAPPDATA;
-		if (!localAppData) return [];
-
-		return [
-			path.join(localAppData, "Google/Chrome/User Data"),
-			path.join(localAppData, "Google/Chrome Beta/User Data"),
-			path.join(localAppData, "Google/Chrome SxS/User Data"),
-			path.join(localAppData, "Chromium/User Data"),
-			path.join(localAppData, "BraveSoftware/Brave-Browser/User Data"),
-			path.join(localAppData, "Arc/User Data"),
-		];
-	}
-
-	return [
-		path.join(homeDir, ".config/google-chrome"),
-		path.join(homeDir, ".config/google-chrome-beta"),
-		path.join(homeDir, ".config/google-chrome-canary"),
-		path.join(homeDir, ".config/chromium"),
-		path.join(homeDir, ".config/BraveSoftware/Brave-Browser"),
-	];
 }
 
 function resolveExtensionVersionPath(basePath: string): string | null {

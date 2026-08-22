@@ -30,7 +30,6 @@ function createHarness(overrides: Partial<QuitCleanupDeps> = {}): Harness {
 		disposeTerminalHostClient,
 		shutdownPersistence: () => {},
 		disposeTray: () => {},
-		stopNetworkLogger: async () => {},
 		forceExit,
 		scheduleTimer: (callback, delayMs) => {
 			scheduled.push({ callback, delayMs });

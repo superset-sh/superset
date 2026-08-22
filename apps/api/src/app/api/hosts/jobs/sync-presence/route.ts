@@ -1,16 +1,11 @@
 import { db } from "@superset/db/client";
-import { Receiver } from "@upstash/qstash";
 import { Redis } from "@upstash/redis";
 import { sql } from "drizzle-orm";
 
 import { env } from "@/env";
+import { verifyQstashRequest } from "@/lib/verifyQstash";
 
 export const dynamic = "force-dynamic";
-
-const receiver = new Receiver({
-	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
-	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
-});
 
 const redis = new Redis({
 	url: env.KV_REST_API_URL,
@@ -22,27 +17,12 @@ const RELAY_TTL_KEY = "relay:tunnel-ttl";
 
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
-	const signature = request.headers.get("upstash-signature");
-	const isDev = env.NODE_ENV === "development";
-
-	if (!isDev) {
-		if (!signature) {
-			return Response.json({ error: "Missing signature" }, { status: 401 });
-		}
-		const valid = await receiver
-			.verify({
-				body,
-				signature,
-				url: `${env.NEXT_PUBLIC_API_URL}/api/hosts/jobs/sync-presence`,
-			})
-			.catch((error) => {
-				console.error("[sync-presence] signature verify failed:", error);
-				return false;
-			});
-		if (!valid) {
-			return Response.json({ error: "Invalid signature" }, { status: 401 });
-		}
-	}
+	const rejected = await verifyQstashRequest(
+		request,
+		body,
+		"/api/hosts/jobs/sync-presence",
+	);
+	if (rejected) return rejected;
 
 	let connected: string[];
 	try {
@@ -78,31 +58,24 @@ export async function POST(request: Request): Promise<Response> {
 	// `${uuid}:${32-char-hex}` so the unquoted `{a,b,c}` literal is safe.
 	const connectedArrayLiteral = `{${connected.join(",")}}`;
 
+	// Flip-on only. The directory covers just the v1 relay, so absence proves
+	// nothing: relay2 hosts are never in it, and reconciling them to offline
+	// mass-flips every live relay2 host. The offline direction is owned by the
+	// relays' own disconnect writes and the relay2 liveness sweep.
 	let rows: Array<{
 		organization_id: string;
 		machine_id: string;
-		is_online: boolean;
 	}>;
 	try {
 		const result = await db.execute<{
 			organization_id: string;
 			machine_id: string;
-			is_online: boolean;
 		}>(sql`
-			WITH desired AS (
-				SELECT
-					organization_id,
-					machine_id,
-					(organization_id::text || ':' || machine_id) = ANY(${connectedArrayLiteral}::text[]) AS expected
-				FROM v2_hosts
-			)
-			UPDATE v2_hosts h
-			SET is_online = d.expected
-			FROM desired d
-			WHERE h.organization_id = d.organization_id
-				AND h.machine_id = d.machine_id
-				AND h.is_online IS DISTINCT FROM d.expected
-			RETURNING h.organization_id, h.machine_id, h.is_online
+			UPDATE v2_hosts
+			SET is_online = true
+			WHERE (organization_id::text || ':' || machine_id) = ANY(${connectedArrayLiteral}::text[])
+				AND is_online = false
+			RETURNING organization_id, machine_id
 		`);
 		rows = result.rows;
 	} catch (error) {
@@ -110,12 +83,9 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ error: "Reconcile write failed" }, { status: 502 });
 	}
 
-	const flippedOn = rows.filter((r) => r.is_online === true).length;
-	const flippedOff = rows.filter((r) => r.is_online === false).length;
-
 	return Response.json({
 		connected: connected.length,
-		flippedOn,
-		flippedOff,
+		flippedOn: rows.length,
+		flippedOff: 0,
 	});
 }

@@ -15,7 +15,7 @@ keywords:
   - visual studio code git worktree
 ---
 
-If you run more than one AI coding agent on the same repository, the single most useful tool you can learn is the Git worktree. It is the clean, native way to give each agent its own isolated place to work, so parallel changes never collide. This guide explains what worktrees are, why they matter for agents, the exact workflow, and the tools that automate it.
+If you run more than one AI coding agent on the same repository, the single most useful tool you can learn is the Git worktree. It is the clean, native way to give each agent its own isolated place to work, so parallel changes never collide. This guide explains what worktrees are, why they matter for agents, the exact workflow, and the tools that automate it. For the workflow around worktrees, see the complete guide to [parallel coding agents](/parallel-coding-agents).
 
 ---
 
@@ -39,6 +39,8 @@ AI coding agents edit files and run commands autonomously. Run two agents in the
 - **Parallelism:** many agents run at once without collisions
 - **Reviewability:** each worktree produces its own diff you can review independently
 - **Safety:** a bad run is contained to one worktree, not your main checkout
+
+![One repository fanning out into a Git worktree per agent, each on its own branch, producing independent diffs that converge into review and merge](/images/guides/worktree-isolation.svg)
 
 This is why the strongest tools for running multiple agents, from [Conductor](/compare/superset-vs-conductor) to [Orca](/compare/superset-vs-orca) to [Superset](/compare/superset-vs-cursor), are built around a worktree per task. Even [Cursor 2.0](/compare/superset-vs-cursor) adopted local worktrees for its parallel agents.
 

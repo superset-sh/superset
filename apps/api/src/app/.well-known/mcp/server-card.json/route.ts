@@ -29,6 +29,8 @@ export async function GET(request: Request): Promise<Response> {
 
 	const card = {
 		name: "superset",
+		title: "Superset",
+		icon: "https://superset.sh/apple-touch-icon.png",
 		description:
 			"Superset MCP server: create Git-worktree workspaces, launch coding-agent sessions, schedule automations, open terminals, and manage tasks on behalf of a Superset user.",
 		version: "0.1.0",

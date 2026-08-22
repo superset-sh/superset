@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { type ActiveDemo, AppMockup } from "../AppMockup";
 import { SelectorPill } from "./components/SelectorPill";
@@ -55,16 +55,16 @@ export function ProductDemo() {
 			</div>
 
 			{/* Desktop: vertical radio column, opened by scroll */}
-			<motion.div
+			<m.div
 				className="hidden lg:flex flex-col justify-center shrink-0 overflow-hidden"
 				style={{ width: selectorWidth, opacity: selectorOpacity }}
 			>
 				<div className="w-60 pr-6 flex flex-col gap-1">{options}</div>
-			</motion.div>
+			</m.div>
 
 			{/* Mockup: oversized, lower hero state that docks as you scroll */}
 			<div className="relative flex-1 min-w-0">
-				<motion.div
+				<m.div
 					className="relative"
 					style={
 						isDesktop
@@ -85,10 +85,10 @@ export function ProductDemo() {
 								"radial-gradient(ellipse 42% 38% at 50% 22%, rgba(232,128,74,0.06), rgba(232,128,74,0.02) 55%, transparent 78%)",
 						}}
 					/>
-					<div className="relative overflow-x-auto scrollbar-hide">
+					<div className="relative overflow-x-auto scrollbar-hide max-md:[mask-image:linear-gradient(to_right,black_88%,transparent)]">
 						<AppMockup activeDemo={activeOption} />
 					</div>
-				</motion.div>
+				</m.div>
 			</div>
 		</div>
 	);

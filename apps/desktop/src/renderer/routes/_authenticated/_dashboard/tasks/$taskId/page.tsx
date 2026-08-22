@@ -1,20 +1,14 @@
-import type {
-	SelectTask,
-	SelectTaskStatus,
-	SelectUser,
-} from "@superset/db/schema";
+import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
-import { eq, or } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import type { TaskAssignee } from "../components/TasksView/hooks/useTasksData";
+import { TASK_LIST_REFETCH_INTERVAL } from "../components/TasksView/hooks/useTasksData";
 import { Route as TasksLayoutRoute } from "../layout";
 import { tasksSearchFromFilters } from "../stores/tasks-filter-state";
 import { ActivitySection } from "./components/ActivitySection";
@@ -31,8 +25,8 @@ export const Route = createFileRoute(
 
 type TaskDetailRecord = SelectTask & {
 	status: SelectTaskStatus;
-	assignee: SelectUser | null;
-	creator: SelectUser | null;
+	assignee: TaskAssignee | null;
+	creator: TaskAssignee | null;
 };
 
 function TaskDetailPage() {
@@ -48,12 +42,7 @@ function TaskDetailPage() {
 		state,
 	} = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
-	const isUuidTaskId =
-		/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-			taskId,
-		);
+	const { tasks: taskActions } = useOptimisticActions();
 
 	const backSearch = useMemo(() => {
 		return tasksSearchFromFilters({
@@ -78,55 +67,35 @@ function TaskDetailPage() {
 	useEscapeToNavigate("/tasks", { search: backSearch });
 
 	// Support both UUID and slug lookups
-	const { data: taskData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tasks: collections.tasks })
-				.innerJoin({ status: collections.taskStatuses }, ({ tasks, status }) =>
-					eq(tasks.statusId, status.id),
-				)
-				.leftJoin({ assignee: collections.users }, ({ tasks, assignee }) =>
-					eq(tasks.assigneeId, assignee.id),
-				)
-				.leftJoin({ creator: collections.users }, ({ tasks, creator }) =>
-					eq(tasks.creatorId, creator.id),
-				)
-				.select(({ tasks, status, assignee, creator }) => ({
-					...tasks,
-					status,
-					assignee: assignee ?? null,
-					creator: creator ?? null,
-				}))
-				.where(({ tasks }) => or(eq(tasks.id, taskId), eq(tasks.slug, taskId))),
-		[collections, taskId],
-	);
+	const { data: taskRecord, isPending: isTaskPending } =
+		cloudTrpc.task.byIdOrSlug.useQuery(taskId, {
+			refetchInterval: TASK_LIST_REFETCH_INTERVAL,
+			retry: false,
+		});
+	const { data: statuses, isPending: areStatusesPending } =
+		cloudTrpc.task.statuses.list.useQuery(undefined, {
+			refetchInterval: TASK_LIST_REFETCH_INTERVAL,
+		});
+	const { data: members } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
 
 	const task: TaskDetailRecord | null = useMemo(() => {
-		if (!taskData || taskData.length === 0) return null;
-		const task = taskData[0];
+		if (!taskRecord) return null;
+		const status = statuses?.find((entry) => entry.id === taskRecord.statusId);
+		if (!status) return null;
+		const findMember = (userId: string | null) =>
+			userId
+				? (members?.find((member) => member.user.id === userId)?.user ?? null)
+				: null;
 		return {
-			...task,
-			assignee:
-				typeof task.assignee?.id === "string"
-					? (task.assignee as SelectUser)
-					: null,
-			creator:
-				typeof task.creator?.id === "string"
-					? (task.creator as SelectUser)
-					: null,
+			...taskRecord,
+			status,
+			assignee: findMember(taskRecord.assigneeId),
+			creator: findMember(taskRecord.creatorId),
 		};
-	}, [taskData]);
-	const taskFallbackQuery = useQuery({
-		queryKey: ["task-detail-fallback", taskId, isUuidTaskId ? "id" : "slug"],
-		queryFn: () =>
-			isUuidTaskId
-				? apiTrpcClient.task.byId.query(taskId)
-				: apiTrpcClient.task.bySlug.query(taskId),
-		enabled: !task,
-		retry: false,
-	});
-	const isTaskSyncing = !task && !!taskFallbackQuery.data;
-	const isTaskLoading = !task && taskFallbackQuery.isPending;
+	}, [taskRecord, statuses, members]);
+
+	const isTaskLoading = !task && (isTaskPending || areStatusesPending);
 
 	const handleBack = () => {
 		navigate({ to: "/tasks", search: backSearch });
@@ -148,12 +117,10 @@ function TaskDetailPage() {
 	const creatorName = task?.creator?.name?.trim() ? task.creator.name : null;
 
 	if (!task) {
-		if (isTaskLoading || isTaskSyncing) {
+		if (isTaskLoading) {
 			return (
 				<div className="flex-1 flex items-center justify-center">
-					<span className="text-muted-foreground">
-						{isTaskSyncing ? "Syncing task..." : "Loading task..."}
-					</span>
+					<span className="text-muted-foreground">Loading task...</span>
 				</div>
 			);
 		}

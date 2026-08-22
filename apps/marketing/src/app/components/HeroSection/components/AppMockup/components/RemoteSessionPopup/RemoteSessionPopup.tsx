@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { ActiveDemo } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
 
@@ -12,7 +12,7 @@ export function RemoteSessionPopup({ activeDemo }: RemoteSessionPopupProps) {
 	const isRemote = activeDemo === "Remote Workspaces";
 
 	return (
-		<motion.div
+		<m.div
 			className="absolute bottom-20 right-6 w-[52%] overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			style={{
 				pointerEvents: isRemote ? "auto" : "none",
@@ -34,7 +34,7 @@ export function RemoteSessionPopup({ activeDemo }: RemoteSessionPopupProps) {
 					<div className="size-2 rounded-full bg-[#28c840]/85" />
 				</div>
 				<span className="pointer-events-none absolute inset-x-0 text-center font-mono text-[10px] tracking-tight text-muted-foreground/60">
-					gpu-box — ssh
+					gpu-box (ssh)
 				</span>
 			</div>
 
@@ -70,6 +70,6 @@ export function RemoteSessionPopup({ activeDemo }: RemoteSessionPopupProps) {
 					<span className="text-muted-foreground/55">PR opened</span>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

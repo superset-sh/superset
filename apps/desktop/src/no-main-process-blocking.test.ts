@@ -39,8 +39,6 @@ const RULES: Rule[] = [
 		name: "sync subprocess (execSync/spawnSync/execFileSync)",
 		pattern: /\b(execSync|spawnSync|execFileSync)\b/,
 		allowedCounts: {
-			// Dead code (no callers) — delete rather than call on main.
-			"main/lib/agent-setup/utils.ts": 3,
 			// Cold daemon-recovery path only (connect failure / respawn).
 			"main/lib/terminal-host/client.ts": 2,
 		},
@@ -67,7 +65,7 @@ const RULES: Rule[] = [
 			// to worker task types (changes/workers/git-task-types.ts).
 			"lib/trpc/routers/changes/git-operations.ts": 2,
 			"lib/trpc/routers/changes/security/git-commands.ts": 2,
-			"lib/trpc/routers/changes/staging.ts": 3,
+			"lib/trpc/routers/changes/staging.ts": 2,
 			"lib/trpc/routers/projects/projects.ts": 6,
 			"lib/trpc/routers/workspaces/utils/base-branch-config.ts": 4,
 			"lib/trpc/routers/workspaces/utils/git.ts": 21,

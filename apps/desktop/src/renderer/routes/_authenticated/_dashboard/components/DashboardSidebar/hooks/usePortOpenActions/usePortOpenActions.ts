@@ -3,7 +3,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import type { DashboardSidebarPort } from "../../components/DashboardSidebarPortsList/hooks/useDashboardSidebarPortsData";
+import type { DashboardSidebarPort } from "../useDashboardSidebarPortsData";
 
 interface UsePortOpenActionsResult {
 	canOpenInBrowser: boolean;

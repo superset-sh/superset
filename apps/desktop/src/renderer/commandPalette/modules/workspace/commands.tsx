@@ -4,10 +4,12 @@ import {
 	LinkIcon,
 	PlusIcon,
 	Trash2Icon,
+	ZapIcon,
 } from "lucide-react";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
+import { useQuickCreateWorkspaceIntent } from "renderer/stores/quick-create-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import type { Command, CommandProvider } from "../../core/types";
 import { LinkTaskFrame } from "../../ui/LinkTask/LinkTaskFrame";
@@ -15,11 +17,29 @@ import { LinkTaskFrame } from "../../ui/LinkTask/LinkTaskFrame";
 export const workspaceProvider: CommandProvider = {
 	id: "workspace",
 	provide: (context) => {
-		if (!context.workspace) return [];
+		// Not gated on context.workspace — quick-create should work from any
+		// v2 dashboard view (e.g. the workspaces list), not just an open one.
+		const commands: Command[] = [
+			{
+				id: "workspace.quickCreate",
+				title: "Quick create workspace",
+				section: "workspace",
+				icon: ZapIcon,
+				hotkeyId: "QUICK_CREATE_WORKSPACE",
+				keywords: ["new", "fast"],
+				when: (ctx) => ctx.isV2CloudEnabled,
+				run: (ctx) =>
+					useQuickCreateWorkspaceIntent
+						.getState()
+						.request(ctx.workspace?.projectId ?? null),
+			},
+		];
+
+		if (!context.workspace) return commands;
 		const workspace = context.workspace;
 		const isMain = workspace.workspaceType === "main";
 
-		const commands: Command[] = [
+		commands.push(
 			{
 				id: "workspace.new",
 				title: "New workspace",
@@ -49,7 +69,7 @@ export const workspaceProvider: CommandProvider = {
 				keywords: ["issue", "linear"],
 				renderFrame: () => <LinkTaskFrame workspaceId={workspace.id} />,
 			},
-		];
+		);
 
 		if (workspace.projectId) {
 			commands.push({

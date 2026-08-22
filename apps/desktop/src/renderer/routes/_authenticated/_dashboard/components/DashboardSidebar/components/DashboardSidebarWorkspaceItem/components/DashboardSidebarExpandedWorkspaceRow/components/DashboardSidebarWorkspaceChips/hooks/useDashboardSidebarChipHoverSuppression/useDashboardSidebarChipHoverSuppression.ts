@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useDashboardSidebarHover } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarHoverProvider";
+import { useDashboardSidebarHoverActions } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarHoverProvider";
 
 interface UseDashboardSidebarChipHoverSuppressionResult {
 	isOpen: boolean;
@@ -17,7 +17,7 @@ interface UseDashboardSidebarChipHoverSuppressionResult {
  */
 export function useDashboardSidebarChipHoverSuppression(): UseDashboardSidebarChipHoverSuppressionResult {
 	const { beginHoverCardSuppression, endHoverCardSuppression } =
-		useDashboardSidebarHover();
+		useDashboardSidebarHoverActions();
 	const holdsRef = useRef(0);
 	const isOpenRef = useRef(false);
 	const dismissedByClickRef = useRef(false);

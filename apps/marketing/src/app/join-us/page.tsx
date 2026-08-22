@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 export default function JoinUsPage() {
 	return (
 		<main className="relative min-h-screen bg-background">
-			<div className="max-w-7xl mx-auto px-6 pt-24 md:pt-32">
+			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">
 				<section className="grid gap-10 md:grid-cols-[2fr_3fr] md:gap-24 lg:gap-32">
 					<h1 className="text-4xl md:text-5xl font-normal leading-tight text-foreground m-0">
 						Building the last piece of software
@@ -56,7 +56,7 @@ export default function JoinUsPage() {
 						>
 							<p>
 								Today, tens of thousands of engineers run Superset as their
-								primary IDE, at companies like Vercel, Exa, and Ramp. Soon,
+								primary IDE, at companies like Wix, DoorDash, and Netflix. Soon,
 								teams will run 100s of agents in parallel - software factories
 								that autonomously manufacture and ship code. We're making
 								Superset the place where teams run and manage those factories,
@@ -81,14 +81,18 @@ export default function JoinUsPage() {
 						Open roles
 					</h2>
 
-					{/* Managed via YC Work at a Startup — layout/colors configured at bookface.ycombinator.com/workatastartup/job_board_settings */}
+					{/* Managed via YC Work at a Startup; layout/colors configured at bookface.ycombinator.com/workatastartup/job_board_settings */}
 					<style>{`
 						waas-job-board {
 							--waas-primary: var(--brand);
 							--waas-radius: 0px;
 							--waas-border: var(--color-border);
+							--waas-border-focus: var(--brand);
 							--waas-bg: #101012;
 							--waas-bg-subtle: rgba(255, 255, 255, 0.06);
+							--waas-font: var(--font-inter), ui-sans-serif, sans-serif;
+							--waas-text: var(--foreground);
+							--waas-text-secondary: var(--muted-foreground);
 							--waas-font-size-base: 15px;
 							--waas-font-size-md: 18px;
 							--waas-font-size-xl: 22px;
@@ -100,7 +104,23 @@ export default function JoinUsPage() {
 					/>
 					{/* show-filters="false" attribute is ignored (Lit boolean), so set the property; detail-view spacing has no CSS-var hooks, so patch its shadow root directly */}
 					<Script id="waas-board-config" strategy="afterInteractive">
-						{`customElements.whenDefined("waas-job-board").then(() => {
+						{`// the embed renders hCaptcha without a theme option, so force dark by patching render() as the hcaptcha script assigns its global
+						{
+							const darken = (h) => {
+								if (!h?.render || h.__supersetDark) return h;
+								const orig = h.render.bind(h);
+								h.render = (el, cfg) => orig(el, { theme: "dark", ...cfg });
+								h.__supersetDark = true;
+								return h;
+							};
+							let hc = darken(window.hcaptcha);
+							Object.defineProperty(window, "hcaptcha", {
+								configurable: true,
+								get: () => hc,
+								set: (v) => { hc = darken(v); },
+							});
+						}
+						customElements.whenDefined("waas-job-board").then(() => {
 							// !important: Lit's adoptedStyleSheets are ordered after tree styles, so plain rules lose
 							const inject = (root, css) => {
 								if (!root || root.getElementById("superset-overrides")) return;
@@ -109,14 +129,35 @@ export default function JoinUsPage() {
 								style.textContent = css;
 								root.append(style);
 							};
+							// site CTA recipe (see DownloadButton): mono uppercase, foreground/background flip, brand on hover
+							const mono = "font-family:var(--font-ibm-plex-mono),ui-monospace,monospace !important;text-transform:uppercase !important;letter-spacing:0.05em !important";
+							const detailCss = [
+								".two-col{gap:192px !important}",
+								".tabs{margin-bottom:48px !important;gap:40px !important}",
+								".main-content{max-width:760px !important}",
+								".tab{" + mono + ";font-size:13px !important}",
+								".back-link{" + mono + ";font-size:12px !important}",
+								".sidebar-label{" + mono + ";font-size:11px !important}",
+								".sidebar-item{border-bottom:1px solid var(--_border) !important}", // default rgba(0,0,0,.06) vanishes on dark bg
+							].join("");
+							const formCss = [
+								".primary-button{" + mono + ";font-size:13px !important;font-weight:400 !important;background:var(--foreground) !important;color:var(--background) !important;transition:background-color .15s ease,color .15s ease !important}",
+								".primary-button:hover:not(:disabled){background:var(--brand) !important;color:#fff !important;filter:none !important}",
+							].join("");
+							const cardCss = [
+								".job-card{border-bottom:none !important}",
+								".job-card:hover{background:rgba(255,255,255,0.04) !important}", // default rgba(0,0,0,.03) vanishes on dark bg
+								".job-salary{font-family:var(--font-ibm-plex-mono),ui-monospace,monospace !important;letter-spacing:0.02em !important}",
+							].join("");
 							for (const board of document.querySelectorAll("waas-job-board")) {
 								board.showFilters = false;
 								const patch = () => {
 									const detail = board.shadowRoot?.querySelector("waas-job-detail");
-									inject(detail?.shadowRoot, ".two-col{gap:192px !important}.tabs{margin-bottom:48px !important;gap:40px !important}.main-content{max-width:760px !important}");
+									inject(detail?.shadowRoot, detailCss);
+									inject(detail?.shadowRoot?.querySelector("waas-apply-form")?.shadowRoot, formCss);
 									const list = board.shadowRoot?.querySelector("waas-job-list");
 									for (const card of list?.shadowRoot?.querySelectorAll("waas-job-card") ?? []) {
-										inject(card.shadowRoot, ".job-card{border-bottom:none !important}");
+										inject(card.shadowRoot, cardCss);
 									}
 								};
 								patch();

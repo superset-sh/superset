@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
 	coercePullRequestState,
+	computeChecksStatus,
 	mapPullRequestState,
+	type PullRequestCheck,
 } from "./pull-request-mappers";
 
 describe("mapPullRequestState", () => {
@@ -32,5 +34,54 @@ describe("coercePullRequestState", () => {
 	test("falls back to open for unknown values", () => {
 		expect(coercePullRequestState("nonsense")).toBe("open");
 		expect(coercePullRequestState(null)).toBe("open");
+	});
+});
+
+function check(status: PullRequestCheck["status"]): PullRequestCheck {
+	return { name: status, status, url: null };
+}
+
+describe("computeChecksStatus", () => {
+	test("no checks is none", () => {
+		expect(computeChecksStatus([])).toBe("none");
+	});
+
+	test("a cancelled check is a failure, not a success", () => {
+		expect(computeChecksStatus([check("cancelled")])).toBe("failure");
+		expect(computeChecksStatus([check("success"), check("cancelled")])).toBe(
+			"failure",
+		);
+	});
+
+	test("failure beats pending and cancelled", () => {
+		expect(
+			computeChecksStatus([
+				check("pending"),
+				check("cancelled"),
+				check("failure"),
+			]),
+		).toBe("failure");
+	});
+
+	test("cancelled beats pending even with no explicit failure present", () => {
+		expect(computeChecksStatus([check("pending"), check("cancelled")])).toBe(
+			"failure",
+		);
+	});
+
+	test("pending beats success and skipped", () => {
+		expect(
+			computeChecksStatus([
+				check("success"),
+				check("skipped"),
+				check("pending"),
+			]),
+		).toBe("pending");
+	});
+
+	test("all success (or skipped) is success", () => {
+		expect(computeChecksStatus([check("success"), check("skipped")])).toBe(
+			"success",
+		);
 	});
 });

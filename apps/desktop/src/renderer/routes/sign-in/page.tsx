@@ -7,10 +7,11 @@ import {
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { track } from "renderer/lib/analytics";
@@ -25,8 +26,7 @@ export const Route = createFileRoute("/sign-in/")({
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
 
-// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
-const workspaceRedirect = <Navigate to="/workspace" replace />;
+const workspaceRedirect = <Redirect to="/workspace" replace />;
 
 const SESSION_PENDING_TIMEOUT_MS = 15_000;
 

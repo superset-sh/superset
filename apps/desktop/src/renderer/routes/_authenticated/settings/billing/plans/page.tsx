@@ -3,17 +3,17 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
-import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { env } from "renderer/env.renderer";
 import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PlanTier } from "../constants";
 
 export const Route = createFileRoute("/_authenticated/settings/billing/plans/")(
@@ -215,49 +215,37 @@ function PlansPage() {
 	const [isRestoring, setIsRestoring] = useState(false);
 	const { data: session } = authClient.useSession();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
 
-	const activeOrgId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrgId = useActiveOrganizationId();
 
-	const { data: subscriptionsData, isReady: subscriptionsReady } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
-	const subscriptionData = subscriptionsData?.find(
-		(s) => s.status === "active",
-	);
+	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 
-	// A cold collection must not read as "free": that renders a live Upgrade
+	// An unresolved query must not read as "free": that renders a live Upgrade
 	// action for an org that may already be paying. Session plan fills in
-	// until rows or readiness arrive.
+	// until it arrives.
+	const planResolved = activePlan !== undefined;
 	const currentPlan: PlanTier = resolveCurrentPlan({
-		subscriptionPlan: subscriptionData?.plan,
+		subscriptionPlan: activePlan?.plan,
 		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded:
-			subscriptionsReady || (subscriptionsData?.length ?? 0) > 0,
+		subscriptionsLoaded: planResolved,
 	});
-	const cancelAt = subscriptionData?.cancelAt;
+	const cancelAt = activePlan?.cancelAt;
 
 	const isCurrentlyYearly =
-		subscriptionData?.periodStart &&
-		subscriptionData?.periodEnd &&
+		activePlan?.periodStart &&
+		activePlan?.periodEnd &&
 		differenceInDays(
-			new Date(subscriptionData.periodEnd),
-			new Date(subscriptionData.periodStart),
+			new Date(activePlan.periodEnd),
+			new Date(activePlan.periodStart),
 		) > 60;
 
-	const { data: membersData, isReady: membersReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.select(({ members }) => ({ id: members.id })),
-		[collections],
-	);
-	// Seats are billed from this — never derive it from a cold collection.
+	const { data: membersData } = cloudTrpc.organization.listMembers.useQuery(undefined);
+	// Seats are billed from this — never derive it from an unresolved query.
 	const memberCount =
-		membersReady && membersData && membersData.length > 0
-			? membersData.length
-			: undefined;
+		membersData && membersData.length > 0 ? membersData.length : undefined;
 
 	const currentPlanLabelByTier: Record<PlanTier, string> = {
 		free: "Free",
@@ -304,6 +292,7 @@ function PlansPage() {
 				);
 			} finally {
 				setIsCanceling(false);
+				await utils.billing.activePlan.invalidate();
 			}
 			return;
 		}
@@ -317,6 +306,7 @@ function PlansPage() {
 				toast.success("Plan restored");
 			} finally {
 				setIsRestoring(false);
+				await utils.billing.activePlan.invalidate();
 			}
 			return;
 		}
@@ -346,6 +336,7 @@ function PlansPage() {
 			);
 		} finally {
 			setIsUpgrading(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -454,8 +445,11 @@ function PlansPage() {
 											},
 										];
 									} else if (isCurrent && plan.id === "pro") {
+										// Before the plan resolves the billing interval is unknown,
+										// so an interval-change action here would be a guess the
+										// user can act on. Hold at "Current plan" until it lands.
 										const intervalMatches = isYearly === !!isCurrentlyYearly;
-										if (intervalMatches) {
+										if (!planResolved || intervalMatches) {
 											planActions = [
 												{
 													label: "Current plan",

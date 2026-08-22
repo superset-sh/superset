@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { createDirectory, readFile, writeFile } from "./fs";
+import {
+	createDirectory,
+	createUniqueEntry,
+	movePath,
+	readFile,
+	removeEmptyDirectory,
+	removeFileIfUnchanged,
+	writeFile,
+} from "./fs";
 
 const tempRoots: string[] = [];
 
@@ -328,5 +336,326 @@ describe("createDirectory", () => {
 		}
 
 		expect(didThrow).toEqual(true);
+	});
+});
+
+describe("createUniqueEntry", () => {
+	it("uses the base name when nothing collides", async () => {
+		const rootPath = await createTempRoot();
+
+		const result = await createUniqueEntry({
+			rootPath,
+			parentAbsolutePath: rootPath,
+			baseName: "Untitled",
+			kind: "directory",
+		});
+
+		expect(result.ok).toEqual(true);
+		if (!result.ok) return;
+		expect(result.name).toEqual("Untitled");
+		expect(result.absolutePath).toEqual(path.join(rootPath, "Untitled"));
+		expect((await fs.stat(result.absolutePath)).isDirectory()).toEqual(true);
+	});
+
+	// The Files tab used to pick names from a client-side cache. A directory that
+	// exists on disk but is absent from that cache must still not be adopted —
+	// the caller deletes what it creates when the user cancels.
+	it("never adopts an existing directory", async () => {
+		const rootPath = await createTempRoot();
+		const existing = path.join(rootPath, "Untitled");
+		await fs.mkdir(existing);
+		await fs.writeFile(path.join(existing, "keep.txt"), "precious");
+
+		const result = await createUniqueEntry({
+			rootPath,
+			parentAbsolutePath: rootPath,
+			baseName: "Untitled",
+			kind: "directory",
+		});
+
+		expect(result.ok).toEqual(true);
+		if (!result.ok) return;
+		expect(result.name).toEqual("Untitled-2");
+		expect(
+			(await fs.readFile(path.join(existing, "keep.txt"))).toString(),
+		).toEqual("precious");
+	});
+
+	it("never adopts an existing file", async () => {
+		const rootPath = await createTempRoot();
+		await fs.writeFile(path.join(rootPath, "untitled"), "precious");
+
+		const result = await createUniqueEntry({
+			rootPath,
+			parentAbsolutePath: rootPath,
+			baseName: "untitled",
+			kind: "file",
+		});
+
+		expect(result.ok).toEqual(true);
+		if (!result.ok) return;
+		expect(result.name).toEqual("untitled-2");
+		expect(
+			(await fs.readFile(path.join(rootPath, "untitled"))).toString(),
+		).toEqual("precious");
+		expect(result.revision).toBeTruthy();
+	});
+
+	it("keeps counting past the first collision", async () => {
+		const rootPath = await createTempRoot();
+		await fs.mkdir(path.join(rootPath, "Untitled"));
+		await fs.mkdir(path.join(rootPath, "Untitled-2"));
+
+		const result = await createUniqueEntry({
+			rootPath,
+			parentAbsolutePath: rootPath,
+			baseName: "Untitled",
+			kind: "directory",
+		});
+
+		expect(result.ok).toEqual(true);
+		if (!result.ok) return;
+		expect(result.name).toEqual("Untitled-3");
+	});
+
+	it("rejects names that are not a single path leaf", async () => {
+		const rootPath = await createTempRoot();
+		const rejected = ["", "   ", ".", "..", "a/b", "a\\b", "a\0b"];
+
+		for (const baseName of rejected) {
+			const result = await createUniqueEntry({
+				rootPath,
+				parentAbsolutePath: rootPath,
+				baseName,
+				kind: "directory",
+			});
+			expect(result).toEqual({ ok: false, reason: "invalid-name" });
+		}
+
+		// Nothing was created for any of them.
+		expect(await fs.readdir(rootPath)).toEqual([]);
+	});
+
+	it("reports exhausted once every candidate is taken", async () => {
+		const rootPath = await createTempRoot();
+		await fs.mkdir(path.join(rootPath, "Untitled"));
+		for (let index = 2; index <= 100; index++) {
+			await fs.mkdir(path.join(rootPath, `Untitled-${index}`));
+		}
+
+		const result = await createUniqueEntry({
+			rootPath,
+			parentAbsolutePath: rootPath,
+			baseName: "Untitled",
+			kind: "directory",
+		});
+
+		expect(result).toEqual({ ok: false, reason: "exhausted" });
+	});
+
+	it("rejects a parent outside the workspace root", async () => {
+		const rootPath = await createTempRoot();
+		const outsideRoot = await createTempRoot();
+		let didThrow = false;
+
+		try {
+			await createUniqueEntry({
+				rootPath,
+				parentAbsolutePath: outsideRoot,
+				baseName: "Untitled",
+				kind: "directory",
+			});
+		} catch {
+			didThrow = true;
+		}
+
+		expect(didThrow).toEqual(true);
+	});
+});
+
+describe("removeEmptyDirectory", () => {
+	it("removes an empty directory", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "Untitled");
+		await fs.mkdir(absolutePath);
+
+		expect(await removeEmptyDirectory({ rootPath, absolutePath })).toEqual({
+			ok: true,
+		});
+		expect(await fs.readdir(rootPath)).toEqual([]);
+	});
+
+	// The cancel path must be incapable of destroying data.
+	it("keeps a populated directory and leaves its contents intact", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "Untitled");
+		await fs.mkdir(absolutePath);
+		await fs.writeFile(path.join(absolutePath, "keep.txt"), "precious");
+
+		expect(await removeEmptyDirectory({ rootPath, absolutePath })).toEqual({
+			ok: false,
+			reason: "not-empty",
+		});
+		expect(
+			(await fs.readFile(path.join(absolutePath, "keep.txt"))).toString(),
+		).toEqual("precious");
+	});
+
+	it("treats an already-missing directory as removed", async () => {
+		const rootPath = await createTempRoot();
+
+		expect(
+			await removeEmptyDirectory({
+				rootPath,
+				absolutePath: path.join(rootPath, "gone"),
+			}),
+		).toEqual({ ok: true });
+	});
+
+	it("reports wrong-type for a file", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "notes.txt");
+		await fs.writeFile(absolutePath, "hello");
+
+		expect(await removeEmptyDirectory({ rootPath, absolutePath })).toEqual({
+			ok: false,
+			reason: "wrong-type",
+		});
+		expect((await fs.readFile(absolutePath)).toString()).toEqual("hello");
+	});
+
+	it("refuses the workspace root", async () => {
+		const rootPath = await createTempRoot();
+		let didThrow = false;
+
+		try {
+			await removeEmptyDirectory({ rootPath, absolutePath: rootPath });
+		} catch {
+			didThrow = true;
+		}
+
+		expect(didThrow).toEqual(true);
+		expect((await fs.stat(rootPath)).isDirectory()).toEqual(true);
+	});
+});
+
+describe("removeFileIfUnchanged", () => {
+	it("removes a file whose revision still matches", async () => {
+		const rootPath = await createTempRoot();
+		const created = await createUniqueEntry({
+			rootPath,
+			parentAbsolutePath: rootPath,
+			baseName: "untitled",
+			kind: "file",
+		});
+		expect(created.ok).toEqual(true);
+		expect(created.ok && created.revision).toBeTruthy();
+		if (!created.ok || created.revision === undefined) return;
+
+		expect(
+			await removeFileIfUnchanged({
+				rootPath,
+				absolutePath: created.absolutePath,
+				revision: created.revision,
+			}),
+		).toEqual({ ok: true });
+		expect(await fs.readdir(rootPath)).toEqual([]);
+	});
+
+	it("keeps a file that changed after creation", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "untitled");
+		await fs.writeFile(absolutePath, "written by someone else");
+
+		expect(
+			await removeFileIfUnchanged({
+				rootPath,
+				absolutePath,
+				revision: "0:0",
+			}),
+		).toEqual({ ok: false, reason: "modified" });
+		expect((await fs.readFile(absolutePath)).toString()).toEqual(
+			"written by someone else",
+		);
+	});
+
+	it("treats an already-missing file as removed", async () => {
+		const rootPath = await createTempRoot();
+
+		expect(
+			await removeFileIfUnchanged({
+				rootPath,
+				absolutePath: path.join(rootPath, "gone"),
+				revision: "0:0",
+			}),
+		).toEqual({ ok: true });
+	});
+
+	it("reports wrong-type for a directory", async () => {
+		const rootPath = await createTempRoot();
+		const absolutePath = path.join(rootPath, "folder");
+		await fs.mkdir(absolutePath);
+
+		expect(
+			await removeFileIfUnchanged({
+				rootPath,
+				absolutePath,
+				revision: "0:0",
+			}),
+		).toEqual({ ok: false, reason: "wrong-type" });
+		expect((await fs.stat(absolutePath)).isDirectory()).toEqual(true);
+	});
+});
+
+describe("movePath", () => {
+	it("renames a directory onto a free name", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "Untitled");
+		const destinationAbsolutePath = path.join(rootPath, ".claude");
+		await fs.mkdir(sourceAbsolutePath);
+
+		await movePath({ rootPath, sourceAbsolutePath, destinationAbsolutePath });
+
+		expect((await fs.stat(destinationAbsolutePath)).isDirectory()).toEqual(
+			true,
+		);
+		expect(await fs.readdir(rootPath)).toEqual([".claude"]);
+	});
+
+	// The exact backend behaviour behind the reported bug: the Files tab asked to
+	// rename a placeholder directory that had never been created.
+	it("throws ENOENT when the source does not exist", async () => {
+		const rootPath = await createTempRoot();
+		let code: string | undefined;
+
+		try {
+			await movePath({
+				rootPath,
+				sourceAbsolutePath: path.join(rootPath, "Untitled"),
+				destinationAbsolutePath: path.join(rootPath, ".claude"),
+			});
+		} catch (error) {
+			code = (error as NodeJS.ErrnoException).code;
+		}
+
+		expect(code).toEqual("ENOENT");
+	});
+
+	it("rejects a destination that already exists", async () => {
+		const rootPath = await createTempRoot();
+		const sourceAbsolutePath = path.join(rootPath, "Untitled");
+		const destinationAbsolutePath = path.join(rootPath, ".claude");
+		await fs.mkdir(sourceAbsolutePath);
+		await fs.mkdir(destinationAbsolutePath);
+		let didThrow = false;
+
+		try {
+			await movePath({ rootPath, sourceAbsolutePath, destinationAbsolutePath });
+		} catch {
+			didThrow = true;
+		}
+
+		expect(didThrow).toEqual(true);
+		expect((await fs.stat(sourceAbsolutePath)).isDirectory()).toEqual(true);
 	});
 });

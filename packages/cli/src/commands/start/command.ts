@@ -15,7 +15,10 @@ export default command({
 	},
 	run: async ({ ctx, options, signal }) => {
 		const orgs = await ctx.api.user.myOrganizations.query();
-		const organization = await resolveOrganization(orgs, options.org);
+		const organization = await resolveOrganization(
+			orgs,
+			options.org ?? process.env.SUPERSET_ORGANIZATION_ID,
+		);
 
 		const existing = readManifest(organization.id);
 		if (existing && isProcessAlive(existing.pid)) {

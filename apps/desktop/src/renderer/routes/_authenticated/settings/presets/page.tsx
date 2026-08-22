@@ -1,29 +1,22 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 type LegacyPresetsSearch = {
 	editPresetId?: string;
 	presetId?: string;
 };
 
+// Presets have been merged into Terminal settings
 export const Route = createFileRoute("/_authenticated/settings/presets/")({
-	component: PresetsRedirect,
 	validateSearch: (search: Record<string, unknown>): LegacyPresetsSearch => ({
 		editPresetId:
 			typeof search.editPresetId === "string" ? search.editPresetId : undefined,
 		presetId: typeof search.presetId === "string" ? search.presetId : undefined,
 	}),
+	beforeLoad: ({ search }) => {
+		throw redirect({
+			to: "/settings/terminal",
+			search: { editPresetId: search.editPresetId ?? search.presetId },
+			replace: true,
+		});
+	},
 });
-
-// Presets have been merged into Terminal settings
-function PresetsRedirect() {
-	const { editPresetId, presetId } = Route.useSearch();
-	return (
-		<Navigate
-			to="/settings/terminal"
-			search={{
-				editPresetId: editPresetId ?? presetId,
-			}}
-			replace
-		/>
-	);
-}

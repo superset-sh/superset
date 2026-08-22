@@ -46,7 +46,6 @@ export function ImportWorkspacesPage({
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			return client.project.list.query();
 		},
-		retry: false,
 	});
 
 	// Host-local list (host.db is the authority post-local-first; the old
@@ -57,7 +56,6 @@ export function ImportWorkspacesPage({
 			const client = getHostServiceClientByUrl(activeHostUrl);
 			return client.workspace.list.query();
 		},
-		retry: false,
 	});
 
 	const v2ProjectIdByV1Id = useMemo(() => {
@@ -98,7 +96,6 @@ export function ImportWorkspacesPage({
 					});
 				return result.worktrees;
 			},
-			retry: false,
 		})),
 	});
 

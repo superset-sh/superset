@@ -230,14 +230,64 @@ describe("HeadlessEmulator", () => {
 			expect(snapshot.rehydrateSequences).toContain("?2004h"); // bracketed paste
 		});
 
-		test("should not generate rehydrate sequences for default modes", async () => {
+		test("should assert default modes in both directions", async () => {
 			// Don't change any modes - use defaults
 			await emulator.writeSync("Some text\r\n");
 
 			const snapshot = emulator.getSnapshot();
 
-			// Should have empty or minimal rehydrate sequences
-			expect(snapshot.rehydrateSequences).toBe("");
+			// The rehydrate preamble is an authoritative resync: an attaching
+			// xterm may have stale modes armed (missed disarm bytes across a
+			// sleep gap), so defaults are asserted too, not just diffs.
+			expect(snapshot.rehydrateSequences).toContain(DISABLE_APP_CURSOR);
+			expect(snapshot.rehydrateSequences).toContain(`${CSI}?1003l`); // mouse off
+			expect(snapshot.rehydrateSequences).toContain(DISABLE_MOUSE_SGR);
+			expect(snapshot.rehydrateSequences).toContain(`${CSI}?1004l`); // focus off
+			expect(snapshot.rehydrateSequences).toContain(DISABLE_BRACKETED_PASTE);
+			expect(snapshot.rehydrateSequences).toContain(SHOW_CURSOR);
+		});
+
+		test("should set the active mouse level after every inactive level's reset", async () => {
+			// Mouse tracking levels are one mutually exclusive group in xterm:
+			// any level's reset clears the whole protocol, so a reset emitted
+			// after the active level's set would disarm it again.
+			await emulator.writeSync(`${CSI}?1002h`); // button-event tracking (drag)
+
+			const snapshot = emulator.getSnapshot();
+
+			const setIndex = snapshot.rehydrateSequences.indexOf("?1002h");
+			expect(setIndex).toBeGreaterThan(-1);
+			for (const reset of ["?9l", "?1000l", "?1001l", "?1003l"]) {
+				const resetIndex = snapshot.rehydrateSequences.indexOf(reset);
+				expect(resetIndex).toBeGreaterThan(-1);
+				expect(resetIndex).toBeLessThan(setIndex);
+			}
+			expect(snapshot.rehydrateSequences).not.toContain("?1002l");
+		});
+
+		test("should disarm a diverged target whose modes the source never had", async () => {
+			// Simulates the post-sleep corruption: the renderer xterm (target)
+			// still has TUI input modes armed while the session (source) sits at
+			// a plain shell prompt. Applying the rehydrate preamble must disarm.
+			const target = new HeadlessEmulator({ cols: 80, rows: 24 });
+			try {
+				await target.writeSync(ENABLE_MOUSE_NORMAL);
+				await target.writeSync(ENABLE_MOUSE_SGR);
+				await target.writeSync(ENABLE_APP_CURSOR);
+				await target.writeSync(ENABLE_FOCUS_REPORTING);
+
+				await emulator.writeSync("plain shell prompt $ ");
+				const snapshot = emulator.getSnapshot();
+				await target.writeSync(snapshot.rehydrateSequences);
+
+				const modes = target.getModes();
+				expect(modes.mouseTrackingNormal).toBe(false);
+				expect(modes.mouseSgr).toBe(false);
+				expect(modes.applicationCursorKeys).toBe(false);
+				expect(modes.focusReporting).toBe(false);
+			} finally {
+				target.dispose();
+			}
 		});
 	});
 });
@@ -572,7 +622,11 @@ describe("Prompt marker foreground reclaim (#4949 / #5508)", () => {
 		// terminal — the renderer writes snapshotAnsi last, so a leak there
 		// re-arms the modes on warm reattach (#5508).
 		const snapshot = emulator.getSnapshot();
-		expect(snapshot.rehydrateSequences).not.toContain("1002");
+		// The preamble is an authoritative resync, so every inactive level is
+		// present as a reset — what must not appear is any arm.
+		expect(snapshot.rehydrateSequences).not.toContain("?1002h");
+		expect(snapshot.rehydrateSequences).not.toContain("?1003h");
+		expect(snapshot.rehydrateSequences).not.toContain("?1004h");
 		expect(snapshot.snapshotAnsi).not.toContain("?1002h");
 		expect(snapshot.snapshotAnsi).not.toContain("?1003h");
 		expect(snapshot.snapshotAnsi).not.toContain("?1004h");
@@ -851,7 +905,12 @@ describe("Mouse protocol exclusivity", () => {
 		const modes = emulator.getModes();
 		expect(modes.mouseTrackingButtonEvent).toBe(false);
 		expect(modes.mouseTrackingNormal).toBe(false);
-		expect(emulator.getSnapshot().rehydrateSequences).toBe("");
+		// No level rehydrates armed; the preamble carries only their resets.
+		const rehydrate = emulator.getSnapshot().rehydrateSequences;
+		for (const level of [9, 1000, 1001, 1002, 1003]) {
+			expect(rehydrate).toContain(`${CSI}?${level}l`);
+			expect(rehydrate).not.toContain(`${CSI}?${level}h`);
+		}
 	});
 
 	test("a downgraded protocol rehydrates at the downgraded level", async () => {

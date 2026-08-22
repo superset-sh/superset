@@ -1,7 +1,9 @@
 import { COMPANY } from "@superset/shared/constants";
 import { FAQ_ITEMS } from "@/app/components/FAQSection/constants";
 import {
+	buildCompanyFactsSection,
 	buildDeveloperResourcesSection,
+	buildFrontmatter,
 	buildWhenToUseSection,
 	MARKDOWN_HEADERS,
 	PRODUCT_SUMMARY,
@@ -11,10 +13,25 @@ export async function GET() {
 	const baseUrl = COMPANY.MARKETING_URL;
 	const docsUrl = COMPANY.DOCS_URL;
 
+	const guideLines = [
+		"## Guides",
+		"",
+		`- [Parallel Coding Agents: The Complete Guide](${baseUrl}/parallel-coding-agents)`,
+		`- [AI Agent Orchestration for Software Development](${baseUrl}/agent-orchestration)`,
+		"",
+	];
+
 	const lines: string[] = [
-		`# ${COMPANY.NAME} — Run 100+ parallel coding agents on your machine`,
+		...buildFrontmatter({
+			title: `${COMPANY.NAME}: Run 100+ parallel coding agents on your machine`,
+			description: PRODUCT_SUMMARY,
+			canonical: `${baseUrl}/`,
+		}),
+		`# ${COMPANY.NAME}: Run 100+ parallel coding agents on your machine`,
 		"",
 		PRODUCT_SUMMARY,
+		"",
+		...buildCompanyFactsSection(),
 		"",
 		"## Features",
 		"",
@@ -34,6 +51,7 @@ export async function GET() {
 		`- [Blog](${baseUrl}/blog)`,
 		`- [Changelog](${baseUrl}/changelog)`,
 		"",
+		...guideLines,
 		...buildWhenToUseSection(),
 		"",
 		...buildDeveloperResourcesSection(),

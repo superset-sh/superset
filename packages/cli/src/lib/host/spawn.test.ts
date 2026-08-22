@@ -1,4 +1,7 @@
 import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
+// Snapshot the real module BEFORE mock.module: bun module mocks are process-wide,
+// so a partial replacement breaks other test files that import e.g. execFileSync.
+import * as realChildProcess from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -38,6 +41,7 @@ const spawnMock = mock(
 );
 
 mock.module("node:child_process", () => ({
+	...realChildProcess,
 	spawn: spawnMock,
 }));
 
@@ -75,6 +79,42 @@ afterAll(() => {
 });
 
 describe("spawnHostService", () => {
+	test("reports missing superset-host with an override hint", async () => {
+		process.env.SUPERSET_HOST_BIN = join(tempHome, "missing-host");
+		try {
+			await expect(
+				spawnHostService({
+					organizationId: "00000000-0000-0000-0000-000000000001",
+					sessionToken: "session-token",
+					api: createApi(),
+					port: 54879,
+					daemon: true,
+				}),
+			).rejects.toThrow(/superset-host binary not found .* SUPERSET_HOST_BIN/);
+		} finally {
+			process.env.SUPERSET_HOST_BIN = hostBin;
+		}
+	});
+
+	test("explains desktop-bundled CLI cannot run the host service", async () => {
+		process.env.SUPERSET_HOST_BIN = join(tempHome, "missing-host");
+		process.env.SUPERSET_CLI_CHANNEL = "desktop-bundled";
+		try {
+			await expect(
+				spawnHostService({
+					organizationId: "00000000-0000-0000-0000-000000000001",
+					sessionToken: "session-token",
+					api: createApi(),
+					port: 54879,
+					daemon: true,
+				}),
+			).rejects.toThrow(/bundled with the Superset desktop app/);
+		} finally {
+			process.env.SUPERSET_HOST_BIN = hostBin;
+			delete process.env.SUPERSET_CLI_CHANNEL;
+		}
+	});
+
 	test("passes SUPERSET_AUTH_CONFIG_PATH when provided", async () => {
 		globalThis.fetch = mock(
 			async () => new Response("ok", { status: 200 }),

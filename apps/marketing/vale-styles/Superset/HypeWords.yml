@@ -1,0 +1,11 @@
+extends: existence
+message: "'%s' is enterprise-speak the canon warns against; state the concrete capability instead."
+link: https://github.com/superset-sh/superset/blob/main/apps/marketing/docs/copywriting-references.md
+level: error
+ignorecase: true
+tokens:
+  - 'empower(?:s|ed|ing)?'
+  - 'unlock(?:s|ed|ing)?'
+  - 'supercharge(?:s|d|ing)?'
+  - 'revolutioniz\w+'
+  - 'game[- ]chang\w+'

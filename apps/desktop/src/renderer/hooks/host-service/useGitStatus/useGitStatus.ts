@@ -76,6 +76,11 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 				// picks up the new branch's base.
 				void utils.git.getBaseBranch.invalidate({ workspaceId });
 			}
+			// getDiffBulk queries are keyed by the whole file-path list, not one
+			// path, so they can't be targeted per-path like getDiff above —
+			// invalidate the (small, bounded) set of bulk queries for this
+			// workspace instead.
+			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		[refreshScheduler, utils, workspaceId],
 	);

@@ -1,14 +1,12 @@
-import {
-	getEventBus,
-	type WorkspaceCreateSettledPayload,
-} from "@superset/workspace-client";
+import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import {
 	getHostServiceClientByUrl,
 	type HostServiceClient,
@@ -23,6 +21,7 @@ import type {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useStarNagStore } from "renderer/stores/star-nag";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
 
@@ -61,9 +60,17 @@ interface CreateOutcome {
 	workspace: { id: string; projectId: string | null };
 	terminals: Array<{ terminalId: string; label?: string }>;
 	agents: Array<
-		| { ok: true; kind: "terminal" | "chat"; sessionId: string; label: string }
+		| { ok: true; kind: "terminal"; sessionId: string; label: string }
 		| { ok: false; error: string }
 	>;
+	/**
+	 * Whether this create resolved to a pre-existing row rather than a new
+	 * one. `undefined` means unknown (e.g. the settled event was lost and we
+	 * recovered via a row probe) — callers that only care about genuinely
+	 * new workspaces (e.g. the star-nag usage counter) must treat `undefined`
+	 * the same as `true` (don't count it), never as `false`.
+	 */
+	alreadyExists?: boolean;
 }
 
 /** Older hosts don't have `workspaces.createEnqueued` yet. */
@@ -140,7 +147,7 @@ async function createViaEnqueue(
 	workspaceId: string,
 	payload: WorkspacesCreateInput,
 ): Promise<CreateOutcome> {
-	const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+	const bus = getHostEventBus(hostUrl);
 	const releaseBus = bus.retain();
 	let unsubscribe: () => void = () => {};
 	try {
@@ -213,6 +220,7 @@ async function createViaEnqueue(
 			},
 			terminals: outcome.terminals,
 			agents: outcome.agents,
+			alreadyExists: outcome.alreadyExists,
 		};
 	} finally {
 		unsubscribe();
@@ -224,7 +232,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
 	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId;
+	const organizationId = useActiveOrganizationId();
 	const userId = session?.user?.id ?? null;
 	const collections = useCollections();
 	const { cache: hostWorkspacesCache } = useHostWorkspaces();
@@ -387,6 +395,15 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					if (result.workspace.id !== workspaceId) {
 						deleteWorkspaceLocalState(workspaceId);
 						hostWorkspacesCache.removeWorkspace(args.hostId, workspaceId);
+					}
+					// Only count genuinely new worktrees, never reopened ones or
+					// project-less sessions (createSession has no alreadyExists signal,
+					// so an undefined value here is treated as "don't count").
+					if (
+						result.workspace.projectId !== null &&
+						result.alreadyExists === false
+					) {
+						useStarNagStore.getState().recordWorkspaceCreated();
 					}
 					return {
 						ok: true,

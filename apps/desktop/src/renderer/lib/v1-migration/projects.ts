@@ -124,6 +124,13 @@ export async function importV1Project({
 		try {
 			const result = await hostClient.project.setup.mutate({
 				projectId: targetCandidate.id,
+				// Coordinates from the candidate the host just handed us: a
+				// `remote` candidate has no local row on this host, so setup
+				// has no other way to learn the repo.
+				origin: {
+					repoCloneUrl: targetCandidate.repoCloneUrl,
+					name: targetCandidate.name,
+				},
 				mode: {
 					kind: "import",
 					repoPath: project.mainRepoPath,

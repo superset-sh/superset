@@ -1,5 +1,23 @@
 import { COMPANY } from "@superset/shared/constants";
 
+const WELCOME_AI_AGENTS = [
+	"GPTBot",
+	"ChatGPT-User",
+	"OAI-SearchBot",
+	"ClaudeBot",
+	"Claude-User",
+	"Claude-SearchBot",
+	"anthropic-ai",
+	"PerplexityBot",
+	"Perplexity-User",
+	"Google-Extended",
+	"GoogleOther",
+	"Applebot-Extended",
+	"DuckAssistBot",
+	"Meta-ExternalAgent",
+	"ora-agent",
+];
+
 export function GET() {
 	const baseUrl = COMPANY.MARKETING_URL;
 
@@ -10,26 +28,10 @@ Allow: /api/llms.txt
 Disallow: /api/
 Disallow: /_next/
 
-# AI assistants and AI search crawlers — explicitly welcome
-User-Agent: ChatGPT-User
-Allow: /
+# AI assistants and AI search crawlers: explicitly welcome
+${WELCOME_AI_AGENTS.map((agent) => `User-Agent: ${agent}\nAllow: /`).join("\n\n")}
 
-User-Agent: OAI-SearchBot
-Allow: /
-
-User-Agent: Claude-User
-Allow: /
-
-User-Agent: Claude-SearchBot
-Allow: /
-
-User-Agent: PerplexityBot
-Allow: /
-
-User-Agent: GoogleOther
-Allow: /
-
-# Bulk-scraping crawlers — not welcome
+# Bulk-scraping crawlers: not welcome
 User-Agent: CCBot
 Disallow: /
 
@@ -40,6 +42,10 @@ Disallow: /
 Content-Signal: search=yes, ai-input=yes, ai-train=yes
 
 Sitemap: ${baseUrl}/sitemap.xml
+
+# Agent discovery
+Agentmap: ${baseUrl}/.well-known/ai-catalog.json
+schemamap: ${baseUrl}/schemamap.xml
 `;
 
 	return new Response(content, {

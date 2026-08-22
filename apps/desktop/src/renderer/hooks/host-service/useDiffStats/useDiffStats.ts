@@ -9,6 +9,13 @@ export interface DiffStats {
 	deletions: number;
 }
 
+export function getDiffStatsQueryKey(
+	hostUrl: string | null,
+	workspaceId: string,
+) {
+	return ["diff-stats", hostUrl, workspaceId] as const;
+}
+
 export function useDiffStats(
 	workspaceId: string,
 	options?: { enabled?: boolean },
@@ -17,7 +24,7 @@ export function useDiffStats(
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
-		() => ["diff-stats", hostUrl, workspaceId] as const,
+		() => getDiffStatsQueryKey(hostUrl, workspaceId),
 		[hostUrl, workspaceId],
 	);
 

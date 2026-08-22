@@ -13,7 +13,7 @@ Suggested frontmatter:
 
 ## 1. You became the orchestrator. That's the new bottleneck.
 
-- Callback to the February post ("You Don't Need Another AI Coding Agent — You
+- Callback to the February post ("You Don't Need Another AI Coding Agent: You
   Need an Orchestrator"): agents got good, the workflow around them didn't.
 - Superset solved the running-in-parallel half. The remaining half: a human
   still assigns tasks, checks panes, relays context between agents.

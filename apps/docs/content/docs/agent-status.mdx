@@ -20,6 +20,8 @@ If a workspace shows as running after you've stopped its agent (for example afte
 
 Superset installs lifecycle hooks and command wrappers into each agent's config (the entries in `~/.superset/bin` and files like `superset-hooks`). Those hooks report when an agent starts, finishes, or is waiting for input. That's why status only works for agents launched through Superset, and why removing the hooks disables status and notifications.
 
+The hooks no-op outside Superset terminals (they check for a Superset-supplied env var). To remove them from an agent's config entirely, turn off the agent's **Superset hooks** toggle in **Settings → Agents**.
+
 ## Notifications
 
 - **Finished / waiting for input**: get notified when an agent finishes or pauses for your input. Configure sounds in Settings.

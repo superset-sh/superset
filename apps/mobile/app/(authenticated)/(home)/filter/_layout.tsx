@@ -9,8 +9,7 @@ export default function FilterLayout() {
 			}}
 		>
 			<Stack.Screen name="index" options={{ title: "Filter" }} />
-			<Stack.Screen name="project" options={{ title: "Project" }} />
-			<Stack.Screen name="host" options={{ title: "Host" }} />
+			<Stack.Screen name="scope" options={{ title: "Scope" }} />
 			<Stack.Screen name="sort" options={{ title: "Sort" }} />
 		</Stack>
 	);

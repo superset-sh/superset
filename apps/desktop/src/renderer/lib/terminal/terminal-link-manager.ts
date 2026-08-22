@@ -19,7 +19,7 @@ import {
 } from "./links";
 
 export type LinkHoverInfo =
-	| { kind: "file"; isDirectory: boolean }
+	| { kind: "file"; isDirectory: boolean; resolvedPath?: string }
 	| { kind: "url" };
 
 /**
@@ -125,6 +125,7 @@ export class TerminalLinkManager {
 						onLinkHover(event, {
 							kind: "file",
 							isDirectory: link.isDirectory,
+							resolvedPath: link.resolvedPath,
 						})
 				: undefined,
 			onLinkLeave,

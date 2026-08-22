@@ -441,17 +441,10 @@ describe("resolveGithubRepo trusts the live local remote, never the cloud", () =
 	};
 
 	beforeEach(async () => {
-		// Cloud says `somewhere/else`; local remote is `cli/cli`. The
-		// resolver MUST follow the local remote.
+		// The resolver MUST follow the local remote (`cli/cli`). Any cloud
+		// call at all fails the test — the fake throws on unmocked procedures.
 		host = await createTestHost({
 			githubFactory: async () => fakeOctokit,
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: projectId,
-					githubRepository: null,
-					repoCloneUrl: "https://github.com/somewhere/else.git",
-				}),
-			},
 		});
 		repoDir = await seedRepoFixture(
 			host,
@@ -607,15 +600,7 @@ describe("resolveGithubRepo throws PROJECT_NOT_SETUP when no local clone", () =>
 	const projectId = randomUUID();
 
 	beforeEach(async () => {
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Project.get.query": () => ({
-					id: projectId,
-					githubRepository: { owner: "octocat", name: "hello" },
-					repoCloneUrl: "https://github.com/octocat/hello.git",
-				}),
-			},
-		});
+		host = await createTestHost();
 	});
 
 	afterEach(async () => {

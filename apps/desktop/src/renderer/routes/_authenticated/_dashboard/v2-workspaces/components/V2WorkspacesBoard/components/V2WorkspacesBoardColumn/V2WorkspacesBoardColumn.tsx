@@ -1,19 +1,10 @@
-import { cn } from "@superset/ui/utils";
+import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
 	BOARD_COLUMN_LABELS,
 	type BoardColumnKey,
-} from "../../utils/deriveBoardColumn";
+} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 import { V2WorkspacesBoardCard } from "../V2WorkspacesBoardCard";
-
-const COLUMN_DOT_STYLES: Record<BoardColumnKey, string> = {
-	idle: "bg-muted-foreground/40",
-	working: "bg-amber-500",
-	attention: "bg-red-500",
-	review: "bg-emerald-500",
-	merged: "bg-violet-500",
-	deleted: "bg-muted-foreground/60",
-};
 
 interface V2WorkspacesBoardColumnProps {
 	column: BoardColumnKey;
@@ -28,9 +19,7 @@ export function V2WorkspacesBoardColumn({
 		<div className="flex w-[280px] min-w-[280px] shrink-0 flex-col">
 			{/* Column header — matches Linear style */}
 			<div className="mb-1 flex items-center gap-2 px-2 py-1.5">
-				<span
-					className={cn("size-2 rounded-full", COLUMN_DOT_STYLES[column])}
-				/>
+				<BoardColumnIcon column={column} />
 				<span className="truncate text-sm font-medium">
 					{BOARD_COLUMN_LABELS[column]}
 				</span>

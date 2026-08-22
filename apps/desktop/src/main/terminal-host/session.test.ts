@@ -720,8 +720,12 @@ describe("Terminal Host Session stale input modes after TUI death", () => {
 
 		expect(snapshot.modes.mouseTrackingButtonEvent).toBe(false);
 		expect(snapshot.modes.mouseTrackingAnyEvent).toBe(false);
-		expect(snapshot.rehydrateSequences).not.toContain("1002");
-		expect(snapshot.rehydrateSequences).not.toContain("1003");
+		// The preamble is an authoritative resync, so both levels appear as
+		// resets — what must not appear is either one armed.
+		expect(snapshot.rehydrateSequences).not.toContain("?1002h");
+		expect(snapshot.rehydrateSequences).not.toContain("?1003h");
+		expect(snapshot.rehydrateSequences).toContain("?1002l");
+		expect(snapshot.rehydrateSequences).toContain("?1003l");
 		// The SGR encoding is exempt from reclaim: inert with no protocol
 		// armed, and clearing it would garble clicks after a suspend/fg cycle
 		// (the TUI re-arms only its protocol on fg).

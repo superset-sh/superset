@@ -44,6 +44,7 @@ import {
 	sanitizeAuthorPrefix,
 } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { rethrowEnvironmentalGitError } from "../workspaces/utils/git-errors";
 import { execWithShellEnv } from "../workspaces/utils/shell-env";
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
@@ -1187,7 +1188,13 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				const { defaultBranch } = await initGitRepo(input.path);
+				let defaultBranch: string;
+				try {
+					({ defaultBranch } = await initGitRepo(input.path));
+				} catch (error) {
+					rethrowEnvironmentalGitError(error);
+					throw error;
+				}
 
 				const project = upsertProject(input.path, defaultBranch);
 				await ensureMainWorkspace(project);

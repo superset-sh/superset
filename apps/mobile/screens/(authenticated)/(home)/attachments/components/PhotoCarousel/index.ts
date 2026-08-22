@@ -1,1 +1,0 @@
-export { PhotoCarousel } from "./PhotoCarousel";

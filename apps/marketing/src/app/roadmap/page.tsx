@@ -65,8 +65,8 @@ export default function RoadmapPage() {
 							className="text-foreground underline underline-offset-4 hover:no-underline"
 						>
 							Tell us in Discord
-						</a>{" "}
-						— much of what's here started as a user request.
+						</a>
+						. Much of what's here started as a user request.
 					</p>
 
 					<GridCross className="bottom-0 left-0" />

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 		default: `${COMPANY.NAME} Documentation`,
 		template: `%s | ${COMPANY.NAME} Docs`,
 	},
-	description: `Official documentation for ${COMPANY.NAME} - the terminal for coding agents. Learn how to run parallel coding agents on your machine.`,
+	description: `Official documentation for ${COMPANY.NAME}. Learn how to run 100+ coding agents in parallel on your machine.`,
 	keywords: [
 		`${COMPANY.NAME} documentation`,
 		"coding agents docs",
@@ -31,12 +31,12 @@ export const metadata: Metadata = {
 		url: COMPANY.DOCS_URL,
 		siteName: `${COMPANY.NAME} Docs`,
 		title: `${COMPANY.NAME} Documentation`,
-		description: `Official documentation for ${COMPANY.NAME} - the terminal for coding agents.`,
+		description: `Official documentation for ${COMPANY.NAME}, the app for running 100+ coding agents in parallel.`,
 	},
 	twitter: {
 		card: "summary_large_image",
 		title: `${COMPANY.NAME} Documentation`,
-		description: `Official documentation for ${COMPANY.NAME} - the terminal for coding agents.`,
+		description: `Official documentation for ${COMPANY.NAME}, the app for running 100+ coding agents in parallel.`,
 		creator: "@superset_sh",
 	},
 	robots: {

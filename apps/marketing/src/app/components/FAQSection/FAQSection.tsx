@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 import { HiPlus } from "react-icons/hi2";
@@ -34,7 +34,7 @@ function FAQAccordionItem({
 			</button>
 			<AnimatePresence initial={false}>
 				{isOpen && (
-					<motion.div
+					<m.div
 						initial={{ height: 0, opacity: 0 }}
 						animate={{ height: "auto", opacity: 1 }}
 						exit={{ height: 0, opacity: 0 }}
@@ -54,7 +54,7 @@ function FAQAccordionItem({
 								</Link>
 							)}
 						</div>
-					</motion.div>
+					</m.div>
 				)}
 			</AnimatePresence>
 		</div>

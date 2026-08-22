@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { JSONFilePreset } from "lowdb/node";
 import { APP_STATE_PATH } from "../app-environment";
 import type { AppState } from "./schemas";
@@ -25,8 +26,15 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 			([paneId]) => tabsState.panes?.[paneId] !== undefined,
 		),
 	);
+	const tabsStateByWindow = Object.fromEntries(
+		Object.entries(data.tabsStateByWindow ?? {}).map(([key, state]) => [
+			key,
+			{ ...defaultAppState.tabsState, ...(state ?? {}) },
+		]),
+	);
 	return {
 		tabsState,
+		tabsStateByWindow,
 		v1AgentSessions,
 		themeState: {
 			...defaultAppState.themeState,
@@ -42,6 +50,37 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 		},
 		lastRunVersion: data.lastRunVersion,
 	};
+}
+
+/**
+ * Re-read only themeState from disk into the in-memory app state. Used when
+ * an external writer (the CLI) updates app-state.json while the app runs:
+ * without this, the next lowdb flush would clobber the external change.
+ * Deliberately does not reload other fields — they are owned by in-memory
+ * state and may have unflushed updates.
+ */
+export function reloadThemeStateFromDisk(): AppState["themeState"] | null {
+	if (!_appState) return null;
+	try {
+		const raw = readFileSync(APP_STATE_PATH, "utf-8");
+		const parsed = JSON.parse(raw) as Partial<AppState> | null;
+		if (
+			typeof parsed !== "object" ||
+			parsed === null ||
+			Array.isArray(parsed)
+		) {
+			return null;
+		}
+		const themeState = {
+			...defaultAppState.themeState,
+			...(parsed.themeState ?? {}),
+		};
+		_appState.data.themeState = themeState;
+		return themeState;
+	} catch (error) {
+		console.error("[app-state] Failed to reload themeState from disk:", error);
+		return null;
+	}
 }
 
 export async function initAppState(): Promise<void> {
@@ -68,3 +107,21 @@ export const appState = new Proxy({} as AppStateDB, {
 		return value;
 	},
 });
+
+/**
+ * Drop per-window state for windows that will not be restored.
+ *
+ * Called from the same place that writes the restorable window set, so the two
+ * cannot drift: a window whose key is no longer persisted is gone for good, and
+ * keeping its layout would grow app-state.json on every new window forever.
+ */
+export function pruneWindowScopedState(liveKeys: string[]): void {
+	const byWindow = appState.data.tabsStateByWindow;
+	if (!byWindow) return;
+	const live = new Set(liveKeys);
+	const kept = Object.fromEntries(
+		Object.entries(byWindow).filter(([key]) => live.has(key)),
+	);
+	if (Object.keys(kept).length === Object.keys(byWindow).length) return;
+	appState.data.tabsStateByWindow = kept;
+}

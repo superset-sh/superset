@@ -276,11 +276,7 @@ describe("bug-hunt: idempotency + double-fire", () => {
 	});
 
 	test("project.remove is idempotent across two calls", async () => {
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Project.delete.mutate": () => ({ success: true }),
-			},
-		});
+		host = await createTestHost();
 		const id = randomUUID();
 		const a = await host.trpc.project.remove.mutate({ projectId: id });
 		const b = await host.trpc.project.remove.mutate({ projectId: id });

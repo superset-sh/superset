@@ -10,9 +10,22 @@ import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { SiLinear } from "react-icons/si";
 import { api } from "@/trpc/server";
+import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
-import { ErrorHandler } from "./components/ErrorHandler";
 import { TeamSelector } from "./components/TeamSelector";
+
+const CALLBACK_MESSAGES = {
+	oauth_denied: "Authorization was denied. Please try again.",
+	missing_params: "Invalid OAuth response. Please try again.",
+	invalid_state: "Invalid state parameter. Please try again.",
+	token_exchange_failed: "Failed to connect to Linear. Please try again.",
+	unauthorized: "You are not authorized to perform this action.",
+};
+
+const CALLBACK_WARNINGS = {
+	sync_queued_failed:
+		"Linear connected, but initial sync failed to start. Please try reconnecting.",
+};
 
 export default async function LinearIntegrationPage() {
 	const trpc = await api();
@@ -36,7 +49,11 @@ export default async function LinearIntegrationPage() {
 
 	return (
 		<div className="space-y-8">
-			<ErrorHandler />
+			<IntegrationErrorHandler
+				provider="linear"
+				messages={CALLBACK_MESSAGES}
+				warnings={CALLBACK_WARNINGS}
+			/>
 
 			<Link
 				href="/integrations"

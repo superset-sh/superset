@@ -67,14 +67,16 @@ export function AutomationDetailHeader({
 								size="icon-sm"
 								onClick={onOpenHistory}
 								disabled={readOnly}
-								aria-label="Version history"
+								aria-label="Prompt history"
 							>
 								<LuClock className="size-4" />
 							</Button>
 						</span>
 					</TooltipTrigger>
 					<TooltipContent>
-						{readOnly ? "Only the owner can view versions" : "Version history"}
+						{readOnly
+							? "Only the owner can view prompt history"
+							: "Prompt history"}
 					</TooltipContent>
 				</Tooltip>
 				<DropdownMenu>

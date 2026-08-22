@@ -5,7 +5,6 @@ import type {
 import { normalizeAgentLaunchRequest } from "@superset/shared/agent-launch";
 import { posthog } from "renderer/lib/posthog";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
-import { launchChatAdapter } from "./adapters/chat-adapter";
 import { launchTerminalAdapter } from "./adapters/terminal-adapter";
 import type {
 	AgentLaunchTabsAdapter,
@@ -29,14 +28,6 @@ async function getDefaultTabsAdapter(): Promise<AgentLaunchTabsAdapter> {
 		removePane: (paneId) => useTabsStore.getState().removePane(paneId),
 		setTabAutoTitle: (tabId, title) =>
 			useTabsStore.getState().setTabAutoTitle(tabId, title),
-		addChatTab: (workspaceId, options) =>
-			useTabsStore.getState().addChatTab(workspaceId, options),
-		addChatPane: (tabId, options) =>
-			useTabsStore.getState().addChatPane(tabId, options),
-		switchChatSession: (paneId, sessionId) =>
-			useTabsStore.getState().switchChatSession(paneId, sessionId),
-		setChatLaunchConfig: (paneId, launchConfig) =>
-			useTabsStore.getState().setChatLaunchConfig(paneId, launchConfig),
 	};
 }
 
@@ -92,9 +83,9 @@ function captureLaunchEvent({
 }
 
 export function selectAgentLaunchAdapter(
-	request: AgentLaunchRequest,
+	_request: AgentLaunchRequest,
 ): AgentSessionLaunchAdapterKind {
-	return request.kind === "chat" ? "chat" : "terminal";
+	return "terminal";
 }
 
 export async function launchAgentSession(
@@ -132,10 +123,7 @@ export async function launchAgentSession(
 				tabs,
 			};
 			phase = "launching";
-			const payload =
-				request.kind === "terminal"
-					? await launchTerminalAdapter(request, executionContext)
-					: await launchChatAdapter(request, executionContext);
+			const payload = await launchTerminalAdapter(request, executionContext);
 			phase = "running";
 			const result: AgentLaunchResult = {
 				workspaceId: request.workspaceId,

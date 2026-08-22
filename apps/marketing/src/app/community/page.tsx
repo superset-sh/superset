@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import { getGitHubRepoSlug } from "@/lib/github";
 
 export const metadata: Metadata = {
 	title: "Community",
@@ -17,13 +18,13 @@ interface GitHubRepoResponse {
 
 async function getGitHubStars(): Promise<number | null> {
 	try {
-		const match = COMPANY.GITHUB_URL.match(/github\.com\/([^/]+\/[^/]+)/);
-		if (!match) return null;
-
-		const response = await fetch(`https://api.github.com/repos/${match[1]}`, {
-			headers: { Accept: "application/vnd.github.v3+json" },
-			next: { revalidate: 3600 },
-		});
+		const response = await fetch(
+			`https://api.github.com/repos/${getGitHubRepoSlug()}`,
+			{
+				headers: { Accept: "application/vnd.github.v3+json" },
+				next: { revalidate: 3600 },
+			},
+		);
 
 		if (!response.ok) return null;
 

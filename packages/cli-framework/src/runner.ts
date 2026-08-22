@@ -70,11 +70,13 @@ function formatZodIssues(message: string): string | null {
 	return lines.join("\n");
 }
 
-function handleError(error: unknown, cliName: string): never {
+/** Exported for tests. */
+export function formatError(
+	error: unknown,
+	cliName: string,
+): { message: string; hint?: string } {
 	if (error instanceof CLIError) {
-		process.stderr.write(`Error: ${error.message}\n`);
-		if (error.suggestion) process.stderr.write(`Hint: ${error.suggestion}\n`);
-		process.exit(1);
+		return { message: error.message, hint: error.suggestion };
 	}
 	if (error instanceof Error) {
 		const trpcError = error as Error & {
@@ -83,25 +85,33 @@ function handleError(error: unknown, cliName: string): never {
 		};
 		const code = trpcError.data?.code ?? trpcError.code;
 		if (code === "UNAUTHORIZED") {
-			process.stderr.write(
-				`Error: Session expired\nHint: Run: ${cliName} auth login\n`,
-			);
-		} else if (code === "NOT_FOUND") {
-			process.stderr.write("Error: Not found\n");
-		} else if (
-			code === "FETCH_ERROR" ||
-			error.message.includes("fetch failed")
-		) {
-			process.stderr.write(
-				"Error: Could not connect to API\nHint: Is the API running?\n",
-			);
-		} else {
-			const formatted = formatZodIssues(error.message);
-			process.stderr.write(`Error: ${formatted ?? error.message}\n`);
+			return {
+				message: "Session expired",
+				hint: `Run: ${cliName} auth login`,
+			};
 		}
-		process.exit(1);
+		if (code === "NOT_FOUND") {
+			// The server's message names the missing resource ("Host not
+			// found") — blanking it left users with no way to tell which of
+			// several ids a command resolves was rejected (issue #6415).
+			return { message: error.message || "Not found" };
+		}
+		if (code === "FETCH_ERROR" || error.message.includes("fetch failed")) {
+			return {
+				message: "Could not connect to API",
+				hint: "Is the API running?",
+			};
+		}
+		const formatted = formatZodIssues(error.message);
+		return { message: formatted ?? error.message };
 	}
-	process.stderr.write(`Error: ${String(error)}\n`);
+	return { message: String(error) };
+}
+
+function handleError(error: unknown, cliName: string): never {
+	const { message, hint } = formatError(error, cliName);
+	process.stderr.write(`Error: ${message}\n`);
+	if (hint) process.stderr.write(`Hint: ${hint}\n`);
 	process.exit(1);
 }
 

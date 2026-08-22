@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { HOW_IT_WORKS_STEPS } from "./constants";
 
 export function HowItWorksSection() {
 	return (
 		<section id="how-it-works" className="relative py-24 sm:py-32">
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
-				<motion.div
+				<m.div
 					className="mb-16 sm:mb-20 space-y-4"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
@@ -22,11 +22,11 @@ export function HowItWorksSection() {
 						<br />
 						not one prompt at a time.
 					</h2>
-				</motion.div>
+				</m.div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 lg:gap-12">
 					{HOW_IT_WORKS_STEPS.map((step, index) => (
-						<motion.div
+						<m.div
 							key={step.number}
 							className="space-y-4 border-t border-border pt-6"
 							initial={{ opacity: 0, y: 20 }}
@@ -43,7 +43,7 @@ export function HowItWorksSection() {
 							<p className="text-base text-muted-foreground leading-relaxed">
 								{step.description}
 							</p>
-						</motion.div>
+						</m.div>
 					))}
 				</div>
 			</div>

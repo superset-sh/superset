@@ -12,12 +12,12 @@ import { FEATURES } from "./constants";
 
 const DEMO_COMPONENTS = [
 	ParallelExecutionDemo,
+	AutomationsDemo,
 	UniversalCompatibilityDemo,
 	IsolationDemo,
-	OpenInDemo,
-	AutomationsDemo,
 	RemoteWorkspacesDemo,
 	CliDemo,
+	OpenInDemo,
 ];
 
 export function FeaturesSection() {

@@ -14,11 +14,11 @@ function snapshotKey(organizationId: string): string {
 }
 
 /**
- * Pick the host list to derive query targets from. Live (Electric) rows win
- * outright when present. An empty live list is authoritative only once the
- * collection is ready — so deleting an org's last host clears the sidebar
- * instead of a stale snapshot resurrecting it — while a not-yet-ready empty
- * result (cold start, resync truncation) falls back to the last-seen
+ * Pick the host list to derive query targets from. Live rows win outright when
+ * present. An empty live list is authoritative only once the query has
+ * answered — so deleting an org's last host clears the sidebar instead of a
+ * stale snapshot resurrecting it — while an empty result from a query that
+ * hasn't answered yet (cold start, offline boot) falls back to the last-seen
  * snapshot.
  */
 export function resolveKnownHosts(

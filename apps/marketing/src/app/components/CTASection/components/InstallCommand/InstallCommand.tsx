@@ -17,7 +17,7 @@ export function InstallCommand() {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		} catch {
-			// Clipboard unavailable (e.g. insecure context) — ignore
+			// Clipboard unavailable (e.g. insecure context); ignore
 		}
 	};
 

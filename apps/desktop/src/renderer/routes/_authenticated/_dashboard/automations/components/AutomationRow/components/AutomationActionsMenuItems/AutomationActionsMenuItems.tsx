@@ -91,7 +91,7 @@ export function AutomationActionsMenuItems({
 						children: (
 							<>
 								<LuClock className="size-4" />
-								Version history
+								Prompt history
 							</>
 						),
 					})}

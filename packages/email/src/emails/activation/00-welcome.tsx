@@ -20,30 +20,27 @@ export function WelcomeEmail({ userEmail }: WelcomeEmailProps = {}) {
 			preview="They do the work. You review the diffs."
 			recipientEmail={userEmail}
 		>
-			<Heading className="text-[28px] font-semibold leading-9 text-foreground text-center mt-2 mb-2">
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-3">
 				Welcome to Superset
 			</Heading>
-			<Text className="text-base leading-6 text-muted text-center m-0 mb-8">
-				Run coding agents in parallel, each in an isolated copy of your repo.
-				<br />
-				They do the work. You review the diffs.
+			<Text className="text-[15px] leading-6 text-muted m-0 mb-6">
+				Run Claude Code, Codex, or any CLI agent in parallel, each in an
+				isolated copy of your repo. They do the work. You review the diffs.
 			</Text>
 
-			<Section className="bg-surface border border-solid border-border rounded-2xl p-4 mb-8">
-				<a href={`${DOWNLOAD}${utm("hero-image")}`}>
-					<Img
-						src={`${assets}/welcome-hero.png`}
-						alt="Superset running coding agents across parallel workspaces"
-						width="536"
-						className="w-full rounded-lg"
-					/>
-				</a>
-			</Section>
+			<a href={`${DOWNLOAD}${utm("hero-image")}`}>
+				<Img
+					src={`${assets}/welcome-hero.png`}
+					alt="Superset running coding agents across parallel workspaces"
+					width="512"
+					className="w-full rounded-lg mb-6"
+				/>
+			</a>
 
-			<Text className="text-base leading-6 text-foreground m-0 mb-2 font-semibold">
+			<Text className="text-[15px] leading-6 text-foreground font-medium m-0 mb-2">
 				Two minutes to your first agent:
 			</Text>
-			<Text className="text-base leading-[26px] text-foreground m-0 mb-8">
+			<Text className="text-[15px] leading-7 text-foreground m-0 mb-6">
 				1. Get the desktop app
 				<br />
 				2. Open a repo you&apos;re working on
@@ -51,14 +48,14 @@ export function WelcomeEmail({ userEmail }: WelcomeEmailProps = {}) {
 				3. Type the thing you were going to do anyway
 			</Text>
 
-			<Section className="text-center mb-8">
+			<Section className="mb-8">
 				<Button href={`${DOWNLOAD}${utm("hero-cta")}`}>
 					Download Superset
 				</Button>
 			</Section>
 
-			<Text className="text-base leading-6 text-muted text-center m-0">
-				Questions? Just reply — a founder reads every message.
+			<Text className="text-[13px] leading-5 text-muted m-0">
+				Questions? Just reply. A founder reads every message.
 			</Text>
 		</EmailLayout>
 	);

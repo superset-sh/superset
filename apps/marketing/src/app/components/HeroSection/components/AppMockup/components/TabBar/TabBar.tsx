@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Image from "next/image";
 import { LuChevronDown, LuPlus } from "react-icons/lu";
 import { AGENT_TABS } from "../../constants";
@@ -33,7 +33,7 @@ export function TabBar({ activeDemo }: TabBarProps) {
 				</div>
 
 				{AGENT_TABS.map((tab) => (
-					<motion.div
+					<m.div
 						key={tab.label}
 						className="flex h-full shrink-0 items-center gap-1.5 overflow-hidden text-[11px] text-muted-foreground/65 hover:text-foreground/90"
 						initial={{
@@ -56,7 +56,7 @@ export function TabBar({ activeDemo }: TabBarProps) {
 					>
 						<Image src={tab.src} alt={tab.alt} width={12} height={12} />
 						<span className="min-w-0 flex-1 truncate">{tab.label}</span>
-					</motion.div>
+					</m.div>
 				))}
 			</div>
 

@@ -5,7 +5,7 @@ import {
 	sanitizeUserBranchName,
 } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
@@ -19,12 +19,13 @@ import {
 	insertLocalWorkspace,
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
-import { createCallerFactory, protectedProcedure, router } from "../../index";
 import {
-	buildTerminalAgentLaunch,
-	isChatAgent,
-	validateAgentLaunchEffort,
-} from "../agents";
+	createCallerFactory,
+	machineOnlyProcedure,
+	protectedProcedure,
+	router,
+} from "../../index";
+import { buildTerminalAgentLaunch, validateAgentLaunchEffort } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
@@ -41,7 +42,10 @@ import {
 	dispatchSugarAgents,
 } from "../workspace-creation/shared/dispatch-agents";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
-import { requireLocalProject } from "../workspace-creation/shared/local-project";
+import {
+	requireLocalProject,
+	requireProjectRepoPath,
+} from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
 import {
 	addWorktreeWithSparseCheckout,
@@ -163,6 +167,14 @@ function findExistingWorkspaceByBranch(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				// Deletes tombstone the row instead of removing it, so a
+				// tombstone must not satisfy idempotency: matching one returns
+				// the archived row with `alreadyExists: true` and silently
+				// skips the create — no worktree, nothing in the sidebar. Its
+				// worktree is gone, so re-creating on the same branch inserts a
+				// fresh live row alongside it. The adopt path already filters
+				// these (#6383).
+				isNull(workspaces.archivedAt),
 			),
 		})
 		.sync();
@@ -507,7 +519,7 @@ async function registerLocalWorkspace(args: {
 
 export const workspacesRouter = router({
 	createSession,
-	create: protectedProcedure
+	create: machineOnlyProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			for (const launch of input.agents ?? []) {
@@ -515,6 +527,7 @@ export const workspacesRouter = router({
 			}
 
 			const localProject = requireLocalProject(ctx, input.projectId);
+			const repoPath = requireProjectRepoPath(localProject);
 
 			// Kick off AI naming when the user supplied a prompt but no
 			// workspace name. The worktree add and registration run with an
@@ -550,13 +563,10 @@ export const workspacesRouter = router({
 			// rename the git branch.
 			let aiCanRenameBranch = false;
 
-			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
+			await ensureMainWorkspace(ctx, input.projectId, repoPath);
 
-			const git = await ctx.git(localProject.repoPath);
-			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(
-				ctx,
-				localProject.repoPath,
-			);
+			const git = await ctx.git(repoPath);
+			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(ctx, repoPath);
 			const worktreeBaseDir =
 				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
 			// Empty means a full checkout. Only applies to worktrees we create —
@@ -585,7 +595,7 @@ export const workspacesRouter = router({
 				);
 				try {
 					const prMetadata = await fetchPrMetadata({
-						cwd: localProject.repoPath,
+						cwd: repoPath,
 						prNumber: input.pr,
 						execGh: ctx.execGh,
 					});
@@ -848,7 +858,7 @@ export const workspacesRouter = router({
 							input.baseBranch,
 							fetchBaseRefOffLoop,
 						),
-						listBranchNames(ctx, localProject.repoPath),
+						listBranchNames(ctx, repoPath),
 					]);
 					plan = planResult;
 					// plan.branch may carry an existing branch's canonical casing.
@@ -883,7 +893,7 @@ export const workspacesRouter = router({
 							input.baseBranch,
 							fetchBaseRefOffLoop,
 						),
-						listBranchNames(ctx, localProject.repoPath),
+						listBranchNames(ctx, repoPath),
 					]);
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
@@ -1071,7 +1081,7 @@ export const workspacesRouter = router({
 						const applied = await applyGeneratedWorkspaceNames({
 							ctx,
 							workspaceId: workspaceRow.id,
-							repoPath: localProject.repoPath,
+							repoPath,
 							worktreePath,
 							oldBranchName: resolvedBranch,
 							oldWorkspaceName: workspaceRow.name || resolvedBranch,
@@ -1099,19 +1109,14 @@ export const workspacesRouter = router({
 
 			// Wait-for-setup gate: chain a single terminal agent behind the setup
 			// commands in the setup terminal, so the agent starts only after setup
-			// succeeds and no second terminal is created. Chat agents and
-			// multi-agent launches keep the parallel path, mirroring the renderer's
-			// v1 gating. Build the agent command up-front; if it fails (unknown
-			// agent, missing attachment) fall back to the parallel dispatch, which
-			// surfaces the error in the agents result.
+			// succeeds and no second terminal is created. Multi-agent launches keep
+			// the parallel path, mirroring the renderer's v1 gating. Build the agent
+			// command up-front; if it fails (unknown agent, missing attachment) fall
+			// back to the parallel dispatch, which surfaces the error in the agents
+			// result.
 			let chainAgent: { fullCommand: string; label: string } | null = null;
 			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
-			if (
-				!alreadyExists &&
-				input.waitForSetupBeforeAgents &&
-				soleLaunch &&
-				!isChatAgent(soleLaunch.agent)
-			) {
+			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
 				try {
 					chainAgent = buildTerminalAgentLaunch(ctx.db, {
 						workspaceId: workspaceRow.id,
@@ -1234,7 +1239,7 @@ export const workspacesRouter = router({
 			for (const launch of input.agents ?? []) {
 				validateAgentLaunchEffort(ctx.db, launch);
 			}
-			requireLocalProject(ctx, input.projectId);
+			requireProjectRepoPath(requireLocalProject(ctx, input.projectId));
 
 			void createWorkspacesCaller(ctx)
 				.create(input)

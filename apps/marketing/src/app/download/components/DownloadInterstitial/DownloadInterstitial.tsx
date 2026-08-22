@@ -26,7 +26,7 @@ export function DownloadInterstitial() {
 
 	const isMac = isMacPlatform(platform);
 	// Only auto-download on Mac (the only built binary). Windows/Linux/Mobile see
-	// the waitlist instead — never the .dmg. Unknown waits for detection.
+	// the waitlist instead, never the .dmg. Unknown waits for detection.
 	const showWaitlist = !isMac && platform !== Platform.Unknown;
 
 	useEffect(() => {

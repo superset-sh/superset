@@ -1,44 +1,84 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
-import { Input } from "@superset/ui/input";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import { type FormEvent, useId, useState } from "react";
-import { HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { HiCheck, HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { normalizeAuthorFilter } from "renderer/routes/_authenticated/_dashboard/pull-requests/utils/normalizeAuthorFilter";
 
 interface AuthorFilterProps {
 	value: string | null;
 	onChange: (value: string | null) => void;
+	/** Scoped to a single repo, this drives a live contributor list instead
+	 *  of a bare text box — "all repositories" or multiple selected repos
+	 *  have no single contributor set to show. */
+	projectTargets: ProjectQueryTarget[];
 }
 
-export function AuthorFilter({ value, onChange }: AuthorFilterProps) {
+export function AuthorFilter({
+	value,
+	onChange,
+	projectTargets,
+}: AuthorFilterProps) {
 	const [open, setOpen] = useState(false);
-	const [draft, setDraft] = useState(value ?? "");
-	const [error, setError] = useState<string | null>(null);
-	const inputId = useId();
-	const errorId = useId();
+	const [search, setSearch] = useState("");
 	const label = value ? `@${value}` : "All authors";
+
+	const singleTarget =
+		projectTargets.length === 1 ? projectTargets[0] : undefined;
+
+	const {
+		data: contributors,
+		isLoading,
+		error,
+	} = useQuery({
+		queryKey: [
+			"pullRequests",
+			"repoContributors",
+			singleTarget?.projectId,
+			singleTarget?.hostUrl,
+		],
+		queryFn: async () => {
+			if (!singleTarget?.hostUrl) return [];
+			const client = getHostServiceClientByUrl(singleTarget.hostUrl);
+			return client.workspaceCreation.getRepoContributors.query({
+				projectId: singleTarget.projectId,
+			});
+		},
+		enabled: !!singleTarget?.hostUrl,
+		staleTime: 5 * 60_000,
+		gcTime: 10 * 60_000,
+	});
+
+	const filtered = useMemo(() => {
+		const q = search.trim().replace(/^@/, "").toLowerCase();
+		const list = contributors ?? [];
+		if (!q) return list;
+		return list.filter((c) => c.login.toLowerCase().includes(q));
+	}, [contributors, search]);
+
+	const normalizedSearch = normalizeAuthorFilter(search)?.toLowerCase() ?? null;
+	const showCustomOption =
+		!!normalizedSearch &&
+		!filtered.some((c) => c.login.toLowerCase() === normalizedSearch);
 
 	const handleOpenChange = (nextOpen: boolean) => {
 		setOpen(nextOpen);
-		setDraft(value ?? "");
-		setError(null);
+		if (!nextOpen) setSearch("");
 	};
 
-	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		const normalized = normalizeAuthorFilter(draft);
-		if (draft.trim() && !normalized) {
-			setError("Enter a valid GitHub username.");
-			return;
-		}
-		onChange(normalized);
-		setOpen(false);
-	};
-
-	const handleClear = () => {
-		onChange(null);
-		setDraft("");
-		setError(null);
+	const handleSelect = (login: string | null) => {
+		onChange(login);
 		setOpen(false);
 	};
 
@@ -53,52 +93,83 @@ export function AuthorFilter({ value, onChange }: AuthorFilterProps) {
 					className="h-8 max-w-44 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineUserCircle className="size-4 shrink-0" />
-					<span className="hidden truncate text-sm @4xl:inline">{label}</span>
+					<span className="truncate text-sm">{label}</span>
 					<HiChevronDown className="size-3 shrink-0" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent align="start" className="w-64 p-3">
-				<form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-					<div className="flex flex-col gap-1.5">
-						<label htmlFor={inputId} className="text-xs font-medium">
-							GitHub username
-						</label>
-						<Input
-							id={inputId}
-							aria-label="Filter by author"
-							type="text"
-							value={draft}
-							placeholder="octocat"
-							autoComplete="off"
-							spellCheck={false}
-							aria-invalid={!!error}
-							aria-describedby={error ? errorId : undefined}
-							onChange={(event) => {
-								setDraft(event.target.value);
-								setError(null);
-							}}
-						/>
-						{error && (
-							<p id={errorId} className="text-xs text-destructive">
-								{error}
-							</p>
+			<PopoverContent align="start" className="w-64 p-0">
+				<Command shouldFilter={false}>
+					<CommandInput
+						placeholder={singleTarget ? "Search authors…" : "GitHub username…"}
+						value={search}
+						onValueChange={setSearch}
+					/>
+					<CommandList className="max-h-72">
+						{singleTarget && isLoading && !contributors && (
+							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
+								Loading contributors…
+							</div>
 						)}
-					</div>
-					<div className="flex items-center justify-end gap-2">
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							disabled={!value}
-							onClick={handleClear}
-						>
-							Clear
-						</Button>
-						<Button type="submit" size="sm">
-							Apply
-						</Button>
-					</div>
-				</form>
+						{(!search || filtered.length > 0 || showCustomOption) && (
+							<CommandGroup>
+								{!search && (
+									<CommandItem onSelect={() => handleSelect(null)}>
+										<HiOutlineUserCircle className="size-4 shrink-0" />
+										<span className="text-sm">All authors</span>
+										{!value && (
+											<HiCheck className="ml-auto size-3.5 shrink-0" />
+										)}
+									</CommandItem>
+								)}
+								{filtered.map((contributor) => (
+									<CommandItem
+										key={contributor.login}
+										onSelect={() => handleSelect(contributor.login)}
+									>
+										<Avatar className="size-4 shrink-0 rounded-sm">
+											<AvatarImage
+												src={`https://github.com/${contributor.login}.png?size=32`}
+												alt={contributor.login}
+											/>
+											<AvatarFallback className="rounded-sm text-[8px]">
+												{contributor.login.slice(0, 1).toUpperCase()}
+											</AvatarFallback>
+										</Avatar>
+										<span className="truncate text-sm">
+											{contributor.login}
+										</span>
+										{value === contributor.login && (
+											<HiCheck className="ml-auto size-3.5 shrink-0" />
+										)}
+									</CommandItem>
+								))}
+								{showCustomOption && normalizedSearch && (
+									<CommandItem onSelect={() => handleSelect(normalizedSearch)}>
+										<HiOutlineUserCircle className="size-4 shrink-0" />
+										<span className="text-sm">
+											Filter by @{normalizedSearch}
+										</span>
+									</CommandItem>
+								)}
+							</CommandGroup>
+						)}
+						{singleTarget && !isLoading && error && (
+							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
+								Couldn't load contributors — type a username instead.
+							</div>
+						)}
+						{!isLoading &&
+							!error &&
+							filtered.length === 0 &&
+							!showCustomOption &&
+							(!singleTarget ||
+								(contributors && contributors.length === 0)) && (
+								<CommandEmpty>
+									{search ? "No authors found." : "No contributors found."}
+								</CommandEmpty>
+							)}
+					</CommandList>
+				</Command>
 			</PopoverContent>
 		</Popover>
 	);

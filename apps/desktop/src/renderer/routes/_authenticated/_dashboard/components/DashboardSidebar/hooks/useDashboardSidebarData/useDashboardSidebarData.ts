@@ -14,6 +14,7 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarPinnedWorkspace,
@@ -31,8 +32,12 @@ import {
 	getDashboardSidebarPullRequestQueryKey,
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
+import { createPullRequestRefreshGate } from "./pullRequestRefreshCooldown";
 
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+
+// Module-level so remounting the sidebar doesn't reset the cool-down.
+const pullRequestRefreshGate = createPullRequestRefreshGate();
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
@@ -247,6 +252,7 @@ export function useDashboardSidebarData() {
 	);
 
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { targets: sandboxes } = useSandboxAccess();
 	const hostWorkspacesById = useMemo(
 		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
 		[hostWorkspaces],
@@ -391,6 +397,7 @@ export function useDashboardSidebarData() {
 					(workspace) => workspace.projectId !== null,
 				),
 				fallbackOrganizationId: knownHostsOrgId,
+				sandboxes,
 			}),
 		[
 			activeHostUrl,
@@ -398,6 +405,7 @@ export function useDashboardSidebarData() {
 			knownHostsOrgId,
 			machineId,
 			relayUrl,
+			sandboxes,
 			visibleSidebarWorkspaces,
 		],
 	);
@@ -444,6 +452,9 @@ export function useDashboardSidebarData() {
 				(candidate) => candidate.machineId === workspace.hostId,
 			);
 			if (!target?.hostUrl) return;
+			if (!pullRequestRefreshGate.shouldRefresh(workspaceId, Date.now())) {
+				return;
+			}
 
 			const client = getHostServiceClientByUrl(target.hostUrl);
 			await client.pullRequests.refreshByWorkspaces.mutate({

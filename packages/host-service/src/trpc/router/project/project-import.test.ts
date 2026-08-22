@@ -56,16 +56,6 @@ function createRecordingApiStub() {
 	const calls: string[] = [];
 	const api = {
 		v2Project: {
-			get: {
-				query: async () => {
-					calls.push("v2Project.get");
-					const err = new Error("Project not found") as Error & {
-						data?: { code?: string };
-					};
-					err.data = { code: "NOT_FOUND" };
-					throw err;
-				},
-			},
 			findByGitHubRemote: {
 				query: async () => {
 					calls.push("v2Project.findByGitHubRemote");

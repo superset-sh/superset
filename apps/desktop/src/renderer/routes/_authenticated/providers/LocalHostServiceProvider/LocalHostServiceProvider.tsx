@@ -15,6 +15,7 @@ import {
 	setHostServiceSecret,
 } from "renderer/lib/host-service-auth";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
 interface LocalHostServiceContextValue {
@@ -41,8 +42,10 @@ export function LocalHostServiceProvider({
 	children: ReactNode;
 }) {
 	const utils = electronTrpc.useUtils();
-	const { data: session } = authClient.useSession();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
+	// Session still owns which orgs you belong to and the auth token; only the
+	// ACTIVE org is per-window.
+	const { data: session } = authClient.useSession();
 	const authToken = useAuthToken();
 	const { mutateAsync: persistOrganizationIds } =
 		electronTrpc.auth.persistOrganizationIds.useMutation({
@@ -56,9 +59,16 @@ export function LocalHostServiceProvider({
 			},
 		});
 
+	// Per-window org, not the shared session: each window runs its host service
+	// against the org THAT window is showing. Reading the session here would
+	// point every window at whichever org the session happened to hold, so a
+	// second window on a different org showed the first org's projects.
+	// This provider is mounted inside CollectionsProvider, which owns the
+	// per-window org.
+	const { activeOrganizationId: windowOrganizationId } = useCollections();
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+		: (windowOrganizationId ?? null);
 	const organizationIds = env.SKIP_ENV_VALIDATION
 		? MOCK_ORGANIZATION_IDS
 		: session?.session?.organizationIds;
@@ -160,6 +170,22 @@ export function LocalHostServiceProvider({
 				refetchInterval: activeConnection?.port ? false : 1_000,
 			},
 		);
+
+	// The coordinator only emits "running" after its health check passes, so
+	// this closes the gap the 5s/1s polls above leave open: without it, a
+	// dev-mode restart (or any respawn) can land the renderer on a dead port
+	// for up to a full poll interval, and anything that queries host-service
+	// in that window fails with a connection-refused.
+	electronTrpc.hostServiceCoordinator.onStatusChange.useSubscription(
+		undefined,
+		{
+			onData: (event) => {
+				if (event.organizationId !== activeOrganizationId) return;
+				utils.hostServiceCoordinator.getConnection.invalidate();
+				utils.hostServiceCoordinator.getProcessStatus.invalidate();
+			},
+		},
+	);
 
 	const waitForHostReady = useCallback(
 		async (timeoutMs = 20_000): Promise<string | null> => {

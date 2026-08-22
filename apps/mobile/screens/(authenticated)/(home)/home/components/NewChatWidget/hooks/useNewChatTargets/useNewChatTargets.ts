@@ -1,63 +1,72 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { compareDesc } from "date-fns";
 import { useMemo } from "react";
+import { useCloudProjects } from "@/hooks/useCloudProjects";
 import { toHostProjectItem } from "@/hooks/useHostProjects";
+import { useHostsPresence } from "@/hooks/useHostsPresence";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { useOrgHosts } from "@/hooks/useOrgHosts";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { useWorkspacesFilterStore } from "../../../../stores/workspacesFilterStore";
-import { useNewChatPreferencesStore } from "../../stores/newChatPreferencesStore";
+import { useNewSessionPreferencesStore } from "../../stores/newSessionPreferencesStore";
 
 export interface NewChatTarget {
 	key: string;
+	/** A machine's project, or a project a cloud sandbox can be created for. */
+	kind: "host" | "cloud";
 	projectId: string;
 	projectName: string;
 	projectIconUrl: string | null;
+	/** `CLOUD_TARGET_ID` for cloud targets — a sentinel, not a machine. */
 	machineId: string;
 	hostName: string;
+	/** Empty for cloud targets: there is nothing to address until create. */
 	hostUrl: string;
 }
+
+/** Sentinel host id for "create this in a cloud sandbox" (desktop's CLOUD_HOST_ID). */
+export const CLOUD_TARGET_ID = "cloud";
 
 export function targetKeyFor(projectId: string, machineId: string) {
 	return `${projectId}:${machineId}`;
 }
 
 /**
- * All (project, online host) pairs a new chat workspace can be created on,
- * from fanning out `project.list` to every online host, plus the default
- * pick: last used target, else the filtered project, else the most recently
- * updated workspace's target.
+ * Everywhere a new chat workspace can be created: all (project, online host)
+ * pairs from fanning out `project.list` to every online host, plus a cloud
+ * target per API-listed project — available with zero machines online. The
+ * default pick: last used target, else the filtered project, else the most
+ * recently updated workspace's target.
  */
 export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	targets: NewChatTarget[];
 	defaultTarget: NewChatTarget | null;
 } {
-	const collections = useCollections();
-	const persistedTargetKey = useNewChatPreferencesStore(
+	const hosts = useOrgHosts();
+	const persistedTargetKey = useNewSessionPreferencesStore(
 		(state) => state.targetKey,
 	);
-	const projectFilter = useWorkspacesFilterStore(
-		(state) => state.projectFilter,
+	const preferencesHydrated = useNewSessionPreferencesStore(
+		(state) => state.hasHydrated,
+	);
+	const filtersHydrated = useWorkspacesFilterStore(
+		(state) => state.hasHydrated,
 	);
 
-	const { data: hosts } = useLiveQuery(
-		(q) => q.from({ v2Hosts: collections.v2Hosts }),
-		[collections],
-	);
+	const presence = useHostsPresence(hosts);
 	const onlineHosts = useMemo(
 		() =>
-			(hosts ?? [])
-				.filter((host) => host.isOnline)
+			hosts
+				.filter((host) => presence?.get(host.machineId) ?? host.isOnline)
 				.map((host) => ({
 					machineId: host.machineId,
 					name: host.name,
-					hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
+					hostUrl: hostServiceUrl(host.organizationId, host.machineId),
 				})),
-		[hosts],
+		[hosts, presence],
 	);
 
 	const projectListQueries = useQueries({
@@ -71,15 +80,16 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 		})),
 	});
 
+	const { projects: cloudProjects } = useCloudProjects();
+
 	const targets = useMemo<NewChatTarget[]>(() => {
 		const result: NewChatTarget[] = [];
 		onlineHosts.forEach((host, index) => {
 			for (const row of projectListQueries[index]?.data ?? []) {
-				// Projects are fully local — the host row is the identity
-				// (the frozen Electric lookup dropped local-first projects).
 				const project = toHostProjectItem(row);
 				result.push({
 					key: targetKeyFor(project.id, host.machineId),
+					kind: "host",
 					projectId: project.id,
 					projectName: project.name,
 					projectIconUrl: project.iconUrl,
@@ -89,11 +99,27 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				});
 			}
 		});
+		for (const project of cloudProjects) {
+			result.push({
+				key: targetKeyFor(project.id, CLOUD_TARGET_ID),
+				kind: "cloud",
+				projectId: project.id,
+				projectName: project.name,
+				projectIconUrl: project.iconUrl,
+				machineId: CLOUD_TARGET_ID,
+				hostName: "Cloud",
+				hostUrl: "",
+			});
+		}
 		return result.sort((a, b) => a.projectName.localeCompare(b.projectName));
-	}, [onlineHosts, projectListQueries]);
+	}, [onlineHosts, projectListQueries, cloudProjects]);
 
 	const defaultTarget = useMemo<NewChatTarget | null>(() => {
 		if (targets.length === 0) return null;
+		// Both the last used target and the project filter are read back from
+		// storage asynchronously — defaulting first would land on the wrong
+		// project, and a send in that window would create the workspace there.
+		if (!preferencesHydrated || !filtersHydrated) return null;
 
 		const persisted = targets.find(
 			(target) => target.key === persistedTargetKey,
@@ -103,9 +129,9 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 		const sortedWorkspaces = [...workspaces].sort((a, b) =>
 			compareDesc(a.updatedAt, b.updatedAt),
 		);
-		const candidateProjectIds = projectFilter
-			? [projectFilter]
-			: sortedWorkspaces.map((workspace) => workspace.projectId);
+		const candidateProjectIds = sortedWorkspaces.map(
+			(workspace) => workspace.projectId,
+		);
 		for (const projectId of candidateProjectIds) {
 			const recentWorkspace = sortedWorkspaces.find(
 				(workspace) => workspace.projectId === projectId,
@@ -119,7 +145,13 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 			if (match) return match;
 		}
 		return targets[0] ?? null;
-	}, [targets, persistedTargetKey, projectFilter, workspaces]);
+	}, [
+		targets,
+		persistedTargetKey,
+		workspaces,
+		preferencesHydrated,
+		filtersHydrated,
+	]);
 
 	return { targets, defaultTarget };
 }

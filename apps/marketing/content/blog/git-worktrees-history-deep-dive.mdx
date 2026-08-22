@@ -9,7 +9,7 @@ relatedSlugs:
   - how-to-get-hit
 ---
 
-Git worktrees have been around since 2015. For most of that time, they were a curiosity — something kernel developers used, something that showed up in obscure Stack Overflow answers, something most developers had never heard of.
+Git worktrees have been around since 2015. For most of that time, they were a curiosity: something kernel developers used, something that showed up in obscure Stack Overflow answers, something most developers had never heard of.
 
 Now they're having a moment. AI coding agents need isolated environments. Developers are working on multiple features simultaneously. Code review culture demands quick context switches. The workflows that make worktrees valuable finally caught up to the feature.
 
@@ -35,7 +35,7 @@ git stash pop
 # wait, where was I?
 ```
 
-The friction isn't just the commands — it's the mental overhead. Your editor reloads files. Your language server re-indexes. Your node_modules might need reinstalling. Your brain has to context-switch twice.
+The friction isn't just the commands. It's the mental overhead. Your editor reloads files. Your language server re-indexes. Your node_modules might need reinstalling. Your brain has to context-switch twice.
 
 For years, developers worked around this with various hacks:
 
@@ -81,9 +81,9 @@ The initial commit message laid out the vision:
 
 > "A git repository can support multiple working trees, allowing you to check out more than one branch at a time."
 
-The key insight was that a git repository is really two things:
-1. **The object store** — All your commits, trees, and blobs (the `.git/objects` directory)
-2. **The working state** — What's currently checked out, staged, etc.
+The idea: a git repository is really two things:
+1. **The object store**: All your commits, trees, and blobs (the `.git/objects` directory)
+2. **The working state**: What's currently checked out, staged, etc.
 
 These don't have to live in the same place. Worktrees formalized this separation.
 
@@ -118,9 +118,9 @@ And in the main repo, `.git/worktrees/feature-branch/` contains:
 ```
 
 This architecture means:
-- **Shared objects** — Commits, trees, blobs exist once
-- **Shared refs** — Branches and tags are visible from all worktrees
-- **Separate working state** — Each worktree has its own HEAD, index, and working directory
+- **Shared objects**: Commits, trees, blobs exist once
+- **Shared refs**: Branches and tags are visible from all worktrees
+- **Separate working state**: Each worktree has its own HEAD, index, and working directory
 
 ### The One Branch Rule
 
@@ -212,7 +212,7 @@ This is linear. You finish one thing before starting another. Worktrees solve pa
 
 ### 2. Git GUIs Didn't Support Them
 
-Popular git interfaces — GitKraken, SourceTree, GitHub Desktop, VS Code's git panel — either didn't support worktrees or treated them as second-class. If your tool doesn't expose a feature, you don't use it.
+Popular git interfaces (GitKraken, SourceTree, GitHub Desktop, VS Code's git panel) either didn't support worktrees or treated them as second-class. If your tool doesn't expose a feature, you don't use it.
 
 ### 3. The Commands Were Obscure
 
@@ -232,6 +232,8 @@ Each worktree is a full checkout of the repository. For large repos, this adds u
 
 ## Part V: Why Worktrees Are Having a Moment
 
+![The pattern that revived worktrees: a repository fanning out into a worktree per coding agent, each on its own branch with an independent diff](/images/guides/worktree-isolation.svg)
+
 Several shifts have made worktrees suddenly relevant:
 
 ### 1. Code Review Culture
@@ -249,7 +251,7 @@ Complex projects often need you to test against different branches. Does this PR
 
 ### 3. Monorepo Workflows
 
-Large monorepos make cloning expensive. If your repo is 10GB, cloning it twice for parallel work wastes 10GB. Worktrees share the object store — each additional worktree only costs the size of the working files.
+Large monorepos make cloning expensive. If your repo is 10GB, cloning it twice for parallel work wastes 10GB. Worktrees share the object store, so each additional worktree only costs the size of the working files.
 
 ### 4. AI Coding Agents
 
@@ -275,7 +277,7 @@ The agent can:
 
 When it's done, you review the diff and merge. It's the same workflow as reviewing a coworker's PR, but the coworker is an AI and works in a worktree instead of a fork.
 
-This pattern — parallel human + AI work on the same codebase — is driving a resurgence in worktree usage that the git developers probably never anticipated.
+This pattern (parallel human + AI work on the same codebase) is driving a resurgence in worktree usage that the git developers probably never anticipated.
 
 ---
 
@@ -306,9 +308,9 @@ The code that handles this is in `setup.c` and `path.c` in the git source. The f
 
 Multiple worktrees can run git commands simultaneously. Git uses lock files to prevent corruption:
 
-- `.git/index.lock` — Prevents concurrent index modifications
-- `.git/refs/heads/<branch>.lock` — Prevents concurrent ref updates
-- `.git/worktrees/<name>/locked` — Marks a worktree as locked (won't be pruned)
+- `.git/index.lock`: Prevents concurrent index modifications
+- `.git/refs/heads/<branch>.lock`: Prevents concurrent ref updates
+- `.git/worktrees/<name>/locked`: Marks a worktree as locked (won't be pruned)
 
 The worktree-specific lock is useful when a worktree is on removable media or a network drive that might be temporarily unavailable.
 
@@ -322,7 +324,7 @@ git worktree unlock ../my-worktree
 
 ---
 
-## Part VII: Leveraging Worktrees Effectively
+## Part VII: Getting the Most from Worktrees
 
 If you're convinced worktrees are worth adopting, here's how to use them well:
 
@@ -409,9 +411,9 @@ Don't let old worktrees accumulate.
 
 ## Conclusion
 
-Git worktrees are a decade-old feature whose time has finally come. They solve parallel work — something that didn't matter much when developers worked linearly, but matters immensely now that AI agents are writing code alongside us.
+Git worktrees are a decade-old feature whose time has finally come. They solve parallel work, something that didn't matter much when developers worked linearly, but matters immensely now that AI agents are writing code alongside us.
 
-The implementation is elegant: share the expensive stuff (object store), separate the cheap stuff (working directory). It's the same insight that makes containers efficient — share the base, isolate the differences.
+The implementation is elegant: share the expensive stuff (object store), separate the cheap stuff (working directory). It's the same insight that makes containers efficient: share the base, isolate the differences.
 
 Whether you're reviewing PRs, testing branches, or letting an AI agent work in parallel, worktrees provide isolation without duplication. They're not new technology. They're old technology that suddenly fits the moment.
 

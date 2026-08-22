@@ -1,3 +1,4 @@
+import { realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { TRPCError } from "@trpc/server";
@@ -36,6 +37,39 @@ export function projectWorktreesRoot(
 	worktreeBaseDir?: string | null,
 ): string {
 	return resolve(worktreeBaseDir ?? defaultWorktreesRoot(), projectId);
+}
+
+/**
+ * True when `path` resolves strictly inside the project's managed worktrees
+ * root. The destroy saga's direct `rm -rf` (taken when the project repo is
+ * gone and there is nothing to run `git worktree remove` in) refuses
+ * anything else, so an adopted or corrupt `worktreePath` can never delete
+ * user data outside the managed folder.
+ */
+export function isInsideProjectWorktreesRoot(
+	path: string,
+	projectId: string,
+	worktreeBaseDir?: string | null,
+): boolean {
+	// Both prefixes are canonicalised: a `<base>/<projectId>` entry that is a
+	// symlink out of the base would otherwise let a path beneath it pass.
+	const base = normalizePath(worktreeBaseDir ?? defaultWorktreesRoot());
+	const root = normalizePath(projectWorktreesRoot(projectId, worktreeBaseDir));
+	const resolved = normalizePath(path);
+	return (
+		root !== base &&
+		root.startsWith(base + sep) &&
+		resolved !== root &&
+		resolved.startsWith(root + sep)
+	);
+}
+
+function normalizePath(p: string): string {
+	try {
+		return realpathSync(p);
+	} catch {
+		return resolve(p);
+	}
 }
 
 export function safeResolveWorktreePath(

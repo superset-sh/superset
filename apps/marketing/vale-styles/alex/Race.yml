@@ -1,0 +1,83 @@
+---
+extends: substitution
+message: Consider using '%s' instead of '%s'.
+ignorecase: true
+level: warning
+action:
+  name: replace
+swap:
+  Gipsy: Nomad|Traveler|Roma|Romani
+  Indian country: enemy territory
+  animal spirit: favorite|inspiration|personal interest|personality type
+  black list: blocklist|wronglist|banlist|deny list
+  blacklist: blocklist|wronglist|banlist|deny list
+  blacklisted: blocklisted|wronglisted|banlisted|deny-listed
+  blacklisting: blocklisting|wronglisting|banlisting|deny-listing
+  bugreport: bug report|snapshot
+  circle the wagons: defend
+  dream catcher: favorite|inspiration|personal interest|personality type
+  eskimo: Inuit
+  eskimos: Inuits
+  ghetto: projects|urban
+  goy: a person who is not Jewish|not Jewish
+  goyim: a person who is not Jewish|not Jewish
+  goyum: a person who is not Jewish|not Jewish
+  grandfather clause: legacy policy|legacy clause|deprecation policy
+  grandfather policy: legacy policy|legacy clause|deprecation policy
+  grandfathered: deprecated
+  grandfathering: deprecate
+  gyp: Nomad|Traveler|Roma|Romani
+  gyppo: Nomad|Traveler|Roma|Romani
+  gypsy: Nomad|Traveler|Roma|Romani
+  hymie: Jewish person
+  indian give: "go back on one\u2019s offer"
+  indian giver: "go back on one\u2019s offer"
+  japs: Japanese person|Japanese people
+  jump the reservation: disobey|endure|object to|oppose|resist
+  latina: Latinx
+  latino: Latinx
+  long time no hear: "I haven\u2019t seen you in a long time|it\u2019s been a long\
+    \ time"
+  long time no see: "I haven\u2019t seen you in a long time|it\u2019s been a long\
+    \ time"
+  master: primary|hub|reference
+  masters: primaries|hubs|references
+  mexican: Latinx
+  natives are becoming restless: dissatisfied|frustrated
+  natives are getting restless: dissatisfied|frustrated
+  natives are growing restless: dissatisfied|frustrated
+  natives are restless: dissatisfied|frustrated
+  non white: person of color|people of color
+  nonwhite: person of color|people of color
+  off reserve: disobey|endure|object to|oppose|resist
+  off the reservation: disobey|endure|object to|oppose|resist
+  on the warpath: defend
+  oriental: Asian person
+  orientals: Asian people
+  pinays: Filipinos|Filipino people
+  pinoys: Filipinos|Filipino people
+  pocahontas: Native American
+  pow wow: conference|gathering|meeting
+  powwow: conference|gathering|meeting
+  primitive: simple|indigenous|hunter-gatherer
+  red indian: Native American
+  red indians: Native American People
+  redskin: Native American
+  redskins: Native American People
+  sand niggers: Arabs|Middle Eastern People
+  savage: simple|indigenous|hunter-gatherer
+  shlomo: Jewish person
+  shyster: Jewish person
+  sophisticated culture: complex culture
+  sophisticated technology: complex technology
+  spade: a Black person
+  spirit animal: favorite|inspiration|personal interest|personality type
+  stone age: simple|indigenous|hunter-gatherer
+  too many chiefs: too many chefs in the kitchen|too many cooks spoil the broth
+  totem: favorite|inspiration|personal interest|personality type
+  towel heads: Arabs|Middle Eastern People
+  tribe: society|community
+  white list: passlist|alrightlist|safelist|allow list
+  whitelist: passlist|alrightlist|safelist|allow list
+  whitelisted: passlisted|alrightlisted|safelisted|allow-listed
+  whitelisting: passlisting|alrightlisting|safelisting|allow-listing

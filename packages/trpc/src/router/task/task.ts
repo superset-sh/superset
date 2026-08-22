@@ -13,7 +13,7 @@ import {
 	generateUniqueTaskSlug,
 } from "@superset/shared/task-slug";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, desc, eq, ilike, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, lt, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { syncTask } from "../../lib/integrations/sync";
@@ -26,7 +26,9 @@ import {
 } from "../utils/org-resource-access";
 import {
 	createTaskSchema,
+	type TaskListFilterInput,
 	taskListInputSchema,
+	taskListPageInputSchema,
 	updateTaskSchema,
 } from "./schema";
 import { taskStatusesRouter } from "./statuses";
@@ -156,10 +158,12 @@ async function getScopedAssigneeId(
 					userId: members.userId,
 				})
 				.from(members)
+				.innerJoin(users, eq(members.userId, users.id))
 				.where(
 					and(
 						eq(members.organizationId, organizationId),
 						eq(members.userId, assigneeId),
+						isNull(users.deletionRequestedAt),
 					),
 				)
 				.limit(1);
@@ -268,6 +272,65 @@ async function createTask(
 	});
 }
 
+function selectTaskListRows() {
+	const assignee = alias(users, "assignee");
+	const creator = alias(users, "creator");
+	const status = alias(taskStatuses, "status");
+
+	return db
+		.select({
+			task: tasks,
+			assignee: {
+				id: assignee.id,
+				name: assignee.name,
+				image: assignee.image,
+			},
+			creator: {
+				id: creator.id,
+				name: creator.name,
+				image: creator.image,
+			},
+			statusName: status.name,
+		})
+		.from(tasks)
+		.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
+		.leftJoin(creator, eq(tasks.creatorId, creator.id))
+		.leftJoin(status, eq(tasks.statusId, status.id));
+}
+
+function buildTaskListFilters(
+	organizationId: string,
+	userId: string,
+	input: TaskListFilterInput | null | undefined,
+) {
+	let dueDateRange: { from?: Date; to?: Date };
+	try {
+		dueDateRange = normalizeDueDateRange(
+			input?.dueDateFrom ?? undefined,
+			input?.dueDateTo ?? undefined,
+		);
+	} catch (error) {
+		if (error instanceof InvalidDueDateRangeError) {
+			throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+		}
+		throw error;
+	}
+
+	return buildTaskListConditions({
+		organizationId,
+		statusId: input?.statusId ?? undefined,
+		priority: input?.priority ?? undefined,
+		assigneeId: input?.assigneeMe ? userId : (input?.assigneeId ?? undefined),
+		creatorId: input?.creatorMe ? userId : undefined,
+		search: input?.search ?? undefined,
+		externalProjectId: input?.externalProjectId ?? undefined,
+		externalProjectName: input?.externalProjectName ?? undefined,
+		externalCycleId: input?.externalCycleId ?? undefined,
+		dueDateFrom: dueDateRange.from,
+		dueDateTo: dueDateRange.to,
+	});
+}
+
 export const taskRouter = {
 	statuses: taskStatusesRouter,
 
@@ -308,58 +371,13 @@ export const taskRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 
-			const assignee = alias(users, "assignee");
-			const creator = alias(users, "creator");
-			const status = alias(taskStatuses, "status");
-
-			let dueDateRange: { from?: Date; to?: Date };
-			try {
-				dueDateRange = normalizeDueDateRange(
-					input?.dueDateFrom ?? undefined,
-					input?.dueDateTo ?? undefined,
-				);
-			} catch (error) {
-				if (error instanceof InvalidDueDateRangeError) {
-					throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
-				}
-				throw error;
-			}
-
-			const filters = buildTaskListConditions({
+			const filters = buildTaskListFilters(
 				organizationId,
-				statusId: input?.statusId ?? undefined,
-				priority: input?.priority ?? undefined,
-				assigneeId: input?.assigneeMe
-					? ctx.session.user.id
-					: (input?.assigneeId ?? undefined),
-				creatorId: input?.creatorMe ? ctx.session.user.id : undefined,
-				search: input?.search ?? undefined,
-				externalProjectId: input?.externalProjectId ?? undefined,
-				externalProjectName: input?.externalProjectName ?? undefined,
-				externalCycleId: input?.externalCycleId ?? undefined,
-				dueDateFrom: dueDateRange.from,
-				dueDateTo: dueDateRange.to,
-			});
+				ctx.session.user.id,
+				input,
+			);
 
-			return db
-				.select({
-					task: tasks,
-					assignee: {
-						id: assignee.id,
-						name: assignee.name,
-						image: assignee.image,
-					},
-					creator: {
-						id: creator.id,
-						name: creator.name,
-						image: creator.image,
-					},
-					statusName: status.name,
-				})
-				.from(tasks)
-				.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))
-				.leftJoin(creator, eq(tasks.creatorId, creator.id))
-				.leftJoin(status, eq(tasks.statusId, status.id))
+			return selectTaskListRows()
 				.where(and(...filters))
 				.orderBy(
 					...buildTaskListOrderBy(
@@ -369,6 +387,43 @@ export const taskRouter = {
 				)
 				.limit(input?.limit ?? 50)
 				.offset(input?.offset ?? 0);
+		}),
+
+	listPage: protectedProcedure
+		.input(taskListPageInputSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+
+			const filters = buildTaskListFilters(
+				organizationId,
+				ctx.session.user.id,
+				input,
+			);
+
+			if (input.cursor) {
+				const { createdAt, id } = input.cursor;
+				const keyset = or(
+					lt(tasks.createdAt, createdAt),
+					and(eq(tasks.createdAt, createdAt), lt(tasks.id, id)),
+				);
+				if (keyset) {
+					filters.push(keyset);
+				}
+			}
+
+			const rows = await selectTaskListRows()
+				.where(and(...filters))
+				.orderBy(desc(tasks.createdAt), desc(tasks.id))
+				.limit(input.limit + 1);
+
+			const items = rows.slice(0, input.limit);
+			const last = items.at(-1);
+			const nextCursor =
+				rows.length > input.limit && last
+					? { createdAt: last.task.createdAt, id: last.task.id }
+					: null;
+
+			return { items, nextCursor };
 		}),
 
 	byOrganization: protectedProcedure

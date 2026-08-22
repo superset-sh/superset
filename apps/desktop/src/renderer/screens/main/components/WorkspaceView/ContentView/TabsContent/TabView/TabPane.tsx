@@ -129,9 +129,6 @@ export function TabPane({
 			<TabContentContextMenu
 				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
-				onSplitWithNewChat={() =>
-					splitPaneVertical(tabId, paneId, path, { paneType: "chat" })
-				}
 				onSplitWithNewBrowser={() =>
 					splitPaneVertical(tabId, paneId, path, { paneType: "webview" })
 				}

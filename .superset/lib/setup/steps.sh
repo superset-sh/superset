@@ -38,14 +38,6 @@ step_check_dependencies() {
     missing+=("jq (Run: brew install jq)")
   fi
 
-  if ! command -v docker &> /dev/null; then
-    missing+=("docker (Install from https://docker.com)")
-  fi
-
-  if ! command -v caddy &> /dev/null; then
-    warn "caddy not found — HTTP/2 proxy for Electric won't work (Run: brew install caddy && caddy trust)"
-  fi
-
   if [ ${#missing[@]} -gt 0 ]; then
     error "Missing dependencies:"
     for dep in "${missing[@]}"; do
@@ -159,166 +151,6 @@ step_setup_neon_branch() {
   export BRANCH_ID DIRECT_URL POOLED_URL WORKSPACE_NAME
 
   success "Neon branch ready: $WORKSPACE_NAME"
-  return 0
-}
-
-cleanup_stale_electric_replication_sessions() {
-  if ! command -v psql &> /dev/null; then
-    warn "psql not found — skipping stale Electric replication cleanup"
-    return 0
-  fi
-
-  if [ -z "${DIRECT_URL:-}" ]; then
-    warn "Direct database URL not available — skipping stale Electric replication cleanup"
-    return 0
-  fi
-
-  local terminated_count
-  terminated_count=$(
-    PGCONNECT_TIMEOUT=5 psql "$DIRECT_URL" -Atq <<'SQL' 2>/dev/null || true
-WITH lock_pids AS (
-  SELECT DISTINCT l.pid
-  FROM pg_locks l
-  JOIN pg_stat_activity a ON a.pid = l.pid
-  WHERE l.locktype = 'advisory'
-    AND l.classid = 4294967295
-    AND l.objid = hashtext('electric_slot_default')
-    AND l.objsubid = 1
-    AND a.pid <> pg_backend_pid()
-),
-repl_pids AS (
-  SELECT pid
-  FROM pg_stat_activity
-  WHERE query LIKE 'START_REPLICATION SLOT "electric_slot_default"%'
-    AND pid <> pg_backend_pid()
-),
-victims AS (
-  SELECT pid FROM lock_pids
-  UNION
-  SELECT pid FROM repl_pids
-)
-SELECT COALESCE(SUM((pg_terminate_backend(pid))::int), 0)
-FROM victims;
-SQL
-  )
-
-  if [ -z "$terminated_count" ]; then
-    warn "Unable to verify stale Electric replication sessions (continuing)"
-    return 0
-  fi
-
-  if [ "$terminated_count" -gt 0 ] 2>/dev/null; then
-    warn "Terminated $terminated_count stale Electric replication session(s)"
-  else
-    success "No stale Electric replication sessions found"
-  fi
-
-  return 0
-}
-
-step_prepare_electric() {
-  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
-
-  # Sanitize workspace name for Docker (valid chars only, max 64 chars)
-  local container_suffix
-  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
-  ELECTRIC_CONTAINER=$(echo "superset-electric-$container_suffix" | cut -c1-64)
-  ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
-
-  # Step 7 allocates SUPERSET_PORT_BASE; Electric must use that reserved port.
-  if [ -z "${SUPERSET_PORT_BASE:-}" ]; then
-    error "SUPERSET_PORT_BASE not set before preparing Electric"
-    return 1
-  fi
-
-  ELECTRIC_PORT=$((SUPERSET_PORT_BASE + 9))
-  ELECTRIC_URL="http://localhost:$ELECTRIC_PORT/v1/shape"
-
-  export ELECTRIC_CONTAINER ELECTRIC_PORT ELECTRIC_URL ELECTRIC_SECRET
-  return 0
-}
-
-step_start_electric() {
-  echo "⚡ Starting Electric SQL container..."
-
-  if ! command -v docker &> /dev/null; then
-    error "Docker not available"
-    return 1
-  fi
-
-  if [ -z "${DIRECT_URL:-}" ]; then
-    error "Database URL not available (Neon branch setup may have failed)"
-    return 1
-  fi
-
-  if [ -z "${ELECTRIC_CONTAINER:-}" ] || [ -z "${ELECTRIC_PORT:-}" ] || [ -z "${ELECTRIC_URL:-}" ]; then
-    if ! step_prepare_electric; then
-      return 1
-    fi
-  fi
-
-  # Stop and remove existing container if it exists
-  if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
-    echo "  Stopping existing container..."
-    docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
-    docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
-  fi
-
-  if lsof -nP -iTCP:"$ELECTRIC_PORT" -sTCP:LISTEN &> /dev/null; then
-    error "Electric port $ELECTRIC_PORT is already in use"
-    return 1
-  fi
-
-  local port_flag
-  port_flag="-p $ELECTRIC_PORT:3000"
-
-  echo "  Clearing stale Electric replication sessions..."
-  cleanup_stale_electric_replication_sessions
-
-  if ! docker run -d \
-      --name "$ELECTRIC_CONTAINER" \
-      --restart on-failure:5 \
-      $port_flag \
-      -e DATABASE_URL="$DIRECT_URL" \
-      -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
-      electricsql/electric:1.4.13 &> /dev/null; then
-    error "Failed to start Electric container"
-    return 1
-  fi
-
-  # Wait for Electric to be ready
-  echo "  Waiting for Electric to be ready on port $ELECTRIC_PORT..."
-  local ready=false
-  local health_status="unknown"
-  for i in {1..60}; do
-    local health_response
-    health_response=$(curl -fsS "http://localhost:$ELECTRIC_PORT/v1/health" 2>/dev/null || true)
-    health_status=$(echo "$health_response" | jq -r '.status // empty' 2>/dev/null || true)
-
-    if [ "$health_status" = "active" ]; then
-      ready=true
-      break
-    fi
-
-    if [ -z "$health_status" ]; then
-      health_status="unreachable"
-    fi
-
-    if [ $((i % 10)) -eq 0 ]; then
-      echo "  Electric status: $health_status (waiting for active)"
-    fi
-
-    sleep 1
-  done
-
-  if [ "$ready" = false ]; then
-    error "Electric failed to become active within 60s (last status: $health_status). Check logs: docker logs $ELECTRIC_CONTAINER"
-    echo "  Stopping inactive Electric container to free port $ELECTRIC_PORT..."
-    docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
-    return 1
-  fi
-
-  success "Electric SQL running at $ELECTRIC_URL"
   return 0
 }
 
@@ -453,6 +285,9 @@ step_write_env() {
   {
     echo ""
     echo "# Workspace Identity"
+    # Stable folder-derived identity (data dir, protocol scheme, Neon branch).
+    # The dev app reads its display title live from ~/.superset/host/*/host.db,
+    # so a later workspace rename never needs this file rewritten.
     write_env_var "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
     write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
     echo ""
@@ -467,27 +302,13 @@ step_write_env() {
       write_env_var "DATABASE_URL_UNPOOLED" "$DIRECT_URL"
     fi
 
-    echo ""
-    echo "# Workspace Electric SQL (Docker)"
-    if [ -n "${ELECTRIC_CONTAINER:-}" ]; then
-      write_env_var "ELECTRIC_CONTAINER" "$ELECTRIC_CONTAINER"
-    fi
-    if [ -n "${ELECTRIC_PORT:-}" ]; then
-      write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
-    fi
-    if [ -n "${ELECTRIC_URL:-}" ]; then
-      write_env_var "ELECTRIC_URL" "$ELECTRIC_URL"
-    fi
-    if [ -n "${ELECTRIC_SECRET:-}" ]; then
-      write_env_var "ELECTRIC_SECRET" "$ELECTRIC_SECRET"
-    fi
-
     # Port allocation for multi-worktree dev instances
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
-    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric,
-    #          +10 caddy (HTTP/2 reverse proxy for API electric endpoint), +11 code inspector,
-    #          +12 wrangler (electric-proxy worker), +13 relay
+    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal,
+    #          +11 code inspector, +13 relay
+    # (+9, +10, +12 were Electric/Caddy/wrangler; retired, kept unassigned so
+    # the surviving offsets stay stable across existing allocations)
     local BASE=$SUPERSET_PORT_BASE
 
     # App ports (fixed offsets from base)
@@ -500,10 +321,7 @@ step_write_env() {
     local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
     local STREAMS_PORT=$((BASE + 7))
     local STREAMS_INTERNAL_PORT=$((BASE + 8))
-    local ELECTRIC_PORT=$((BASE + 9))
-    local CADDY_ELECTRIC_PORT=$((BASE + 10))
     local CODE_INSPECTOR_PORT=$((BASE + 11))
-    local WRANGLER_PORT=$((BASE + 12))
     local RELAY_PORT=$((BASE + 13))
 
     echo ""
@@ -518,10 +336,7 @@ step_write_env() {
     write_env_var "DESKTOP_NOTIFICATIONS_PORT" "$DESKTOP_NOTIFICATIONS_PORT"
     write_env_var "STREAMS_PORT" "$STREAMS_PORT"
     write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
-    write_env_var "ELECTRIC_PORT" "$ELECTRIC_PORT"
-    write_env_var "CADDY_ELECTRIC_PORT" "$CADDY_ELECTRIC_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
-    write_env_var "WRANGLER_PORT" "$WRANGLER_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
@@ -544,33 +359,10 @@ step_write_env() {
     write_env_var "NEXT_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
     write_env_var "EXPO_PUBLIC_STREAMS_URL" "http://localhost:$STREAMS_PORT"
     write_env_var "STREAMS_INTERNAL_URL" "http://127.0.0.1:$STREAMS_INTERNAL_PORT"
-    echo ""
-    echo "# Electric URLs (overrides from root .env)"
-    write_env_var "ELECTRIC_URL" "http://localhost:$ELECTRIC_PORT/v1/shape"
-    echo "# Caddy HTTPS proxy for HTTP/2 (avoids browser 6-connection limit with Electric SSE streams)"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-    write_env_var "NEXT_PUBLIC_ELECTRIC_PROXY_URL" "https://localhost:$CADDY_ELECTRIC_PORT"
-    write_env_var "EXPO_PUBLIC_ELECTRIC_URL" "http://localhost:$WRANGLER_PORT"
     write_env_var "EXPO_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
   } >> .env
 
   success "Workspace .env written"
-
-  # Generate Caddyfile for HTTP/2 reverse proxy (avoids browser 6-connection limit with Electric SSE streams)
-  # Caddy proxies to the local Wrangler worker, which handles auth and forwards upstream appropriately.
-  # auto_https disable_redirects keeps Caddy off port 80 — we only need HTTPS on the allocated port.
-  cat > Caddyfile <<-CADDYEOF
-	{
-		auto_https disable_redirects
-	}
-
-	https://localhost:{\$CADDY_ELECTRIC_PORT} {
-		reverse_proxy localhost:{\$WRANGLER_PORT} {
-			flush_interval -1
-		}
-	}
-	CADDYEOF
-  success "Caddyfile written"
 
   # Generate .superset/ports.json for static port name mapping in the desktop app
   local superset_dir
@@ -587,23 +379,11 @@ step_write_env() {
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
     { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
-    { "port": $ELECTRIC_PORT, "label": "Electric" },
-    { "port": $CADDY_ELECTRIC_PORT, "label": "Caddy Electric" },
-    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" },
-    { "port": $WRANGLER_PORT, "label": "Electric Proxy (Wrangler)" }
+    { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" }
   ]
 }
 PORTSJSON
   success "Port name mapping written to .superset/ports.json"
-
-  cat > apps/electric-proxy/.dev.vars <<DEVVARS
-AUTH_URL=http://localhost:$API_PORT
-ELECTRIC_SHAPE_URL=http://localhost:$ELECTRIC_PORT/v1/shape
-ELECTRIC_SECRET=${ELECTRIC_SECRET:-local_electric_dev_secret}
-ELECTRIC_SOURCE_ID=${ELECTRIC_SOURCE_ID:-}
-ELECTRIC_SOURCE_SECRET=${ELECTRIC_SOURCE_SECRET:-}
-DEVVARS
-  success "Electric proxy .dev.vars written"
 
   return 0
 }

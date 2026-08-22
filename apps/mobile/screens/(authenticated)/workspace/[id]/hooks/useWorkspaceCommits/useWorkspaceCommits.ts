@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 
 const COMMITS_STALE_MS = 30_000;
@@ -16,7 +16,7 @@ export function useWorkspaceCommits(workspaceId: string | null) {
 	const { host } = useWorkspaceHost(workspaceId);
 	const hostUrl =
 		host?.isOnline === true
-			? buildRelayHostUrl(host.organizationId, host.machineId)
+			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
 
 	const query = useQuery({

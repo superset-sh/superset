@@ -23,7 +23,6 @@ export function OrganizationInvitationEmail({
 }: OrganizationInvitationEmailProps) {
 	const roleDisplay = role === "member" ? "Member" : "Admin";
 
-	// Calculate days until expiration
 	const daysUntilExpiration = differenceInDays(expiresAt, new Date());
 	const expirationText =
 		daysUntilExpiration === 1 ? "1 day" : `${daysUntilExpiration} days`;
@@ -32,42 +31,42 @@ export function OrganizationInvitationEmail({
 		<EmailLayout
 			preview={`${inviterName} invited you to join ${organizationName}`}
 		>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
-				Join <strong>{organizationName}</strong> on <strong>Superset</strong>
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
+				Join {organizationName} on Superset
 			</Heading>
 
 			{inviteeName && (
-				<Text className="text-base leading-[26px] mb-4 text-foreground">
+				<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 					Hi {inviteeName},
 				</Text>
 			)}
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				{inviterName} ({inviterEmail}) has invited you to join{" "}
 				<strong>{organizationName}</strong> on Superset as a{" "}
 				<strong>{roleDisplay}</strong>.
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				Superset helps teams automate workflows, manage tasks, and collaborate
-				effectively. Accept this invitation to get started.
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
+				Superset runs coding agents in parallel, each in an isolated copy of
+				your repo. Accept the invite to work alongside your team.
 			</Text>
 
-			<Section className="mt-6 mb-6">
+			<Section className="mb-6">
 				<Button href={inviteLink}>Accept Invitation</Button>
 			</Section>
 
-			<Text className="text-xs leading-5 text-muted mt-4 mb-2">
+			<Text className="text-[13px] leading-5 text-muted m-0 mb-1">
 				Or copy and paste this URL into your browser:
 			</Text>
 			<Link
 				href={inviteLink}
-				className="text-sm leading-6 text-primary break-all block mb-6 no-underline"
+				className="text-[13px] leading-5 text-muted underline break-all block mb-6"
 			>
 				{inviteLink}
 			</Link>
 
-			<Text className="text-xs leading-5 text-muted">
+			<Text className="text-[13px] leading-5 text-muted m-0">
 				This invitation expires in {expirationText}. If you didn't expect this
 				invitation, you can safely ignore this email.
 			</Text>

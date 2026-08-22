@@ -1,1 +1,0 @@
-export { LeaderboardTable } from "./LeaderboardTable";

@@ -15,7 +15,6 @@
 		"NEXT_PUBLIC_ROOT_DOMAIN",
 		"RELAY_BACKUP_URL",
 		"NEXT_PUBLIC_ADMIN_URL",
-		"NEXT_PUBLIC_ELECTRIC_URL",
 		"POSTHOG_API_KEY",
 		"POSTHOG_PROJECT_ID",
 		"KV_REST_API_URL",
@@ -48,10 +47,6 @@
 			]
 		},
 		"dev": {
-			"cache": false,
-			"persistent": true
-		},
-		"//#dev:caddy": {
 			"cache": false,
 			"persistent": true
 		},

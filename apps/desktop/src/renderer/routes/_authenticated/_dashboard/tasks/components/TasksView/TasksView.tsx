@@ -1,4 +1,3 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	useCallback,
@@ -8,9 +7,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
@@ -49,7 +49,7 @@ export function TasksView({
 	initialState,
 }: TasksViewProps) {
 	const navigate = useNavigate();
-	const collections = useCollections();
+	const activeOrganizationId = useActiveOrganizationId();
 	const {
 		tab: storedTab,
 		assignee: storedAssignee,
@@ -178,14 +178,9 @@ export function TasksView({
 		storeSetIncludeClosedIssues(includeClosedIssues);
 	}, [includeClosedIssues, storeSetIncludeClosedIssues]);
 
-	const { data: integrations } = useLiveQuery(
-		(q) =>
-			q
-				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({
-					...integrationConnections,
-				})),
-		[collections],
+	const { data: integrations } = cloudTrpc.integration.list.useQuery(
+		{ organizationId: activeOrganizationId ?? "" },
+		{ enabled: !!activeOrganizationId },
 	);
 
 	// Projects are fully local — identity comes from the host fan-out.
@@ -228,13 +223,17 @@ export function TasksView({
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
 
+	// Defaults ("all"/null) are omitted from the URL, so write the store too —
+	// otherwise the render falls back to the stale stored value (no-op select).
 	const handleTabChange = (tab: TabValue) => {
 		cancelPendingSearchNavigation();
+		storeSetTab(tab);
 		navigate({ to: "/tasks", search: buildSearch({ tab }), replace: true });
 	};
 
 	const handleAssigneeFilterChange = (assignee: string | null) => {
 		cancelPendingSearchNavigation();
+		storeSetAssignee(assignee);
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ assignee }),
@@ -273,6 +272,7 @@ export function TasksView({
 
 	const handleLinearProjectFilterChange = (linearProject: string | null) => {
 		cancelPendingSearchNavigation();
+		storeSetLinearProjectFilter(linearProject);
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ linearProject }),

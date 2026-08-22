@@ -150,7 +150,11 @@ export interface ClientOptions {
 	 * Relay base URL for host-routed operations (e.g. workspace create/delete,
 	 * which physically run on the developer's machine via the relay tunnel).
 	 *
-	 * Defaults to process.env['SUPERSET_RELAY_URL'] or `https://relay.superset.sh`.
+	 * When set (or via process.env['SUPERSET_RELAY_URL']) it is used as-is.
+	 * When omitted, the client asks the API which relay this account's hosts
+	 * are on before each host-routed call (cached briefly), falling back to
+	 * `https://relay.superset.sh` if the API is unreachable — a hardcoded
+	 * default silently misses hosts after a server-side relay move.
 	 */
 	relayURL?: string | null | undefined;
 
@@ -246,6 +250,9 @@ export class Superset {
 	private _options: ClientOptions;
 	private _jwtCache: { token: string; expiresAt: number } | null = null;
 	private _jwtInflight: Promise<string> | null = null;
+	private _relayUrlExplicit = false;
+	private _relayUrlCache: { url: string; expiresAt: number } | null = null;
+	private _relayUrlInflight: Promise<string> | null = null;
 
 	/**
 	 * API Client for interfacing with the Superset API.
@@ -316,6 +323,7 @@ export class Superset {
 
 		this.apiKey = apiKey;
 		this.organizationId = organizationId ?? null;
+		this._relayUrlExplicit = Boolean(relayURL);
 		this.relayURL = relayURL || "https://relay.superset.sh";
 	}
 
@@ -530,20 +538,23 @@ export class Superset {
 			);
 		}
 		const routingKey = `${this.organizationId}:${hostId}`;
-		const url = `${this.relayURL}/hosts/${routingKey}/trpc/${procedurePath}`;
-		const optsPromise = this._getJwt().then((jwt) => ({
-			// Caller options first (timeout, retries, signal, etc.) — body and
-			// auth headers are then forced so per-call options can't strip the
-			// JWT or replace the tRPC envelope.
-			...options,
-			body: { json: input ?? null },
-			headers: buildHeaders([
-				options?.headers,
-				// Drop API-key auth (relay only verifies JWTs) and assert the JWT.
-				{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
-			]),
-		}));
-		return this.post<TRPCEnvelope<Rsp>>(url, optsPromise)._thenUnwrap(
+		const optsPromise = Promise.all([this._getJwt(), this._getRelayUrl()]).then(
+			([jwt, relayUrl]) => ({
+				// Caller options first (timeout, retries, signal, etc.) — body and
+				// auth headers are then forced so per-call options can't strip the
+				// JWT or replace the tRPC envelope.
+				...options,
+				method: "post" as const,
+				path: `${relayUrl}/hosts/${routingKey}/trpc/${procedurePath}`,
+				body: { json: input ?? null },
+				headers: buildHeaders([
+					options?.headers,
+					// Drop API-key auth (relay only verifies JWTs) and assert the JWT.
+					{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
+				]),
+			}),
+		);
+		return this.request<TRPCEnvelope<Rsp>>(optsPromise)._thenUnwrap(
 			(r) => r.result.data.json,
 		);
 	}
@@ -567,16 +578,19 @@ export class Superset {
 		if (input !== undefined) {
 			queryParams.input = JSON.stringify({ json: input });
 		}
-		const url = `${this.relayURL}/hosts/${routingKey}/trpc/${procedurePath}`;
-		const optsPromise = this._getJwt().then((jwt) => ({
-			...options,
-			query: queryParams,
-			headers: buildHeaders([
-				options?.headers,
-				{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
-			]),
-		}));
-		return this.get<TRPCEnvelope<Rsp>>(url, optsPromise)._thenUnwrap(
+		const optsPromise = Promise.all([this._getJwt(), this._getRelayUrl()]).then(
+			([jwt, relayUrl]) => ({
+				...options,
+				method: "get" as const,
+				path: `${relayUrl}/hosts/${routingKey}/trpc/${procedurePath}`,
+				query: queryParams,
+				headers: buildHeaders([
+					options?.headers,
+					{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
+				]),
+			}),
+		);
+		return this.request<TRPCEnvelope<Rsp>>(optsPromise)._thenUnwrap(
 			(r) => r.result.data.json,
 		);
 	}
@@ -587,6 +601,53 @@ export class Superset {
 	 * skew. Concurrent host calls share a single in-flight exchange so we
 	 * don't fan out N token requests on a cold cache.
 	 */
+	/**
+	 * The relay this account's hosts are actually on, asked of the API and
+	 * cached for a minute. Hosts resolve their relay through the API, so a
+	 * client that hardcodes one diverges after any server-side relay move —
+	 * the workspace tools then ping a relay the host left. An explicitly
+	 * configured relayURL (option or env) always wins; the API answer only
+	 * replaces the built-in default. Falls back to the last configured URL
+	 * when the API can't answer.
+	 */
+	private async _getRelayUrl(): Promise<string> {
+		if (this._relayUrlExplicit) return this.relayURL;
+		const now = Date.now();
+		if (this._relayUrlCache && this._relayUrlCache.expiresAt > now) {
+			return this._relayUrlCache.url;
+		}
+		if (this._relayUrlInflight) return this._relayUrlInflight;
+		this._relayUrlInflight = (async () => {
+			try {
+				const jwt = await this._getJwt();
+				const envelope = await this.get<TRPCEnvelope<{ url?: string }>>(
+					"/api/trpc/host.relayEndpoint",
+					{
+						timeout: 10_000,
+						headers: buildHeaders([
+							{ "x-api-key": null, Authorization: `Bearer ${jwt}` },
+						]),
+					},
+				);
+				const url = envelope.result.data.json?.url;
+				if (url) {
+					this._relayUrlCache = { url, expiresAt: Date.now() + 60_000 };
+					return url;
+				}
+			} catch {
+				// fall through to the configured URL
+			}
+			this._relayUrlCache = {
+				url: this.relayURL,
+				expiresAt: Date.now() + 60_000,
+			};
+			return this.relayURL;
+		})().finally(() => {
+			this._relayUrlInflight = null;
+		});
+		return this._relayUrlInflight;
+	}
+
 	private async _getJwt(): Promise<string> {
 		const now = Date.now();
 		if (this._jwtCache && this._jwtCache.expiresAt - 5 * 60_000 > now) {

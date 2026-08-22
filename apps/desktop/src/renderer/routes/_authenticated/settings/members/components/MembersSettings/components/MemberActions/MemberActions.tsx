@@ -22,6 +22,8 @@ import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { TeamMember } from "../../../../types";
 
 export function MemberActions({
@@ -41,6 +43,7 @@ export function MemberActions({
 	const { refetch: refetchSession } = authClient.useSession();
 	const { plan } = useCurrentPlan();
 	const navigate = useNavigate();
+	const utils = cloudTrpc.useUtils();
 
 	const availableRoles = getAvailableRoleChanges(
 		currentUserRole,
@@ -57,7 +60,16 @@ export function MemberActions({
 		await authClient.organization.setActive({
 			organizationId: result.activeOrganizationId ?? null,
 		});
+		// Move this window too. The window registry holds the org we just left;
+		// left alone it would win on the next provider mount and pin the window
+		// to an organization the user is no longer a member of.
+		if (result.activeOrganizationId) {
+			await electronTrpcClient.window.setActiveOrg.mutate({
+				organizationId: result.activeOrganizationId,
+			});
+		}
 		await refetchSession();
+		await utils.organization.listMembers.invalidate();
 		navigate({ to: "/" });
 	}
 
@@ -66,6 +78,7 @@ export function MemberActions({
 			organizationId: member.organizationId,
 			userId: member.userId,
 		});
+		await utils.organization.listMembers.invalidate();
 	}
 
 	function handleRemove(): void {
@@ -114,6 +127,7 @@ export function MemberActions({
 				memberId: member.memberId,
 				role: newRole,
 			});
+			await utils.organization.listMembers.invalidate();
 			toast.success(`Role changed to ${ORGANIZATION_ROLES[newRole].name}`);
 		} catch (error) {
 			toast.error(

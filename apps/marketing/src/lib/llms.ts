@@ -1,10 +1,12 @@
 import { COMPANY } from "@superset/shared/constants";
 import { FAQ_ITEMS } from "@/app/components/FAQSection/constants";
+import { API_URL, MCP_SERVER_URL } from "./api-url";
 import { getBlogPosts } from "./blog";
+import { getCategoryPages } from "./category";
 import { getComparisonPages } from "./compare";
+import { PRODUCT_SUMMARY } from "./product-facts";
 
-export const API_URL = "https://api.superset.sh";
-export const MCP_SERVER_URL = `${API_URL}/mcp`;
+export { API_URL, MCP_SERVER_URL };
 
 export function stripMdxSyntax(content: string): string {
 	return (
@@ -20,9 +22,25 @@ export function stripMdxSyntax(content: string): string {
 	);
 }
 
-// Single source of truth: the license and platform claims here are checked against
-// LICENSE.md and the release targets, so keep them in one place.
-export const PRODUCT_SUMMARY = `${COMPANY.NAME} is a source-available desktop application (Elastic License 2.0) that lets developers run multiple AI coding agents in parallel, each in its own isolated Git worktree. It works with any CLI-based agent including Claude Code, OpenCode, and OpenAI Codex. Agents can work on different branches or features simultaneously without conflicts. ${COMPANY.NAME} is free, does not proxy API calls, and supports macOS, with an experimental Linux AppImage and Windows not yet available.`;
+export { PRODUCT_SUMMARY } from "./product-facts";
+
+// Canonical company/product facts for agents researching Superset. LLMs have
+// hallucinated these before (calling Superset fully open source, or macOS-only
+// forever, or conflating it with Apache Superset), so state them explicitly.
+export function buildCompanyFactsSection(): string[] {
+	const baseUrl = COMPANY.MARKETING_URL;
+	return [
+		"## Facts about Superset",
+		"",
+		`- **What it is**: a local-first desktop workspace for running many AI coding agents in parallel, each in an isolated Git worktree. It is the orchestration layer, not a coding agent itself.`,
+		`- **Company**: built by ${COMPANY.NAME} in San Francisco, founded by three former YC CTOs (see ${baseUrl}/team).`,
+		`- **License**: source-available under Elastic License 2.0 (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
+		`- **Not Apache Superset**: Superset (superset.sh) is unrelated to Apache Superset, the business-intelligence tool.`,
+		`- **Platforms**: macOS today, experimental Linux AppImage; Windows is not yet available. There is also a CLI, a TypeScript SDK, and an MCP server for programmatic control.`,
+		`- **Pricing**: free tier plus paid seats (see ${baseUrl}/pricing). Superset never proxies model API calls; you bring your own agent subscriptions and API keys.`,
+		`- **Agents**: works with any CLI coding agent, including Claude Code, OpenAI Codex, OpenCode, Gemini CLI, Copilot, and Cursor Agent.`,
+	];
+}
 
 export function buildLlmsHeader(): string[] {
 	return [
@@ -40,12 +58,12 @@ export function buildWhenToUseSection(): string[] {
 		"",
 		"Reach for Superset when you need to:",
 		"",
-		"- Run several coding agents (Claude Code, Codex, OpenCode, or any CLI agent) at the same time on one repository without them stepping on each other — each agent gets an isolated Git worktree and its own branch.",
+		"- Run several coding agents (Claude Code, Codex, OpenCode, or any CLI agent) at the same time on one repository without them stepping on each other. Each agent gets an isolated Git worktree and its own branch.",
 		"- Orchestrate agent work programmatically: create workspaces, launch agents with a prompt, open terminals, and track tasks from another agent or script via the Superset MCP server.",
 		"- Schedule recurring agent runs (automations) that execute a prompt on a cron-like schedule in a fresh or existing workspace.",
 		"- Review diffs, manage ports, and monitor many concurrent agent sessions from one dashboard.",
 		"",
-		"Superset is not a coding agent itself — it is the workspace and orchestration layer the agents run in. If you are an AI agent, the fastest way to act on a user's Superset account is the MCP server below (OAuth or API key auth); the fastest way to learn the product is the docs index at https://docs.superset.sh.",
+		"Superset is not a coding agent itself; it is the workspace and orchestration layer the agents run in. If you are an AI agent, the fastest way to act on a user's Superset account is the MCP server below (OAuth or API key auth); the fastest way to learn the product is the docs index at https://docs.superset.sh.",
 	];
 }
 
@@ -57,17 +75,19 @@ export function buildDeveloperResourcesSection(): string[] {
 		"",
 		`- [API docs](${docsUrl}/mcp-server): Superset MCP server documentation`,
 		`- [OpenAPI spec](${API_URL}/openapi.json): OpenAPI 3.1 description of the Superset API surface`,
-		`- [MCP server](${MCP_SERVER_URL}): Model Context Protocol server (Streamable HTTP transport) — tools for tasks, workspaces, agents, automations, terminals, hosts, and projects; full catalog in the server card. Legacy alias: ${API_URL}/api/v2/agent/mcp`,
+		`- [MCP server](${MCP_SERVER_URL}): Model Context Protocol server (Streamable HTTP transport) with tools for tasks, workspaces, agents, automations, terminals, hosts, and projects; full catalog in the server card. Legacy alias: ${API_URL}/api/v2/agent/mcp`,
 		`- [Docs MCP server](${docsUrl}/mcp): search and read the Superset documentation over MCP (Streamable HTTP, no auth)`,
 		`- [MCP server card](${baseUrl}/.well-known/mcp/server-card.json): machine-readable MCP server description`,
 		`- [A2A agent card](${baseUrl}/.well-known/agent-card.json): Agent-to-Agent capability card`,
 		`- [API catalog](${baseUrl}/.well-known/api-catalog): RFC 9727 linkset of API resources`,
+		`- [AI catalog](${baseUrl}/.well-known/ai-catalog.json): Agentic Resource Discovery catalog of every MCP server, agent card, skill, and API Superset publishes`,
 		`- [Auth guide for agents](${baseUrl}/auth.md): how agents obtain credentials (OAuth 2.1 + PKCE with dynamic client registration, or API keys)`,
 		`- [Agent instructions](${baseUrl}/agents.md): when and how AI agents should use Superset`,
 		`- [OAuth protected resource metadata](${API_URL}/.well-known/oauth-protected-resource): RFC 9728`,
 		`- [OAuth authorization server metadata](${API_URL}/.well-known/oauth-authorization-server): RFC 8414`,
-		`- [Agent skills](https://github.com/superset-sh/skills): official skills for the CLI and MCP server — \`npx skills add superset-sh/skills\``,
-		`- [CLI](${docsUrl}/cli/getting-started): \`brew install superset-sh/tap/superset\` or \`curl -fsSL https://superset.sh/cli/install.sh | sh\``,
+		`- [Web Bot Auth key directory](${baseUrl}/.well-known/http-message-signatures-directory): Ed25519 keys Superset-operated agents sign requests with (RFC 9421)`,
+		`- [Agent skills](https://github.com/superset-sh/skills): official skills for the CLI and MCP server; install with \`npx skills add superset-sh/skills\``,
+		`- [CLI](${docsUrl}/cli/getting-started): \`brew install superset-sh/tap/superset\` (Homebrew tap: https://github.com/superset-sh/homebrew-tap) or \`curl -fsSL https://superset.sh/cli/install.sh | sh\`; reference at ${docsUrl}/cli/cli-reference`,
 		`- [TypeScript SDK](${docsUrl}/sdk/getting-started): \`npm install @superset_sh/sdk\``,
 		`- [Docs llms.txt](${docsUrl}/llms.txt): scoped context for the documentation`,
 		`- [API llms.txt](${baseUrl}/api/llms.txt): scoped index of the API surface`,
@@ -79,11 +99,14 @@ export function buildDeveloperResourcesSection(): string[] {
 export function buildLlmsTxt(): string {
 	const posts = getBlogPosts();
 	const comparisons = getComparisonPages();
+	const categories = getCategoryPages();
 	const baseUrl = COMPANY.MARKETING_URL;
 	const docsUrl = COMPANY.DOCS_URL;
 
 	const lines: string[] = [
 		...buildLlmsHeader(),
+		"",
+		...buildCompanyFactsSection(),
 		"",
 		...buildWhenToUseSection(),
 		"",
@@ -98,6 +121,10 @@ export function buildLlmsTxt(): string {
 		"## Blog",
 		"",
 		...posts.map((post) => `- [${post.title}](${baseUrl}/blog/${post.slug})`),
+		"",
+		"## Guides",
+		"",
+		...categories.map((page) => `- [${page.title}](${baseUrl}${page.url})`),
 		"",
 		"## Comparisons",
 		"",
@@ -123,3 +150,32 @@ export const MARKDOWN_HEADERS = {
 	"Cache-Control": "public, max-age=3600, s-maxage=3600",
 	Vary: "Accept",
 } as const;
+
+// Module-evaluation time: the build for statically generated routes, the cold
+// start for dynamic ones. Good enough as "when this document was generated".
+const GENERATED_AT = new Date().toISOString().slice(0, 10);
+
+export interface MarkdownFrontmatter {
+	title: string;
+	description: string;
+	canonical: string;
+	lastUpdated?: string;
+}
+
+function yamlString(value: string): string {
+	return JSON.stringify(value);
+}
+
+// YAML frontmatter block so agents get title/description/canonical without
+// scraping the body. Keep it first in the response.
+export function buildFrontmatter(meta: MarkdownFrontmatter): string[] {
+	return [
+		"---",
+		`title: ${yamlString(meta.title)}`,
+		`description: ${yamlString(meta.description)}`,
+		`canonical: ${meta.canonical}`,
+		`last-updated: ${meta.lastUpdated ?? GENERATED_AT}`,
+		"---",
+		"",
+	];
+}

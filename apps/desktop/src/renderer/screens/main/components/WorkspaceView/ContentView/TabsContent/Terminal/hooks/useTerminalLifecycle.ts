@@ -372,6 +372,9 @@ export function useTerminalLifecycle({
 				pendingEventsRef.current = [];
 				setExitStatus(null);
 				resetModes();
+				// clear() drops the buffer but not parser input modes — a TUI that
+				// died with mouse/kitty reporting armed would spray reports into
+				// the replacement shell. Disarm before attaching it.
 				disarmStaleInputModes(xterm);
 				xterm.clear();
 				const attach = () => {

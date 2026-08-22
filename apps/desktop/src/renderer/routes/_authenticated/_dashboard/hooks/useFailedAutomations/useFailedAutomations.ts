@@ -1,8 +1,7 @@
 import type { SelectAutomationRun } from "@superset/db/schema";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useAutomationFailuresStore } from "renderer/stores/automation-failures";
 
 const FAILED_STATUSES: SelectAutomationRun["status"][] = [
@@ -33,7 +32,6 @@ interface FailedAutomations {
 }
 
 export function useFailedAutomations(): FailedAutomations {
-	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
 	const lastSeenFailureAt = useAutomationFailuresStore(
@@ -43,44 +41,28 @@ export function useFailedAutomations(): FailedAutomations {
 		(s) => s.markFailuresSeen,
 	);
 
-	const { data: runRows = [] } = useLiveQuery(
-		(q) =>
-			q.from({ r: collections.automationRuns }).select(({ r }) => ({
-				automationId: r.automationId,
-				status: r.status,
-				createdAt: r.createdAt,
-				v2WorkspaceId: r.v2WorkspaceId,
-				chatSessionId: r.chatSessionId,
-				terminalSessionId: r.terminalSessionId,
-			})),
-		[collections.automationRuns],
+	const { data: runRows = [] } = cloudTrpc.automation.latestRuns.useQuery(
+		undefined,
+		{ refetchInterval: 30_000, staleTime: 30_000 },
 	);
-	const { data: automationRows = [] } = useLiveQuery(
-		(q) =>
-			q.from({ a: collections.automations }).select(({ a }) => ({
-				id: a.id,
-				ownerUserId: a.ownerUserId,
-			})),
-		[collections.automations],
+	const { data: automationRows = [] } = cloudTrpc.automation.list.useQuery(
+		undefined,
+		{ refetchInterval: 30_000, staleTime: 30_000 },
 	);
 
 	const { lastRunStatusById, lastRunById, failedIds, myFailureTimes } =
 		useMemo(() => {
 			const latest = new Map<string, AutomationLastRun>();
 			for (const run of runRows) {
-				if (run == null) continue;
-				const at = new Date(run.createdAt as unknown as string).getTime();
+				const at = new Date(run.createdAt).getTime();
 				if (!Number.isFinite(at)) continue;
-				const prev = latest.get(run.automationId);
-				if (!prev || at > prev.at) {
-					latest.set(run.automationId, {
-						status: run.status,
-						at,
-						v2WorkspaceId: run.v2WorkspaceId ?? null,
-						chatSessionId: run.chatSessionId ?? null,
-						terminalSessionId: run.terminalSessionId ?? null,
-					});
-				}
+				latest.set(run.automationId, {
+					status: run.status,
+					at,
+					v2WorkspaceId: run.v2WorkspaceId ?? null,
+					chatSessionId: run.chatSessionId ?? null,
+					terminalSessionId: run.terminalSessionId ?? null,
+				});
 			}
 			const lastRunStatusById = new Map<
 				string,
@@ -95,10 +77,7 @@ export function useFailedAutomations(): FailedAutomations {
 			const myFailureTimes = currentUserId
 				? automationRows
 						.filter(
-							(a) =>
-								a != null &&
-								a.ownerUserId === currentUserId &&
-								failedIds.has(a.id),
+							(a) => a.ownerUserId === currentUserId && failedIds.has(a.id),
 						)
 						.map((a) => latest.get(a.id)?.at ?? 0)
 						.filter((at) => Number.isFinite(at))

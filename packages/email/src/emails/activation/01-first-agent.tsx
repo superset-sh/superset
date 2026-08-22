@@ -19,36 +19,37 @@ export function ActivationNudge1({
 			recipientEmail={userEmail}
 			unsubscribeUrl={unsubscribeUrl}
 		>
-			<Heading className="text-[28px] font-semibold leading-9 text-foreground text-center mt-2 mb-2">
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-3">
 				Your first agent, safely
 			</Heading>
-			<Text className="text-base leading-6 text-muted text-center m-0 mb-8">
+			<Text className="text-[15px] leading-6 text-muted m-0 mb-6">
 				The part most people don&apos;t realize: the agent never touches your
 				working tree.
 			</Text>
 
-			<Section className="bg-surface border border-solid border-border rounded-2xl p-6 mb-8">
-				<Text className="text-base leading-[26px] text-foreground m-0 mb-3">
+			<Section className="bg-surface border border-solid border-border rounded-lg p-5 mb-6">
+				<Text className="text-[15px] leading-6 text-foreground m-0 mb-3">
 					<strong>Every workspace is an isolated copy of your repo</strong> on
 					its own branch. Your checkout, your uncommitted changes, your local
-					state — untouched.
+					state all stay untouched.
 				</Text>
-				<Text className="text-base leading-[26px] text-foreground m-0">
-					If the result is garbage, delete the workspace.
-					<br />
-					Nothing happened.
+				<Text className="text-[15px] leading-6 text-foreground m-0">
+					If the result is garbage, delete the workspace. Nothing happened.
 				</Text>
 			</Section>
 
-			<Text className="text-base leading-6 text-foreground m-0 mb-2 font-semibold">
-				So take the first swing on something small:
-			</Text>
-			<Text className="text-base leading-[26px] text-foreground m-0 mb-8">
-				A flaky test. A TODO. The rename you&apos;ve been putting off. Something
-				you were going to do anyway this week.
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
+				And it&apos;s all local. Your code never leaves your machine unless you
+				say so.
 			</Text>
 
-			<Section className="text-center mb-2">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-6">
+				So take the first swing on something small: a flaky test, or the rename
+				you&apos;ve been putting off. Something you were going to do anyway this
+				week.
+			</Text>
+
+			<Section>
 				<Button href={`https://superset.sh/download${utm}`}>
 					Get the desktop app
 				</Button>

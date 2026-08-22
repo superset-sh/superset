@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useRef } from "react";
 
 const WORKSPACES = [
@@ -14,7 +14,7 @@ export function RemoteWorkspacesDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full max-w-md overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
@@ -30,7 +30,7 @@ export function RemoteWorkspacesDemo() {
 					<div className="size-2 rounded-full bg-[#28c840]/85" />
 				</div>
 				<span className="pointer-events-none absolute inset-x-0 text-center font-mono text-[10px] tracking-tight text-muted-foreground/60">
-					gpu-box — ssh
+					gpu-box (ssh)
 				</span>
 			</div>
 
@@ -39,15 +39,15 @@ export function RemoteWorkspacesDemo() {
 					<span className="text-muted-foreground/55">❯</span>{" "}
 					<span className="text-brand-light">ssh gpu-box</span>
 				</div>
-				<motion.div
+				<m.div
 					className="text-muted-foreground/65"
 					initial={{ opacity: 0 }}
 					animate={isInView ? { opacity: 1 } : { opacity: 0 }}
 					transition={{ duration: 0.3, delay: 0.2 }}
 				>
 					Welcome to gpu-box · us-east · 64 cores · 128 GB
-				</motion.div>
-				<motion.div
+				</m.div>
+				<m.div
 					className="pt-2 text-foreground"
 					initial={{ opacity: 0 }}
 					animate={isInView ? { opacity: 1 } : { opacity: 0 }}
@@ -55,17 +55,17 @@ export function RemoteWorkspacesDemo() {
 				>
 					<span className="text-muted-foreground/55">❯</span>{" "}
 					<span className="text-brand-light">superset status</span>
-				</motion.div>
-				<motion.div
+				</m.div>
+				<m.div
 					className="text-muted-foreground"
 					initial={{ opacity: 0 }}
 					animate={isInView ? { opacity: 1 } : { opacity: 0 }}
 					transition={{ duration: 0.3, delay: 0.55 }}
 				>
 					3 workspaces running
-				</motion.div>
+				</m.div>
 				{WORKSPACES.map((workspace, index) => (
-					<motion.div
+					<m.div
 						key={workspace.name}
 						className="text-muted-foreground"
 						initial={{ opacity: 0 }}
@@ -79,9 +79,9 @@ export function RemoteWorkspacesDemo() {
 						)}{" "}
 						{workspace.name} ·{" "}
 						<span className="text-muted-foreground/55">{workspace.detail}</span>
-					</motion.div>
+					</m.div>
 				))}
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

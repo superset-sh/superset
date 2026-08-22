@@ -1,14 +1,6 @@
 services:
   postgres:
     image: postgres:17
-    command:
-      - postgres
-      - -c
-      - wal_level=logical
-      - -c
-      - max_wal_senders=10
-      - -c
-      - max_replication_slots=10
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -29,17 +21,6 @@ services:
       PG_CONNECTION_STRING: postgres://postgres:postgres@postgres:5432/main
     ports:
       - "${LOCAL_NEON_PROXY_PORT:-4444}:4444"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  electric:
-    image: electricsql/electric:1.7.4
-    environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/main?sslmode=disable
-      ELECTRIC_SECRET: local_electric_dev_secret
-    ports:
-      - "${LOCAL_ELECTRIC_PORT:-3100}:3000"
     depends_on:
       postgres:
         condition: service_healthy

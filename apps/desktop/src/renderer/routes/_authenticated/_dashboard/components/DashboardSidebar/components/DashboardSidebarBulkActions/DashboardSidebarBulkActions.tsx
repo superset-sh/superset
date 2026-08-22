@@ -86,7 +86,11 @@ export function DashboardSidebarBulkActions({
 				<div
 					role="toolbar"
 					aria-label="Selected workspace actions"
-					className="flex min-h-8 w-full shrink-0 items-center gap-0.5 py-1 pl-2 pr-2"
+					// Sticky: the toolbar's natural slot (the Workspaces header) can be
+					// scrolled far out of view when selecting rows at the bottom of a
+					// long sidebar — pin it to the scroller top so the selection always
+					// has visible actions.
+					className="sticky top-0 z-10 flex min-h-8 w-full shrink-0 items-center gap-0.5 bg-background/85 py-1 pl-2 pr-2 backdrop-blur-sm"
 				>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>

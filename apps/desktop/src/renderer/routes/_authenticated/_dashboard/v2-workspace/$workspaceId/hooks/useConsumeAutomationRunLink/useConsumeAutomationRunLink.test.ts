@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import {
-	chatSessionBelongsToWorkspace,
 	getAutomationRunLinkConsumeKey,
 	terminalSessionBelongsToWorkspace,
 } from "./useConsumeAutomationRunLink";
@@ -14,13 +13,6 @@ describe("getAutomationRunLinkConsumeKey", () => {
 				focusRequestId: undefined,
 			}),
 		).toBe("terminal:terminal-1");
-		expect(
-			getAutomationRunLinkConsumeKey({
-				type: "chat",
-				id: "chat-1",
-				focusRequestId: undefined,
-			}),
-		).toBe("chat:chat-1");
 	});
 
 	it("treats each notification focus request as a fresh command", () => {
@@ -60,33 +52,6 @@ describe("automation run link ownership checks", () => {
 				sessions,
 				terminalId: "terminal-a",
 				workspaceId: "workspace-b",
-			}),
-		).toBe(false);
-	});
-
-	it("accepts chat sessions only from the current v2 workspace", () => {
-		expect(
-			chatSessionBelongsToWorkspace({
-				chatSession: { v2WorkspaceId: "workspace-a" },
-				workspaceId: "workspace-a",
-			}),
-		).toBe(true);
-		expect(
-			chatSessionBelongsToWorkspace({
-				chatSession: { v2WorkspaceId: "workspace-a" },
-				workspaceId: "workspace-b",
-			}),
-		).toBe(false);
-		expect(
-			chatSessionBelongsToWorkspace({
-				chatSession: null,
-				workspaceId: "workspace-a",
-			}),
-		).toBe(false);
-		expect(
-			chatSessionBelongsToWorkspace({
-				chatSession: { v2WorkspaceId: null },
-				workspaceId: "workspace-a",
 			}),
 		).toBe(false);
 	});

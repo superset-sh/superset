@@ -33,6 +33,10 @@ export const DEAD_KEYS: DeadKey[] = [
 	// v1→v2 migration ledger markers; superseded by the importer ledger
 	{ key: "v1-migration-last-run-at-", match: "prefix" },
 	{ key: "v1-migration-modal-shown-", match: "prefix" },
+	// Legacy chat composer preferences; the mastra chat panes were removed
+	{ key: "chat-preferences", match: "exact" },
+	// "Superset v2 is here" sidebar card; unmounted once v2 became the default
+	{ key: "v2-available-banner-v1", match: "exact" },
 ];
 
 function matchesDeadKey(key: string): boolean {

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useRef } from "react";
 import {
 	HiOutlineChatBubbleLeftRight,
@@ -48,7 +48,7 @@ const DIFF_LINES = [
 	{
 		id: "line-8",
 		type: "added",
-		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<motion.h1",
+		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<m.h1",
 	},
 	{
 		id: "line-9",
@@ -76,7 +76,7 @@ const DIFF_LINES = [
 	{
 		id: "line-13",
 		type: "added",
-		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0</motion.h1>",
+		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0</m.h1>",
 	},
 	{
 		id: "line-14",
@@ -98,7 +98,7 @@ export function IsolationDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full min-w-[500px] max-w-2xl overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
@@ -164,7 +164,7 @@ export function IsolationDemo() {
 							Unstaged
 						</div>
 						{SIDEBAR_FILES.map((file, index) => (
-							<motion.div
+							<m.div
 								key={file.name}
 								className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-foreground/[0.04] rounded-sm cursor-pointer"
 								initial={{ opacity: 0, x: -5 }}
@@ -188,7 +188,7 @@ export function IsolationDemo() {
 										-{file.removed}
 									</span>
 								)}
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 				</div>
@@ -197,7 +197,7 @@ export function IsolationDemo() {
 				<div className="flex-1 overflow-hidden">
 					<div className="font-mono text-[11px]">
 						{DIFF_LINES.map((line, index) => (
-							<motion.div
+							<m.div
 								key={line.id}
 								className={`flex ${
 									line.type === "added"
@@ -250,11 +250,11 @@ export function IsolationDemo() {
 								>
 									{line.content}
 								</span>
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

@@ -8,6 +8,7 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
 import {
 	HiCheck,
@@ -22,9 +23,17 @@ import { ProjectThumbnail } from "renderer/routes/_authenticated/components/Proj
 interface ProjectFilterProps {
 	value: string[];
 	onChange: (value: string[]) => void;
+	/** Shows the label text regardless of container width — the default
+	 *  `@4xl:inline` gating assumes a wide inline toolbar row, which doesn't
+	 *  apply inside a narrow popover. */
+	alwaysShowLabel?: boolean;
 }
 
-export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
+export function ProjectFilter({
+	value,
+	onChange,
+	alwaysShowLabel,
+}: ProjectFilterProps) {
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -97,7 +106,12 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 					) : (
 						<HiOutlineFolder className="size-4" />
 					)}
-					<span className="hidden max-w-32 truncate text-sm @4xl:inline @6xl:max-w-48">
+					<span
+						className={cn(
+							"max-w-32 truncate text-sm @6xl:max-w-48",
+							alwaysShowLabel ? "inline" : "hidden @4xl:inline",
+						)}
+					>
 						{label}
 					</span>
 					<HiChevronDown className="size-3" />

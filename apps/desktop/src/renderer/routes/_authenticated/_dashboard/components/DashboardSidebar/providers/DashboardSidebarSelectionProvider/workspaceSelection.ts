@@ -19,17 +19,17 @@ export const EMPTY_WORKSPACE_SELECTION: WorkspaceSelectionState = {
 	anchorId: null,
 };
 
+/**
+ * The selection is always a subset of the visible ordered list: the provider
+ * prunes ids the moment their rows leave `availableWorkspaceIds` (deleted,
+ * pinned away, group collapsed). Ids missing from the ordered list are
+ * therefore stale and dropped here rather than carried along invisibly.
+ */
 function selectedIdsInVisualOrder(
 	orderedWorkspaceIds: string[],
 	selectedIds: ReadonlySet<string>,
-	preserveIds: readonly string[] = [],
 ): string[] {
-	const visibleIds = orderedWorkspaceIds.filter((id) => selectedIds.has(id));
-	const visibleIdSet = new Set(orderedWorkspaceIds);
-	const hiddenIds = preserveIds.filter(
-		(id) => selectedIds.has(id) && !visibleIdSet.has(id),
-	);
-	return [...visibleIds, ...hiddenIds];
+	return orderedWorkspaceIds.filter((id) => selectedIds.has(id));
 }
 
 function singleWorkspaceSelection(
@@ -71,11 +71,7 @@ export function applyWorkspaceSelection(
 
 		return {
 			projectId,
-			selectedIds: selectedIdsInVisualOrder(
-				orderedWorkspaceIds,
-				selectedIds,
-				state.selectedIds,
-			),
+			selectedIds: selectedIdsInVisualOrder(orderedWorkspaceIds, selectedIds),
 			anchorId: workspaceId,
 		};
 	}
@@ -89,11 +85,7 @@ export function applyWorkspaceSelection(
 			const selectedIds = new Set([...state.selectedIds, workspaceId]);
 			return {
 				projectId,
-				selectedIds: selectedIdsInVisualOrder(
-					orderedWorkspaceIds,
-					selectedIds,
-					state.selectedIds,
-				),
+				selectedIds: selectedIdsInVisualOrder(orderedWorkspaceIds, selectedIds),
 				anchorId: workspaceId,
 			};
 		}
@@ -110,11 +102,7 @@ export function applyWorkspaceSelection(
 
 	return {
 		projectId,
-		selectedIds: selectedIdsInVisualOrder(
-			orderedWorkspaceIds,
-			selectedIds,
-			mode === "add-range" ? state.selectedIds : [],
-		),
+		selectedIds: selectedIdsInVisualOrder(orderedWorkspaceIds, selectedIds),
 		anchorId: state.anchorId,
 	};
 }

@@ -5,7 +5,6 @@ import {
 	activatePaneInWorkspace,
 	applyFileViewerOpenOptionsToPane,
 	buildMultiPaneLayout,
-	createChatPane,
 	fileViewerTargetsMatch,
 	findPanePath,
 	findReusableFileViewerPane,
@@ -782,32 +781,5 @@ describe("resolveFileViewerMode", () => {
 				viewMode: "diff",
 			}),
 		).toBe("diff");
-	});
-});
-
-describe("createChatPane", () => {
-	it("seeds a session id when the pane is created", () => {
-		const pane = createChatPane("tab-1");
-
-		expect(pane.type).toBe("chat");
-		expect(typeof pane.chat?.sessionId).toBe("string");
-		expect((pane.chat?.sessionId ?? "").length).toBeGreaterThan(0);
-		expect(pane.chat?.launchConfig ?? null).toBeNull();
-	});
-
-	it("stores launch config when provided", () => {
-		const pane = createChatPane("tab-1", {
-			launchConfig: {
-				initialPrompt: "hello",
-				metadata: { model: "gpt-5" },
-				retryCount: 2,
-			},
-		});
-
-		expect(pane.chat?.launchConfig).toEqual({
-			initialPrompt: "hello",
-			metadata: { model: "gpt-5" },
-			retryCount: 2,
-		});
 	});
 });

@@ -7,127 +7,84 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@superset/ui/empty";
-import { Table, TableBody, TableHead, TableRow } from "@superset/ui/table";
-import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
 	LuChevronDown,
 	LuChevronRight,
 	LuLayers,
 	LuSearchX,
 } from "react-icons/lu";
-import {
-	DATA_TABLE_HEAD_CELL,
-	DataTableHeader,
-} from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
-import { SortableHeader } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
-import type {
-	AccessibleV2Workspace,
-	V2WorkspaceHostType,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
+import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
+import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
 	DEVICE_FILTER_THIS_DEVICE,
 	useV2WorkspacesFilterStore,
+	type V2WorkspacesArchivedWindow,
+	type V2WorkspacesSortMode,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { isWithinArchivedWindow } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/archivedWindow";
+import {
+	BOARD_COLUMN_LABELS,
+	BOARD_COLUMN_ORDER,
+	type BoardColumnKey,
+	deriveBoardColumn,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
+import { compareWorkspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
 import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
-import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
-import { V2_WORKSPACES_COLUMN_COUNT } from "./constants";
-import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
 	workspaces: AccessibleV2Workspace[];
 	isReady: boolean;
 }
 
-interface ProjectGroup {
-	/** Null groups the project-less "session" workspaces. */
-	projectId: string | null;
-	projectName: string;
-	iconUrl: string | null;
+interface StatusSection {
+	column: BoardColumnKey;
 	workspaces: AccessibleV2Workspace[];
-	latestCreatedAt: number;
 }
 
-function hostTypeRank(hostType: V2WorkspaceHostType): number {
-	return hostType === "local-device" ? 0 : 1;
-}
+/** Board order reads left-to-right along the workflow; a vertical list must
+ * lead with what needs the user, so it walks the same buckets urgency-first. */
+const LIST_SECTION_ORDER: BoardColumnKey[] = [
+	"attention",
+	"working",
+	"review",
+	"idle",
+	"merged",
+	"deleted",
+];
 
-function compareWorkspaces(
-	a: AccessibleV2Workspace,
-	b: AccessibleV2Workspace,
-	field: SortField,
-	direction: SortDirection,
-): number {
-	let cmp = 0;
-	switch (field) {
-		case "sidebar":
-			cmp = Number(a.isInSidebar) - Number(b.isInSidebar);
-			break;
-		case "name":
-			cmp = a.name.localeCompare(b.name);
-			break;
-		case "host":
-			cmp = hostTypeRank(a.hostType) - hostTypeRank(b.hostType);
-			if (cmp === 0) cmp = a.hostName.localeCompare(b.hostName);
-			break;
-		case "branch":
-			cmp = a.branch.localeCompare(b.branch);
-			break;
-		case "created":
-			cmp = a.createdAt.getTime() - b.createdAt.getTime();
-			break;
-	}
-	const directional = direction === "asc" ? cmp : -cmp;
-	if (directional !== 0) return directional;
-	return b.createdAt.getTime() - a.createdAt.getTime();
-}
-
-function groupByProject(
+/** Same buckets as the board — the two views must agree on what
+ * "needs attention" means. Row order inside a section follows the user's
+ * sort mode. */
+function groupByStatus(
 	workspaces: AccessibleV2Workspace[],
-	sortField: SortField,
-	sortDirection: SortDirection,
-): ProjectGroup[] {
-	const projectsById = new Map<string | null, ProjectGroup>();
-
-	for (const workspace of workspaces) {
-		let project = projectsById.get(workspace.projectId);
-		if (!project) {
-			project = {
-				projectId: workspace.projectId,
-				projectName: workspace.projectName ?? "Sessions",
-				iconUrl: workspace.projectIconUrl,
-				workspaces: [],
-				latestCreatedAt: 0,
-			};
-			projectsById.set(workspace.projectId, project);
-		}
-		project.workspaces.push(workspace);
-		const createdAt = workspace.createdAt.getTime();
-		if (createdAt > project.latestCreatedAt) {
-			project.latestCreatedAt = createdAt;
-		}
-	}
-
-	for (const project of projectsById.values()) {
-		project.workspaces.sort((a, b) =>
-			compareWorkspaces(a, b, sortField, sortDirection),
-		);
-	}
-
-	return Array.from(projectsById.values()).sort(
-		(a, b) => b.latestCreatedAt - a.latestCreatedAt,
+	archivedWindow: V2WorkspacesArchivedWindow,
+	sortMode: V2WorkspacesSortMode,
+): StatusSection[] {
+	const now = Date.now();
+	const byColumn = new Map<BoardColumnKey, AccessibleV2Workspace[]>(
+		BOARD_COLUMN_ORDER.map((column) => [column, []]),
 	);
+	for (const workspace of workspaces) {
+		if (
+			workspace.archivedAt != null &&
+			!isWithinArchivedWindow(workspace.archivedAt, archivedWindow, now)
+		) {
+			continue;
+		}
+		byColumn.get(deriveBoardColumn(workspace))?.push(workspace);
+	}
+	const sections: StatusSection[] = [];
+	for (const column of LIST_SECTION_ORDER) {
+		const rows = byColumn.get(column) ?? [];
+		if (rows.length === 0) continue;
+		rows.sort((a, b) => compareWorkspaces(a, b, sortMode));
+		sections.push({ column, workspaces: rows });
+	}
+	return sections;
 }
-
-const DEFAULT_DIRECTION_BY_FIELD: Record<SortField, SortDirection> = {
-	sidebar: "desc",
-	name: "asc",
-	host: "asc",
-	branch: "asc",
-	created: "desc",
-};
 
 export function V2WorkspacesList({
 	workspaces,
@@ -153,216 +110,149 @@ export function V2WorkspacesList({
 	const agentStatusFilters = useV2WorkspacesFilterStore(
 		(state) => state.agentStatusFilters,
 	);
+	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
+	const archivedWindow = useV2WorkspacesFilterStore(
+		(state) => state.archivedWindow,
+	);
+	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
 
-	const [sortField, setSortField] = useState<SortField>("host");
-	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-	const handleSort = (field: SortField) => {
-		if (sortField === field) {
-			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-		} else {
-			setSortField(field);
-			setSortDirection(DEFAULT_DIRECTION_BY_FIELD[field]);
-		}
-	};
-
-	const projectGroups = useMemo(
-		() => groupByProject(workspaces, sortField, sortDirection),
-		[workspaces, sortField, sortDirection],
+	const sections = useMemo(
+		() => groupByStatus(workspaces, archivedWindow, sortMode),
+		[workspaces, archivedWindow, sortMode],
 	);
 
-	const totalCount = projectGroups.reduce(
-		(total, project) => total + project.workspaces.length,
-		0,
-	);
 	const hasActiveFilters =
 		searchQuery.trim() !== "" ||
 		deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
 		projectFilters.length > 0 ||
 		prStateFilters.length > 0 ||
-		agentStatusFilters.length > 0;
+		agentStatusFilters.length > 0 ||
+		pinFilter !== "all" ||
+		// A narrowed archive window can hide every row (e.g. all tombstones
+		// with "Hide archived") — that's a filter, not an empty account.
+		archivedWindow !== "none";
 
-	const columnHeader = (
-		<DataTableHeader>
-			<TableRow className="hover:bg-transparent">
-				<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-14 pl-6")}>
-					<SortableHeader
-						field="sidebar"
-						label="In sidebar"
-						align="center"
-						srOnlyLabel
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead className={DATA_TABLE_HEAD_CELL}>
-					<SortableHeader
-						field="name"
-						label="Name"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead
-					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-48 md:table-cell")}
-				>
-					<SortableHeader
-						field="host"
-						label="Host"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead
-					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-56 lg:table-cell")}
-				>
-					<SortableHeader
-						field="branch"
-						label="Branch"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead
-					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-44 xl:table-cell")}
-				>
-					<SortableHeader
-						field="created"
-						label="Created"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-14 pr-6")} />
-			</TableRow>
-		</DataTableHeader>
-	);
-
-	if (totalCount === 0) {
+	// Sections, not the input rows: the archived window can drop everything.
+	if (sections.length === 0) {
 		// A host that hasn't answered yet must not read as empty (cache-first rule).
+		if (!isReady) return <div className="min-h-0 flex-1" />;
 		return (
-			<div className="flex min-h-0 flex-1 flex-col">
-				<Table className="table-fixed">{columnHeader}</Table>
-				{isReady ? (
-					<Empty className="flex-1 border-0">
-						<EmptyHeader>
-							<EmptyMedia
-								variant="icon"
-								className="size-14 [&_svg:not([class*='size-'])]:size-7"
-							>
-								{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
-							</EmptyMedia>
-							<EmptyTitle>
-								{hasActiveFilters
-									? "No workspaces match your filters"
-									: "No workspaces yet"}
-							</EmptyTitle>
-							<EmptyDescription>
-								{hasActiveFilters
-									? "Try a different search term or another device."
-									: "Workspaces on this device will show up here."}
-							</EmptyDescription>
-						</EmptyHeader>
-						{hasActiveFilters ? (
-							<EmptyContent>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => resetFilters()}
-								>
-									Clear filters
-								</Button>
-							</EmptyContent>
-						) : null}
-					</Empty>
+			<Empty className="flex-1 border-0">
+				<EmptyHeader>
+					<EmptyMedia
+						variant="icon"
+						className="size-14 [&_svg:not([class*='size-'])]:size-7"
+					>
+						{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
+					</EmptyMedia>
+					<EmptyTitle>
+						{hasActiveFilters
+							? "No workspaces match your filters"
+							: "No workspaces yet"}
+					</EmptyTitle>
+					<EmptyDescription>
+						{hasActiveFilters
+							? "Try a different search term or another device."
+							: "Workspaces on this device will show up here."}
+					</EmptyDescription>
+				</EmptyHeader>
+				{hasActiveFilters ? (
+					<EmptyContent>
+						<Button variant="outline" size="sm" onClick={() => resetFilters()}>
+							Clear filters
+						</Button>
+					</EmptyContent>
 				) : null}
-			</div>
+			</Empty>
 		);
 	}
 
 	return (
-		<div className="min-h-0 flex-1">
-			<Table
-				containerClassName="h-full overflow-y-auto"
-				className="table-fixed"
-			>
-				{columnHeader}
-				{projectGroups.map((project) => (
-					<ProjectSection
-						key={project.projectId ?? "__sessions__"}
-						project={project}
-						currentWorkspaceId={currentWorkspaceId}
-					/>
-				))}
-			</Table>
+		<div className="min-h-0 flex-1 overflow-y-auto">
+			{sections.map((section) => (
+				<StatusSectionGroup
+					key={section.column}
+					section={section}
+					currentWorkspaceId={currentWorkspaceId}
+				/>
+			))}
 		</div>
 	);
 }
 
-interface ProjectSectionProps {
-	project: ProjectGroup;
+interface StatusSectionGroupProps {
+	section: StatusSection;
 	currentWorkspaceId: string | null;
 }
 
-function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
-	// Sessions group under a stable pseudo-key for collapse state.
-	const collapseKey = project.projectId ?? "__sessions__";
+function StatusSectionGroup({
+	section,
+	currentWorkspaceId,
+}: StatusSectionGroupProps) {
+	// Reuses the project-collapse store with a status-scoped key; the key set
+	// is fixed (six columns), so the persisted map stays bounded.
+	const collapseKey = `status:${section.column}`;
 	const persistedCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.projects[collapseKey]?.isCollapsed ?? false,
 	);
 	const toggleCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.toggleProjectCollapsed,
 	);
-	const containsCurrent = project.workspaces.some(
+	const containsCurrent = section.workspaces.some(
 		(workspace) => workspace.id === currentWorkspaceId,
 	);
+	// The current workspace's section never hides, so its toggle is inert —
+	// disable it instead of letting clicks appear to do nothing.
 	const isCollapsed = persistedCollapsed && !containsCurrent;
 	const Chevron = isCollapsed ? LuChevronRight : LuChevronDown;
+	const rowsId = `v2-workspaces-status-${section.column}-rows`;
 
 	return (
-		<TableBody id={`v2-workspaces-project-${project.projectId}`}>
-			<TableRow className="sticky top-8 z-[5] border-border/60 hover:bg-transparent">
-				<td colSpan={V2_WORKSPACES_COLUMN_COUNT} className="p-0">
-					<button
-						type="button"
-						onClick={() => toggleCollapsed(collapseKey)}
-						aria-expanded={!isCollapsed}
-						aria-controls={`v2-workspaces-project-${project.projectId}`}
-						className="flex w-full items-center gap-2 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"
-					>
-						<Chevron className="size-3 shrink-0 text-muted-foreground" />
-						<V2WorkspaceProjectIcon
-							projectName={project.projectName}
-							iconUrl={project.iconUrl}
-							size="sm"
-						/>
-						<h3
-							className="min-w-0 truncate text-xs font-semibold text-foreground/80"
-							title={project.projectName}
-						>
-							{project.projectName}
-						</h3>
-						<span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
-							{project.workspaces.length}
-						</span>
-					</button>
-				</td>
-			</TableRow>
-			{isCollapsed
-				? null
-				: project.workspaces.map((workspace) => (
-						<V2WorkspaceRow
-							key={workspace.id}
-							workspace={workspace}
-							isCurrentRoute={workspace.id === currentWorkspaceId}
-						/>
-					))}
-		</TableBody>
+		<section>
+			{/* A tinted band + uppercase micro-label (same vocabulary as the
+			    sidebar's SESSIONS/PROJECTS headers) so groups never read as
+			    rows; the dot keeps the row-glyph column alignment. */}
+			<button
+				type="button"
+				onClick={() => toggleCollapsed(collapseKey)}
+				disabled={containsCurrent}
+				title={
+					containsCurrent
+						? "Can't collapse the current workspace's section"
+						: undefined
+				}
+				aria-expanded={!isCollapsed}
+				aria-controls={rowsId}
+				className="sticky top-0 z-[5] flex w-full items-center gap-2 border-b border-border/60 bg-muted/70 px-6 py-1.5 text-left outline-none backdrop-blur transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
+			>
+				{/* Disclosure lives in the left padding gutter so the status icon
+				    stays locked to the row-glyph column. */}
+				<Chevron className="absolute left-1.5 size-3 shrink-0 text-muted-foreground/60" />
+				<span
+					aria-hidden
+					className="flex size-4 shrink-0 items-center justify-center"
+				>
+					<BoardColumnIcon column={section.column} />
+				</span>
+				<h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+					{BOARD_COLUMN_LABELS[section.column]}
+				</h3>
+				<span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/70">
+					{section.workspaces.length}
+				</span>
+			</button>
+			<div id={rowsId}>
+				{isCollapsed
+					? null
+					: section.workspaces.map((workspace) => (
+							<V2WorkspaceRow
+								key={workspace.id}
+								workspace={workspace}
+								isCurrentRoute={workspace.id === currentWorkspaceId}
+							/>
+						))}
+			</div>
+		</section>
 	);
 }

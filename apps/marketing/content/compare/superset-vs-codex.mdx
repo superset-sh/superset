@@ -25,8 +25,8 @@ Codex CLI is OpenAI's terminal-based coding agent, but it now sits inside a broa
 |---|---|---|
 | **Category** | Agent orchestration workspace | AI coding agent (terminal-native) |
 | **What it does** | Runs 100+ coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | AI assistant that reads, writes, and executes code via OpenAI models |
-| **AI approach** | Agent-agnostic — works with Codex, Claude Code, Aider, OpenCode, Superset Chat, and more | OpenAI's Codex model family and related OpenAI coding workflows |
-| **Parallelism** | Core feature — many agents on separate branches simultaneously | Single session; cloud Codex runs tasks remotely |
+| **AI approach** | Agent-agnostic: works with Codex, Claude Code, Aider, OpenCode, Superset Chat, and more | OpenAI's Codex model family and related OpenAI coding workflows |
+| **Parallelism** | Core feature: many agents on separate branches simultaneously | Single session; cloud Codex runs tasks remotely |
 | **Isolation** | Automatic Git worktree per task | Sandbox modes (network-disabled, full-auto) per session |
 | **Pricing** | Free tier + Pro $20/seat/mo | ChatGPT-plan access and API usage vary by Codex surface |
 | **License** | Source-available (ELv2) | Open source (Apache 2.0) |
@@ -49,7 +49,7 @@ Codex CLI is OpenAI's open-source local terminal client for Codex. It runs on yo
 
 ### Orchestrator vs Agent Suite
 
-Codex is the agent suite — it reads code, talks to OpenAI models, and writes changes through local and cloud surfaces. Superset is the orchestration workspace around agents — it runs many Codex sessions in parallel, each in its own isolated environment, then gives you chat, review, browser preview, and MCP-connected workflow around them. Run Codex inside Superset to get automatic worktree isolation and parallel execution with zero manual setup.
+Codex is the agent suite: it reads code, talks to OpenAI models, and writes changes through local and cloud surfaces. Superset is the orchestration workspace around agents: it runs many Codex sessions in parallel, each in its own isolated environment, then gives you chat, review, browser preview, and MCP-connected workflow around them. Run Codex inside Superset to get automatic worktree isolation and parallel execution with zero manual setup.
 
 ### Local, App, and Cloud vs Local Orchestration
 
@@ -57,11 +57,11 @@ Codex now spans multiple surfaces: CLI, IDE extension, desktop app, and cloud de
 
 ### Single Product Stack vs Mixed-Agent Stack
 
-With Codex alone, whether from the CLI or app, you stay inside OpenAI's Codex product model. With Superset, you can assign tasks to multiple Codex instances simultaneously — or mix Codex with Claude Code, Aider, OpenCode, or Superset Chat — each on its own branch with its own worktree.
+With Codex alone, whether from the CLI or app, you stay inside OpenAI's Codex product model. With Superset, you can assign tasks to multiple Codex instances simultaneously (or mix Codex with Claude Code, Aider, OpenCode, or Superset Chat), each on its own branch with its own worktree.
 
 ### Agent Flexibility
 
-Codex CLI only works with OpenAI's models. Superset doesn't care which agent you use — run Codex for tasks where OpenAI models excel, Claude Code for complex architectural work, and Aider for iterative changes. Mix and match per task based on what works best.
+Codex CLI only works with OpenAI's models. Superset doesn't care which agent you use: run Codex for tasks where OpenAI models excel, Claude Code for complex architectural work, and Aider for iterative changes. Mix and match per task based on what works best.
 
 ### Session Persistence
 
@@ -90,7 +90,7 @@ Superset offers a free tier and Pro at $20/seat/month. Codex pricing now depends
 - Plan to mix Codex with other agents (Claude Code, Aider, OpenCode) per task
 - Work on large codebases where parallel execution saves hours
 
-Superset and Codex CLI work together naturally. Each Superset task launches Codex in its own worktree — you get Codex's coding ability with Superset's parallelism and isolation.
+Superset and Codex CLI work together naturally. Each Superset task launches Codex in its own worktree: you get Codex's coding ability with Superset's parallelism and isolation.
 
 ---
 
@@ -102,7 +102,7 @@ Not really. Superset now has built-in chat, MCP tooling, browser previews, and f
 
 ### Can I run Codex in Full Auto mode inside Superset?
 
-Yes. Each Superset task runs Codex in its own isolated worktree. You can use any Codex mode — Suggest, Auto Edit, or Full Auto — safely, because worktree isolation means an autonomous agent can't affect your main working directory.
+Yes. Each Superset task runs Codex in its own isolated worktree. You can use any Codex mode (Suggest, Auto Edit, or Full Auto) safely, because worktree isolation means an autonomous agent can't affect your main working directory.
 
 ### How does the Codex app compare to Superset?
 

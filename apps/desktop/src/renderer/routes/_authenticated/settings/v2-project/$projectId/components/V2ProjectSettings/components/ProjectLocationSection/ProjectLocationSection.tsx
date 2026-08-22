@@ -11,7 +11,6 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { LuFolderOpen } from "react-icons/lu";
 import { RemotePathPicker } from "renderer/components/RemotePathPicker";
@@ -21,17 +20,11 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { ClickablePath } from "../../../../../../components/ClickablePath";
 import { SetupProjectModal } from "../SetupProjectModal";
 
-interface BackfillConflict {
-	id: string;
-	name: string;
-}
-
 interface ProjectLocationSectionProps {
 	projectId: string;
 	projectName?: string;
 	currentPath: string | null;
 	repoCloneUrl: string | null;
-	hostId: string | null;
 	hostUrl: string | null;
 	hostName: string;
 	isRemoteTarget: boolean;
@@ -43,19 +36,16 @@ export function ProjectLocationSection({
 	projectName,
 	currentPath,
 	repoCloneUrl,
-	hostId,
 	hostUrl,
 	hostName,
 	isRemoteTarget,
 	onChanged,
 }: ProjectLocationSectionProps) {
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
-	const navigate = useNavigate();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
 		useDashboardSidebarState();
 
 	const [pendingPath, setPendingPath] = useState<string | null>(null);
-	const [conflict, setConflict] = useState<BackfillConflict | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [setupOpen, setSetupOpen] = useState(false);
 	const [changeBrowseOpen, setChangeBrowseOpen] = useState(false);
@@ -85,20 +75,6 @@ export function ProjectLocationSection({
 		}
 		if (!hostUrl) {
 			toast.error(`Host unavailable: ${hostName}`);
-			return;
-		}
-		try {
-			const client = getHostServiceClientByUrl(hostUrl);
-			const precheck = await client.project.findBackfillConflict.query({
-				projectId,
-				repoPath: path,
-			});
-			if (precheck.conflict) {
-				setConflict(precheck.conflict);
-				return;
-			}
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
 			return;
 		}
 		setPendingPath(path);
@@ -193,7 +169,6 @@ export function ProjectLocationSection({
 				repoCloneUrl={repoCloneUrl}
 				isRemoteTarget={isRemoteTarget}
 				onChanged={onChanged}
-				onConflict={setConflict}
 			/>
 
 			<RemotePathPicker
@@ -209,46 +184,6 @@ export function ProjectLocationSection({
 					void proposeRelocate(path);
 				}}
 			/>
-
-			<AlertDialog
-				open={conflict !== null}
-				onOpenChange={(open) => {
-					if (!open) {
-						setConflict(null);
-						setIsSubmitting(false);
-					}
-				}}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Repository already linked</AlertDialogTitle>
-						<AlertDialogDescription className="select-text cursor-text">
-							This repository is already linked to project "
-							{conflict?.name ?? ""}" in this organization. Open that project to
-							set it up on {hostName}.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							onClick={(e) => {
-								e.preventDefault();
-								if (!conflict) return;
-								const target = conflict;
-								setConflict(null);
-								setIsSubmitting(false);
-								navigate({
-									to: "/settings/projects/$projectId",
-									params: { projectId: target.id },
-									search: { hostId: hostId ?? undefined },
-								});
-							}}
-						>
-							Open project
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 
 			<AlertDialog
 				open={pendingPath !== null}

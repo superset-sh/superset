@@ -8,7 +8,7 @@ export function GET() {
 				{
 					name: "superset",
 					description:
-						"Superset MCP server — orchestrate parallel coding agents, workspaces, automations, and tasks.",
+						"Superset MCP server: orchestrate parallel coding agents, workspaces, automations, and tasks.",
 					url: MCP_SERVER_URL,
 					transport: "streamable-http",
 					serverCard: `${COMPANY.MARKETING_URL}/.well-known/mcp/server-card.json`,
@@ -21,7 +21,7 @@ export function GET() {
 				{
 					name: "superset-docs",
 					description:
-						"Superset documentation over MCP — search and read docs pages.",
+						"Superset documentation over MCP: search and read docs pages.",
 					url: `${COMPANY.DOCS_URL}/mcp`,
 					transport: "streamable-http",
 					authentication: { type: "none" },

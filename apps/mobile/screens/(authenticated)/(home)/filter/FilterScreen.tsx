@@ -1,38 +1,26 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useRouter } from "expo-router";
+import { Cloud } from "lucide-react-native";
 import { View } from "react-native";
-import { useHostProjects } from "@/hooks/useHostProjects";
+import { Icon } from "@/components/ui/icon";
 import { useTheme } from "@/hooks/useTheme";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
 } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
+import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
-import { ProjectAvatar } from "./components/ProjectAvatar";
 
 export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const _collections = useCollections();
-	const projectFilter = useWorkspacesFilterStore(
-		(store) => store.projectFilter,
-	);
 	const selectedHost = useSelectedHost();
+	const cloud = useWorkspaceScope() === "cloud";
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
-	// Projects are fully local — served by the selected host, not Electric.
-	const { projects } = useHostProjects(selectedHost);
-
-	const sortedProjects = [...projects].sort((a, b) =>
-		a.name.localeCompare(b.name),
-	);
-	const selectedProject =
-		sortedProjects.find((project) => project.id === projectFilter) ??
-		sortedProjects[0];
 	const sortLabel =
 		SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "";
 
@@ -44,48 +32,29 @@ export function FilterScreen() {
 			<ListRow
 				icon={
 					<Ionicons
-						name="folder-outline"
-						size={20}
-						color={theme.mutedForeground}
-					/>
-				}
-				label="Project"
-				trailing={
-					<ListRowValue
-						value={selectedProject?.name ?? "All"}
-						accessory={
-							selectedProject ? (
-								<ProjectAvatar
-									name={selectedProject.name}
-									iconUrl={selectedProject.iconUrl}
-									size={22}
-								/>
-							) : undefined
-						}
-					/>
-				}
-				onPress={() => router.push("/(authenticated)/(home)/filter/project")}
-			/>
-			<ListRow
-				icon={
-					<Ionicons
 						name="desktop-outline"
 						size={20}
 						color={theme.mutedForeground}
 					/>
 				}
-				label="Host"
+				label="Scope"
 				trailing={
 					<ListRowValue
-						value={selectedHost?.name ?? ""}
+						value={cloud ? "Cloud" : (selectedHost?.name ?? "")}
 						accessory={
-							selectedHost ? (
+							cloud ? (
+								<Icon
+									as={Cloud}
+									className="text-muted-foreground size-4"
+									strokeWidth={2}
+								/>
+							) : selectedHost ? (
 								<HostStatusDot isOnline={selectedHost.isOnline} />
 							) : undefined
 						}
 					/>
 				}
-				onPress={() => router.push("/(authenticated)/(home)/filter/host")}
+				onPress={() => router.push("/(authenticated)/(home)/filter/scope")}
 			/>
 			<ListRow
 				icon={

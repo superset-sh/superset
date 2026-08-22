@@ -1,84 +1,8 @@
-# Superset Monorepo Guide
+# Superset Monorepo
 
-You're running inside a Superset workspace — an isolated git-worktree copy of this repo. "Workspace" in any user message refers to this, not VS Code/editor workspaces.
+Superset is an agent-first development platform, with an Electron desktop IDE, Next.js web apps, and an Expo mobile app as the main customer-facing surfaces. It's a Turborepo monorepo, deployed apps are in apps/ and supporting packages are in packages/, and we use tRPC for the api.
 
-## Question Tool
-
-When you need to ask the user ANY question — including simple yes/no, confirmations, and clarifications — ALWAYS use the `ask_user` tool. Never ask questions in plain text. The Superset UI renders `ask_user` calls as an interactive overlay with clickable option buttons; plain-text questions will not be surfaced to the user in the same way.
-
-Guidelines for agents and developers working in this repository.
-
-## Structure
-
-Bun + Turbo monorepo: `apps/` (web, marketing, admin, api, desktop, docs, mobile) and `packages/` — see `ls apps/ packages/` for the full list.
-- Add shadcn components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
-
-## Tech Stack
-
-- **Package Manager**: Bun (no npm/yarn/pnpm)
-- **Next.js**: Version 16 - NEVER create `middleware.ts`. Next.js 16 renamed middleware to `proxy.ts`. Always use `proxy.ts` for request interception.
-
-## Common Commands
-
-Standard scripts live in the root `package.json` (`bun dev`, `bun test`, `bun run lint:fix`, `bun run typecheck`, ...).
-
-```bash
-# Releases (desktop + host-service + cli share one version; see scripts/release/README.md)
-bun run release            # interactive: desktop release or CLI hotfix
-bun run release desktop    # desktop app release (draft by default)
-bun run release cli        # interim CLI hotfix (<desktop>-N prerelease)
-bun run check:versions     # assert versions are unified
-```
-
-Cut releases on a dedicated release branch (not `main`); `bun run release desktop
-<version> <commit>` provisions one from a commit. Full runbook: `scripts/release/README.md`.
-
-**Canary release** (separate from the above — a rolling internal-testing build of
-the desktop app, not a versioned stable release): `bash scripts/release-canary.sh
-[commit]` (or `/canaryrelease`). Triggers `release-desktop-canary.yml` via `gh
-workflow run`, which force-builds and replaces the rolling `desktop-canary`
-prerelease/tag on GitHub. Omit `commit` to build off the current default branch;
-pass one to build an arbitrary commit via a temp `canary-release-<sha>` branch.
-This is what "run a canary release" means in this repo — do not confuse it with
-`bun run release desktop`, which cuts a real versioned stable release.
-
-## Code Quality
-
-**Biome runs at root level** (not per-package) for speed — use `bun run lint:fix` to fix all issues automatically.
-
-## CDP UI Verification
-
-When a user asks for UI verification through the Chrome DevTools Protocol (CDP):
-
-1. **Target the correct app instance** - confirm and report the worktree, renderer URL/port, and active route before testing. Follow any task-provided CDP/auth guidance and verify the expected signed-in session. Do not treat a different running desktop instance as equivalent.
-2. **Reproduce the exact user journey** - use real browser input and visible UI navigation for the steps the user performs. Directly assigning DOM properties, invoking internal app APIs, or running component-only scripts is diagnostic support, not proof of end-to-end behavior.
-3. **Capture visual and numeric evidence** - take before/after screenshots and pair them with relevant CDP measurements (for example, `scrollTop`, focused element, route, or persisted state). Confirm that the screenshot and measured state agree.
-4. **Exercise the relevant lifecycle** - include the actual route change, workspace/pane/file switch, remount, close/reopen, or other teardown boundary from the report. A narrower synthetic flow cannot substitute for the reported interaction.
-5. **Treat a mismatch as an incomplete reproduction** - if the test passes but the user still observes the bug, re-check the target instance, exact steps, input method, persisted keys, and lifecycle timing. Reproduce the failure before changing code; do not assume the report is disproven by a synthetic smoke test.
-6. **Use an evidence gate** - for a reported bug or regression, do not claim it is verified until the original interaction demonstrably fails before the fix and passes after it under the same observations. For a new feature, record equivalent baseline evidence and demonstrate the expected behavior. In all cases, state clearly which checks were end-to-end, which were synthetic, and whether screenshots were actually captured.
-
-## Agent Rules
-1. **Type safety** - avoid `any` unless necessary
-2. **Prefer `gh` CLI** - when performing git operations (PRs, issues, checkout, etc.), prefer the GitHub CLI (`gh`) over raw `git` commands where possible
-3. **Shared command and skill source** - keep command definitions in `.agents/commands/` and skill definitions in `.agents/skills/`. `.claude/commands` and `.cursor/commands` should be symlinks to `../.agents/commands`; `.claude/skills` should be a symlink to `../.agents/skills`. (`packages/chat-legacy` discovers slash commands from `.claude/commands`; `packages/chat` is the new chat protocol/core package.) Codex discovers `.agents/skills/` automatically when launched inside the repo; invoke a skill explicitly with `$<skill-name>`. Other agents should read the relevant `.agents/skills/*/SKILL.md` when its description matches the task.
-4. **Workspace MCP config** - keep shared MCP servers in `.mcp.json`; `.cursor/mcp.json` should link to `../.mcp.json`. Codex layers trusted repo settings from `.codex/config.toml`, so launch it normally from the repo instead of replacing `CODEX_HOME`. OpenCode uses `opencode.json` and should mirror the same MCP set using OpenCode's `remote`/`local` schema.
-
-   > **Mistral Vibe compatibility**: Vibe reads `AGENTS.md` + `.agents/skills/` natively (trust granted via `--trust`; no `.agents/commands` support). Configure it via `.vibe/config.toml`; it consumes MCP servers as `[[mcp_servers]]` TOML entries (not `.mcp.json`).
-
-   > **Kimi Code compatibility**: Kimi reads `AGENTS.md` + `.agents/skills/` natively. It does not discover `.agents/commands`; configure it through `~/.kimi-code/config.toml` or `KIMI_CODE_HOME`.
-
-   > **Grok compatibility**: Grok Build reads `AGENTS.md` per directory plus Claude Code files (`CLAUDE.md`, `.claude/rules/`) natively. It does not discover this repo's project-local `.agents/commands` (only user-level `~/.agents/commands/`); configure it through `~/.grok/config.toml`.
-
-5. **Mastra dependencies** - use the published upstream `mastracode` and `@mastra/*` packages. Do not add fork tarball overrides or custom patch steps unless explicitly requested.
-6. **Plan & doc placement** - implementation plans go in `plans/` (cross-cutting) or `apps/<app>/plans/` (app-scoped); shipped plans move to `plans/done/`. Architecture/reference docs go in `<app>/docs/`. Never drop `*_PLAN.md` at an app root or inside `src/`.
-7. **Always fix lint warnings before pushing** - CI fails on Biome warnings, not just errors (the lint script treats warnings as errors). Run `bun run lint:fix` after edits and verify `bun run lint` exits 0 before `git push`. Never push code that produces lint output, even auto-fixable formatting.
-8. **Linear ticket format** - all tickets (creation, drafting, grooming) follow `.agents/skills/ticket-format/SKILL.md`. Read that file before creating or grooming a ticket.
-9. **TanStack DB / Electric live queries are cache-first** - `useLiveQuery` can return persisted rows in `data` while the collection is still not `isReady`. Always render existing rows first. Use `isReady` only to decide what to show when no row/data exists yet: no data + not ready = loading/skeleton/null; no data + ready = empty/not-found. Never hide, blank, or replace existing `data` just because `isReady` is false or `isLoading` is true. This cache-first rendering rule does not apply to write/seeding side effects: wait for strict readiness before deriving missing rows or writing defaults, unless the write is provably idempotent.
-10. **PR titles are conventional commits** - PRs are squash-merged using the PR title as the commit subject, so every title needs a conventional-commit type and scope, e.g. `feat(desktop): add copy-logs button to failed CI checks` or `fix(host-service): guard against missing PR`.
-11. **Mobile is iOS-only for the time being** - `apps/mobile` targets iOS only. Don't add Android fallbacks or platform guards for iOS-only APIs (e.g. `@expo/ui/swift-ui`), and don't treat Android incompatibility as a blocker until Android is explicitly put in scope.
-
-
----
+You're working inside a Superset workspace, an isolated git-worktree copy of this repo. "Workspace" in a user message means that, not an editor workspace.
 
 ## Project Structure
 
@@ -154,14 +78,49 @@ components/                                # Used in 2+ pages (last resort)
 
 The `src/components/ui/` and `src/components/ai-elements` directories contain shadcn/ui components. These use **kebab-case single files** (e.g., `button.tsx`, `base-node.tsx`) instead of the folder structure above. This is intentional—shadcn CLI expects this format for updates via `bunx shadcn@latest add`.
 
-## Database Rules
+## Database
 
-** IMPORTANT ** - Never touch the production database unless explicitly asked to. Even then, confirm with the user first.
+Drizzle ORM, schema in `packages/db/src/`. Follow `.agents/skills/db-migrations/SKILL.md` to generate
+migrations. Never hand-edit `packages/db/drizzle/` (SQL, `meta/_journal.json`, snapshots) without
+explicit user confirmation, and never apply migrations against a shared or production database.
 
-- In this workspace, the database configured in `.env` is an isolated branch, not production. Agents may start and use Electric against it for local development and CDP verification. Re-check this assumption if `.env` changes.
-- Schema in `packages/db/src/`
-- Use Drizzle ORM for all database operations
+## Releases
 
-## DB migrations
-- Never run a migration yourself, and **NEVER manually edit files in `packages/db/drizzle/`** (`.sql` files, `meta/_journal.json`, snapshots — all auto-generated). Only modify schema files in `packages/db/src/schema/` and ask the user to run `drizzle-kit generate`.
-- Workflow (Neon branch setup, drizzle-kit invocation): see `.agents/skills/db-migrations/SKILL.md`.
+Desktop, host-service, and cli share one version; cut releases on a dedicated branch. Runbook:
+`scripts/release/README.md`. A *canary* is a separate thing: `bash scripts/release-canary.sh
+[commit]` builds the rolling internal `desktop-canary` prerelease, not a versioned release.
+
+## Orchestrating agents and workspaces
+
+When work wants a fresh isolated environment, a parallel agent, or a long-running job, reach for the
+`superset` CLI instead of hand-rolling git worktrees or doing it all serially in this one. It's
+already on `PATH` in Superset terminals, and we dogfood it.
+
+Replace the capitalized placeholders before running these:
+
+```bash
+superset ws create --project PROJECT_ID --branch BRANCH --agent claude --prompt "..."
+superset agents create --workspace WORKSPACE_ID --agent claude --prompt "..."
+superset ws list
+superset terminals read --workspace WORKSPACE_ID --terminal TERMINAL_ID
+superset ws delete WORKSPACE_ID
+```
+
+In order: an isolated workspace with an agent already working in it, another agent in an existing
+workspace, what's running, what an agent is doing right now, and cleanup when you're done.
+
+`superset <command> --help` covers the rest (tasks, automations, hosts, settings). Pass `--json` for
+parsable output; it's on by default under agent environments.
+
+## Further reading
+
+- `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
+  `SKILL.md` when a task fits its description.
+- `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
+- `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
+- `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
+- `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the
+  app makes about a machine someone owns. Read it before touching sandboxes, and add to it when
+  you find a new one.
+- `docs/cloud-sandbox-considerations.md`: what cloud sandboxes still owe before they leave the
+  team — billing, credential blast radius, untested behaviour.

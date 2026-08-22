@@ -2,6 +2,7 @@ import { EventEmitter } from "node:events";
 import { BrowserWindow } from "electron";
 import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
+import { reloadThemeStateFromDisk } from "main/lib/app-state";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
@@ -98,7 +99,6 @@ app.get("/hook/complete", (req, res) => {
 		paneId as string | undefined,
 		tabId as string | undefined,
 		workspaceId as string | undefined,
-		sessionId as string | undefined,
 	);
 
 	// v1 pane agent-session capture for the v1→v2 migration's resume seeding.
@@ -195,6 +195,17 @@ app.get("/auth/callback", async (req, res) => {
 <p style="opacity:0.6">You can close this tab and return to the desktop app.</p>
 </div>
 </body></html>`);
+});
+
+// External settings change (e.g. `superset settings ...` CLI). Reads no
+// request data — it only re-reads local files and tells the renderer to
+// refresh, so an unauthenticated localhost nudge is safe.
+app.post("/settings-changed", (_req, res) => {
+	const themeState = reloadThemeStateFromDisk();
+	// Emit even when the theme reload failed: local.db settings may still
+	// have changed, and the renderer refresh is driven by this event.
+	notificationsEmitter.emit("settings-external-change", { themeState });
+	res.json({ success: true, themeReloaded: themeState !== null });
 });
 
 // 404

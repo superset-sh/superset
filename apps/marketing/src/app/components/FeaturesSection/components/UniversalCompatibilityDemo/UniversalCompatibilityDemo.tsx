@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
 import { HiOutlineTerminal } from "react-icons/hi";
@@ -22,7 +22,7 @@ export function UniversalCompatibilityDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full max-w-xs overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
@@ -52,7 +52,7 @@ export function UniversalCompatibilityDemo() {
 
 			<div className="py-1.5">
 				{AGENTS.map((agent, index) => (
-					<motion.div
+					<m.div
 						key={agent.name}
 						className="flex cursor-pointer items-center gap-3 px-4 py-1.5 text-[12px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground/90"
 						initial={{ opacity: 0, x: -10 }}
@@ -69,7 +69,7 @@ export function UniversalCompatibilityDemo() {
 							/>
 						</div>
 						<span>{agent.name}</span>
-					</motion.div>
+					</m.div>
 				))}
 			</div>
 
@@ -79,6 +79,6 @@ export function UniversalCompatibilityDemo() {
 					<span className="text-[11px]">Terminals (3)</span>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

@@ -1,1 +1,0 @@
-export { OpenAILogo } from "./OpenAILogo";

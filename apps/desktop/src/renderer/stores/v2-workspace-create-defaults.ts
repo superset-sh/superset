@@ -12,6 +12,8 @@ interface V2WorkspaceCreateDefaultsState {
 	lastProjectId: string | null;
 	baseBranchesByProjectId: Record<string, V2WorkspaceCreateBaseBranchDefault>;
 	lastHostId: string | null;
+	/** User closed the sample-prompt suggestions on the create surface. */
+	samplePromptsDismissed: boolean;
 
 	setLastProjectId: (projectId: string | null) => void;
 	setBaseBranchDefault: (
@@ -21,6 +23,7 @@ interface V2WorkspaceCreateDefaultsState {
 	) => void;
 	clearBaseBranchDefault: (projectId: string) => void;
 	setLastHostId: (hostId: string | null) => void;
+	setSamplePromptsDismissed: (dismissed: boolean) => void;
 }
 
 export const useV2WorkspaceCreateDefaultsStore =
@@ -31,6 +34,7 @@ export const useV2WorkspaceCreateDefaultsStore =
 					lastProjectId: null,
 					baseBranchesByProjectId: {},
 					lastHostId: null,
+					samplePromptsDismissed: false,
 
 					setLastProjectId: (projectId) => set({ lastProjectId: projectId }),
 
@@ -54,6 +58,9 @@ export const useV2WorkspaceCreateDefaultsStore =
 						}),
 
 					setLastHostId: (hostId) => set({ lastHostId: hostId }),
+
+					setSamplePromptsDismissed: (dismissed) =>
+						set({ samplePromptsDismissed: dismissed }),
 				}),
 				{
 					name: "v2-workspace-create-defaults",

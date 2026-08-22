@@ -50,9 +50,13 @@ describe("terminal router integration", () => {
 		await disposeDaemonClient();
 		resetTerminalBaseEnvForTests();
 		__setAccountShellForTesting(undefined);
+		// Dispose BEFORE dropping the isolation env: cleanup paths resolve
+		// daemon manifests/sockets, and without SUPERSET_HOME_DIR they would
+		// hit the real ~/.superset namespace (the manifest layer now throws
+		// on that in tests).
+		await scenario?.dispose();
 		delete process.env.SUPERSET_PTY_DAEMON_SOCKET;
 		delete process.env.SUPERSET_HOME_DIR;
-		await scenario?.dispose();
 	});
 
 	test("list returns empty when no sessions exist", async () => {

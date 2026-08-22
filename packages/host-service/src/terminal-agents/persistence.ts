@@ -123,12 +123,24 @@ export function getTerminalAgentBindingSessionId(
 }
 
 /**
- * The ended binding a dead terminal can be resumed from: agent session id
- * captured, and the terminal died under the agent rather than the agent
- * detaching cleanly. Bindings that never progressed past the session start
- * are excluded — agents only persist a conversation once it has a message,
- * so resuming a never-prompted session fails with "no conversation found".
+ * A dead terminal's binding is resumable when: agent session id captured, the
+ * terminal died under the agent ("terminal-exited") rather than the agent
+ * detaching cleanly, and the session progressed past its start — agents only
+ * persist a conversation once it has a message, so resuming a never-prompted
+ * session fails with "no conversation found".
  */
+function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
+	return and(
+		eq(terminalAgentBindings.terminalId, terminalId),
+		eq(terminalAgentBindings.workspaceId, workspaceId),
+		isNotNull(terminalAgentBindings.endedAt),
+		eq(terminalAgentBindings.endReason, "terminal-exited"),
+		isNotNull(terminalAgentBindings.agentSessionId),
+		ne(terminalAgentBindings.lastEventType, "Attached"),
+	);
+}
+
+/** The ended binding a dead terminal can be resumed from, if any. */
 export function findResumeCandidateBinding(
 	db: HostDb,
 	workspaceId: string,
@@ -137,18 +149,46 @@ export function findResumeCandidateBinding(
 	const row = db
 		.select(bindingColumns)
 		.from(terminalAgentBindings)
+		.where(resumeCandidatePredicate(workspaceId, terminalId))
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
+/**
+ * Atomically consume a resume candidate by flipping its end reason to
+ * "resumed". The UPDATE is guarded by the full candidate predicate, so of any
+ * number of concurrent claimers exactly one gets the binding back — the rest
+ * (and any retry after success) get undefined. `unclaimResumeCandidateBinding`
+ * is the rollback for a claim whose relaunch failed.
+ */
+export function claimResumeCandidateBinding(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): TerminalAgentBinding | undefined {
+	const row = db
+		.update(terminalAgentBindings)
+		.set({ endReason: "resumed" })
+		.where(resumeCandidatePredicate(workspaceId, terminalId))
+		.returning(bindingColumns)
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
+/** Roll a failed claim back so the session stays resumable. */
+export function unclaimResumeCandidateBinding(
+	db: HostDb,
+	terminalId: string,
+): void {
+	db.update(terminalAgentBindings)
+		.set({ endReason: "terminal-exited" })
 		.where(
 			and(
 				eq(terminalAgentBindings.terminalId, terminalId),
-				eq(terminalAgentBindings.workspaceId, workspaceId),
-				isNotNull(terminalAgentBindings.endedAt),
-				eq(terminalAgentBindings.endReason, "terminal-exited"),
-				isNotNull(terminalAgentBindings.agentSessionId),
-				ne(terminalAgentBindings.lastEventType, "Attached"),
+				eq(terminalAgentBindings.endReason, "resumed"),
 			),
 		)
-		.get();
-	return row ? rowToBinding(row) : undefined;
+		.run();
 }
 
 export type SeedEndedBindingResult =

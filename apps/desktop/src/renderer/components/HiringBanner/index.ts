@@ -1,1 +1,0 @@
-export { HiringBanner } from "./HiringBanner";

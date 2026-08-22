@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
 
@@ -75,7 +75,7 @@ function SpinnerIcon({
 	rotation?: number;
 }) {
 	return (
-		<motion.svg
+		<m.svg
 			className={className}
 			viewBox="0 0 24 24"
 			fill="none"
@@ -100,7 +100,7 @@ function SpinnerIcon({
 				fill="currentColor"
 				d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 			/>
-		</motion.svg>
+		</m.svg>
 	);
 }
 
@@ -127,7 +127,7 @@ export function ParallelExecutionDemo() {
 	}, [isInView]);
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full min-w-[500px] max-w-2xl overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
@@ -160,7 +160,7 @@ export function ParallelExecutionDemo() {
 							</span>
 						</div>
 						{IN_PROGRESS_TASKS.map((task, index) => (
-							<motion.div
+							<m.div
 								key={task.id}
 								className="flex cursor-pointer items-start gap-2 rounded-sm px-1 py-1.5 hover:bg-foreground/[0.04]"
 								initial={{ opacity: 0, x: -10 }}
@@ -181,7 +181,7 @@ export function ParallelExecutionDemo() {
 										{task.status}
 									</div>
 								</div>
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 
@@ -194,7 +194,7 @@ export function ParallelExecutionDemo() {
 							</span>
 						</div>
 						{READY_FOR_REVIEW.map((task, index) => (
-							<motion.div
+							<m.div
 								key={task.id}
 								className="flex cursor-pointer items-start gap-2 rounded-sm px-1 py-1.5 hover:bg-foreground/[0.04]"
 								initial={{ opacity: 0, x: -10 }}
@@ -220,7 +220,7 @@ export function ParallelExecutionDemo() {
 										)}
 									</div>
 								</div>
-							</motion.div>
+							</m.div>
 						))}
 					</div>
 				</div>
@@ -251,6 +251,6 @@ export function ParallelExecutionDemo() {
 					</div>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

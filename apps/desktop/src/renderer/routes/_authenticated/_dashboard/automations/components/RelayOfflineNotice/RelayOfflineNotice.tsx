@@ -25,7 +25,7 @@ const ICON = (
 
 /**
  * Automations dispatch from the cloud through the relay, so even the local
- * device is unreachable until relay access is enabled in Settings > Security.
+ * device is unreachable until relay access is enabled in Settings > Remote Workspaces.
  * Renders nothing while connectivity is unknown (row not yet synced).
  */
 export function RelayOfflineNotice({
@@ -89,8 +89,8 @@ export function RelayOfflineNotice({
 					>
 						host settings
 					</Link>
-					, and make sure relay access is on in Settings &gt; Security on that
-					device.
+					, and make sure relay access is on in Settings &gt; Remote Workspaces
+					on that device.
 				</span>
 			</div>
 		</div>

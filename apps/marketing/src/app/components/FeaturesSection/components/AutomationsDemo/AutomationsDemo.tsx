@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useRef } from "react";
 
 const AUTOMATIONS = [
@@ -26,7 +26,7 @@ export function AutomationsDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full max-w-md overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
@@ -58,7 +58,7 @@ export function AutomationsDemo() {
 						Last run
 					</div>
 					{AUTOMATIONS.map((automation, index) => (
-						<motion.div
+						<m.div
 							key={automation.name}
 							className="contents"
 							initial={{ opacity: 0 }}
@@ -77,7 +77,7 @@ export function AutomationsDemo() {
 									{automation.lastRun}
 								</div>
 							)}
-						</motion.div>
+						</m.div>
 					))}
 				</div>
 
@@ -86,7 +86,7 @@ export function AutomationsDemo() {
 						daily-triage
 					</div>
 					{LOG_LINES.map((line, index) => (
-						<motion.div
+						<m.div
 							key={line}
 							className="text-muted-foreground/70"
 							initial={{ opacity: 0 }}
@@ -94,10 +94,10 @@ export function AutomationsDemo() {
 							transition={{ duration: 0.3, delay: 0.5 + index * 0.15 }}
 						>
 							<span className="text-muted-foreground/45">→</span> {line}
-						</motion.div>
+						</m.div>
 					))}
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

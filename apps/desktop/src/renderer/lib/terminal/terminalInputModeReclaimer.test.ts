@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { Terminal as XTerm } from "@xterm/xterm";
 import {
 	createLeakedInputModeReclaimer,
 	KITTY_KEYBOARD_DISARM_SEQUENCE,
-} from "shared/leaked-input-mode-reclaim";
+} from "@superset/shared/leaked-input-mode-reclaim";
+import type { Terminal as XTerm } from "@xterm/xterm";
 import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 // The transport-agnostic decision core (shared). The renderer, and any future

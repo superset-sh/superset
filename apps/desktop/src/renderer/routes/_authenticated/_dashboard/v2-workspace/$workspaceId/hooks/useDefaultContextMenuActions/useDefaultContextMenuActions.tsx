@@ -9,7 +9,6 @@ import {
 	LuColumns2,
 	LuEqual,
 	LuGlobe,
-	LuMessageSquare,
 	LuMoveRight,
 	LuPlus,
 	LuRows2,
@@ -18,10 +17,10 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
 export function useDefaultContextMenuActions({
@@ -33,12 +32,12 @@ export function useDefaultContextMenuActions({
 }): ContextMenuActionConfig<PaneViewerData>[] {
 	const splitDownShortcut = useHotkeyDisplay("SPLIT_DOWN").text;
 	const splitRightShortcut = useHotkeyDisplay("SPLIT_RIGHT").text;
-	const splitWithChatShortcut = useHotkeyDisplay("SPLIT_WITH_CHAT").text;
 	const splitWithBrowserShortcut = useHotkeyDisplay("SPLIT_WITH_BROWSER").text;
 	const equalizePaneSplitsShortcut = useHotkeyDisplay(
 		"EQUALIZE_PANE_SPLITS",
 	).text;
 	const closePaneShortcut = useHotkeyDisplay("CLOSE_PANE").text;
+	const defaultBrowserUrl = useDefaultBrowserUrl();
 
 	return useMemo<ContextMenuActionConfig<PaneViewerData>[]>(
 		() => [
@@ -75,21 +74,6 @@ export function useDefaultContextMenuActions({
 				},
 			},
 			{
-				key: "split-with-chat",
-				label: "Split with New Chat",
-				icon: <LuMessageSquare />,
-				shortcut:
-					splitWithChatShortcut !== "Unassigned"
-						? splitWithChatShortcut
-						: undefined,
-				onSelect: (ctx) => {
-					ctx.actions.split("right", {
-						kind: "chat",
-						data: { sessionId: null } as ChatPaneData,
-					});
-				},
-			},
-			{
 				key: "split-with-browser",
 				label: "Split with New Browser",
 				icon: <LuGlobe />,
@@ -101,7 +85,7 @@ export function useDefaultContextMenuActions({
 					ctx.actions.split("right", {
 						kind: "browser",
 						data: {
-							url: "about:blank",
+							url: defaultBrowserUrl,
 						} as BrowserPaneData,
 					});
 				},
@@ -164,12 +148,12 @@ export function useDefaultContextMenuActions({
 		[
 			splitDownShortcut,
 			splitRightShortcut,
-			splitWithChatShortcut,
 			splitWithBrowserShortcut,
 			equalizePaneSplitsShortcut,
 			closePaneShortcut,
 			paneRegistry,
 			launcher,
+			defaultBrowserUrl,
 		],
 	);
 }

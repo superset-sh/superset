@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export function GridBackground() {
 	return (
-		<motion.div
+		<m.div
 			className="absolute inset-0 pointer-events-none z-0"
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
@@ -49,6 +49,6 @@ export function GridBackground() {
 					mask="url(#grid-mask)"
 				/>
 			</svg>
-		</motion.div>
+		</m.div>
 	);
 }

@@ -1,0 +1,1 @@
+export { useTerminalSeenStore } from "./terminalSeenStore";

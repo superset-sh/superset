@@ -15,7 +15,7 @@ keywords:
   - ai coding agent comparison
 ---
 
-Claude Code is Anthropic's AI coding agent, with both terminal and desktop app surfaces. Superset is a local-first desktop workspace that can run multiple Claude Code sessions, other agents, and Superset Chat in parallel across isolated Git worktrees. They're complementary — Claude Code is the agent, while Superset is the orchestration and review layer around many agents.
+Claude Code is Anthropic's AI coding agent, with both terminal and desktop app surfaces. Superset is a local-first desktop workspace that can run multiple Claude Code sessions, other agents, and Superset Chat in parallel across isolated Git worktrees. They're complementary: Claude Code is the agent, while Superset is the orchestration and review layer around many agents.
 
 ---
 
@@ -25,9 +25,9 @@ Claude Code is Anthropic's AI coding agent, with both terminal and desktop app s
 |---|---|---|
 | **Category** | Agent orchestration workspace | AI coding agent (CLI + desktop app) |
 | **What it does** | Runs 100+ coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | AI assistant that reads, writes, and debugs code in your terminal or desktop app |
-| **AI approach** | Agent-agnostic — orchestrates Claude Code, Codex, Aider, OpenCode, Superset Chat, and more | Claude models only (Sonnet, Opus, Haiku) via Anthropic API |
-| **Parallelism** | Core feature — many agents on separate branches simultaneously | Single session; requires separate terminal tabs for parallelism |
-| **Isolation** | Automatic Git worktree per task — agents cannot conflict | Shares your working directory — manual worktree setup needed |
+| **AI approach** | Agent-agnostic: orchestrates Claude Code, Codex, Aider, OpenCode, Superset Chat, and more | Claude models only (Sonnet, Opus, Haiku) via Anthropic API |
+| **Parallelism** | Core feature: many agents on separate branches simultaneously | Single session; requires separate terminal tabs for parallelism |
+| **Isolation** | Automatic Git worktree per task: agents cannot conflict | Shares your working directory. Manual worktree setup needed |
 | **Pricing** | Free tier + Pro $20/seat/mo | Claude Pro / Max / Teams / Enterprise / Console account, or provider usage |
 | **License** | Source-available (ELv2) | Source-available (not open source) |
 
@@ -49,7 +49,7 @@ Claude Code is Anthropic's official coding agent. The CLI is still the core expe
 
 ### Orchestrator vs Agent
 
-Claude Code is the agent — it talks to Claude models, reads your code, and makes changes. Superset is the orchestration workspace — it runs many Claude Code instances in parallel, each in its own isolated environment, then gives you chat, browser preview, diff/file review, and MCP-connected workflow around them. Claude Code does the work; Superset scales and organizes it.
+Claude Code is the agent: it talks to Claude models, reads your code, and makes changes. Superset is the orchestration workspace: it runs many Claude Code instances in parallel, each in its own isolated environment, then gives you chat, browser preview, diff/file review, and MCP-connected workflow around them. Claude Code does the work; Superset scales and organizes it.
 
 ### Single Product Surface vs Many Isolated Sessions
 
@@ -61,7 +61,7 @@ Running Claude Code directly, it modifies files in your current directory. If yo
 
 ### Agent Flexibility
 
-Claude Code only works with Anthropic's models. Superset doesn't care which agent you use — run Claude Code for complex refactors, Codex for well-defined tasks, Aider for iterative changes, or mix and match per task. If a better agent ships tomorrow, you can use it in Superset immediately without changing your workflow.
+Claude Code only works with Anthropic's models. Superset doesn't care which agent you use: run Claude Code for complex refactors, Codex for well-defined tasks, Aider for iterative changes, or mix and match per task. If a better agent ships tomorrow, you can use it in Superset immediately without changing your workflow.
 
 ### Session Persistence
 
@@ -71,7 +71,7 @@ Claude Code gives you the agent surfaces themselves. Superset adds the operation
 
 ## Pricing
 
-Superset offers a free tier and Pro at $20/seat/month. Claude Code currently requires a Pro, Max, Teams, Enterprise, or Console account, and Anthropic also documents support for provider-based access through services like Bedrock, Vertex AI, and Foundry. The important comparison is not just price, but structure: Claude Code gives you the agent, while Superset adds orchestration on top.
+Superset offers a free tier and Pro at $20/seat/month. Claude Code currently requires a Pro, Max, Teams, Enterprise, or Console account, and Anthropic also documents support for provider-based access through services like Bedrock, Vertex AI, and Foundry. The comparison that matters is structure rather than price: Claude Code gives you the agent, while Superset adds orchestration on top.
 
 ---
 
@@ -90,7 +90,7 @@ Superset offers a free tier and Pro at $20/seat/month. Claude Code currently req
 - Plan to use other agents alongside Claude Code (Codex, Aider, OpenCode)
 - Work on large codebases where parallel execution saves hours
 
-Most Superset users run Claude Code as their primary agent. Superset doesn't compete with Claude Code — it makes Claude Code more powerful by adding parallelism, isolation, and persistence.
+Most Superset users run Claude Code as their primary agent. Superset doesn't compete with Claude Code: it makes Claude Code more powerful by adding parallelism, isolation, and persistence.
 
 ---
 
@@ -102,7 +102,7 @@ Not really. Superset now has built-in chat, MCP tooling, browser previews, and f
 
 ### Can I use Claude Code without Superset?
 
-Yes. Claude Code works on its own from the CLI or Anthropic's Desktop app. Superset adds value when you want to run multiple Claude Code sessions in parallel with automatic isolation — which becomes important as you scale from one agent to many.
+Yes. Claude Code works on its own from the CLI or Anthropic's Desktop app. Superset adds value when you want to run multiple Claude Code sessions in parallel with automatic isolation, which becomes important as you scale from one agent to many.
 
 ### How many Claude Code instances can I run in Superset?
 
@@ -110,7 +110,7 @@ As many as your machine and API rate limits allow. Most developers run 5-10 conc
 
 ### Does Superset modify how Claude Code works?
 
-No. Claude Code runs exactly as it would in any terminal. Superset just provides the worktree, branch, and terminal session. All Claude Code features — tool use, MCP servers, hooks, slash commands — work normally.
+No. Claude Code runs exactly as it would in any terminal. Superset just provides the worktree, branch, and terminal session. All Claude Code features (tool use, MCP servers, hooks, slash commands) work normally.
 
 ### Is Superset open source?
 

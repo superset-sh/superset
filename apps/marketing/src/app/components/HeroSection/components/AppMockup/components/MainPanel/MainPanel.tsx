@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Image from "next/image";
 import { LuGitPullRequest } from "react-icons/lu";
 import { AUTOMATIONS } from "../../constants";
@@ -27,7 +27,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 	return (
 		<div className="flex min-w-0 flex-1 flex-col bg-background">
 			<div className="relative flex-1 overflow-hidden p-5 font-mono text-[11px] leading-relaxed">
-				<motion.div
+				<m.div
 					className="flex h-full flex-col"
 					initial={{ opacity: 1 }}
 					animate={{ opacity: isDefault ? 1 : 0 }}
@@ -131,10 +131,10 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 							</span>
 						</div>
 					</div>
-				</motion.div>
+				</m.div>
 
 				{/* Automate Tasks: scheduled agents running on their own */}
-				<motion.div
+				<m.div
 					className="absolute inset-0 p-5 font-mono text-[11px] leading-relaxed"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: isAutomate ? 1 : 0 }}
@@ -179,10 +179,10 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 							</div>
 						))}
 					</div>
-				</motion.div>
+				</m.div>
 
 				{/* Remote Workspaces: same workspace model, on a box that isn't yours */}
-				<motion.div
+				<m.div
 					className="absolute inset-0 p-5 font-mono text-[11px] leading-relaxed"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: isRemote ? 1 : 0 }}
@@ -201,7 +201,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 							· 64 cores · 128 GB
 						</div>
 					</div>
-				</motion.div>
+				</m.div>
 			</div>
 		</div>
 	);

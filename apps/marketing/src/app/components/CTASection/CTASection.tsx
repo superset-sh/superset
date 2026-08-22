@@ -30,7 +30,7 @@ export function CTASection() {
 						</button>
 					</div>
 					<p className="mt-10 mb-4 text-sm text-muted-foreground">
-						Or install the CLI — paste the agent tab into Claude Code and it
+						Or install the CLI: paste the agent tab into Claude Code and it
 						installs itself.
 					</p>
 					<InstallCommand />

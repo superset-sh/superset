@@ -32,6 +32,23 @@ jobs:
       - name: Sherif
         run: bunx sherif
 
+  vale:
+    name: Vale prose lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install Vale
+        run: |
+          curl -sfLo /tmp/vale.tar.gz https://github.com/errata-ai/vale/releases/download/v3.17.1/vale_3.17.1_Linux_64-bit.tar.gz
+          echo "db947f89f2292e6a0381a61de155f6a5f5cb4cb460ca178ea412ef605559cefd  /tmp/vale.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/vale.tar.gz -C /usr/local/bin vale
+
+      - name: Lint marketing content
+        working-directory: apps/marketing
+        run: vale --config=vale.ini content
+
   version-sync:
     name: Version Sync
     runs-on: ubuntu-latest
@@ -85,11 +102,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
 
-      # The guard scripts run by `bun run lint` scan with ripgrep, which is not
-      # on the runner image.
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
-
       - name: Lint
         run: bun run lint
 
@@ -115,17 +127,31 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
 
-      - name: Install Linux native build deps
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxkbfile-dev
-
-      - name: Install desktop native dependencies
-        working-directory: apps/desktop
-        run: bun run install:deps
-
       - name: Test
         env:
           RELAY_URL: ${{ secrets.RELAY_URL }}
         run: bun run test
+
+      # The terminal launch-protection suites (src/terminal/*.node-test.ts)
+      # need real PTYs + node:test, which bun can't provide.
+      - name: Setup Node.js (terminal node-tests)
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+
+      # bun install ran with --ignore-scripts, so better-sqlite3 has no native
+      # build; fetch the prebuilt binary for the Node ABI using the lockfile-
+      # pinned prebuild-install that ships as its dependency (bun tests use
+      # bun:sqlite and are unaffected).
+      - name: Prepare better-sqlite3 for Node
+        run: |
+          for dir in node_modules/.bun/better-sqlite3@*/node_modules/better-sqlite3; do
+            (cd "$dir" && ../.bin/prebuild-install)
+          done
+
+      - name: Terminal node-tests
+        working-directory: packages/host-service
+        run: bun run test:integration:terminal
 
   typecheck:
     name: Typecheck

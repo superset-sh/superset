@@ -1,7 +1,9 @@
+import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef, useState } from "react";
 import { LuFile, LuGitCompareArrows } from "react-icons/lu";
+import { getChangesetFileKey } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
@@ -10,7 +12,6 @@ import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
-import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
 import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
@@ -18,7 +19,6 @@ import type { SidebarTabDefinition } from "./types";
 // Gates the "Create PR" button only — the chat-driven create flow doesn't
 // exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
 // always renders so users can see PR state and merge once a PR exists.
-const CREATE_PR_BUTTON_ENABLED = false;
 
 type SidebarTabId = "changes" | "files" | "review";
 
@@ -43,7 +43,6 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
@@ -54,7 +53,6 @@ export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
-	onOpenChat,
 	onSearch,
 	selectedFilePath,
 	pendingReveal,
@@ -112,6 +110,16 @@ export function WorkspaceSidebar({
 		icon: LuGitCompareArrows,
 	};
 
+	// PR review comments are always relative to the base branch, so they map
+	// onto the "against-base" source group — matching the same query (and
+	// changeKey format) the Changes tab uses for that group lets us disambiguate
+	// a path that also has staged/unstaged edits, instead of falling back to
+	// "first item whose path matches" and landing on the wrong group.
+	const baseBranchQuery = workspaceTrpc.git.getBaseBranch.useQuery(
+		{ workspaceId },
+		{ staleTime: Number.POSITIVE_INFINITY },
+	);
+
 	const reviewTab = useReviewTab({
 		workspaceId,
 		onOpenComment,
@@ -119,16 +127,29 @@ export function WorkspaceSidebar({
 			? (path, line, openInNewTab, side) => {
 					// Force annotations on so the user lands on the comment, not an empty line.
 					useSettings.getState().update("showDiffComments", true);
-					onSelectDiffFile(path, openInNewTab ?? false, line, side);
+					// Only disambiguate once the real base branch is known — while
+					// baseBranchQuery is still loading, omit changeKey so this falls
+					// back to the old (safe) "first item whose path matches" behavior
+					// instead of building a changeKey with a guessed-empty base branch
+					// that won't match the real item once it resolves.
+					const changeKey = baseBranchQuery.isSuccess
+						? getChangesetFileKey({
+								path,
+								status: "modified",
+								additions: 0,
+								deletions: 0,
+								source: {
+									kind: "against-base",
+									baseBranch: baseBranchQuery.data.baseBranch,
+								},
+							})
+						: undefined;
+					onSelectDiffFile(path, openInNewTab ?? false, line, side, changeKey);
 				}
 			: undefined,
 	});
 
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
-	const dispatch = usePRFlowDispatch({
-		onOpenChat: onOpenChat ?? (() => {}),
-	});
-
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
 		label: "Files",
@@ -156,9 +177,7 @@ export function WorkspaceSidebar({
 			<PRActionHeader
 				workspaceId={workspaceId}
 				state={flowState}
-				dispatch={dispatch}
 				onRetry={onRetry}
-				createPREnabled={CREATE_PR_BUTTON_ENABLED}
 			/>
 			<SidebarHeader
 				tabs={tabs}

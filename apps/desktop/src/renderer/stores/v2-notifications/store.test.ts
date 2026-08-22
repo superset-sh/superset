@@ -16,11 +16,6 @@ const secondTerminalPane = {
 	kind: "terminal",
 	data: { terminalId: "terminal-2" },
 };
-const chatPane = {
-	id: "pane-3",
-	kind: "chat",
-	data: { sessionId: "session-1" },
-};
 const tab = {
 	id: "tab-1",
 	createdAt: 0,
@@ -29,7 +24,6 @@ const tab = {
 	panes: {
 		"pane-1": terminalPane,
 		"pane-2": secondTerminalPane,
-		"pane-3": chatPane,
 	},
 };
 
@@ -103,13 +97,9 @@ describe("v2 notification store", () => {
 		expect(getV2NotificationSourcesForPane(terminalPane)).toEqual([
 			{ type: "terminal", id: "terminal-1" },
 		]);
-		expect(getV2NotificationSourcesForPane(chatPane)).toEqual([
-			{ type: "chat", id: "session-1" },
-		]);
 		expect(getV2NotificationSourcesForTab(tab)).toEqual([
 			{ type: "terminal", id: "terminal-1" },
 			{ type: "terminal", id: "terminal-2" },
-			{ type: "chat", id: "session-1" },
 		]);
 	});
 });

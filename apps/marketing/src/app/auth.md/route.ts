@@ -1,6 +1,18 @@
-import { API_URL, MARKDOWN_HEADERS, MCP_SERVER_URL } from "@/lib/llms";
+import { COMPANY } from "@superset/shared/constants";
+import {
+	API_URL,
+	buildFrontmatter,
+	MARKDOWN_HEADERS,
+	MCP_SERVER_URL,
+} from "@/lib/llms";
 
 export async function GET() {
+	const frontmatter = buildFrontmatter({
+		title: "Superset agent authentication",
+		description:
+			"How an AI agent obtains and uses credentials for the Superset API: OAuth 2.1 with PKCE and dynamic client registration, or an API key.",
+		canonical: `${COMPANY.MARKETING_URL}/auth.md`,
+	});
 	const content = `# Superset agent authentication
 
 How an AI agent obtains and uses credentials for the Superset API (${API_URL}). The flow is standard OAuth 2.1 with PKCE plus RFC 7591 dynamic client registration; no manual app setup is required. This document follows the auth.md convention (https://workos.com/auth-md).
@@ -48,7 +60,7 @@ The response contains your \`client_id\`. Public clients (no secret) with PKCE a
 
 ## 4. Claim
 
-Send the user to the authorization endpoint to claim the registration — this is the human-approval step:
+Send the user to the authorization endpoint to claim the registration. This is the human-approval step:
 
 \`\`\`
 GET ${API_URL}/api/auth/oauth2/authorize?client_id=...&response_type=code&redirect_uri=...&scope=openid+profile+email+offline_access&code_challenge=...&code_challenge_method=S256
@@ -80,9 +92,9 @@ Access tokens expire after one hour; refresh with \`grant_type=refresh_token\` a
 
 All errors are JSON. The ones you will see:
 
-- \`401\` \`{"error": {"code": "UNAUTHORIZED", "message": "..."}}\` — missing, expired, or revoked token. Re-read \`WWW-Authenticate\` and re-authenticate.
-- \`invalid_grant\` from the token endpoint — the refresh token was revoked or the code expired; restart at "Claim".
-- \`invalid_client\` — the registration is unknown; restart at "Register".
+- \`401\` \`{"error": {"code": "UNAUTHORIZED", "message": "..."}}\`: missing, expired, or revoked token. Re-read \`WWW-Authenticate\` and re-authenticate.
+- \`invalid_grant\` from the token endpoint: the refresh token was revoked or the code expired; restart at "Claim".
+- \`invalid_client\`: the registration is unknown; restart at "Register".
 
 ## 7. Revocation
 
@@ -98,5 +110,7 @@ token=<access_or_refresh_token>&client_id=...
 Users can also revoke your agent's access and API keys at any time from the Superset app; revoked tokens fail with \`401\` on the next request.
 `;
 
-	return new Response(content, { headers: MARKDOWN_HEADERS });
+	return new Response([...frontmatter, content].join("\n"), {
+		headers: MARKDOWN_HEADERS,
+	});
 }

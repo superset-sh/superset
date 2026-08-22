@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
 	LuChevronDown,
 	LuChevronRight,
@@ -38,7 +38,7 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 			<div className="mt-6 flex-1 overflow-hidden">
 				<GroupHeader label="desktop" count={5} expanded />
 
-				<motion.div
+				<m.div
 					className="overflow-hidden"
 					initial={{ height: 0, opacity: 0 }}
 					animate={{
@@ -58,7 +58,7 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 							creating
 						</span>
 					</div>
-				</motion.div>
+				</m.div>
 
 				<div className="mt-1 space-y-0.5">
 					{WORKSPACES.map((workspace) => (
@@ -79,7 +79,7 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 				<div className="mt-3">
 					<GroupHeader label="cloud" count={3} expanded={isRemote} />
 				</div>
-				<motion.div
+				<m.div
 					className="overflow-hidden"
 					initial={{ height: 0, opacity: 0 }}
 					animate={{
@@ -102,12 +102,15 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 							/>
 						))}
 					</div>
-				</motion.div>
+				</m.div>
+				<div className="mt-1">
+					<GroupHeader label="gpu-box" count={14} />
+				</div>
 				<div className="mt-1">
 					<GroupHeader label="mobile" count={1} />
 				</div>
 				<div className="mt-1">
-					<GroupHeader label="cli" count={2} />
+					<GroupHeader label="cli" count={4} />
 				</div>
 			</div>
 		</div>

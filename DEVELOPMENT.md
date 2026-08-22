@@ -9,7 +9,6 @@ This guide is for contributors building Superset from source. If you just want t
 | [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`) | `curl -fsSL https://bun.sh/install \| bash` |
 | [Docker](https://docs.docker.com/get-docker/) | Docker Desktop or OrbStack |
 | `jq` | `brew install jq` |
-| [Caddy](https://caddyserver.com/docs/install) | `brew install caddy && caddy trust` |
 | Git 2.20+ and [`gh`](https://cli.github.com/) | `brew install gh` |
 
 macOS is the primary supported platform. Windows / Linux are untested.
@@ -42,7 +41,7 @@ validation, and `setup.local.sh` runs everything against a local Docker stack.
 
 1. Copies `.env.local.example` → `.env`
 2. Allocates a per-workspace port range so multiple worktrees don't collide
-3. Brings up Postgres + neon-proxy + Electric + Redis (behind an HTTP shim, for the relay) via `docker compose` (project-scoped to this worktree)
+3. Brings up Postgres + neon-proxy + Redis (behind an HTTP shim, for the relay) via `docker compose` (project-scoped to this worktree)
 4. Runs `bun install` and `bun run db:migrate`
 5. Seeds a `Local Admin` dev account via `bun run db:seed-dev`
 6. Writes a gitignored `.superset/config.local.json` overlay so subsequent worktrees automatically use this setup
@@ -68,7 +67,6 @@ If you need to point at real Neon / third-party services instead of the local Do
 
 ```bash
 cp .env.example .env             # fill in real Neon, Stripe, etc. credentials
-cp Caddyfile.example Caddyfile   # HTTPS reverse proxy for Electric streams
 bun install
 bun run dev
 ```
@@ -83,7 +81,7 @@ open apps/desktop/release
 ## Common commands
 
 ```bash
-bun dev                # Start the api, web, desktop, and electric-proxy dev servers
+bun dev                # Start the api, web, and desktop dev servers
 bun run dev:all        # Start every dev server in the monorepo
 bun test               # Run tests
 bun run lint:fix       # Fix lint + format
@@ -98,7 +96,6 @@ See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and dat
 - **Dev desktop exits while the installed app is running**: launch development
   from a Superset workspace instead of the repository's main checkout, run
   `./.superset/setup.local.sh` in that worktree, then run `bun run dev` again.
-- **`caddy trust` prompts for sudo**: expected, once per machine. Without it Chromium rejects `https://localhost:*` with `ERR_CERT_AUTHORITY_INVALID`.
 - **Port collision**: `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
 - **DB connection errors after pulling main**: re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
 - **Stuck Docker stack**: `./.superset/teardown.local.sh` then re-run setup.

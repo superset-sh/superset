@@ -43,7 +43,53 @@ import {
 const lowlight = createLowlight(common);
 const ENABLE_RAW_MARKDOWN_HTML = false;
 
+// tiptap-markdown's MarkdownTightLists only tracks tightness for
+// bulletList/orderedList, so task lists always serialize loose (blank lines
+// between items). taskList reuses bulletList's renderList serializer, which
+// honors a `tight` node attribute — mirror the same attribute here.
+const TaskListTightness = Extension.create({
+	name: "taskListTightness",
+	addGlobalAttributes() {
+		return [
+			{
+				types: ["taskList"],
+				attributes: {
+					tight: {
+						default: true,
+						parseHTML: (element) =>
+							element.getAttribute("data-tight") === "true" ||
+							!element.querySelector("p"),
+						renderHTML: (attributes) => ({
+							"data-tight": attributes.tight ? "true" : null,
+						}),
+					},
+				},
+			},
+		];
+	},
+});
+
 const SafeImage = Image.extend({
+	// @tiptap/core's default attribute parser coerces numeric/boolean-looking
+	// strings (fromString), so ![123](x.png) loads alt: 123 and the markdown
+	// serializer throws on .replace. Read these verbatim instead.
+	addAttributes() {
+		return {
+			...this.parent?.(),
+			src: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("src"),
+			},
+			alt: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("alt"),
+			},
+			title: {
+				default: null,
+				parseHTML: (element) => element.getAttribute("title"),
+			},
+		};
+	},
 	addNodeView() {
 		return ReactNodeViewRenderer(ReadOnlySafeImageView);
 	},
@@ -242,6 +288,7 @@ export function createMarkdownExtensions({
 			transformCopiedText: true,
 		}),
 		TableClipboardMarkdown,
+		TaskListTightness,
 		EditorHotkeys.configure({
 			onSaveRef,
 		}),

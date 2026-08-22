@@ -103,4 +103,149 @@ describe("filesystem router integration", () => {
 		});
 		expect(result.matches).toEqual([]);
 	});
+
+	// The Files tab creates an entry on disk, then opens an inline rename on it,
+	// then either moves it (commit) or removes it (cancel). Exercised end to end
+	// here because a break anywhere along it either loses the user's folder or
+	// leaves the tree describing something that doesn't exist.
+	describe("provisional entry lifecycle", () => {
+		test("create → rename commits the entry under its new name", async () => {
+			const created =
+				await scenario.host.trpc.filesystem.createUniqueEntry.mutate({
+					workspaceId: scenario.workspaceId,
+					parentAbsolutePath: scenario.repo.repoPath,
+					baseName: "Untitled",
+					kind: "directory",
+				});
+			expect(created.ok).toBe(true);
+			if (!created.ok) return;
+			expect(created.name).toBe("Untitled");
+
+			await scenario.host.trpc.filesystem.movePath.mutate({
+				workspaceId: scenario.workspaceId,
+				sourceAbsolutePath: created.absolutePath,
+				destinationAbsolutePath: join(scenario.repo.repoPath, ".claude"),
+			});
+
+			const entries = await scenario.host.trpc.filesystem.listDirectory.query({
+				workspaceId: scenario.workspaceId,
+				absolutePath: scenario.repo.repoPath,
+			});
+			const names = entries.entries.map((e) => e.name);
+			expect(names).toContain(".claude");
+			expect(names).not.toContain("Untitled");
+		});
+
+		test("create → cancel removes the entry", async () => {
+			const created =
+				await scenario.host.trpc.filesystem.createUniqueEntry.mutate({
+					workspaceId: scenario.workspaceId,
+					parentAbsolutePath: scenario.repo.repoPath,
+					baseName: "Untitled",
+					kind: "directory",
+				});
+			expect(created.ok).toBe(true);
+			if (!created.ok) return;
+
+			const removed =
+				await scenario.host.trpc.filesystem.removeEmptyDirectory.mutate({
+					workspaceId: scenario.workspaceId,
+					absolutePath: created.absolutePath,
+				});
+			expect(removed).toEqual({ ok: true });
+
+			const entries = await scenario.host.trpc.filesystem.listDirectory.query({
+				workspaceId: scenario.workspaceId,
+				absolutePath: scenario.repo.repoPath,
+			});
+			expect(entries.entries.map((e) => e.name)).not.toContain("Untitled");
+		});
+
+		test("cancel keeps the folder once something is inside it", async () => {
+			const created =
+				await scenario.host.trpc.filesystem.createUniqueEntry.mutate({
+					workspaceId: scenario.workspaceId,
+					parentAbsolutePath: scenario.repo.repoPath,
+					baseName: "Untitled",
+					kind: "directory",
+				});
+			expect(created.ok).toBe(true);
+			if (!created.ok) return;
+
+			writeFileSync(join(created.absolutePath, "precious.txt"), "keep me");
+
+			const removed =
+				await scenario.host.trpc.filesystem.removeEmptyDirectory.mutate({
+					workspaceId: scenario.workspaceId,
+					absolutePath: created.absolutePath,
+				});
+			expect(removed).toEqual({ ok: false, reason: "not-empty" });
+			expect(
+				readFileSync(join(created.absolutePath, "precious.txt"), "utf8"),
+			).toBe("keep me");
+		});
+
+		test("never adopts a directory that already exists on disk", async () => {
+			const existing = join(scenario.repo.repoPath, "Untitled");
+			mkdirSync(existing);
+			writeFileSync(join(existing, "precious.txt"), "keep me");
+
+			const created =
+				await scenario.host.trpc.filesystem.createUniqueEntry.mutate({
+					workspaceId: scenario.workspaceId,
+					parentAbsolutePath: scenario.repo.repoPath,
+					baseName: "Untitled",
+					kind: "directory",
+				});
+			expect(created.ok).toBe(true);
+			if (!created.ok) return;
+			expect(created.name).toBe("Untitled-2");
+
+			// Cancelling the new one must not touch the pre-existing one.
+			await scenario.host.trpc.filesystem.removeEmptyDirectory.mutate({
+				workspaceId: scenario.workspaceId,
+				absolutePath: created.absolutePath,
+			});
+			expect(readFileSync(join(existing, "precious.txt"), "utf8")).toBe(
+				"keep me",
+			);
+		});
+
+		test("file create → cancel is guarded by the creation revision", async () => {
+			const created =
+				await scenario.host.trpc.filesystem.createUniqueEntry.mutate({
+					workspaceId: scenario.workspaceId,
+					parentAbsolutePath: scenario.repo.repoPath,
+					baseName: "untitled",
+					kind: "file",
+				});
+			expect(created.ok).toBe(true);
+			expect(created.ok && created.revision).toBeTruthy();
+			if (!created.ok || created.revision === undefined) return;
+
+			// Someone wrote to it after we created it — cancelling must not delete it.
+			writeFileSync(created.absolutePath, "typed by the user");
+			expect(
+				await scenario.host.trpc.filesystem.removeFileIfUnchanged.mutate({
+					workspaceId: scenario.workspaceId,
+					absolutePath: created.absolutePath,
+					revision: created.revision,
+				}),
+			).toEqual({ ok: false, reason: "modified" });
+			expect(readFileSync(created.absolutePath, "utf8")).toBe(
+				"typed by the user",
+			);
+		});
+
+		test("rejects a baseName that is not a single path leaf", async () => {
+			const result =
+				await scenario.host.trpc.filesystem.createUniqueEntry.mutate({
+					workspaceId: scenario.workspaceId,
+					parentAbsolutePath: scenario.repo.repoPath,
+					baseName: "../escaped",
+					kind: "directory",
+				});
+			expect(result).toEqual({ ok: false, reason: "invalid-name" });
+		});
+	});
 });

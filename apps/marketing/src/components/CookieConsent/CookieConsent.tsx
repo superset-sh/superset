@@ -1,11 +1,11 @@
 "use client";
 
 import { Button } from "@superset/ui/button";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import Link from "next/link";
-import posthog from "posthog-js";
 import { useEffect, useState } from "react";
 
+import { withPosthog } from "@/lib/analytics/lazy";
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 
 export function CookieConsent() {
@@ -21,19 +21,19 @@ export function CookieConsent() {
 	const handleAccept = () => {
 		localStorage.setItem(ANALYTICS_CONSENT_KEY, "accepted");
 		setShowBanner(false);
-		posthog.opt_in_capturing();
+		withPosthog((posthog) => posthog.opt_in_capturing());
 	};
 
 	const handleOptOut = () => {
 		localStorage.setItem(ANALYTICS_CONSENT_KEY, "declined");
-		posthog.opt_out_capturing();
+		withPosthog((posthog) => posthog.opt_out_capturing());
 		setShowBanner(false);
 	};
 
 	return (
 		<AnimatePresence>
 			{showBanner && (
-				<motion.div
+				<m.div
 					initial={{ y: 20, opacity: 0 }}
 					animate={{ y: 0, opacity: 1 }}
 					exit={{ y: 20, opacity: 0 }}
@@ -56,7 +56,7 @@ export function CookieConsent() {
 							</Button>
 						</div>
 					</div>
-				</motion.div>
+				</m.div>
 			)}
 		</AnimatePresence>
 	);

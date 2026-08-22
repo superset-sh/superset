@@ -7,6 +7,7 @@ mock.module("renderer/lib/trpc-client", () => ({
 		browser: {
 			register: { mutate: async () => ({ success: true }) },
 			unregister: { mutate: unregister },
+			onAgentActivePanes: { subscribe: () => ({ unsubscribe: () => {} }) },
 		},
 		browserHistory: {
 			upsert: { mutate: async () => ({ success: true }) },
@@ -45,6 +46,49 @@ describe("browserRuntimeRegistry detached persistence", () => {
 		} finally {
 			registryInternals.entries.delete(paneId);
 			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
+	});
+
+	test("hidden-webview eviction spares panes with a live CDP session", async () => {
+		const makeEntry = (lastUsedAt: number) => ({
+			webview: { remove: () => {}, style: { visibility: "hidden" } },
+			state: {},
+			onPersist: null,
+			webContentsId: null,
+			detachHandlers: () => {},
+			placeholder: null,
+			resizeObserver: null,
+			visible: false,
+			lastUsedAt,
+		});
+		const registryInternals = browserRuntimeRegistry as unknown as {
+			entries: Map<string, ReturnType<typeof makeEntry>>;
+			agentActivePaneIds: Set<string>;
+			evictExcessHiddenWebviews: () => void;
+		};
+		// Five hidden panes over the cap of three; the two oldest would go, but
+		// the oldest has an agent attached and must survive.
+		for (let i = 1; i <= 5; i++) {
+			registryInternals.entries.set(`evict-pane-${i}`, makeEntry(i));
+		}
+		registryInternals.agentActivePaneIds = new Set(["evict-pane-1"]);
+
+		try {
+			registryInternals.evictExcessHiddenWebviews();
+
+			const remaining = [...registryInternals.entries.keys()].filter((id) =>
+				id.startsWith("evict-pane-"),
+			);
+			expect(remaining).toEqual([
+				"evict-pane-1",
+				"evict-pane-4",
+				"evict-pane-5",
+			]);
+		} finally {
+			registryInternals.agentActivePaneIds = new Set();
+			for (let i = 1; i <= 5; i++) {
+				registryInternals.entries.delete(`evict-pane-${i}`);
+			}
 		}
 	});
 

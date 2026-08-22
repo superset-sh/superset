@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
-import { useNewWorkspaceScreenVariant } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useNewWorkspaceScreenVariant";
-import { NewWorkspaceEmptyScreen } from "./components/NewWorkspaceEmptyScreen";
+import { useEffect, useRef } from "react";
 import { V2WorkspacesBoard } from "./components/V2WorkspacesBoard";
 import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
 import { V2WorkspacesList } from "./components/V2WorkspacesList";
@@ -11,9 +9,11 @@ import {
 	useV2WorkspacesFilterStore,
 	V2_WORKSPACES_AGENT_STATUS_FILTERS,
 	V2_WORKSPACES_ARCHIVED_WINDOWS,
+	V2_WORKSPACES_PIN_FILTERS,
 	V2_WORKSPACES_PR_STATE_FILTERS,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesArchivedWindow,
+	type V2WorkspacesPinFilter,
 	type V2WorkspacesPrStateFilter,
 	type V2WorkspacesViewMode,
 } from "./stores/v2WorkspacesFilterStore";
@@ -27,7 +27,9 @@ export type V2WorkspacesSearch = {
 	pr?: string;
 	/** Comma-joined agent statuses. */
 	agent?: string;
-	view?: "board";
+	/** Sidebar pin visibility; omitted = "all". */
+	pin?: V2WorkspacesPinFilter;
+	view?: V2WorkspacesViewMode;
 	archived?: V2WorkspacesArchivedWindow;
 };
 
@@ -61,7 +63,13 @@ export const Route = createFileRoute(
 			typeof search.agent === "string" && search.agent
 				? search.agent
 				: undefined,
-		view: search.view === "board" ? "board" : undefined,
+		pin: V2_WORKSPACES_PIN_FILTERS.includes(search.pin as V2WorkspacesPinFilter)
+			? (search.pin as V2WorkspacesPinFilter)
+			: undefined,
+		view:
+			search.view === "board" || search.view === "list"
+				? search.view
+				: undefined,
 		archived: V2_WORKSPACES_ARCHIVED_WINDOWS.includes(
 			search.archived as V2WorkspacesArchivedWindow,
 		)
@@ -87,6 +95,7 @@ function V2WorkspacesPage() {
 	const agentStatusFilters = useV2WorkspacesFilterStore(
 		(state) => state.agentStatusFilters,
 	);
+	const pinFilter = useV2WorkspacesFilterStore((state) => state.pinFilter);
 	const viewMode = useV2WorkspacesFilterStore((state) => state.viewMode);
 	const archivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.archivedWindow,
@@ -120,9 +129,8 @@ function V2WorkspacesPage() {
 					V2_WORKSPACES_AGENT_STATUS_FILTERS,
 				),
 			}),
-			...(search.view !== undefined && {
-				viewMode: "board" as V2WorkspacesViewMode,
-			}),
+			...(search.pin !== undefined && { pinFilter: search.pin }),
+			...(search.view !== undefined && { viewMode: search.view }),
 			...(search.archived !== undefined && {
 				archivedWindow: search.archived,
 			}),
@@ -140,8 +148,9 @@ function V2WorkspacesPage() {
 				agent: agentStatusFilters.length
 					? agentStatusFilters.join(",")
 					: undefined,
-				view: viewMode === "board" ? "board" : undefined,
-				archived: archivedWindow !== "week" ? archivedWindow : undefined,
+				pin: pinFilter !== "all" ? pinFilter : undefined,
+				view: viewMode !== "board" ? viewMode : undefined,
+				archived: archivedWindow !== "none" ? archivedWindow : undefined,
 			},
 			replace: true,
 		});
@@ -155,6 +164,7 @@ function V2WorkspacesPage() {
 		projectFilters,
 		prStateFilters,
 		agentStatusFilters,
+		pinFilter,
 		viewMode,
 		archivedWindow,
 	]);
@@ -166,33 +176,11 @@ function V2WorkspacesPage() {
 			projectFilters,
 			prStateFilters,
 			agentStatusFilters,
-			// Tombstones ride along so the board's Merged/Deleted columns work;
-			// the list layout renders live rows only, so it skips the fetch.
-			includeArchived: viewMode === "board",
+			pinFilter,
+			// Tombstones ride along so both views' Merged/Deleted groups work;
+			// each view scopes them by the shared archived window.
+			includeArchived: true,
 		});
-
-	const liveWorkspaces = useMemo(
-		() => all.filter((workspace) => workspace.archivedAt == null),
-		[all],
-	);
-
-	// Experiment test arm: with zero workspaces the dashboard IS the create
-	// screen — the "No workspaces yet" empty state never shows. Gated on
-	// isReady (never pin over rows that are still settling) and on default
-	// filters so a filtered-to-empty view keeps the normal empty state.
-	// Evaluating the flag here is the exposure moment.
-	const isEmptyDashboard =
-		isReady &&
-		liveWorkspaces.length === 0 &&
-		!searchQuery.trim() &&
-		projectFilters.length === 0 &&
-		prStateFilters.length === 0 &&
-		agentStatusFilters.length === 0 &&
-		deviceFilter === DEVICE_FILTER_THIS_DEVICE;
-	const variant = useNewWorkspaceScreenVariant(isEmptyDashboard);
-	if (variant === "test" && isEmptyDashboard) {
-		return <NewWorkspaceEmptyScreen />;
-	}
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
@@ -205,7 +193,7 @@ function V2WorkspacesPage() {
 			{viewMode === "board" ? (
 				<V2WorkspacesBoard workspaces={all} isReady={isReady} />
 			) : (
-				<V2WorkspacesList workspaces={liveWorkspaces} isReady={isReady} />
+				<V2WorkspacesList workspaces={all} isReady={isReady} />
 			)}
 		</div>
 	);

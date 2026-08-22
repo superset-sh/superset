@@ -13,7 +13,7 @@ import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
 
 interface CreateTaskAssigneePickerProps {
-	users: SelectUser[];
+	users: Pick<SelectUser, "id" | "name" | "email" | "image">[];
 	value: string | null;
 	onChange: (value: string | null) => void;
 }

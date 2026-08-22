@@ -89,7 +89,6 @@ export function ImportProjectsPage({
 		queries: projects.map((project) => ({
 			queryKey: projectFindByPathQueryKey(project, activeHostUrl),
 			queryFn: projectFindByPathQueryFn(project, activeHostUrl),
-			retry: false as const,
 		})),
 	});
 
@@ -301,7 +300,6 @@ function fetchProjectFindByPath(
 	return queryClient.fetchQuery({
 		queryKey: projectFindByPathQueryKey(project, activeHostUrl),
 		queryFn: projectFindByPathQueryFn(project, activeHostUrl),
-		retry: false,
 	});
 }
 
@@ -376,7 +374,6 @@ function ProjectRow({
 	const findByPathQuery = useQuery({
 		queryKey: projectFindByPathQueryKey(project, activeHostUrl),
 		queryFn: projectFindByPathQueryFn(project, activeHostUrl),
-		retry: false,
 	});
 
 	const runImport = async (

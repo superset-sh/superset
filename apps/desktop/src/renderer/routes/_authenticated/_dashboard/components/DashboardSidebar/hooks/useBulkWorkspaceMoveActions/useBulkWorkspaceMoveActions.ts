@@ -80,7 +80,10 @@ export function useBulkWorkspaceMoveActions({
 
 	const ungroupSelection = () => {
 		if (!projectId) return;
-		for (const workspaceId of groupedWorkspaceIds) {
+		// Each move inserts directly below the row's former group, so processing
+		// in visual order would stack the rows reversed. Iterate back-to-front to
+		// keep the selection's visual order.
+		for (const workspaceId of [...groupedWorkspaceIds].reverse()) {
 			moveWorkspaceToSection(workspaceId, projectId, null);
 		}
 		clearSelection();

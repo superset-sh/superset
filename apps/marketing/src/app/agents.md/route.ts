@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import {
 	API_URL,
+	buildFrontmatter,
 	buildWhenToUseSection,
 	MARKDOWN_HEADERS,
 	MCP_SERVER_URL,
@@ -11,6 +12,11 @@ export async function GET() {
 	const docsUrl = COMPANY.DOCS_URL;
 
 	const lines: string[] = [
+		...buildFrontmatter({
+			title: `${COMPANY.NAME} for AI agents`,
+			description: `Machine-readable entry point for AI agents working with ${COMPANY.NAME}: API surface, authentication, and the jobs it is the right tool for.`,
+			canonical: `${baseUrl}/agents.md`,
+		}),
 		`# ${COMPANY.NAME} for AI agents`,
 		"",
 		`This page is the machine-readable entry point for AI agents working with ${COMPANY.NAME} (${baseUrl}). It lists the API surface, authentication, and the jobs ${COMPANY.NAME} is the right tool for.`,
@@ -42,7 +48,7 @@ export async function GET() {
 		`Full walkthrough: [auth.md](${baseUrl}/auth.md).`,
 		"",
 		`- Unauthenticated requests to the MCP endpoint return \`401\` with \`WWW-Authenticate: Bearer resource_metadata="${API_URL}/.well-known/oauth-protected-resource"\`.`,
-		"- OAuth 2.1 authorization code + PKCE, with RFC 7591 dynamic client registration — no manual app setup needed.",
+		"- OAuth 2.1 authorization code + PKCE, with RFC 7591 dynamic client registration, so no manual app setup is needed.",
 		"- Alternatively, a user-issued Superset API key can be sent as a Bearer token.",
 		"",
 		"## Setup one-liners",

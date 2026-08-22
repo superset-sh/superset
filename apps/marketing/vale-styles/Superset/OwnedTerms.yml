@@ -1,0 +1,8 @@
+extends: existence
+message: "'%s' is another product's branding (GitHub owns 'mission control', herdr owns 'herding'); rephrase."
+link: https://github.com/superset-sh/superset/blob/main/apps/marketing/docs/copywriting-references.md
+level: warning
+ignorecase: true
+tokens:
+  - 'mission control'
+  - 'herding'

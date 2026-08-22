@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,7 +32,7 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 		>
 			<div className="px-4 sm:px-6">
 				<div className="flex items-center justify-between h-16">
-					<motion.div
+					<m.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ duration: 0.3 }}
@@ -44,9 +44,9 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 						>
 							<SupersetLogo />
 						</Link>
-					</motion.div>
+					</m.div>
 
-					<motion.div
+					<m.div
 						className="hidden lg:flex items-center gap-8"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
@@ -55,7 +55,7 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 						<DesktopNav />
 						{starCounter}
 						<div className="flex items-center gap-3 shrink-0">{ctaButtons}</div>
-					</motion.div>
+					</m.div>
 
 					<MobileNav ctaButtons={ctaButtons} starCounter={starCounter} />
 				</div>

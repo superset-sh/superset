@@ -1,7 +1,7 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,6 +37,7 @@ const PRODUCT_LINKS: FooterLink[] = [
 	{ href: "/#how-it-works", label: "How it works" },
 	{ href: "/#features", label: "Features" },
 	{ href: "/#security", label: "Security" },
+	{ href: "/mcp-install", label: "MCP" },
 	{ href: "/marketplace", label: "Marketplace" },
 	{ href: "/compare", label: "Compare" },
 ];
@@ -52,6 +53,8 @@ const RESOURCE_LINKS: FooterLink[] = [
 	{ href: COMPANY.DOCS_URL, label: "Documentation", external: true },
 	{ href: "/pricing", label: "Pricing" },
 	{ href: "/blog", label: "Blog" },
+	{ href: "/parallel-coding-agents", label: "Parallel agents guide" },
+	{ href: "/agent-orchestration", label: "Orchestration guide" },
 	{ href: "/community", label: "Community" },
 	{ href: "/enterprise", label: "Enterprise" },
 	{ href: "/changelog", label: "Changelog" },
@@ -70,7 +73,7 @@ export function Footer() {
 
 	return (
 		<footer className="border-t border-border bg-background">
-			<motion.div
+			<m.div
 				initial={{ opacity: 0 }}
 				whileInView={{ opacity: 1 }}
 				viewport={{ once: true }}
@@ -96,7 +99,7 @@ export function Footer() {
 					<FooterColumn title="Resources" links={RESOURCE_LINKS} />
 					<FooterColumn title="Legal" links={LEGAL_LINKS} />
 				</div>
-			</motion.div>
+			</m.div>
 		</footer>
 	);
 }

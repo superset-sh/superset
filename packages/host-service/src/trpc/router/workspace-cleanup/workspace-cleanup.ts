@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -21,7 +21,9 @@ import type {
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
+import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
+import { isInsideProjectWorktreesRoot } from "../workspace-creation/shared/worktree-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
 
@@ -154,14 +156,13 @@ export const workspaceCleanupRouter = router({
 	 *   1.   Preflight    — dirty-worktree check (skip if force)
 	 *   2.   Teardown     — run .superset/teardown.sh (per teardownMode)
 	 *   3.   Local cleanup — PTYs, worktree
-	 *   4.   Best-effort legacy cloud delete (skipped for sessions)
-	 *   5.   Branch delete — optional local branch cleanup
-	 *   6.   Caches
+	 *   4.   Branch delete — optional local branch cleanup
+	 *   5.   Caches
 	 *
 	 * A thrown failure — preflight conflict, blocking teardown, or the
 	 * unrecoverable parts of step 3 — un-archives the row so the workspace
 	 * reappears and stays retryable instead of orphaning disk state.
-	 * Steps 4-6 (and the tolerated parts of step 3) degrade to warnings on
+	 * Steps 4-5 (and the tolerated parts of step 3) degrade to warnings on
 	 * a still-successful delete, and telemetry fires on that success. A
 	 * crash after the archive is finished by the startup reconciler
 	 * (runArchivedWorkspaceReconcile) with best-effort teardown.
@@ -169,7 +170,7 @@ export const workspaceCleanupRouter = router({
 	 * Force semantics (git only; teardown is governed by teardownMode):
 	 *   - skips preflight (step 1)
 	 *   - step 3b always uses `--force --force`
-	 *   - step 5 always uses `-D` regardless: the `deleteBranch`
+	 *   - step 4 always uses `-D` regardless: the `deleteBranch`
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
 	 *
@@ -354,6 +355,16 @@ async function runDestroy(
 
 /** "merged" when the linked PR was observed merged; every other delete —
  * open/closed/draft PR or none at all — is a plain "deleted". */
+/** existsSync also answers false for a path that exists but cannot be read;
+ * this answers true only when the path is really absent. */
+function isMissingDirectory(path: string): boolean {
+	try {
+		return statSync(path, { throwIfNoEntry: false }) === undefined;
+	} catch {
+		return false;
+	}
+}
+
 function archiveReasonFor(
 	ctx: HostServiceContext,
 	local: { pullRequestId: string | null },
@@ -447,25 +458,61 @@ async function runDestroyPhases(
 	}
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
-		try {
-			repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			if (!worktreeRemoved) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to open project repo at ${project.repoPath}: ${message}`,
-				});
+		if (!worktreeRemoved && isMissingDirectory(project.repoPath)) {
+			// The project repo was moved or deleted outside Superset: there is
+			// no repository to run `git worktree remove` in, and the worktree's
+			// gitdir pointer is already dead, so no retry can ever succeed.
+			// Only a genuine ENOENT takes this branch — a repo this process
+			// merely cannot read (EPERM/EACCES) is not gone, and keeps the
+			// "failed to open" throw below rather than losing its worktree.
+			// Delete the folder directly under the same root guard the
+			// sessions branch uses — anything outside the project's managed
+			// worktrees root is left on disk (warned) while the delete proceeds.
+			const worktreeBaseDir =
+				project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+			if (
+				!isInsideProjectWorktreesRoot(
+					local.worktreePath,
+					project.id,
+					worktreeBaseDir,
+				)
+			) {
+				warnings.push(
+					`Skipped worktree removal at ${local.worktreePath}: project repo at ${project.repoPath} is missing and the folder is outside the managed worktrees root`,
+				);
+			} else {
+				try {
+					await rm(local.worktreePath, { recursive: true, force: true });
+					worktreeRemoved = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to remove worktree at ${local.worktreePath}: ${message}`,
+					});
+				}
 			}
-			warnings.push(
-				`Failed to open project repo at ${project.repoPath}: ${message}`,
-			);
+		} else {
+			try {
+				repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				if (!worktreeRemoved) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to open project repo at ${project.repoPath}: ${message}`,
+					});
+				}
+				warnings.push(
+					`Failed to open project repo at ${project.repoPath}: ${message}`,
+				);
+			}
 		}
 
 		if (repoGitEnv) {
 			// A task failure here means the post-remove state is unknown —
 			// treat that like "still registered" and block rather than risk
-			// orphaning disk past the cloud commit point.
+			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
 			try {
 				({ stillRegistered } = await cleanupGitOps.removeWorktree({
@@ -482,8 +529,8 @@ async function runDestroyPhases(
 			}
 			if (stillRegistered) {
 				// git still tracks a live worktree here — removal genuinely
-				// failed. Keep the cloud row so the workspace stays visible and
-				// retryable instead of orphaning disk past the cloud commit point.
+				// failed. Un-archive so the workspace stays visible and
+				// retryable instead of orphaning disk past the commit point.
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to remove worktree at ${local.worktreePath}`,
@@ -493,25 +540,7 @@ async function runDestroyPhases(
 		}
 	}
 
-	// ─── Step 4: Legacy cloud cleanup ──────────────────────────────
-	// The row already committed at step 0 (archived tombstone). The
-	// cloud delete is best-effort legacy cleanup for rows mirrored before
-	// workspaces went fully local.
-	let cloudDeleted = false;
-	// Sessions postdate the cloud mirror — there is no legacy row to clean.
-	if (local?.type !== "session") {
-		try {
-			await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-			cloudDeleted = true;
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			warnings.push(
-				`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
-			);
-		}
-	}
-
-	// ─── Step 5: Optional branch delete ────────────────────────────
+	// ─── Step 4: Optional branch delete ────────────────────────────
 	// After the local commit point so a failure here can't block the delete.
 	// An absent ref (renamed, pruned, or never materialized) already
 	// satisfies the goal, so the task skips the delete without a scary
@@ -531,7 +560,7 @@ async function runDestroyPhases(
 		}
 	}
 
-	// ─── Step 6: Caches ────────────────────────────────────────────
+	// ─── Step 5: Caches ────────────────────────────────────────────
 	if (local) {
 		try {
 			invalidateLabelCache(input.workspaceId);
@@ -543,7 +572,9 @@ async function runDestroyPhases(
 
 	return {
 		success: true,
-		cloudDeleted,
+		// Workspaces have no cloud row to delete any more. Released CLI/SDK
+		// binaries still read this field, so it stays in the response.
+		cloudDeleted: false,
 		worktreeRemoved,
 		branchDeleted,
 		warnings,

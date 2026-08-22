@@ -73,6 +73,26 @@ const JSON_RPC_RESPONSE_SCHEMA = {
 	required: ["jsonrpc"],
 } as const;
 
+const RATE_LIMIT_HEADERS = {
+	"RateLimit-Limit": {
+		schema: { type: "integer" },
+		description: "Requests allowed per window for this credential (600).",
+	},
+	"RateLimit-Remaining": {
+		schema: { type: "integer" },
+		description: "Requests left in the current window.",
+	},
+	"RateLimit-Reset": {
+		schema: { type: "integer" },
+		description: "Seconds until the window resets.",
+	},
+	"RateLimit-Policy": {
+		schema: { type: "string" },
+		description:
+			"Quota policy, e.g. 600;w=60 (draft-ietf-httpapi-ratelimit-headers).",
+	},
+} as const;
+
 const UNAUTHORIZED_RESPONSE = {
 	description:
 		"Missing, expired, or revoked credential. The WWW-Authenticate header points at the RFC 9728 protected resource metadata to bootstrap OAuth discovery.",
@@ -110,6 +130,12 @@ const SPEC = {
 			url: `${MARKETING_URL}/contact`,
 		},
 		termsOfService: `${MARKETING_URL}/terms`,
+		"x-versioning": {
+			strategy: "url-path",
+			current: "v2",
+			paths: ["/mcp", "/api/v2/agent/mcp"],
+			deprecationPolicy: `Breaking changes ship under a new path version. Deprecated surfaces keep serving for at least 90 days, return a Deprecation header, and are announced in the changelog (${MARKETING_URL}/changelog) before removal; removed surfaces return 410 Gone with a hint pointing at the replacement.`,
+		},
 	},
 	externalDocs: {
 		description: "Superset MCP documentation",
@@ -129,7 +155,7 @@ const SPEC = {
 				tags: ["mcp"],
 				summary: "Send an MCP JSON-RPC request",
 				description:
-					"Streamable HTTP transport endpoint for the Superset MCP server (also served at the legacy alias /api/v2/agent/mcp). Send `initialize`, then `tools/list` to enumerate the available tools, then `tools/call` to act on the authenticated user's tasks, workspaces, agents, automations, terminals, hosts, and projects. Responses are `application/json` or `text/event-stream` depending on the request's Accept header.",
+					"Streamable HTTP transport endpoint for the Superset MCP server (also served at the legacy alias /api/v2/agent/mcp). Send `initialize`, then `tools/list` to enumerate the available tools, then `tools/call` to act on the authenticated user's tasks, workspaces, agents, automations, terminals, hosts, and projects. Responses are `application/json` or `text/event-stream` depending on the request's Accept header. Rate limit: 600 requests per 60 seconds per credential, reported in RateLimit-* headers; over the limit returns 429 with Retry-After. A plain GET without `Accept: text/event-stream` returns a JSON description of the server instead of opening a stream.",
 				requestBody: {
 					required: true,
 					content: {
@@ -141,6 +167,7 @@ const SPEC = {
 				responses: {
 					"200": {
 						description: "JSON-RPC response (or SSE stream of responses).",
+						headers: RATE_LIMIT_HEADERS,
 						content: {
 							"application/json": {
 								schema: { $ref: "#/components/schemas/JsonRpcResponse" },
@@ -155,6 +182,7 @@ const SPEC = {
 						},
 					},
 					"401": { $ref: "#/components/responses/Unauthorized" },
+					"429": { $ref: "#/components/responses/RateLimited" },
 				},
 			},
 			get: {
@@ -178,6 +206,58 @@ const SPEC = {
 						content: { "text/event-stream": { schema: { type: "string" } } },
 					},
 					"401": { $ref: "#/components/responses/Unauthorized" },
+				},
+			},
+		},
+		"/api/v2/agent/mcp": {
+			post: {
+				operationId: "mcpRequestV2Alias",
+				tags: ["mcp"],
+				summary: "Versioned alias of /mcp",
+				description:
+					"Identical to POST /mcp. The path carries the API version explicitly for clients that pin versions in the URL.",
+				requestBody: {
+					required: true,
+					content: {
+						"application/json": {
+							schema: { $ref: "#/components/schemas/JsonRpcRequest" },
+						},
+					},
+				},
+				responses: {
+					"200": {
+						description: "JSON-RPC response (or SSE stream of responses).",
+						headers: RATE_LIMIT_HEADERS,
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/JsonRpcResponse" },
+							},
+						},
+					},
+					"401": { $ref: "#/components/responses/Unauthorized" },
+					"429": { $ref: "#/components/responses/RateLimited" },
+				},
+			},
+		},
+		"/api/agent/mcp": {
+			post: {
+				operationId: "mcpRequestV1Removed",
+				tags: ["mcp"],
+				deprecated: true,
+				summary: "Removed v1 MCP endpoint",
+				description:
+					"The v1 MCP server was removed after its deprecation window. Requests return 410 Gone with a hint pointing at /mcp.",
+				security: [],
+				responses: {
+					"410": {
+						description:
+							"Gone. The body's hint names the replacement endpoint.",
+						content: {
+							"application/json": {
+								schema: { $ref: "#/components/schemas/Error" },
+							},
+						},
+					},
 				},
 			},
 		},
@@ -280,6 +360,13 @@ const SPEC = {
 					"302": {
 						description:
 							"Redirect to the consent UI, then to redirect_uri with ?code=...&state=...",
+						headers: {
+							Location: {
+								description:
+									"Consent UI, or redirect_uri with code and state query parameters appended.",
+								schema: { type: "string", format: "uri" },
+							},
+						},
 					},
 				},
 			},
@@ -331,17 +418,7 @@ const SPEC = {
 						description: "Claims about the authenticated user.",
 						content: {
 							"application/json": {
-								schema: {
-									type: "object",
-									properties: {
-										sub: { type: "string" },
-										email: { type: "string", format: "email" },
-										email_verified: { type: "boolean" },
-										name: { type: "string" },
-										picture: { type: "string", format: "uri" },
-									},
-									required: ["sub"],
-								},
+								schema: { $ref: "#/components/schemas/UserInfo" },
 							},
 						},
 					},
@@ -359,18 +436,7 @@ const SPEC = {
 					required: true,
 					content: {
 						"application/x-www-form-urlencoded": {
-							schema: {
-								type: "object",
-								properties: {
-									token: { type: "string" },
-									token_type_hint: {
-										type: "string",
-										enum: ["access_token", "refresh_token"],
-									},
-									client_id: { type: "string" },
-								},
-								required: ["token"],
-							},
+							schema: { $ref: "#/components/schemas/TokenRevocationRequest" },
 						},
 					},
 				},
@@ -392,21 +458,7 @@ const SPEC = {
 						content: {
 							"application/json": {
 								schema: {
-									type: "object",
-									properties: {
-										resource: { type: "string", format: "uri" },
-										authorization_servers: {
-											type: "array",
-											items: { type: "string", format: "uri" },
-										},
-										scopes_supported: {
-											type: "array",
-											items: { type: "string" },
-										},
-										resource_name: { type: "string" },
-										resource_documentation: { type: "string", format: "uri" },
-									},
-									required: ["resource", "authorization_servers"],
+									$ref: "#/components/schemas/ProtectedResourceMetadata",
 								},
 							},
 						},
@@ -428,32 +480,7 @@ const SPEC = {
 						content: {
 							"application/json": {
 								schema: {
-									type: "object",
-									properties: {
-										issuer: { type: "string", format: "uri" },
-										authorization_endpoint: { type: "string", format: "uri" },
-										token_endpoint: { type: "string", format: "uri" },
-										registration_endpoint: { type: "string", format: "uri" },
-										revocation_endpoint: { type: "string", format: "uri" },
-										scopes_supported: {
-											type: "array",
-											items: { type: "string" },
-										},
-										agent_auth: {
-											type: "object",
-											properties: {
-												skill: { type: "string", format: "uri" },
-												register_uri: { type: "string", format: "uri" },
-												revocation_uri: { type: "string", format: "uri" },
-												identity_types_supported: {
-													type: "array",
-													items: { type: "string", enum: ["anonymous"] },
-												},
-											},
-										},
-									},
-									required: ["issuer"],
-									additionalProperties: true,
+									$ref: "#/components/schemas/AuthorizationServerMetadata",
 								},
 							},
 						},
@@ -474,43 +501,7 @@ const SPEC = {
 						description: "MCP server card.",
 						content: {
 							"application/json": {
-								schema: {
-									type: "object",
-									properties: {
-										name: { type: "string" },
-										description: { type: "string" },
-										version: { type: "string" },
-										serverUrl: { type: "string", format: "uri" },
-										transport: { type: "string", enum: ["streamable-http"] },
-										documentationUrl: { type: "string", format: "uri" },
-										authentication: {
-											type: "object",
-											properties: {
-												type: { type: "string" },
-												resourceMetadataUrl: {
-													type: "string",
-													format: "uri",
-												},
-											},
-										},
-										tools: {
-											type: "array",
-											items: {
-												type: "object",
-												properties: {
-													name: { type: "string" },
-													description: { type: "string" },
-													inputSchema: {
-														type: "object",
-														additionalProperties: true,
-													},
-												},
-												required: ["name"],
-											},
-										},
-									},
-									required: ["name", "version", "serverUrl", "tools"],
-								},
+								schema: { $ref: "#/components/schemas/McpServerCard" },
 							},
 						},
 					},
@@ -528,16 +519,7 @@ const SPEC = {
 						description: "OpenAPI 3.1 specification.",
 						content: {
 							"application/json": {
-								schema: {
-									type: "object",
-									properties: {
-										openapi: { type: "string" },
-										info: { type: "object", additionalProperties: true },
-										paths: { type: "object", additionalProperties: true },
-										components: { type: "object", additionalProperties: true },
-									},
-									required: ["openapi", "info", "paths"],
-								},
+								schema: { $ref: "#/components/schemas/OpenApiDocument" },
 							},
 						},
 					},
@@ -625,6 +607,135 @@ const SPEC = {
 				},
 				required: ["client_id"],
 			},
+			UserInfo: {
+				description: "OpenID Connect claims about the authenticated user.",
+
+				type: "object",
+				properties: {
+					sub: { type: "string" },
+					email: { type: "string", format: "email" },
+					email_verified: { type: "boolean" },
+					name: { type: "string" },
+					picture: { type: "string", format: "uri" },
+				},
+				required: ["sub"],
+			},
+			TokenRevocationRequest: {
+				description: "RFC 7009 revocation request body.",
+
+				type: "object",
+				properties: {
+					token: { type: "string" },
+					token_type_hint: {
+						type: "string",
+						enum: ["access_token", "refresh_token"],
+					},
+					client_id: { type: "string" },
+				},
+				required: ["token"],
+			},
+			ProtectedResourceMetadata: {
+				description: "RFC 9728 protected resource metadata.",
+
+				type: "object",
+				properties: {
+					resource: { type: "string", format: "uri" },
+					authorization_servers: {
+						type: "array",
+						items: { type: "string", format: "uri" },
+					},
+					scopes_supported: {
+						type: "array",
+						items: { type: "string" },
+					},
+					resource_name: { type: "string" },
+					resource_documentation: { type: "string", format: "uri" },
+				},
+				required: ["resource", "authorization_servers"],
+			},
+			AuthorizationServerMetadata: {
+				description:
+					"RFC 8414 authorization server metadata with the agent_auth extension.",
+
+				type: "object",
+				properties: {
+					issuer: { type: "string", format: "uri" },
+					authorization_endpoint: { type: "string", format: "uri" },
+					token_endpoint: { type: "string", format: "uri" },
+					registration_endpoint: { type: "string", format: "uri" },
+					revocation_endpoint: { type: "string", format: "uri" },
+					scopes_supported: {
+						type: "array",
+						items: { type: "string" },
+					},
+					agent_auth: {
+						type: "object",
+						properties: {
+							skill: { type: "string", format: "uri" },
+							register_uri: { type: "string", format: "uri" },
+							revocation_uri: { type: "string", format: "uri" },
+							identity_types_supported: {
+								type: "array",
+								items: { type: "string", enum: ["anonymous"] },
+							},
+						},
+					},
+				},
+				required: ["issuer"],
+				additionalProperties: true,
+			},
+			McpServerCard: {
+				description:
+					"MCP server card: identity, transport, authentication, and tool catalog.",
+
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					description: { type: "string" },
+					version: { type: "string" },
+					serverUrl: { type: "string", format: "uri" },
+					transport: { type: "string", enum: ["streamable-http"] },
+					documentationUrl: { type: "string", format: "uri" },
+					authentication: {
+						type: "object",
+						properties: {
+							type: { type: "string" },
+							resourceMetadataUrl: {
+								type: "string",
+								format: "uri",
+							},
+						},
+					},
+					tools: {
+						type: "array",
+						items: {
+							type: "object",
+							properties: {
+								name: { type: "string" },
+								description: { type: "string" },
+								inputSchema: {
+									type: "object",
+									additionalProperties: true,
+								},
+							},
+							required: ["name"],
+						},
+					},
+				},
+				required: ["name", "version", "serverUrl", "tools"],
+			},
+			OpenApiDocument: {
+				description: "An OpenAPI 3.1 document.",
+
+				type: "object",
+				properties: {
+					openapi: { type: "string" },
+					info: { type: "object", additionalProperties: true },
+					paths: { type: "object", additionalProperties: true },
+					components: { type: "object", additionalProperties: true },
+				},
+				required: ["openapi", "info", "paths"],
+			},
 			TokenRequest: {
 				type: "object",
 				properties: {
@@ -658,6 +769,22 @@ const SPEC = {
 		},
 		responses: {
 			Unauthorized: UNAUTHORIZED_RESPONSE,
+			RateLimited: {
+				description:
+					"Too many requests for this credential in the current window. Wait Retry-After seconds and retry.",
+				headers: {
+					"Retry-After": {
+						schema: { type: "integer" },
+						description: "Seconds until the window resets.",
+					},
+					...RATE_LIMIT_HEADERS,
+				},
+				content: {
+					"application/json": {
+						schema: { $ref: "#/components/schemas/Error" },
+					},
+				},
+			},
 		},
 	},
 } as const;

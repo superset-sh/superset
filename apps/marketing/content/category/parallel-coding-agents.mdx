@@ -1,0 +1,113 @@
+---
+title: "Parallel Coding Agents: The Complete Guide"
+description: "What parallel coding agents are, why one agent session stops being enough, and how to run many agents on one repository without losing track of any of them."
+date: 2026-08-17
+lastUpdated: 2026-08-17
+keywords:
+  - parallel coding agents
+  - parallel ai coding agents
+  - run coding agents in parallel
+  - multiple coding agents
+  - parallel claude code
+  - coding agent workflow
+  - agent isolation
+---
+
+Parallel coding agents means running more than one AI coding agent at the same time, each on its own task, instead of watching a single session work through your backlog one item at a time. It is the workflow that emerges naturally once agents get good enough that you, not the agent, become the bottleneck.
+
+This guide covers what the workflow actually looks like, the problems that show up as you scale it, and the tooling landscape around it. It stays useful whether you run two agents or two hundred.
+
+---
+
+## Why one session stops being enough
+
+The first time you use a serious coding agent like Claude Code or Codex, the loop is conversational: prompt, watch, correct, repeat. That loop has a hidden cost. While the agent works, you wait. While you review, the agent waits. Neither of you is saturated.
+
+The fix is boring: stop watching one agent and dispatch several. One agent writes tests for the module you just finished. Another chases a flaky CI failure. A third updates dependencies. You switch from operator to reviewer, and your throughput is no longer capped by any single session.
+
+Then the practical problems start.
+
+## The four problems parallelism creates
+
+### 1. Collisions
+
+Two agents editing the same checkout will overwrite each other's work, fight over the index, and leave you with a working directory neither of you can explain. Any serious parallel setup needs isolation: each agent gets its own working directory and its own branch.
+
+The standard mechanism is the [Git worktree](/compare/git-worktrees-for-ai-agents): multiple directories, one repository, every agent on its own branch with shared history. Containers and full clones also work, but worktrees are the cheapest isolation that preserves a normal Git workflow, which is why most parallel-agent tools are built on them.
+
+![How parallel coding agents stay isolated: one repository fans out into a Git worktree per task, each running its own agent (Claude Code, Codex, OpenCode) on its own branch, producing independent diffs that you review and merge](/images/guides/worktree-isolation.svg)
+
+### 2. Session sprawl
+
+Terminal tabs don't scale. Around four or five concurrent sessions, you start losing track of which agent is doing what, which ones are blocked on a question, and which ones finished an hour ago. The failure mode is not dramatic; it is quiet waste. An agent sits idle waiting for input while you babysit a different one.
+
+At small scale, discipline and tmux can carry you. Past that, you want a surface that shows every session, its status, and its diff in one place.
+
+![A workspace board triaging a fleet of coding agents by status: working, needs attention, needs review, and merged, with branch names and pull requests on every card](/changelog/2026-08-16-workspaces-board.png)
+
+### 3. Review
+
+Parallel agents produce parallel diffs. Ten agents can easily generate more code in an afternoon than you used to review in a week. If each task lives in its own worktree, each produces an independent diff you can review, merge, or throw away on its own. If tasks were not isolated, the diffs tangle and review cost explodes.
+
+The habit that makes this manageable: decompose work into tasks that do not overlap on files, keep each task PR-sized, and review per-task rather than per-agent-message.
+
+![Reviewing one agent's isolated diff before merging: each task produces its own reviewable changeset](/images/readme/diff-viewer.png)
+
+### 4. Lifecycle
+
+Sessions die when laptops sleep. Worktrees accumulate until your disk complains. Dev servers collide on ports. Each of these is small, and together they are the tax that determines whether the workflow sticks. Handling them automatically is the difference between a demo and a daily driver.
+
+![An interrupted Claude Code session offering a one-click Resume: persistent sessions survive sleeps and restarts instead of losing the conversation](/changelog/2026-08-09-resume-banner.png)
+
+## The workflow, concretely
+
+1. **Split the work.** Independent tasks parallelize well: tests, docs, isolated bugs, refactors in separate modules. Tasks that fight over the same files belong in sequence, not in parallel.
+2. **One worktree per task.** Manually via `git worktree add`, or automatically via a workspace tool. The agent gets a directory, a branch, and a focused prompt.
+3. **Dispatch and detach.** Start each agent, then stop watching. Check in when an agent needs input or finishes, not continuously.
+4. **Review each diff independently.** Merge the wins, discard the rest, and delete the worktree.
+
+Teams that run this at scale add two more layers: [orchestration](/agent-orchestration), so agents can be launched, monitored, and scheduled programmatically rather than by hand, and automations, so recurring work (nightly dependency bumps, triage passes) runs without anyone dispatching it.
+
+## How many agents is realistic?
+
+You do not need dozens of agents for the workflow to pay off; at three concurrent tasks, isolation and a decent dashboard already earn their keep. Past a few dozen, new things break: machine resources, review bandwidth, and task decomposition itself become the constraints. We wrote up what changes at the high end in [The Roadmap to 100 Agents](/blog/roadmap-to-100-agents), based on running Superset's own development this way.
+
+The honest answer for most teams: the ceiling that matters is not how many agents your tooling can run, it is how many independent, well-scoped tasks you can produce and review.
+
+## The tooling landscape
+
+Three kinds of tools support parallel coding agents today, and they compose rather than compete.
+
+**The agents themselves.** Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, and friends. They do the coding. Most are single-session by design; parallelism is something you build around them.
+
+**Editors with parallel modes.** [Cursor](/compare/superset-vs-cursor) runs multiple agents in local worktrees, and [Zed's Parallel Agents](/compare/superset-vs-zed) manages agent threads in a sidebar with optional worktree isolation. Strong choices when you want parallelism inside the editor you already type in.
+
+**Dedicated orchestration workspaces.** Tools built around the fleet rather than the file: [Superset](/), [Conductor](/compare/superset-vs-conductor), [Parallel Code](/compare/superset-vs-parallel-code), and [others](/compare). Worktree-per-task by default, every session visible in one place, diffs reviewed centrally. Reach for this layer once you are running parallel agents most days, not once a month.
+
+For a full comparison across all three layers, see [Best AI Coding Tools and Agents](/compare/best-ai-coding-agents-2026).
+
+## Where Superset fits
+
+Superset is a workspace built specifically for this workflow: every task gets an isolated worktree with a persistent terminal, any CLI agent works, and monitoring, diff review, port handling, automations, and an MCP server for programmatic control sit on top. If the problems in this guide are the ones you are hitting, that is exactly what it exists for. [Download it](/download) or read [how it compares](/compare) to everything else in the space.
+
+## Frequently Asked Questions
+
+### What are parallel coding agents?
+
+Running more than one AI coding agent at the same time, each on its own task, typically with each agent isolated in its own Git worktree and branch so their changes never collide. The point is throughput: you review and direct while agents work concurrently.
+
+### Do I need special tooling to run agents in parallel?
+
+Not to start. Two terminal tabs and two Git worktrees are enough to try it. Tooling becomes worth it when you hit the predictable problems: losing track of sessions, reviewing many diffs, sessions dying on sleep, and worktree cleanup. That is the point of orchestration workspaces like Superset.
+
+### How do parallel agents avoid conflicts?
+
+Isolation. Each agent works in its own Git worktree on its own branch, so edits never touch another agent's files. Conflicts only surface at merge time, where Git handles them the same way it handles human branches.
+
+### How many coding agents can I run at once?
+
+Tooling-wise, dozens to hundreds locally; Superset is built to handle 100+ workspaces, and [The Roadmap to 100 Agents](/blog/roadmap-to-100-agents) shows what that takes in practice. The real limit is how many independent tasks you can define and how much review you can absorb. Start with a few concurrent agents and scale as your decomposition and review habits improve.
+
+### Which coding agents work in parallel setups?
+
+Any agent that runs in a terminal: Claude Code, Codex, OpenCode, Gemini CLI, Copilot CLI, Aider, and custom scripts. Agent-agnostic orchestrators do not care which one you pick, and mixed fleets (different agents for different task types) are common.

@@ -21,6 +21,25 @@ export async function resolveAutomationTarget(args: {
 }): Promise<{ targetHostId: string; v2ProjectId: string | null }> {
 	const targetHostId = args.hostId ?? getHostId();
 
+	// The cloud rejects automations whose target host has no v2Hosts row
+	// (the host-service registers one at startup, and that registration can
+	// fail silently — issue #6415). Catch it here, where the user can act
+	// on it, instead of surfacing a bare 404 from the API. This guards
+	// every mode, including session mode, which needs no other cloud data.
+	const hosts = await args.api.host.list.query({
+		organizationId: args.organizationId,
+	});
+	if (!hosts.some((host) => host.id === targetHostId)) {
+		throw new CLIError(
+			args.hostId
+				? `Host ${targetHostId} is not registered in this organization`
+				: `This machine (host ${targetHostId}) isn't registered with the cloud`,
+			args.hostId
+				? "Run: superset hosts list"
+				: "Restart the host service (superset stop && superset start), then check: superset hosts list",
+		);
+	}
+
 	if (args.workspaceId) {
 		const { workspace } = await findWorkspaceOnHost(
 			{

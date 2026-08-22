@@ -380,10 +380,31 @@ export function useDashboardSidebarState() {
 			if (!existing) return;
 
 			if (sectionId === null) {
+				const currentSectionId = existing.sidebarState.sectionId;
+				const sameProject = existing.sidebarState.projectId === projectId;
+				// Already ungrouped in this project — nothing to move.
+				if (
+					currentSectionId === null &&
+					sameProject &&
+					isSidebarWorkspaceVisible(existing)
+				) {
+					return;
+				}
 				const topLevelItems = getProjectTopLevelItems(collections, projectId, {
 					excludeWorkspaceId: workspaceId,
 				});
-				const insertIndex = getFirstSectionIndex(topLevelItems);
+				// Groups interleave with ungrouped rows, so "before the first
+				// section" can be far from the row's group. Keep the row in
+				// place: land it directly below its former group.
+				const sectionIndex = sameProject
+					? topLevelItems.findIndex(
+							(item) => item.type === "section" && item.id === currentSectionId,
+						)
+					: -1;
+				const insertIndex =
+					sectionIndex === -1
+						? getFirstSectionIndex(topLevelItems)
+						: sectionIndex + 1;
 				topLevelItems.splice(insertIndex, 0, {
 					type: "workspace",
 					id: workspaceId,
@@ -420,10 +441,18 @@ export function useDashboardSidebarState() {
 			const section = collections.v2SidebarSections.get(sectionId);
 			if (!section) return;
 
-			const topLevelItems = getProjectTopLevelItems(
+			// Groups interleave with ungrouped rows, so replace the deleted
+			// section's own slot with its members instead of dumping them
+			// "before the first section" (which may be far away).
+			const withSection = getProjectTopLevelItems(
 				collections,
 				section.projectId,
-				{ excludeSectionId: sectionId },
+			);
+			const sectionIndex = withSection.findIndex(
+				(item) => item.type === "section" && item.id === sectionId,
+			);
+			const topLevelItems = withSection.filter(
+				(item) => !(item.type === "section" && item.id === sectionId),
 			);
 			const sectionWorkspaces = Array.from(
 				collections.v2WorkspaceLocalState.state.values(),
@@ -439,7 +468,10 @@ export function useDashboardSidebarState() {
 						left.sidebarState.tabOrder - right.sidebarState.tabOrder,
 				);
 
-			const insertIndex = getFirstSectionIndex(topLevelItems);
+			const insertIndex =
+				sectionIndex === -1
+					? getFirstSectionIndex(topLevelItems)
+					: sectionIndex;
 			topLevelItems.splice(
 				insertIndex,
 				0,
@@ -490,6 +522,49 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
+	const reorderPinnedWorkspaces = useCallback(
+		(
+			orderedPins: Array<{ workspaceId: string; projectId: string | null }>,
+			options: { allowNewWorkspaceId?: string } = {},
+		) => {
+			// Safety net: a single drop may pin at most ONE new workspace (the
+			// dragged one). Anything else not already pinned is dropped here so a
+			// corrupted caller list can never mass-pin rows.
+			const eligiblePins = orderedPins.filter(
+				({ workspaceId }) =>
+					workspaceId === options.allowNewWorkspaceId ||
+					collections.v2WorkspaceLocalState.get(workspaceId)?.sidebarState
+						.pinnedAt != null,
+			);
+			// Rewrite pinnedAt as a strictly-ascending sequence anchored at the
+			// smallest existing pin time, so the sequence stays below Date.now()
+			// and future pins (which use max(now, max+1)) still append last.
+			const existingPinnedAts = eligiblePins.flatMap(({ workspaceId }) => {
+				const pinnedAt =
+					collections.v2WorkspaceLocalState.get(workspaceId)?.sidebarState
+						.pinnedAt;
+				return pinnedAt != null ? [pinnedAt] : [];
+			});
+			const base =
+				existingPinnedAts.length > 0
+					? Math.min(...existingPinnedAts)
+					: Date.now();
+			eligiblePins.forEach(({ workspaceId, projectId }, index) => {
+				if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
+					if (projectId !== null) {
+						ensureSidebarProjectRecord(collections, projectId);
+					}
+					ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+				}
+				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+					draft.sidebarState.pinnedAt = base + index;
+					draft.sidebarState.isHidden = false;
+				});
+			});
+		},
+		[collections],
+	);
+
 	const removeWorkspaceFromSidebar = useCallback(
 		(workspaceId: string) => {
 			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
@@ -534,6 +609,7 @@ export function useDashboardSidebarState() {
 		moveWorkspaceToSection,
 		moveWorkspaceToSectionAtIndex,
 		removeProjectFromSidebar,
+		reorderPinnedWorkspaces,
 		reorderProjectChildren,
 		removeWorkspaceFromSidebar,
 		reorderProjects,

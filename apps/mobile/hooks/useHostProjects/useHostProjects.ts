@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { WorkspacesHost } from "@/hooks/useHostWorkspaces";
 import {
-	buildRelayHostUrl,
 	getHostServiceClientByUrl,
 	type HostProjectRow,
+	hostServiceUrl,
 } from "@/lib/host-service/client";
 
 export interface HostProjectItem {
@@ -54,7 +54,7 @@ export function useHostProjects(
 	host: WorkspacesHost | null,
 ): UseHostProjectsResult {
 	const hostUrl = host
-		? buildRelayHostUrl(host.organizationId, host.machineId)
+		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 
 	const query = useQuery({

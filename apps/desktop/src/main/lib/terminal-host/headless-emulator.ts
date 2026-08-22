@@ -11,13 +11,13 @@
  */
 
 import "../../terminal-host/xterm-env-polyfill";
-import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal } from "@xterm/headless";
-import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	SHELL_READY_MARKER_PAYLOAD,
 	SHELL_READY_OSC_ID,
-} from "shared/leaked-input-mode-reclaim";
+} from "@superset/shared/leaked-input-mode-reclaim";
+import { SerializeAddon } from "@xterm/addon-serialize";
+import { Terminal } from "@xterm/headless";
+import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	FOREGROUND_RECLAIM_RESET_ANSI_PARAMS,
 	FOREGROUND_RECLAIM_RESET_PARAMS,
@@ -61,7 +61,8 @@ const ESC = "\x1b";
  * concurrently armed TUI's modes. That is in-band indistinguishable from a
  * real prompt by construction and is accepted (#5519 B2c).
  *
- * The identifier and payload come from shared/leaked-input-mode-reclaim, so
+ * The identifier and payload come from @superset/shared/leaked-input-mode-
+ * reclaim, so
  * this scanner and the renderer reclaimer can never disagree about which
  * marker means "the shell owns the foreground".
  */
@@ -697,63 +698,85 @@ export class HeadlessEmulator {
 	}
 
 	/**
-	 * Generate escape sequences to restore current mode state
-	 * These sequences should be written to a fresh xterm instance before
-	 * writing the snapshot to ensure input behavior matches.
+	 * Generate escape sequences to bring an attaching xterm to this emulator's
+	 * mode state.
+	 *
+	 * This is an authoritative resync, not a diff against xterm defaults: the
+	 * attaching xterm is not always fresh. A cached renderer xterm that missed
+	 * a TUI's mode-restore bytes (laptop sleep, dropped stream, replayed stale
+	 * scrollback) can have mouse tracking or app-cursor mode still armed while
+	 * the PTY sits at a plain shell prompt — every scroll then sprays SGR mouse
+	 * reports into the shell. So input-affecting modes are asserted in BOTH
+	 * directions, the way tmux resyncs a client tty on attach.
+	 *
+	 * Origin mode (?6) is the exception: both DECSET and DECRST home the
+	 * cursor, so it is only asserted when set.
 	 */
 	private generateRehydrateSequences(): string {
 		const sequences: string[] = [];
 
-		// Helper to add DECSET/DECRST sequence
-		const addModeSequence = (
-			modeNum: number,
-			enabled: boolean,
-			defaultEnabled: boolean,
-		) => {
-			// Only add sequence if different from default
-			if (enabled !== defaultEnabled) {
-				sequences.push(`${ESC}[?${modeNum}${enabled ? "h" : "l"}`);
-			}
+		const assertMode = (modeNum: number, enabled: boolean) => {
+			sequences.push(`${ESC}[?${modeNum}${enabled ? "h" : "l"}`);
 		};
 
 		// Application cursor keys (mode 1)
-		addModeSequence(1, this.modes.applicationCursorKeys, false);
+		assertMode(1, this.modes.applicationCursorKeys);
 
-		// Origin mode (mode 6)
-		addModeSequence(6, this.modes.originMode, false);
+		// Origin mode (mode 6): set-only — DECSET/DECRST both home the cursor,
+		// so an unconditional ?6l would teleport the cursor on every attach.
+		if (this.modes.originMode) {
+			assertMode(6, true);
+		}
 
 		// Auto-wrap mode (mode 7)
-		addModeSequence(7, this.modes.autoWrap, true);
+		assertMode(7, this.modes.autoWrap);
 
 		// Cursor visibility (mode 25)
-		addModeSequence(25, this.modes.cursorVisible, true);
+		assertMode(25, this.modes.cursorVisible);
 
 		// Reverse wraparound (mode 45)
-		addModeSequence(45, this.modes.reverseWraparound, false);
+		assertMode(45, this.modes.reverseWraparound);
 
-		// Mouse tracking modes (one exclusive protocol — at most one is armed)
-		addModeSequence(9, this.modes.mouseTrackingX10, false);
-		addModeSequence(1000, this.modes.mouseTrackingNormal, false);
-		addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
-		addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
+		// Mouse tracking protocol: the levels are one mutually exclusive group
+		// in xterm (any level's reset clears the whole protocol). Reset every
+		// inactive level first and set the active one last — a reset emitted
+		// after the set would immediately disarm it again.
+		//
+		// 1001 (highlight tracking) has no armed state to carry: DECSET/DECRST
+		// 1001 are no-ops in this xterm build, so the emulator does not track
+		// it (see MODE_MAP). It is still reset unconditionally — free here, and
+		// correct for an attaching terminal that does implement it.
+		const mouseLevels: Array<[number, boolean]> = [
+			[9, this.modes.mouseTrackingX10],
+			[1000, this.modes.mouseTrackingNormal],
+			[1001, false],
+			[1002, this.modes.mouseTrackingButtonEvent],
+			[1003, this.modes.mouseTrackingAnyEvent],
+		];
+		for (const [modeNum, active] of mouseLevels) {
+			if (!active) assertMode(modeNum, false);
+		}
+		for (const [modeNum, active] of mouseLevels) {
+			if (active) assertMode(modeNum, true);
+		}
 
 		// Mouse encoding modes
-		addModeSequence(1005, this.modes.mouseUtf8, false);
-		addModeSequence(1006, this.modes.mouseSgr, false);
+		assertMode(1005, this.modes.mouseUtf8);
+		assertMode(1006, this.modes.mouseSgr);
 
 		// Focus reporting (mode 1004)
-		addModeSequence(1004, this.modes.focusReporting, false);
+		assertMode(1004, this.modes.focusReporting);
 
 		// Bracketed paste (mode 2004)
-		addModeSequence(2004, this.modes.bracketedPaste, false);
+		assertMode(2004, this.modes.bracketedPaste);
 
 		// Color-scheme update reports (mode 2031)
-		addModeSequence(2031, this.modes.colorSchemeReporting, false);
+		assertMode(2031, this.modes.colorSchemeReporting);
 
-		// Insert mode is an ANSI mode (CSI 4 h), not a DECSET
-		if (this.modes.insertMode) {
-			sequences.push(`${ESC}[4h`);
-		}
+		// Insert mode is an ANSI mode (CSI 4 h/l), not a DECSET. Asserted in
+		// both directions like the DEC modes above: a TUI that died with IRM
+		// latched makes every keystroke shove the rest of the line right.
+		sequences.push(`${ESC}[4${this.modes.insertMode ? "h" : "l"}`);
 
 		// Note: We don't restore alternate screen mode (1049/47) here because
 		// the serialized snapshot already contains the correct screen buffer.

@@ -27,7 +27,6 @@ import {
 	type ExternalWorktree,
 	generateBranchName,
 	getBranchWorktreePath,
-	getCurrentBranch,
 	getPrInfo,
 	getPrLocalBranchName,
 	getWorktreeCreatedAt,
@@ -35,6 +34,7 @@ import {
 	listExternalWorktrees,
 	type PullRequestInfo,
 	parsePrUrl,
+	readCurrentBranch,
 	safeCheckoutBranch,
 	sanitizeBranchNameWithMaxLength,
 	worktreeExists,
@@ -742,10 +742,22 @@ export const createCreateProcedures = () => {
 					});
 				}
 
-				const branch =
-					input.branch || (await getCurrentBranch(project.mainRepoPath));
+				let branch = input.branch;
 				if (!branch) {
-					throw new Error("Could not determine current branch");
+					// readCurrentBranch throws for a repository we cannot read, so
+					// only a genuinely detached HEAD reaches the typed error below;
+					// anything else stays a reportable failure instead of being
+					// mislabelled as a HEAD problem.
+					const head = await readCurrentBranch(project.mainRepoPath);
+					if (head.kind === "detached") {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Cannot open this repository from detached HEAD. Please checkout a branch and try again.",
+							cause: { kind: "DETACHED_HEAD" },
+						});
+					}
+					branch = head.branch;
 				}
 
 				if (input.branch) {

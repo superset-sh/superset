@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -37,7 +37,7 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 
 			<AnimatePresence>
 				{isOpen && (
-					<motion.div
+					<m.div
 						className="absolute inset-x-0 top-14 border-t border-border bg-background/95 backdrop-blur-sm"
 						initial={{ opacity: 0, height: 0 }}
 						animate={{ opacity: 1, height: "auto" }}
@@ -61,7 +61,7 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 								{ctaButtons}
 							</div>
 						</div>
-					</motion.div>
+					</m.div>
 				)}
 			</AnimatePresence>
 		</div>

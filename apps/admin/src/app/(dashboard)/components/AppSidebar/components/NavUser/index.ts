@@ -1,1 +1,1 @@
-export { NavUser } from "./NavUser";
+export { NavUser, type SidebarUser } from "./NavUser";

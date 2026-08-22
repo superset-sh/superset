@@ -12,16 +12,26 @@ export type HostServiceClient = ReturnType<
 	typeof createTRPCClient<HostServiceRouter>
 >;
 
+/** Base WebSocket origin + auth token for the host's WS routes (terminals, CDP). */
+export interface HostWsEndpoint {
+	/** e.g. `ws://127.0.0.1:5123` (local) or `wss://relay/hosts/<key>` (remote). */
+	baseWsUrl: string;
+	/** Passed as the `?token=` query param on WS routes. */
+	token: string;
+}
+
 export type ResolvedHostTarget =
 	| {
 			kind: "local";
 			hostId: string;
 			client: HostServiceClient;
+			ws: HostWsEndpoint;
 	  }
 	| {
 			kind: "remote";
 			hostId: string;
 			client: HostServiceClient;
+			ws: HostWsEndpoint;
 	  };
 
 export interface ResolveHostTargetOptions {
@@ -72,6 +82,10 @@ export async function resolveHostTarget(
 					}),
 				],
 			}),
+			ws: {
+				baseWsUrl: manifest.endpoint.replace(/^http/, "ws"),
+				token: manifest.authToken,
+			},
 		};
 	}
 
@@ -92,5 +106,9 @@ export async function resolveHostTarget(
 				}),
 			],
 		}),
+		ws: {
+			baseWsUrl: `${relayUrl.replace(/^http/, "ws")}/hosts/${routingKey}`,
+			token: options.userJwt,
+		},
 	};
 }

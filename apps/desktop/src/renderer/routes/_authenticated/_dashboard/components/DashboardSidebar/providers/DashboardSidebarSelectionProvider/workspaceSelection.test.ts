@@ -129,12 +129,15 @@ describe("applyWorkspaceSelection", () => {
 		});
 	});
 
-	it("preserves hidden selected workspaces when toggling a visible row", () => {
+	it("drops stale ids missing from the ordered list", () => {
+		// The provider prunes ids whose rows leave the sidebar (deleted, pinned,
+		// group collapsed); any straggler that races a click is dropped rather
+		// than carried along invisibly.
 		expect(
 			applyWorkspaceSelection(
 				{
 					projectId: "project-a",
-					selectedIds: ["hidden", "three"],
+					selectedIds: ["stale", "three"],
 					anchorId: "three",
 				},
 				{
@@ -146,40 +149,18 @@ describe("applyWorkspaceSelection", () => {
 			),
 		).toEqual({
 			projectId: "project-a",
-			selectedIds: ["three", "five", "hidden"],
+			selectedIds: ["three", "five"],
 			anchorId: "five",
 		});
 	});
 
-	it("preserves hidden selected workspaces when adding a visible range", () => {
+	it("re-anchors an additive click when the anchor is no longer listed", () => {
 		expect(
 			applyWorkspaceSelection(
 				{
 					projectId: "project-a",
-					selectedIds: ["hidden", "two"],
-					anchorId: "two",
-				},
-				{
-					workspaceId: "four",
-					projectId: "project-a",
-					orderedWorkspaceIds,
-					mode: "add-range",
-				},
-			),
-		).toEqual({
-			projectId: "project-a",
-			selectedIds: ["two", "three", "four", "hidden"],
-			anchorId: "two",
-		});
-	});
-
-	it("preserves a hidden anchor when starting a new additive visible range", () => {
-		expect(
-			applyWorkspaceSelection(
-				{
-					projectId: "project-a",
-					selectedIds: ["hidden"],
-					anchorId: "hidden",
+					selectedIds: ["stale"],
+					anchorId: "stale",
 				},
 				{
 					workspaceId: "three",
@@ -190,7 +171,7 @@ describe("applyWorkspaceSelection", () => {
 			),
 		).toEqual({
 			projectId: "project-a",
-			selectedIds: ["three", "hidden"],
+			selectedIds: ["three"],
 			anchorId: "three",
 		});
 	});

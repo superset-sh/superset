@@ -25,7 +25,7 @@ interface HostOfflineRunDialogProps {
 /**
  * Shown when "Run now" is skipped because the target host isn't connected to
  * the relay. For the local device it offers enabling relay access in place
- * (same typed confirmation as Settings > Security).
+ * (same typed confirmation as Settings > Remote Workspaces).
  */
 export function HostOfflineRunDialog({
 	hostId,
@@ -70,8 +70,8 @@ export function HostOfflineRunDialog({
 										{remoteHost?.name ?? "the target host"}
 									</span>{" "}
 									isn't connected to the Superset relay. Make sure relay access
-									is on in Settings &gt; Security on that device, then run it
-									again.
+									is on in Settings &gt; Remote Workspaces on that device, then
+									run it again.
 								</p>
 							)}
 						</div>

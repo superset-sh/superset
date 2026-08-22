@@ -1,4 +1,7 @@
-import type { EntityWebhookPayloadWithIssueData } from "@linear/sdk/webhooks";
+import type {
+	EntityWebhookPayloadWithIssueData,
+	LinearWebhookPayload,
+} from "@linear/sdk/webhooks";
 import {
 	LINEAR_WEBHOOK_SIGNATURE_HEADER,
 	LinearWebhookClient,
@@ -18,9 +21,16 @@ import {
 	isLinearAuthError,
 	mapPriorityFromLinear,
 } from "@superset/trpc/integrations/linear";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { env } from "@/env";
+import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
+import {
+	type LinearDelivery,
+	matchableFrom,
+	normalizeLinearDelivery,
+} from "./normalizeLinearDelivery";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -32,7 +42,17 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const payload = webhookClient.parseData(Buffer.from(body), signature);
+	let payload: LinearWebhookPayload;
+	try {
+		payload = parseVerifiedPayload(body, signature);
+	} catch (error) {
+		console.warn(
+			"[linear/webhook] rejected delivery:",
+			error instanceof Error ? error.message : error,
+		);
+		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	}
+	const deliveryId = request.headers.get("linear-delivery");
 
 	const connections = await db.query.integrationConnections.findMany({
 		where: and(
@@ -53,7 +73,7 @@ export async function POST(request: Request) {
 
 	const results = await Promise.all(
 		connections.map((connection) =>
-			processForConnection(payload, connection).catch((error) => ({
+			processForConnection(payload, deliveryId, connection).catch((error) => ({
 				connectionId: connection.id,
 				outcome: "failed" as const,
 				error: error instanceof Error ? error.message : "Unknown error",
@@ -79,8 +99,25 @@ export async function POST(request: Request) {
 	);
 }
 
+// The SDK only enforces Linear's ±60s replay window when handed the
+// timestamp, and the timestamp lives inside the body being verified.
+function parseVerifiedPayload(
+	body: string,
+	signature: string,
+): LinearWebhookPayload {
+	const { webhookTimestamp } = JSON.parse(body) as {
+		webhookTimestamp?: unknown;
+	};
+	return webhookClient.parseData(
+		Buffer.from(body),
+		signature,
+		typeof webhookTimestamp === "number" ? webhookTimestamp : undefined,
+	);
+}
+
 async function processForConnection(
-	payload: ReturnType<LinearWebhookClient["parseData"]>,
+	payload: LinearWebhookPayload,
+	deliveryId: string | null,
 	connection: SelectIntegrationConnection,
 ): Promise<{
 	connectionId: string;
@@ -88,27 +125,20 @@ async function processForConnection(
 	error?: string;
 }> {
 	// One webhookEvents row per (Linear event × Superset connection) so each
-	// tenant's processing status is independently retryable.
-	const eventId = `${connection.id}-${payload.organizationId}-${payload.webhookTimestamp}`;
+	// tenant's processing status is independently retryable. Linear's delivery
+	// id is stable across its retries; without the header, the timestamp alone
+	// collides for bulk edits landing in the same millisecond.
+	const entityId = (payload as { data?: { id?: unknown } }).data?.id;
+	const eventId = deliveryId
+		? `${connection.id}-${deliveryId}`
+		: `${connection.id}-${payload.organizationId}-${payload.webhookTimestamp}-${payload.type}-${entityId ?? payload.action}`;
 
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "linear",
-			eventId,
-			eventType: `${payload.type}.${payload.action}`,
-			payload: stripNullChars(payload),
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
+	const webhookEvent = await recordWebhookDelivery({
+		provider: "linear",
+		eventId,
+		eventType: `${payload.type}.${payload.action}`,
+		payload: stripNullChars(payload),
+	});
 
 	if (!webhookEvent) {
 		return {
@@ -125,24 +155,36 @@ async function processForConnection(
 		return { connectionId: connection.id, outcome: "skipped" };
 	}
 
-	try {
-		let outcome: "processed" | "skipped" = "processed";
+	// The task mirror and the automation event run independently so a failure
+	// in one never suppresses the other. Either failing marks the row `failed`
+	// so a redelivery re-runs both: the task upsert is idempotent and the
+	// automation event dedupes on delivery id.
+	let outcome: "processed" | "skipped" = "processed";
+	const failures: string[] = [];
 
-		if (payload.type === "Issue") {
+	if (payload.type === "Issue") {
+		try {
 			outcome = await processIssueEvent(
 				payload as EntityWebhookPayloadWithIssueData,
 				connection,
 			);
+		} catch (error) {
+			console.error("[linear/webhook] task sync failed:", error);
+			failures.push(errorMessage(error));
 		}
+	}
 
-		await db
-			.update(webhookEvents)
-			.set({ status: outcome, processedAt: new Date() })
-			.where(eq(webhookEvents.id, webhookEvent.id));
+	if (isEntityDelivery(payload)) {
+		try {
+			await ingest(payload, deliveryId, connection, webhookEvent.id);
+		} catch (error) {
+			console.error("[linear/webhook] automation event failed:", error);
+			failures.push(errorMessage(error));
+		}
+	}
 
-		return { connectionId: connection.id, outcome };
-	} catch (error) {
-		const message = error instanceof Error ? error.message : "Unknown error";
+	if (failures.length > 0) {
+		const message = failures.join("; ");
 		await db
 			.update(webhookEvents)
 			.set({
@@ -151,9 +193,54 @@ async function processForConnection(
 				retryCount: webhookEvent.retryCount + 1,
 			})
 			.where(eq(webhookEvents.id, webhookEvent.id));
-
 		return { connectionId: connection.id, outcome: "failed", error: message };
 	}
+
+	await db
+		.update(webhookEvents)
+		.set({ status: outcome, processedAt: new Date() })
+		.where(eq(webhookEvents.id, webhookEvent.id));
+
+	return { connectionId: connection.id, outcome };
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : "Unknown error";
+}
+
+/** Entity deliveries carry `data`; OAuth and notification payloads do not. */
+function isEntityDelivery(payload: unknown): payload is LinearDelivery {
+	const data = (payload as { data?: { id?: unknown } }).data;
+	return typeof data?.id === "string";
+}
+
+async function ingest(
+	delivery: LinearDelivery,
+	deliveryHeader: string | null,
+	connection: SelectIntegrationConnection,
+	webhookEventId: string,
+): Promise<void> {
+	const event = matchableFrom(delivery);
+	// Nothing in the product names this delivery, so there is nothing to record.
+	if (event.names.length === 0) return;
+
+	// Linear's per-delivery id is stable across its retries. The payload itself
+	// carries no such id, so without the header the entity and send time stand
+	// in for one.
+	const deliveryId =
+		deliveryHeader ??
+		`${delivery.type}:${delivery.data.id}:${delivery.webhookTimestamp}`;
+
+	await ingestAutomationEvent(
+		db,
+		normalizeLinearDelivery({
+			delivery,
+			event,
+			deliveryId,
+			connection,
+			webhookEventId,
+		}),
+	);
 }
 
 // `branchName` is derived by Linear from the identifier + title and is not

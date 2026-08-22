@@ -1,4 +1,3 @@
-import type { HarnessKind, StopReason } from "@superset/session-protocol";
 import type {
 	AgentDefinitionId,
 	AgentIdentityId,
@@ -58,7 +57,9 @@ export const terminalAgentBindings = sqliteTable(
 		lastEventType: text("last_event_type").notNull(),
 		// Set when the agent session ended. "detached" = the agent reported its
 		// own end (SessionEnd hook) — not resumable; "terminal-exited" = the
-		// terminal died under it (kill, crash, reboot) — resume candidate.
+		// terminal died under it (kill, crash, reboot) — resume candidate;
+		// "resumed" = the candidate was consumed by an auto-resume; "disposed"
+		// = deliberately killed (pane close, CLI kill) — never resumable.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
 	},
@@ -118,6 +119,10 @@ export const hostSettings = sqliteTable("host_settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
+	// Which provider login newly launched agents use, as the profile dir to
+	// inject (CLAUDE_CONFIG_DIR / CODEX_HOME). Null = the system default login.
+	defaultClaudeConfigDir: text("default_claude_config_dir"),
+	defaultCodexHome: text("default_codex_home"),
 });
 
 export const pullRequests = sqliteTable(
@@ -240,7 +245,6 @@ export const workspaces = sqliteTable(
 		updatedAt: integer("updated_at").notNull().default(0),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
-		cloudSyncedAt: integer("cloud_synced_at"),
 		// Tombstone: null = live. Set at the destroy commit point; rows are
 		// kept forever and surface on the board's Merged/Deleted columns.
 		archivedAt: integer("archived_at"),
@@ -261,39 +265,3 @@ export const workspaces = sqliteTable(
 			.where(sql`type = 'main'`),
 	],
 );
-
-/**
- * Registry of ACP agent sessions (docs/acp-sessions.md). One row per
- * session, kept fresh on every state emit. Rows survive host restarts so the
- * manager can list them as `offline` and resurrect on demand via the
- * adapter's `session/load` — the journal itself is not persisted; transcript
- * replay comes from the agent harness's own on-disk session store.
- */
-export const acpSessions = sqliteTable(
-	"acp_sessions",
-	{
-		sessionId: text("session_id").primaryKey(),
-		workspaceId: text("workspace_id").notNull(),
-		/** Adapter-side ACP session id — the `session/load` key. */
-		acpSessionId: text("acp_session_id").notNull(),
-		harness: text().notNull().$type<HarnessKind>(),
-		cwd: text().notNull(),
-		title: text(),
-		lastStopReason: text("last_stop_reason").$type<StopReason>(),
-		createdAt: integer("created_at").notNull(),
-		updatedAt: integer("updated_at").notNull(),
-	},
-	(table) => [index("acp_sessions_workspace_id_idx").on(table.workspaceId)],
-);
-
-/**
- * Tombstones for workspaces deleted while the cloud was unreachable. The
- * reconciler drains this into `v2Workspace.delete` calls; rows are removed
- * once the cloud confirms. Dual-write era only — dropped in R3.
- */
-export const workspaceCloudDeletes = sqliteTable("workspace_cloud_deletes", {
-	id: text().primaryKey(),
-	queuedAt: integer("queued_at")
-		.notNull()
-		.$defaultFn(() => Date.now()),
-});

@@ -31,6 +31,7 @@ import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
 import {
+	assertIsolatedDaemonNamespaceInTests,
 	isProcessAlive,
 	type PtyDaemonManifest,
 	ptyDaemonManifestDir,
@@ -137,24 +138,27 @@ export function shouldKillStaleDaemonForDev(
  * file mode (0600, set by the daemon's Server.listen) is the auth boundary;
  * the directory permissions don't matter.
  *
- * Development manifests are per-home, so a home-agnostic socket lets a dev
- * instance adopt the packaged app's daemon through the manifest-missing
- * socket-probe fallback. Namespace only development worktrees with a
- * non-default `SUPERSET_HOME_DIR`; all production paths deliberately keep the
- * legacy org-only socket so existing packaged daemons remain adoptable.
+ * Any non-default `SUPERSET_HOME_DIR` (dev worktrees, test temp homes)
+ * namespaces the socket by home as well as org — two instances of the same
+ * org must never share a socket, or one instance's supervisor/reaper acts
+ * on the other's PTYs. All default-home (production) paths deliberately
+ * keep the legacy org-only socket so existing packaged daemons remain
+ * adoptable across updates.
  */
 export function ptyDaemonSocketPath(
 	organizationId: string,
 	env: NodeJS.ProcessEnv = process.env,
 ): string {
+	assertIsolatedDaemonNamespaceInTests(env);
 	const home = env.SUPERSET_HOME_DIR;
 	const defaultHome = path.join(os.homedir(), ".superset");
 	const isDefaultHome =
 		!home || path.resolve(home) === path.resolve(defaultHome);
-	const key =
-		env.NODE_ENV === "development" && !isDefaultHome
-			? `${organizationId}:${home}`
-			: organizationId;
+	// Hash the RESOLVED home so equivalent spellings of one custom home
+	// (trailing slash, relative segments) land on the same socket.
+	const key = isDefaultHome
+		? organizationId
+		: `${organizationId}:${path.resolve(home)}`;
 	const shortId = createHash("sha256").update(key).digest("hex").slice(0, 12);
 	return path.join(os.tmpdir(), `superset-ptyd-${shortId}.sock`);
 }

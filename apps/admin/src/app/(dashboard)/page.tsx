@@ -1,172 +1,181 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { POSTHOG_PROJECT_URL } from "@superset/trpc/insight-registry";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 
-import { useTRPC } from "@/trpc/react";
+import { BurnByVendorTile } from "./components/BurnByVendorTile";
+import { CashBalanceTile } from "./components/CashBalanceTile";
+import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
+import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
+import { HogQLLineTile } from "./components/HogQLLineTile";
+import { LogoRetentionTile } from "./components/LogoRetentionTile";
+import { MrrTile } from "./components/MrrTile";
+import { NetBurnTile } from "./components/NetBurnTile";
+import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
+import { RetentionGridTile } from "./components/RetentionGridTile";
+import { RunwayTile } from "./components/RunwayTile";
+import { SignupToPaidTile } from "./components/SignupToPaidTile";
+import { TrendSeriesTile } from "./components/TrendSeriesTile";
 
-import { DemoCountdown } from "./components/DemoCountdown";
-import { FunnelChart } from "./components/FunnelChart";
-import { LeaderboardTable } from "./components/LeaderboardTable";
-import { RetentionCard } from "./components/RetentionCard";
-import { RevenueTrendChart } from "./components/RevenueTrendChart";
-import { SignupsTrendChart } from "./components/SignupsTrendChart";
-import { type TimeRange, TimeRangePicker } from "./components/TimeRangePicker";
-import { TrafficSourcesChart } from "./components/TrafficSourcesChart";
-import { WAUTrendChart } from "./components/WAUTrendChart";
-import { WeekPicker } from "./components/WeekPicker";
+// Mirror of PostHog dashboard 1884562 (plan D-7), organized by audience:
+// tiles can appear on several tabs. Product tiles reference saved insights
+// by id; business tiles compute live from Stripe/Neon. Each tile renders at
+// its canonical saved range (D-14).
+
+const DAU_PROPS = {
+	insight: "dau",
+	description: "Unique users creating a real workspace, daily",
+} as const;
+
+const WAU_PROPS = {
+	insight: "wau",
+	description:
+		"Unique users creating a real workspace per calendar week; current week dashed",
+	dashIncompleteLast: true,
+} as const;
+
+const ACTIVATED_RATE_PROPS = {
+	insight: "activatedRate",
+	description:
+		"Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)",
+	xColumn: 0,
+	series: [
+		{
+			column: 3,
+			key: "activation_pct",
+			label: "activation rate",
+			kind: "line",
+			suffix: "%",
+		},
+		{
+			column: 1,
+			key: "new_creators",
+			label: "new workspace creators",
+			kind: "bar",
+			rightAxis: true,
+		},
+	],
+} as const;
+
+const ACTIVE_ORGS_PROPS = {
+	insight: "activeOrgs",
+	description: "Weekly orgs with 2+/5+ members creating real workspaces",
+	xColumn: 0,
+	series: [
+		{
+			column: 1,
+			key: "orgs_2plus",
+			label: "orgs with 2+ active members",
+			kind: "line",
+		},
+		{
+			column: 2,
+			key: "orgs_5plus",
+			label: "orgs with 5+ active members",
+			kind: "line",
+		},
+	],
+} as const;
 
 export default function DashboardPage() {
-	const trpc = useTRPC();
-
-	const [activationFunnelRange, setActivationFunnelRange] =
-		useState<TimeRange>("-7d");
-	const [marketingFunnelRange, setMarketingFunnelRange] =
-		useState<TimeRange>("-7d");
-	const [signupsRange, setSignupsRange] = useState<TimeRange>("-30d");
-	const [trafficRange, setTrafficRange] = useState<TimeRange>("-30d");
-	const [revenueRange, setRevenueRange] = useState<TimeRange>("-30d");
-	const [wauRange, setWauRange] = useState<TimeRange>("-30d");
-	const [leaderboardWeekOffset, setLeaderboardWeekOffset] = useState(0);
-
-	const activationFunnel = useQuery(
-		trpc.analytics.getActivationFunnel.queryOptions({
-			dateFrom: activationFunnelRange,
-		}),
-	);
-
-	const marketingFunnel = useQuery(
-		trpc.analytics.getMarketingFunnel.queryOptions({
-			dateFrom: marketingFunnelRange,
-		}),
-	);
-
-	const wau = useQuery(
-		trpc.analytics.getWAUTrend.queryOptions({
-			days: Number.parseInt(wauRange.slice(1, -1), 10),
-		}),
-	);
-
-	const retention = useQuery(trpc.analytics.getRetention.queryOptions());
-
-	const leaderboard = useQuery(
-		trpc.analytics.getWorkspacesLeaderboard.queryOptions({
-			weekOffset: leaderboardWeekOffset,
-		}),
-	);
-
-	const signups = useQuery(
-		trpc.analytics.getSignupsTrend.queryOptions({
-			days: Number.parseInt(signupsRange.slice(1, -1), 10),
-		}),
-	);
-
-	const trafficSources = useQuery(
-		trpc.analytics.getTrafficSources.queryOptions({
-			days: Number.parseInt(trafficRange.slice(1, -1), 10),
-		}),
-	);
-
-	const revenue = useQuery(
-		trpc.analytics.getRevenueTrend.queryOptions({
-			days: Number.parseInt(revenueRange.slice(1, -1), 10),
-		}),
-	);
-
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold">Overview</h1>
-					<p className="text-muted-foreground">Company metrics & insights</p>
-				</div>
-				<DemoCountdown />
+			<div>
+				<h1 className="text-2xl font-bold">Company Metrics</h1>
+				<p className="text-muted-foreground">
+					Mirror of the{" "}
+					<a
+						href={`${POSTHOG_PROJECT_URL}/dashboard/1884562`}
+						target="_blank"
+						rel="noreferrer"
+						className="underline underline-offset-2"
+					>
+						PostHog Success Metrics dashboard
+					</a>{" "}
+					— product via saved insights, business live from Stripe/Neon
+				</p>
 			</div>
 
-			<WAUTrendChart
-				data={wau.data}
-				isLoading={wau.isLoading}
-				error={wau.error}
-				headerAction={
-					<TimeRangePicker value={wauRange} onChange={setWauRange} />
-				}
-			/>
+			<Tabs defaultValue="company">
+				<TabsList>
+					<TabsTrigger value="company">Company</TabsTrigger>
+					<TabsTrigger value="product">Product</TabsTrigger>
+					<TabsTrigger value="growth">Growth</TabsTrigger>
+				</TabsList>
 
-			<RevenueTrendChart
-				data={revenue.data}
-				isLoading={revenue.isLoading}
-				error={revenue.error}
-				headerAction={
-					<TimeRangePicker value={revenueRange} onChange={setRevenueRange} />
-				}
-			/>
+				<TabsContent value="company" className="mt-4 space-y-6">
+					<CashBalanceTile />
+					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+						<NetBurnTile />
+						<RunwayTile />
+						<MrrTile />
+						<EnterpriseArrTile />
+						<TrendSeriesTile {...WAU_PROPS} />
+						<TrendSeriesTile {...DAU_PROPS} />
+						<div className="xl:col-span-2">
+							<BurnByVendorTile />
+						</div>
+					</div>
+				</TabsContent>
 
-			<SignupsTrendChart
-				data={signups.data}
-				isLoading={signups.isLoading}
-				error={signups.error}
-				headerAction={
-					<TimeRangePicker value={signupsRange} onChange={setSignupsRange} />
-				}
-			/>
+				<TabsContent value="product" className="mt-4">
+					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+						<div className="col-span-full">
+							<PostHogFunnelTile />
+						</div>
+						<TrendSeriesTile {...DAU_PROPS} />
+						<TrendSeriesTile {...WAU_PROPS} />
+						<HogQLLineTile {...ACTIVATED_RATE_PROPS} />
+						<HogQLLineTile {...ACTIVE_ORGS_PROPS} />
+						<HogQLLineTile
+							insight="workspacePercentiles"
+							description="Workspaces created per user in the last 7 days, by percentile"
+							xColumn={0}
+							series={[
+								{
+									column: 1,
+									key: "workspaces",
+									label: "workspaces",
+									kind: "line",
+								},
+							]}
+						/>
+						<TrendSeriesTile
+							insight="workspacesPerCreator"
+							description="Weekly p50/p90 real workspaces per creator; current week dashed"
+							dashIncompleteLast
+						/>
+						<div className="col-span-full">
+							<RetentionGridTile />
+						</div>
+					</div>
+				</TabsContent>
 
-			<RetentionCard
-				data={retention.data}
-				isLoading={retention.isLoading}
-				error={retention.error}
-			/>
-
-			<FunnelChart
-				title="Activation Funnel"
-				description="From app open to workspace creation"
-				data={activationFunnel.data}
-				isLoading={activationFunnel.isLoading}
-				error={activationFunnel.error}
-				headerAction={
-					<TimeRangePicker
-						value={activationFunnelRange}
-						onChange={setActivationFunnelRange}
-					/>
-				}
-			/>
-
-			<FunnelChart
-				title="Marketing Funnel"
-				description="From site visit to app download"
-				data={marketingFunnel.data}
-				isLoading={marketingFunnel.isLoading}
-				error={marketingFunnel.error}
-				headerAction={
-					<TimeRangePicker
-						value={marketingFunnelRange}
-						onChange={setMarketingFunnelRange}
-					/>
-				}
-			/>
-
-			<LeaderboardTable
-				title="Workspace Leaderboard"
-				description="Top users by workspaces created"
-				data={leaderboard.data}
-				isLoading={leaderboard.isLoading}
-				error={leaderboard.error}
-				countLabel="Workspaces"
-				headerAction={
-					<WeekPicker
-						weekOffset={leaderboardWeekOffset}
-						onChange={setLeaderboardWeekOffset}
-					/>
-				}
-			/>
-
-			<TrafficSourcesChart
-				data={trafficSources.data}
-				isLoading={trafficSources.isLoading}
-				error={trafficSources.error}
-				headerAction={
-					<TimeRangePicker value={trafficRange} onChange={setTrafficRange} />
-				}
-			/>
+				<TabsContent value="growth" className="mt-4">
+					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+						<div className="col-span-full">
+							<PostHogFunnelTile />
+						</div>
+						<TrendSeriesTile
+							insight="newSiteVisitors"
+							description="First-ever pageview on superset.sh, daily"
+						/>
+						<TrendSeriesTile
+							insight="downloadCtrMac"
+							description="Weekly pageview → download conversion, Mac visitors; current week dashed"
+							valueSuffix="%"
+							dashIncompleteLast
+						/>
+						<SignupToPaidTile />
+						<HogQLLineTile {...ACTIVATED_RATE_PROPS} />
+						<MrrTile />
+						<LogoRetentionTile />
+						<div className="col-span-full">
+							<ChurnHeatmapTile />
+						</div>
+					</div>
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 }

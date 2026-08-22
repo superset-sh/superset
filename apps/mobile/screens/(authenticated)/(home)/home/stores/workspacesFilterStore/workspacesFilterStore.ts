@@ -4,33 +4,54 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 export type WorkspaceSort = "updatedAt" | "createdAt";
 
+/** Cloud is a place you scope to, not a machine you own. */
+export type WorkspaceScope = "cloud" | "host";
+
 export const SORT_OPTIONS: { value: WorkspaceSort; label: string }[] = [
 	{ label: "Last updated", value: "updatedAt" },
 	{ label: "Date created", value: "createdAt" },
 ];
 
 interface WorkspacesFilterStore {
-	projectFilter: string | null;
 	hostFilter: string | null;
+	scope: WorkspaceScope;
 	sort: WorkspaceSort;
-	setProjectFilter: (projectId: string | null) => void;
+	/** False until AsyncStorage has answered — the saved filter isn't here yet. */
+	hasHydrated: boolean;
 	setHostFilter: (machineId: string | null) => void;
+	setScopeCloud: () => void;
 	setSort: (sort: WorkspaceSort) => void;
 }
 
 export const useWorkspacesFilterStore = create<WorkspacesFilterStore>()(
 	persist(
 		(set) => ({
-			projectFilter: null,
 			hostFilter: null,
+			scope: "host",
 			sort: "updatedAt",
-			setProjectFilter: (projectId) => set({ projectFilter: projectId }),
-			setHostFilter: (machineId) => set({ hostFilter: machineId }),
+			hasHydrated: false,
+			// Picking a machine is also how you leave Cloud; the machine is
+			// remembered either way so Cloud → machine returns you where you were.
+			setHostFilter: (machineId) =>
+				set({ hostFilter: machineId, scope: "host" }),
+			setScopeCloud: () => set({ scope: "cloud" }),
 			setSort: (sort) => set({ sort }),
 		}),
 		{
 			name: "workspaces-filter",
 			storage: createJSONStorage(() => AsyncStorage),
+			partialize: ({ hostFilter, scope, sort }) => ({
+				hostFilter,
+				scope,
+				sort,
+			}),
+			// Rehydration is async — measured at ~165ms on a cold start — so
+			// readers see the defaults first and the home screen would spend that
+			// window showing (and fetching) the wrong host's default project.
+			// Consumers wait on this flag instead. It flips on storage errors too,
+			// so a failed read falls back to the defaults rather than hanging.
+			onRehydrateStorage: () => () =>
+				useWorkspacesFilterStore.setState({ hasHydrated: true }),
 		},
 	),
 );

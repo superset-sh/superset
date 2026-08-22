@@ -20,62 +20,55 @@ export function PaymentFailedEmail({
 }: PaymentFailedEmailProps) {
 	return (
 		<EmailLayout preview={`Payment failed for ${organizationName}`}>
-			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
+			<Heading className="text-[22px] font-medium leading-8 text-foreground m-0 mb-4">
 				Payment failed
 			</Heading>
 
-			<Text className="text-base leading-[26px] mb-4 text-foreground">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
 				Hi {ownerName ?? "there"},
 			</Text>
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
-				We were unable to process the payment of <strong>{amount}</strong> for{" "}
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
+				We couldn't process the <strong>{amount}</strong> payment for{" "}
 				<strong>{organizationName}</strong>'s <strong>{planName}</strong>{" "}
 				subscription.
 			</Text>
 
-			<Section className="bg-[#fef2f2] border border-[#fecaca] rounded-lg p-4 mb-4">
-				<Text className="text-sm leading-5 text-[#991b1b] m-0">
-					<strong>Action required:</strong> Please update your payment method to
-					avoid service interruption.
+			<Section className="bg-[#fef2f2] border border-solid border-[#fecaca] rounded-lg p-4 mb-4">
+				<Text className="text-[14px] leading-5 text-[#991b1b] m-0">
+					<strong>Action required:</strong> Update your payment method so your
+					team doesn't lose {planName} access.
 				</Text>
 			</Section>
 
 			{nextRetryDate && (
-				<Text className="text-base leading-[26px] text-foreground mb-4">
-					We'll automatically retry the payment in a few days. To avoid any
-					disruption, please update your payment method now.
+				<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
+					We'll automatically retry the payment in a few days.
 				</Text>
 			)}
 
-			<Text className="text-base leading-[26px] text-foreground mb-4">
+			<Text className="text-[15px] leading-6 text-foreground m-0 mb-2">
 				Common reasons for payment failure:
 			</Text>
 
-			<Text className="text-sm leading-6 text-muted mb-1">
+			<Text className="text-[13px] leading-6 text-muted m-0 mb-6">
 				• Card expired or about to expire
-			</Text>
-			<Text className="text-sm leading-6 text-muted mb-1">
-				• Insufficient funds
-			</Text>
-			<Text className="text-sm leading-6 text-muted mb-1">
-				• Card blocked by your bank
-			</Text>
-			<Text className="text-sm leading-6 text-muted mb-4">
-				• Incorrect billing information
+				<br />• Insufficient funds
+				<br />• Card blocked by your bank
+				<br />• Incorrect billing information
 			</Text>
 
 			{billingPortalUrl && (
-				<Section className="mt-6 mb-6">
+				<Section className="mb-6">
 					<Button href={billingPortalUrl}>Update Payment Method</Button>
 				</Section>
 			)}
 
-			<Text className="text-xs leading-5 text-muted">
+			<Text className="text-[13px] leading-5 text-muted m-0">
 				Need help?{" "}
 				<Link
 					href="mailto:support@superset.sh"
-					className="text-primary no-underline"
+					className="text-muted underline"
 				>
 					Contact our support team
 				</Link>{" "}

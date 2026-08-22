@@ -24,11 +24,13 @@ But most codebases have dozens of parallelizable tasks at any given time:
 - Updating API docs doesn't conflict with fixing a database query
 - Adding input validation doesn't conflict with migrating a config format
 
-These tasks are independent. They can — and should — run simultaneously. The bottleneck isn't the agent or the model. It's the human orchestrating one task at a time.
+These tasks are independent. They can, and should, run simultaneously. The bottleneck isn't the agent or the model. It's the human orchestrating one task at a time.
 
 ---
 
 ## The Isolation Problem
+
+![How isolation works: one repository fans out into a Git worktree per task, each running its own agent on its own branch, producing independent diffs](/images/guides/worktree-isolation.svg)
 
 Running two agents in the same directory creates immediate problems:
 
@@ -37,7 +39,7 @@ Agent 1: Opens src/auth/login.ts, starts refactoring
 Agent 2: Opens src/auth/login.ts, starts adding validation
 Agent 1: Writes its version of login.ts
 Agent 2: Writes its version of login.ts (overwrites Agent 1)
-Agent 1: Commits — but the file is Agent 2's version
+Agent 1: Commits, but the file is Agent 2's version
 ```
 
 This isn't a theoretical risk. It happens every time two agents touch overlapping files. Even if they're editing different files, a shared `git index` means their commits can include each other's uncommitted changes. The clean fix is [a Git worktree per agent](/compare/git-worktrees-for-ai-agents).
@@ -66,7 +68,7 @@ They share the git object store, so creating a worktree takes seconds and costs 
 
 ### Pattern 1: Manual Worktrees
 
-The simplest approach — create worktrees yourself and run agents manually:
+The simplest approach is to create worktrees yourself and run agents manually:
 
 ```bash
 git worktree add ../project-tests -b agent/tests
@@ -98,11 +100,11 @@ Better, but still no unified view of all tasks, no session persistence, and no d
 
 Tools like [Superset](https://superset.sh) handle orchestration end-to-end:
 
-1. **Task creation** — describe the task, pick an agent
-2. **Automatic isolation** — worktree and branch created automatically
-3. **Session management** — persistent daemon keeps sessions alive across crashes
-4. **Diff review** — built-in diff viewer for reviewing agent output
-5. **Editor integration** — open any worktree in VS Code, Cursor, JetBrains, or Xcode
+1. **Task creation**: describe the task, pick an agent
+2. **Automatic isolation**: worktree and branch created automatically
+3. **Session management**: persistent daemon keeps sessions alive across crashes
+4. **Diff review**: built-in diff viewer for reviewing agent output
+5. **Editor integration**: open any worktree in VS Code, Cursor, JetBrains, or Xcode
 
 This is the approach that scales to 5-10+ concurrent agents without operational overhead.
 
@@ -135,13 +137,15 @@ Different agents have different strengths. A parallel workflow lets you match ag
 - Small, focused changes with tight feedback loops
 - Tasks requiring frequent back-and-forth
 
-The key insight: you don't have to choose one agent for everything. Run Claude Code on the complex refactor and Codex on the test generation simultaneously.
+You don't have to choose one agent for everything. Run Claude Code on the complex refactor and Codex on the test generation simultaneously.
 
 ---
 
 ## The Review Bottleneck
 
 Parallel agents create a new problem: review throughput. If you run 10 agents and each produces a diff in 15 minutes, you have 10 diffs to review per hour.
+
+![Reviewing one agent's isolated diff before merging](/images/readme/diff-viewer.png)
 
 ### Strategies for Fast Review
 
@@ -187,7 +191,7 @@ Start with 2-3 until you're comfortable with the review workflow. Scaling to 10 
 
 ### Vague Task Descriptions
 
-"Fix the bugs" will produce unpredictable results. "Fix the null pointer in UserService.getProfile when user.avatar is null — add a null check and return a default avatar URL" gives the agent exactly what it needs.
+"Fix the bugs" will produce unpredictable results. "Fix the null pointer in UserService.getProfile when user.avatar is null: add a null check and return a default avatar URL" gives the agent exactly what it needs.
 
 ### Ignoring Branch Conflicts
 
@@ -201,13 +205,13 @@ If the agent doesn't run tests, you're reviewing blind. Either include "run test
 
 ## Getting Started
 
-1. **Pick an orchestrator** — [Superset](https://superset.sh) handles worktrees, sessions, and review
-2. **Pick your agents** — Start with Claude Code or Codex, expand later
-3. **Start with 2-3 tasks** — Parallelizable, non-overlapping tasks
-4. **Review quickly** — Focus on diffs, not full file reads
-5. **Scale gradually** — Add more agents as your review speed improves
+1. **Pick an orchestrator**: [Superset](https://superset.sh) handles worktrees, sessions, and review
+2. **Pick your agents**: Start with Claude Code or Codex, expand later
+3. **Start with 2-3 tasks**: Parallelizable, non-overlapping tasks
+4. **Review quickly**: Focus on diffs, not full file reads
+5. **Scale gradually**: Add more agents as your review speed improves
 
-The goal isn't to run the most agents possible. It's to maximize useful throughput — tasks completed per hour that meet your quality bar. Parallel agents get you there faster than sequential work, but only if the orchestration and review workflow supports it.
+The goal isn't to run the most agents possible. It's to maximize useful throughput: tasks completed per hour that meet your quality bar. Parallel agents get you there faster than sequential work, but only if the orchestration and review workflow supports it.
 
 ---
 

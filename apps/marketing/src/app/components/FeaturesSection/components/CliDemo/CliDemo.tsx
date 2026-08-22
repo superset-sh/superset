@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { useRef } from "react";
 
 const WORKSPACE_ROWS = [
@@ -19,7 +19,7 @@ export function CliDemo() {
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
 	return (
-		<motion.div
+		<m.div
 			ref={ref}
 			className="relative w-full max-w-md overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			initial={{ opacity: 0, y: 20 }}
@@ -35,7 +35,7 @@ export function CliDemo() {
 					<div className="size-2 rounded-full bg-[#28c840]/85" />
 				</div>
 				<span className="pointer-events-none absolute inset-x-0 text-center font-mono text-[10px] tracking-tight text-muted-foreground/60">
-					superset — cli
+					superset (cli)
 				</span>
 			</div>
 
@@ -47,7 +47,7 @@ export function CliDemo() {
 						&quot;fix onboarding crash&quot; --agent claude
 					</span>
 				</div>
-				<motion.div
+				<m.div
 					className="text-muted-foreground"
 					initial={{ opacity: 0 }}
 					animate={isInView ? { opacity: 1 } : { opacity: 0 }}
@@ -55,9 +55,9 @@ export function CliDemo() {
 				>
 					<span className="text-emerald-400/85">✓</span> workspace ready ·{" "}
 					<span className="text-muted-foreground/55">fix-onboarding-crash</span>
-				</motion.div>
+				</m.div>
 
-				<motion.div
+				<m.div
 					className="pt-2 text-foreground"
 					initial={{ opacity: 0 }}
 					animate={isInView ? { opacity: 1 } : { opacity: 0 }}
@@ -65,9 +65,9 @@ export function CliDemo() {
 				>
 					<span className="text-muted-foreground/55">❯</span>{" "}
 					<span className="text-brand-light">superset ls</span>
-				</motion.div>
+				</m.div>
 				{WORKSPACE_ROWS.map((row, index) => (
-					<motion.div
+					<m.div
 						key={row.name}
 						className="flex items-center gap-2 text-muted-foreground"
 						initial={{ opacity: 0 }}
@@ -84,9 +84,9 @@ export function CliDemo() {
 						<span className="w-14 text-right text-muted-foreground/45">
 							{row.state}
 						</span>
-					</motion.div>
+					</m.div>
 				))}
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

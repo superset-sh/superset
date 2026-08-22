@@ -291,7 +291,7 @@ describe("PTY output write coalescing", () => {
 });
 
 describe("terminal-ws-transport", () => {
-	test("server-sent error routes to logs, not xterm, and terminates", () => {
+	test("server-sent error routes to logs, not xterm, and keeps the socket retrying", () => {
 		const transport = createTransport();
 		const writelnCalls: string[] = [];
 		const terminal = createMockTerminal();
@@ -309,17 +309,90 @@ describe("terminal-ws-transport", () => {
 		socket.message(
 			JSON.stringify({
 				type: "error",
-				message:
-					'Terminal session "t1" is not active; create it before connecting.',
+				message: "daemon open t1: timed out after 15000ms",
 			}),
 		);
 
 		expect(writelnCalls).toEqual([]);
 		expect(transport.logs).toHaveLength(1);
 		expect(transport.logs[0]?.level).toBe("error");
-		expect(transport.logs[0]?.message).toContain("is not active");
-		// Fatal error terminates: the socket is closed so it won't re-dial.
-		expect(socket.closed).toBe(true);
+		expect(transport.logs[0]?.message).toContain("timed out");
+		// Transient error must NOT self-close the socket — partysocket never
+		// re-dials after close(), which is what used to strand the tab dead.
+		expect(socket.closed).toBe(false);
+	});
+
+	test("a transient server error falls into the retryable close path", () => {
+		const { transport, socket } = connectAttached();
+
+		// Host reports a transient attach failure (pty-daemon stalled), then
+		// closes with 1011 — exactly what host-service does after an error frame.
+		socket.message(
+			JSON.stringify({
+				type: "error",
+				message: "daemon open t1: timed out after 15000ms",
+			}),
+		);
+		expect(socket.closed).toBe(false);
+		expect(transport.sessionEnded).toBe(false);
+
+		socket.drop(1011, "daemon open t1: timed out after 15000ms");
+		expect(transport.connectionState).toBe("closed");
+		// The close was counted as retryable (logged with an attempt counter),
+		// not swallowed by the terminated/1000 early return.
+		expect(
+			transport.logs.filter((l) => l.message.includes("Reconnecting (attempt")),
+		).toHaveLength(1);
+	});
+
+	test("repeated transient errors surface the give-up diagnosis only after the attempt budget", () => {
+		const { transport, socket } = connectAttached();
+
+		const failOnce = () => {
+			socket.message(
+				JSON.stringify({
+					type: "error",
+					message: "daemon open t1: timed out after 15000ms",
+				}),
+			);
+			socket.drop(1011, "daemon open t1: timed out after 15000ms");
+		};
+
+		for (let i = 0; i < 9; i++) failOnce();
+		expect(
+			transport.logs.filter((l) => l.message.includes("Still retrying")),
+		).toHaveLength(0);
+
+		// The 10th consecutive failure exhausts the budget: same closed +
+		// diagnosis state as any other outage, socket still owned by partysocket.
+		failOnce();
+		expect(transport.connectionState).toBe("closed");
+		expect(transport.lastDiagnosis).not.toBeNull();
+		expect(
+			transport.logs.filter((l) => l.message.includes("Still retrying")),
+		).toHaveLength(1);
+		expect(socket.closed).toBe(false);
+		expect(transport.sessionEnded).toBe(false);
+	});
+
+	test("a terminal recovers from a transient error once the host attaches", () => {
+		const { transport, socket } = connectAttached();
+
+		socket.message(
+			JSON.stringify({
+				type: "error",
+				message: "daemon open t1: timed out after 15000ms",
+			}),
+		);
+		socket.drop(1011, "daemon open t1: timed out after 15000ms");
+		expect(transport.connectionState).toBe("closed");
+		expect(transport.lastDiagnosis).not.toBeNull();
+
+		// The daemon recovered; partysocket's next dial attaches normally.
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(transport.connectionState).toBe("open");
+		expect(transport.lastDiagnosis).toBeNull();
 	});
 
 	test("waits for server attach before sending resize or input", () => {
@@ -493,6 +566,11 @@ describe("terminal-ws-transport", () => {
 		socket.message(JSON.stringify({ type: "exit", exitCode: 0, signal: 0 }));
 		expect(transport.sessionEnded).toBe(true);
 		expect(onSessionEnded).toHaveBeenCalledTimes(1);
+		// Permanent: no auto-retry after a PTY exit.
+		expect(socket.closed).toBe(true);
+		expect(
+			transport.logs.filter((l) => l.message.includes("Reconnecting (attempt")),
+		).toHaveLength(0);
 	});
 
 	test("a session-gone attach error marks the session ended", () => {
@@ -513,6 +591,13 @@ describe("terminal-ws-transport", () => {
 
 		expect(transport.sessionEnded).toBe(true);
 		expect(onSessionEnded).toHaveBeenCalledTimes(1);
+		// Permanent: the transport closes the socket so partysocket never
+		// re-dials, and the terminated close is not logged as retryable.
+		expect(socket.closed).toBe(true);
+		expect(transport.connectionState).toBe("closed");
+		expect(
+			transport.logs.filter((l) => l.message.includes("Reconnecting (attempt")),
+		).toHaveLength(0);
 	});
 
 	test("a plain server error does not mark the session ended", () => {

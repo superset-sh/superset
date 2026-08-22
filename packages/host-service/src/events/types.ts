@@ -117,7 +117,7 @@ export interface WorkspaceCreateTerminalLaunch {
 }
 
 export type WorkspaceCreateAgentLaunch =
-	| { ok: true; kind: "terminal" | "chat"; sessionId: string; label: string }
+	| { ok: true; kind: "terminal"; sessionId: string; label: string }
 	| { ok: false; error: string };
 
 /**
@@ -169,4 +169,27 @@ export interface FsUnwatchCommand {
 	workspaceId: string;
 }
 
-export type ClientMessage = FsWatchCommand | FsUnwatchCommand;
+/**
+ * Targeted watch on one file the recursive workspace watcher can't see
+ * (inside a pruned subtree — gitignored build dir, node_modules, nested
+ * repo). Sent by the renderer for every open document; the server installs a
+ * per-file watcher only when the recursive watch doesn't already cover the
+ * path. Events come back as regular `fs:events` messages.
+ */
+export interface FsWatchFileCommand {
+	type: "fs:watch-file";
+	workspaceId: string;
+	absolutePath: string;
+}
+
+export interface FsUnwatchFileCommand {
+	type: "fs:unwatch-file";
+	workspaceId: string;
+	absolutePath: string;
+}
+
+export type ClientMessage =
+	| FsWatchCommand
+	| FsUnwatchCommand
+	| FsWatchFileCommand
+	| FsUnwatchFileCommand;

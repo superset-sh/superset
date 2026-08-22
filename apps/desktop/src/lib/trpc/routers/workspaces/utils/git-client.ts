@@ -16,11 +16,18 @@ const execFileAsync = promisify(execFile);
 const SIMPLE_GIT_OPTIONS =
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS satisfies Partial<SimpleGitOptions>;
 
-function createUserSimpleGit(repoPath?: string): SimpleGit {
+function createUserSimpleGit(
+	repoPath?: string,
+	overrides?: Partial<SimpleGitOptions>,
+): SimpleGit {
+	const options = overrides
+		? { ...SIMPLE_GIT_OPTIONS, ...overrides }
+		: SIMPLE_GIT_OPTIONS;
 	try {
-		return repoPath
-			? simpleGit(repoPath, SIMPLE_GIT_OPTIONS)
-			: simpleGit(SIMPLE_GIT_OPTIONS);
+		if (repoPath) {
+			return simpleGit(repoPath, options);
+		}
+		return simpleGit(options);
 	} catch (error) {
 		throw new GitEnvironmentError(
 			error instanceof Error ? error.message : String(error),
@@ -30,8 +37,9 @@ function createUserSimpleGit(repoPath?: string): SimpleGit {
 
 export async function getSimpleGitWithShellPath(
 	repoPath?: string,
+	overrides?: Partial<SimpleGitOptions>,
 ): Promise<SimpleGit> {
-	const git = createUserSimpleGit(repoPath);
+	const git = createUserSimpleGit(repoPath, overrides);
 	git.env(await getProcessEnvWithShellPath());
 	return git;
 }

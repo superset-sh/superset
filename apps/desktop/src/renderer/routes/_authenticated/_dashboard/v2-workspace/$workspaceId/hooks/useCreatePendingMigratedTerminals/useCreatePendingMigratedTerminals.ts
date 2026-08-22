@@ -19,7 +19,7 @@ import { useV2TerminalLauncher } from "../useV2TerminalLauncher";
  *
  * When the source v1 pane had a resumable agent session (captured by the
  * electron hook server), the fresh terminal is seeded with an ended binding
- * so the pane surfaces the same resume banner as a killed v2 session. The
+ * so the pane auto-resumes it the same way as a killed v2 session. The
  * capture is read here — not frozen at migration time — because the pane
  * keeps living in v1 (and its agent keeps reporting) long after the
  * every-boot migration pass ledgers it.

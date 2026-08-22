@@ -1,4 +1,4 @@
-import { chatServiceTrpc } from "@superset/chat-legacy/client";
+import { chatServiceTrpc } from "@superset/provider-auth/client";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";

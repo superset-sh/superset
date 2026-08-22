@@ -27,7 +27,7 @@ const triggerClass = cn(
 export function DesktopNav() {
 	// Radix's NavigationMenu is uncontrolled by default, so a hover-opened
 	// trigger and a click on that same trigger both race to set its shared
-	// internal `value` — a click toggles, so clicking a menu that hover just
+	// internal `value`. A click toggles, so clicking a menu that hover just
 	// opened immediately closes it again. Controlling `value` ourselves lets
 	// us make click idempotent (open-only) instead of toggling, so it can
 	// never fight with the hover-intent timers.

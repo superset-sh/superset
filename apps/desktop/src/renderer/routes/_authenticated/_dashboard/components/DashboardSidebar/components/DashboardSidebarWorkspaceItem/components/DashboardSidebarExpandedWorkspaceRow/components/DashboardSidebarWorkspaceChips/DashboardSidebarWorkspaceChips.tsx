@@ -30,10 +30,7 @@ export function DashboardSidebarWorkspaceChips({
 
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
 	const ports = inlineWorkspacePortsEnabled ? (portGroup?.ports ?? []) : [];
-	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(
-		workspaceId,
-		workspaceAgentsRowEnabled,
-	);
+	const runningAgents = useDashboardSidebarWorkspaceRunningAgents(workspaceId);
 	const agents =
 		workspaceAgentsRowEnabled && runningAgents.length > 1 ? runningAgents : [];
 
