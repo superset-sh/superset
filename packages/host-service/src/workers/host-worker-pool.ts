@@ -164,6 +164,8 @@ export class HostWorkerPool {
 
 		return new Promise<TResult>((resolve, reject) => {
 			let settled = false;
+			// Same phase record as the worker path, minus the message hop.
+			let phase: string | undefined;
 			const settle = (fn: () => void) => {
 				if (settled) return;
 				settled = true;
@@ -178,7 +180,9 @@ export class HostWorkerPool {
 					settle(() =>
 						reject(
 							new WorkerTaskError(
-								`[host-worker] Task "${def.type}" timed out after ${timeoutMs}ms (inline)`,
+								`[host-worker] Task "${def.type}" timed out after ${timeoutMs}ms${
+									phase ? ` in phase "${phase}"` : ""
+								} (inline)`,
 							),
 						),
 					),
@@ -193,7 +197,11 @@ export class HostWorkerPool {
 			// Promise.resolve() wrapper: a synchronously-throwing handler must
 			// route through settle() too, or the timer and abort listener leak.
 			Promise.resolve()
-				.then(() => def.handler(input))
+				.then(() =>
+					def.handler(input, (reported) => {
+						phase = reported;
+					}),
+				)
 				.then((result) => settle(() => resolve(result)))
 				.catch((error) => settle(() => reject(error)));
 		});

@@ -33,6 +33,31 @@ export function isWorkerShutdownRequestMessage(
 	);
 }
 
+/** Worker → main thread: the handler has entered a named phase.
+ *
+ * The task budget is enforced by a timer in the parent, which otherwise has
+ * no idea which step of a multi-step handler was in flight when it expired —
+ * and the worker is retired straight afterwards, so there is nothing left to
+ * ask. This carries that one fact out ahead of the hang. Best-effort: a phase
+ * that arrives after the timeout is ignored. */
+export interface WorkerTaskPhaseMessage {
+	kind: "phase";
+	taskId: string;
+	phase: string;
+}
+
+export function isWorkerTaskPhaseMessage(
+	message: unknown,
+): message is WorkerTaskPhaseMessage {
+	if (!message || typeof message !== "object") return false;
+	const candidate = message as Partial<WorkerTaskPhaseMessage>;
+	return (
+		candidate.kind === "phase" &&
+		typeof candidate.taskId === "string" &&
+		typeof candidate.phase === "string"
+	);
+}
+
 export type WorkerTaskResponseMessage =
 	| {
 			kind: "result";

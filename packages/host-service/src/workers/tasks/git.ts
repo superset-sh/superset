@@ -200,21 +200,32 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 	{ stillRegistered: boolean }
 >({
 	type: "git/removeWorktree",
-	handler: async ({ repoPath, worktreePath, gitEnv }) => {
+	// This task outlives its caller's budget in the field (HOST-SERVICE-17,
+	// HOST-SERVICE-47) and the timeout named only the budget. Its steps stall
+	// for unrelated reasons, so each announces itself before starting and the
+	// pool names the last one in the timeout error.
+	handler: async ({ repoPath, worktreePath, gitEnv }, reportPhase) => {
+		// Labelled from the first statement so every moment of the handler
+		// falls under some phase — an unlabelled timeout would be
+		// indistinguishable from one reported by a build without this.
+		reportPhase?.("resolve-path");
 		const git = createUserSimpleGit(repoPath).env(gitEnv);
 		// Remove against git's canonical path so a symlinked stored path
 		// (macOS `/var` → `/private/var`) still matches its registration.
+		// `realpathSync.native` is a blocking syscall, hence its own phase.
 		const target = normalizeWorktreePath(worktreePath);
 		// Best-effort: the registry read below is authoritative, not the
 		// command's locale- and version-dependent exit text. `--force --force`
 		// also unregisters a worktree whose directory is already gone, so no
 		// separate prune (which would clobber other stale worktrees' metadata)
 		// is needed.
+		reportPhase?.("worktree-remove");
 		await git
 			.raw(["worktree", "remove", "--force", "--force", target])
 			.catch(() => {});
 		// A `worktree list` failure throws out of the task: the post-remove
 		// state is unknown and the caller must not treat it as removed.
+		reportPhase?.("worktree-list");
 		const raw = await git.raw(["worktree", "list", "--porcelain"]);
 		return {
 			stillRegistered: parseWorktreeList(raw).some(
