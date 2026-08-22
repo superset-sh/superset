@@ -55,7 +55,10 @@ export function DashboardNewWorkspaceModal() {
 	// "+" button, hotkey, onboarding hand-off) redirect to the route instead.
 	useEffect(() => {
 		if (!isScreen || !isOpen) return;
-		closeModal();
+		// Keep the seeded draft (setup-script prompt, linked issue/PR): the
+		// /new-workspace page consumes it after the handoff, so this close
+		// must not run the #5372 dismissal cleanup.
+		closeModal({ resetDraft: false });
 		void navigate({
 			to: "/new-workspace",
 			search: preSelectedSession
