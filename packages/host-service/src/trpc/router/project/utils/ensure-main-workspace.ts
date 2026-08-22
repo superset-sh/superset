@@ -7,6 +7,11 @@ import {
 	updateLocalWorkspace,
 } from "../../../../workspaces/local-workspace-store";
 
+export interface EnsureMainWorkspaceOptions {
+	/** Reuse this id when creating the row instead of minting a new one. */
+	mainWorkspaceId?: string;
+}
+
 export type EnsureMainWorkspaceContext = Pick<
 	HostServiceContext,
 	"db" | "git" | "eventBus"
@@ -43,9 +48,10 @@ export async function ensureMainWorkspace(
 	ctx: EnsureMainWorkspaceContext,
 	projectId: string,
 	repoPath: string,
+	options?: EnsureMainWorkspaceOptions,
 ): Promise<{ id: string } | null> {
 	try {
-		return await ensureMainWorkspaceStrict(ctx, projectId, repoPath);
+		return await ensureMainWorkspaceStrict(ctx, projectId, repoPath, options);
 	} catch (err) {
 		console.warn(
 			`[ensureMainWorkspace] failed for ${projectId} at ${repoPath}; will retry via startup sweep`,
@@ -65,6 +71,7 @@ export async function ensureMainWorkspaceStrict(
 	ctx: EnsureMainWorkspaceContext,
 	projectId: string,
 	repoPath: string,
+	options?: EnsureMainWorkspaceOptions,
 ): Promise<{ id: string }> {
 	const git = await ctx.git(repoPath);
 	const branch = await getCurrentBranchName(git);
@@ -108,6 +115,10 @@ export async function ensureMainWorkspaceStrict(
 	let inserted: ReturnType<typeof insertLocalWorkspace>;
 	try {
 		inserted = insertLocalWorkspace(store, {
+			// Re-registering a project on another host (a cross-org move) passes
+			// the id it already had, so local state keyed to the main workspace
+			// — pane layout, pins — still matches after the move.
+			...(options?.mainWorkspaceId ? { id: options.mainWorkspaceId } : {}),
 			projectId,
 			worktreePath: repoPath,
 			branch,
