@@ -14,7 +14,13 @@ export interface PendingWorkspaceCreateInput {
 		projectName: string;
 	};
 	baseBranch: string | null;
-	branchLabel: string;
+	/**
+	 * Display only. Null while the branch list is still loading — the create
+	 * itself sends `baseBranch`, and the host picks its own default when that is
+	 * absent, so there is no name to show yet and inventing one would show a
+	 * branch that does not exist.
+	 */
+	branchLabel: string | null;
 	agentId: string;
 	agentLabel: string;
 	message: PromptInputMessage;

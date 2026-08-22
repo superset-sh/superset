@@ -396,7 +396,10 @@ export function WorkspaceScreen() {
 	// and none of the chrome that assumes a workspace exists (tab strip,
 	// composer, sheets). The native header stays so back keeps working.
 	if ((isCreating || createFailed) && pendingCreate) {
-		const subtitle = `${pendingCreate.input.target.projectName} · ${pendingCreate.input.branchLabel}`;
+		const { projectName } = pendingCreate.input.target;
+		const subtitle = pendingCreate.input.branchLabel
+			? `${projectName} · ${pendingCreate.input.branchLabel}`
+			: projectName;
 		return (
 			<View className="bg-background flex-1">
 				<Stack.Screen options={{ ...headerOptions, title: "New workspace" }} />

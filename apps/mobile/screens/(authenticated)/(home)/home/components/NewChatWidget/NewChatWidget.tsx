@@ -12,7 +12,7 @@ import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
-import { useAttachmentsSheet } from "@/screens/(authenticated)/components/GlassComposer/hooks/useAttachmentsSheet";
+import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import {
 	type ChatTarget,
@@ -109,7 +109,9 @@ export function NewChatWidget({
 		(config) => config.presetId === agentId,
 	);
 	const agentIconUri = useAgentIconUri(selectedAgent?.iconId ?? agentId);
-	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? "default";
+	// Null until the branch list resolves. The previous fallback was the literal
+	// string "default", which reads as a branch name and is not one.
+	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? null;
 
 	const storeTarget = useChatTargetStore((state) => state.target);
 	const clearChatTarget = useChatTargetStore((state) => state.clearTarget);
@@ -198,7 +200,9 @@ export function NewChatWidget({
 					avatar: true,
 					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},
-				{ id: "branch", label: branchLabel, muted: true },
+				...(branchLabel
+					? [{ id: "branch", label: branchLabel, muted: true }]
+					: []),
 			];
 
 	// No agent chip for a cloud target: nothing launches on create (parity
