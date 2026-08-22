@@ -179,10 +179,12 @@ export const workspaceRouter = router({
 		.input(
 			z.object({
 				id: z.string(),
-				// A deleted workspace releases its branch by default so the same
-				// name is genuinely free to reuse (#6380). Callers that need to
-				// keep the branch (e.g. unmerged work they intend to salvage)
-				// pass false explicitly.
+				// Match the desktop UI: a deleted workspace keeps its branch by
+				// default (the checkbox is unchecked, deleteLocalBranch
+				// defaults false). Non-interactive CLI/SDK/MCP callers that want
+				// the branch released pass deleteBranch: true explicitly, so a
+				// silent caller never loses unpushed commits (#6380, review
+				// feedback on #6381).
 				deleteBranch: z.boolean().optional(),
 			}),
 		)
@@ -194,7 +196,7 @@ export const workspaceRouter = router({
 			// is nobody to prompt for a force-retry (#6174).
 			return destroyWorkspace(ctx, {
 				workspaceId: input.id,
-				deleteBranch: input.deleteBranch ?? true,
+				deleteBranch: input.deleteBranch ?? false,
 				force: true,
 				teardownMode: "best-effort",
 			});
