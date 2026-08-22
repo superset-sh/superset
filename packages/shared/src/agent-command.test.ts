@@ -97,6 +97,34 @@ describe("kimi agent registration", () => {
 	});
 });
 
+describe("fx agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("fx");
+		expect(AGENT_LABELS.fx).toBe("fx");
+	});
+
+	it("runs prompt launches through fx ask and resumes them interactively", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "fx-1234",
+			agent: "fx",
+		});
+
+		expect(command).toStartWith(
+			"fx ask --auto \"$(cat <<'SUPERSET_PROMPT_fx1234'",
+		);
+		expect(command).toEndWith('\n)" ; fx resume last');
+	});
+
+	it("derives host preset prompt and resume args from the base command", () => {
+		const preset = getPresetById("fx");
+		expect(preset?.command).toBe("fx");
+		expect(preset?.args).toEqual([]);
+		expect(preset?.promptArgs).toEqual(["ask", "--auto"]);
+		expect(preset?.resumeArgs).toEqual(["resume"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");

@@ -199,6 +199,17 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "polygraph session start",
 		promptCommand: "polygraph session start --",
 	}),
+	createBuiltinTerminalAgent({
+		id: "fx",
+		label: "fx",
+		description:
+			"Vercel's coding agent for reading, editing, and running code from the terminal.",
+		command: "fx",
+		promptCommand: "fx ask --auto",
+		promptCommandSuffix: "; fx resume last",
+		resumeCommand: "fx resume",
+		nonInteractiveCommand: "fx ask --auto",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =
