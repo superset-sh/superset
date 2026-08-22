@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	getVisibleItemsForSection,
 	SETTING_ITEM_ID,
 	type SettingsItem,
 	searchSettings,
@@ -75,5 +76,46 @@ describe("settings search - hosts", () => {
 		const ids = getIds(searchSettings("delete host"));
 
 		expect(ids).toContain(SETTING_ITEM_ID.HOST_DELETE);
+	});
+});
+
+describe("appearance section variant visibility", () => {
+	const visible = (isV2: boolean) =>
+		getVisibleItemsForSection({ section: "appearance", searchQuery: "", isV2 });
+
+	it("offers the sidebar name wrapping setting only in v2", () => {
+		expect(visible(true)).toContain(
+			SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES,
+		);
+		expect(visible(false)).not.toContain(
+			SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES,
+		);
+	});
+
+	it("keeps typography available in v1, which still uses those font settings", () => {
+		for (const isV2 of [true, false]) {
+			expect(visible(isV2)).toContain(SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT);
+			expect(visible(isV2)).toContain(SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT);
+		}
+	});
+
+	it("keeps theme and markdown available in both variants", () => {
+		for (const isV2 of [true, false]) {
+			expect(visible(isV2)).toContain(SETTING_ITEM_ID.APPEARANCE_THEME);
+			expect(visible(isV2)).toContain(SETTING_ITEM_ID.APPEARANCE_MARKDOWN);
+			expect(visible(isV2)).toContain(SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES);
+		}
+	});
+
+	it("hides the v2-only item from v1 search results too", () => {
+		const v1Matches = getVisibleItemsForSection({
+			section: "appearance",
+			searchQuery: "wrap workspace names",
+			isV2: false,
+		});
+
+		expect(v1Matches).not.toContain(
+			SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES,
+		);
 	});
 });
