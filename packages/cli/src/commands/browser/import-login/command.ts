@@ -74,7 +74,7 @@ export default command({
 		if (result.keyUnavailable) {
 			return {
 				data: result,
-				message: `Could not read logins from ${describe(source)} — the Keychain key was unavailable. Quit that browser and grant Keychain access, then retry.`,
+				message: `Could not read logins from ${describe(source)} . The Keychain key was unavailable. Quit that browser and grant Keychain access, then retry.`,
 			};
 		}
 

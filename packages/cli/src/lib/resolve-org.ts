@@ -62,7 +62,7 @@ export async function resolveOrganization<T extends OrgChoice>(
 
 	if (isAgentMode() || !process.stdout.isTTY) {
 		throw new CLIError(
-			"Multiple organizations — pass --org <id|slug|name>",
+			"Multiple organizations: pass --org <id|slug|name>",
 			`Available: ${orgs.map(label).join(", ")}`,
 		);
 	}

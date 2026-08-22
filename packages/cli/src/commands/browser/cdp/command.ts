@@ -30,7 +30,7 @@ export default command({
 			data: { url },
 			// The URL embeds a bearer token — treat it as a credential (keep it out
 			// of shared logs / screenshots).
-			message: `${url}\n\nNote: this URL contains an auth token — treat it as a secret.`,
+			message: `${url}\n\nNote: this URL contains an auth token. Treat it as a secret.`,
 		};
 	},
 });

@@ -963,7 +963,7 @@ screenshot, read console, evaluate JavaScript, and get a raw Chrome DevTools
 Protocol endpoint for click/type/scroll automation. Every operation runs in the
 pane the user sees, against the browser's real session. Browser panes live in
 the desktop app, so a standalone host with no desktop attached has no panes and
-these commands error. A `paneId` is scoped to its workspace — pass the same
+these commands error. A `paneId` is scoped to its workspace, so pass the same
 `--workspace` it was opened under. See the [`browser` skill](/skills) for the
 agent-facing protocol.
 
@@ -1038,7 +1038,7 @@ Capture a PNG screenshot of the pane's page.
 	]}
 	output={`{ result: unknown }`}
 >
-Evaluate JavaScript in the page and return the result — the ergonomic path for
+Evaluate JavaScript in the page and return the result: the ergonomic path for
 reading or nudging the DOM.
 
 ```bash
@@ -1071,7 +1071,7 @@ Read the pane's captured console output.
 >
 Print a raw Chrome DevTools Protocol WebSocket endpoint for the pane, for
 browser-use / Playwright-class tools (mouse, keyboard, scroll, DOM, network).
-The URL embeds an auth token — treat it as a secret.
+The URL embeds an auth token, so treat it as a secret.
 </Command>
 
 ---

@@ -22,12 +22,12 @@ Run different agents on different subscriptions from one machine:
 ![Two Claude Code accounts with quota meters, one marked as the default](/images/usage-accounts.png)
 
 - **Add account** creates a second profile: pick a profile name, then run the shown sign-in command (e.g. `CLAUDE_CONFIG_DIR="$HOME/.claude-work" claude auth login`) in any terminal on this host. The dialog detects the sign-in automatically.
-- **Make default** picks which account new agent launches use — when a provider has several accounts, the cards read as a radio group with the default checked. Switching reaches terminals you already have open too: a running agent keeps its account until you relaunch it.
-- Your setup comes along: skills, plugins, MCP servers, and settings are shared across accounts, and for Claude Code there's one conversation history — `--resume` shows the same sessions whichever account is active.
-- Logins, credentials, and account identity stay per account. The **…** menu on a card offers **Switch sign-in…** (re-login that profile to a different account) and, for secondary profiles, **Remove…** — which deletes that profile and its credentials, never your shared setup or history. The system-default login can't be removed.
+- **Make default** picks which account new agent launches use. When a provider has several accounts, the cards read as a radio group with the default checked. Switching reaches terminals you already have open too: a running agent keeps its account until you relaunch it.
+- Your setup comes along: skills, plugins, MCP servers, and settings are shared across accounts, and for Claude Code there's one conversation history: `--resume` shows the same sessions whichever account is active.
+- Logins, credentials, and account identity stay per account. The **…** menu on a card offers **Switch sign-in…** (re-login that profile to a different account) and, for secondary profiles, **Remove…**, which deletes that profile and its credentials, never your shared setup or history. The system-default login can't be removed.
 - If a sign-in expires, the card shows the exact login command to run, with click-to-copy.
 
-Under the hood, a profile is just a config dir the CLI is pointed at (`CLAUDE_CONFIG_DIR` / `CODEX_HOME`). Superset's agent wrappers re-resolve the current default every time the agent starts in a Superset terminal — so switching works for agents you launch by hand too, and a value you export yourself always wins.
+Under the hood, a profile is just a config dir the CLI is pointed at (`CLAUDE_CONFIG_DIR` / `CODEX_HOME`). Superset's agent wrappers re-resolve the current default every time the agent starts in a Superset terminal, so switching works for agents you launch by hand too, and a value you export yourself always wins.
 
 ## Token Costs
 
