@@ -93,12 +93,15 @@ function listFilesRecursive(root: string, relative = ""): string[] {
 async function syncDir(src: string, dest: string): Promise<void> {
 	const sourceFiles = listFilesRecursive(src);
 	for (const file of sourceFiles) {
+		const source = path.join(src, file);
 		const target = path.join(dest, file);
 		fs.mkdirSync(path.dirname(target), { recursive: true });
+		// Skills may bundle scripts/; keep them runnable after provisioning.
+		const executable = (fs.statSync(source).mode & 0o111) !== 0;
 		writeFileIfChanged(
 			target,
-			fs.readFileSync(path.join(src, file), "utf-8"),
-			0o644,
+			fs.readFileSync(source, "utf-8"),
+			executable ? 0o755 : 0o644,
 		);
 	}
 	const wanted = new Set(sourceFiles.map((f) => path.join(dest, f)));
