@@ -358,6 +358,12 @@ struct ComposerRootView: View {
       }
     }
     .padding(ComposerMetrics.rowPadding)
+    // The row resolves its position as one unit. Without this its children
+    // inherit the card's *interpolating* geometry while it resizes, so a
+    // control that arrives mid-resize — send, the moment a draft exists —
+    // animates in from where the row used to be rather than fading in where it
+    // belongs, and the mic beside it traces a curve instead of sliding.
+    .geometryGroup()
     // Deliberately no `.animation(_:value:)` here. Typing reveals send and
     // slides the mic left at the same moment the card may be resizing, and a
     // modifier on this row would drive the mic's *horizontal* motion on its own
