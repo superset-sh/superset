@@ -1,11 +1,17 @@
-import type { DetectedPort } from "@superset/port-scanner";
+import {
+	buildPortEnrichment,
+	type DetectedPort,
+	type PortScheme,
+} from "@superset/port-scanner";
 import { z } from "zod";
 import { portManager } from "../../../ports/port-manager";
-import { getLabelsForWorkspace } from "../../../ports/static-ports";
+import { getStaticPortsForWorkspace } from "../../../ports/static-ports";
 import { protectedProcedure, router } from "../../index";
 
 export interface EnrichedPort extends DetectedPort {
 	label: string | null;
+	/** Scheme from `.superset/ports.json`; null when the port isn't declared there. */
+	scheme: PortScheme | null;
 }
 
 export type PortEvent =
@@ -25,24 +31,24 @@ export const portsRouter = router({
 				try {
 					return ctx.runtime.filesystem.resolveWorkspaceRoot(workspaceId);
 				} catch {
-					// Workspace deleted or unknown — no labels for this row.
+					// Workspace deleted or unknown — no entries for this row.
 					return null;
 				}
 			};
-			const labelsByWorkspace = new Map<
+			const entriesByWorkspace = new Map<
 				string,
-				ReturnType<typeof getLabelsForWorkspace>
+				ReturnType<typeof getStaticPortsForWorkspace>
 			>();
 			return portManager
 				.getAllPorts()
 				.filter((port) => requestedWorkspaceIds.has(port.workspaceId))
 				.map((port) => {
-					let labels = labelsByWorkspace.get(port.workspaceId);
-					if (!labelsByWorkspace.has(port.workspaceId)) {
-						labels = getLabelsForWorkspace(resolve, port.workspaceId);
-						labelsByWorkspace.set(port.workspaceId, labels);
+					let entries = entriesByWorkspace.get(port.workspaceId);
+					if (!entriesByWorkspace.has(port.workspaceId)) {
+						entries = getStaticPortsForWorkspace(resolve, port.workspaceId);
+						entriesByWorkspace.set(port.workspaceId, entries);
 					}
-					return { ...port, label: labels?.get(port.port) ?? null };
+					return { ...port, ...buildPortEnrichment(entries?.get(port.port)) };
 				});
 		}),
 

@@ -1,6 +1,10 @@
 import path from "node:path";
 import type { NodeWebSocket } from "@hono/node-ws";
-import type { DetectedPort } from "@superset/port-scanner";
+import {
+	buildPortEnrichment,
+	type DetectedPort,
+	type StaticPortEntry,
+} from "@superset/port-scanner";
 import {
 	type FsWatchEvent,
 	watchSingleFile,
@@ -8,7 +12,7 @@ import {
 import type { Hono } from "hono";
 import type { HostDb } from "../db/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import { getLabelsForWorkspace } from "../ports/static-ports.ts";
+import { getStaticPortsForWorkspace } from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import type { GitWatcher } from "./git-watcher.ts";
 import type { ClientMessage, ServerMessage } from "./types.ts";
@@ -289,25 +293,31 @@ export class EventBus {
 		eventType: "add" | "remove";
 		port: DetectedPort;
 	}): void {
+		const staticPort =
+			eventType === "add" ? this.getStaticPort(port) : undefined;
 		this.broadcast({
 			type: "port:changed",
 			workspaceId: port.workspaceId,
 			eventType,
 			port,
-			label: eventType === "add" ? this.getPortLabel(port) : null,
+			...buildPortEnrichment(staticPort),
 			occurredAt: Date.now(),
 		});
 	}
 
-	private getPortLabel(port: DetectedPort): string | null {
-		const labels = getLabelsForWorkspace((workspaceId) => {
+	/**
+	 * The workspace's `.superset/ports.json` entry for this port, if it declares one.
+	 * Undefined when the file is missing, malformed, or has no entry for the port.
+	 */
+	private getStaticPort(port: DetectedPort): StaticPortEntry | undefined {
+		const entries = getStaticPortsForWorkspace((workspaceId) => {
 			try {
 				return this.filesystem.resolveWorkspaceRoot(workspaceId);
 			} catch {
 				return null;
 			}
 		}, port.workspaceId);
-		return labels?.get(port.port) ?? null;
+		return entries?.get(port.port);
 	}
 
 	private startFsWatch(

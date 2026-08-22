@@ -3,6 +3,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { buildPortUrl } from "shared/port-url";
 import type { DashboardSidebarPort } from "../useDashboardSidebarPortsData";
 
 interface UsePortOpenActionsResult {
@@ -24,7 +25,7 @@ export function usePortOpenActions(
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { preferences } = useV2UserPreferences();
 	const canOpenInBrowser = port.hostType === "local-device";
-	const portUrl = `http://localhost:${port.port}`;
+	const portUrl = buildPortUrl(port);
 
 	const openExternal = () => {
 		if (!canOpenInBrowser || openUrl.isPending) return;

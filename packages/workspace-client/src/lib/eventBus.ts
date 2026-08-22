@@ -54,6 +54,7 @@ export interface PortChangedPayload {
 	eventType: PortChangedMessage["eventType"];
 	port: PortChangedMessage["port"];
 	label: PortChangedMessage["label"];
+	scheme: PortChangedMessage["scheme"];
 	occurredAt: number;
 }
 
@@ -269,6 +270,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				eventType: message.eventType,
 				port: message.port,
 				label: message.label,
+				// Absent from an older host-service; consumers read `scheme ?? "http"`.
+				scheme: message.scheme ?? null,
 				occurredAt: message.occurredAt,
 			});
 		} else if (message.type === "workspace:changed") {

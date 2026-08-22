@@ -348,7 +348,8 @@ const DEFAULT_FOLDER_LINKS: FolderTierMap = {
 	metaShift: "external",
 };
 
-// Clicking a port badge's open affordance opens http://localhost:<port>.
+// Clicking a port badge's open affordance opens the port's URL: http://
+// unless `.superset/ports.json` declares `"scheme": "https"`.
 // A single action chooses where: "pane" = in-app browser, "newTab" = new
 // in-app tab, "external" = system browser.
 const DEFAULT_PORT_OPEN_ACTION: LinkAction = "external";

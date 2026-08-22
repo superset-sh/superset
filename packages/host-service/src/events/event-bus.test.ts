@@ -1,16 +1,20 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { DetectedPort } from "@superset/port-scanner";
 import type { HostDb } from "../db";
 import { portManager } from "../ports/port-manager";
+import { invalidateStaticPortCache } from "../ports/static-ports";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { EventBus } from "./event-bus";
 import type { GitWatcher } from "./git-watcher";
 
-function createEventBus(): EventBus {
+function createEventBus(worktreePath = "/tmp/missing-workspace"): EventBus {
 	return new EventBus({
 		db: {} as unknown as HostDb,
 		filesystem: {
-			resolveWorkspaceRoot: () => "/tmp/missing-workspace",
+			resolveWorkspaceRoot: () => worktreePath,
 		} as unknown as WorkspaceFilesystemManager,
 		gitWatcher: {
 			onChanged: () => () => {},
@@ -18,17 +22,50 @@ function createEventBus(): EventBus {
 	});
 }
 
+/** A worktree whose `.superset/ports.json` declares one port. */
+function createWorktree(entry: Record<string, unknown>): string {
+	const worktreePath = mkdtempSync(join(tmpdir(), "superset-event-bus-"));
+	mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+	writeFileSync(
+		join(worktreePath, ".superset", "ports.json"),
+		JSON.stringify({ ports: [entry] }),
+	);
+	worktreePaths.push(worktreePath);
+	return worktreePath;
+}
+
+/** Collects everything the bus broadcasts to one connected client. */
+function createSocket(): {
+	socket: Parameters<EventBus["handleOpen"]>[0];
+	sent: string[];
+} {
+	const sent: string[] = [];
+	return {
+		socket: {
+			readyState: 1,
+			send(data: string) {
+				sent.push(data);
+			},
+			close() {},
+		},
+		sent,
+	};
+}
+
+const worktreePaths: string[] = [];
+
+afterEach(() => {
+	// The cache is module-level and keyed by workspaceId, so it outlives a test.
+	invalidateStaticPortCache();
+	for (const path of worktreePaths.splice(0)) {
+		rmSync(path, { recursive: true, force: true });
+	}
+});
+
 describe("EventBus port events", () => {
 	it("broadcasts port changes from the shared port manager and removes listeners on close", () => {
 		const eventBus = createEventBus();
-		const sentMessages: string[] = [];
-		const socket = {
-			readyState: 1,
-			send(data: string) {
-				sentMessages.push(data);
-			},
-			close() {},
-		};
+		const { socket, sent: sentMessages } = createSocket();
 		const port: DetectedPort = {
 			port: 5173,
 			pid: 123,
@@ -52,6 +89,7 @@ describe("EventBus port events", () => {
 			eventType: "add",
 			port,
 			label: null,
+			scheme: null,
 		});
 		expect(typeof message.occurredAt).toBe("number");
 
@@ -63,11 +101,44 @@ describe("EventBus port events", () => {
 			eventType: "remove",
 			port,
 			label: null,
+			scheme: null,
 		});
 
 		eventBus.close();
 		portManager.emit("port:add", port);
 		expect(sentMessages).toHaveLength(2);
+	});
+
+	it("carries the label and scheme declared in ports.json on an add event", () => {
+		const worktreePath = createWorktree({
+			port: 3030,
+			label: "web",
+			scheme: "https",
+		});
+		const eventBus = createEventBus(worktreePath);
+		const { socket, sent: sentMessages } = createSocket();
+
+		eventBus.handleOpen(socket);
+		eventBus.start();
+
+		portManager.emit("port:add", {
+			port: 3030,
+			pid: 321,
+			processName: "next",
+			terminalId: "terminal-2",
+			workspaceId: "workspace-https",
+			detectedAt: 1_700_000_000_001,
+			address: "127.0.0.1",
+		});
+
+		expect(JSON.parse(sentMessages[0] ?? "{}")).toMatchObject({
+			type: "port:changed",
+			eventType: "add",
+			label: "web",
+			scheme: "https",
+		});
+
+		eventBus.close();
 	});
 });
 

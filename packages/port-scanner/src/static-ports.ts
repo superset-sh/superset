@@ -1,17 +1,43 @@
-export interface StaticPortLabel {
+export const PORT_SCHEMES = ["http", "https"] as const;
+
+/** URL scheme a port is served over. */
+export type PortScheme = (typeof PORT_SCHEMES)[number];
+
+/** Whether a raw `ports.json` value is a scheme this config accepts. */
+function isPortScheme(value: unknown): value is PortScheme {
+	return (
+		typeof value === "string" &&
+		(PORT_SCHEMES as readonly string[]).includes(value)
+	);
+}
+
+export interface StaticPortEntry {
 	port: number;
 	label: string;
+	/** Always set once parsed; an entry that omits it means `http`. */
+	scheme: PortScheme;
+}
+
+/**
+ * The `ports.json`-derived fields of a detected port row. Null for a port the file
+ * doesn't declare — which every consumer reads as an unlabelled `http` port.
+ */
+export function buildPortEnrichment(entry: StaticPortEntry | undefined): {
+	label: string | null;
+	scheme: PortScheme | null;
+} {
+	return { label: entry?.label ?? null, scheme: entry?.scheme ?? null };
 }
 
 export type StaticPortsParseResult =
-	| { ports: StaticPortLabel[]; error: null }
+	| { ports: StaticPortEntry[]; error: null }
 	| { ports: null; error: string };
 
 function validatePortEntry(
 	entry: unknown,
 	index: number,
 ):
-	| { valid: true; port: number; label: string }
+	| { valid: true; port: number; label: string; scheme: PortScheme }
 	| { valid: false; error: string } {
 	if (typeof entry !== "object" || entry === null) {
 		return { valid: false, error: `ports[${index}] must be an object` };
@@ -31,7 +57,11 @@ function validatePortEntry(
 		};
 	}
 
-	const { port, label } = entry as { port: unknown; label: unknown };
+	const { port, label, scheme } = entry as {
+		port: unknown;
+		label: unknown;
+		scheme: unknown;
+	};
 
 	if (typeof port !== "number" || !Number.isInteger(port)) {
 		return { valid: false, error: `ports[${index}].port must be an integer` };
@@ -52,7 +82,19 @@ function validatePortEntry(
 		return { valid: false, error: `ports[${index}].label cannot be empty` };
 	}
 
-	return { valid: true, port, label: label.trim() };
+	if (scheme !== undefined && !isPortScheme(scheme)) {
+		return {
+			valid: false,
+			error: `ports[${index}].scheme must be "http" or "https"`,
+		};
+	}
+
+	return {
+		valid: true,
+		port,
+		label: label.trim(),
+		scheme: scheme ?? "http",
+	};
 }
 
 export function parseStaticPortsConfig(
@@ -82,7 +124,7 @@ export function parseStaticPortsConfig(
 		return { ports: null, error: "'ports' field must be an array" };
 	}
 
-	const ports: StaticPortLabel[] = [];
+	const ports: StaticPortEntry[] = [];
 	const seenPorts = new Set<number>();
 	for (let index = 0; index < portsField.length; index++) {
 		const result = validatePortEntry(portsField[index], index);
@@ -96,7 +138,11 @@ export function parseStaticPortsConfig(
 			};
 		}
 		seenPorts.add(result.port);
-		ports.push({ port: result.port, label: result.label });
+		ports.push({
+			port: result.port,
+			label: result.label,
+			scheme: result.scheme,
+		});
 	}
 
 	return { ports, error: null };

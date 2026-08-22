@@ -35,7 +35,7 @@ describe("loadStaticPorts", () => {
 		const result = loadStaticPorts(WORKTREE_PATH);
 		expect(result).toEqual({
 			exists: true,
-			ports: [{ port: 3000, label: "Frontend" }],
+			ports: [{ port: 3000, label: "Frontend", scheme: "http" }],
 			error: null,
 		});
 	});
@@ -54,9 +54,9 @@ describe("loadStaticPorts", () => {
 		expect(result).toEqual({
 			exists: true,
 			ports: [
-				{ port: 3000, label: "Frontend" },
-				{ port: 8080, label: "API Server" },
-				{ port: 5432, label: "PostgreSQL" },
+				{ port: 3000, label: "Frontend", scheme: "http" },
+				{ port: 8080, label: "API Server", scheme: "http" },
+				{ port: 5432, label: "PostgreSQL", scheme: "http" },
 			],
 			error: null,
 		});
