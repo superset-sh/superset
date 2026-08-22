@@ -351,6 +351,13 @@
       "when": 1787260502122,
       "tag": "0049_breezy_caretaker",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1787260502123,
+      "tag": "0050_add_terminal_mac_option_is_meta_setting",
+      "breakpoints": true
     }
   ]
 }

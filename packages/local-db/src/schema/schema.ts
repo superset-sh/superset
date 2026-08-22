@@ -241,6 +241,9 @@ export const settings = sqliteTable("settings", {
 		"block" | "bar" | "underline"
 	>(),
 	terminalCursorBlink: integer("terminal_cursor_blink", { mode: "boolean" }),
+	terminalMacOptionIsMeta: integer("terminal_mac_option_is_meta", {
+		mode: "boolean",
+	}),
 	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
