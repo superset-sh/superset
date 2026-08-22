@@ -1,5 +1,6 @@
 import Accelerate
 import AVFoundation
+import SwiftUI
 import Observation
 import Speech
 
@@ -75,11 +76,21 @@ final class ComposerDictation {
 
   var isActive: Bool { state != .idle }
 
+  /// Every transition opens a transaction. The pill and the mic share the
+  /// composer's trailing slot, so a state change relays out the control row —
+  /// and the row deliberately has no animation of its own, because a second
+  /// curve there sends the control along an arc. See `ComposerRootView`.
+  @MainActor
+  private func setState(_ next: State) {
+    withAnimation(ComposerMetrics.controlSwap) { state = next }
+  }
+
   // MARK: - Control
 
+  @MainActor
   func start() {
     guard case .idle = state else { return }
-    state = .preparing
+    setState(.preparing)
     Task { @MainActor in
       guard await requestAuthorization() else {
         settle(with: nil)
@@ -95,9 +106,10 @@ final class ComposerDictation {
     }
   }
 
+  @MainActor
   func stop() {
     guard case .recording = state else { return }
-    state = .finalizing
+    setState(.finalizing)
     // Let the recogniser flush what it has; `task` reports the final result.
     engine.inputNode.removeTap(onBus: 0)
     engine.stop()
@@ -118,6 +130,7 @@ final class ComposerDictation {
     }
   }
 
+  @MainActor
   private func beginRecording() throws {
     guard let recognizer, recognizer.isAvailable else {
       throw NSError(domain: "ComposerDictation", code: 1)
@@ -160,7 +173,7 @@ final class ComposerDictation {
       }
     }
 
-    state = .recording(startedAt: Date())
+    setState(.recording(startedAt: Date()))
   }
 
   /// Called on the audio thread for every buffer. It folds each one into a
@@ -230,7 +243,7 @@ final class ComposerDictation {
       false,
       options: .notifyOthersOnDeactivation
     )
-    state = .idle
+    setState(.idle)
     levels = [Double](repeating: 0, count: Self.meterSamples)
     pendingFrames = 0
     pendingPeak = 0

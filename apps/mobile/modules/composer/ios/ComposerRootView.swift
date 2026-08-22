@@ -52,6 +52,11 @@ enum ComposerMetrics {
   static let fileLabelSize: CGFloat = 12
   static let removeBadgeSize: CGFloat = 17
   static let removeBadgeInset: CGFloat = 6
+  /// Transparent padding around the badge, because 17pt is less than half
+  /// Apple's 44pt minimum and the mark cannot grow without leaving the
+  /// reference. The outer inset is reduced by the same amount so the circle
+  /// still sits where frames 6 and 9 put it — only the hit area moves.
+  static let removeBadgeTouchPadding: CGFloat = 9
   static let carouselSpacing: CGFloat = 8
   /// Frames 7/9/11. `+N` is plain white text centred on the thumbnail, not a
   /// badge in a corner chip.
@@ -70,6 +75,25 @@ enum ComposerMetrics {
   static let contentFadeOut: Double = 0.09
   /// How far the grabber has to travel before releasing dismisses.
   static let dismissThreshold: CGFloat = 40
+
+  /// The curve the card resizes on when its *content* changes — an attachment
+  /// arriving or leaving, a chip row appearing.
+  ///
+  /// It has to be applied by opening a transaction around the mutation, never
+  /// by hanging `.animation(_:value:)` on the surface. That modifier animates
+  /// only the subtree it is attached to: the surface's own frame change is
+  /// resolved by its parent, outside the modifier's scope, so the card snaps to
+  /// its new height while the rows animate to new positions *inside* it — which
+  /// is exactly the "everything slides" artefact this rewrite exists to remove.
+  static let growth = Animation.snappy(duration: 0.3, extraBounce: 0.05)
+
+  /// Faster and flat, because it fires mid-keystroke and has to settle before
+  /// the next character lands.
+  static let typingGrowth = Animation.snappy(duration: 0.16)
+
+  /// Controls trading places in the bottom row — send arriving, the mic
+  /// stepping aside, dictation taking the slot.
+  static let controlSwap = Animation.snappy(duration: 0.22)
 }
 
 /// The composer's SwiftUI tree.
@@ -217,19 +241,11 @@ struct ComposerRootView: View {
       }
       controlRow
     }
-    // Growing is not free. SwiftUI resizes a view the instant its content
-    // changes unless the change is inside an animation transaction, so without
-    // these the card snaps to its new height the moment a line wraps or the
-    // first attachment lands. A UIKit composer built on `inputAccessoryView`
-    // gets this for nothing — the keyboard's own animation carries the
-    // accessory view's frame with it — which is part of why that pattern is
-    // popular, and it is the pattern this rewrite rejected. Owning the layout
-    // means saying when it animates.
-    //
-    // Only the attachment strip is animated from here; the editor's own growth
-    // is driven from its binding — see `editor` for why it cannot be declared
-    // alongside this one.
-    .animation(.snappy(duration: 0.3, extraBounce: 0.05), value: model.attachments)
+    // Nothing animates the card's size from here. Growth is driven by whoever
+    // makes the change opening a transaction around it — the editor's binding
+    // for text, the module's prop setters for everything React Native owns —
+    // because only a real transaction reaches the parent that positions this
+    // surface. See `ComposerMetrics.growth`.
     // One glass sheet for the whole composer. Controls inside it sit on solid
     // fills rather than more glass — see `ComposerControlStyle`.
     .glassEffect(
@@ -298,13 +314,7 @@ struct ComposerRootView: View {
     TextField(model.placeholder, text: Binding(
       get: { model.draft },
       set: { text in
-        // The growth animation has to be *on the mutation*, not declared on an
-        // ancestor with `.animation(_:value:)`. A vertical `TextField` resizes
-        // through its UIKit text layout, which lands outside the transaction
-        // SwiftUI opens for a value change — measured: the card snapped from
-        // four lines to five in a single frame — so the transaction has to be
-        // open when the text is set.
-        withAnimation(.snappy(duration: 0.16)) { model.draft = text }
+        model.setDraft(text)
       }
     ), axis: .vertical)
       .lineLimit(1...ComposerMetrics.maxLines)
@@ -348,12 +358,14 @@ struct ComposerRootView: View {
       }
     }
     .padding(ComposerMetrics.rowPadding)
-    // Typing is what reveals send, and the mic slides left to make room. Both
-    // fall out of one animation on the row: the transition fades send in, the
-    // HStack's own layout carries the mic.
-    .animation(.snappy(duration: 0.22), value: model.hasContent)
-    .animation(.snappy(duration: 0.22), value: model.isSending)
-    .animation(.snappy(duration: 0.22), value: model.dictation.state)
+    // Deliberately no `.animation(_:value:)` here. Typing reveals send and
+    // slides the mic left at the same moment the card may be resizing, and a
+    // modifier on this row would drive the mic's *horizontal* motion on its own
+    // curve while the card's transaction drove its *vertical* motion on
+    // another. Two curves on one control is a control travelling along an arc.
+    // Every mutation that moves this row opens its own transaction instead —
+    // see `ComposerModel.setDraft`, `ComposerDictation.setState`, and the
+    // module's prop setters.
   }
 
   @ViewBuilder

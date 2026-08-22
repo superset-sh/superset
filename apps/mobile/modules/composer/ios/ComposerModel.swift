@@ -98,11 +98,20 @@ final class ComposerModel {
     dictation.onError = { [weak self] message in self?.onDictationError?(message) }
   }
 
+  /// Every draft change goes through here so the transaction is always open
+  /// when the text lands. A vertical `TextField` resizes through its UIKit text
+  /// layout, which never joins a transaction an ancestor's `.animation(_:value:)`
+  /// opened — and the same change reveals or hides send, so if the two are not
+  /// in one transaction the mic travels along an arc.
+  func setDraft(_ text: String) {
+    withAnimation(ComposerMetrics.typingGrowth) { draft = text }
+  }
+
   func appendDraft(_ text: String) {
     let addition = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !addition.isEmpty else { return }
     let base = draft.trimmingCharacters(in: .whitespaces)
-    draft = base.isEmpty ? addition : base + " " + addition
+    setDraft(base.isEmpty ? addition : base + " " + addition)
   }
 
   func submit() {

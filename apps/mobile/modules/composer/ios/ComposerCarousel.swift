@@ -92,9 +92,13 @@ struct ComposerCarousel: View {
           )
           .background(.black.opacity(0.75), in: .circle)
           .thumbnailShadow()
+          .padding(ComposerMetrics.removeBadgeTouchPadding)
+          .contentShape(.rect)
       }
       .buttonStyle(.plain)
-      .padding(ComposerMetrics.removeBadgeInset)
+      .padding(
+        ComposerMetrics.removeBadgeInset - ComposerMetrics.removeBadgeTouchPadding
+      )
       .accessibilityLabel("Remove attachment")
     }
   }

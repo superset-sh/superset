@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import SwiftUI
 import UIKit
 
 public final class ComposerModule: Module {
@@ -25,26 +26,43 @@ public final class ComposerModule: Module {
         view.overlay.model.backdrop = ComposerBackdrop(rawValue: backdrop) ?? .dim
       }
 
+      /// Wrapped in a transaction, not left to an `.animation(_:value:)` on
+      /// the SwiftUI side. The tray changing resizes the whole card, and only a
+      /// real transaction reaches the parent that positions it — without this
+      /// the card jumps to its new height and the rows slide into place inside
+      /// it. See `ComposerMetrics.growth`.
       Prop("attachments") { (view: ComposerAnchorView, attachments: [ComposerAttachment]) in
-        view.overlay.model.attachments = attachments
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.attachments = attachments
+        }
       }
 
       Prop("selectedModel") { (view: ComposerAnchorView, model: ComposerMenuOption?) in
-        view.overlay.model.selectedModel = model
+        withAnimation(ComposerMetrics.controlSwap) {
+          view.overlay.model.selectedModel = model
+        }
       }
 
+      /// Send becomes a spinner and the mic steps aside, which relays out the
+      /// control row — same transaction rule as everything else that moves it.
       Prop("isSending") { (view: ComposerAnchorView, isSending: Bool) in
-        view.overlay.model.isSending = isSending
+        withAnimation(ComposerMetrics.controlSwap) {
+          view.overlay.model.isSending = isSending
+        }
       }
 
+      /// Same reasoning as `attachments`: the chip row is a whole row of card
+      /// height appearing or leaving.
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
-        view.overlay.model.headerChips = chips
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.headerChips = chips
+        }
       }
 
       /// React Native clears the draft once its own delivery succeeded, so a
       /// failed send keeps what the user typed.
       AsyncFunction("clear") { (view: ComposerAnchorView) in
-        view.overlay.model.draft = ""
+        view.overlay.model.setDraft("")
       }.runOnQueue(.main)
 
       /// Re-open after something else took first responder — an attachments
