@@ -4,7 +4,8 @@ import SwiftUI
 /// `apps/mobile/plans/20260821-native-composer.md`, converted from the 921-wide
 /// render to points on a 440pt-wide screen. Tuned on device from here.
 enum ComposerMetrics {
-  static let horizontalMargin: CGFloat = 16
+  /// Measured off frame 1: the pill's left edge sits ~12pt in, not 16.
+  static let horizontalMargin: CGFloat = 12
   /// Gap between the composer and the bottom safe area, per frame 1.
   static let bottomGap: CGFloat = 8
   static let pillRadius: CGFloat = 26
@@ -27,8 +28,12 @@ enum ComposerMetrics {
   /// Frame 4: the expanded editor has a generous floor rather than growing up
   /// from one line — roughly four blank lines.
   static let editorMinHeight: CGFloat = 96
-  /// Frame 4: growth clamps rather than filling the screen.
-  static let maxLines = 12
+  /// Frame 4: growth clamps rather than filling the screen. This is the whole
+  /// bound — `lineLimit(1...n)` grows the field to n lines and scrolls after.
+  /// A `.frame(maxHeight:)` is *not* the way to cap it: a max height makes the
+  /// field expand to fill that height instead of hugging its content, which
+  /// leaves an empty card the size of the cap.
+  static let maxLines = 8
   static let grabberSize = CGSize(width: 36, height: 5)
   static let modelIconSize: CGFloat = 16
   static let modelIconRadius: CGFloat = 4
@@ -52,6 +57,11 @@ enum ComposerMetrics {
   /// what made the collapsed text slide vertically — so both stay laid out and
   /// their blur animates alongside their opacity instead.
   static let swapBlur: CGFloat = 6
+  /// Content above the control row leaves much faster than the card shrinks.
+  /// Fading it on the card's own curve leaves the chips and thumbnails legible
+  /// most of the way down, so they read as still being part of the collapsed
+  /// pill. Out early, in on the normal curve.
+  static let contentFadeOut: Double = 0.09
   /// How far the grabber has to travel before releasing dismisses.
   static let dismissThreshold: CGFloat = 40
 }
@@ -163,7 +173,7 @@ struct ComposerRootView: View {
         grabber
         if !model.headerChips.isEmpty {
           headerRow
-            .transition(.opacity)
+            .transition(.composerContent)
         }
         if !model.attachments.isEmpty {
           ComposerCarousel(
@@ -174,10 +184,10 @@ struct ComposerRootView: View {
           // Frame 6 leaves air between the strip and the first line of text;
           // without this the thumbnail sits right on the placeholder.
           .padding(.bottom, ComposerMetrics.textInset)
-          .transition(.opacity)
+          .transition(.composerContent)
         }
         editor
-          .transition(.opacity)
+          .transition(.composerContent)
       }
       controlRow
     }
@@ -267,19 +277,15 @@ struct ComposerRootView: View {
 
       middleBand
 
-      // Hidden while sending: the spinner is the only thing that should be
-      // moving, and the row closes up around it.
+      // The trigger slot: mic, or whatever dictation has turned it into.
+      // Hidden while sending — the spinner should be the only thing moving.
       if !model.isSending {
-        Button { model.onDictatePress?() } label: {
-          Image(systemName: "mic")
-            .font(.system(size: 17, weight: .regular))
-        }
-        .buttonStyle(.composerControl)
-        .accessibilityLabel("Dictate")
-        .transition(.opacity)
+        voiceControl
       }
 
-      if model.hasContent {
+      // Dictation owns the row while it runs, so send stays out of the way
+      // rather than competing with the recording pill.
+      if model.hasContent && !model.isDictating {
         sendButton
       }
     }
@@ -289,6 +295,36 @@ struct ComposerRootView: View {
     // HStack's own layout carries the mic.
     .animation(.snappy(duration: 0.22), value: model.hasContent)
     .animation(.snappy(duration: 0.22), value: model.isSending)
+    .animation(.snappy(duration: 0.22), value: model.voiceState)
+  }
+
+  @ViewBuilder
+  private var voiceControl: some View {
+    switch model.voiceState {
+    case .recording:
+      ComposerVoicePill(
+        startedAt: model.voiceStartedAt,
+        level: model.voiceLevel,
+        onStop: { model.onDictateStop?() }
+      )
+      .transition(.opacity)
+    case .finalizing:
+      Button(action: {}) {
+        ComposerSpinner()
+      }
+      .buttonStyle(.composerControl)
+      .disabled(true)
+      .accessibilityLabel("Transcribing")
+      .transition(.opacity)
+    case .idle:
+      Button { model.onDictatePress?() } label: {
+        Image(systemName: "mic")
+          .font(.system(size: 17, weight: .regular))
+      }
+      .buttonStyle(.composerControl)
+      .accessibilityLabel("Dictate")
+      .transition(.opacity)
+    }
   }
 
   private var sendButton: some View {

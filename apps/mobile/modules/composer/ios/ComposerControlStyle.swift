@@ -35,10 +35,14 @@ extension ButtonStyle where Self == ComposerControlStyle {
   static var composerControl: ComposerControlStyle { ComposerControlStyle() }
 
   /// The send button: white fill, dark glyph, per every frame with a draft.
+  ///
+  /// The glyph is the theme's ink (`hsl(0 0% 9%)`), not pure black. Against a
+  /// near-black app background a pure-black arrow reads as a hole punched
+  /// through the button rather than as a mark drawn on it.
   static var composerSend: ComposerControlStyle {
     ComposerControlStyle(
       fill: AnyShapeStyle(.white),
-      foreground: AnyShapeStyle(.black)
+      foreground: AnyShapeStyle(Color(white: 0.09))
     )
   }
 
@@ -47,6 +51,18 @@ extension ButtonStyle where Self == ComposerControlStyle {
     ComposerControlStyle(
       fill: AnyShapeStyle(.white.opacity(0.22)),
       foreground: AnyShapeStyle(.white.opacity(0.7))
+    )
+  }
+}
+
+extension AnyTransition {
+  /// Everything stacked above the control row. Asymmetric on purpose: it fades
+  /// in on the card's own curve but leaves almost immediately, so the collapsed
+  /// pill is never briefly showing expanded content inside it.
+  static var composerContent: AnyTransition {
+    .asymmetric(
+      insertion: .opacity,
+      removal: .opacity.animation(.easeOut(duration: ComposerMetrics.contentFadeOut))
     )
   }
 }

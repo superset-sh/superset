@@ -13,6 +13,7 @@ import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/components/GlassComposer/hooks/useAttachmentsSheet";
+import { useVoiceDictation } from "@/screens/(authenticated)/components/GlassComposer/hooks/useVoiceDictation";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import {
 	type ChatTarget,
@@ -45,6 +46,12 @@ export function NewChatWidget({
 	const wasExpanded = useRef(false);
 	const attachments = usePromptInputAttachments();
 	const openAttachmentsSheet = useAttachmentsSheet();
+	// The composer owns the draft and does the append itself, so the hook's
+	// read side has nothing to return — `write` receives just the transcript.
+	const dictation = useVoiceDictation({
+		read: () => "",
+		write: (text) => composerRef.current?.appendDraft(text),
+	});
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -217,6 +224,18 @@ export function NewChatWidget({
 			ref={composerRef}
 			placeholder={placeholder ?? "Plan, ask, build..."}
 			isSending={isSending}
+			voiceState={dictation.status}
+			voiceStartedAt={
+				dictation.status === "recording" ? dictation.startedAt : undefined
+			}
+			onDictatePress={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				if (dictation.status === "idle") void dictation.start();
+			}}
+			onDictateStop={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				if (dictation.status === "recording") dictation.stop();
+			}}
 			attachments={attachments.attachments.map((item) => ({
 				id: item.id,
 				uri: item.uri ?? "",

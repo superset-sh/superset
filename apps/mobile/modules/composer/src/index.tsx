@@ -4,6 +4,7 @@ import { forwardRef, type Ref, useImperativeHandle, useRef } from "react";
 /** The imperative surface the native view exposes through its ref. */
 interface NativeComposerRef {
 	clear: () => void;
+	appendDraft: (text: string) => void;
 	focus: () => void;
 	blur: () => void;
 }
@@ -16,9 +17,13 @@ interface NativeComposerViewProps {
 	selectedModel?: ComposerMenuOption;
 	headerChips?: ComposerMenuOption[];
 	isSending?: boolean;
+	voiceState?: ComposerVoiceState;
+	voiceStartedAt?: number;
+	voiceLevel?: number;
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
 	onDictatePress?: () => void;
+	onDictateStop?: () => void;
 	onModelPress?: () => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
@@ -38,6 +43,13 @@ const NativeComposerView =
  * mode the caller owns dismissal, since nothing intercepts the outside tap.
  */
 export type ComposerBackdrop = "dim" | "passthrough";
+
+/**
+ * Mirrors `useVoiceDictation`'s union. The state machine stays in React Native —
+ * it owns the recognizer, permissions and append semantics — and the composer
+ * only renders the state.
+ */
+export type ComposerVoiceState = "idle" | "recording" | "finalizing";
 
 /**
  * One item in the composer's tray. The tray itself stays in React Native — it
@@ -67,6 +79,11 @@ export interface ComposerHandle {
 	/** Empties the draft. */
 	clear: () => void;
 	/**
+	 * Appends to the draft, for dictation. The composer owns the base text and
+	 * does the join, so callers never have to read it back.
+	 */
+	appendDraft: (text: string) => void;
+	/**
 	 * Re-opens the composer after something else took first responder — an
 	 * attachments sheet, a picker — bringing the keyboard and draft back.
 	 */
@@ -91,6 +108,11 @@ export interface ComposerProps {
 	 * aside. The caller owns this because only it knows when delivery finished.
 	 */
 	isSending?: boolean;
+	voiceState?: ComposerVoiceState;
+	/** Milliseconds since the epoch; the clock redraws itself from this. */
+	voiceStartedAt?: number;
+	/** 0–1, drives the level meter. */
+	voiceLevel?: number;
 	/**
 	 * Never clears the composer — the caller clears through the ref once its own
 	 * delivery succeeded, so a failed send keeps the draft.
@@ -98,6 +120,7 @@ export interface ComposerProps {
 	onSubmit?: (text: string) => void;
 	onAttachmentsPress?: () => void;
 	onDictatePress?: () => void;
+	onDictateStop?: () => void;
 	onModelPress?: () => void;
 	onChipPress?: (id: string) => void;
 	onRemoveAttachment?: (id: string) => void;
@@ -130,9 +153,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			selectedModel,
 			headerChips,
 			isSending = false,
+			voiceState = "idle",
+			voiceStartedAt,
+			voiceLevel = 0,
 			onSubmit,
 			onAttachmentsPress,
 			onDictatePress,
+			onDictateStop,
 			onModelPress,
 			onChipPress,
 			onRemoveAttachment,
@@ -145,6 +172,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 
 		useImperativeHandle(ref, () => ({
 			clear: () => nativeRef.current?.clear(),
+			appendDraft: (text: string) => nativeRef.current?.appendDraft(text),
 			focus: () => nativeRef.current?.focus(),
 			blur: () => nativeRef.current?.blur(),
 		}));
@@ -158,9 +186,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				selectedModel={selectedModel}
 				headerChips={headerChips}
 				isSending={isSending}
+				voiceState={voiceState}
+				voiceStartedAt={voiceStartedAt}
+				voiceLevel={voiceLevel}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}
 				onDictatePress={onDictatePress}
+				onDictateStop={onDictateStop}
 				onModelPress={onModelPress}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onRemoveAttachment={(event) =>

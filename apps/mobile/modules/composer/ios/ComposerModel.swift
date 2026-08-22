@@ -42,6 +42,13 @@ final class ComposerModel {
   /// mic gets out of the way.
   var isSending = false
 
+  /// Dictation, mirrored from `useVoiceDictation` in React Native.
+  var voiceState: ComposerVoiceState = .idle
+  var voiceStartedAt = Date()
+  var voiceLevel: Double = 0
+
+  var isDictating: Bool { voiceState != .idle }
+
   /// Frame 4's header row — project+branch and target. Same shape as the model
   /// options; their menus arrive with the data at cutover, so for now a press
   /// is reported and the caller decides what to present.
@@ -61,6 +68,7 @@ final class ComposerModel {
   @ObservationIgnored var onSubmit: ((String) -> Void)?
   @ObservationIgnored var onAttachmentsPress: (() -> Void)?
   @ObservationIgnored var onDictatePress: (() -> Void)?
+  @ObservationIgnored var onDictateStop: (() -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onRemoveAttachment: ((String) -> Void)?
@@ -81,6 +89,17 @@ final class ComposerModel {
   /// The composer does not clear itself. React Native clears through the view
   /// once its own delivery succeeded, so a failed send keeps the draft — the
   /// same contract `GlassComposer` settled on.
+  /// Dictation appends rather than replaces, so speaking after typing adds to
+  /// what is there. The base text lives here, so the append happens here too —
+  /// React Native would otherwise have to mirror every keystroke back across
+  /// the bridge just to read it at settle time.
+  func appendDraft(_ text: String) {
+    let addition = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !addition.isEmpty else { return }
+    let base = draft.trimmingCharacters(in: .whitespaces)
+    draft = base.isEmpty ? addition : base + " " + addition
+  }
+
   func submit() {
     guard hasContent, !isSending else { return }
     onSubmit?(draft)

@@ -10,6 +10,7 @@ public final class ComposerModule: Module {
         "onSubmit",
         "onAttachmentsPress",
         "onDictatePress",
+        "onDictateStop",
         "onModelPress",
         "onChipPress",
         "onRemoveAttachment",
@@ -37,6 +38,20 @@ public final class ComposerModule: Module {
         view.overlay.model.isSending = isSending
       }
 
+      Prop("voiceState") { (view: ComposerAnchorView, state: String) in
+        view.overlay.model.voiceState = ComposerVoiceState(rawValue: state) ?? .idle
+      }
+
+      /// Milliseconds since the epoch — the clock is rendered from this by
+      /// `Text(timerInterval:)`, so it only has to arrive once per recording.
+      Prop("voiceStartedAt") { (view: ComposerAnchorView, startedAt: Double) in
+        view.overlay.model.voiceStartedAt = Date(timeIntervalSince1970: startedAt / 1000)
+      }
+
+      Prop("voiceLevel") { (view: ComposerAnchorView, level: Double) in
+        view.overlay.model.voiceLevel = level
+      }
+
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
         view.overlay.model.headerChips = chips
       }
@@ -49,6 +64,11 @@ public final class ComposerModule: Module {
 
       /// Re-open after something else took first responder — an attachments
       /// sheet, a picker — so the keyboard and the draft come back together.
+      /// Dictation's transcript. Appends to whatever is already typed.
+      AsyncFunction("appendDraft") { (view: ComposerAnchorView, text: String) in
+        view.overlay.model.appendDraft(text)
+      }.runOnQueue(.main)
+
       AsyncFunction("focus") { (view: ComposerAnchorView) in
         view.overlay.model.requestFocus()
       }.runOnQueue(.main)
@@ -73,6 +93,7 @@ final class ComposerAnchorView: ExpoView {
   private let onSubmit = EventDispatcher()
   private let onAttachmentsPress = EventDispatcher()
   private let onDictatePress = EventDispatcher()
+  private let onDictateStop = EventDispatcher()
   private let onModelPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
@@ -85,6 +106,7 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onSubmit = { [weak self] text in self?.onSubmit(["text": text]) }
     overlay.model.onAttachmentsPress = { [weak self] in self?.onAttachmentsPress([:]) }
     overlay.model.onDictatePress = { [weak self] in self?.onDictatePress([:]) }
+    overlay.model.onDictateStop = { [weak self] in self?.onDictateStop([:]) }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
     overlay.model.onChipPress = { [weak self] id in self?.onChipPress(["id": id]) }
     overlay.model.onRemoveAttachment = { [weak self] id in
