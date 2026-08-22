@@ -25,12 +25,16 @@ export function ComposerPreviewScreen() {
 	// The native attachments sheet already exists (#6688) and the tray is a
 	// shared context, so `+` can do something real before the composer grows its
 	// own carousel in milestone 5.
-	// Driven by the route rather than a sticky toggle: a toggle persists across
-	// navigations (re-opening the same route does not remount it), which silently
-	// changes dismissal behaviour for anything driving the screen afterwards.
+	// The route seeds it so a driver can pick a mode deterministically
+	// (`?backdrop=passthrough`); the button is for driving it by hand.
 	const params = useLocalSearchParams<{ backdrop?: string }>();
-	const backdrop: ComposerBackdrop =
-		params.backdrop === "passthrough" ? "passthrough" : "dim";
+	const [backdrop, setBackdrop] = useState<ComposerBackdrop>(
+		params.backdrop === "passthrough" ? "passthrough" : "dim",
+	);
+	// Whether the composer was open when something else took first responder.
+	// Restoring unconditionally pops the keyboard up over a composer the user had
+	// left collapsed — and briefly shows both it and the sheet at once.
+	const wasExpanded = useRef(false);
 	const openAttachmentsSheet = useAttachmentsSheet();
 	const attachments = usePromptInputAttachments();
 
@@ -54,9 +58,14 @@ export function ComposerPreviewScreen() {
 				<Text className="text-sm text-muted-foreground">
 					{`Attachments in tray: ${attachments.attachments.length}`}
 				</Text>
-				<Text className="text-sm text-muted-foreground">
-					{`backdrop: ${backdrop} — open ?backdrop=passthrough to scroll while typing`}
-				</Text>
+				<Pressable
+					onPress={() =>
+						setBackdrop((mode) => (mode === "dim" ? "passthrough" : "dim"))
+					}
+					className="self-start rounded-xl border border-border px-4 py-2"
+				>
+					<Text className="text-foreground">{`backdrop: ${backdrop} — tap to toggle`}</Text>
+				</Pressable>
 				{Array.from({ length: 20 }, (_, index) => `Row ${index + 1}`).map(
 					(label) => (
 						<Pressable
@@ -81,14 +90,28 @@ export function ComposerPreviewScreen() {
 					// delivery succeeded.
 					composerRef.current?.clear();
 				}}
+				attachments={attachments.attachments.map((item) => ({
+					id: item.id,
+					uri: item.uri ?? "",
+					kind: item.type === "image" ? ("image" as const) : ("file" as const),
+				}))}
+				onExpandedChange={(expanded) => {
+					wasExpanded.current = expanded;
+				}}
 				onAttachmentsPress={() => {
 					setLastEvent("attachments");
-					// Presenting the sheet resigns first responder, which collapses the
-					// composer. Re-open it once the sheet is gone so the keyboard and
-					// the draft come back together.
-					openAttachmentsSheet();
-					composerRef.current?.focus();
+					// Presenting the sheet resigns first responder and collapses the
+					// composer. Restore it only if it was open — otherwise `+` from the
+					// collapsed pill would raise the keyboard behind the sheet.
+					const restore = wasExpanded.current;
+					openAttachmentsSheet({
+						onClosed: () => {
+							if (restore) composerRef.current?.focus();
+						},
+					});
 				}}
+				onRemoveAttachment={(id) => attachments.remove(id)}
+				onAttachmentPress={(id) => setLastEvent(`open attachment ${id}`)}
 				onDictatePress={() => setLastEvent("dictate")}
 				onModelPress={() => setLastEvent("model")}
 			/>

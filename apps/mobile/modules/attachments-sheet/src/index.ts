@@ -25,6 +25,8 @@ export interface AttachmentsSheetTheme {
 export interface AttachmentsSheetHandlers {
 	onAddAssets: (assets: AttachmentsSheetAsset[]) => void;
 	onAction: (action: AttachmentsSheetAction) => void;
+	/** Dismissed with neither assets nor a row action. */
+	onDismiss?: () => void;
 }
 
 type AttachmentsSheetEvents = {
@@ -70,7 +72,10 @@ export async function presentAttachmentsSheet(
 			settle();
 			handlers.onAction(action);
 		}),
-		AttachmentsSheet.addListener("onDismiss", () => settle()),
+		AttachmentsSheet.addListener("onDismiss", () => {
+			settle();
+			handlers.onDismiss?.();
+		}),
 	];
 	const settle = () => {
 		for (const subscription of subscriptions) subscription.remove();

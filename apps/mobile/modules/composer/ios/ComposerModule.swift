@@ -6,7 +6,15 @@ public final class ComposerModule: Module {
     Name("Composer")
 
     View(ComposerAnchorView.self) {
-      Events("onSubmit", "onAttachmentsPress", "onDictatePress", "onModelPress")
+      Events(
+        "onSubmit",
+        "onAttachmentsPress",
+        "onDictatePress",
+        "onModelPress",
+        "onRemoveAttachment",
+        "onAttachmentPress",
+        "onExpandedChange"
+      )
 
       Prop("placeholder") { (view: ComposerAnchorView, placeholder: String) in
         view.overlay.model.placeholder = placeholder
@@ -14,6 +22,10 @@ public final class ComposerModule: Module {
 
       Prop("backdrop") { (view: ComposerAnchorView, backdrop: String) in
         view.overlay.model.backdrop = ComposerBackdrop(rawValue: backdrop) ?? .dim
+      }
+
+      Prop("attachments") { (view: ComposerAnchorView, attachments: [ComposerAttachment]) in
+        view.overlay.model.attachments = attachments
       }
 
       /// React Native clears the draft once its own delivery succeeded, so a
@@ -49,6 +61,9 @@ final class ComposerAnchorView: ExpoView {
   private let onAttachmentsPress = EventDispatcher()
   private let onDictatePress = EventDispatcher()
   private let onModelPress = EventDispatcher()
+  private let onRemoveAttachment = EventDispatcher()
+  private let onAttachmentPress = EventDispatcher()
+  private let onExpandedChange = EventDispatcher()
 
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
@@ -57,6 +72,15 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onAttachmentsPress = { [weak self] in self?.onAttachmentsPress([:]) }
     overlay.model.onDictatePress = { [weak self] in self?.onDictatePress([:]) }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
+    overlay.model.onRemoveAttachment = { [weak self] id in
+      self?.onRemoveAttachment(["id": id])
+    }
+    overlay.model.onAttachmentPress = { [weak self] id in
+      self?.onAttachmentPress(["id": id])
+    }
+    overlay.model.onExpandedChange = { [weak self] expanded in
+      self?.onExpandedChange(["expanded": expanded])
+    }
   }
 
   override func didMoveToWindow() {

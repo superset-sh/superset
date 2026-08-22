@@ -28,6 +28,10 @@ final class ComposerModel {
   /// the outside tap any more.
   var backdrop: ComposerBackdrop = .dim
 
+  /// Mirrors React Native's tray. The composer renders it and reports removals
+  /// and taps back out; it never owns the list.
+  var attachments: [ComposerAttachment] = []
+
   /// Bumped to ask the composer to take or resign focus. A counter rather than
   /// a Bool so two consecutive requests of the same kind both land — the second
   /// would otherwise be a no-op change and never fire an observer.
@@ -43,8 +47,16 @@ final class ComposerModel {
   @ObservationIgnored var onAttachmentsPress: (() -> Void)?
   @ObservationIgnored var onDictatePress: (() -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
+  @ObservationIgnored var onRemoveAttachment: ((String) -> Void)?
+  @ObservationIgnored var onAttachmentPress: ((String) -> Void)?
+  /// Lets the caller restore the composer only when it was actually open —
+  /// re-focusing unconditionally after a sheet pops the keyboard back up over a
+  /// composer the user had left collapsed.
+  @ObservationIgnored var onExpandedChange: ((Bool) -> Void)?
   /// Internal plumbing, not a React Native event — see `ComposerPassthroughView`.
   @ObservationIgnored var onInteractiveFrameChange: ((CGRect) -> Void)?
+
+  var hasContent: Bool { hasDraft || !attachments.isEmpty }
 
   var hasDraft: Bool {
     !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -54,7 +66,7 @@ final class ComposerModel {
   /// once its own delivery succeeded, so a failed send keeps the draft — the
   /// same contract `GlassComposer` settled on.
   func submit() {
-    guard hasDraft else { return }
+    guard hasContent else { return }
     onSubmit?(draft)
   }
 }

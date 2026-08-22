@@ -30,6 +30,15 @@ enum ComposerMetrics {
   /// Frame 4: growth clamps rather than filling the screen.
   static let maxLines = 12
   static let grabberSize = CGSize(width: 36, height: 5)
+  /// Frames 6/10: square thumbnails with the remove badge overlapping the
+  /// top-right corner and bleeding slightly outside it.
+  static let thumbnailSize: CGFloat = 56
+  static let thumbnailRadius: CGFloat = 10
+  static let removeBadgeSize: CGFloat = 15
+  static let carouselSpacing: CGFloat = 8
+  /// Frames 7/9/11: collapsed keeps one mini thumbnail plus a `+N` badge.
+  static let miniThumbnailSize: CGFloat = 30
+  static let miniThumbnailRadius: CGFloat = 8
   /// The draft preview and the model picker trade places through blur, matching
   /// the reference. `.transition(.blurReplace)` is the stock way to do this but
   /// only fires on insert/remove, and conditional insertion in that ZStack is
@@ -109,6 +118,7 @@ struct ComposerRootView: View {
     }
     .onChange(of: isExpanded) { publishInteractiveFrame() }
     .onChange(of: model.backdrop) { publishInteractiveFrame() }
+    .onChange(of: isExpanded) { _, expanded in model.onExpandedChange?(expanded) }
     // Presenting a sheet over the composer resigns first responder, which
     // collapses it. The caller re-opens it once the sheet is gone, so the
     // keyboard and the draft come back rather than the user having to tap in
@@ -144,6 +154,14 @@ struct ComposerRootView: View {
     VStack(spacing: 0) {
       if isExpanded {
         grabber
+        if !model.attachments.isEmpty {
+          ComposerCarousel(
+            attachments: model.attachments,
+            onRemove: { model.onRemoveAttachment?($0) },
+            onOpen: { model.onAttachmentPress?($0) }
+          )
+          .transition(.opacity)
+        }
         editor
           .transition(.opacity)
       }
@@ -229,6 +247,10 @@ struct ComposerRootView: View {
       .buttonStyle(.composerControl)
       .accessibilityLabel("Add attachment")
 
+      if !isExpanded {
+        ComposerCollapsedAttachments(attachments: model.attachments)
+      }
+
       middleBand
 
       Button { model.onDictatePress?() } label: {
@@ -238,7 +260,7 @@ struct ComposerRootView: View {
       .buttonStyle(.composerControl)
       .accessibilityLabel("Dictate")
 
-      if model.hasDraft {
+      if model.hasContent {
         Button { model.submit() } label: {
           Image(systemName: "arrow.up")
             .font(.system(size: 16, weight: .semibold))
