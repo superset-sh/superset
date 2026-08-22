@@ -108,9 +108,12 @@ export type CreateTabInput<TData> = {
 	activePaneId?: string;
 };
 
+const MAX_CLOSED_TABS = 20;
+
 export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	addTab: (args: CreateTabInput<TData>) => void;
 	removeTab: (tabId: string) => void;
+	reopenClosedTab: () => void;
 	setActiveTab: (tabId: string) => void;
 	setTabTitleOverride: (args: {
 		tabId: string;
@@ -195,6 +198,7 @@ export function createWorkspaceStore<TData>(
 		version: 1,
 		tabs: options?.initialState?.tabs ?? [],
 		activeTabId: options?.initialState?.activeTabId ?? null,
+		closedTabsStack: options?.initialState?.closedTabsStack ?? [],
 
 		addTab: (args) => {
 			const builtPanes = args.panes.map(buildPane) as [
@@ -210,6 +214,10 @@ export function createWorkspaceStore<TData>(
 
 		removeTab: (tabId) => {
 			set((s) => {
+				const removedTabIndex = s.tabs.findIndex((t) => t.id === tabId);
+				const removedTab = s.tabs[removedTabIndex];
+				if (!removedTab) return s;
+
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
 					tabs: nextTabs,
@@ -218,6 +226,32 @@ export function createWorkspaceStore<TData>(
 						s.activeTabId,
 						tabId,
 					),
+					closedTabsStack: [
+						{ tab: removedTab, index: removedTabIndex },
+						...s.closedTabsStack.filter((entry) => entry.tab.id !== tabId),
+					].slice(0, MAX_CLOSED_TABS),
+				};
+			});
+		},
+
+		reopenClosedTab: () => {
+			set((s) => {
+				const [entry, ...remainingClosedTabs] = s.closedTabsStack;
+				if (!entry) return s;
+				if (s.tabs.some((tab) => tab.id === entry.tab.id)) {
+					return {
+						activeTabId: entry.tab.id,
+						closedTabsStack: remainingClosedTabs,
+					};
+				}
+
+				const nextTabs = [...s.tabs];
+				const insertIndex = Math.max(0, Math.min(entry.index, nextTabs.length));
+				nextTabs.splice(insertIndex, 0, entry.tab);
+				return {
+					tabs: nextTabs,
+					activeTabId: entry.tab.id,
+					closedTabsStack: remainingClosedTabs,
 				};
 			});
 		},
@@ -914,18 +948,18 @@ export function createWorkspaceStore<TData>(
 
 		replaceState: (next) => {
 			set((s) => {
-				const resolved =
-					typeof next === "function"
-						? next({
-								version: s.version,
-								tabs: s.tabs,
-								activeTabId: s.activeTabId,
-							})
-						: next;
+				const currentState = {
+					version: s.version,
+					tabs: s.tabs,
+					activeTabId: s.activeTabId,
+					closedTabsStack: s.closedTabsStack,
+				};
+				const resolved = typeof next === "function" ? next(currentState) : next;
 				return {
 					version: resolved.version,
 					tabs: resolved.tabs,
 					activeTabId: resolved.activeTabId,
+					closedTabsStack: resolved.closedTabsStack ?? [],
 				};
 			});
 		},
