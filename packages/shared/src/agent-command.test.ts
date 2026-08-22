@@ -97,6 +97,34 @@ describe("kimi agent registration", () => {
 	});
 });
 
+describe("agy agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("agy");
+		expect(AGENT_LABELS.agy).toBe("Antigravity");
+	});
+
+	it("seeds prompt launches into the interactive session positionally", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "agy-1234",
+			agent: "agy",
+		});
+
+		expect(command).toStartWith(
+			"agy --mode accept-edits \"$(cat <<'SUPERSET_PROMPT_agy1234'",
+		);
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset args and id-based resume from the base command", () => {
+		const preset = getPresetById("agy");
+		expect(preset?.command).toBe("agy");
+		expect(preset?.args).toEqual(["--mode", "accept-edits"]);
+		expect(preset?.promptArgs).toEqual([]);
+		expect(preset?.resumeArgs).toEqual(["--conversation"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");
