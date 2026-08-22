@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Browser"
+  short_description: "Open, screenshot, read, and drive web pages in a workspace browser pane"
+  default_prompt: "Use $superset-browser to open and drive this page in the workspace browser pane."

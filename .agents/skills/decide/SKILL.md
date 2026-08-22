@@ -41,7 +41,7 @@ Use this mode when the user wants to review existing code step by step.
    - `## Step N: <title>`
    - One or two sentences explaining what changed and why
    - A focused real-code excerpt with file and line references
-   - One interactive verdict question: `Looks good — next step (Recommended)`, `Push back — change this`, and, only for non-trivial code, `Pause — explain more`
+   - One interactive verdict question: `Looks good, next step (Recommended)`, `Push back, change this`, and, only for non-trivial code, `Pause, explain more`
 4. Wait for the verdict before showing the next step.
 5. Log approvals, collect requested changes, and finish with a `| # | Step | Verdict |` table.
 

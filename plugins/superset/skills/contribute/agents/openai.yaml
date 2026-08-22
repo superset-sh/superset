@@ -1,0 +1,4 @@
+interface:
+  display_name: "Contribute to Superset"
+  short_description: "Fork, set up, and open a merge-ready PR against superset-sh/superset"
+  default_prompt: "Use $superset-contribute to set up a contribution to Superset and open a PR."

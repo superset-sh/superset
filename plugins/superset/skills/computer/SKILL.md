@@ -1,6 +1,8 @@
 ---
 name: computer
-description: "Drive native desktop apps and system browser windows on macOS, Windows, or Linux through an accessibility-first driver (Cua Driver by default; Peekaboo supported on macOS). Use when asked to open or operate a real app, click or type in a desktop UI, inspect a window, use a signed-in system-browser session, or verify an end-to-end GUI flow. Not for Superset's in-app browser pane, headless scraping, or tasks an API or CLI can complete directly."
+description: Operate the user's real desktop apps and windows on macOS, Windows, or Linux. Use when the user asks to open or drive a native app, click or type in a desktop UI, inspect or arrange a window, use their signed-in system browser, or verify an end-to-end GUI flow, including "open Settings and turn on dark mode", "click Save in that window", "what's on screen". Uses an accessibility-first driver (Cua Driver by default, Peekaboo on macOS). Not for Superset's in-app browser pane, headless scraping, or anything an API or CLI can do directly.
+argument-hint: the app and what to do in it
+allowed-tools: Bash(cua-driver:*) Bash(peekaboo:*)
 ---
 
 # Superset Computer Control
@@ -8,9 +10,9 @@ description: "Drive native desktop apps and system browser windows on macOS, Win
 Operate the user's real desktop through an accessibility-first driver: a local
 CLI that exposes accessibility snapshots, exact window screenshots, native menu
 operations, and targeted input without making the agent guess at stale screen
-coordinates. The contract in this skill — preflight, task-scoped session,
-snapshot → act → verify, semantic operations first, conservative failure
-handling, clean teardown — is driver-agnostic. The command reference below is
+coordinates. The contract in this skill (preflight, task-scoped session,
+snapshot, act, verify, semantic operations first, conservative failure
+handling, clean teardown) is driver-agnostic. The command reference below is
 for Cua Driver, the default.
 
 ## Choose the right surface
@@ -31,7 +33,7 @@ for Cua Driver, the default.
   anything; recommend Cua Driver unless the user is macOS-only and prefers
   Peekaboo.
 - With a driver other than Cua Driver, apply this skill's contract through that
-  driver's own command surface — discover it with the driver's help output and
+  driver's own command surface; discover it with the driver's help output and
   documentation rather than assuming the Cua command shapes below.
 
 ## Set up Cua Driver (default)

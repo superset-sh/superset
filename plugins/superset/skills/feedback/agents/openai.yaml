@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Feedback"
+  short_description: "Report a Superset bug, feature request, or feedback privately or on GitHub"
+  default_prompt: "Use $superset-feedback to report this to the Superset team."
