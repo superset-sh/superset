@@ -42,12 +42,11 @@ final class ComposerModel {
   /// mic gets out of the way.
   var isSending = false
 
-  /// Dictation, mirrored from `useVoiceDictation` in React Native.
-  var voiceState: ComposerVoiceState = .idle
-  var voiceStartedAt = Date()
-  var voiceLevel: Double = 0
+  /// Dictation runs natively — see `ComposerDictation` for why it is not a
+  /// mirror of the React Native hook.
+  let dictation = ComposerDictation()
 
-  var isDictating: Bool { voiceState != .idle }
+  var isDictating: Bool { dictation.isActive }
 
   /// Frame 4's header row — project+branch and target. Same shape as the model
   /// options; their menus arrive with the data at cutover, so for now a press
@@ -67,8 +66,9 @@ final class ComposerModel {
   /// Not `@ObservationIgnored`-worthy noise: they are assigned once at attach.
   @ObservationIgnored var onSubmit: ((String) -> Void)?
   @ObservationIgnored var onAttachmentsPress: (() -> Void)?
-  @ObservationIgnored var onDictatePress: (() -> Void)?
-  @ObservationIgnored var onDictateStop: (() -> Void)?
+  /// Surfaced so the caller can show its own alert; dictation itself needs no
+  /// round trip.
+  @ObservationIgnored var onDictationError: ((String) -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onRemoveAttachment: ((String) -> Void)?
@@ -93,6 +93,11 @@ final class ComposerModel {
   /// what is there. The base text lives here, so the append happens here too —
   /// React Native would otherwise have to mirror every keystroke back across
   /// the bridge just to read it at settle time.
+  init() {
+    dictation.onTranscript = { [weak self] text in self?.appendDraft(text) }
+    dictation.onError = { [weak self] message in self?.onDictationError?(message) }
+  }
+
   func appendDraft(_ text: String) {
     let addition = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !addition.isEmpty else { return }

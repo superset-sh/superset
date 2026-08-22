@@ -13,7 +13,6 @@ import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/components/GlassComposer/hooks/useAttachmentsSheet";
-import { useVoiceDictation } from "@/screens/(authenticated)/components/GlassComposer/hooks/useVoiceDictation";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import {
 	type ChatTarget,
@@ -46,12 +45,6 @@ export function NewChatWidget({
 	const wasExpanded = useRef(false);
 	const attachments = usePromptInputAttachments();
 	const openAttachmentsSheet = useAttachmentsSheet();
-	// The composer owns the draft and does the append itself, so the hook's
-	// read side has nothing to return — `write` receives just the transcript.
-	const dictation = useVoiceDictation({
-		read: () => "",
-		write: (text) => composerRef.current?.appendDraft(text),
-	});
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -202,8 +195,10 @@ export function NewChatWidget({
 							? `${selectedTarget.projectName} · Cloud`
 							: selectedTarget.projectName
 						: "No project",
+					avatar: true,
+					iconUri: selectedTarget?.projectIconUrl ?? undefined,
 				},
-				{ id: "branch", label: branchLabel },
+				{ id: "branch", label: branchLabel, muted: true },
 			];
 
 	// No agent chip for a cloud target: nothing launches on create (parity
@@ -224,22 +219,12 @@ export function NewChatWidget({
 			ref={composerRef}
 			placeholder={placeholder ?? "Plan, ask, build..."}
 			isSending={isSending}
-			voiceState={dictation.status}
-			voiceStartedAt={
-				dictation.status === "recording" ? dictation.startedAt : undefined
-			}
-			onDictatePress={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				if (dictation.status === "idle") void dictation.start();
-			}}
-			onDictateStop={() => {
-				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				if (dictation.status === "recording") dictation.stop();
-			}}
+			onDictationError={(message: string) => Alert.alert(message)}
 			attachments={attachments.attachments.map((item) => ({
 				id: item.id,
 				uri: item.uri ?? "",
 				kind: item.type === "image" ? ("image" as const) : ("file" as const),
+				name: item.name,
 			}))}
 			headerChips={headerChips}
 			selectedModel={selectedModel}

@@ -8,8 +8,11 @@ import ExpoModulesCore
 struct ComposerAttachment: Record, Identifiable, Equatable {
   @Field var id: String = ""
   @Field var uri: String = ""
-  /// `image` renders the thumbnail; anything else falls back to a doc glyph.
+  /// `image` renders the thumbnail; anything else renders the file card.
   @Field var kind: String = "file"
+  /// Shown on the file card. A document is unidentifiable without it — every
+  /// one of them draws the same glyph.
+  @Field var name: String? = nil
 
   var isImage: Bool { kind == "image" }
 
@@ -17,5 +20,6 @@ struct ComposerAttachment: Record, Identifiable, Equatable {
   /// `Equatable`, so the compiler cannot derive this.
   static func == (lhs: ComposerAttachment, rhs: ComposerAttachment) -> Bool {
     lhs.id == rhs.id && lhs.uri == rhs.uri && lhs.kind == rhs.kind
+      && lhs.name == rhs.name
   }
 }

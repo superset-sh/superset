@@ -17,13 +17,9 @@ interface NativeComposerViewProps {
 	selectedModel?: ComposerMenuOption;
 	headerChips?: ComposerMenuOption[];
 	isSending?: boolean;
-	voiceState?: ComposerVoiceState;
-	voiceStartedAt?: number;
-	voiceLevel?: number;
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
-	onDictatePress?: () => void;
-	onDictateStop?: () => void;
+	onDictationError?: (event: { nativeEvent: { message: string } }) => void;
 	onModelPress?: () => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
@@ -45,34 +41,43 @@ const NativeComposerView =
 export type ComposerBackdrop = "dim" | "passthrough";
 
 /**
- * Mirrors `useVoiceDictation`'s union. The state machine stays in React Native —
- * it owns the recognizer, permissions and append semantics — and the composer
- * only renders the state.
- */
-export type ComposerVoiceState = "idle" | "recording" | "finalizing";
-
-/**
- * One item in the composer's tray. The tray itself stays in React Native — it
- * is shared with the attachments sheet — so the composer renders a description
- * of it and reports removals and taps back out.
- */
-/**
  * One entry in a composer picker.
  *
- * `iconUri` must be a local file URI, not a Metro asset reference — SwiftUI
- * cannot read the latter. Resolve bundled art with `expo-asset` first; see
- * `useAgentIconUri`.
+ * `iconUri` may be a remote URL or a local file URI. What it must not be is a
+ * Metro asset reference — SwiftUI cannot read those. Resolve bundled art with
+ * `expo-asset` first; see `useAgentIconUri`.
  */
 export interface ComposerMenuOption {
 	id: string;
 	label: string;
 	iconUri?: string;
+	/**
+	 * Lead with a project avatar. Separate from `iconUri` because most projects
+	 * have no logo and the app draws their initial instead of leaving a gap —
+	 * the same thing `ProjectAvatar` does everywhere else.
+	 */
+	avatar?: boolean;
+	/**
+	 * Render a step back, as a qualifier rather than as the subject. The branch
+	 * belongs to the project name beside it and should not compete with it.
+	 */
+	muted?: boolean;
 }
 
+/**
+ * One item in the composer's tray. The tray stays in React Native — it is
+ * shared with the attachments sheet — so the composer renders a description of
+ * it and reports removals and taps back out.
+ */
 export interface ComposerAttachment {
 	id: string;
 	uri: string;
 	kind: "image" | "file";
+	/**
+	 * Shown on the file card. Documents are unidentifiable without it — they all
+	 * draw the same glyph. Ignored for images, which show themselves.
+	 */
+	name?: string;
 }
 
 export interface ComposerHandle {
@@ -108,22 +113,26 @@ export interface ComposerProps {
 	 * aside. The caller owns this because only it knows when delivery finished.
 	 */
 	isSending?: boolean;
-	voiceState?: ComposerVoiceState;
-	/** Milliseconds since the epoch; the clock redraws itself from this. */
-	voiceStartedAt?: number;
-	/** 0–1, drives the level meter. */
-	voiceLevel?: number;
 	/**
 	 * Never clears the composer — the caller clears through the ref once its own
 	 * delivery succeeded, so a failed send keeps the draft.
 	 */
 	onSubmit?: (text: string) => void;
 	onAttachmentsPress?: () => void;
-	onDictatePress?: () => void;
-	onDictateStop?: () => void;
+	/**
+	 * Dictation runs natively — the composer owns the recogniser, the permission
+	 * prompt and the append — so there is no press to handle here. This only
+	 * surfaces a failure so the caller can show its own alert.
+	 */
+	onDictationError?: (message: string) => void;
 	onModelPress?: () => void;
 	onChipPress?: (id: string) => void;
 	onRemoveAttachment?: (id: string) => void;
+	/**
+	 * Fires only for non-image attachments. Images open in the composer's own
+	 * full-screen viewer — it already holds the URI, so routing the tap out and
+	 * back would buy nothing — but only the app knows what to do with a document.
+	 */
 	onAttachmentPress?: (id: string) => void;
 	/**
 	 * Fires whenever the composer opens or closes. Callers need it to restore
@@ -153,13 +162,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			selectedModel,
 			headerChips,
 			isSending = false,
-			voiceState = "idle",
-			voiceStartedAt,
-			voiceLevel = 0,
 			onSubmit,
 			onAttachmentsPress,
-			onDictatePress,
-			onDictateStop,
+			onDictationError,
 			onModelPress,
 			onChipPress,
 			onRemoveAttachment,
@@ -186,13 +191,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				selectedModel={selectedModel}
 				headerChips={headerChips}
 				isSending={isSending}
-				voiceState={voiceState}
-				voiceStartedAt={voiceStartedAt}
-				voiceLevel={voiceLevel}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}
-				onDictatePress={onDictatePress}
-				onDictateStop={onDictateStop}
+				onDictationError={(event) =>
+					onDictationError?.(event.nativeEvent.message)
+				}
 				onModelPress={onModelPress}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onRemoveAttachment={(event) =>

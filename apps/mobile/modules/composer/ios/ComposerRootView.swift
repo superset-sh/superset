@@ -36,7 +36,6 @@ enum ComposerMetrics {
   static let maxLines = 8
   static let grabberSize = CGSize(width: 36, height: 5)
   static let modelIconSize: CGFloat = 16
-  static let modelIconRadius: CGFloat = 4
   static let chipSpacing: CGFloat = 12
   /// Measured off frames 6 and 9. The badge sits *inside* the thumbnail, inset
   /// by roughly its own radius — an earlier pass had it bleeding outside the
@@ -44,6 +43,13 @@ enum ComposerMetrics {
   /// rounder than the reference.
   static let thumbnailSize: CGFloat = 80
   static let thumbnailRadius: CGFloat = 9
+  /// Frame 10's non-image card: same height as a thumbnail, about twice as
+  /// wide, because it has to carry a name as well as a mark.
+  static let fileChipWidth: CGFloat = 159
+  static let fileGlyphSize: CGFloat = 36
+  static let fileGlyphRadius: CGFloat = 8
+  static let fileChipInset: CGFloat = 7
+  static let fileLabelSize: CGFloat = 12
   static let removeBadgeSize: CGFloat = 17
   static let removeBadgeInset: CGFloat = 6
   static let carouselSpacing: CGFloat = 8
@@ -95,6 +101,13 @@ struct ComposerRootView: View {
   /// view underneath cannot resign a SwiftUI first responder.
   @State private var surfaceFrame: CGRect = .zero
   @State private var rootFrame: CGRect = .zero
+  /// The attachment open full screen, if any.
+  @State private var viewing: ComposerAttachment?
+
+  /// Things the composer itself put on screen that take first responder away
+  /// from the editor. While one is up, losing focus is not the user dismissing
+  /// the composer, and closing underneath them would be wrong.
+  private var holdsOpen: Bool { model.dictation.isActive || viewing != nil }
 
   private func expand() {
     withAnimation(.snappy(duration: 0.3, extraBounce: 0.05)) { isExpanded = true }
@@ -131,7 +144,20 @@ struct ComposerRootView: View {
     // and knocks `isExpanded` straight back down. Closing follows focus;
     // opening leads it.
     .onChange(of: isFocused) { _, focused in
-      if !focused { collapse() }
+      // Dictation and the image viewer are the exceptions: both take first
+      // responder — one by activating a recording session, the other by
+      // presenting full screen — and treating that as a dismissal would close
+      // the composer underneath the thing it just opened.
+      if !focused && !holdsOpen { collapse() }
+    }
+    // Whichever of them finished, put the caret back so the draft can be
+    // carried on without tapping in again. The composer never closed, so this
+    // is the keyboard returning to a card that stayed open.
+    .onChange(of: holdsOpen) { _, holds in
+      if !holds && isExpanded { isFocused = true }
+    }
+    .fullScreenCover(item: $viewing) { attachment in
+      ComposerImageViewer(attachment: attachment) { viewing = nil }
     }
     .onChange(of: isExpanded) { publishInteractiveFrame() }
     .onChange(of: model.backdrop) { publishInteractiveFrame() }
@@ -179,7 +205,7 @@ struct ComposerRootView: View {
           ComposerCarousel(
             attachments: model.attachments,
             onRemove: { model.onRemoveAttachment?($0) },
-            onOpen: { model.onAttachmentPress?($0) }
+            onOpen: open
           )
           // Frame 6 leaves air between the strip and the first line of text;
           // without this the thumbnail sits right on the placeholder.
@@ -191,6 +217,19 @@ struct ComposerRootView: View {
       }
       controlRow
     }
+    // Growing is not free. SwiftUI resizes a view the instant its content
+    // changes unless the change is inside an animation transaction, so without
+    // these the card snaps to its new height the moment a line wraps or the
+    // first attachment lands. A UIKit composer built on `inputAccessoryView`
+    // gets this for nothing — the keyboard's own animation carries the
+    // accessory view's frame with it — which is part of why that pattern is
+    // popular, and it is the pattern this rewrite rejected. Owning the layout
+    // means saying when it animates.
+    //
+    // Only the attachment strip is animated from here; the editor's own growth
+    // is driven from its binding — see `editor` for why it cannot be declared
+    // alongside this one.
+    .animation(.snappy(duration: 0.3, extraBounce: 0.05), value: model.attachments)
     // One glass sheet for the whole composer. Controls inside it sit on solid
     // fills rather than more glass — see `ComposerControlStyle`.
     .glassEffect(
@@ -206,6 +245,17 @@ struct ComposerRootView: View {
     // Expanded, it puts the caret back rather than re-running the expansion.
     .onTapGesture {
       if isExpanded { isFocused = true } else { expand() }
+    }
+  }
+
+  /// Images open in the composer's own viewer; anything else is reported out,
+  /// because only the app knows what to do with a document.
+  private func open(_ id: String) {
+    guard let attachment = model.attachments.first(where: { $0.id == id }) else { return }
+    if attachment.isImage {
+      viewing = attachment
+    } else {
+      model.onAttachmentPress?(id)
     }
   }
 
@@ -247,7 +297,15 @@ struct ComposerRootView: View {
   private var editor: some View {
     TextField(model.placeholder, text: Binding(
       get: { model.draft },
-      set: { model.draft = $0 }
+      set: { text in
+        // The growth animation has to be *on the mutation*, not declared on an
+        // ancestor with `.animation(_:value:)`. A vertical `TextField` resizes
+        // through its UIKit text layout, which lands outside the transaction
+        // SwiftUI opens for a value change — measured: the card snapped from
+        // four lines to five in a single frame — so the transaction has to be
+        // open when the text is set.
+        withAnimation(.snappy(duration: 0.16)) { model.draft = text }
+      }
     ), axis: .vertical)
       .lineLimit(1...ComposerMetrics.maxLines)
       .textInputAutocapitalization(.sentences)
@@ -295,20 +353,20 @@ struct ComposerRootView: View {
     // HStack's own layout carries the mic.
     .animation(.snappy(duration: 0.22), value: model.hasContent)
     .animation(.snappy(duration: 0.22), value: model.isSending)
-    .animation(.snappy(duration: 0.22), value: model.voiceState)
+    .animation(.snappy(duration: 0.22), value: model.dictation.state)
   }
 
   @ViewBuilder
   private var voiceControl: some View {
-    switch model.voiceState {
-    case .recording:
+    switch model.dictation.state {
+    case .recording(let startedAt):
       ComposerVoicePill(
-        startedAt: model.voiceStartedAt,
-        level: model.voiceLevel,
-        onStop: { model.onDictateStop?() }
+        startedAt: startedAt,
+        levels: model.dictation.levels,
+        onStop: { model.dictation.stop() }
       )
       .transition(.opacity)
-    case .finalizing:
+    case .preparing, .finalizing:
       Button(action: {}) {
         ComposerSpinner()
       }
@@ -317,7 +375,7 @@ struct ComposerRootView: View {
       .accessibilityLabel("Transcribing")
       .transition(.opacity)
     case .idle:
-      Button { model.onDictatePress?() } label: {
+      Button { model.dictation.start() } label: {
         Image(systemName: "mic")
           .font(.system(size: 17, weight: .regular))
       }
@@ -336,7 +394,10 @@ struct ComposerRootView: View {
           .font(.system(size: 16, weight: .semibold))
       }
     }
-    .buttonStyle(model.isSending ? .composerSending : .composerSend)
+    // In flight the button drops back to the ordinary control fill, so the
+    // spinner sits on the same grey as the mic and `+` beside it. Keeping the
+    // white fill would leave a bright disc that still reads as "ready".
+    .buttonStyle(model.isSending ? .composerControl : .composerSend)
     .disabled(model.isSending)
     .accessibilityLabel(model.isSending ? "Sending" : "Send")
     .transition(.opacity)
@@ -395,11 +456,19 @@ struct ComposerRootView: View {
       ForEach(model.headerChips) { chip in
         Button { model.onChipPress?(chip.id) } label: {
           HStack(spacing: 4) {
+            if chip.hasIcon {
+              ComposerOptionIcon(option: chip)
+                .padding(.trailing, 2)
+            }
             Text(chip.label)
+              // The project is the subject and the branch qualifies it, which
+              // is the split the reference draws. Everything reading the same
+              // weight makes the row look like one long string.
+              .foregroundStyle(chip.muted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
             Image(systemName: "chevron.down")
               .font(.system(size: 11, weight: .semibold))
+              .foregroundStyle(.secondary)
           }
-          .foregroundStyle(.secondary)
           .lineLimit(1)
         }
         .buttonStyle(.plain)

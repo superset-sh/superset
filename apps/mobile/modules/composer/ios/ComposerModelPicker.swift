@@ -13,24 +13,17 @@ struct ComposerModelPicker: View {
 
   var body: some View {
     Button(action: onPress) {
-      HStack(spacing: 6) {
-        if let uri = selected?.iconUri, let url = URL(string: uri) {
-          AsyncImage(url: url) { image in
-            image.resizable().aspectRatio(contentMode: .fit)
-          } placeholder: {
-            Color.clear
-          }
-          .frame(
-            width: ComposerMetrics.modelIconSize,
-            height: ComposerMetrics.modelIconSize
-          )
-          .clipShape(.rect(cornerRadius: ComposerMetrics.modelIconRadius))
+      HStack(spacing: 4) {
+        if let selected, selected.hasIcon {
+          ComposerOptionIcon(option: selected)
+            .padding(.trailing, 2)
         }
         Text(selected?.label ?? "")
+          .foregroundStyle(.primary)
         Image(systemName: "chevron.down")
           .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.secondary)
       }
-      .foregroundStyle(.secondary)
       .lineLimit(1)
     }
     .buttonStyle(.plain)

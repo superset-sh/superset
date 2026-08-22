@@ -119,6 +119,7 @@ export function ComposerPreviewScreen() {
 					id: item.id,
 					uri: item.uri ?? "",
 					kind: item.type === "image" ? ("image" as const) : ("file" as const),
+					name: item.name,
 				}))}
 				onExpandedChange={(expanded) => {
 					wasExpanded.current = expanded;
@@ -151,7 +152,7 @@ export function ComposerPreviewScreen() {
 				}}
 				onRemoveAttachment={(id) => attachments.remove(id)}
 				onAttachmentPress={(id) => setLastEvent(`open attachment ${id}`)}
-				onDictatePress={() => setLastEvent("dictate")}
+				onDictationError={(message) => setLastEvent(`dictation: ${message}`)}
 			/>
 		</View>
 	);

@@ -36,21 +36,15 @@ extension ButtonStyle where Self == ComposerControlStyle {
 
   /// The send button: white fill, dark glyph, per every frame with a draft.
   ///
-  /// The glyph is the theme's ink (`hsl(0 0% 9%)`), not pure black. Against a
-  /// near-black app background a pure-black arrow reads as a hole punched
-  /// through the button rather than as a mark drawn on it.
+  /// The glyph is charcoal rather than the theme's ink. Ink is `hsl(0 0% 9%)`
+  /// and the app background is `hsl(0 0% 3.9%)` — close enough that the arrow
+  /// read as a hole punched through the button rather than as a mark drawn on
+  /// it. Lifting it clear of both keeps the contrast the white fill is there
+  /// for while giving the glyph a tone of its own.
   static var composerSend: ComposerControlStyle {
     ComposerControlStyle(
       fill: AnyShapeStyle(.white),
-      foreground: AnyShapeStyle(Color(white: 0.09))
-    )
-  }
-
-  /// In flight: grey rather than white, so it reads as busy instead of ready.
-  static var composerSending: ComposerControlStyle {
-    ComposerControlStyle(
-      fill: AnyShapeStyle(.white.opacity(0.22)),
-      foreground: AnyShapeStyle(.white.opacity(0.7))
+      foreground: AnyShapeStyle(Color(white: 0.18))
     )
   }
 }

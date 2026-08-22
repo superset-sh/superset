@@ -110,16 +110,27 @@ count.
 
 ### Voice
 
-Ported unchanged: `useVoiceDictation`'s state machine, `RecordingPill` (stop square + elapsed
-`m:ss` + live level bars, whole pill taps to stop), `FinalizingChip` (spinner). Send stays hidden
-while either is active.
+**Runs natively.** `ComposerDictation` owns `SFSpeechRecognizer` + `AVAudioEngine` directly; nothing
+about dictation crosses the bridge except a failure message. The state machine is carried over from
+`useVoiceDictation` unchanged — continuous with final results only, a 15s finalize backstop, the
+recogniser's own task end as authoritative, append-never-replace, permission refusal settling to
+idle — but the transport is not. See the header comment on `ComposerDictation.swift` for why.
+
+Recording pill (stop square + elapsed `m:ss` + level meter, whole pill taps to stop) and a spinner
+in the same slot while finalizing. Send stays hidden while either is active.
+
+Geometry measured off the reference recording frame: pill height = `controlDiameter`, right edge
+flush with the trigger slot so the mic grows sideways into it; 12pt horizontal padding, 8pt between
+elements; `stop.fill` at 11pt; 14pt monospaced-digit clock; five 3×(5…14)pt capsules at 2.5pt
+spacing, centre-aligned so silence reads as a quiet meter rather than an empty one. Contents are
+`.secondary`, bars `.tertiary` — measured, not guessed; `.primary` is louder than the reference.
 
 ### Scope
 
 | In | Out |
 |---|---|
 | Home + session surfaces | Terminal — ports after the card proves itself |
-| Images + doc fallback in the carousel | Link chips (preview + URL) |
+| Images + file cards in the carousel | Link chips (preview + URL) — the card *shape* is borrowed for files |
 | Image viewer: ✕, Done, zoom | Markup pill (pencil, speech bubble) |
 
 ---
@@ -247,8 +258,13 @@ Landing as one PR, built in this order so each step is independently verifiable 
 5. **Attachment carousel** — full-bleed scrolling, ✕ badges, mini-thumb + `+N` collapsed
    representation, wired to the existing `PromptInputProvider` tray.
 6. **Header chips and model picker** as data-driven native menus.
-7. **Voice** — port `useVoiceDictation`, `RecordingPill`, `FinalizingChip` into the native tree.
-8. **Image viewer** — ✕, Done, zoom.
+7. **Voice** — `ComposerDictation` owns the recogniser natively; recording pill and finalizing
+   spinner in the trigger slot. *(done, pending real-device check — the simulator has no speech
+   recognition)*
+8. **Image viewer** — ✕, Done, zoom. *(done)* Presented by the composer itself rather than
+   reported out: it already holds the URI, and a React Native screen over a SwiftUI first responder
+   is the arrangement this rewrite exists to remove. `onAttachmentPress` now fires only for
+   non-image attachments, where the app has to decide what a document tap means.
 9. **Cut over home, then session.** Delete `GlassComposer` once both are moved and the terminal's
    copy is the only remaining caller.
 
@@ -262,7 +278,8 @@ recognition and its keyboard timing is not representative.
 - Third-party keyboard active (a known iOS 26 `keyboardLayoutGuide` defect, and the mocks were
   captured with one).
 - Collapse and expand with 0, 1 and 5 attachments; draft survives both.
-- Dictate → finalize → send; dictate after typing; permission denied.
+- Dictate → finalize → send; dictate after typing; permission denied. The level meter needs real
+  speech: the simulator gives it nothing to draw.
 - Attachments sheet round trip — it blurs the field on the way in and iOS restores first responder
   on dismissal without emitting a focus event.
 - Navigate away mid-draft and back.
@@ -277,7 +294,21 @@ recognition and its keyboard timing is not representative.
 | 2026-08-21 | Full-screen overlay child view controller, not an inline RN view. |
 | 2026-08-21 | Material stays translucent glass (frame 14), unguarded at an iOS 26 floor. |
 | 2026-08-21 | Grabber does normal dismissal via `keyboardDismissPadding`, not a hand-written gesture. |
-| 2026-08-21 | Voice ported unchanged. |
+| 2026-08-21 | Voice state machine ported unchanged, but dictation runs natively rather than as a prop mirror — the level meter alone was pushing volume across the bridge ~10x/s for the length of a recording, and `expo-speech-recognition` is itself a wrapper over `SFSpeechRecognizer`. |
+| 2026-08-21 | Level meter is a scrolling history, sampled off the audio clock every 100ms, not a single smoothed level — five bars driven by one number blink together instead of reading as sound. |
+| 2026-08-21 | The level *curve* is the React Native one ported intact: peak amplitude, -60 dB floor, 1.5x gain. A first pass used RMS with a -50 dB floor, which pins the bars near full because RMS runs 10-15 dB under peak for speech. |
+| 2026-08-21 | Audio session matches what the RN path used — `.playAndRecord` / `.measurement` / `[.defaultToSpeaker, .allowBluetooth]` — not `.record` + `.duckOthers`. |
+| 2026-08-22 | The card animates its own growth; iOS does not do it for us. SwiftUI resizes the instant content changes unless the change sits inside a transaction — a UIKit composer on `inputAccessoryView` gets it free from the keyboard's animation, which is part of why that pattern is popular and is exactly the pattern this rewrite rejected. The attachment strip is keyed with `.animation(_:value:)`; the editor's growth had to be wrapped in `withAnimation` **inside its binding's setter**, because a vertical `TextField` resizes through its UIKit text layout and lands outside the transaction an ancestor's `.animation(_:value:)` opens. Measured on 60fps captures: before, four lines to five snapped in one frame; after, each crossing eases over six. |
+| 2026-08-22 | The file card's mark is a real `QLThumbnailGenerator` preview — the document's own first page, the way the Files app draws it — cached per URI because generation is an out-of-process round trip. The preview covers its tile and crops rather than fitting: a portrait page fitted into a square is a stamp with bars either side, and at 36pt a legible slice of the content beats the page's silhouette. QuickLook fits its render inside the box it is given, so the request is squared off and oversized or the crop upscales into mush. The styled glyph is the fallback, not the system type icon, which is drawn for a light sheet and reads as a bright rectangle on this card. |
+| 2026-08-22 | File attachments use frame 10's non-image card — 159x80pt, a 36pt mark tile top-left, name truncating along the bottom — not an 80pt square. The only non-image chip in the mocks is the link card, and its shape is the right one for a document: every file draws the same glyph, so a square tray is a row of identical grey tiles with nothing to tell them apart. `ComposerAttachment` gained `name` for it. |
+| 2026-08-22 | The image viewer is native and self-presented (`fullScreenCover`), with zoom on a `UIScrollView` — SwiftUI has no zoom API and hand-rolled magnification gestures miss rubber-banding and centring. |
+| 2026-08-22 | The composer holds itself open whenever *it* put something on screen — dictation or the viewer. Both take first responder, and treating that as a dismissal closed the card underneath the thing it had just opened. |
+| 2026-08-22 | Header chips carry `avatar` and `muted` as data. The project leads with its logo (initial when it has none, mirroring `ProjectAvatar`) and reads at full foreground; the branch stays a step back, which is the split the reference draws. |
+| 2026-08-22 | Model name lifted to full foreground too. Chevrons stay secondary in both rows. |
+| 2026-08-21 | Busy states use the stock `ProgressView` at `.mini`, not a hand-rolled rotating `arrow.clockwise`. The reference uses the system indicator, and it is what people read as "working" without thinking. |
+| 2026-08-21 | Send drops to the ordinary control fill while in flight rather than to a lighter grey, so the spinner sits on the same disc as the mic and `+`. The separate `composerSending` style was then identical to `composerControl` and went away. |
+| 2026-08-21 | `preparing` is a real state, set synchronously on the mic press. Activating the recording session costs the app first responder, and without it the composer read that as a dismissal and closed underneath its own recording pill. |
+| 2026-08-21 | Send glyph lifted off the ink token to charcoal (`white: 0.18`); ink is `hsl(0 0% 9%)` against a `hsl(0 0% 3.9%)` background, close enough that the arrow read as a hole. |
 | 2026-08-21 | Link chips and markup tools out of scope. |
 | 2026-08-21 | Raise floor to iOS 26 and bump Expo to 57 as milestone 0, in the same PR. |
 | 2026-08-21 | Keyboard: SwiftUI automatic avoidance, not `keyboardLayoutGuide`. Verified on simulator incl. the growing-multiline case; interactive dismissal still owes a real-device check. |

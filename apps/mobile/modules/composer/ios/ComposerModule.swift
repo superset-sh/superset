@@ -9,8 +9,7 @@ public final class ComposerModule: Module {
       Events(
         "onSubmit",
         "onAttachmentsPress",
-        "onDictatePress",
-        "onDictateStop",
+        "onDictationError",
         "onModelPress",
         "onChipPress",
         "onRemoveAttachment",
@@ -36,20 +35,6 @@ public final class ComposerModule: Module {
 
       Prop("isSending") { (view: ComposerAnchorView, isSending: Bool) in
         view.overlay.model.isSending = isSending
-      }
-
-      Prop("voiceState") { (view: ComposerAnchorView, state: String) in
-        view.overlay.model.voiceState = ComposerVoiceState(rawValue: state) ?? .idle
-      }
-
-      /// Milliseconds since the epoch — the clock is rendered from this by
-      /// `Text(timerInterval:)`, so it only has to arrive once per recording.
-      Prop("voiceStartedAt") { (view: ComposerAnchorView, startedAt: Double) in
-        view.overlay.model.voiceStartedAt = Date(timeIntervalSince1970: startedAt / 1000)
-      }
-
-      Prop("voiceLevel") { (view: ComposerAnchorView, level: Double) in
-        view.overlay.model.voiceLevel = level
       }
 
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
@@ -92,8 +77,7 @@ final class ComposerAnchorView: ExpoView {
 
   private let onSubmit = EventDispatcher()
   private let onAttachmentsPress = EventDispatcher()
-  private let onDictatePress = EventDispatcher()
-  private let onDictateStop = EventDispatcher()
+  private let onDictationError = EventDispatcher()
   private let onModelPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
@@ -105,8 +89,9 @@ final class ComposerAnchorView: ExpoView {
     isUserInteractionEnabled = false
     overlay.model.onSubmit = { [weak self] text in self?.onSubmit(["text": text]) }
     overlay.model.onAttachmentsPress = { [weak self] in self?.onAttachmentsPress([:]) }
-    overlay.model.onDictatePress = { [weak self] in self?.onDictatePress([:]) }
-    overlay.model.onDictateStop = { [weak self] in self?.onDictateStop([:]) }
+    overlay.model.onDictationError = { [weak self] message in
+      self?.onDictationError(["message": message])
+    }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
     overlay.model.onChipPress = { [weak self] id in self?.onChipPress(["id": id]) }
     overlay.model.onRemoveAttachment = { [weak self] id in

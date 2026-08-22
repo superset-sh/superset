@@ -23,13 +23,20 @@ private struct ThumbnailEdge: ViewModifier {
             lineWidth: 0.5
           )
       }
-      .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+      .thumbnailShadow()
   }
 }
 
 private extension View {
   func thumbnailEdge(radius: CGFloat) -> some View {
     modifier(ThumbnailEdge(radius: radius))
+  }
+
+  /// The lift on its own, for things that need the depth but not the hairline.
+  /// The remove badge is one: a rim light around a 17pt circle reads as a ring
+  /// drawn on the badge rather than as its edge.
+  func thumbnailShadow() -> some View {
+    shadow(color: .black.opacity(0.18), radius: 4, y: 1)
   }
 }
 
@@ -56,28 +63,20 @@ struct ComposerCarousel: View {
   }
 
   private func thumbnail(_ attachment: ComposerAttachment) -> some View {
-    // The badge sits fully inside the thumbnail's top-right corner, over the
-    // image, rather than hanging off it.
+    // The badge sits fully inside the item's top-right corner, over the
+    // content, rather than hanging off it.
     ZStack(alignment: .topTrailing) {
       Group {
-        if attachment.isImage, let url = URL(string: attachment.uri) {
-          AsyncImage(url: url) { image in
-            image.resizable().aspectRatio(contentMode: .fill)
-          } placeholder: {
-            Color.white.opacity(0.08)
-          }
+        if attachment.isImage {
+          image(attachment)
+            .frame(
+              width: ComposerMetrics.thumbnailSize,
+              height: ComposerMetrics.thumbnailSize
+            )
         } else {
-          Image(systemName: "doc.fill")
-            .font(.system(size: 22))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(.white.opacity(0.08))
+          fileCard(attachment)
         }
       }
-      .frame(
-        width: ComposerMetrics.thumbnailSize,
-        height: ComposerMetrics.thumbnailSize
-      )
       .clipShape(.rect(cornerRadius: ComposerMetrics.thumbnailRadius, style: .continuous))
       .thumbnailEdge(radius: ComposerMetrics.thumbnailRadius)
       .contentShape(.rect)
@@ -92,11 +91,59 @@ struct ComposerCarousel: View {
             height: ComposerMetrics.removeBadgeSize
           )
           .background(.black.opacity(0.75), in: .circle)
+          .thumbnailShadow()
       }
       .buttonStyle(.plain)
       .padding(ComposerMetrics.removeBadgeInset)
       .accessibilityLabel("Remove attachment")
     }
+  }
+
+  @ViewBuilder
+  private func image(_ attachment: ComposerAttachment) -> some View {
+    if let url = URL(string: attachment.uri) {
+      AsyncImage(url: url) { image in
+        image.resizable().aspectRatio(contentMode: .fill)
+      } placeholder: {
+        Color.white.opacity(0.08)
+      }
+    } else {
+      Color.white.opacity(0.08)
+    }
+  }
+
+  /// Frame 10's non-image card. A square 80pt tile is the wrong shape for a
+  /// document: every file draws the same glyph, so without room for a name the
+  /// tray is a row of identical grey squares. The reference gives it a wider
+  /// card — mark in the top-left, name truncating along the bottom.
+  private func fileCard(_ attachment: ComposerAttachment) -> some View {
+    VStack(alignment: .leading, spacing: 0) {
+      ComposerFileThumbnail(
+        attachment: attachment,
+        size: CGSize(
+          width: ComposerMetrics.fileGlyphSize,
+          height: ComposerMetrics.fileGlyphSize
+        ),
+        cornerRadius: ComposerMetrics.fileGlyphRadius
+      )
+
+      Spacer(minLength: 0)
+
+      Text(attachment.name ?? "Document")
+        .font(.system(size: ComposerMetrics.fileLabelSize))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .truncationMode(.middle)
+    }
+    .padding(ComposerMetrics.fileChipInset)
+    // Room for the remove badge, so a long name never runs under it.
+    .padding(.trailing, ComposerMetrics.removeBadgeSize)
+    .frame(
+      width: ComposerMetrics.fileChipWidth,
+      height: ComposerMetrics.thumbnailSize,
+      alignment: .leading
+    )
+    .background(.white.opacity(0.05))
   }
 }
 
@@ -115,18 +162,23 @@ struct ComposerCollapsedAttachments: View {
             } placeholder: {
               Color.white.opacity(0.08)
             }
+            .frame(
+              width: ComposerMetrics.miniThumbnailSize,
+              height: ComposerMetrics.miniThumbnailSize
+            )
           } else {
-            Image(systemName: "doc.fill")
-              .font(.system(size: 13))
-              .foregroundStyle(.secondary)
-              .frame(maxWidth: .infinity, maxHeight: .infinity)
-              .background(.white.opacity(0.08))
+            // The same preview the expanded card shows, so collapsing does not
+            // turn a recognisable document back into an anonymous glyph.
+            ComposerFileThumbnail(
+              attachment: first,
+              size: CGSize(
+                width: ComposerMetrics.miniThumbnailSize,
+                height: ComposerMetrics.miniThumbnailSize
+              ),
+              cornerRadius: ComposerMetrics.miniThumbnailRadius
+            )
           }
         }
-        .frame(
-          width: ComposerMetrics.miniThumbnailSize,
-          height: ComposerMetrics.miniThumbnailSize
-        )
         .clipShape(
           .rect(cornerRadius: ComposerMetrics.miniThumbnailRadius, style: .continuous)
         )
