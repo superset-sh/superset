@@ -47,8 +47,8 @@ not. Without it, use one of:
   workspace pane: export the pane's own CDP endpoint (the `url` from
   `superset browser cdp … --json`) as `BU_CDP_WS`, then run `browser-use`. The
   pane presents itself as a single page target, so Browser Use attaches to it
-  directly. This needs no profile consent (it's the workspace's own pane, not a
-  signed-in system browser).
+  directly. Do this only after the user accepted the Browser Use offer in
+  SKILL.md; the pane is their signed-in session and the URL carries a token.
 
 ## Drive
 

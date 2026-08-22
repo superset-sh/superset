@@ -24,26 +24,33 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # Runs a superset command and prints its JSON, or null with the error on stderr.
+# stdout goes to a file, not a pipe: the CLI can drop output past ~64KB when it
+# exits before a slow pipe reader drains it.
 run_json() {
-  local out
-  if out=$(superset "$@" --json 2>/tmp/superset-sweep-err.$$); then
-    printf '%s' "$out" | jq -c '.' 2>/dev/null || echo null
+  local out err
+  out=$(mktemp) || { echo null; return; }
+  err=$(mktemp) || { rm -f "$out"; echo null; return; }
+  if superset "$@" --json >"$out" 2>"$err"; then
+    if ! jq -c '.' "$out" 2>/dev/null; then
+      echo "invalid JSON from: superset $*" >&2
+      echo null
+    fi
   else
-    echo "failed: superset $* ($(tr '\n' ' ' </tmp/superset-sweep-err.$$))" >&2
+    echo "failed: superset $* ($(tr '\n' ' ' <"$err"))" >&2
     echo null
   fi
-  rm -f /tmp/superset-sweep-err.$$
+  rm -f "$out" "$err"
 }
 
 echo "sweeping workspaces and tasks..." >&2
 WORKSPACES=$(run_json workspaces list "${HOST_ARGS[@]}")
-TASKS=$(run_json tasks list --limit 20)
+TASKS=$(run_json tasks list)
 
 TERMINALS='[]'
 for ws in $(printf '%s' "$WORKSPACES" | jq -r '.[]?.id // empty'); do
   echo "reading terminals in $ws..." >&2
   LIST=$(run_json terminals list --workspace "$ws" "${HOST_ARGS[@]}")
-  for term in $(printf '%s' "$LIST" | jq -r '.sessions[]? | select(.exited != true) | .terminalId // empty'); do
+  for term in $(printf '%s' "$LIST" | jq -r '.sessions[]?.terminalId // empty'); do
     READ=$(run_json terminals read --workspace "$ws" --terminal "$term" --max-lines "$MAX_LINES" "${HOST_ARGS[@]}")
     ENTRY=$(printf '%s' "$LIST" | jq -c --arg ws "$ws" --arg id "$term" --argjson read "$READ" \
       '.sessions[] | select(.terminalId == $id) | {workspaceId: $ws, terminalId: .terminalId, title: .title, attached: .attached, text: ($read.text // null)}')

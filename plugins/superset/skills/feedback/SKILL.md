@@ -48,7 +48,7 @@ Every report starts with a **Summary** of 2-4 bullets that stand alone. Someone 
 
 Bug:
 
-```
+```text
 Summary
 - Terminal pane goes blank after the Mac wakes from sleep
 - Happens every time; reloading the window fixes it
@@ -71,7 +71,7 @@ Superset 1.21.0, macOS 26.0 arm64
 
 Feature request:
 
-```
+```text
 Summary
 - I want to pin an automation so it stays at the top of the sidebar
 - I check the same two automations many times a day and scroll past twenty others to find them
@@ -103,7 +103,7 @@ Never submit anything before the user explicitly picks 1 or 2. Loop on edits.
 **Private path:**
 - If `superset feedback --help` exits 0, submit via stdin (note: `--body-file=-` with the equals sign; a space-separated `-` is rejected by the parser):
   ```bash
-  superset feedback submit --type bug --title "..." --body-file=- <<'EOF'
+  superset feedback submit --type <bug|feature|general> --title "..." --body-file=- <<'EOF'
   <drafted report>
   EOF
   ```

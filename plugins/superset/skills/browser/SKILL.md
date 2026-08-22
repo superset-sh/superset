@@ -31,8 +31,10 @@ long multi-step flow on a shifting UI, or a recorded walkthrough. If one of
 those fits and Browser Use isn't installed, offer it once ("I can hand this to
 Browser Use, which drives multi-step flows more cleanly, but it's a one-minute
 install. Want that, or should I drive the pane directly?"), then respect the
-answer for the rest of the session. Don't offer it for a screenshot, one `eval`,
-or a plain read; the pane verbs already cover those.
+answer for the rest of the session, and hand a pane to Browser Use only after
+the user has said yes (the pane is their signed-in session and its CDP URL
+carries a token). Don't offer it for a screenshot, one `eval`, or a plain read;
+the pane verbs already cover those.
 
 ## Establish the control surface
 
@@ -92,14 +94,15 @@ rejected with a clear error.
 ## Import logins from another browser
 
 `import-login` copies a system browser's cookies into the pane so it's signed in
-to the sites the user already uses. It widens access to their accounts, so run
-it only with the user's go-ahead. Offering it is how most users discover it:
-when a pane hits a login wall for a site the user uses in their own browser,
-suggest importing that login instead of stopping. The user always picks the
-source browser; people run several Chromium browsers (Chrome, Edge, Brave, Arc,
-Dia, Comet) and only they know which holds the session. macOS only; it reads
-the browser's Keychain key (first run prompts them to allow it) and never
-modifies the source browser.
+to the sites the user already uses. It imports every cookie that profile has on
+disk, not just the one site, and panes share a profile, so say that when
+offering and run it only with the user's go-ahead. Offering it is how most
+users discover it: when a pane hits a login wall for a site the user uses in
+their own browser, suggest importing that login instead of stopping. The user
+always picks the source browser; people run several Chromium browsers (Chrome,
+Edge, Brave, Arc, Dia, Comet) and only they know which holds the session. macOS
+only; it reads the browser's Keychain key (first run prompts them to allow it)
+and never modifies the source browser.
 
 1. List the installed browsers and let the user choose:
    `superset browser import-login --workspace <id> --pane <paneId>`

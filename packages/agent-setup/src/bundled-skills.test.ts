@@ -35,7 +35,10 @@ function parseSkill(content: string): ParsedSkill {
 	expect(end).toBeGreaterThan(0);
 	const frontmatter: Record<string, string> = {};
 	for (const line of content.slice(4, end).split("\n")) {
-		const match = /^([A-Za-z-]+):\s*(.*)$/.exec(line);
+		if (line.trim() === "") continue;
+		const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
+		// Every frontmatter line must be a top-level `key: value`.
+		expect(match, `unparseable frontmatter line: ${line}`).not.toBeNull();
 		if (!match) continue;
 		const [, key, raw] = match;
 		frontmatter[key] = raw.replace(/^"(.*)"$/, "$1");
@@ -103,9 +106,13 @@ describe("bundled plugin skills", () => {
 			});
 
 			it("has Codex interface metadata", () => {
-				expect(
-					existsSync(path.join(SKILLS_DIR, dir, "agents", "openai.yaml")),
-				).toBe(true);
+				const yamlPath = path.join(SKILLS_DIR, dir, "agents", "openai.yaml");
+				expect(existsSync(yamlPath)).toBe(true);
+				const yaml = readFileSync(yamlPath, "utf-8");
+				expect(yaml).toMatch(/^interface:\n/);
+				for (const key of ["display_name", "short_description", "default_prompt"]) {
+					expect(yaml).toMatch(new RegExp(`^  ${key}: "[^"\\n]+"$`, "m"));
+				}
 			});
 		});
 	}
