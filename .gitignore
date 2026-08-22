@@ -58,6 +58,7 @@ next-env.d.ts
 # Superset (track scripts/config; ignore generated workspace artifacts)
 .superset/ports.json
 .superset/config.local.json
+.superset/attachments/
 
 # tsbuildinfo
 *.tsbuildinfo
