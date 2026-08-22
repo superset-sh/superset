@@ -279,13 +279,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		"/trpc/*",
 		trpcServer({
 			router: appRouter,
-			// Renderer clients send every request (including queries) as POST —
-			// see WorkspaceClientProvider/host-service-client's methodOverride —
-			// so a query with a large input (e.g. git.getDiffBulk's file-path
-			// list, or a same-tick batch across many workspaces) doesn't produce
-			// a GET URL long enough to blow past the header-size limit. Without
-			// this flag trpc's default HTTP-method map rejects those POSTs with
-			// METHOD_NOT_SUPPORTED before the query ever runs.
+			// Current renderer clients send queries as POST so large inputs (for
+			// example git.getDiffBulk paths or same-tick workspace batches) stay
+			// out of URLs. Clients retry with GET only after an older remote host
+			// explicitly rejects the override; without this flag current clients
+			// receive METHOD_NOT_SUPPORTED before the query ever runs.
 			allowMethodOverride: true,
 			createContext: async (_opts, c) => {
 				const isAuthenticated = await providers.hostAuth.validate(c.req.raw);
