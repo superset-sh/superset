@@ -199,6 +199,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "polygraph session start",
 		promptCommand: "polygraph session start --",
 	}),
+	createBuiltinTerminalAgent({
+		id: "kiro",
+		label: "Kiro",
+		description:
+			"AWS's spec-driven coding agent for agentic workflows in the terminal.",
+		command: "kiro-cli chat --trust-all-tools",
+		resumeCommand: "kiro-cli chat --trust-all-tools --resume-id",
+		nonInteractiveCommand: "kiro-cli chat --no-interactive",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =

@@ -12,6 +12,7 @@ import grokIcon from "./grok.svg";
 import grokWhiteIcon from "./grok-white.svg";
 import kimiIcon from "./kimi.svg";
 import kimiWhiteIcon from "./kimi-white.svg";
+import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
 import opencodeIcon from "./opencode.svg";
@@ -36,6 +37,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	grok: { light: grokIcon, dark: grokWhiteIcon },
 	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
+	kiro: { light: kiroIcon, dark: kiroIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
@@ -81,6 +83,7 @@ export {
 	grokWhiteIcon,
 	kimiIcon,
 	kimiWhiteIcon,
+	kiroIcon,
 	mastracodeIcon,
 	mastracodeWhiteIcon,
 	opencodeIcon,
