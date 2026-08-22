@@ -7,7 +7,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { authClient } from "renderer/lib/auth-client";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
@@ -49,8 +49,7 @@ export function TasksView({
 	initialState,
 }: TasksViewProps) {
 	const navigate = useNavigate();
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const activeOrganizationId = useActiveOrganizationId();
 	const {
 		tab: storedTab,
 		assignee: storedAssignee,

@@ -1,3 +1,4 @@
+import { reportTunnelRescue } from "../sentry";
 import type {
 	TunnelHttpRequest,
 	TunnelRequest,
@@ -7,6 +8,12 @@ import type {
 	TunnelWsOpen,
 } from "./types";
 
+// How long a socket may sit outside OPEN before the watchdog abandons it.
+// CONNECTING is normally bounded by the connect deadline and CLOSING by the
+// peer's close reply — a dead peer honors neither (undici has no close
+// timeout), which left sockets in CLOSING forever with the reconnect chain
+// waiting on an onclose that never fired.
+const STUCK_SOCKET_GRACE_MS = 30_000;
 const RECONNECT_BASE_MS = 1_000;
 // 5s ceiling rather than 30s. Under a sustained outage this means slightly
 // more retry traffic, but under transient relay restarts (the common case)
@@ -22,6 +29,10 @@ export interface TunnelClientOptions {
 	getAuthToken: () => Promise<string | null>;
 	localPort: number;
 	hostServiceSecret: string;
+	/** Re-asked on every connect attempt so a server-side relay move is picked
+	 * up by the next reconnect instead of waiting for a process restart. On
+	 * failure the last known URL is reused. */
+	resolveRelayUrl?: () => Promise<string>;
 }
 
 interface LocalChannel {
@@ -30,7 +41,8 @@ interface LocalChannel {
 }
 
 export class TunnelClient {
-	private readonly relayUrl: string;
+	private relayUrl: string;
+	private readonly resolveRelayUrl?: () => Promise<string>;
 	private readonly hostId: string;
 	private readonly getAuthToken: () => Promise<string | null>;
 	private readonly localPort: number;
@@ -41,11 +53,13 @@ export class TunnelClient {
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private watchdogTimer: ReturnType<typeof setInterval> | null = null;
 	private lastInboundAt = 0;
+	private notOpenSince: number | null = null;
 	private closed = false;
 	private connecting = false;
 
 	constructor(options: TunnelClientOptions) {
 		this.relayUrl = options.relayUrl;
+		this.resolveRelayUrl = options.resolveRelayUrl;
 		this.hostId = options.hostId;
 		this.getAuthToken = options.getAuthToken;
 		this.localPort = options.localPort;
@@ -62,6 +76,7 @@ export class TunnelClient {
 			return;
 		}
 		this.connecting = true;
+		this.startWatchdog();
 
 		let timedOut = false;
 		const deadline = setTimeout(() => {
@@ -81,6 +96,13 @@ export class TunnelClient {
 		// An unhandled rejection here (e.g. DNS failure inside getAuthToken on
 		// wake from sleep) crashes host-service and orphans every PTY.
 		try {
+			if (this.resolveRelayUrl) {
+				try {
+					this.relayUrl = await this.resolveRelayUrl();
+				} catch {
+					// keep the last known URL
+				}
+			}
 			const token = await this.getAuthToken();
 			if (timedOut || this.closed) {
 				clearTimeout(deadline);
@@ -109,7 +131,6 @@ export class TunnelClient {
 				this.reconnectAttempts = 0;
 				this.connecting = false;
 				this.lastInboundAt = Date.now();
-				this.startWatchdog();
 				console.log(
 					`[host-service:tunnel] connected to relay for host ${this.hostId}`,
 				);
@@ -126,7 +147,6 @@ export class TunnelClient {
 				try {
 					this.socket = null;
 					this.connecting = false;
-					this.stopWatchdog();
 					this.cleanupChannels();
 					if (event.code === 1008) {
 						console.warn(
@@ -373,21 +393,59 @@ export class TunnelClient {
 	}
 
 	private startWatchdog(): void {
-		this.stopWatchdog();
+		if (this.watchdogTimer) return;
 		this.watchdogTimer = setInterval(() => {
-			if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
-			const silentFor = Date.now() - this.lastInboundAt;
-			if (silentFor > INBOUND_SILENCE_TIMEOUT_MS) {
-				console.warn(
-					`[host-service:tunnel] no inbound traffic for ${silentFor}ms, forcing reconnect`,
-				);
-				try {
-					this.socket.close(4002, "Inbound silence timeout");
-				} catch {
-					// already closed
+			if (this.closed) return;
+			const socket = this.socket;
+			if (!socket) {
+				this.notOpenSince = null;
+				// No socket and nothing pending means the reconnect chain died
+				// (e.g. an exception between detach and reschedule).
+				if (!this.connecting && !this.reconnectTimer) {
+					reportTunnelRescue("v1_dead_reconnect_chain", {});
+					this.scheduleReconnect();
 				}
+				return;
+			}
+			if (socket.readyState === WebSocket.OPEN) {
+				this.notOpenSince = null;
+				const silentFor = Date.now() - this.lastInboundAt;
+				if (silentFor > INBOUND_SILENCE_TIMEOUT_MS) {
+					console.warn(
+						`[host-service:tunnel] no inbound traffic for ${silentFor}ms, forcing reconnect`,
+					);
+					this.abandonSocket("Inbound silence timeout");
+				}
+				return;
+			}
+			this.notOpenSince ??= Date.now();
+			if (Date.now() - this.notOpenSince > STUCK_SOCKET_GRACE_MS) {
+				this.notOpenSince = null;
+				console.warn(
+					`[host-service:tunnel] socket stuck in readyState ${socket.readyState}, abandoning`,
+				);
+				reportTunnelRescue("v1_stuck_socket", {
+					readyState: socket.readyState,
+				});
+				this.abandonSocket("Stuck socket");
 			}
 		}, WATCHDOG_INTERVAL_MS);
+	}
+
+	/** Detach the socket and reconnect now, without waiting for the peer to
+	 * complete a close handshake it may never answer. The onclose guard makes
+	 * any late events from the abandoned socket no-ops. */
+	private abandonSocket(reason: string): void {
+		const socket = this.socket;
+		this.socket = null;
+		this.connecting = false;
+		this.cleanupChannels();
+		try {
+			socket?.close(4002, reason);
+		} catch {
+			// already closing
+		}
+		this.scheduleReconnect();
 	}
 
 	private stopWatchdog(): void {

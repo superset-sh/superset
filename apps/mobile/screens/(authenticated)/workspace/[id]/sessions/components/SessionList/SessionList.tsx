@@ -1,28 +1,15 @@
-import {
-	ContentUnavailableView,
-	Host,
-	HStack,
-	Image,
-	List,
-	Spacer,
-	Text as UIText,
-} from "@expo/ui/swift-ui";
-import {
-	deleteDisabled,
-	environment,
-	frame,
-	lineLimit,
-	listRowBackground,
-	listRowInsets,
-	listRowSeparator,
-	listStyle,
-	onTapGesture,
-	resizable,
-	scrollContentBackground,
-} from "@expo/ui/swift-ui/modifiers";
+import { useCallback } from "react";
+import { View } from "react-native";
+import ReorderableList, {
+	type ReorderableListReorderEvent,
+	reorderItems,
+} from "react-native-reorderable-list";
+import { withUniwind } from "uniwind";
+import { Text } from "@/components/ui/text";
 import type { TerminalRowData } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
-import { ATTENTION_COLORS, ROW_TINT } from "./constants";
-import { useAgentIconUris } from "./hooks/useAgentIconUris";
+import { SessionRow } from "./components/SessionRow";
+
+const TerminalReorderableList = withUniwind(ReorderableList<TerminalRowData>);
 
 interface SessionListProps {
 	rows: TerminalRowData[];
@@ -33,10 +20,9 @@ interface SessionListProps {
 }
 
 /**
- * The sessions as a native SwiftUI list in edit mode: the grabber, the drag,
- * its auto-scroll at the edges and the VoiceOver support are all UIKit's, not
- * ours. `onMove` hands back SwiftUI's insert-before index, which is one past
- * the slot when moving down.
+ * Reorderable list of the workspace's sessions, drag handle per row. The
+ * drag — lift, gap, edge auto-scroll, drop — is ReorderableList's; rows only
+ * decide when to pick up.
  */
 export function SessionList({
 	rows,
@@ -45,105 +31,45 @@ export function SessionList({
 	onReorder,
 	onClose,
 }: SessionListProps) {
-	const iconUris = useAgentIconUris(rows);
+	const handleReorder = useCallback(
+		({ from, to }: ReorderableListReorderEvent) => {
+			onReorder(
+				reorderItems(
+					rows.map((row) => row.terminalId),
+					from,
+					to,
+				),
+			);
+		},
+		[rows, onReorder],
+	);
 
 	return (
-		<Host style={{ flex: 1 }} colorScheme="dark">
-			{rows.length === 0 ? (
-				<ContentUnavailableView
-					title="No sessions"
-					systemImage="terminal"
-					description="Start one with + in the tab strip."
+		<TerminalReorderableList
+			className="bg-background flex-1"
+			data={rows}
+			keyExtractor={(row) => row.terminalId}
+			onReorder={handleReorder}
+			contentInsetAdjustmentBehavior="automatic"
+			// grow lets the empty state center in the sheet; with rows present the
+			// content sizes normally.
+			contentContainerClassName="grow px-2 pb-8"
+			ListEmptyComponent={
+				<View className="flex-1 items-center justify-center gap-1">
+					<Text className="text-muted-foreground text-sm">No sessions</Text>
+					<Text className="text-muted-foreground/70 text-xs">
+						Start one with + in the tab strip.
+					</Text>
+				</View>
+			}
+			renderItem={({ item }) => (
+				<SessionRow
+					row={item}
+					active={item.terminalId === activeTerminalId}
+					onSelect={onSelect}
+					onClose={onClose}
 				/>
-			) : null}
-			{/* Plain + hidden background: the default insetGrouped style draws a
-			    rounded card and inset separators that read as the Settings app,
-			    not as this sheet. */}
-			<List
-				modifiers={[
-					environment({ key: "editMode", value: "active" }),
-					listStyle("plain"),
-					scrollContentBackground("hidden"),
-				]}
-			>
-				<List.ForEach
-					onMove={(sourceIndices, destination) => {
-						const from = sourceIndices[0];
-						if (from === undefined) return;
-						const ids = rows.map((row) => row.terminalId);
-						const moved = ids[from];
-						if (moved === undefined) return;
-						ids.splice(from, 1);
-						ids.splice(
-							destination > from ? destination - 1 : destination,
-							0,
-							moved,
-						);
-						onReorder(ids);
-					}}
-					onDelete={(indices) => {
-						const row = indices[0] === undefined ? undefined : rows[indices[0]];
-						if (row) onClose(row);
-					}}
-				>
-					{rows.map((row) => {
-						const iconUri = row.agentId ? iconUris[row.agentId] : undefined;
-						const attentionColor = row.attention
-							? ATTENTION_COLORS[row.attention]
-							: undefined;
-						return (
-							<HStack
-								key={row.terminalId}
-								spacing={12}
-								modifiers={[
-									onTapGesture(() => onSelect(row.terminalId)),
-									listRowSeparator("hidden"),
-									// Edit mode's red ⊖ reads as the Settings app; our own ✕
-									// sits in the row instead.
-									deleteDisabled(true),
-									listRowInsets({
-										top: 12,
-										bottom: 12,
-										leading: 16,
-										trailing: 16,
-									}),
-									listRowBackground(
-										row.terminalId === activeTerminalId
-											? ROW_TINT
-											: "transparent",
-									),
-								]}
-							>
-								{iconUri ? (
-									// `size` only sizes SF Symbols; a bitmap needs resizable + frame
-									// or it renders at its intrinsic size and blows the row open.
-									<Image
-										uiImage={iconUri}
-										modifiers={[resizable(), frame({ width: 18, height: 18 })]}
-									/>
-								) : (
-									<Image systemName="terminal" size={18} color="#a1a1aa" />
-								)}
-								<UIText modifiers={[lineLimit(1)]}>{row.title}</UIText>
-								<Spacer />
-								{attentionColor ? (
-									<Image
-										systemName="circle.fill"
-										size={9}
-										color={attentionColor}
-									/>
-								) : null}
-								<Image
-									systemName="xmark"
-									size={13}
-									color="#a1a1aa"
-									modifiers={[onTapGesture(() => onClose(row))]}
-								/>
-							</HStack>
-						);
-					})}
-				</List.ForEach>
-			</List>
-		</Host>
+			)}
+		/>
 	);
 }

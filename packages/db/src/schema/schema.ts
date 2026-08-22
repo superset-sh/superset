@@ -922,7 +922,10 @@ export const automationEvents = pgTable(
 		actorIsExternal: boolean("actor_is_external"),
 
 		// Its own copy: ingest is prunable and the prompt needs this at dispatch.
-		payload: jsonb().notNull(),
+		// Nullable because the pruner nulls it once the row ages out, the same
+		// way ingest.webhook_events works. NULL means pruned, not "arrived
+		// empty" — every row is written with a payload.
+		payload: jsonb(),
 
 		// Provenance pointer, deliberately not a foreign key, so ingest stays
 		// prunable. Null for webhook and superset events.
@@ -958,6 +961,12 @@ export const automationEvents = pgTable(
 			t.receivedAt,
 		),
 		index("automation_events_resource_idx").on(t.resourceKey),
+		// The pruner scans oldest-first for rows that still have a body. Without
+		// this the planner walks automation_events_org_received_idx end to end and
+		// sorts, per batch. Partial, so it shrinks as the backlog drains.
+		index("automation_events_prunable_idx")
+			.on(t.receivedAt)
+			.where(sql`${t.payload} IS NOT NULL`),
 	],
 );
 

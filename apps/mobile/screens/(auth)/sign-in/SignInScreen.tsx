@@ -1,11 +1,12 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import { useState } from "react";
-import { Image, Linking, View } from "react-native";
+import { Image, View } from "react-native";
 
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 import { env } from "@/lib/env";
+import { openUrl } from "@/lib/open-url";
 
 import { DevSignInOptions } from "./components/DevSignInOptions";
 import { EmailSignInLink } from "./components/EmailSignInLink";
@@ -128,14 +129,14 @@ export function SignInScreen() {
 				By signing in, you agree to our{"\n"}
 				<Text
 					className="text-xs text-muted-foreground underline"
-					onPress={() => Linking.openURL(TERMS_URL)}
+					onPress={() => openUrl(TERMS_URL)}
 				>
 					Terms of Service
 				</Text>{" "}
 				and{" "}
 				<Text
 					className="text-xs text-muted-foreground underline"
-					onPress={() => Linking.openURL(PRIVACY_URL)}
+					onPress={() => openUrl(PRIVACY_URL)}
 				>
 					Privacy Policy
 				</Text>

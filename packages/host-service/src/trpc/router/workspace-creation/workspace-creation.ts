@@ -1,6 +1,7 @@
 import { router } from "../../index";
 import {
 	adopt,
+	getRepoContributors,
 	listProjectWorktrees,
 	searchBranches,
 	searchGitHubIssues,
@@ -11,6 +12,7 @@ import {
 export const workspaceCreationRouter = router({
 	searchBranches,
 	adopt,
+	getRepoContributors,
 	listProjectWorktrees,
 	searchGitHubIssues,
 	searchPullRequests,

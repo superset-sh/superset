@@ -241,11 +241,8 @@ export function DashboardSidebarWorkspaceContextMenu({
 						Close all ports
 					</ContextMenuItem>
 				)}
-				<ContextMenuItem
-					onSelect={onRemoveFromSidebar}
-					className="text-destructive focus:text-destructive"
-				>
-					<LuX className="size-4 mr-2 text-destructive" />
+				<ContextMenuItem onSelect={onRemoveFromSidebar}>
+					<LuX className="size-4 mr-2" />
 					Remove from Sidebar
 				</ContextMenuItem>
 				{onDelete ? (

@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -32,13 +33,20 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
 
-	const activeOrgId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrgId = useActiveOrganizationId();
 
-	const { data: activeOrg } = authClient.useActiveOrganization();
+	// Ownership must be judged against the org being billed. The session's
+	// active organization is shared by every window, so reading membership from
+	// it would grant or withhold owner-only billing actions based on whatever
+	// org another window happens to be showing. This member list is scoped
+	// server-side by the organization header this window sends.
+	const { data: members } = cloudTrpc.organization.listMembers.useQuery({
+		includeDeactivated: false,
+	});
 	const currentUserId = session?.user?.id;
-	const currentMember = activeOrg?.members?.find(
-		(m) => m.userId === currentUserId,
-	);
+	const currentMember = members?.find((m) => m.userId === currentUserId);
 	const isOwner = currentMember?.role === "owner";
 
 	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
@@ -169,6 +177,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 								isRestoring={isRestoring}
 								cancelAt={activePlan?.cancelAt}
 								periodEnd={activePlan?.periodEnd}
+								status={activePlan?.status}
 							/>
 							{plan === "free" && (
 								<UpgradeCard

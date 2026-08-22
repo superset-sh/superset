@@ -50,6 +50,11 @@ export function HeroSection() {
 						</Link>
 						<div className="space-y-4 sm:space-y-6">
 							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] text-foreground relative max-w-6xl mx-auto">
+								{/* Real headline for screen readers and no-JS crawlers; the
+								    typewriter below is purely visual */}
+								<span className="sr-only">
+									{HERO_COPY.segments.map((segment) => segment.text).join("")}
+								</span>
 								{/* Sizer must mirror the visible segments' styling so wrapping matches */}
 								<span className="invisible" aria-hidden="true">
 									{HERO_COPY.segments.map((segment) => (
@@ -58,7 +63,7 @@ export function HeroSection() {
 										</span>
 									))}
 								</span>
-								<span className="absolute inset-0">
+								<span className="absolute inset-0" aria-hidden="true">
 									<TypewriterText
 										segments={HERO_COPY.segments}
 										speed={40}

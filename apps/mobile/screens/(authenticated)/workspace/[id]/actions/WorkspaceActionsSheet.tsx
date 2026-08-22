@@ -1,11 +1,10 @@
 import { formatDistanceToNow } from "date-fns";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import {
 	PencilIcon,
 	PinIcon,
 	ShareIcon,
 	Trash2Icon,
-	XIcon,
 } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -98,108 +97,114 @@ export function WorkspaceActionsSheet() {
 		: undefined;
 
 	return (
-		<ScrollView
-			className="bg-background flex-1"
-			contentContainerClassName="px-6 pb-10"
-			contentInsetAdjustmentBehavior="automatic"
-		>
-			<Pressable
-				accessibilityLabel="Close"
-				onPress={() => router.back()}
-				className="bg-secondary mt-4 size-11 items-center justify-center rounded-full active:opacity-60"
+		<>
+			{/* The close button is a native bar item like every other sheet's:
+			    pinned while the content scrolls under the transparent header,
+			    and glass on the OS versions that draw it. */}
+			<Stack.Toolbar placement="left">
+				<Stack.Toolbar.Button
+					icon="xmark"
+					accessibilityLabel="Close"
+					onPress={() => router.back()}
+				/>
+			</Stack.Toolbar>
+			<ScrollView
+				className="bg-background flex-1"
+				contentContainerClassName="px-6 pb-10"
+				contentInsetAdjustmentBehavior="automatic"
 			>
-				<XIcon size={20} color={theme.foreground} strokeWidth={2.25} />
-			</Pressable>
-
-			<Text
-				className="mt-5 text-center text-xl font-semibold"
-				numberOfLines={2}
-			>
-				{workspace?.name ?? ""}
-			</Text>
-
-			<View className="mt-5 flex-row justify-center gap-4">
-				<CircleAction
-					label="Edit name"
-					icon={<PencilIcon size={19} color={theme.foreground} />}
-					onPress={() => void renameWorkspace()}
-				/>
-				<CircleAction
-					label={pinned ? "Unpin" : "Pin"}
-					active={pinned}
-					icon={
-						<PinIcon
-							size={19}
-							color={pinned ? theme.background : theme.foreground}
-						/>
-					}
-					onPress={() => id && togglePin(id)}
-				/>
-				<CircleAction
-					label="Share"
-					icon={<ShareIcon size={19} color={theme.foreground} />}
-					onPress={shareWorkspace}
-				/>
-			</View>
-
-			<Text className="text-muted-foreground mt-9 pb-1 text-[15px]">Info</Text>
-			{workspace ? (
-				<View className="border-border/60 flex-row items-center gap-3 border-b py-3.5">
-					{project ? (
-						<ProjectAvatar
-							name={project.name}
-							iconUrl={project.iconUrl}
-							size={34}
-						/>
-					) : null}
-					<View className="min-w-0 flex-1">
-						{workspace.projectName ? (
-							<Text className="text-[15px] font-medium" numberOfLines={1}>
-								{workspace.projectName}
-							</Text>
-						) : null}
-						<Text
-							className="text-muted-foreground text-[13px]"
-							numberOfLines={1}
-						>
-							{workspace.branch}
-						</Text>
-					</View>
-				</View>
-			) : null}
-			{/* A sandbox isn't one of your machines; naming it as the host says
-			    nothing the Cloud section didn't. */}
-			{host && !isCloud ? <InfoRow label="Host" value={host.name} /> : null}
-			{changeset.files.length > 0 ? (
-				<InfoRow
-					label="Changes"
-					value={`+${changeset.additions} −${changeset.deletions} · ${changeset.files.length} ${changeset.files.length === 1 ? "file" : "files"}`}
-				/>
-			) : null}
-			{workspace ? (
-				<InfoRow
-					label="Created"
-					value={formatDistanceToNow(new Date(workspace.createdAt), {
-						addSuffix: true,
-					})}
-					isLast
-				/>
-			) : null}
-
-			{canDelete ? (
-				<Pressable
-					onPress={() => {
-						router.back();
-						deleteWorkspace();
-					}}
-					className="mt-8 flex-row items-center justify-center gap-2 py-3 active:opacity-60"
+				<Text
+					className="mt-2 text-center text-xl font-semibold"
+					numberOfLines={2}
 				>
-					<Trash2Icon size={18} color={theme.destructive} />
-					<Text className="text-destructive text-[15px] font-medium">
-						Delete workspace
-					</Text>
-				</Pressable>
-			) : null}
-		</ScrollView>
+					{workspace?.name ?? ""}
+				</Text>
+
+				<View className="mt-5 flex-row justify-center gap-4">
+					<CircleAction
+						label="Edit name"
+						icon={<PencilIcon size={19} color={theme.foreground} />}
+						onPress={() => void renameWorkspace()}
+					/>
+					<CircleAction
+						label={pinned ? "Unpin" : "Pin"}
+						active={pinned}
+						icon={
+							<PinIcon
+								size={19}
+								color={pinned ? theme.background : theme.foreground}
+							/>
+						}
+						onPress={() => id && togglePin(id)}
+					/>
+					<CircleAction
+						label="Share"
+						icon={<ShareIcon size={19} color={theme.foreground} />}
+						onPress={shareWorkspace}
+					/>
+				</View>
+
+				<Text className="text-muted-foreground mt-9 pb-1 text-[15px]">
+					Info
+				</Text>
+				{workspace ? (
+					<View className="border-border/60 flex-row items-center gap-3 border-b py-3.5">
+						{project ? (
+							<ProjectAvatar
+								name={project.name}
+								iconUrl={project.iconUrl}
+								size={34}
+							/>
+						) : null}
+						<View className="min-w-0 flex-1">
+							{workspace.projectName ? (
+								<Text className="text-[15px] font-medium" numberOfLines={1}>
+									{workspace.projectName}
+								</Text>
+							) : null}
+							<Text
+								className="text-muted-foreground text-[13px]"
+								numberOfLines={1}
+							>
+								{workspace.branch}
+							</Text>
+						</View>
+					</View>
+				) : null}
+				{/* A sandbox isn't one of your machines; naming it as the host says
+			    nothing the Cloud section didn't. */}
+				{host && !isCloud ? <InfoRow label="Host" value={host.name} /> : null}
+				{changeset.files.length > 0 ? (
+					<InfoRow
+						label="Changes"
+						value={`+${changeset.additions} −${changeset.deletions} · ${changeset.files.length} ${changeset.files.length === 1 ? "file" : "files"}`}
+					/>
+				) : null}
+				{workspace ? (
+					<InfoRow
+						label="Created"
+						value={formatDistanceToNow(new Date(workspace.createdAt), {
+							addSuffix: true,
+						})}
+						isLast
+					/>
+				) : null}
+
+				{canDelete ? (
+					<Pressable
+						onPress={() => {
+							router.back();
+							deleteWorkspace();
+						}}
+						className="mt-8 flex-row items-center justify-center gap-2 py-3 active:opacity-60"
+					>
+						<Trash2Icon size={18} color={theme.destructive} />
+						<Text className="text-destructive text-[15px] font-medium">
+							Delete workspace
+						</Text>
+					</Pressable>
+				) : null}
+			</ScrollView>
+		</>
 	);
 }

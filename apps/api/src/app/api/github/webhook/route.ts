@@ -1,7 +1,8 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, webhookEvents } from "@superset/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import {
 	type GithubPayload,
@@ -41,25 +42,12 @@ export async function POST(request: Request) {
 	// Store verified event with idempotent handling
 	const eventId = deliveryId ?? `github-${crypto.randomUUID()}`;
 
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "github",
-			eventId,
-			eventType: eventType ?? "unknown",
-			payload: stripNullChars(payload),
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				// Reset for reprocessing only if previously failed
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
+	const webhookEvent = await recordWebhookDelivery({
+		provider: "github",
+		eventId,
+		eventType: eventType ?? "unknown",
+		payload: stripNullChars(payload),
+	});
 
 	if (!webhookEvent) {
 		return Response.json({ error: "Failed to store event" }, { status: 500 });

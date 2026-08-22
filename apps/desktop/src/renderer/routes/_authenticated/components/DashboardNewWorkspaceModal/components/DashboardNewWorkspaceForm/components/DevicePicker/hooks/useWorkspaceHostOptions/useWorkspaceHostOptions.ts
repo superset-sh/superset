@@ -1,10 +1,9 @@
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { MOCK_ORG_ID } from "shared/constants";
 
 export interface WorkspaceHostOption {
 	id: string;
@@ -30,9 +29,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	const { data: session } = authClient.useSession();
 	const { machineId, activeHostUrl } = useLocalHostService();
 
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+	const activeOrganizationId = useActiveOrganizationId();
 	const currentUserId = session?.user?.id ?? null;
 
 	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {

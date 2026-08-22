@@ -1,7 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useMemo } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { authClient } from "renderer/lib/auth-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface HostUrlContext {
@@ -12,9 +11,10 @@ interface HostUrlContext {
 }
 
 function useHostUrlContext(): HostUrlContext {
-	const { machineId, activeHostUrl } = useLocalHostService();
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+	// Org comes from the host-service context (which is per-window) rather than
+	// the shared session, so relay routing targets the window's own org.
+	const { machineId, activeHostUrl, activeOrganizationId } =
+		useLocalHostService();
 	const relayUrl = useRelayUrl();
 	return useMemo(
 		() => ({ machineId, activeHostUrl, activeOrganizationId, relayUrl }),

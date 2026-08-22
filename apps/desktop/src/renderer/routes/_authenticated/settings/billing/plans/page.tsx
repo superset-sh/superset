@@ -7,6 +7,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { env } from "renderer/env.renderer";
 import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { track } from "renderer/lib/analytics";
@@ -216,7 +217,9 @@ function PlansPage() {
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const utils = cloudTrpc.useUtils();
 
-	const activeOrgId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrgId = useActiveOrganizationId();
 
 	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 

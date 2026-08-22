@@ -2,10 +2,11 @@ import { createHash } from "node:crypto";
 import { db } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import { integrationConnections, webhookEvents } from "@superset/db/schema";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { env } from "@/env";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import { cappedBody, parseJson } from "@/lib/webhooks/body";
 import { hmacHex, timingSafeHex, unauthorized } from "@/lib/webhooks/verify";
@@ -151,24 +152,12 @@ async function processForConnection(
 	// to the same workspace each get their own retryable processing state.
 	const eventId = `${connection.id}-${event.id}`;
 
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "notion",
-			eventId,
-			eventType: event.type,
-			payload: stripNullChars(event),
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
+	const webhookEvent = await recordWebhookDelivery({
+		provider: "notion",
+		eventId,
+		eventType: event.type,
+		payload: stripNullChars(event),
+	});
 
 	if (!webhookEvent) {
 		return {

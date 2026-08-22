@@ -285,6 +285,9 @@ step_write_env() {
   {
     echo ""
     echo "# Workspace Identity"
+    # Stable folder-derived identity (data dir, protocol scheme, Neon branch).
+    # The dev app reads its display title live from ~/.superset/host/*/host.db,
+    # so a later workspace rename never needs this file rewritten.
     write_env_var "SUPERSET_WORKSPACE_NAME" "${WORKSPACE_NAME:-$(basename "$PWD")}"
     write_env_var "SUPERSET_HOME_DIR" "$PWD/superset-dev-data"
     echo ""

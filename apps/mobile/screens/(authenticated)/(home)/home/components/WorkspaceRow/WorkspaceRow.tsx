@@ -1,7 +1,7 @@
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { useRouter } from "expo-router";
 import { FolderGit2, Plus } from "lucide-react-native";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -63,13 +63,8 @@ export function WorkspaceRow({
 		workspace.hostReachable &&
 		workspace.worktreeExists !== false &&
 		(cloudStatus === undefined || cloudStatus === "ready");
-	const {
-		isDeleting,
-		renameWorkspace,
-		deleteWorkspace,
-		copyId,
-		shareWorkspace,
-	} = useWorkspaceRowActions(workspace, cache, cloudStatus);
+	const { renameWorkspace, deleteWorkspace, copyId, shareWorkspace } =
+		useWorkspaceRowActions(workspace, cache, cloudStatus);
 
 	return (
 		<WorkspaceRowMenu
@@ -94,22 +89,15 @@ export function WorkspaceRow({
 				className={cn(
 					"flex-row items-center gap-3 rounded-xl py-2 pl-10 pr-3",
 					targeted ? "bg-foreground/5" : "bg-background",
-					isDeleting && "opacity-40",
 				)}
-				disabled={isDeleting}
 				onPress={() =>
 					router.push(`/(authenticated)/workspace/${workspace.id}`)
 				}
 			>
 				{/* Desktop WorkspaceIcon semantics: working replaces the icon with
 				    the braille spinner; other statuses overlay a corner ping on the
-				    base icon (PR state when one exists, else the workspace mark).
-				    A delete in flight takes the slot over everything else. */}
-				{isDeleting ? (
-					<View className="size-6 items-center justify-center">
-						<ActivityIndicator size="small" color={theme.mutedForeground} />
-					</View>
-				) : attention === "working" || cloudStatus === "provisioning" ? (
+				    base icon (PR state when one exists, else the workspace mark). */}
+				{attention === "working" || cloudStatus === "provisioning" ? (
 					<View className="size-6 items-center justify-center">
 						<AsciiSpinner />
 					</View>
@@ -212,7 +200,7 @@ export function WorkspaceRow({
 					accessibilityLabel={`New agent in ${workspace.name}`}
 					variant="ghost"
 					size="icon"
-					disabled={!canChat || isDeleting}
+					disabled={!canChat}
 					onPress={() =>
 						setTarget({
 							workspaceId: workspace.id,

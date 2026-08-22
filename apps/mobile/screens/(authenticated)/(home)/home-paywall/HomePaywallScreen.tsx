@@ -1,14 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
-import { useState } from "react";
-import { useWindowDimensions, View } from "react-native";
+import { useRouter } from "expo-router";
+import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import { OrganizationHeaderButton } from "../home/components/OrganizationHeaderButton";
-import { OrganizationSwitcherSheet } from "../home/components/OrganizationSwitcherSheet";
 
 /** Home content for accounts whose active org has no paid plan. The shell
  * stays fully navigable — the org switcher sheet also carries the Settings
@@ -16,20 +15,9 @@ import { OrganizationSwitcherSheet } from "../home/components/OrganizationSwitch
  * normal surfaces. The trpc middleware is the actual wall. */
 export function HomePaywallScreen() {
 	const theme = useTheme();
-	const { width } = useWindowDimensions();
+	const router = useRouter();
 	const { refetch } = useSession();
-	const {
-		organizations,
-		activeOrganization,
-		activeOrganizationId,
-		switchOrganization,
-	} = useOrganizations();
-	const [sheetOpen, setSheetOpen] = useState(false);
-
-	const handleSwitchOrganization = (organizationId: string) => {
-		setSheetOpen(false);
-		void switchOrganization(organizationId).then(() => refetch());
-	};
+	const { activeOrganization } = useOrganizations();
 
 	return (
 		<>
@@ -38,7 +26,7 @@ export function HomePaywallScreen() {
 				logo={activeOrganization?.logo}
 				onPress={() => {
 					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-					setSheetOpen(true);
+					router.push("/(authenticated)/(home)/organizations");
 				}}
 			/>
 			<View className="flex-1 items-center justify-center gap-6 bg-background p-6">
@@ -64,14 +52,6 @@ export function HomePaywallScreen() {
 					<Text>Refresh</Text>
 				</Button>
 			</View>
-			<OrganizationSwitcherSheet
-				isPresented={sheetOpen}
-				onIsPresentedChange={setSheetOpen}
-				organizations={organizations}
-				activeOrganizationId={activeOrganizationId}
-				onSwitchOrganization={handleSwitchOrganization}
-				width={width}
-			/>
 		</>
 	);
 }

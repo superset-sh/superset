@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/table";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { authClient } from "renderer/lib/auth-client";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
@@ -17,9 +17,11 @@ import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
 	const searchQuery = useSettingsSearchQuery();
-	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org, not the shared session: the session holds one org for
+	// the whole app, so a second window on another org would render this
+	// window against the other one's organization.
+	const activeOrganizationId = useActiveOrganizationId();
 
 	const { data: teamsData, isPending } =
 		cloudTrpc.organization.listTeams.useQuery(undefined);

@@ -106,6 +106,7 @@
 		"react-native-gesture-handler": "2.31.2",
 		"react-native-get-random-values": "1.11.0",
 		"react-native-reanimated": "4.3.1",
+		"react-native-reorderable-list": "0.18.1",
 		"react-native-safe-area-context": "5.7.0",
 		"react-native-screens": "4.26.0",
 		"react-native-shiki-engine": "0.3.12",

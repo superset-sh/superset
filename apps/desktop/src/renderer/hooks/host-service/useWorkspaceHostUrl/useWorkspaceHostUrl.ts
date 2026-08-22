@@ -1,7 +1,7 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { setSandboxCredentials } from "renderer/lib/host-service-auth";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -41,8 +41,7 @@ export function useWorkspaceHostTarget(
 	// A cloud workspace has no host row, so it never appears above. Its
 	// address and the two credentials it needs are brokered per access,
 	// because the provider token expires.
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const organizationId = useActiveOrganizationId();
 	const cloudQuery = cloudTrpc.cloudWorkspace.list.useQuery(
 		{ organizationId: organizationId ?? "" },
 		{ enabled: !!organizationId && !match },

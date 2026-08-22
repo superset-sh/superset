@@ -1,6 +1,5 @@
 "use client";
 
-import type { RouterOutputs } from "@superset/trpc";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -23,7 +22,7 @@ import { usePathname } from "next/navigation";
 import { LuChevronRight, LuHouse } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
-import { NavUser } from "./components/NavUser";
+import { NavUser, type SidebarUser } from "./components/NavUser";
 import { SearchForm } from "./components/SearchForm";
 
 const topLevelNav = [
@@ -40,7 +39,7 @@ const sections: {
 }[] = [];
 
 export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-	user: NonNullable<RouterOutputs["user"]["me"]>;
+	user: SidebarUser;
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {

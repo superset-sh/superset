@@ -24,6 +24,7 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -48,7 +49,10 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 	const utils = cloudTrpc.useUtils();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org, not the shared session: the session holds one org for
+	// the whole app, so a second window on another org would render this
+	// window against the other one's organization.
+	const activeOrganizationId = useActiveOrganizationId();
 	const currentUserId = session?.user?.id;
 
 	const { data: teamsData, isPending: teamsPending } =

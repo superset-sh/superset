@@ -2,11 +2,11 @@ import type { CheckItem } from "@superset/local-db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { deriveTerminalAgentStatus } from "renderer/hooks/host-service/useTerminalAgentStatuses";
 import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
@@ -27,7 +27,6 @@ import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/provid
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
-import { MOCK_ORG_ID } from "shared/constants";
 import { type PaneStatus, pickHigherStatus } from "shared/tabs-types";
 
 export type V2WorkspaceHostType = "local-device" | "remote-device";
@@ -235,9 +234,11 @@ export function useAccessibleV2Workspaces(
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+	// Per-window org. Every row below is filtered against this id, and the rows
+	// are served by the window's own host service — so reading the shared
+	// session's org here drops all of them in any window that switched, and the
+	// dashboard renders empty.
+	const activeOrganizationId = useActiveOrganizationId();
 	const currentUserId = session?.user?.id ?? null;
 
 	// With a specific device filter (the page), rows come from a single

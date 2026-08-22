@@ -1,0 +1,12 @@
+import { Alert, Linking } from "react-native";
+
+/**
+ * Opens an external URL. The OS can refuse — web browsing is blockable by
+ * parental controls or a management profile — so surface that instead of
+ * leaving an unhandled rejection and a tap that looks dead.
+ */
+export function openUrl(url: string) {
+	Linking.openURL(url).catch(() => {
+		Alert.alert("Could not open link", url);
+	});
+}

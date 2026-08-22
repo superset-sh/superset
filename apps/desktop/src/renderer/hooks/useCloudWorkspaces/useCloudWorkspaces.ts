@@ -1,7 +1,7 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import type { RouterOutputs } from "@superset/trpc";
 import { useFeatureFlagEnabled } from "posthog-js/react";
-import { authClient } from "renderer/lib/auth-client";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 export type CloudWorkspaceRow = RouterOutputs["cloudWorkspace"]["list"][number];
@@ -32,8 +32,7 @@ export interface CloudWorkspacesValue {
  */
 export function useCloudWorkspaces(): CloudWorkspacesValue {
 	const enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const organizationId = useActiveOrganizationId();
 
 	const query = cloudTrpc.cloudWorkspace.list.useQuery(
 		{ organizationId: organizationId ?? "" },

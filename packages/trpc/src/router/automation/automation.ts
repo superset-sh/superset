@@ -215,7 +215,10 @@ export const automationRouter = {
 			const summaries = await scheduleSummariesFor(rows.map((row) => row.id));
 
 			return rows.map((row) => {
-				const schedule = summaries.get(row.id) ?? NO_SCHEDULE;
+				const schedule = summaries.get(row.id) ?? {
+					...NO_SCHEDULE,
+					triggerCount: 0,
+				};
 				return {
 					...row,
 					...schedule,
@@ -388,12 +391,17 @@ export const automationRouter = {
 					});
 				}
 
-				await recordPromptVersion(tx, {
-					automationId: row.id,
-					authorUserId: ctx.session.user.id,
-					content: input.prompt,
-					source: promptSourceFromSession(ctx.session),
-				});
+				// An untitled automation starts with no instructions; recording that
+				// as v1 would put an empty entry in every version history. Trimmed,
+				// to match what runNow and the dispatcher call instruction-less.
+				if (input.prompt.trim().length > 0) {
+					await recordPromptVersion(tx, {
+						automationId: row.id,
+						authorUserId: ctx.session.user.id,
+						content: input.prompt,
+						source: promptSourceFromSession(ctx.session),
+					});
+				}
 
 				return row;
 			});
@@ -691,9 +699,9 @@ export const automationRouter = {
 
 			// Re-read rather than echo the input: the resume just recomputed every
 			// schedule's next run, and the soonest of them is what changed.
-			const schedule =
-				(await scheduleSummariesFor([updated.id])).get(updated.id) ??
-				NO_SCHEDULE;
+			const schedule = (await scheduleSummariesFor([updated.id])).get(
+				updated.id,
+			) ?? { ...NO_SCHEDULE, triggerCount: 0 };
 			return {
 				...updated,
 				...schedule,
@@ -710,6 +718,15 @@ export const automationRouter = {
 				organizationId,
 				input.id,
 			);
+
+			// The dispatcher refuses this too, but through runNow it would surface
+			// as a 500 — an expected user state, not a server fault.
+			if (automation.prompt.trim().length === 0) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "Automation has no instructions",
+				});
+			}
 
 			const outcome = await dispatchAutomation({
 				automation,

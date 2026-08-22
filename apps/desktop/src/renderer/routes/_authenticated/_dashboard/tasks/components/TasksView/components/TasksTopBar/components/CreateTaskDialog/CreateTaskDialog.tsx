@@ -1,4 +1,3 @@
-import { authClient } from "@superset/auth/client";
 import type { TaskPriority } from "@superset/db/enums";
 import { Button } from "@superset/ui/button";
 import {
@@ -16,6 +15,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight, HiOutlinePaperClip, HiXMark } from "react-icons/hi2";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { PLATFORM } from "renderer/hotkeys";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -40,7 +40,6 @@ export function CreateTaskDialog({
 	searchQuery,
 	assigneeFilter,
 }: CreateTaskDialogProps) {
-	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const titleInputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +69,7 @@ export function CreateTaskDialog({
 		() => (memberData ?? []).map((member) => member.user),
 		[memberData],
 	);
-	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
+	const activeOrganizationId = useActiveOrganizationId();
 	const organizationLabel = useMemo(() => {
 		const organization = organizationData?.find(
 			(org) => org.id === activeOrganizationId,

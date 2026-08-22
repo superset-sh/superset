@@ -4,9 +4,17 @@
  * Resend dashboard.
  *
  * Usage (dry-run by default, pass --apply to mutate):
- *   RESEND_API_KEY=... bun scripts/sync-automations.ts [--apply]
+ *   RESEND_API_KEY=... bun scripts/sync-automations.ts [--apply] [--force]
  *
- * Two hard-won rules this script encodes:
+ * Three hard-won rules this script encodes:
+ * - ONLY `user.signed_up` is safe as a trigger: it fires once per user, from
+ *   better-auth's `user.create.after` hook. `user.activated` fires on every
+ *   workspace create and `app.first_opened` on every first-host/onboarding
+ *   path, so triggering on either enrols a user once per occurrence. Pointing
+ *   habit-drip's trigger at `user.activated` sent 1,487 copies of one email to
+ *   230 people on 2026-08-21. Repeating events belong in `wait_for_event`,
+ *   which absorbs duplicates. Events fan out to every matching consumer, so
+ *   any number of automations can wait on the same one.
  * - NEVER update an enabled automation's steps: despite the API's wording,
  *   doing so cancelled every in-flight run (2026-08-20, ~324 users dropped
  *   mid-drip). Migration is create-new-enabled, then stop (not edit) the old
@@ -37,6 +45,7 @@ type DesiredAutomation = {
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const apply = process.argv.includes("--apply");
+const force = process.argv.includes("--force");
 
 const aliasIds = new Map<string, string>();
 const templates = await resend.templates.list({ limit: 100 });
@@ -119,13 +128,21 @@ const desired: DesiredAutomation[] = [
 		],
 	},
 	{
-		// Post-activation habit drip.
+		// Post-activation habit drip. Triggered by signup and *gated* on
+		// activation rather than triggered by it — see the trigger-cardinality
+		// rule above. On timeout the run simply ends: a user who never
+		// activates should not get habit mail.
 		name: "habit-drip",
 		steps: [
 			{
 				key: "start",
 				type: "trigger",
-				config: { eventName: "user.activated" },
+				config: { eventName: "user.signed_up" },
+			},
+			{
+				key: "wait_activation",
+				type: "wait_for_event",
+				config: { eventName: "user.activated", timeout: "30 days" },
 			},
 			{ key: "delay_1", type: "delay", config: { duration: "1 day" } },
 			{
@@ -141,7 +158,8 @@ const desired: DesiredAutomation[] = [
 			},
 		],
 		connections: [
-			{ from: "start", to: "delay_1", type: "default" },
+			{ from: "start", to: "wait_activation", type: "default" },
+			{ from: "wait_activation", to: "delay_1", type: "event_received" },
 			{ from: "delay_1", to: "send_parallel", type: "default" },
 			{ from: "send_parallel", to: "delay_2", type: "default" },
 			{ from: "delay_2", to: "send_automations", type: "default" },
@@ -195,9 +213,8 @@ const existing = (listed.data?.data ?? []) as Array<{
 }>;
 
 for (const want of desired) {
-	const live = existing.filter(
-		(a) => a.name === want.name && a.status === "enabled",
-	);
+	const sameName = existing.filter((a) => a.name === want.name);
+	const live = sameName.filter((a) => a.status === "enabled");
 	const wantCanon = canonGraph(want.steps, want.connections);
 	const matching = [];
 	for (const a of live) {
@@ -214,6 +231,17 @@ for (const want of desired) {
 	if (matching.length > 0) {
 		console.log(`${want.name}: up to date (${matching[0]?.id})`);
 		continue;
+	}
+
+	// A same-named automation sitting disabled means someone stopped it on
+	// purpose, usually mid-incident. Recreating it here would silently re-arm
+	// the thing they turned off, so make that an explicit choice.
+	const stopped = sameName.filter((a) => a.status !== "enabled");
+	if (live.length === 0 && stopped.length > 0 && !force) {
+		const ids = stopped.map((a) => a.id).join(", ");
+		throw new Error(
+			`${want.name}: ${stopped.length} disabled automation(s) exist (${ids}). Creating would re-arm what someone stopped. Re-run with --force if that is intended.`,
+		);
 	}
 
 	console.log(

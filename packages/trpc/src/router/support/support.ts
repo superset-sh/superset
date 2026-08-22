@@ -6,6 +6,7 @@ import {
 	users,
 } from "@superset/db/schema";
 import { FeedbackReportEmail } from "@superset/email/emails/feedback-report";
+import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { COMPANY } from "@superset/shared/constants";
 import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -230,7 +231,7 @@ export const supportRouter = createTRPCRouter({
 					? db.query.subscriptions.findFirst({
 							where: and(
 								eq(subscriptions.referenceId, organizationId),
-								inArray(subscriptions.status, ["active", "trialing"]),
+								inArray(subscriptions.status, ACTIVE_SUBSCRIPTION_STATUSES),
 							),
 							columns: { plan: true, status: true },
 						})

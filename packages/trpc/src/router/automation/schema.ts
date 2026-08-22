@@ -37,7 +37,9 @@ const rruleBody = z
 export const createAutomationSchema = z
 	.object({
 		name: z.string().min(1).max(200),
-		prompt: z.string().min(1).max(100_000),
+		// Empty is allowed: "New automation" creates an untitled automation the
+		// detail page fills in. Dispatch refuses to run an instruction-less one.
+		prompt: z.string().max(100_000),
 		agent: agentSchema,
 		targetHostId: z.string().min(1).nullish(),
 		// Null/omitted with no workspace pin = session automation: each run
@@ -78,7 +80,9 @@ export const updateAutomationSchema = z.object({
 
 export const setAutomationPromptSchema = z.object({
 	id: z.string().uuid(),
-	prompt: z.string().min(1).max(100_000),
+	// Empty is allowed so an untitled automation's editor can save its way
+	// through intermediate states (and instructions can be cleared outright).
+	prompt: z.string().max(100_000),
 });
 
 export const listRunsSchema = z.object({

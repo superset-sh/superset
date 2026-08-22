@@ -38,6 +38,16 @@ export function GET() {
 						type: "application/json",
 						title: "MCP server card",
 					},
+					{
+						href: `${baseUrl}/.well-known/ai-catalog.json`,
+						type: "application/json",
+						title: "Agentic Resource Discovery catalog",
+					},
+					{
+						href: `${baseUrl}/.well-known/http-message-signatures-directory`,
+						type: "application/http-message-signatures-directory+json",
+						title: "Web Bot Auth key directory (RFC 9421)",
+					},
 				],
 				item: [
 					{

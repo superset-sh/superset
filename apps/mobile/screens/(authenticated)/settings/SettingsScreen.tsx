@@ -5,13 +5,14 @@ import {
 } from "@superset/shared/constants";
 import * as Application from "expo-application";
 import { useRouter } from "expo-router";
-import { Alert, Linking, ScrollView, View } from "react-native";
+import { Alert, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
+import { openUrl } from "@/lib/open-url";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
 import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
@@ -20,12 +21,6 @@ import { SettingsSection } from "./components/SettingsSection";
 import { UserAvatar } from "./components/UserAvatar";
 
 const WRITE_REVIEW_URL = `${COMPANY.APP_STORE_URL}?action=write-review`;
-
-function openUrl(url: string) {
-	Linking.openURL(url).catch(() => {
-		Alert.alert("Could not open link", url);
-	});
-}
 
 function ExternalIcon({ color }: { color: string }) {
 	return <Ionicons name="open-outline" size={16} color={color} />;
@@ -66,8 +61,9 @@ export function SettingsScreen() {
 		]);
 	};
 
-	// Informational only: App Store guideline 3.1.1 forbids in-app links to an
-	// external purchase page, so the plan row says where billing lives and stops.
+	// Informational only. Outside the US storefront, App Store guideline 3.1.1
+	// rejects in-app links to an external purchase page, so the plan row says
+	// where billing lives and stops there.
 	const handleManagePlan = () => {
 		Alert.alert(
 			"Plan is managed on the web",

@@ -29,6 +29,7 @@ export interface CommandContext {
 	hostServiceStatus: HostServiceAvailabilityStatus;
 	localMachineId: string | null;
 	notificationSoundsMuted: boolean;
+	isV2CloudEnabled: boolean;
 	navigate: (path: string) => void;
 	focusedView?: "editor" | "terminal" | "git" | "issues" | "files" | "chat";
 }

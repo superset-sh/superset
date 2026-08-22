@@ -3,6 +3,8 @@ import { API_URL, MCP_SERVER_URL } from "@/lib/llms";
 
 const FALLBACK_CARD = {
 	name: "superset",
+	title: "Superset",
+	icon: `${COMPANY.MARKETING_URL}/apple-touch-icon.png`,
 	description:
 		"Superset MCP server: create Git-worktree workspaces, launch coding-agent sessions, schedule automations, open terminals, and manage tasks on behalf of a Superset user.",
 	version: "0.1.0",

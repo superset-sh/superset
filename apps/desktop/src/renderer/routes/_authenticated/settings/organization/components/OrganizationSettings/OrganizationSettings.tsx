@@ -36,6 +36,7 @@ import {
 	HiOutlineClipboardDocument,
 	HiOutlineClipboardDocumentCheck,
 } from "react-icons/hi2";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -93,7 +94,10 @@ export function OrganizationSettings({
 	visibleItems,
 }: OrganizationSettingsProps) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org, not the shared session: the session holds one org for
+	// the whole app, so a second window on another org would render this
+	// window against the other one's organization.
+	const activeOrganizationId = useActiveOrganizationId();
 	const utils = cloudTrpc.useUtils();
 	const navigate = useNavigate();
 	const searchQuery = useSettingsSearchQuery();

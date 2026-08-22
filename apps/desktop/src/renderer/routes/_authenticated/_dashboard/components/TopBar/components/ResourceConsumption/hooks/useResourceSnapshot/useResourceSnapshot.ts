@@ -2,7 +2,7 @@ import type { WorkspaceState } from "@superset/panes";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
-import { authClient } from "renderer/lib/auth-client";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -63,8 +63,7 @@ export function useResourceSnapshot(
 ): UseResourceSnapshotResult {
 	const collections = useCollections();
 	const isV2 = surface === "v2";
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? undefined;
+	const organizationId = useActiveOrganizationId() ?? undefined;
 
 	const { data: rawSidebarProjects = [] } = useLiveQuery(
 		(q) =>

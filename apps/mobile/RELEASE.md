@@ -19,21 +19,30 @@ getting unstuck when App Review rejects or stalls it.
 
 ## Shipping a build
 
+Authenticate once per machine: `eas login` (or `EXPO_TOKEN` in CI, with
+`--non-interactive`). Submissions use the App Store Connect API key stored in
+EAS credentials, so no Apple password is needed locally. Keep the demo-account
+credentials in your secret store (1Password) and export them into the shell
+for the metadata push rather than typing them into the command.
+
 ```bash
 cd apps/mobile
 
-# 1. Listing + App Review notes. Needs the demo credentials in the environment
-#    so they never enter the repo. APP_REVIEW_VIDEO_URL is optional but worth
-#    it: a two-minute screen recording of sign-in and the main flows is the
-#    single most effective thing in the notes.
-APP_REVIEW_EMAIL=... APP_REVIEW_PASSWORD=... APP_REVIEW_VIDEO_URL=... \
-  eas metadata:push
-
-# 2. Build. Production profile auto-increments the build number.
+# 1. Build. Production profile auto-increments the build number.
 eas build --platform ios --profile production
 
-# 3. Submit the build to App Store Connect (TestFlight + review).
+# 2. Upload the build to App Store Connect (TestFlight). This does not submit
+#    it for App Review.
 eas submit --platform ios --profile production --latest
+
+# 3. Listing + App Review notes, once App Store Connect has processed the
+#    build. APP_REVIEW_VIDEO_URL is optional but worth it: a two-minute screen
+#    recording of sign-in and the main flows is the single most effective
+#    thing in the notes.
+eas metadata:push   # with APP_REVIEW_EMAIL / APP_REVIEW_PASSWORD / APP_REVIEW_VIDEO_URL exported
+
+# 4. In App Store Connect, attach the processed build to the version and
+#    press "Submit for Review".
 ```
 
 Before pressing submit, run the pre-flight below. Most first-submission
@@ -49,15 +58,17 @@ rejections in this category are one of these.
       payments, Sign in with Apple, account deletion, on-device code execution,
       permissions).
 - [ ] No in-app button, link, or copy points at a web page where a plan can be
-      bought (guideline 3.1.1). Mentioning that plans are managed on the web is
-      fine; linking to it is not.
+      bought (guideline 3.1.1 outside the US storefront; we ship one build
+      worldwide). Mentioning that plans are managed on the web is fine;
+      linking to it is not.
 - [ ] Sign in with Apple is present on the sign-in screen whenever any other
       third-party sign-in is (4.8).
 - [ ] Account deletion works from Settings without leaving the app (5.1.1 v).
 - [ ] Every permission string in `app.config.ts` says what the feature does
       with the data, and the app works when the permission is denied.
-- [ ] Nothing new downloads or executes code on the device (2.5.2). The app is
-      a remote client; keep it that way in both behavior and wording.
+- [ ] Nothing new downloads or executes user or project code on the device
+      (2.5.2). The app renders streamed data and sends input to a remote
+      session; keep it that way in both behavior and wording.
 - [ ] Screenshots and description match the build (no features that are behind
       a flag or not in this build).
 
@@ -73,8 +84,9 @@ Work the list top to bottom; each step costs minutes and they compound.
 2. **If the rejection is wrong** (the reviewer could not find a permission that
    is plainly there, asked for Sign in with Apple that already exists, etc.)
    do the same thing: reply with a recording of the feature working, cite the
-   guideline section, and resubmit the identical build. Do not remove working
-   features to satisfy a misread.
+   guideline section, and resubmit. For a metadata-only rejection, fix the
+   metadata and resubmit the same build; upload a new build only when the
+   binary changes. Do not remove working features to satisfy a misread.
 3. **Ask for a call.** In the rejection thread (Resolution Center) request a
    phone call with App Review. They prefer approving the build over scheduling
    the call, and you end up with a named contact either way.
