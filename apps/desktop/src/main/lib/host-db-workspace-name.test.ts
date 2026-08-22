@@ -66,16 +66,13 @@ describe("getWorkspaceNameFromHostDbs", () => {
 	});
 
 	it("returns undefined when the host root cannot be enumerated", () => {
-		const locked = join(root, "locked");
-		mkdirSync(locked);
-		chmodSync(locked, 0o000);
-		try {
-			expect(
-				getWorkspaceNameFromHostDbs(worktreePath, openReadonly, locked),
-			).toBeUndefined();
-		} finally {
-			chmodSync(locked, 0o700);
-		}
+		// A regular file exists but is not a directory: readdirSync throws ENOTDIR
+		// regardless of the user's privileges.
+		const notADir = join(root, "not-a-dir");
+		writeFileSync(notADir, "");
+		expect(
+			getWorkspaceNameFromHostDbs(worktreePath, openReadonly, notADir),
+		).toBeUndefined();
 	});
 
 	it("skips unreadable DBs, stray files, and blank names", () => {
