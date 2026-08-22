@@ -36,15 +36,19 @@ interface RetentionTarget {
 	receivedAt: SQL;
 }
 
+/**
+ * automation_events is deliberately absent. Bounding it needs two index builds
+ * that take write locks on live ingest tables — one on automation_events
+ * itself, and one on automation_runs.event_id, which its ON DELETE SET NULL
+ * foreign key would otherwise resolve by scanning. Neither is worth doing now:
+ * the table was created on 2026-08-15, so no row reaches thirty days until
+ * mid-September, and the us-east-1 restore rebuilds both tables before then
+ * with those indexes created on the way in, for free. It joins this list there.
+ */
 const TARGETS: RetentionTarget[] = [
 	{
 		label: "webhook_events",
 		relation: sql`ingest.webhook_events`,
-		receivedAt: sql`received_at`,
-	},
-	{
-		label: "automation_events",
-		relation: sql`automation_events`,
 		receivedAt: sql`received_at`,
 	},
 ];
@@ -102,12 +106,18 @@ export async function POST(request: Request): Promise<Response> {
 	);
 	if (rejected) return rejected;
 
-	const deadline = Date.now() + TIME_BUDGET_MS;
+	// Sliced per target rather than shared, so the first table cannot spend the
+	// whole budget and leave the rest untouched. Moot at one target; not once a
+	// second joins, which is when it would be easy to miss.
+	const perTarget = Math.floor(TIME_BUDGET_MS / TARGETS.length);
 	const results: Record<string, { deleted: number; more: boolean }> = {};
 
 	for (const target of TARGETS) {
 		try {
-			results[target.label] = await deleteAgedRows(target, deadline);
+			results[target.label] = await deleteAgedRows(
+				target,
+				Date.now() + perTarget,
+			);
 		} catch (error) {
 			console.error(
 				`[ingest/enforce-retention] ${target.label} failed:`,
