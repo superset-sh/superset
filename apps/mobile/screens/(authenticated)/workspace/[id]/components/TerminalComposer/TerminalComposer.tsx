@@ -8,6 +8,7 @@ import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { usePromptInputAttachments } from "@/components/ai-elements/prompt-input";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { QUICK_KEYS, type TerminalQuickKey } from "./constants";
 import {
 	type TerminalAttachmentTarget,
@@ -82,6 +83,7 @@ export const TerminalComposer = forwardRef<
 
 	const attachments = usePromptInputAttachments();
 	const openAttachmentsSheet = useAttachmentsSheet();
+	const addPasted = usePasteAttachments();
 	const wasExpanded = useRef(false);
 	const writeAttachments = useWriteTerminalAttachments();
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,6 +159,7 @@ export const TerminalComposer = forwardRef<
 					wasExpanded.current = expanded;
 					onActiveChange?.(expanded);
 				}}
+				onPaste={addPasted}
 				onAttachmentsPress={() => {
 					const restore = wasExpanded.current;
 					openAttachmentsSheet({

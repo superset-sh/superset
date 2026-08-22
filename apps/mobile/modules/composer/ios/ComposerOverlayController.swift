@@ -30,6 +30,33 @@ final class ComposerPassthroughView: UIView {
   /// rather than mispositioning the composer.
   var interactiveFrame: CGRect = .zero
 
+  /// Files and images pasted into the composer.
+  ///
+  /// SwiftUI has no paste hook on iOS — `onPasteCommand` and `pasteDestination`
+  /// are both `@available(iOS, unavailable)`, and `PasteButton` is a button
+  /// rather than the edit menu. UIKit's route is a paste configuration, and the
+  /// responder chain is what makes it cheap: the text field stays exactly as it
+  /// is and keeps taking strings, while anything it cannot represent walks up
+  /// to this view instead. No editor of our own to maintain.
+  var onPaste: (([ComposerPastedItem]) -> Void)?
+
+  override var pasteConfiguration: UIPasteConfiguration? {
+    get {
+      UIPasteConfiguration(
+        acceptableTypeIdentifiers: ComposerPastedItem.acceptableTypeIdentifiers
+      )
+    }
+    set {}
+  }
+
+  override func paste(itemProviders: [NSItemProvider]) {
+    Task { @MainActor in
+      let items = await ComposerPastedItem.load(from: itemProviders)
+      guard !items.isEmpty else { return }
+      onPaste?(items)
+    }
+  }
+
   override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
     guard interactiveFrame.contains(convert(point, to: nil)) else { return nil }
     return super.hitTest(point, with: event)
@@ -53,6 +80,9 @@ final class ComposerOverlayController {
     passthrough.backgroundColor = .clear
     model.onInteractiveFrameChange = { [weak passthrough] frame in
       passthrough?.interactiveFrame = frame
+    }
+    passthrough.onPaste = { [weak model] items in
+      model?.onPaste?(items)
     }
     let controller = UIHostingController(rootView: ComposerRootView(model: model))
     controller.view.backgroundColor = .clear

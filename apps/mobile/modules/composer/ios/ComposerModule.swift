@@ -14,6 +14,7 @@ public final class ComposerModule: Module {
         "onModelPress",
         "onChipPress",
         "onQuickKeyPress",
+        "onPaste",
         "onHeightChange",
         "onRemoveAttachment",
         "onAttachmentPress",
@@ -120,6 +121,7 @@ final class ComposerAnchorView: ExpoView {
   private let onModelPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
+  private let onPaste = EventDispatcher()
   private let onHeightChange = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
   private let onAttachmentPress = EventDispatcher()
@@ -136,6 +138,13 @@ final class ComposerAnchorView: ExpoView {
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
     overlay.model.onQuickKeyPress = { [weak self] id in
       self?.onQuickKeyPress(["id": id])
+    }
+    overlay.model.onPaste = { [weak self] items in
+      self?.onPaste([
+        "items": items.map { item in
+          ["uri": item.uri, "name": item.name, "kind": item.isImage ? "image" : "file"]
+        }
+      ])
     }
     overlay.model.onHeightChange = { [weak self] height in
       self?.onHeightChange(["height": height])

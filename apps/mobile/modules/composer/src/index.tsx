@@ -27,6 +27,7 @@ interface NativeComposerViewProps {
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
 	onHeightChange?: (event: { nativeEvent: { height: number } }) => void;
+	onPaste?: (event: { nativeEvent: { items: ComposerPastedItem[] } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
 	onAttachmentPress?: (event: { nativeEvent: { id: string } }) => void;
 	onExpandedChange?: (event: { nativeEvent: { expanded: boolean } }) => void;
@@ -97,6 +98,16 @@ export interface ComposerQuickKey {
 	label?: string;
 	/** SF Symbol name, e.g. `arrow.up`. */
 	symbol?: string;
+}
+
+/**
+ * A file or image pasted into the field, already written to disk by the native
+ * side — the tray takes URIs, the same shape the pickers produce.
+ */
+export interface ComposerPastedItem {
+	uri: string;
+	name: string;
+	kind: "image" | "file";
 }
 
 export interface ComposerHandle {
@@ -170,6 +181,13 @@ export interface ComposerProps {
 	 * the caller already tracks and gets a duration and curve for.
 	 */
 	onHeightChange?: (height: number) => void;
+	/**
+	 * Files and images pasted into the field. A plain text field only ever takes
+	 * strings, so the composer owns its text view to offer Paste for these and
+	 * writes them out; adding them to the tray is the caller's job, because the
+	 * tray is the caller's.
+	 */
+	onPaste?: (items: ComposerPastedItem[]) => void;
 	onRemoveAttachment?: (id: string) => void;
 	/**
 	 * Fires only for non-image attachments. Images open in the composer's own
@@ -215,6 +233,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onChipPress,
 			onQuickKeyPress,
 			onHeightChange,
+			onPaste,
 			onRemoveAttachment,
 			onAttachmentPress,
 			onExpandedChange,
@@ -251,6 +270,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
 				onHeightChange={(event) => onHeightChange?.(event.nativeEvent.height)}
+				onPaste={(event) => onPaste?.(event.nativeEvent.items)}
 				onRemoveAttachment={(event) =>
 					onRemoveAttachment?.(event.nativeEvent.id)
 				}

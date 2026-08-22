@@ -1,1 +1,0 @@
-export { RecordingPill } from "./RecordingPill";

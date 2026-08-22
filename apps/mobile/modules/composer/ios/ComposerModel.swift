@@ -1,5 +1,6 @@
 import Observation
 import SwiftUI
+import UIKit
 
 /// State and callbacks shared between the Expo view and the SwiftUI tree.
 ///
@@ -82,6 +83,10 @@ final class ComposerModel {
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
+  /// Files and images pasted into the field, already written to disk. The tray
+  /// lives in React Native, so the composer hands over URIs and lets it add
+  /// them the same way the pickers do.
+  @ObservationIgnored var onPaste: (([ComposerPastedItem]) -> Void)?
   /// How much room the composer occupies above the bottom of the safe area —
   /// its card, the quick keys, and the gaps between them.
   ///

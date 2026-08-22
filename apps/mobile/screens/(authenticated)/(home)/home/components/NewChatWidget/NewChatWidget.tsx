@@ -14,6 +14,7 @@ import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
+import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import {
 	type ChatTarget,
 	useChatTargetStore,
@@ -45,6 +46,7 @@ export function NewChatWidget({
 	const wasExpanded = useRef(false);
 	const attachments = usePromptInputAttachments();
 	const openAttachmentsSheet = useAttachmentsSheet();
+	const addPasted = usePasteAttachments();
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -244,6 +246,7 @@ export function NewChatWidget({
 			onExpandedChange={(expanded) => {
 				wasExpanded.current = expanded;
 			}}
+			onPaste={addPasted}
 			onAttachmentsPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 				const restore = wasExpanded.current;
