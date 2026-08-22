@@ -199,6 +199,17 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "polygraph session start",
 		promptCommand: "polygraph session start --",
 	}),
+	createBuiltinTerminalAgent({
+		id: "hermes",
+		label: "Hermes",
+		description:
+			"Nous Research's autonomous agent for coding, research, and terminal workflows.",
+		command: "hermes chat --yolo",
+		promptCommand: "hermes chat --yolo -q",
+		promptCommandSuffix: "; hermes chat --yolo -c",
+		resumeCommand: "hermes chat --yolo -r",
+		nonInteractiveCommand: "hermes chat -q",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =

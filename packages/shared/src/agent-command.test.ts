@@ -97,6 +97,34 @@ describe("kimi agent registration", () => {
 	});
 });
 
+describe("hermes agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("hermes");
+		expect(AGENT_LABELS.hermes).toBe("Hermes");
+	});
+
+	it("runs prompt launches as a one-shot query and continues them in the chat", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "hermes-1234",
+			agent: "hermes",
+		});
+
+		expect(command).toStartWith(
+			"hermes chat --yolo -q \"$(cat <<'SUPERSET_PROMPT_hermes1234'",
+		);
+		expect(command).toEndWith('\n)" ; hermes chat --yolo -c');
+	});
+
+	it("derives host preset prompt and resume args from the base command", () => {
+		const preset = getPresetById("hermes");
+		expect(preset?.command).toBe("hermes");
+		expect(preset?.args).toEqual(["chat", "--yolo"]);
+		expect(preset?.promptArgs).toEqual(["-q"]);
+		expect(preset?.resumeArgs).toEqual(["-r"]);
+	});
+});
+
 describe("grok agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("grok");
