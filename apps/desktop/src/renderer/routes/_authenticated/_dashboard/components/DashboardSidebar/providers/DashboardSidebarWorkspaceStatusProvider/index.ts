@@ -4,4 +4,5 @@ export {
 	type SidebarWorkspaceStatusEntry,
 	useMarkSidebarWorkspaceTerminalsSeen,
 	useSidebarWorkspaceStatus,
+	useSidebarWorkspacesHighestStatus,
 } from "./DashboardSidebarWorkspaceStatusProvider";

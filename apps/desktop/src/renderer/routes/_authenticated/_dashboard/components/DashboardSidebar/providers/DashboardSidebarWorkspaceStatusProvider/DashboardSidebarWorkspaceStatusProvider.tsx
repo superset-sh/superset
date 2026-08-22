@@ -367,6 +367,38 @@ export function useSidebarWorkspaceStatus(
 }
 
 /**
+ * Highest-priority status across several workspaces — what a collapsed
+ * lineage parent shows for the children it hides. Subscribes to each id and
+ * snapshots a primitive, so it re-renders only when the rolled-up answer
+ * changes.
+ */
+export function useSidebarWorkspacesHighestStatus(
+	workspaceIds: readonly string[],
+): ActivePaneStatus | null {
+	const store = useSidebarWorkspaceStatusStore();
+	const key = workspaceIds.join("\u0000");
+	const ids = useMemo(() => (key ? key.split("\u0000") : []), [key]);
+	return useSyncExternalStore(
+		useCallback(
+			(listener) => {
+				const unsubscribes = ids.map((id) => store.subscribe(id, listener));
+				return () => {
+					for (const unsubscribe of unsubscribes) unsubscribe();
+				};
+			},
+			[store, ids],
+		),
+		useCallback(
+			() =>
+				getHighestPriorityStatus(
+					ids.map((id) => store.get(id).status ?? undefined),
+				),
+			[store, ids],
+		),
+	);
+}
+
+/**
  * Marks every terminal with a live agent binding in the workspace as seen,
  * clearing derived `review` statuses. Reads bindings from the store at call
  * time, so callers don't subscribe to binding updates just to hold this.

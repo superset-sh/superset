@@ -279,6 +279,10 @@ export function useDashboardSidebarData() {
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 					pinnedAt: sidebarWorkspaces.sidebarState.pinnedAt,
 					lineageCollapsed: sidebarWorkspaces.sidebarState.lineageCollapsed,
+					lineageGuides: [],
+					lineageGutter: false,
+					lineageDescendantIds: [],
+					lineageAncestorIds: [],
 				})),
 		[collections],
 	);
@@ -304,6 +308,10 @@ export function useDashboardSidebarData() {
 						pinnedAt: localState.pinnedAt,
 						parentWorkspaceId: workspace.parentWorkspaceId ?? null,
 						lineageCollapsed: localState.lineageCollapsed ?? false,
+						lineageGuides: [],
+						lineageGutter: false,
+						lineageDescendantIds: [],
+						lineageAncestorIds: [],
 					},
 				];
 			}),
@@ -357,6 +365,10 @@ export function useDashboardSidebarData() {
 					parentWorkspaceId: workspace.parentWorkspaceId ?? null,
 					// Auto-included mains have no local-state row to collapse with.
 					lineageCollapsed: false,
+					lineageGuides: [],
+					lineageGutter: false,
+					lineageDescendantIds: [],
+					lineageAncestorIds: [],
 				})),
 		[hostWorkspaces],
 	);

@@ -56,7 +56,7 @@ export function DashboardSidebarWorkspaceChips({
 			// Matches the row's lineage indent (16px per level).
 			style={
 				lineageDepth > 0
-					? { paddingLeft: (isInSection ? 50 : 42) + lineageDepth * 16 }
+					? { paddingLeft: (isInSection ? 50 : 42) + lineageDepth * 20 }
 					: undefined
 			}
 			onMouseDown={(event) => event.stopPropagation()}

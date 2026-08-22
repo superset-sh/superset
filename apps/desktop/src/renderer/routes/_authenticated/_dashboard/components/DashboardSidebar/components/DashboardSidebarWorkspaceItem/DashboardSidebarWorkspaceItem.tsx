@@ -1,3 +1,4 @@
+import { useMatchRoute } from "@tanstack/react-router";
 import {
 	type KeyboardEvent,
 	type MouseEvent,
@@ -9,12 +10,16 @@ import {
 } from "react";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { useLineageThreadHover } from "renderer/stores/lineage-thread-hover";
 import {
 	useDashboardSidebarHoverActions,
 	useDashboardSidebarIsHovered,
 } from "../../providers/DashboardSidebarHoverProvider";
 import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
-import { useSidebarWorkspaceStatus } from "../../providers/DashboardSidebarWorkspaceStatusProvider";
+import {
+	useSidebarWorkspaceStatus,
+	useSidebarWorkspacesHighestStatus,
+} from "../../providers/DashboardSidebarWorkspaceStatusProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
@@ -24,6 +29,8 @@ import {
 } from "./components/DashboardSidebarWorkspaceBulkContextMenu";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
+
+const EMPTY_IDS: string[] = [];
 
 interface DashboardSidebarWorkspaceItemProps {
 	workspace: DashboardSidebarWorkspace;
@@ -64,6 +71,34 @@ export function DashboardSidebarWorkspaceItem({
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
+	// Lineage thread state: keep a parent lit while a descendant is the
+	// active workspace, roll hidden children's status up onto a collapsed
+	// parent, and brighten a whole thread's rails while the pointer is in it.
+	const matchRoute = useMatchRoute();
+	const activeMatch = matchRoute({
+		to: "/v2-workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const activeWorkspaceId = activeMatch ? activeMatch.workspaceId : null;
+	const isThreadActive =
+		activeWorkspaceId !== null &&
+		workspace.lineageDescendantIds.includes(activeWorkspaceId);
+	const collapsedStatus = useSidebarWorkspacesHighestStatus(
+		workspace.lineageCollapsed ? workspace.lineageDescendantIds : EMPTY_IDS,
+	);
+	const threadRootId =
+		workspace.lineageAncestorIds[0] ??
+		(workspace.lineageChildCount > 0 ? workspace.id : null);
+	const isThreadHovered = useLineageThreadHover(
+		(state) =>
+			threadRootId !== null && state.hoveredThreadRootId === threadRootId,
+	);
+	const setHoveredThreadRoot = useLineageThreadHover(
+		(state) => state.setHoveredThreadRoot,
+	);
+	const clearHoveredThreadRoot = useLineageThreadHover(
+		(state) => state.clearHoveredThreadRoot,
+	);
 	const {
 		cancelRename,
 		pendingName,
@@ -128,20 +163,35 @@ export function DashboardSidebarWorkspaceItem({
 
 	const handleMouseEnter = useCallback(
 		(event: React.MouseEvent) => {
+			if (threadRootId !== null) setHoveredThreadRoot(threadRootId);
 			if (!hoverEligible || !rowRef.current) return;
 			hoverRequestOpen(id, rowRef.current, hoverPayload, {
 				x: event.clientX,
 				y: event.clientY,
 			});
 		},
-		[hoverEligible, hoverRequestOpen, id, hoverPayload],
+		[
+			hoverEligible,
+			hoverRequestOpen,
+			id,
+			hoverPayload,
+			threadRootId,
+			setHoveredThreadRoot,
+		],
 	);
 	const handleMouseLeave = useCallback(
 		(event: React.MouseEvent) => {
+			if (threadRootId !== null) clearHoveredThreadRoot(threadRootId);
 			if (!hoverEligible) return;
 			hoverRequestClose(id, { x: event.clientX, y: event.clientY });
 		},
-		[hoverEligible, hoverRequestClose, id],
+		[
+			hoverEligible,
+			hoverRequestClose,
+			id,
+			threadRootId,
+			clearHoveredThreadRoot,
+		],
 	);
 
 	const isHovered = useDashboardSidebarIsHovered(id);
@@ -305,6 +355,9 @@ export function DashboardSidebarWorkspaceItem({
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
+				collapsedStatus={collapsedStatus}
+				isThreadActive={isThreadActive}
+				isThreadHovered={isThreadHovered}
 				isBulkSelectable={onSelectionClick != null}
 				isSelected={isSelected}
 				onClick={handleExpandedClick}

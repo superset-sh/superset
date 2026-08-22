@@ -36,7 +36,22 @@ export function nestSidebarWorkspaceLineage(
 
 	const result: DashboardSidebarWorkspace[] = [];
 	const emitted = new Set<string>();
-	const emit = (workspace: DashboardSidebarWorkspace, depth: number) => {
+	// Every id below a node, collapsed or not, cycle-guarded by `seen`.
+	const collectDescendantIds = (id: string, seen: Set<string>): string[] => {
+		const ids: string[] = [];
+		for (const child of childrenByParentId.get(id) ?? []) {
+			if (seen.has(child.id)) continue;
+			seen.add(child.id);
+			ids.push(child.id, ...collectDescendantIds(child.id, seen));
+		}
+		return ids;
+	};
+	const emit = (
+		workspace: DashboardSidebarWorkspace,
+		depth: number,
+		guides: boolean[],
+		ancestors: string[],
+	) => {
 		if (emitted.has(workspace.id)) return;
 		emitted.add(workspace.id);
 		const children = childrenByParentId.get(workspace.id) ?? [];
@@ -44,6 +59,13 @@ export function nestSidebarWorkspaceLineage(
 			...workspace,
 			lineageDepth: depth,
 			lineageChildCount: children.length,
+			lineageGuides: guides,
+			lineageGutter: true,
+			lineageDescendantIds: collectDescendantIds(
+				workspace.id,
+				new Set([workspace.id]),
+			),
+			lineageAncestorIds: ancestors,
 		});
 		if (workspace.lineageCollapsed) {
 			// Hidden, not orphaned: mark the subtree emitted so descendants
@@ -58,15 +80,22 @@ export function nestSidebarWorkspaceLineage(
 			markHidden(workspace);
 			return;
 		}
-		for (const child of children) {
-			emit(child, depth + 1);
-		}
+		children.forEach((child, index) => {
+			// The rail under this row's chevron continues past the child only
+			// while later siblings remain below it.
+			emit(
+				child,
+				depth + 1,
+				[...guides, index < children.length - 1],
+				[...ancestors, workspace.id],
+			);
+		});
 	};
-	for (const root of roots) emit(root, 0);
+	for (const root of roots) emit(root, 0, [], []);
 	// Members of a cycle are reachable from no root; re-promote them so
 	// malformed lineage can never hide a row.
 	for (const workspace of workspaces) {
-		if (!emitted.has(workspace.id)) emit(workspace, 0);
+		if (!emitted.has(workspace.id)) emit(workspace, 0, [], []);
 	}
 	return result;
 }

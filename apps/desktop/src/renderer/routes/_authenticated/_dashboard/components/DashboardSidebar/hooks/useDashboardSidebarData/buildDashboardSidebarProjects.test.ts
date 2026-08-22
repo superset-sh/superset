@@ -247,6 +247,58 @@ describe("lineage nesting", () => {
 		expect(rendered).toEqual(["root:0", "kid-a:1", "grandkid:2", "kid-b:1"]);
 	});
 
+	it("marks which rail columns continue past each row (├ vs └)", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "root", tabOrder: 1 }),
+				makeWorkspace({ id: "kid-a", tabOrder: 2, parentWorkspaceId: "root" }),
+				makeWorkspace({ id: "kid-b", tabOrder: 4, parentWorkspaceId: "root" }),
+				makeWorkspace({
+					id: "grandkid",
+					tabOrder: 3,
+					parentWorkspaceId: "kid-a",
+				}),
+			],
+		});
+
+		const rendered = renderedWorkspaces(project, (w) =>
+			w.lineageGuides.map((g) => (g ? "|" : ".")).join(""),
+		);
+		// kid-a has a later sibling, so its column continues through the
+		// grandkid's row; the grandkid is last under kid-a (└).
+		expect(rendered).toEqual(["root:", "kid-a:|", "grandkid:|.", "kid-b:."]);
+	});
+
+	it("exposes thread membership: gutter, descendants, ancestors", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "root", tabOrder: 1 }),
+				makeWorkspace({ id: "kid", tabOrder: 2, parentWorkspaceId: "root" }),
+				makeWorkspace({
+					id: "grandkid",
+					tabOrder: 3,
+					parentWorkspaceId: "kid",
+				}),
+				makeWorkspace({ id: "loner", tabOrder: 4 }),
+			],
+		});
+
+		const byId = new Map(
+			project.children.flatMap((child) =>
+				child.type === "workspace"
+					? [[child.workspace.id, child.workspace]]
+					: [],
+			),
+		);
+		// Every row in a nested container reserves the chevron gutter.
+		expect([...byId.values()].every((w) => w.lineageGutter)).toBe(true);
+		expect(byId.get("root")?.lineageDescendantIds).toEqual(["kid", "grandkid"]);
+		expect(byId.get("kid")?.lineageDescendantIds).toEqual(["grandkid"]);
+		expect(byId.get("loner")?.lineageDescendantIds).toEqual([]);
+		expect(byId.get("grandkid")?.lineageAncestorIds).toEqual(["root", "kid"]);
+		expect(byId.get("loner")?.lineageAncestorIds).toEqual([]);
+	});
+
 	it("re-roots a child whose parent is not rendered in the same container", () => {
 		const [project] = build({
 			sidebarSections: [makeSection({ id: "section-1", tabOrder: 1 })],

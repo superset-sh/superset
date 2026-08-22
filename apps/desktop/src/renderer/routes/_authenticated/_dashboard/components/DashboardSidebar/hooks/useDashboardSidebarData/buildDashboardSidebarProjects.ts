@@ -114,6 +114,10 @@ function decorateSidebarWorkspace(
 		lineageDepth: 0,
 		lineageChildCount: 0,
 		lineageCollapsed: workspace.lineageCollapsed,
+		lineageGuides: [],
+		lineageGutter: false,
+		lineageDescendantIds: [],
+		lineageAncestorIds: [],
 	};
 }
 

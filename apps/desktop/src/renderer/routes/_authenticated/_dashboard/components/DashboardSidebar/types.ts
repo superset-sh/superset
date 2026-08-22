@@ -59,6 +59,17 @@ export interface DashboardSidebarWorkspace {
 	lineageChildCount: number;
 	/** True when this row's child subtree is collapsed in the sidebar. */
 	lineageCollapsed: boolean;
+	/** One flag per ancestor rail column (index = depth level): true when
+	 *  that rail continues past this row, i.e. the ancestor at that level
+	 *  has later siblings. Drives ├ vs └ connectors. Empty for roots. */
+	lineageGuides: boolean[];
+	/** True for every row of a container that has any nesting: rows reserve a
+	 *  leading chevron gutter so icons stay aligned between parents and leaves. */
+	lineageGutter: boolean;
+	/** Every descendant id (rendered or collapsed); empty for leaves. */
+	lineageDescendantIds: string[];
+	/** Ancestor ids from the thread root down to the direct parent. */
+	lineageAncestorIds: string[];
 }
 
 /**

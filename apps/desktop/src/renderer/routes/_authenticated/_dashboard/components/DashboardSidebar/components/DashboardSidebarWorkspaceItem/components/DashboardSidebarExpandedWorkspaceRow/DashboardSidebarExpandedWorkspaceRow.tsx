@@ -2,6 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import {
 	type ComponentPropsWithoutRef,
+	Fragment,
 	forwardRef,
 	type KeyboardEventHandler,
 	type MouseEventHandler,
@@ -18,6 +19,7 @@ import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
@@ -27,6 +29,16 @@ import type {
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
 import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
+
+/** Horizontal step per lineage level (px); matches common file trees. */
+const LINEAGE_STEP = 20;
+/** Rows are a fixed 32px tall with the icon centred, so the elbow sits at 16px
+ *  from the card top regardless of the chips strip below the row. */
+const LINEAGE_ICON_CENTER_PX = 16;
+/** The chevron gutter is a size-4 slot (+2px gap) ahead of the icon; rails
+ *  hang from the chevron's centre, and a parent's rail leaves just below it. */
+const LINEAGE_GUTTER_CENTER_PX = 8;
+const LINEAGE_CHEVRON_BOTTOM_PX = 25;
 
 const PR_STATE_LABEL: Record<
 	DashboardSidebarWorkspacePullRequest["state"],
@@ -49,6 +61,12 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
 	isInSection?: boolean;
+	/** Rolled-up status of the children a collapsed parent hides. */
+	collapsedStatus?: ActivePaneStatus | null;
+	/** A descendant is the active workspace: keep the thread's parent lit. */
+	isThreadActive?: boolean;
+	/** The pointer is somewhere in this row's thread: brighten its rails. */
+	isThreadHovered?: boolean;
 	isBulkSelectable?: boolean;
 	isSelected?: boolean;
 	/** Present when rendered in the Pinned section: shows the project avatar. */
@@ -80,6 +98,9 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			diffStats,
 			workspaceStatus = null,
 			isInSection = false,
+			collapsedStatus = null,
+			isThreadActive = false,
+			isThreadHovered = false,
 			isBulkSelectable = false,
 			isSelected = false,
 			pinnedContext,
@@ -110,6 +131,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
 		const isLineageParent = workspace.lineageChildCount > 0;
+		const railColor = isThreadHovered
+			? "bg-muted-foreground/80"
+			: "bg-muted-foreground/40";
+		const lineageBase = isInSection ? 32 : 12;
 		const handleLineageChevronClick: MouseEventHandler<HTMLButtonElement> = (
 			event,
 		) => {
@@ -148,6 +173,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				}}
 				className={cn(
 					"relative mx-2 rounded-md text-left text-sm transition-colors",
+					isThreadActive &&
+						!isActive &&
+						!isSelected &&
+						"ring-1 ring-inset ring-foreground/15",
 					isActive && "bg-fill-selected",
 					isSelected && "bg-fill-selected",
 					onClick &&
@@ -161,19 +190,71 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				data-selected={isSelected || undefined}
 				{...props}
 			>
-				{/* Lineage guide rails: one thin vertical line per ancestor level,
-				    aligned under that ancestor's icon column (file-tree styling).
-				    Per-row segments join into continuous lines across siblings. */}
+				{/* Lineage connectors, file-tree style: one rail column per ancestor
+				    level, hanging from that ancestor's chevron gutter. The row's own
+				    column draws ├ (rail continues to a later sibling) or └ (last
+				    child) plus an elbow tick into this row; outer columns only draw
+				    while that ancestor still has siblings below. z-10 keeps the
+				    lines on top of the selected/hover card fill. */}
 				{workspace.lineageDepth > 0 &&
-					Array.from({ length: workspace.lineageDepth }, (_, level) => (
-						<span
-							// biome-ignore lint/suspicious/noArrayIndexKey: the index IS the identity — one rail per fixed ancestor level
-							key={level}
-							aria-hidden
-							className="pointer-events-none absolute inset-y-0 w-px bg-border"
-							style={{ left: (isInSection ? 32 : 12) + level * 16 + 9 }}
-						/>
-					))}
+					Array.from({ length: workspace.lineageDepth }, (_, level) => {
+						const x =
+							lineageBase + level * LINEAGE_STEP + LINEAGE_GUTTER_CENTER_PX;
+						const isOwnColumn = level === workspace.lineageDepth - 1;
+						const continues = workspace.lineageGuides[level] ?? false;
+						if (!isOwnColumn && !continues) return null;
+						return (
+							// biome-ignore lint/suspicious/noArrayIndexKey: the index IS the identity — one column per fixed ancestor level
+							<Fragment key={level}>
+								<span
+									aria-hidden
+									className={cn(
+										"pointer-events-none absolute z-10 w-px transition-colors",
+										railColor,
+										continues ? "inset-y-0" : "top-0",
+									)}
+									style={{
+										left: x,
+										height: continues ? undefined : LINEAGE_ICON_CENTER_PX,
+									}}
+								/>
+								{isOwnColumn && (
+									<span
+										aria-hidden
+										className={cn(
+											"pointer-events-none absolute z-10 h-px transition-colors",
+											railColor,
+										)}
+										style={{
+											left: x,
+											top: LINEAGE_ICON_CENTER_PX,
+											// Into this row's own chevron when it is a parent,
+											// else all the way to its icon past the empty gutter.
+											width: isLineageParent ? 9 : 27,
+										}}
+									/>
+								)}
+							</Fragment>
+						);
+					})}
+				{/* Expanded parent: the rail leaves its chevron, through the chips
+				    strip and the selected fill, into the children below. */}
+				{isLineageParent && !workspace.lineageCollapsed && !isPending && (
+					<span
+						aria-hidden
+						className={cn(
+							"pointer-events-none absolute bottom-0 z-10 w-px transition-colors",
+							railColor,
+						)}
+						style={{
+							left:
+								lineageBase +
+								workspace.lineageDepth * LINEAGE_STEP +
+								LINEAGE_GUTTER_CENTER_PX,
+							top: LINEAGE_CHEVRON_BOTTOM_PX,
+						}}
+					/>
+				)}
 				{/* biome-ignore lint/a11y/useSemanticElements: The row contains nested action buttons, so it cannot be a native button. */}
 				<div
 					role="button"
@@ -200,11 +281,40 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						workspace.lineageDepth > 0
 							? {
 									paddingLeft:
-										(isInSection ? 32 : 12) + workspace.lineageDepth * 16,
+										lineageBase + workspace.lineageDepth * LINEAGE_STEP,
 								}
 							: undefined
 					}
 				>
+					{workspace.lineageGutter &&
+						(isLineageParent && !isPending ? (
+							<button
+								type="button"
+								aria-expanded={!workspace.lineageCollapsed}
+								aria-label={
+									workspace.lineageCollapsed
+										? `Expand ${workspace.lineageChildCount} child workspaces`
+										: "Collapse child workspaces"
+								}
+								onClick={handleLineageChevronClick}
+								onKeyDown={(event) => {
+									if (event.key === "Enter" || event.key === " ") {
+										event.stopPropagation();
+									}
+								}}
+								className="mr-0.5 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+							>
+								<HiChevronRight
+									className={cn(
+										"size-3.5 transition-transform",
+										!workspace.lineageCollapsed && "rotate-90",
+									)}
+								/>
+							</button>
+						) : (
+							// Leaves keep the slot so icons line up with parents.
+							<span aria-hidden className="mr-0.5 size-4 shrink-0" />
+						))}
 					{isSelected ? (
 						<span className="mr-2.5 flex size-5 shrink-0 items-center justify-center text-foreground">
 							<HiCheck className="size-3.5" />
@@ -240,63 +350,16 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									</button>
 								) : (
 									<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
-										{isLineageParent && !isPending ? (
-											// Expanded: same affordance as the project header — the
-											// status icon swaps to a collapse chevron on row hover.
-											// Collapsed: the chevron is persistent (file-tree
-											// closed-folder convention), so hidden children stay
-											// discoverable at rest.
-											<button
-												type="button"
-												aria-expanded={!workspace.lineageCollapsed}
-												aria-label={
-													workspace.lineageCollapsed
-														? `Expand ${workspace.lineageChildCount} child workspaces`
-														: "Collapse child workspaces"
-												}
-												onClick={handleLineageChevronClick}
-												onKeyDown={(event) => {
-													if (event.key === "Enter" || event.key === " ") {
-														event.stopPropagation();
-													}
-												}}
-												className="flex size-5 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
-											>
-												{!workspace.lineageCollapsed && (
-													<span className="contents group-hover:hidden group-focus-within:hidden">
-														<DashboardSidebarWorkspaceIcon
-															hostType={hostType}
-															workspaceType={workspace.type}
-															hostIsOnline={hostIsOnline}
-															isActive={isActive}
-															variant="expanded"
-															workspaceStatus={workspaceStatus}
-															isCreatePending={isPending}
-															pullRequestState={null}
-														/>
-													</span>
-												)}
-												<HiChevronRight
-													className={cn(
-														"size-4 text-muted-foreground transition-transform",
-														workspace.lineageCollapsed
-															? "block"
-															: "hidden rotate-90 group-hover:block group-focus-within:block",
-													)}
-												/>
-											</button>
-										) : (
-											<DashboardSidebarWorkspaceIcon
-												hostType={hostType}
-												workspaceType={workspace.type}
-												hostIsOnline={hostIsOnline}
-												isActive={isActive}
-												variant="expanded"
-												workspaceStatus={workspaceStatus}
-												isCreatePending={isPending}
-												pullRequestState={null}
-											/>
-										)}
+										<DashboardSidebarWorkspaceIcon
+											hostType={hostType}
+											workspaceType={workspace.type}
+											hostIsOnline={hostIsOnline}
+											isActive={isActive}
+											variant="expanded"
+											workspaceStatus={workspaceStatus}
+											isCreatePending={isPending}
+											pullRequestState={null}
+										/>
 									</div>
 								)}
 							</TooltipTrigger>
@@ -372,20 +435,25 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						) : (
 							<span
 								className={cn(
-									"truncate text-[13px] leading-tight transition-colors",
+									"flex min-w-0 items-center text-[13px] leading-tight transition-colors",
 									isActive || isSelected
 										? "text-foreground"
 										: "text-foreground/80",
 								)}
 							>
-								{name || branch}
+								<span className="truncate">{name || branch}</span>
 								{isLineageParent && workspace.lineageCollapsed && (
-									// aria-hidden: the chevron button already announces
-									// "Expand N child workspaces" — this is its visual twin.
+									// aria-hidden: the gutter chevron already announces
+									// "Expand N child workspaces" — this is its visual twin,
+									// plus the worst status among the hidden children so a
+									// child waiting on input can't disappear into a fold.
 									<span
 										aria-hidden
-										className="ml-1.5 text-[10px] tabular-nums text-muted-foreground"
+										className="ml-1.5 flex shrink-0 items-center gap-1 text-[10px] tabular-nums text-muted-foreground"
 									>
+										{collapsedStatus && (
+											<StatusIndicator status={collapsedStatus} />
+										)}
 										+{workspace.lineageChildCount}
 									</span>
 								)}
