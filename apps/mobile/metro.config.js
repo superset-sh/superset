@@ -34,6 +34,7 @@ config.resolver.unstable_enablePackageExports = true;
 // Resolve local Expo Modules (modules/ dir)
 config.resolver.extraNodeModules = {
 	"@superset/alert-prompt": path.resolve(projectRoot, "modules/alert-prompt"),
+	"@superset/composer": path.resolve(projectRoot, "modules/composer"),
 	"@superset/attachments-sheet": path.resolve(
 		projectRoot,
 		"modules/attachments-sheet",
@@ -45,10 +46,40 @@ config.resolver.extraNodeModules = {
 // react-native-worklets/.worklets/* modules and injects their entry points.
 config = getBundleModeMetroConfig(config);
 
-module.exports = withStorybook(
-	withUniwindConfig(config, {
-		cssEntryFile: "./global.css",
-		dtsFile: "./uniwind-types.d.ts",
-	}),
-	{ configPath: "./.rnstorybook" },
+config = withUniwindConfig(config, {
+	cssEntryFile: "./global.css",
+	dtsFile: "./uniwind-types.d.ts",
+});
+
+// uniwind and worklets Bundle Mode both alias `react-native`, and neither knows
+// about the other.
+//
+// Bundle Mode points every `react-native` import at its own shim, except the
+// shim's own import — that one is meant to fall through to the real module.
+// uniwind has the same kind of guard, but it recognises react-native internals
+// by looking for `/react-native/` in the importer's path, and the shim lives in
+// `/react-native-worklets/`. So the fall-through lands in uniwind's component
+// index instead, whose every export is a getter that re-requires
+// `react-native` — straight back to the shim. Startup then dies in an infinite
+// `get NativeModules` recursion before AppRegistry ever runs.
+//
+// Resolve the shim's own import to the real module and the cycle can't form.
+// Everything else still goes through both resolvers untouched.
+const workletsShimPath = path.join(
+	path.dirname(require.resolve("react-native-worklets/package.json")),
+	"bundleMode",
+	"shims",
+	"reactNativeShim.js",
 );
+const composedResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+	if (
+		moduleName === "react-native" &&
+		context.originModulePath === workletsShimPath
+	) {
+		return context.resolveRequest(context, moduleName, platform);
+	}
+	return composedResolveRequest(context, moduleName, platform);
+};
+
+module.exports = withStorybook(config, { configPath: "./.rnstorybook" });

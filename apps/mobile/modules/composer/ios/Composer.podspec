@@ -3,10 +3,10 @@ require 'json'
 package = JSON.parse(File.read(File.join(__dir__, '..', 'package.json')))
 
 Pod::Spec.new do |s|
-  s.name           = 'AlertPrompt'
+  s.name           = 'Composer'
   s.version        = package['version']
-  s.summary        = 'Native text prompt alert for Superset'
-  s.description    = 'UIAlertController prompt with text selection support'
+  s.summary        = 'Native composer for Superset'
+  s.description    = 'Full-screen SwiftUI composer overlay that tracks the keyboard'
   s.license        = 'MIT'
   s.author         = 'Superset'
   s.homepage       = 'https://superset.sh'

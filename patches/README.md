@@ -96,28 +96,6 @@ from the SUPER-1793 report into 0.20.0-beta.297, and hunks 1–3 are candidates
 for upstreaming. If upstream ships them, delete the patch, the
 `patchedDependencies` entry, and update (not delete) the guard test.
 
-## expo-router (`expo-router@<version>.patch`)
-
-**Why:** on iOS, `Link.Menu` adds a `UIContextMenuInteraction` to the trigger
-view, but nothing cancels react-native's in-flight touch when the menu opens.
-Pressability keeps tracking the finger, so lifting it after the menu presents
-still delivers `onPress` — long-pressing a home workspace row opened the menu
-*and* navigated into the workspace.
-
-**What it changes** (`ios/LinkPreview/LinkPreviewNativeView.swift`): when the
-interaction asks for a menu configuration, find the nearest
-`RCTSurfaceTouchHandler` up the view chain and toggle it off/on, which makes
-UIKit deliver `touchesCancelled` for the press. Taken verbatim from upstream
-expo-router 56.2.19 (`cancelReactNativeTouches`, released 2026-08-17). It is a
-native change: a dev client needs a fresh native build to pick it up.
-
-**Guard test:** `apps/mobile/expo-router-context-menu-patch.test.ts`.
-
-**Removing:** the next Expo SDK 56 batch bump (expo-router ≥ 56.2.19, paired
-with its same-day expo-modules-core) carries the fix upstream. Delete the patch
-and the `patchedDependencies` entry then; the guard test reads the installed
-Swift file, so it keeps passing on its own.
-
 ## node-pty (`node-pty@<version>.patch`)
 
 **Why:** DESKTOP-101 / DESKTOP-107 / DESKTOP-10J. The desktop main process
