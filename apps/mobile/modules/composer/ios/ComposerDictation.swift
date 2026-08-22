@@ -152,6 +152,14 @@ final class ComposerDictation {
 
     let input = engine.inputNode
     let format = input.outputFormat(forBus: 0)
+    // `installTap` raises an Objective-C exception — not a Swift error, so
+    // there is nothing to catch — when handed a degenerate format, which is
+    // what the input node reports while something else holds the microphone: a
+    // phone call, another recording app. Checking first turns a crash into the
+    // ordinary failure path.
+    guard format.sampleRate > 0, format.channelCount > 0 else {
+      throw NSError(domain: "ComposerDictation", code: 2)
+    }
     pendingFrames = 0
     pendingPeak = 0
     input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in

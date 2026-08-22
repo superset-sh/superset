@@ -265,8 +265,10 @@ Landing as one PR, built in this order so each step is independently verifiable 
    reported out: it already holds the URI, and a React Native screen over a SwiftUI first responder
    is the arrangement this rewrite exists to remove. `onAttachmentPress` now fires only for
    non-image attachments, where the app has to decide what a document tap means.
-9. **Cut over home, then session.** Delete `GlassComposer` once both are moved and the terminal's
-   copy is the only remaining caller.
+9. **Cut over home.** *(done)* The workspace screen's terminal composer stays on `GlassComposer`
+   for now — a deliberate call, not an oversight. Until it moves, both composers ship, and
+   `expo-speech-recognition` stays with it; `useAttachmentsSheet` also still lives inside the
+   `GlassComposer` folder while the native composer imports it, so it wants rehoming at that point.
 
 ## Verification
 
@@ -547,11 +549,7 @@ UIKit-backed pieces — keyboard appearance, selection handles, the caret.
 needs to read and clear. Both point at the same fix: an `@Observable` model owned by the controller
 and injected once. Worth doing *before* the props multiply, not after.
 
-Scaffolding to delete at cutover: `app/(authenticated)/composer-preview.tsx` and
-`screens/(authenticated)/composer-preview/`. Unlinked from all navigation — reachable only via
-`superset://composer-preview` — so it adds no discoverable route. Its placeholder is deliberately
-`Native composer` rather than the real one, so it can be told apart from the home composer when
-driving the app.
+The `composer-preview` harness has been deleted — it existed to exercise states the home screen could not reach on demand, and every one of them is now reachable there.
 
 ## Open questions
 
