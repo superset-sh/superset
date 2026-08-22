@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import type { integrationProvider } from "@superset/db/schema";
-import { sql } from "drizzle-orm";
+import { DrizzleQueryError, sql } from "drizzle-orm";
 
 type Provider = (typeof integrationProvider.enumValues)[number];
 
@@ -9,6 +9,26 @@ export interface RecordedDelivery {
 	status: string;
 	retryCount: number;
 	receivedAt: Date;
+}
+
+/**
+ * Drizzle wraps a failed query in a DrizzleQueryError whose message, and own
+ * `query`/`params` properties, are the statement text followed by every bind
+ * parameter. One of ours is the entire webhook body, so reporting that error
+ * unmodified publishes a third party's payload into the error tracker.
+ *
+ * Rethrow with the operation, the provider and the driver's own message, and
+ * the driver error as the cause so its code and stack still reach the report:
+ * a failure says what broke and why, without the body. Anything that is not
+ * the wrapper carries no bind parameters and is left exactly as it was.
+ */
+function withoutBoundParameters(provider: Provider, error: unknown): unknown {
+	if (!(error instanceof DrizzleQueryError)) return error;
+	const cause = error.cause;
+	return new Error(
+		`recordWebhookDelivery failed for ${provider} writing ingest.webhook_events and ingest.webhook_payloads: ${cause?.message ?? "unknown database error"}`,
+		{ cause },
+	);
 }
 
 /**
@@ -37,12 +57,13 @@ export async function recordWebhookDelivery({
 	eventType: string;
 	payload: unknown;
 }): Promise<RecordedDelivery | null> {
-	const result = await db.execute<{
-		id: string;
-		status: string;
-		retry_count: number;
-		received_at: string | Date;
-	}>(sql`
+	const result = await db
+		.execute<{
+			id: string;
+			status: string;
+			retry_count: number;
+			received_at: string | Date;
+		}>(sql`
 		WITH event AS (
 			INSERT INTO ingest.webhook_events (provider, event_id, event_type, status)
 			VALUES (${provider}, ${eventId}, ${eventType}, 'pending')
@@ -64,7 +85,10 @@ export async function recordWebhookDelivery({
 			RETURNING webhook_event_id
 		)
 		SELECT id, status, retry_count, received_at FROM event
-	`);
+	`)
+		.catch((error: unknown) => {
+			throw withoutBoundParameters(provider, error);
+		});
 
 	const row = result.rows[0];
 	if (!row) return null;
