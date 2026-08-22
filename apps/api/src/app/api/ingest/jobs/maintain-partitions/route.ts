@@ -33,13 +33,24 @@ export async function POST(request: Request): Promise<Response> {
 	// a day with no partition, and creating that day's partition then fails with
 	// "would be violated by some row" — so reading this afterwards would skip
 	// the one diagnostic that explains the failure.
-	const [defaultPartition] = (
-		await dbWs.execute(sql`
-			SELECT count(*)::int AS n FROM ingest.webhook_payloads_default
-		`)
-	).rows as Array<{ n: number }>;
-	const defaultRows = defaultPartition?.n ?? 0;
-	if (defaultRows > 0) {
+	//
+	// null means the count itself failed. Reporting 0 there would read as "the
+	// default partition is empty", which is the opposite of what is known.
+	let defaultRows: number | null = null;
+	try {
+		const [row] = (
+			await dbWs.execute(sql`
+				SELECT count(*)::int AS n FROM ingest.webhook_payloads_default
+			`)
+		).rows as Array<{ n: number }>;
+		defaultRows = row?.n ?? 0;
+	} catch (error) {
+		console.error(
+			"[ingest/maintain-partitions] could not read the default partition:",
+			error,
+		);
+	}
+	if (defaultRows !== null && defaultRows > 0) {
 		console.error(
 			`[ingest/maintain-partitions] webhook_payloads_default holds ${defaultRows} rows; partition creation for those days will fail until they are drained`,
 		);
