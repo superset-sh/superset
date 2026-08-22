@@ -75,6 +75,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
+		handleMoveToTopLevel,
 		handleTogglePin,
 		handleToggleUnread,
 		isActive,
@@ -86,6 +87,7 @@ export function DashboardSidebarWorkspaceItem({
 		setRenameValue,
 		startRename,
 		submitRename,
+		toggleLineageCollapsed,
 	} = useDashboardSidebarWorkspaceItemActions({
 		workspaceId: id,
 		projectId,
@@ -257,6 +259,9 @@ export function DashboardSidebarWorkspaceItem({
 							onMoveToSection={(targetSectionId) =>
 								moveWorkspaceToSection(id, projectId, targetSectionId)
 							}
+							onMoveToTopLevel={
+								workspace.parentWorkspaceId ? handleMoveToTopLevel : undefined
+							}
 							onOpenInFinder={handleOpenInFinder}
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
@@ -314,6 +319,7 @@ export function DashboardSidebarWorkspaceItem({
 				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={requestDelete}
+				onToggleLineageCollapsed={toggleLineageCollapsed}
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
@@ -341,6 +347,9 @@ export function DashboardSidebarWorkspaceItem({
 						onCreateSection={handleCreateSection}
 						onMoveToSection={(targetSectionId) =>
 							moveWorkspaceToSection(id, projectId, targetSectionId)
+						}
+						onMoveToTopLevel={
+							workspace.parentWorkspaceId ? handleMoveToTopLevel : undefined
 						}
 						isLocalWorkspace={hostType === "local-device"}
 						isLocalMainWorkspace={

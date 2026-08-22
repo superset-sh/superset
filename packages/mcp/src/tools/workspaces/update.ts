@@ -8,14 +8,22 @@ export function register(server: McpServer): void {
 		name: "workspaces_update",
 		annotations: { destructiveHint: false, idempotentHint: true },
 		description:
-			"Rename a workspace on its host. Use hosts_list / workspaces_list to find the hostId.",
+			"Rename or re-parent a workspace on its host. Use hosts_list / workspaces_list to find the hostId.",
 		inputSchema: {
 			hostId: z
 				.string()
 				.min(1)
 				.describe("Host machineId the workspace lives on."),
 			id: z.string().uuid().describe("Workspace UUID."),
-			name: z.string().min(1).describe("New workspace name."),
+			name: z.string().min(1).optional().describe("New workspace name."),
+			parentWorkspaceId: z
+				.string()
+				.uuid()
+				.nullable()
+				.optional()
+				.describe(
+					"Re-parent the workspace for sidebar lineage: a workspace UUID nests under it, explicit null detaches to the top level. Omit to leave lineage untouched. Metadata only — never affects the git base branch.",
+				),
 		},
 		handler: async (input, ctx) => {
 			return hostServiceCall(
@@ -27,7 +35,13 @@ export function register(server: McpServer): void {
 				},
 				"workspace.update",
 				"mutation",
-				{ id: input.id, name: input.name },
+				{
+					id: input.id,
+					...(input.name !== undefined ? { name: input.name } : {}),
+					...(input.parentWorkspaceId !== undefined
+						? { parentWorkspaceId: input.parentWorkspaceId }
+						: {}),
+				},
 			);
 		},
 	});

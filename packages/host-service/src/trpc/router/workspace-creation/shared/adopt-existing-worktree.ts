@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, ne, or } from "drizzle-orm";
+import type { WorkspaceSpawnOrigin } from "../../../../db/schema";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import {
@@ -33,6 +34,11 @@ export interface AdoptExistingWorktreeArgs {
 	idempotencyId?: string;
 	/** Task link recorded on the row; ignored on relink. */
 	taskId?: string;
+	/** Lineage recorded on freshly-created rows only — adopting an existing
+	 * row never overwrites what it already recorded. Pre-validated by the
+	 * caller (resolveParentWorkspaceId). */
+	parentWorkspaceId?: string | null;
+	spawnOrigin?: WorkspaceSpawnOrigin | null;
 }
 
 export interface AdoptExistingWorktreeResult {
@@ -70,6 +76,8 @@ export async function adoptExistingWorktree(
 		existingWorkspaceId,
 		idempotencyId,
 		taskId,
+		parentWorkspaceId,
+		spawnOrigin,
 	} = args;
 	const store: WorkspaceStoreContext = {
 		db: ctx.db,
@@ -107,6 +115,8 @@ export async function adoptExistingWorktree(
 			branch,
 			name: workspaceName,
 			taskId: taskId ?? null,
+			parentWorkspaceId: parentWorkspaceId ?? null,
+			spawnOrigin: spawnOrigin ?? null,
 		});
 		return {
 			workspace: toCloudShape(inserted, ctx.organizationId),
@@ -180,6 +190,8 @@ export async function adoptExistingWorktree(
 			branch,
 			name: workspaceName,
 			taskId: taskId ?? null,
+			parentWorkspaceId: parentWorkspaceId ?? null,
+			spawnOrigin: spawnOrigin ?? null,
 		});
 	} catch (err) {
 		throw new TRPCError({

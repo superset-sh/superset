@@ -40,6 +40,12 @@ export default command({
 			.desc(
 				"Local file path to upload as an attachment to the host. Repeatable. Only used when --agent is set",
 			),
+		parent: string().desc(
+			"Parent workspace ID for lineage. Defaults to the workspace this command runs inside (SUPERSET_WORKSPACE_ID). Metadata only — never affects the git base branch",
+		),
+		noParent: boolean().desc(
+			"Create a top-level workspace even when running inside another workspace",
+		),
 	},
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -104,6 +110,25 @@ export default command({
 			);
 		}
 
+		if (options.parent && options.noParent) {
+			throw new CLIError(
+				"Specify only one of --parent or --no-parent",
+				"Use --parent <workspaceId> or --no-parent",
+			);
+		}
+		// Lineage: explicit flag beats the ambient workspace. The host
+		// validates and silently drops unknown/cross-project parents. The env
+		// value must itself degrade silently — an empty or malformed
+		// SUPERSET_WORKSPACE_ID would otherwise fail the whole create on the
+		// server's UUID schema. An explicit --parent stays strict.
+		const UUID_RE =
+			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+		const envParent = process.env.SUPERSET_WORKSPACE_ID;
+		const parentWorkspaceId = options.noParent
+			? undefined
+			: (options.parent ??
+				(envParent && UUID_RE.test(envParent) ? envParent : undefined));
+
 		const hostId = requireHostTarget({
 			host: options.host ?? undefined,
 			local: options.local ?? undefined,
@@ -141,6 +166,8 @@ export default command({
 				name: options.name,
 				agents,
 				command: options.command ?? undefined,
+				parentWorkspaceId,
+				spawnOrigin: "cli",
 			});
 			return {
 				data: result,
@@ -161,6 +188,8 @@ export default command({
 			skipBranchPrefix: options.skipBranchPrefix ?? undefined,
 			agents,
 			command: options.command ?? undefined,
+			parentWorkspaceId,
+			spawnOrigin: "cli",
 		});
 
 		return {

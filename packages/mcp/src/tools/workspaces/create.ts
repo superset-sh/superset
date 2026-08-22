@@ -75,6 +75,13 @@ export function register(server: McpServer): void {
 				.min(1)
 				.optional()
 				.describe("Shell command to run in the new worktree after creation."),
+			parentWorkspaceId: z
+				.string()
+				.uuid()
+				.optional()
+				.describe(
+					"Lineage: the workspace this create is spawned from. When you are an agent running inside a workspace, pass your own SUPERSET_WORKSPACE_ID so the new workspace nests under it in the sidebar. Metadata only — never affects the git base branch. Unknown or cross-project parents are dropped silently.",
+				),
 		},
 		handler: async (input, ctx) => {
 			if (input.projectId === undefined) {
@@ -115,6 +122,8 @@ export function register(server: McpServer): void {
 						name: input.name,
 						agents: input.agents,
 						command: input.command,
+						parentWorkspaceId: input.parentWorkspaceId,
+						spawnOrigin: "mcp",
 					},
 				);
 			}
@@ -149,6 +158,8 @@ export function register(server: McpServer): void {
 					taskId: input.taskId,
 					agents: input.agents,
 					command: input.command,
+					parentWorkspaceId: input.parentWorkspaceId,
+					spawnOrigin: "mcp",
 				},
 			);
 		},

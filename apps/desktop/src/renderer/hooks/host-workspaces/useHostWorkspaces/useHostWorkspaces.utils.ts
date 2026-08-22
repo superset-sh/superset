@@ -27,6 +27,9 @@ export type HostShapedWorkspace = Omit<
 export interface HostWorkspaceRow extends HostShapedWorkspace {
 	worktreePath: string;
 	worktreeExists: boolean;
+	/** Lineage: the workspace this one was spawned from. Absent on rows
+	 * served by hosts that predate the column. */
+	parentWorkspaceId?: string | null;
 	/** Non-null = archived tombstone (only served on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
@@ -36,6 +39,8 @@ export interface HostWorkspaceRow extends HostShapedWorkspace {
 export interface HostWorkspaceItem extends HostShapedWorkspace {
 	worktreePath?: string;
 	worktreeExists?: boolean;
+	/** Lineage: the workspace this one was spawned from. */
+	parentWorkspaceId?: string | null;
 	/** False when the host didn't answer. */
 	hostReachable: boolean;
 	/** Non-null = archived tombstone (only present on `includeArchived`). */
@@ -229,6 +234,13 @@ export function applyWorkspaceChangedEvent(
 		type: snapshot.type,
 		createdByUserId: snapshot.createdByUserId,
 		taskId: snapshot.taskId,
+		// Only hosts that predate the column OMIT the field — keep the cached
+		// value then. A present `null` is a current host clearing the lineage
+		// (parent hard-deleted) and must overwrite, so no `??` here.
+		parentWorkspaceId:
+			snapshot.parentWorkspaceId !== undefined
+				? snapshot.parentWorkspaceId
+				: (existing?.parentWorkspaceId ?? null),
 		createdAt: new Date(snapshot.createdAt),
 		updatedAt: new Date(snapshot.updatedAt),
 		worktreePath: snapshot.worktreePath,

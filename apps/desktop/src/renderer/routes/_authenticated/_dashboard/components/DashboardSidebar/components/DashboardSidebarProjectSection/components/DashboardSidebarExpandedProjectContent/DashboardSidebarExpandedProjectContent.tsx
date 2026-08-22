@@ -162,7 +162,11 @@ export function DashboardSidebarExpandedProjectContent({
 											disabled={
 												hidden ||
 												(workspace.type === "main" &&
-													workspace.hostType === "local-device")
+													workspace.hostType === "local-device") ||
+												// Descendant positions derive from their parent, so a
+												// drag could never stick — dragging the root moves the
+												// whole subtree instead.
+												workspace.lineageDepth > 0
 											}
 										/>
 									);

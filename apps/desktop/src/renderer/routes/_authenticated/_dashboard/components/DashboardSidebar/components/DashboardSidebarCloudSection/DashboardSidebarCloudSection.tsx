@@ -110,6 +110,10 @@ export function DashboardSidebarCloudSection({
 									updatedAt: cloud.updatedAt,
 								}
 							: null,
+					parentWorkspaceId: null,
+					lineageDepth: 0,
+					lineageChildCount: 0,
+					lineageCollapsed: false,
 				};
 			});
 	}, [cloudWorkspaces, hostWorkspaces, localStateRows]);

@@ -14,6 +14,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
+	LuArrowUpFromLine,
 	LuBellOff,
 	LuCopy,
 	LuEye,
@@ -50,6 +51,8 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onTogglePin: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
+	/** Set only when the workspace has a lineage parent to detach from. */
+	onMoveToTopLevel?: () => void;
 	onOpenInFinder: () => void;
 	onCopyPath: () => void;
 	onCopyBranchName: () => void;
@@ -76,6 +79,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onTogglePin,
 	onCreateSection,
 	onMoveToSection,
+	onMoveToTopLevel,
 	onOpenInFinder,
 	onCopyPath,
 	onCopyBranchName,
@@ -228,6 +232,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 								Ungroup
 							</ContextMenuItem>
 						)}
+					</>
+				)}
+				{onMoveToTopLevel && (
+					<>
+						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={onMoveToTopLevel}>
+							<LuArrowUpFromLine className="size-4 mr-2" />
+							Move to top level
+						</ContextMenuItem>
 					</>
 				)}
 				<ContextMenuSeparator />

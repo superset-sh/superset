@@ -1,6 +1,7 @@
 import type { Pane } from "@superset/panes";
 import { useCallback } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { collectLineageDescendantIds } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/collectLineageDescendantIds";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
 import {
 	extractPaneIds,
@@ -250,6 +251,45 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
+	// Lineage subtrees move between containers as one unit: when a parent's
+	// section membership changes, descendants that were WITH it (same
+	// explicit section, or derived alongside it) follow. A descendant the
+	// user deliberately placed in a different section stays put.
+	const cascadeSectionToDescendants = useCallback(
+		(
+			workspaceId: string,
+			previousSectionId: string | null,
+			nextSectionId: string | null,
+			projectId: string | null,
+		) => {
+			const edges = hostWorkspaces.map((workspace) => ({
+				id: workspace.id,
+				parentWorkspaceId: workspace.parentWorkspaceId ?? null,
+			}));
+			for (const descendantId of collectLineageDescendantIds(
+				edges,
+				workspaceId,
+			)) {
+				const row = collections.v2WorkspaceLocalState.get(descendantId);
+				if (!row) continue;
+				const current = row.sidebarState.sectionId;
+				if (current !== null && current !== previousSectionId) continue;
+				if (
+					current === nextSectionId &&
+					row.sidebarState.projectId === projectId
+				) {
+					continue;
+				}
+				collections.v2WorkspaceLocalState.update(descendantId, (draft) => {
+					draft.sidebarState.sectionId = nextSectionId;
+					draft.sidebarState.projectId = projectId;
+					draft.sidebarState.isHidden = false;
+				});
+			}
+		},
+		[collections, hostWorkspaces],
+	);
+
 	const reorderProjectChildren = useCallback(
 		(
 			projectId: string | null,
@@ -258,13 +298,23 @@ export function useDashboardSidebarState() {
 			orderedItems.forEach((item, index) => {
 				const tabOrder = index + 1;
 				if (item.type === "workspace") {
-					if (!collections.v2WorkspaceLocalState.get(item.id)) return;
+					const existing = collections.v2WorkspaceLocalState.get(item.id);
+					if (!existing) return;
+					const previousSectionId = existing.sidebarState.sectionId;
 					collections.v2WorkspaceLocalState.update(item.id, (draft) => {
 						draft.sidebarState.tabOrder = tabOrder;
 						draft.sidebarState.sectionId = null;
 						draft.sidebarState.projectId = projectId;
 						draft.sidebarState.isHidden = false;
 					});
+					if (previousSectionId !== null) {
+						cascadeSectionToDescendants(
+							item.id,
+							previousSectionId,
+							null,
+							projectId,
+						);
+					}
 				} else {
 					if (!collections.v2SidebarSections.get(item.id)) return;
 					collections.v2SidebarSections.update(item.id, (draft) => {
@@ -273,7 +323,7 @@ export function useDashboardSidebarState() {
 				}
 			});
 		},
-		[collections],
+		[collections, cascadeSectionToDescendants],
 	);
 
 	const moveWorkspaceToSectionAtIndex = useCallback(
@@ -285,6 +335,9 @@ export function useDashboardSidebarState() {
 		) => {
 			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
+			// Captured before the writes below so the descendant cascade
+			// compares against where the subtree actually was.
+			const previousSectionId = existing.sidebarState.sectionId;
 			const siblings = Array.from(
 				collections.v2WorkspaceLocalState.state.values(),
 			)
@@ -306,8 +359,14 @@ export function useDashboardSidebarState() {
 					draft.sidebarState.isHidden = false;
 				});
 			});
+			cascadeSectionToDescendants(
+				workspaceId,
+				previousSectionId,
+				sectionId,
+				projectId,
+			);
 		},
-		[collections],
+		[collections, cascadeSectionToDescendants],
 	);
 
 	const createSection = useCallback(
@@ -600,6 +659,35 @@ export function useDashboardSidebarState() {
 		[collections, hostWorkspaces, machineId],
 	);
 
+	const toggleWorkspaceLineageCollapsed = useCallback(
+		(workspaceId: string, projectId: string | null) => {
+			// Auto-included mains have no local-state row yet — create one on
+			// first toggle, the same way pinning does. Unlike pinning this is
+			// not a placement: tabOrder stays 0 so the row doesn't move.
+			if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
+				collections.v2WorkspaceLocalState.insert({
+					workspaceId,
+					createdAt: new Date(),
+					sidebarState: {
+						projectId,
+						tabOrder: 0,
+						sectionId: null,
+						isHidden: false,
+						pinnedAt: null,
+						lineageCollapsed: true,
+					},
+					paneLayout: createEmptyPaneLayout(),
+				});
+				return;
+			}
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				draft.sidebarState.lineageCollapsed =
+					!draft.sidebarState.lineageCollapsed;
+			});
+		},
+		[collections],
+	);
+
 	return {
 		createSection,
 		deleteSection,
@@ -618,6 +706,7 @@ export function useDashboardSidebarState() {
 		setSectionColor,
 		setWorkspacePinned,
 		toggleProjectCollapsed,
+		toggleWorkspaceLineageCollapsed,
 		toggleSectionCollapsed,
 	};
 }

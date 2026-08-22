@@ -1,8 +1,6 @@
 "use client";
 
-import { THEME_STORAGE_KEY } from "@superset/shared/constants";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { ThemeProvider } from "next-themes";
 import posthog from "posthog-js";
 import { PostHogProvider } from "posthog-js/react";
 
@@ -14,17 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<PostHogProvider client={posthog}>
 			<TRPCReactProvider>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="dark"
-					forcedTheme="dark"
-					storageKey={THEME_STORAGE_KEY}
-					disableTransitionOnChange
-				>
-					<PostHogUserIdentifier />
-					{children}
-					<ReactQueryDevtools initialIsOpen={false} />
-				</ThemeProvider>
+				<PostHogUserIdentifier />
+				{children}
+				<ReactQueryDevtools initialIsOpen={false} />
 			</TRPCReactProvider>
 		</PostHogProvider>
 	);

@@ -68,6 +68,8 @@ export interface WorkspaceSnapshot {
 	worktreePath: string;
 	taskId: string | null;
 	createdByUserId: string | null;
+	/** Lineage: the workspace this one was spawned from. Null = top-level. */
+	parentWorkspaceId: string | null;
 	createdAt: number;
 	updatedAt: number;
 }

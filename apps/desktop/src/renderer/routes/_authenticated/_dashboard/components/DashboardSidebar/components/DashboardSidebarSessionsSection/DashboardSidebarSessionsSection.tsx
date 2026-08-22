@@ -115,6 +115,9 @@ export function DashboardSidebarSessionsSection({
 								workspace={workspace}
 								shortcutLabel={workspaceShortcutLabels?.get(parsed.realId)}
 								onHoverCardOpen={onWorkspaceHover}
+								// Descendant positions derive from their parent; dragging
+								// the root moves the whole subtree instead.
+								disabled={workspace.lineageDepth > 0}
 							/>
 						);
 					})}
