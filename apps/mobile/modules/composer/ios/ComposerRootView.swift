@@ -38,14 +38,14 @@ enum ComposerMetrics {
   /// corner, and the thumbnails were a third too small and proportionally
   /// rounder than the reference.
   static let thumbnailSize: CGFloat = 80
-  static let thumbnailRadius: CGFloat = 11
+  static let thumbnailRadius: CGFloat = 9
   static let removeBadgeSize: CGFloat = 17
   static let removeBadgeInset: CGFloat = 6
   static let carouselSpacing: CGFloat = 8
   /// Frames 7/9/11. `+N` is plain white text centred on the thumbnail, not a
   /// badge in a corner chip.
   static let miniThumbnailSize: CGFloat = 34
-  static let miniThumbnailRadius: CGFloat = 8
+  static let miniThumbnailRadius: CGFloat = 7
   /// The draft preview and the model picker trade places through blur, matching
   /// the reference. `.transition(.blurReplace)` is the stock way to do this but
   /// only fires on insert/remove, and conditional insertion in that ZStack is

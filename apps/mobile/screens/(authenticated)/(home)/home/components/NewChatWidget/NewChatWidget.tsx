@@ -1,42 +1,18 @@
-import { Button, HStack, Image, Text } from "@expo/ui/swift-ui";
-import {
-	aspectRatio,
-	bold,
-	buttonStyle,
-	clipped,
-	disabled,
-	foregroundStyle,
-	frame,
-	lineLimit,
-	opacity,
-	resizable,
-	tint,
-	truncationMode,
-} from "@expo/ui/swift-ui/modifiers";
+import { Composer, type ComposerHandle } from "@superset/composer";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { Alert } from "react-native";
 import {
-	Alert,
-	KeyboardAvoidingView,
-	Pressable,
-	StyleSheet,
-	View,
-} from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
+	type PromptInputMessage,
+	usePromptInputAttachments,
+} from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
-import {
-	FOREGROUND,
-	GlassComposer,
-	type GlassComposerHandle,
-	MUTED,
-} from "@/screens/(authenticated)/components/GlassComposer";
+import { useAttachmentsSheet } from "@/screens/(authenticated)/components/GlassComposer/hooks/useAttachmentsSheet";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import {
 	type ChatTarget,
@@ -52,7 +28,6 @@ export function NewChatWidget({
 	workspaces,
 	fixedTarget,
 	placeholder,
-	above,
 }: {
 	workspaces: HostWorkspaceItem[];
 	/**
@@ -61,14 +36,15 @@ export function NewChatWidget({
 	 */
 	fixedTarget?: ChatTarget;
 	placeholder?: string;
-	/** Rendered above the glass surface in the bottom cluster (action chips). */
-	above?: ReactNode;
 }) {
 	const router = useRouter();
-	const insets = useSafeAreaInsets();
-	const composerRef = useRef<GlassComposerHandle>(null);
+	const composerRef = useRef<ComposerHandle>(null);
 
-	const [active, setActive] = useState(false);
+	// Whether the composer was open when a sheet took first responder, so it is
+	// restored only when it actually was.
+	const wasExpanded = useRef(false);
+	const attachments = usePromptInputAttachments();
+	const openAttachmentsSheet = useAttachmentsSheet();
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -202,160 +178,84 @@ export function NewChatWidget({
 	// Collapse BOTH dimensions: a width-0 proposal makes Text wrap one glyph
 	// per line, leaving a tall invisible column that clipped() hides but layout
 	// still counts.
-	const header = fixedTarget ? undefined : (
-		<>
-			<HStack
-				spacing={6}
-				modifiers={[
-					frame({
-						width: chatTarget ? undefined : 0,
-						height: chatTarget ? undefined : 0,
-					}),
-					opacity(chatTarget ? 1 : 0),
-					clipped(),
-				]}
-			>
-				<Text modifiers={[foregroundStyle(MUTED)]}>New agent in</Text>
-				<Text
-					modifiers={[
-						bold(),
-						foregroundStyle(FOREGROUND),
-						lineLimit(1),
-						truncationMode("tail"),
-					]}
-				>
-					{chatTarget?.workspaceName ?? ""}
-				</Text>
-				<Button
-					onPress={clearChatTarget}
-					modifiers={[buttonStyle("borderless"), tint(MUTED)]}
-				>
-					<Image systemName="xmark.circle.fill" size={14} />
-				</Button>
-			</HStack>
-			<HStack
-				spacing={6}
-				modifiers={[
-					frame({
-						width: chatTarget ? 0 : undefined,
-						height: chatTarget ? 0 : undefined,
-					}),
-					opacity(chatTarget ? 0 : 1),
-					clipped(),
-				]}
-			>
-				<Button
-					label={
-						selectedTarget
-							? isCloudTarget
-								? `${selectedTarget.projectName} · Cloud`
-								: selectedTarget.projectName
-							: "No project"
-					}
-					onPress={() => {
-						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						router.push("/(authenticated)/(home)/new-session/project");
-					}}
-					modifiers={[
-						buttonStyle("borderless"),
-						tint(FOREGROUND),
-						disabled(targets.length === 0),
-					]}
-				/>
-				<Button
-					onPress={() => {
-						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						router.push("/(authenticated)/(home)/new-session/branch");
-					}}
-					modifiers={[
-						buttonStyle("borderless"),
-						tint(MUTED),
-						disabled(!selectedTarget),
-					]}
-				>
-					<HStack spacing={4}>
-						<Text>{branchLabel}</Text>
-						<Image systemName="chevron.down" size={11} />
-					</HStack>
-				</Button>
-			</HStack>
-		</>
-	);
+	// Frame 4's header row, as data. A picked workspace target replaces the
+	// project/branch pair, the way the old `header` slot swapped them out.
+	const headerChips = chatTarget
+		? [
+				{
+					id: "clear-target",
+					label: `New agent in ${chatTarget.workspaceName}`,
+				},
+			]
+		: [
+				{
+					id: "project",
+					label: selectedTarget
+						? isCloudTarget
+							? `${selectedTarget.projectName} · Cloud`
+							: selectedTarget.projectName
+						: "No project",
+				},
+				{ id: "branch", label: branchLabel },
+			];
 
 	// No agent chip for a cloud target: nothing launches on create (parity
 	// with desktop; the sandbox-side launch is a follow-up).
-	const agentPicker =
-		fixedTarget || isCloudTarget ? undefined : (
-			<Button
-				onPress={() => {
-					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-					router.push("/(authenticated)/(home)/new-session/agent");
-				}}
-				modifiers={[buttonStyle("borderless"), tint(FOREGROUND)]}
-			>
-				<HStack spacing={5}>
-					{agentIconUri ? (
-						<Image
-							uiImage={agentIconUri}
-							modifiers={[
-								resizable(),
-								aspectRatio({ contentMode: "fit" }),
-								frame({ width: 15, height: 15 }),
-							]}
-						/>
-					) : null}
-					<Text>{selectedAgent?.label ?? "Claude"}</Text>
-					<Image systemName="chevron.down" size={11} />
-				</HStack>
-			</Button>
-		);
+	const selectedModel =
+		fixedTarget || isCloudTarget
+			? undefined
+			: {
+					id: agentId ?? "claude",
+					label: selectedAgent?.label ?? "Claude",
+					iconUri: agentIconUri ?? undefined,
+				};
 
+	// No KeyboardAvoidingView, no absolute-fill backdrop, no safe-area padding:
+	// the native composer owns its own keyboard tracking, dimming and dismissal.
 	return (
-		<View
-			testID="home-screen"
-			pointerEvents="box-none"
-			style={StyleSheet.absoluteFill}
-		>
-			<KeyboardAvoidingView
-				behavior="padding"
-				pointerEvents="box-none"
-				style={{ flex: 1, justifyContent: "flex-end" }}
-			>
-				{active ? (
-					<Animated.View
-						entering={FadeIn.duration(200)}
-						exiting={FadeOut.duration(150)}
-						style={[
-							StyleSheet.absoluteFill,
-							{ backgroundColor: "rgba(0, 0, 0, 0.45)" },
-						]}
-					>
-						<Pressable
-							accessibilityLabel="Dismiss keyboard"
-							onPress={dismiss}
-							style={StyleSheet.absoluteFill}
-						/>
-					</Animated.View>
-				) : null}
-				<View
-					className="px-3"
-					style={{ paddingBottom: active ? 8 : insets.bottom + 8 }}
-				>
-					<GlassComposer
-						ref={composerRef}
-						above={above}
-						header={header}
-						toolbarLeading={agentPicker}
-						isSending={isSending}
-						// A picked workspace target holds the composer open so its
-						// chip stays visible; a fixed target is ambient and doesn't.
-						keepExpanded={storeTarget !== null}
-						onActiveChange={setActive}
-						onSubmit={submit}
-						placeholder={placeholder ?? "Plan, ask, build..."}
-					/>
-				</View>
-			</KeyboardAvoidingView>
-		</View>
+		<Composer
+			ref={composerRef}
+			placeholder={placeholder ?? "Plan, ask, build..."}
+			isSending={isSending}
+			attachments={attachments.attachments.map((item) => ({
+				id: item.id,
+				uri: item.uri ?? "",
+				kind: item.type === "image" ? ("image" as const) : ("file" as const),
+			}))}
+			headerChips={headerChips}
+			selectedModel={selectedModel}
+			onSubmit={(text) =>
+				submit({ text, attachments: attachments.attachments })
+			}
+			onRemoveAttachment={(id) => attachments.remove(id)}
+			onExpandedChange={(expanded) => {
+				wasExpanded.current = expanded;
+			}}
+			onAttachmentsPress={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				const restore = wasExpanded.current;
+				openAttachmentsSheet({
+					onClosed: () => {
+						if (restore) composerRef.current?.focus();
+					},
+				});
+			}}
+			onModelPress={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				router.push("/(authenticated)/(home)/new-session/agent");
+			}}
+			onChipPress={(id) => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				if (id === "clear-target") {
+					dismiss();
+				} else if (id === "project") {
+					if (targets.length > 0) {
+						router.push("/(authenticated)/(home)/new-session/project");
+					}
+				} else if (selectedTarget) {
+					router.push("/(authenticated)/(home)/new-session/branch");
+				}
+			}}
+		/>
 	);
 }

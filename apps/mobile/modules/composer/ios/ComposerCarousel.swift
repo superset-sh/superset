@@ -1,5 +1,38 @@
 import SwiftUI
 
+/// Lifts a thumbnail off the glass behind it.
+///
+/// There is no dedicated iOS API for this. The convention is a **gradient**
+/// hairline rather than a flat one — a flat white stroke vanishes wherever the
+/// content behind it is light — plus a shadow soft enough that the glass keeps
+/// doing most of the depth work. Under Increase Contrast the system thickens
+/// glass borders on its own, so this stays deliberately understated.
+private struct ThumbnailEdge: ViewModifier {
+  let radius: CGFloat
+
+  func body(content: Content) -> some View {
+    content
+      .overlay {
+        RoundedRectangle(cornerRadius: radius, style: .continuous)
+          .strokeBorder(
+            LinearGradient(
+              colors: [.white.opacity(0.35), .white.opacity(0.12)],
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            ),
+            lineWidth: 0.5
+          )
+      }
+      .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+  }
+}
+
+private extension View {
+  func thumbnailEdge(radius: CGFloat) -> some View {
+    modifier(ThumbnailEdge(radius: radius))
+  }
+}
+
 /// Frame 10: a full-bleed horizontal strip. The scroll view spans the card's
 /// whole width while its *content* carries the inset, so a scrolled item runs
 /// to the card's edge instead of stopping at an inner margin. Free scrolling —
@@ -45,7 +78,8 @@ struct ComposerCarousel: View {
         width: ComposerMetrics.thumbnailSize,
         height: ComposerMetrics.thumbnailSize
       )
-      .clipShape(.rect(cornerRadius: ComposerMetrics.thumbnailRadius))
+      .clipShape(.rect(cornerRadius: ComposerMetrics.thumbnailRadius, style: .continuous))
+      .thumbnailEdge(radius: ComposerMetrics.thumbnailRadius)
       .contentShape(.rect)
       .onTapGesture { onOpen(attachment.id) }
 
@@ -57,7 +91,7 @@ struct ComposerCarousel: View {
             width: ComposerMetrics.removeBadgeSize,
             height: ComposerMetrics.removeBadgeSize
           )
-          .background(.black.opacity(0.45), in: .circle)
+          .background(.black.opacity(0.75), in: .circle)
       }
       .buttonStyle(.plain)
       .padding(ComposerMetrics.removeBadgeInset)
@@ -93,7 +127,10 @@ struct ComposerCollapsedAttachments: View {
           width: ComposerMetrics.miniThumbnailSize,
           height: ComposerMetrics.miniThumbnailSize
         )
-        .clipShape(.rect(cornerRadius: ComposerMetrics.miniThumbnailRadius))
+        .clipShape(
+          .rect(cornerRadius: ComposerMetrics.miniThumbnailRadius, style: .continuous)
+        )
+        .thumbnailEdge(radius: ComposerMetrics.miniThumbnailRadius)
 
         if attachments.count > 1 {
           Text("+\(attachments.count - 1)")
