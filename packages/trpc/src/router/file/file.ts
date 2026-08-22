@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { files } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { del, head, put } from "@vercel/blob";
+import { BlobNotFoundError, del, head, put } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
@@ -36,33 +36,32 @@ export const fileRouter = {
 				)
 				.limit(1);
 			if (existing) {
-				// A row can outlive its blob. The bytes are in hand, so re-upload and
-				// re-point rather than fail; sha256 is unchanged either way.
-				const reusedUrl = await head(existing.blobPathname)
-					.then((meta) => meta.url)
-					.catch(() => null);
-				if (reusedUrl) {
+				// A row can outlive its blob; the bytes are in hand, so re-point it
+				// rather than fail. Only a missing blob — an outage must surface.
+				try {
+					const meta = await head(existing.blobPathname);
 					return {
 						id: existing.id,
 						filename: existing.filename,
 						contentType: existing.contentType,
 						sizeBytes: existing.sizeBytes,
 						sha256: existing.sha256,
-						url: reusedUrl,
+						url: meta.url,
 						reused: true,
 					};
+				} catch (error) {
+					if (!(error instanceof BlobNotFoundError)) throw error;
+					console.warn("[files] blob missing for existing row, re-uploading", {
+						fileId: existing.id,
+						pathname: existing.blobPathname,
+					});
 				}
-
-				console.warn("[files] blob missing for existing row, re-uploading", {
-					fileId: existing.id,
-					pathname: existing.blobPathname,
-				});
 				const replacement = await put(
-					`files/${organizationId}/${sha256}/${input.filename}`,
+				  `files/${organizationId}/${sha256}/${existing.filename}`,
 					buffer,
 					{
 						access: "public",
-						contentType: input.contentType,
+						contentType: existing.contentType,
 						addRandomSuffix: true,
 					},
 				);

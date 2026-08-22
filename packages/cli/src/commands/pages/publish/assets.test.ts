@@ -1,5 +1,11 @@
 import { beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	realpathSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { collectAssetReferences, rewriteAssetReferences } from "./assets";
@@ -17,15 +23,14 @@ beforeAll(() => {
 	writeFileSync(join(dir, "styles.css"), "css");
 	writeFileSync(join(dir, "bg.gif"), "gif-bytes");
 
-	// A sibling of the page directory, inside the same project root.
 	mkdirSync(join(dir, "site"), { recursive: true });
 	mkdirSync(join(dir, "shared"), { recursive: true });
 	writeFileSync(join(dir, "shared", "mark.png"), "png-bytes");
 
-	// A real file one level above the project root, so the only thing keeping
-	// it out is the containment check.
 	outsideFile = join(dirname(dir), `escaped-${Date.now()}.png`);
 	writeFileSync(outsideFile, "png-bytes");
+
+	symlinkSync(outsideFile, join(dir, "linked.png"));
 });
 
 const refs = (html: string) =>
@@ -81,9 +86,6 @@ describe("collectAssetReferences", () => {
 	});
 
 	test("ignores a reference that climbs out of the containment root", () => {
-		// The file genuinely exists — the point is that containment excludes it,
-		// not that resolution failed. Proven by showing the same reference IS
-		// found once the root is widened to include it.
 		const escaped = `../${basename(outsideFile)}`;
 		expect(refs(`<img src="${escaped}">`)).toEqual([]);
 		expect(
@@ -95,8 +97,18 @@ describe("collectAssetReferences", () => {
 		).toEqual([escaped]);
 	});
 
+	test("ignores an in-root symlink pointing outside the root", () => {
+		expect(refs(`<img src="./linked.png">`)).toEqual([]);
+		expect(
+			collectAssetReferences(
+				`<img src="./linked.png">`,
+				htmlPath,
+				dirname(dir),
+			).map((a) => a.reference),
+		).toEqual(["./linked.png"]);
+	});
+
 	test("allows a sibling directory inside the containment root", () => {
-		// `../shared/logo.png` is an ordinary layout and must keep working.
 		const nestedHtml = join(dir, "site", "index.html");
 		const found = collectAssetReferences(
 			`<img src="../shared/mark.png">`,
@@ -106,9 +118,9 @@ describe("collectAssetReferences", () => {
 		expect(found.map((a) => a.reference)).toEqual(["../shared/mark.png"]);
 	});
 
-	test("resolves the file to an absolute path on disk", () => {
+	test("resolves the file to a canonical absolute path on disk", () => {
 		const [asset] = collectAssetReferences(`<img src="./logo.png">`, htmlPath);
-		expect(asset?.absolutePath).toBe(join(dir, "logo.png"));
+		expect(asset?.absolutePath).toBe(realpathSync(join(dir, "logo.png")));
 	});
 });
 

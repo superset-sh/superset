@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { parse } from "node-html-parser";
 
@@ -51,12 +51,24 @@ function resolveLocalReference(
 	}
 
 	const absolute = resolve(baseDir, decoded);
+	if (!existsSync(absolute)) return null;
 
-	const withinRoot = relative(rootDir, absolute);
+	// Both sides canonicalized: `resolve` is lexical, and rootDir is often
+	// behind a symlink itself.
+	let real: string;
+	let realRoot: string;
+	try {
+		real = realpathSync(absolute);
+		realRoot = realpathSync(rootDir);
+	} catch {
+		return null;
+	}
+
+	const withinRoot = relative(realRoot, real);
 	if (withinRoot.startsWith("..") || isAbsolute(withinRoot)) return null;
 
-	if (!existsSync(absolute) || !statSync(absolute).isFile()) return null;
-	return absolute;
+	if (!statSync(real).isFile()) return null;
+	return real;
 }
 
 function splitSrcset(value: string): { url: string; descriptor: string }[] {
