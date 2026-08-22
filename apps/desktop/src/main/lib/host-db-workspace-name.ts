@@ -24,7 +24,18 @@ export function getWorkspaceNameFromHostDbs(
 ): string | undefined {
 	if (!existsSync(hostDbRoot)) return undefined;
 
-	for (const entry of readdirSync(hostDbRoot)) {
+	let entries: string[];
+	try {
+		entries = readdirSync(hostDbRoot);
+	} catch (error) {
+		console.warn(
+			`[host-db-workspace-name] Failed to enumerate ${hostDbRoot}:`,
+			error,
+		);
+		return undefined;
+	}
+
+	for (const entry of entries) {
 		const dbPath = join(hostDbRoot, entry, "host.db");
 		if (!existsSync(dbPath)) continue;
 		try {

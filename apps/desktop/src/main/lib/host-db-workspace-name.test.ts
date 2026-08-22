@@ -1,6 +1,12 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	mkdirSync,
+	mkdtempSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getWorkspaceNameFromHostDbs } from "./host-db-workspace-name";
@@ -57,6 +63,19 @@ describe("getWorkspaceNameFromHostDbs", () => {
 		expect(getWorkspaceNameFromHostDbs(worktreePath, openReadonly, root)).toBe(
 			"Fix setup rename race",
 		);
+	});
+
+	it("returns undefined when the host root cannot be enumerated", () => {
+		const locked = join(root, "locked");
+		mkdirSync(locked);
+		chmodSync(locked, 0o000);
+		try {
+			expect(
+				getWorkspaceNameFromHostDbs(worktreePath, openReadonly, locked),
+			).toBeUndefined();
+		} finally {
+			chmodSync(locked, 0o700);
+		}
 	});
 
 	it("skips unreadable DBs, stray files, and blank names", () => {
