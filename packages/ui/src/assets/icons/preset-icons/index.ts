@@ -7,6 +7,8 @@ import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import droidIcon from "./droid.svg";
 import droidWhiteIcon from "./droid-white.svg";
+import fxIcon from "./fx.svg";
+import fxWhiteIcon from "./fx-white.svg";
 import geminiIcon from "./gemini.svg";
 import grokIcon from "./grok.svg";
 import grokWhiteIcon from "./grok-white.svg";
@@ -33,6 +35,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
+	fx: { light: fxIcon, dark: fxWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	grok: { light: grokIcon, dark: grokWhiteIcon },
 	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
@@ -76,6 +79,8 @@ export {
 	cursorAgentIcon,
 	droidIcon,
 	droidWhiteIcon,
+	fxIcon,
+	fxWhiteIcon,
 	geminiIcon,
 	grokIcon,
 	grokWhiteIcon,
