@@ -1,7 +1,7 @@
 import { db } from "@superset/db";
 import type { DesktopNotice } from "@superset/shared/desktop-notices";
 
-const MINIMUM_DESKTOP_VERSION = "1.5.0";
+const MINIMUM_DESKTOP_VERSION = "1.21.0";
 
 /**
  * Version gate + server-driven notices for the desktop app.
@@ -43,7 +43,8 @@ export async function GET() {
 
 	return Response.json({
 		minimumVersion: MINIMUM_DESKTOP_VERSION,
-		message: "Please update to the latest version to continue.",
+		message:
+			"Superset needs an update to keep syncing your workspaces. This version relies on a background sync service that is being retired. Updating takes a few seconds, and your workspaces, terminals, and settings are untouched.",
 		notices,
 	});
 }
