@@ -261,6 +261,31 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	app.use("/chat-v3/*", wsAuth);
 	app.use("/browser/*", wsAuth);
 
+	// Sandbox hostAuth admits every request (the edge is the only gate), so a
+	// credential-serving route must not exist there at all.
+	if (process.env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
+		app.get("/auth/session-jwt", async (c) => {
+			const isAuthenticated = await providers.hostAuth.validate(c.req.raw);
+			if (!isAuthenticated) return c.json({ error: "Unauthorized" }, 401);
+
+			let headers: Record<string, string>;
+			try {
+				headers = await providers.auth.getHeaders();
+			} catch {
+				return c.json({ error: "No bearer session available" }, 412);
+			}
+			const authorization = headers.Authorization ?? headers.authorization;
+			if (!authorization?.startsWith("Bearer ")) {
+				return c.json({ error: "No bearer session available" }, 412);
+			}
+
+			return c.json({
+				token: authorization.slice("Bearer ".length),
+				apiUrl: config.cloudApiUrl,
+			});
+		});
+	}
+
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerBrowserCdpRoute({
 		app,

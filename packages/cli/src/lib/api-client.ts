@@ -10,11 +10,12 @@ export type ApiClient = TRPCClient<AppRouter>;
 export function createApiClient(opts: {
 	bearer: string;
 	organizationId?: string;
+	apiUrl?: string;
 }): ApiClient {
 	return createTRPCClient<AppRouter>({
 		links: [
 			httpBatchLink({
-				url: `${getApiUrl()}/api/trpc`,
+				url: `${opts.apiUrl ?? getApiUrl()}/api/trpc`,
 				transformer: SuperJSON,
 				headers() {
 					// better-auth's apiKey plugin reads `sk_live_…` from the

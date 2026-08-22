@@ -4,8 +4,12 @@ import type { GitCredentialProvider } from "../../src/runtime/git/types";
 import type { ApiClient } from "../../src/types";
 
 export class FakeApiAuthProvider implements ApiAuthProvider {
-	constructor(private readonly headers: Record<string, string> = {}) {}
+	constructor(
+		private readonly headers: Record<string, string> = {},
+		private readonly error?: Error,
+	) {}
 	async getHeaders(): Promise<Record<string, string>> {
+		if (this.error) throw this.error;
 		return { ...this.headers };
 	}
 }

@@ -30,6 +30,8 @@ export interface TestHostOptions {
 	allowedOrigins?: string[];
 	psk?: string;
 	apiOverrides?: FakeApiOverrides;
+	apiAuthHeaders?: Record<string, string>;
+	apiAuthError?: Error;
 	githubToken?: string | null;
 	/**
 	 * Fake-runtime overrides typed as `unknown` so tests only need to
@@ -110,7 +112,10 @@ export async function createTestHost(
 			allowedOrigins: options.allowedOrigins ?? ["http://localhost:5173"],
 		},
 		providers: {
-			auth: new FakeApiAuthProvider(),
+			auth: new FakeApiAuthProvider(
+				options.apiAuthHeaders,
+				options.apiAuthError,
+			),
 			hostAuth: new FakeHostAuthProvider(psk),
 			credentials: new MemoryGitCredentialProvider(options.githubToken ?? null),
 		},

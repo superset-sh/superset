@@ -94,11 +94,11 @@ ${name}() {
 	).join("\n");
 }
 
-/** Build a shell snippet that idempotently prepends BIN_DIR to PATH. */
+/** Build a shell snippet that keeps BIN_DIR first in PATH. */
 function buildPathPrependFunction(binDir: string): string {
 	return `_superset_prepend_bin() {
-  case ":$PATH:" in
-    *:${quoteShellLiteral(binDir)}:*) ;;
+  case "$PATH:" in
+    ${quoteShellLiteral(`${binDir}:`)}*) ;;
     *) export PATH=${quoteShellLiteral(binDir)}:"$PATH" ;;
   esac
 }
@@ -106,7 +106,7 @@ _superset_prepend_bin`;
 }
 
 /**
- * Build a zsh precmd hook that re-asserts BIN_DIR in PATH.
+ * Build a zsh precmd hook that re-asserts BIN_DIR first in PATH.
  * Tools like mise/asdf register precmd hooks that reconstruct PATH,
  * which can remove our BIN_DIR. This is intentionally best-effort so
  * unusual user zsh configs don't break shell startup.
@@ -114,8 +114,8 @@ _superset_prepend_bin`;
 function buildZshPrecmdHook(binDir: string): string {
 	return `typeset -ga precmd_functions 2>/dev/null || true
 _superset_ensure_path() {
-  case ":$PATH:" in
-    *:${quoteShellLiteral(binDir)}:*) ;;
+  case "$PATH:" in
+    ${quoteShellLiteral(`${binDir}:`)}*) ;;
     *) PATH=${quoteShellLiteral(binDir)}:"$PATH" ;;
   esac
 }
@@ -298,7 +298,8 @@ export function getShellArgs(
 	}
 	if (shellName === "fish") {
 		// Use --init-command to prepend BIN_DIR to PATH after config is loaded.
-		// Use fish list-aware checks to avoid duplicate PATH entries across nested shells.
+		// Check the first list entry so an older standalone superset earlier in
+		// PATH cannot shadow the desktop-managed shim.
 		// Emit both OSC 777 (legacy v1 daemon) and OSC 133;A (current scanner)
 		// on fish_prompt. See zsh wrapper for rationale.
 		const escapedBinDir = escapeFishDoubleQuoted(paths.BIN_DIR);
@@ -307,7 +308,7 @@ export function getShellArgs(
 			"--init-command",
 			[
 				`set -l _superset_bin "${escapedBinDir}"`,
-				`contains -- "$_superset_bin" $PATH`,
+				`test "$PATH[1]" = "$_superset_bin"`,
 				`or set -gx PATH "$_superset_bin" $PATH`,
 				`function _superset_prompt_mark --on-event fish_prompt`,
 				`printf '\\033]777;superset-shell-ready\\007\\033]133;A\\007'`,

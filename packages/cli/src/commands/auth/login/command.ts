@@ -6,6 +6,7 @@ import { type ApiClient, createApiClient } from "../../../lib/api-client";
 import { login } from "../../../lib/auth";
 import { command } from "../../../lib/command";
 import { readConfig, writeConfig } from "../../../lib/config";
+import { isSupersetTerminalContext } from "../../../lib/resolve-auth";
 import { copyToClipboard } from "./copyToClipboard";
 import { LoginUI, type LoginUIProps } from "./LoginUI";
 
@@ -154,6 +155,11 @@ export default command({
 		),
 	},
 	run: async (opts) => {
+		if (isSupersetTerminalContext()) {
+			p.log.info(
+				"Superset is managing auth for you in this terminal — logging in is only needed for use outside Superset terminals.",
+			);
+		}
 		const requestedOrganization = opts.options.organization;
 		const apiKeyExplicit = apiKeyFlagInArgv();
 		const apiKeyFromCli = apiKeyExplicit

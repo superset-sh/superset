@@ -94,6 +94,16 @@ the edge.** A sandbox whose preview is ever made public is open to anyone with
 the URL. Treat preview configuration (`public: false`) as the security-
 critical setting it now is.
 
+**Because sandbox hostAuth admits everything, credential-serving routes must
+not exist there.** `/auth/session-jwt` hands the host's cloud bearer to any
+caller hostAuth admits — on a local host that means "holds the PSK", in a
+sandbox it means *everyone in the box plus anyone with a preview token*.
+Today the sandbox's `AUTH_TOKEN` is the placeholder `"sandbox"` so there is
+nothing to steal, but the route's contract would silently become an open token
+dispenser the day a real credential lands in that env. The route is skipped
+entirely in sandbox run mode; any future route that serves a credential needs
+the same guard.
+
 **Model credentials never enter the sandbox.** The provider's egress proxy
 substitutes them at the edge from a `{{SECRET:...}}` routing rule; the sandbox
 env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
