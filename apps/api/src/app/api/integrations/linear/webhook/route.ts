@@ -21,9 +21,10 @@ import {
 	isLinearAuthError,
 	mapPriorityFromLinear,
 } from "@superset/trpc/integrations/linear";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { env } from "@/env";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
+import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import {
 	type LinearDelivery,
@@ -132,24 +133,12 @@ async function processForConnection(
 		? `${connection.id}-${deliveryId}`
 		: `${connection.id}-${payload.organizationId}-${payload.webhookTimestamp}-${payload.type}-${entityId ?? payload.action}`;
 
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "linear",
-			eventId,
-			eventType: `${payload.type}.${payload.action}`,
-			payload: stripNullChars(payload),
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
+	const webhookEvent = await recordWebhookDelivery({
+		provider: "linear",
+		eventId,
+		eventType: `${payload.type}.${payload.action}`,
+		payload: stripNullChars(payload),
+	});
 
 	if (!webhookEvent) {
 		return {
