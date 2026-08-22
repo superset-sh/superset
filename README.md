@@ -203,7 +203,7 @@ Superset works with any CLI-based coding agent, including:
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/polygraph-white.svg" /><img height="16" align="top" alt="Polygraph" src="packages/ui/src/assets/icons/preset-icons/polygraph.svg" /></picture> &nbsp;[Polygraph](https://trypolygraph.com/) | Fully supported |
 | Any other CLI agent | Works without configuration |
 
-If it runs in a terminal, it runs on Superset
+If it runs in a terminal, it runs on Superset.
 
 Agents get more than a terminal:
 
