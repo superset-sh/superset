@@ -400,7 +400,7 @@ export function PromptGroup({
 
 	// ── Render ────────────────────────────────────────────────────────
 	return (
-		<div className="flex min-h-0 flex-col gap-2 p-3">
+		<div className="p-3 space-y-2">
 			{/* Workspace name + branch name */}
 			<div className="flex items-center">
 				<Input
@@ -485,9 +485,7 @@ export function PromptGroup({
 				multiple
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
-				// min-h-0 down the chain lets the editor absorb whatever height the
-				// dialog cap leaves after the pills and footer, instead of a fixed cap.
-				className="flex min-h-0 flex-col [&>[data-slot=input-group]]:min-h-0 [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR || linkedIssues.length > 0 || visibleFiles.length > 0) && (
 					<div className="flex flex-wrap items-start gap-2 px-3 pt-3 self-stretch">
@@ -555,9 +553,7 @@ export function PromptGroup({
 					onPasteFiles={(files) => attachments.add(files)}
 					autoFocus={promptSeed > 0 || prompt ? "end" : "start"}
 					placeholder="What do you want to do?"
-					// Grows with content until the modal hits its height cap, then
-					// scrolls internally (min-h-[100px] is the floor it shrinks to).
-					className="flex flex-col min-h-[100px] px-3 pt-3"
+					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
 					editorClassName="overflow-y-auto text-sm"
 					features={{
 						slashCommand: false,
