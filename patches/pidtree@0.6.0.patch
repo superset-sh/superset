@@ -1,0 +1,13 @@
+diff --git a/lib/ps.js b/lib/ps.js
+index 6d9bb5fb8162c3c7c06099723f1dbadfdc6da025..53e99af3ca14342b6125769abf810a650cbd0ce5 100644
+--- a/lib/ps.js
++++ b/lib/ps.js
+@@ -10,7 +10,7 @@ var bin = require('./bin');
+ function ps(callback) {
+   var args = ['-A', '-o', 'ppid,pid'];
+ 
+-  bin('ps', args, function(err, stdout, code) {
++  bin(os.platform() === 'darwin' ? '/bin/ps' : 'ps', args, function(err, stdout, code) {
+     if (err) return callback(err);
+     if (code !== 0) {
+       return callback(new Error('pidtree ps command exited with code ' + code));

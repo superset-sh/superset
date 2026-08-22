@@ -175,3 +175,21 @@ bun test apps/desktop/src/pty-crash-ports-patch.test.ts
 ports on the spawn attributes it already builds in `pty_posix_spawn`
 (`posix_spawnattr_setexceptionports_np`). If node-pty ships that, drop the patch
 and the `patchedDependencies` entry.
+
+## pidtree (`pidtree@<version>.patch`)
+
+**Why:** issue #6717. On macOS, `pidtree` launches bare `ps`, so libuv probes
+every earlier `PATH` entry with `posix_spawn` before reaching `/bin/ps`. The
+port scanner runs this every 2.5 seconds, producing bursts of failed process
+launches attributed to Superset.
+
+**What it changes** (`lib/ps.js`): use `/bin/ps` on macOS while preserving the
+existing `ps` lookup on other platforms.
+
+**Guard test:** `packages/port-scanner/src/pidtree-patch.test.ts`. The scanner's
+Darwin regression tests also verify that process and port discovery work when
+`PATH` cannot resolve `ps` or `lsof`.
+
+**Removing:** when `pidtree` supports an absolute macOS `ps` path upstream,
+delete the patch and `patchedDependencies` entry, then update the guard test to
+accept the upstream implementation.

@@ -145,7 +145,7 @@ async function getListeningPortsLsof(
 		// -P: don't convert port numbers to names
 		// -n: don't resolve hostnames
 		const output = await runTolerant(
-			"lsof",
+			"/usr/sbin/lsof",
 			["-a", "-p", pidArg, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
 			{ maxBuffer: 10 * 1024 * 1024, timeout: EXEC_TIMEOUT_MS, signal },
 		);

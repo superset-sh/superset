@@ -115,6 +115,21 @@ describe("getProcessTreesForPids (real process table)", () => {
 		expect(trees.has(99_999_999)).toBe(false);
 		expect(trees.has(process.pid)).toBe(true);
 	});
+
+	it.skipIf(process.platform !== "darwin")(
+		"reads the process table when PATH cannot resolve ps",
+		async () => {
+			const originalPath = process.env.PATH;
+			process.env.PATH = "/definitely-missing";
+			try {
+				const trees = await getProcessTreesForPids([process.pid]);
+				expect(trees.get(process.pid)).toContain(process.pid);
+			} finally {
+				if (originalPath === undefined) delete process.env.PATH;
+				else process.env.PATH = originalPath;
+			}
+		},
+	);
 });
 
 describe("getListeningPortsForPids (real sockets)", () => {
@@ -135,6 +150,28 @@ describe("getListeningPortsForPids (real sockets)", () => {
 		const ports = await getListeningPortsForPids([99_999_999]);
 		expect(ports).toHaveLength(0);
 	});
+
+	it.skipIf(process.platform !== "darwin")(
+		"finds listening ports when PATH cannot resolve lsof",
+		async () => {
+			const originalPath = process.env.PATH;
+			const server = Bun.serve({
+				port: 0,
+				fetch: () => new Response("ok"),
+			});
+			try {
+				process.env.PATH = "/definitely-missing";
+				const listeningPort = server.port;
+				if (listeningPort === undefined) throw new Error("server has no port");
+				const ports = await getListeningPortsForPids([process.pid]);
+				expect(ports.map((info) => info.port)).toContain(listeningPort);
+			} finally {
+				if (originalPath === undefined) delete process.env.PATH;
+				else process.env.PATH = originalPath;
+				await server.stop(true);
+			}
+		},
+	);
 });
 
 describe("port-scanner", () => {
