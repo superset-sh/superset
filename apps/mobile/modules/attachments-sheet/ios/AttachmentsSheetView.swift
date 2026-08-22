@@ -14,6 +14,7 @@ internal final class SheetModel: ObservableObject {
   @Published var screenshots: [PHAsset] = []
   @Published var selection: [PHAsset] = []
   @Published var isExporting = false
+  @Published var hasLoaded = false
 
   var libraryUsable: Bool { status == .authorized || status == .limited }
   var canAskAgain: Bool { status == .notDetermined }
@@ -32,25 +33,41 @@ internal final class SheetModel: ObservableObject {
     }
   }
 
+  /// The fetches below cross into the photo service, which can take seconds to
+  /// answer; on the main thread that is the whole app hanging until it does.
   func loadIfUsable() {
     guard libraryUsable else { return }
+    DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+      guard let self else { return }
+      let fetched = self.fetchLibrary()
+      DispatchQueue.main.async {
+        self.recents = fetched.recents
+        self.screenshots = fetched.screenshots
+        self.hasLoaded = true
+      }
+    }
+  }
+
+  private func fetchLibrary() -> (recents: [PHAsset], screenshots: [PHAsset]) {
     let byNewest = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
     let recentOptions = PHFetchOptions()
     recentOptions.sortDescriptors = byNewest
     recentOptions.fetchLimit = 30
-    recents = assetArray(PHAsset.fetchAssets(with: .image, options: recentOptions))
+    let recents = assetArray(PHAsset.fetchAssets(with: .image, options: recentOptions))
 
     let screenshotsAlbum = PHAssetCollection.fetchAssetCollections(
       with: .smartAlbum,
       subtype: .smartAlbumScreenshots,
       options: nil
     ).firstObject
-    if let screenshotsAlbum {
-      let screenshotOptions = PHFetchOptions()
-      screenshotOptions.sortDescriptors = byNewest
-      screenshots = assetArray(PHAsset.fetchAssets(in: screenshotsAlbum, options: screenshotOptions))
-    }
+    guard let screenshotsAlbum else { return (recents, []) }
+    let screenshotOptions = PHFetchOptions()
+    screenshotOptions.sortDescriptors = byNewest
+    let screenshots = assetArray(
+      PHAsset.fetchAssets(in: screenshotsAlbum, options: screenshotOptions)
+    )
+    return (recents, screenshots)
   }
 
   func selectionIndex(of asset: PHAsset) -> Int? {
@@ -218,7 +235,7 @@ private struct ScreenshotsGridView: View {
             }
             .padding(.horizontal, horizontalPadding)
             .padding(.bottom, 12)
-            if model.screenshots.isEmpty {
+            if model.hasLoaded, model.screenshots.isEmpty {
               Text("No screenshots found")
                 .font(.system(size: 14))
                 .foregroundColor(Color(model.theme.mutedForeground))
@@ -258,7 +275,7 @@ private struct RecentPhotosCarousel: View {
           SelectableThumbnail(model: model, asset: asset, side: 96, badgeSize: 36)
         }
         if model.recents.isEmpty {
-          Text("No photos in your library")
+          Text(model.hasLoaded ? "No photos in your library" : "")
             .font(.system(size: 14))
             .foregroundColor(Color(model.theme.mutedForeground))
             .frame(height: 96)
