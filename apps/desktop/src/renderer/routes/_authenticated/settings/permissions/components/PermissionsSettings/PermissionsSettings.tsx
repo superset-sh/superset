@@ -34,10 +34,12 @@ function PermissionRow({
 }: {
 	label: string;
 	description: string;
-	granted: boolean | undefined;
+	granted: boolean | "not-applicable" | undefined;
 	onRequest: () => void;
 }) {
 	const searchQuery = useSettingsSearchQuery();
+
+	if (granted === "not-applicable") return null;
 
 	return (
 		<div className="flex items-center justify-between gap-6">

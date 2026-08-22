@@ -500,7 +500,7 @@ export function TerminalPane({
 		if (files.length > 0) {
 			const paths = files
 				.map((file) => window.webUtils.getPathForFile(file))
-				.filter(Boolean);
+				.filter((path): path is string => Boolean(path));
 			return paths.length > 0 ? shellEscapePaths(paths) : null;
 		}
 		const plainText = dataTransfer.getData("text/plain");
