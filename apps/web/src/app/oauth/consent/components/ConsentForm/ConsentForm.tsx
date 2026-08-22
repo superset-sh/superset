@@ -103,9 +103,15 @@ export function ConsentForm({
 				throw new Error(consentError.message ?? "Failed to process consent");
 			}
 
-			if (data?.url) {
-				window.location.href = data.url;
+			// @better-auth/oauth-provider responds { redirect, url } on both accept
+			// and deny; a 2xx without `url` can never proceed, so fail loudly
+			// instead of leaving the page stuck on "Authorizing..." (GH #6609).
+			if (!data?.url) {
+				throw new Error(
+					"The authorization server did not return a redirect URL. Return to the application that started authorization and try again.",
+				);
 			}
+			window.location.href = data.url;
 		} catch (err) {
 			console.error("[oauth/consent] Error:", err);
 			setError(err instanceof Error ? err.message : "An error occurred");
