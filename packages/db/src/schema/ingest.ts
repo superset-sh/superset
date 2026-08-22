@@ -1,7 +1,6 @@
 import {
 	index,
 	integer,
-	jsonb,
 	pgSchema,
 	text,
 	timestamp,
@@ -24,12 +23,6 @@ export const ingestSchema = pgSchema("ingest");
  * webhook_payloads is not declared here. It is created by a custom migration
  * (drizzle has no syntax for PARTITION BY) and only ever written, never read
  * back by application code, so there is nothing for a schema type to serve.
- *
- * `payload` still exists and is deliberately not dropped yet. New deliveries
- * write their body to webhook_payloads instead, so it only holds legacy rows,
- * which the existing ingest pruner keeps nulling. Dropping it is a separate
- * change once every running instance has stopped writing it — a rolling deploy
- * with the column already gone would fail every insert from the old build.
  */
 export const webhookEvents = ingestSchema.table(
 	"webhook_events",
@@ -40,9 +33,6 @@ export const webhookEvents = ingestSchema.table(
 		provider: integrationProvider().notNull(),
 		eventId: text("event_id").notNull(),
 		eventType: text("event_type"),
-
-		// Legacy bodies only; new deliveries write ingest.webhook_payloads.
-		payload: jsonb(),
 
 		// Processing state
 		status: text().notNull().default("pending"), // pending | processed | failed | skipped
