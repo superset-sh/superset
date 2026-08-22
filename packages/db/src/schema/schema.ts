@@ -967,6 +967,10 @@ export const automationEvents = pgTable(
 		index("automation_events_prunable_idx")
 			.on(t.receivedAt)
 			.where(sql`${t.payload} IS NOT NULL`),
+		// Retention deletes by age regardless of payload or dispatch state, and
+		// the other received_at indexes here are partial or lead with
+		// organization_id, so none of them can serve that scan.
+		index("automation_events_received_at_idx").on(t.receivedAt),
 	],
 );
 
