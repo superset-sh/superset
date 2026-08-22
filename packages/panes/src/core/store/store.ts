@@ -55,6 +55,7 @@ function buildBalancedTree(
 function buildTab<TData>(args: {
 	id?: string;
 	titleOverride?: string;
+	pinned?: boolean;
 	panes: [Pane<TData>, ...Pane<TData>[]];
 	activePaneId?: string;
 }): Tab<TData> {
@@ -69,11 +70,19 @@ function buildTab<TData>(args: {
 	return {
 		id: args.id ?? generateId("tab"),
 		titleOverride: args.titleOverride,
+		pinned: args.pinned,
 		createdAt: Date.now(),
 		activePaneId: args.activePaneId ?? args.panes[0].id,
 		layout: buildBalancedTree(leaves),
 		panes: panesMap,
 	};
+}
+
+function orderPinnedTabsFirst<TData>(tabs: Tab<TData>[]): Tab<TData>[] {
+	return [
+		...tabs.filter((tab) => tab.pinned),
+		...tabs.filter((tab) => !tab.pinned),
+	];
 }
 
 function getActivePaneIdAfterRemoval(
@@ -104,6 +113,7 @@ export type CreatePaneInput<TData> = {
 export type CreateTabInput<TData> = {
 	id?: string;
 	titleOverride?: string;
+	pinned?: boolean;
 	panes: [CreatePaneInput<TData>, ...CreatePaneInput<TData>[]];
 	activePaneId?: string;
 };
@@ -116,6 +126,7 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 		tabId: string;
 		titleOverride?: string;
 	}) => void;
+	setTabPinned: (args: { tabId: string; pinned: boolean }) => void;
 	getTab: (tabId: string) => Tab<TData> | null;
 	getActiveTab: () => Tab<TData> | null;
 
@@ -193,7 +204,7 @@ export function createWorkspaceStore<TData>(
 ): StoreApi<WorkspaceStore<TData>> {
 	return createStore<WorkspaceStore<TData>>((set, get) => ({
 		version: 1,
-		tabs: options?.initialState?.tabs ?? [],
+		tabs: orderPinnedTabsFirst(options?.initialState?.tabs ?? []),
 		activeTabId: options?.initialState?.activeTabId ?? null,
 
 		addTab: (args) => {
@@ -203,13 +214,14 @@ export function createWorkspaceStore<TData>(
 			];
 			const tab = buildTab({ ...args, panes: builtPanes });
 			set((s) => ({
-				tabs: [...s.tabs, tab],
+				tabs: orderPinnedTabsFirst([...s.tabs, tab]),
 				activeTabId: tab.id,
 			}));
 		},
 
 		removeTab: (tabId) => {
 			set((s) => {
+				if (s.tabs.find((tab) => tab.id === tabId)?.pinned) return s;
 				const nextTabs = s.tabs.filter((t) => t.id !== tabId);
 				return {
 					tabs: nextTabs,
@@ -235,6 +247,19 @@ export function createWorkspaceStore<TData>(
 					t.id === args.tabId ? { ...t, titleOverride: args.titleOverride } : t,
 				),
 			}));
+		},
+
+		setTabPinned: (args) => {
+			set((s) => {
+				if (!s.tabs.some((tab) => tab.id === args.tabId)) return s;
+				return {
+					tabs: orderPinnedTabsFirst(
+						s.tabs.map((tab) =>
+							tab.id === args.tabId ? { ...tab, pinned: args.pinned } : tab,
+						),
+					),
+				};
+			});
 		},
 
 		getTab: (tabId) => get().tabs.find((t) => t.id === tabId) ?? null,
@@ -288,6 +313,7 @@ export function createWorkspaceStore<TData>(
 				const { [args.paneId]: _, ...nextPanes } = tab.panes;
 
 				if (!nextLayout) {
+					if (tab.pinned) return s;
 					const nextTabs = s.tabs.filter((t) => t.id !== args.tabId);
 					return {
 						tabs: nextTabs,
@@ -682,6 +708,7 @@ export function createWorkspaceStore<TData>(
 					sourceTab.layout,
 					args.sourcePaneId,
 				);
+				if (!nextSourceLayout && sourceTab.pinned) return s;
 				const { [args.sourcePaneId]: _, ...nextSourcePanes } = sourceTab.panes;
 
 				const nextTargetLayout = splitPaneInLayout(
@@ -755,6 +782,7 @@ export function createWorkspaceStore<TData>(
 					sourceTab.layout,
 					args.paneId,
 				);
+				if (!nextSourceLayout && sourceTab.pinned) return s;
 				const { [args.paneId]: _, ...nextSourcePanes } = sourceTab.panes;
 
 				const paneLeaf: LayoutNode = { type: "pane", paneId: pane.id };
@@ -816,6 +844,7 @@ export function createWorkspaceStore<TData>(
 					sourceTab.layout,
 					args.paneId,
 				);
+				if (!nextSourceLayout && sourceTab.pinned) return s;
 				const { [args.paneId]: _, ...nextSourcePanes } = sourceTab.panes;
 
 				const newTab = buildTab({
@@ -851,7 +880,7 @@ export function createWorkspaceStore<TData>(
 						? args.toIndex - 1
 						: requestedIndex;
 				const insertIndex = Math.max(
-					0,
+					nextTabs.filter((tab) => tab.pinned).length,
 					Math.min(adjustedIndex, nextTabs.length),
 				);
 
@@ -870,6 +899,7 @@ export function createWorkspaceStore<TData>(
 				if (!targetTab || !targetTab.layout) return s;
 				// Merging a tab into one of its own panes is a no-op.
 				if (sourceTab.id === targetTab.id) return s;
+				if (sourceTab.pinned) return s;
 				if (!findPaneInLayout(targetTab.layout, args.targetPaneId)) return s;
 
 				// Graft the source's whole layout subtree so its internal split
@@ -902,12 +932,19 @@ export function createWorkspaceStore<TData>(
 			set((s) => {
 				const fromIndex = s.tabs.findIndex((t) => t.id === args.tabId);
 				if (fromIndex === -1) return s;
-				const toIndex = Math.max(0, Math.min(args.toIndex, s.tabs.length - 1));
+				const tab = s.tabs[fromIndex];
+				if (!tab) return s;
+				const pinnedCount = s.tabs.filter(
+					(candidate) => candidate.pinned,
+				).length;
+				const minIndex = tab.pinned ? 0 : pinnedCount;
+				const maxIndex = tab.pinned ? pinnedCount - 1 : s.tabs.length - 1;
+				const toIndex = Math.max(minIndex, Math.min(args.toIndex, maxIndex));
 				if (fromIndex === toIndex) return s;
 				const nextTabs = [...s.tabs];
-				const [tab] = nextTabs.splice(fromIndex, 1);
-				if (!tab) return s;
-				nextTabs.splice(toIndex, 0, tab);
+				const [movedTab] = nextTabs.splice(fromIndex, 1);
+				if (!movedTab) return s;
+				nextTabs.splice(toIndex, 0, movedTab);
 				return { tabs: nextTabs };
 			});
 		},
@@ -924,7 +961,7 @@ export function createWorkspaceStore<TData>(
 						: next;
 				return {
 					version: resolved.version,
-					tabs: resolved.tabs,
+					tabs: orderPinnedTabsFirst(resolved.tabs),
 					activeTabId: resolved.activeTabId,
 				};
 			});
