@@ -10,6 +10,8 @@ import droidWhiteIcon from "./droid-white.svg";
 import geminiIcon from "./gemini.svg";
 import grokIcon from "./grok.svg";
 import grokWhiteIcon from "./grok-white.svg";
+import hermesIcon from "./hermes.svg";
+import hermesWhiteIcon from "./hermes-white.svg";
 import kimiIcon from "./kimi.svg";
 import kimiWhiteIcon from "./kimi-white.svg";
 import mastracodeIcon from "./mastracode.svg";
@@ -35,6 +37,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	grok: { light: grokIcon, dark: grokWhiteIcon },
+	hermes: { light: hermesIcon, dark: hermesWhiteIcon },
 	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
@@ -79,6 +82,8 @@ export {
 	geminiIcon,
 	grokIcon,
 	grokWhiteIcon,
+	hermesIcon,
+	hermesWhiteIcon,
 	kimiIcon,
 	kimiWhiteIcon,
 	mastracodeIcon,
