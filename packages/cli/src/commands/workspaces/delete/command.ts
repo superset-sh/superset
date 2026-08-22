@@ -13,8 +13,8 @@ export default command({
 		cloud: boolean().desc(
 			"Delete cloud sandboxes — tears down the sandbox, which is what stops it billing",
 		),
-		"keep-branch": boolean().desc(
-			"Keep the workspace's git branch after delete (default: the branch is deleted)",
+		"delete-branch": boolean().desc(
+			"Delete the workspace's git branch after delete (default: the branch is kept, matching the desktop UI)",
 		),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -67,7 +67,7 @@ export default command({
 		for (const id of ids) {
 			const result = await target.client.workspace.delete.mutate({
 				id,
-				deleteBranch: !options["keep-branch"],
+				deleteBranch: options["delete-branch"] === true,
 			});
 			deleted.push(id);
 			for (const warning of result.warnings ?? []) {
