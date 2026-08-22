@@ -60,6 +60,11 @@ function parseIntOrNull(value: string | undefined): number | null {
 	return Number.isFinite(n) ? n : null;
 }
 
+/** A comma-separated RRULE value (e.g. `BYHOUR=9,17`) holds more than one value. */
+function isMultiValued(value: string | undefined): boolean {
+	return value !== undefined && value.includes(",");
+}
+
 function ordinal(n: number): string {
 	const absolute = Math.abs(n);
 	const lastTwo = absolute % 100;
@@ -131,10 +136,33 @@ export function matchPreset(rrule: string): PresetMatch {
 	const parts = parseRruleParts(rrule);
 	if (!parts) return { kind: "custom", rrule };
 
-	if (parts.BYSETPOS || parts.BYYEARDAY || parts.BYWEEKNO) {
+	// The SchedulePicker only ever authors these keys. Any other key
+	// (BYMONTH, BYMONTHDAY, BYSETPOS, BYYEARDAY, BYWEEKNO, COUNT, UNTIL, …)
+	// encodes a shape no preset can round-trip, so fall back to custom rather
+	// than silently dropping the extra constraint the next time buildRrule
+	// re-serializes the picker state.
+	for (const key of Object.keys(parts)) {
+		if (
+			key !== "FREQ" &&
+			key !== "INTERVAL" &&
+			key !== "BYHOUR" &&
+			key !== "BYMINUTE" &&
+			key !== "BYDAY"
+		) {
+			return { kind: "custom", rrule };
+		}
+	}
+
+	// A multi-valued time/interval field (e.g. `BYHOUR=9,17` fires at both 9 AM
+	// and 5 PM) can't be a single-time preset — `parseIntOrNull` would silently
+	// keep only the first value and drop the rest — so reject these outright.
+	if (
+		isMultiValued(parts.BYHOUR) ||
+		isMultiValued(parts.BYMINUTE) ||
+		isMultiValued(parts.INTERVAL)
+	) {
 		return { kind: "custom", rrule };
 	}
-	if (parts.COUNT || parts.UNTIL) return { kind: "custom", rrule };
 
 	const interval = parseIntOrNull(parts.INTERVAL) ?? 1;
 	if (interval !== 1) return { kind: "custom", rrule };
@@ -148,7 +176,14 @@ export function matchPreset(rrule: string): PresetMatch {
 				.filter((d) => d in DAY_LONG)
 		: [];
 
-	if (freq === "HOURLY" && byHour === null && byDay.length === 0) {
+	// The hourly preset is exactly `FREQ=HOURLY`; a BYMINUTE (e.g. every hour
+	// at :30) is a shape it can't represent, so it isn't a preset match.
+	if (
+		freq === "HOURLY" &&
+		byHour === null &&
+		parts.BYMINUTE === undefined &&
+		byDay.length === 0
+	) {
 		return { kind: "hourly" };
 	}
 
