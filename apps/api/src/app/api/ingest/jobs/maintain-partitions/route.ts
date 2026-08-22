@@ -29,19 +29,10 @@ export async function POST(request: Request): Promise<Response> {
 	);
 	if (rejected) return rejected;
 
-	const result = await dbWs.execute(sql`
-		SELECT action, partition_name
-		FROM ingest.maintain_webhook_payload_partitions(${DAYS_AHEAD}, ${RETAIN_DAYS})
-	`);
-	const changes = result.rows as Array<{
-		action: string;
-		partition_name: string;
-	}>;
-
-	// Rows here mean a delivery landed on a day with no partition, which only
-	// happens if this job has been failing. They block the partition for that
-	// range from being created until drained, so surface it loudly rather than
-	// letting it accumulate quietly.
+	// Counted before maintenance, not after. Rows here mean a delivery landed on
+	// a day with no partition, and creating that day's partition then fails with
+	// "would be violated by some row" — so reading this afterwards would skip
+	// the one diagnostic that explains the failure.
 	const [defaultPartition] = (
 		await dbWs.execute(sql`
 			SELECT count(*)::int AS n FROM ingest.webhook_payloads_default
@@ -51,6 +42,25 @@ export async function POST(request: Request): Promise<Response> {
 	if (defaultRows > 0) {
 		console.error(
 			`[ingest/maintain-partitions] webhook_payloads_default holds ${defaultRows} rows; partition creation for those days will fail until they are drained`,
+		);
+	}
+
+	let changes: Array<{ action: string; partition_name: string }>;
+	try {
+		const result = await dbWs.execute(sql`
+			SELECT action, partition_name
+			FROM ingest.maintain_webhook_payload_partitions(${DAYS_AHEAD}, ${RETAIN_DAYS})
+		`);
+		changes = result.rows as Array<{ action: string; partition_name: string }>;
+	} catch (error) {
+		console.error("[ingest/maintain-partitions] maintenance failed:", error);
+		return Response.json(
+			{
+				error: "Partition maintenance failed",
+				// The likely cause, and the thing to act on.
+				defaultRows,
+			},
+			{ status: 500 },
 		);
 	}
 
