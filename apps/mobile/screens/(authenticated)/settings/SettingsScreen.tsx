@@ -12,7 +12,6 @@ import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { useSignOut } from "@/hooks/useSignOut";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
-import { env } from "@/lib/env";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
 import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
@@ -20,7 +19,6 @@ import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizatio
 import { SettingsSection } from "./components/SettingsSection";
 import { UserAvatar } from "./components/UserAvatar";
 
-const BILLING_URL = `${env.EXPO_PUBLIC_WEB_URL ?? COMPANY.MARKETING_URL}/settings/billing`;
 const WRITE_REVIEW_URL = `${COMPANY.APP_STORE_URL}?action=write-review`;
 
 function openUrl(url: string) {
@@ -68,17 +66,13 @@ export function SettingsScreen() {
 		]);
 	};
 
+	// Informational only: App Store guideline 3.1.1 forbids in-app links to an
+	// external purchase page, so the plan row says where billing lives and stops.
 	const handleManagePlan = () => {
 		Alert.alert(
-			"Manage Plan on the Web",
-			`You can't change your plan in the app because it's managed on the web at ${COMPANY.DOMAIN}.`,
-			[
-				{ style: "cancel", text: "Dismiss" },
-				{
-					text: `Manage on ${COMPANY.DOMAIN}`,
-					onPress: () => openUrl(BILLING_URL),
-				},
-			],
+			"Plan is managed on the web",
+			`Your organization's plan is managed by its owner at ${COMPANY.DOMAIN}.`,
+			[{ text: "OK" }],
 		);
 	};
 
