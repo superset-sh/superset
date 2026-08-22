@@ -110,7 +110,11 @@ describe("bundled plugin skills", () => {
 				expect(existsSync(yamlPath)).toBe(true);
 				const yaml = readFileSync(yamlPath, "utf-8");
 				expect(yaml).toMatch(/^interface:\n/);
-				for (const key of ["display_name", "short_description", "default_prompt"]) {
+				for (const key of [
+					"display_name",
+					"short_description",
+					"default_prompt",
+				]) {
 					expect(yaml).toMatch(new RegExp(`^  ${key}: "[^"\\n]+"$`, "m"));
 				}
 			});
