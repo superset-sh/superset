@@ -199,6 +199,17 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "polygraph session start",
 		promptCommand: "polygraph session start --",
 	}),
+	createBuiltinTerminalAgent({
+		// Google's Antigravity CLI. The id matches the binary name (`agy`), the
+		// same way every other builtin id is the command users type.
+		id: "agy",
+		label: "Antigravity",
+		description:
+			"Google's Antigravity CLI for reasoning, editing, and running code from the terminal.",
+		command: "agy --mode accept-edits",
+		resumeCommand: "agy --mode accept-edits --conversation",
+		nonInteractiveCommand: "agy -p",
+	}),
 ] as const;
 
 export type BuiltinTerminalAgentType =
