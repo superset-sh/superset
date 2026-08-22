@@ -121,7 +121,10 @@ export const TerminalComposer = forwardRef<
 		setIsSubmitting(true);
 		try {
 			await onSubmit(body);
+			// Draft and tray together — `clear()` only reaches the composer's own
+			// text, and leaving the tray behind resends the attachments next time.
 			composerRef.current?.clear();
+			attachments.clear();
 		} catch (cause) {
 			Alert.alert(
 				"Could not send",

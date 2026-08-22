@@ -129,6 +129,15 @@ export function NewChatWidget({
 		createCloudWorkspace.isPending ||
 		startWorkspaceTerminal.isPending;
 
+	// The draft and the tray are cleared together, on success only. The native
+	// composer's `clear()` reaches its own text and nothing else — the tray is
+	// React Native's — and the old React Native form used to clear both, so
+	// splitting them silently left attachments behind after every send.
+	const clearComposer = () => {
+		composerRef.current?.clear();
+		attachments.clear();
+	};
+
 	const dismiss = () => {
 		clearChatTarget();
 		composerRef.current?.blur();
@@ -140,7 +149,7 @@ export function NewChatWidget({
 				.mutateAsync({ target: chatTarget, message, agentId })
 				.then(() => {
 					clearChatTarget();
-					composerRef.current?.clear();
+					clearComposer();
 				})
 				.catch(() => {});
 			return;
@@ -158,7 +167,7 @@ export function NewChatWidget({
 				})
 				.then(() => {
 					setBaseBranch(null);
-					composerRef.current?.clear();
+					clearComposer();
 				})
 				.catch(() => {});
 			return;
@@ -174,7 +183,7 @@ export function NewChatWidget({
 			})
 			.then(() => {
 				setBaseBranch(null);
-				composerRef.current?.clear();
+				clearComposer();
 			})
 			.catch(() => {});
 	};
