@@ -109,8 +109,11 @@ export function DashboardNewWorkspaceModal() {
 						onFocusOutside={(e) => e.preventDefault()}
 						// Top-anchored so the modal grows downward as the prompt grows,
 						// instead of re-centering under the caret on every line.
+						// transition-none: the base `duration-200` would otherwise
+						// animate width, so resize drags lag the cursor and keyboard
+						// steps read mid-transition widths. Open/close are keyframes.
 						className={cn(
-							"bg-popover text-popover-foreground max-h-[min(80vh,720px)] !top-[calc(50%-min(40vh,360px))] !translate-y-0 flex flex-col overflow-hidden p-0",
+							"bg-popover text-popover-foreground max-h-[min(80vh,720px)] !top-[calc(50%-min(40vh,360px))] !translate-y-0 flex flex-col overflow-hidden p-0 transition-none",
 							modalWidth === null
 								? "sm:max-w-[680px]"
 								: "sm:max-w-[calc(100%-2rem)]",

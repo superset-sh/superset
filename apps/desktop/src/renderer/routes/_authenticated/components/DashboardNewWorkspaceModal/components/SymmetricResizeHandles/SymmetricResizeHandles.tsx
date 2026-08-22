@@ -68,6 +68,16 @@ export function SymmetricResizeHandles({
 			dragRef.current = null;
 			onReset();
 		},
+		onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+			if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+			const parent = e.currentTarget.parentElement;
+			if (!parent) return;
+			e.preventDefault();
+			// Arrow pointing away from the box widens it, toward the box narrows it.
+			const outward = side === "left" ? "ArrowLeft" : "ArrowRight";
+			const step = (e.shiftKey ? 64 : 16) * (e.key === outward ? 1 : -1);
+			onWidthCommit(clamp(parent.getBoundingClientRect().width + step));
+		},
 	});
 
 	return (
