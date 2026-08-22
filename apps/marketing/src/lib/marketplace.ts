@@ -1108,6 +1108,43 @@ export const themeListings: ThemeListing[] = [
 			cyan: "oklch(0.76 0.15 205)",
 		},
 	},
+	{
+		slug: "vector",
+		name: "Vector",
+		type: "dark",
+		author: "0x962",
+		submittedBy: "0x962",
+		description:
+			"A pure-black theme with an indigo accent and cool grey text, inspired by Linear's dark interface.",
+		addedOn: "August 22, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/vector.json",
+		},
+		tags: ["Dark", "Black", "OLED", "Minimal"],
+		ui: {
+			background: "#000000",
+			foreground: "#f7f8f8",
+			card: "#08090a",
+			cardForeground: "#f7f8f8",
+			primary: "#5e6ad2",
+			accent: "#1c1d21",
+			border: "#1f2023",
+			sidebar: "#000000",
+			sidebarForeground: "#f7f8f8",
+		},
+		terminal: {
+			background: "#000000",
+			foreground: "#f7f8f8",
+			cursor: "#5e6ad2",
+			red: "#eb5757",
+			green: "#4cb782",
+			yellow: "#f2c94c",
+			blue: "#4ea7fc",
+			magenta: "#a277ff",
+			cyan: "#4cb7c5",
+		},
+	},
 ];
 
 function buildIssueUrl(title: string) {
