@@ -33,6 +33,7 @@ config({
 	quiet: true,
 });
 
+import { getWorkspaceNameFromHostDbs } from "../src/main/lib/host-db-workspace-name";
 // Import directly — shared/constants.ts would trigger Zod env validation during predev
 import {
 	deriveWorkspaceNameFromWorktreeSegments,
@@ -84,6 +85,16 @@ export function deriveWorktreePathFromSegments(
 	if (endIndex <= 1) return undefined;
 
 	return resolve(worktreeBase, ...segments.slice(0, endIndex));
+}
+
+export function getWorkspaceDisplayNameFromHostDbs(
+	worktreePath: string,
+): string | undefined {
+	return getWorkspaceNameFromHostDbs(
+		worktreePath,
+		(dbPath) =>
+			new BunSqliteDatabase(dbPath, { readonly: true, create: false }),
+	);
 }
 
 export function getWorkspaceDisplayNameFromProdDb(
@@ -180,7 +191,9 @@ export function main() {
 		resolveWorkspaceIdentity({
 			cwd: process.cwd(),
 			envWorkspaceName: getWorkspaceName(),
-			lookupDisplayName: getWorkspaceDisplayNameFromProdDb,
+			lookupDisplayName: (worktreePath) =>
+				getWorkspaceDisplayNameFromHostDbs(worktreePath) ??
+				getWorkspaceDisplayNameFromProdDb(worktreePath),
 		});
 	if (!workspaceName || !bundleDisplayWorkspaceName) {
 		console.log("[patch-dev-protocol] Skipping - workspace name not resolved");

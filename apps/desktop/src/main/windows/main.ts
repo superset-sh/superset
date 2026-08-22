@@ -7,13 +7,11 @@ import { app, Notification, nativeTheme } from "electron";
 import log from "electron-log/main";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
+import { resolveDevWorkspaceName } from "main/lib/dev-workspace-name";
 import { localDb } from "main/lib/local-db";
 import { isExpectedRendererExit } from "main/lib/renderer-exit";
 import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
-import {
-	env,
-	getWorkspaceName as getEnvWorkspaceName,
-} from "shared/env.shared";
+import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
@@ -98,7 +96,7 @@ export async function MainWindow() {
 	let persistedZoomLevel = savedWindowState?.zoomLevel;
 
 	const isDev = env.NODE_ENV === "development";
-	const workspaceName = isDev ? getEnvWorkspaceName() : undefined;
+	const workspaceName = isDev ? resolveDevWorkspaceName() : undefined;
 	const windowTitle = workspaceName
 		? `${productName} — ${workspaceName}`
 		: productName;

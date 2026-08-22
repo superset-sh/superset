@@ -6,6 +6,7 @@ import BetterSqlite3 from "better-sqlite3";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { getWorkspaceName as getEnvWorkspaceName } from "shared/env.shared";
 import { deriveWorkspaceNameFromWorktreeSegments } from "shared/worktree-id";
+import { getWorkspaceNameFromHostDbs } from "./host-db-workspace-name";
 import { localDb } from "./local-db";
 
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -108,8 +109,15 @@ export function resolveDevWorkspaceName(
 	const workspaceNameFromPath =
 		deriveWorkspaceNameFromWorktreeSegments(segments);
 	const worktreePath = getWorktreePathFromSegments(segments);
+	// v2 workspaces (and their AI/manual renames) live in host.db; the
+	// local.db lookups below serve worktrees created by the v1 desktop.
 	const workspaceNameFromDb = worktreePath
-		? (getWorkspaceNameForPathFromCurrentDb(worktreePath) ??
+		? (getWorkspaceNameFromHostDbs(
+				worktreePath,
+				(dbPath) =>
+					new BetterSqlite3(dbPath, { readonly: true, fileMustExist: true }),
+			) ??
+			getWorkspaceNameForPathFromCurrentDb(worktreePath) ??
 			getWorkspaceNameForPathFromProdDb(worktreePath))
 		: undefined;
 
