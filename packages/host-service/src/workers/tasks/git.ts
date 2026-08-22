@@ -209,10 +209,25 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 		// command's locale- and version-dependent exit text. `--force --force`
 		// also unregisters a worktree whose directory is already gone, so no
 		// separate prune (which would clobber other stale worktrees' metadata)
-		// is needed.
+		// is needed. Log the real git error though — `--force --force` can
+		// unregister while still failing to delete the folder (undeletable
+		// nested file, #6730), and without this the underlying cause is
+		// invisible to anyone debugging an orphan.
 		await git
 			.raw(["worktree", "remove", "--force", "--force", target])
-			.catch(() => {});
+			.catch((err) => {
+				const message =
+					typeof err === "object" && err !== null && "message" in err
+						? String((err as { message: unknown }).message)
+						: String(err);
+				console.warn(
+					`[host-service] git worktree remove --force failed but may still unregister`,
+					{
+						error: message,
+						target,
+					},
+				);
+			});
 		// A `worktree list` failure throws out of the task: the post-remove
 		// state is unknown and the caller must not treat it as removed.
 		const raw = await git.raw(["worktree", "list", "--porcelain"]);

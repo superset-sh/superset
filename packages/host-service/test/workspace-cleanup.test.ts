@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	rmSync,
@@ -26,7 +27,7 @@ type WorkspaceRow = {
 	pullRequestId?: string | null;
 	archivedAt?: number | null;
 };
-type ProjectRow = { id: string; repoPath: string };
+type ProjectRow = { id: string; repoPath: string; worktreeBaseDir?: string };
 
 type WorktreeState = { hasChanges: boolean; hasUnpushedCommits: boolean };
 
@@ -42,6 +43,10 @@ interface ContextSpec {
 	resolveGitEnvThrows?: boolean;
 	removeWorktree?: () => Promise<{ stillRegistered: boolean }>;
 	deleteBranch?: () => Promise<{ deleted: boolean }>;
+	// Value returned by the host-settings lookup (`getHostWorktreeBaseDir`).
+	// When set, the worktree-removal root guard resolves against this base dir
+	// instead of the (absent) live settings row.
+	hostWorktreeBaseDir?: string;
 	// Simulates sqlite failure at the archive UPDATE — the commit point.
 	dbUpdateThrows?: boolean | "once";
 }
@@ -118,7 +123,14 @@ function makeCtx(spec: ContextSpec): HostServiceContext & {
 			},
 			select: () => ({
 				from: () => ({
-					where: () => ({ all: terminalSelectAll }),
+					where: () => ({
+						all: terminalSelectAll,
+						// `getHostWorktreeBaseDir` reads the host-settings row.
+						get: () =>
+							spec.hostWorktreeBaseDir !== undefined
+								? { worktreeBaseDir: spec.hostWorktreeBaseDir }
+								: null,
+					}),
 				}),
 			}),
 			update: () => ({
@@ -476,6 +488,57 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			).rejects.toThrow(/Failed to open project repo/i);
 		} finally {
 			rmSync(tmp, { recursive: true, force: true });
+			rmSync(repo, { recursive: true, force: true });
+		}
+	});
+
+	test("git-unregistered-but-left-on-disk worktree is removed, not orphaned", async () => {
+		// Regression for #6730: `git worktree remove --force` is not atomic —
+		// it can fully unregister the worktree (so it's absent from `git worktree
+		// list`, hence stillRegistered=false) while the working directory stays
+		// on disk when a nested file is undeletable. The destroy saga must then
+		// delete the leftover folder directly instead of trusting stillRegistered
+		// and archiving the row over an orphan.
+		const base = mkdtempSync(join(tmpdir(), "worktree-base-"));
+		const repo = mkdtempSync(join(tmpdir(), "workspace-delete-repo-"));
+		// Worktree must sit under <base>/<projectId>/ so the managed-root guard
+		// passes and the direct rm is allowed.
+		const projectRoot = join(base, "p-1");
+		mkdirSync(projectRoot, { recursive: true });
+		const worktree = join(projectRoot, "ws-1");
+		mkdirSync(worktree, { recursive: true });
+		try {
+			const ctx = makeCtx({
+				workspace: {
+					id: "ws-1",
+					projectId: "p-1",
+					worktreePath: worktree,
+					branch: "feature",
+				},
+				project: { id: "p-1", repoPath: repo, worktreeBaseDir: base },
+				// `runDestroyPhases` resolves the managed base dir via the
+				// host-settings lookup; surface it so the root guard treats the
+				// leftover worktree as inside the managed root.
+				hostWorktreeBaseDir: base,
+				// git says the worktree is no longer registered, but the folder
+				// still exists on disk (the undeletable-file case).
+				removeWorktree: async () => ({ stillRegistered: false }),
+			});
+			const caller = workspaceCleanupRouter.createCaller(ctx);
+
+			const result = await caller.destroy({
+				workspaceId: "ws-1",
+				deleteBranch: false,
+				force: true,
+			});
+			// The leftover folder must be gone now, not silently orphaned.
+			expect(existsSync(worktree)).toBe(false);
+			// No warning naming it as skipped (it was inside the managed root).
+			expect(
+				result.warnings.some((w: string) => w.includes("Skipped orphaned")),
+			).toBe(false);
+		} finally {
+			rmSync(base, { recursive: true, force: true });
 			rmSync(repo, { recursive: true, force: true });
 		}
 	});

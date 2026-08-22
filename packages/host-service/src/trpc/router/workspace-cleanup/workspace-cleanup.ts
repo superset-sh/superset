@@ -536,6 +536,40 @@ async function runDestroyPhases(
 					message: `Failed to remove worktree at ${local.worktreePath}`,
 				});
 			}
+			// `git worktree remove --force` is not atomic: it can fully
+			// unregister the worktree (so it no longer appears in
+			// `git worktree list`) while still failing to delete the working
+			// directory when a nested file is undeletable (#6730). Trusting
+			// `stillRegistered` alone then leaves an orphaned folder on disk
+			// and archives the row over it. Mirror the repo-missing branch
+			// above: when git no longer tracks it but the directory survives,
+			// remove it directly under the same root guard.
+			if (existsSync(local.worktreePath)) {
+				const worktreeBaseDir =
+					project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+				if (
+					!isInsideProjectWorktreesRoot(
+						local.worktreePath,
+						project.id,
+						worktreeBaseDir,
+					)
+				) {
+					warnings.push(
+						`Skipped orphaned worktree removal at ${local.worktreePath}: folder is outside the managed worktrees root`,
+					);
+				} else {
+					try {
+						await rm(local.worktreePath, { recursive: true, force: true });
+					} catch (err) {
+						const message =
+							err instanceof Error ? err.message : String(err);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Failed to remove orphaned worktree at ${local.worktreePath}: ${message}`,
+						});
+					}
+				}
+			}
 			worktreeRemoved = true;
 		}
 	}
