@@ -37,6 +37,11 @@ final class ComposerModel {
   /// `ComposerModelPicker`.
   var selectedModel: ComposerMenuOption?
 
+  /// A submit is in flight. The caller owns this — only it knows when delivery
+  /// finished — and while it is true the send button shows a spinner and the
+  /// mic gets out of the way.
+  var isSending = false
+
   /// Frame 4's header row — project+branch and target. Same shape as the model
   /// options; their menus arrive with the data at cutover, so for now a press
   /// is reported and the caller decides what to present.
@@ -77,7 +82,7 @@ final class ComposerModel {
   /// once its own delivery succeeded, so a failed send keeps the draft — the
   /// same contract `GlassComposer` settled on.
   func submit() {
-    guard hasContent else { return }
+    guard hasContent, !isSending else { return }
     onSubmit?(draft)
   }
 }

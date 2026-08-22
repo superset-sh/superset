@@ -19,12 +19,12 @@ struct ComposerCarousel: View {
       .padding(.horizontal, ComposerMetrics.textInset + ComposerMetrics.rowPadding)
     }
     .scrollIndicators(.hidden)
-    .frame(height: ComposerMetrics.thumbnailSize + ComposerMetrics.removeBadgeSize / 2)
+    .frame(height: ComposerMetrics.thumbnailSize)
   }
 
   private func thumbnail(_ attachment: ComposerAttachment) -> some View {
-    // The badge overlaps the thumbnail's corner and bleeds slightly outside it,
-    // so the stack is sized to the thumbnail and the badge is offset out.
+    // The badge sits fully inside the thumbnail's top-right corner, over the
+    // image, rather than hanging off it.
     ZStack(alignment: .topTrailing) {
       Group {
         if attachment.isImage, let url = URL(string: attachment.uri) {
@@ -50,16 +50,19 @@ struct ComposerCarousel: View {
       .onTapGesture { onOpen(attachment.id) }
 
       Button { onRemove(attachment.id) } label: {
-        Image(systemName: "xmark.circle.fill")
-          .font(.system(size: ComposerMetrics.removeBadgeSize))
-          .symbolRenderingMode(.palette)
-          .foregroundStyle(.white, .black.opacity(0.55))
+        Image(systemName: "xmark")
+          .font(.system(size: ComposerMetrics.removeBadgeSize * 0.55, weight: .bold))
+          .foregroundStyle(.white)
+          .frame(
+            width: ComposerMetrics.removeBadgeSize,
+            height: ComposerMetrics.removeBadgeSize
+          )
+          .background(.black.opacity(0.45), in: .circle)
       }
       .buttonStyle(.plain)
-      .offset(x: ComposerMetrics.removeBadgeSize / 3, y: -ComposerMetrics.removeBadgeSize / 3)
+      .padding(ComposerMetrics.removeBadgeInset)
       .accessibilityLabel("Remove attachment")
     }
-    .padding(.top, ComposerMetrics.removeBadgeSize / 3)
   }
 }
 
@@ -70,7 +73,7 @@ struct ComposerCollapsedAttachments: View {
 
   var body: some View {
     if let first = attachments.first {
-      ZStack(alignment: .bottomTrailing) {
+      ZStack {
         Group {
           if first.isImage, let url = URL(string: first.uri) {
             AsyncImage(url: url) { image in
@@ -94,11 +97,9 @@ struct ComposerCollapsedAttachments: View {
 
         if attachments.count > 1 {
           Text("+\(attachments.count - 1)")
-            .font(.system(size: 10, weight: .semibold))
+            .font(.system(size: 12, weight: .bold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 3)
-            .background(.black.opacity(0.6), in: .capsule)
-            .padding(2)
+            .shadow(radius: 2)
         }
       }
       .accessibilityLabel("\(attachments.count) attachments")

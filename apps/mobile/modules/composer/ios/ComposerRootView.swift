@@ -33,14 +33,18 @@ enum ComposerMetrics {
   static let modelIconSize: CGFloat = 16
   static let modelIconRadius: CGFloat = 4
   static let chipSpacing: CGFloat = 12
-  /// Frames 6/10: square thumbnails with the remove badge overlapping the
-  /// top-right corner and bleeding slightly outside it.
-  static let thumbnailSize: CGFloat = 56
-  static let thumbnailRadius: CGFloat = 10
-  static let removeBadgeSize: CGFloat = 15
+  /// Measured off frames 6 and 9. The badge sits *inside* the thumbnail, inset
+  /// by roughly its own radius — an earlier pass had it bleeding outside the
+  /// corner, and the thumbnails were a third too small and proportionally
+  /// rounder than the reference.
+  static let thumbnailSize: CGFloat = 80
+  static let thumbnailRadius: CGFloat = 11
+  static let removeBadgeSize: CGFloat = 17
+  static let removeBadgeInset: CGFloat = 6
   static let carouselSpacing: CGFloat = 8
-  /// Frames 7/9/11: collapsed keeps one mini thumbnail plus a `+N` badge.
-  static let miniThumbnailSize: CGFloat = 30
+  /// Frames 7/9/11. `+N` is plain white text centred on the thumbnail, not a
+  /// badge in a corner chip.
+  static let miniThumbnailSize: CGFloat = 34
   static let miniThumbnailRadius: CGFloat = 8
   /// The draft preview and the model picker trade places through blur, matching
   /// the reference. `.transition(.blurReplace)` is the stock way to do this but
@@ -167,6 +171,9 @@ struct ComposerRootView: View {
             onRemove: { model.onRemoveAttachment?($0) },
             onOpen: { model.onAttachmentPress?($0) }
           )
+          // Frame 6 leaves air between the strip and the first line of text;
+          // without this the thumbnail sits right on the placeholder.
+          .padding(.bottom, ComposerMetrics.textInset)
           .transition(.opacity)
         }
         editor
@@ -260,24 +267,43 @@ struct ComposerRootView: View {
 
       middleBand
 
-      Button { model.onDictatePress?() } label: {
-        Image(systemName: "mic")
-          .font(.system(size: 17, weight: .regular))
+      // Hidden while sending: the spinner is the only thing that should be
+      // moving, and the row closes up around it.
+      if !model.isSending {
+        Button { model.onDictatePress?() } label: {
+          Image(systemName: "mic")
+            .font(.system(size: 17, weight: .regular))
+        }
+        .buttonStyle(.composerControl)
+        .accessibilityLabel("Dictate")
+        .transition(.opacity)
       }
-      .buttonStyle(.composerControl)
-      .accessibilityLabel("Dictate")
 
       if model.hasContent {
-        Button { model.submit() } label: {
-          Image(systemName: "arrow.up")
-            .font(.system(size: 16, weight: .semibold))
-        }
-        .buttonStyle(.composerSend)
-        .accessibilityLabel("Send")
-        .transition(.scale.combined(with: .opacity))
+        sendButton
       }
     }
     .padding(ComposerMetrics.rowPadding)
+    // Typing is what reveals send, and the mic slides left to make room. Both
+    // fall out of one animation on the row: the transition fades send in, the
+    // HStack's own layout carries the mic.
+    .animation(.snappy(duration: 0.22), value: model.hasContent)
+    .animation(.snappy(duration: 0.22), value: model.isSending)
+  }
+
+  private var sendButton: some View {
+    Button { model.submit() } label: {
+      if model.isSending {
+        ComposerSpinner()
+      } else {
+        Image(systemName: "arrow.up")
+          .font(.system(size: 16, weight: .semibold))
+      }
+    }
+    .buttonStyle(model.isSending ? .composerSending : .composerSend)
+    .disabled(model.isSending)
+    .accessibilityLabel(model.isSending ? "Sending" : "Send")
+    .transition(.opacity)
   }
 
   /// The band between `+` and the trailing controls. Collapsed it holds the

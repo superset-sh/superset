@@ -15,6 +15,7 @@ interface NativeComposerViewProps {
 	attachments?: ComposerAttachment[];
 	selectedModel?: ComposerMenuOption;
 	headerChips?: ComposerMenuOption[];
+	isSending?: boolean;
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
 	onDictatePress?: () => void;
@@ -86,6 +87,11 @@ export interface ComposerProps {
 	/** Frame 4's header row. Empty on the session surface (frame 13). */
 	headerChips?: ComposerMenuOption[];
 	/**
+	 * A submit is in flight. Send becomes a grey spinner and the mic steps
+	 * aside. The caller owns this because only it knows when delivery finished.
+	 */
+	isSending?: boolean;
+	/**
 	 * Never clears the composer — the caller clears through the ref once its own
 	 * delivery succeeded, so a failed send keeps the draft.
 	 */
@@ -123,6 +129,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			attachments,
 			selectedModel,
 			headerChips,
+			isSending = false,
 			onSubmit,
 			onAttachmentsPress,
 			onDictatePress,
@@ -150,6 +157,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				attachments={attachments}
 				selectedModel={selectedModel}
 				headerChips={headerChips}
+				isSending={isSending}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}
 				onDictatePress={onDictatePress}

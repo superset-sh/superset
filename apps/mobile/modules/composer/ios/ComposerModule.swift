@@ -33,6 +33,10 @@ public final class ComposerModule: Module {
         view.overlay.model.selectedModel = model
       }
 
+      Prop("isSending") { (view: ComposerAnchorView, isSending: Bool) in
+        view.overlay.model.isSending = isSending
+      }
+
       Prop("headerChips") { (view: ComposerAnchorView, chips: [ComposerMenuOption]) in
         view.overlay.model.headerChips = chips
       }

@@ -3,12 +3,13 @@ import {
 	type ComposerBackdrop,
 	type ComposerHandle,
 } from "@superset/composer";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { usePromptInputAttachments } from "@/components/ai-elements/prompt-input";
+import { useAgentIconUri } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useAgentIconUri";
+import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/components/GlassComposer/hooks/useAttachmentsSheet";
-import { useMockModelOptions } from "./hooks/useMockModelOptions";
 
 /**
  * Development scaffolding for the native composer rewrite — not linked from
@@ -36,15 +37,25 @@ export function ComposerPreviewScreen() {
 	// Restoring unconditionally pops the keyboard up over a composer the user had
 	// left collapsed — and briefly shows both it and the sheet at once.
 	const wasExpanded = useRef(false);
+	const [isSending, setIsSending] = useState(false);
 	const openAttachmentsSheet = useAttachmentsSheet();
 	const attachments = usePromptInputAttachments();
-	// Mock until cutover, when these come from the host's agent configs and the
-	// selected target's projects and branches.
-	const modelOptions = useMockModelOptions();
-	const [selectedModelId, setSelectedModelId] = useState("claude");
+	const router = useRouter();
+	// The real pickers: existing `formSheet` routes with searchable lists. The
+	// composer reports a press and these present, exactly like `+` and the
+	// attachments sheet — it never holds the lists itself.
+	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
+	const agentIconUri = useAgentIconUri(agentId);
+	const selectedModel = agentId
+		? {
+				id: agentId,
+				label: agentId,
+				iconUri: agentIconUri ?? undefined,
+			}
+		: undefined;
 	const headerChips = [
 		{ id: "project", label: "superset main" },
-		{ id: "target", label: "Cloud" },
+		{ id: "branch", label: "Cloud" },
 	];
 
 	return (
@@ -93,11 +104,16 @@ export function ComposerPreviewScreen() {
 				ref={composerRef}
 				backdrop={backdrop}
 				placeholder="Native composer"
+				isSending={isSending}
 				onSubmit={(text) => {
 					setLastEvent(`submit "${text}"`);
-					// Mirrors the real contract: the caller clears only once its own
-					// delivery succeeded.
-					composerRef.current?.clear();
+					// Mirrors the real contract: the caller owns the in-flight state and
+					// clears only once its own delivery succeeded.
+					setIsSending(true);
+					setTimeout(() => {
+						setIsSending(false);
+						composerRef.current?.clear();
+					}, 1500);
 				}}
 				attachments={attachments.attachments.map((item) => ({
 					id: item.id,
@@ -119,22 +135,20 @@ export function ComposerPreviewScreen() {
 						},
 					});
 				}}
-				selectedModel={modelOptions.find(
-					(option) => option.id === selectedModelId,
-				)}
+				selectedModel={selectedModel}
 				headerChips={headerChips}
-				// The real picker is the existing `new-session/agent` formSheet; this
-				// stands in for it until cutover.
 				onModelPress={() => {
-					const next =
-						modelOptions[
-							(modelOptions.findIndex((o) => o.id === selectedModelId) + 1) %
-								Math.max(1, modelOptions.length)
-						];
-					if (next) setSelectedModelId(next.id);
 					setLastEvent("model picker");
+					router.push("/(authenticated)/(home)/new-session/agent");
 				}}
-				onChipPress={(id) => setLastEvent(`chip ${id}`)}
+				onChipPress={(id) => {
+					setLastEvent(`chip ${id}`);
+					router.push(
+						id === "project"
+							? "/(authenticated)/(home)/new-session/project"
+							: "/(authenticated)/(home)/new-session/branch",
+					);
+				}}
 				onRemoveAttachment={(id) => attachments.remove(id)}
 				onAttachmentPress={(id) => setLastEvent(`open attachment ${id}`)}
 				onDictatePress={() => setLastEvent("dictate")}

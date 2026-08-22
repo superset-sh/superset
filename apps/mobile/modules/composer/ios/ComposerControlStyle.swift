@@ -41,4 +41,12 @@ extension ButtonStyle where Self == ComposerControlStyle {
       foreground: AnyShapeStyle(.black)
     )
   }
+
+  /// In flight: grey rather than white, so it reads as busy instead of ready.
+  static var composerSending: ComposerControlStyle {
+    ComposerControlStyle(
+      fill: AnyShapeStyle(.white.opacity(0.22)),
+      foreground: AnyShapeStyle(.white.opacity(0.7))
+    )
+  }
 }
