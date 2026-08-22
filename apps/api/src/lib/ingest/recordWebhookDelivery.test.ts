@@ -75,7 +75,8 @@ describe("recordWebhookDelivery", () => {
 	});
 
 	test("a failed write still names the operation, provider and reason", async () => {
-		execute.mockImplementationOnce(() => Promise.reject(drizzleFailure()));
+		const failure = drizzleFailure();
+		execute.mockImplementationOnce(() => Promise.reject(failure));
 
 		const thrown = await recordWebhookDelivery({
 			provider: "github",
@@ -94,6 +95,10 @@ describe("recordWebhookDelivery", () => {
 		expect(message).toContain(
 			"Error connecting to database: TypeError: fetch failed",
 		);
+		// The driver error must survive as `cause`: it carries the code and
+		// stack the report needs, and the message assertions above would still
+		// pass if a later change dropped it.
+		expect((thrown as Error).cause).toBe(failure.cause);
 	});
 
 	// Guards the matcher: only the wrapper that carries bind parameters is
