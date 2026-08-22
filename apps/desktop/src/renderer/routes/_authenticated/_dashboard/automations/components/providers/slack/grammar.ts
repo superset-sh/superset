@@ -23,27 +23,33 @@ export type Slot =
 export type SentencePart = { text: string } | { slot: Slot };
 
 export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
+	// The filter chip is the subject — "[Any message] from [Anyone] in [#x]" —
+	// rather than trailing a "Message" label it would collide with.
 	message_in_channel: [
-		{ text: "Message" },
 		{ slot: "messageFilter" },
+		{ text: "from" },
+		{ slot: "actor" },
 		{ text: "in" },
 		{ slot: "channels" },
-		{ text: "by" },
-		{ slot: "actor" },
 		{ slot: "topLevelOnly" },
 		{ text: "; react with" },
 		{ slot: "completionReaction" },
 		{ text: "upon completion" },
 	],
+	// Actor beside its verb: "added by" — at the end it read as the message's
+	// author rather than the reactor's.
 	reaction_added: [
 		{ text: "Reaction" },
 		{ slot: "emoji" },
-		{ text: "on a message in" },
-		{ slot: "channels" },
-		{ text: "by" },
+		{ text: "added by" },
 		{ slot: "actor" },
+		{ text: "to a message in" },
+		{ slot: "channels" },
 	],
-	channel_created: [{ text: "Channel created" }, { slot: "messageFilter" }],
+	channel_created: [
+		{ text: "Channel created matching" },
+		{ slot: "messageFilter" },
+	],
 };
 
 export const SLACK_MENU: TriggerMenuEntry<SlackConfig>[] = [

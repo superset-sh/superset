@@ -6,6 +6,7 @@ import { Button } from "@superset/ui/button";
 import type { ReactNode } from "react";
 import { LuTrash2 } from "react-icons/lu";
 import { type ProviderOptions, providerFor } from "../providers";
+import type { OptionGroupState } from "../providers/types";
 import { CHIP_INVALID } from "./chipStyles";
 
 interface TriggerSentenceProps {
@@ -13,6 +14,7 @@ interface TriggerSentenceProps {
 	onChange: (next: DraftTrigger) => void;
 	onRemove: () => void;
 	options: ProviderOptions;
+	optionState?: Record<string, OptionGroupState>;
 	/** This row's problems, already filtered to it by the editor. */
 	problems?: TriggerProblem[];
 	/** Trailing "Next run ..." text for a schedule row. */
@@ -33,6 +35,7 @@ export function TriggerSentence({
 	onChange,
 	onRemove,
 	options,
+	optionState,
 	problems,
 	nextRun,
 	disabled,
@@ -55,6 +58,7 @@ export function TriggerSentence({
 					onChange({ ...trigger, config: { ...config, ...patch } as never }),
 				mark: (field) => (invalid.has(field) ? CHIP_INVALID : undefined),
 				options,
+				optionState,
 				disabled,
 				nextRun,
 			})}

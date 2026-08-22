@@ -34,6 +34,13 @@ export type TriggerProvider<
 	 * Two kinds can share one group — Calendar and Gmail both read `google`.
 	 */
 	optionGroup?: string;
+	/**
+	 * Facts about the outside world that stop a valid-looking trigger from
+	 * firing — a Slack channel the bot is not in. Not problems: the config is
+	 * fine and saves, so these render as standing warnings rather than blocking
+	 * anything, and they show without waiting for a save attempt.
+	 */
+	runtimeWarnings?: (config: Config, options: ProviderOptions) => string[];
 };
 
 /**
@@ -63,9 +70,23 @@ export type SentenceContext = {
 	set: (patch: Record<string, unknown>) => void;
 	mark: (field: string) => string | undefined;
 	options: ProviderOptions;
+	/**
+	 * Whether this provider's option lists are still loading or failed, keyed
+	 * like `options`. An empty list means nothing on its own — chips read this
+	 * to say "loading" or "couldn't reach the provider" instead of showing raw
+	 * ids and a false "nothing to choose".
+	 */
+	optionState?: Record<string, OptionGroupState>;
 	disabled?: boolean;
 	/** Trailing text for a schedule row ("Next run …"); other providers ignore it. */
 	nextRun?: ReactNode;
+};
+
+/** How one option group's fetch is going, from `useProviderOptions`. */
+export type OptionGroupState = {
+	isLoading: boolean;
+	isError: boolean;
+	refetch: () => void;
 };
 
 /**

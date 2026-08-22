@@ -9,6 +9,8 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { useState } from "react";
+import { LuRefreshCw } from "react-icons/lu";
+import type { OptionGroupState } from "../../../providers/types";
 import type { ScopeOption } from "../../scopeOption";
 import { ChipButton } from "../ChipButton";
 
@@ -17,14 +19,21 @@ function scopeLabel(
 	options: ScopeOption[],
 	emptyLabel: string,
 	anyLabel: string,
+	countNoun: { singular: string; plural: string } | undefined,
+	loading: boolean,
 ): string {
 	if (scope.mode === "any") return anyLabel;
 	if (scope.ids.length === 0) return emptyLabel;
 	if (scope.ids.length === 1) {
 		const match = options.find((o) => o.id === scope.ids[0]);
-		return match?.label ?? scope.ids[0] ?? emptyLabel;
+		if (match) return match.label;
+		// The label list just hasn't arrived; the raw id would read as breakage.
+		if (loading) return "…";
+		return scope.ids[0] ?? emptyLabel;
 	}
-	return `${scope.ids.length} selected`;
+	return countNoun
+		? `${scope.ids.length} ${scope.ids.length === 1 ? countNoun.singular : countNoun.plural}`
+		: `${scope.ids.length} selected`;
 }
 
 /**
@@ -35,7 +44,9 @@ function scopeLabel(
  * firing on everything, so choosing "any" has to be deliberate.
  *
  * `allowCustom` adds a field for values that are not pickable — an email
- * address, a domain — which then sit in the list like any chosen option.
+ * address, a pasted channel id — which then sit in the list like any chosen
+ * option. `state` distinguishes the three faces of an empty list: loading,
+ * provider unreachable, and genuinely nothing.
  */
 export function ScopeChip({
 	scope,
@@ -43,7 +54,9 @@ export function ScopeChip({
 	options,
 	emptyLabel,
 	anyLabel,
+	countNoun,
 	allowCustom,
+	state,
 	disabled,
 	className,
 }: {
@@ -52,7 +65,10 @@ export function ScopeChip({
 	options: ScopeOption[];
 	emptyLabel: string;
 	anyLabel: string;
+	/** "2 channels" instead of the generic "2 selected". */
+	countNoun?: { singular: string; plural: string };
 	allowCustom?: { placeholder: string };
+	state?: OptionGroupState;
 	disabled?: boolean;
 	className?: string;
 }) {
@@ -60,6 +76,7 @@ export function ScopeChip({
 	const isAny = scope.mode === "any";
 	const empty = scope.mode === "list" && !scope.ids.length;
 	const [custom, setCustom] = useState("");
+	const [filter, setFilter] = useState("");
 
 	const toggle = (id: string) => {
 		const next = selected.includes(id)
@@ -82,12 +99,24 @@ export function ScopeChip({
 		(id) => !options.some((option) => option.id === id),
 	);
 
+	const query = filter.trim().toLowerCase();
+	const shown = query
+		? options.filter((option) => option.label.toLowerCase().includes(query))
+		: options;
+
 	return (
-		<DropdownMenu>
+		<DropdownMenu onOpenChange={() => setFilter("")}>
 			<DropdownMenuTrigger asChild disabled={disabled}>
 				<span>
 					<ChipButton
-						label={scopeLabel(scope, options, emptyLabel, anyLabel)}
+						label={scopeLabel(
+							scope,
+							options,
+							emptyLabel,
+							anyLabel,
+							countNoun,
+							state?.isLoading ?? false,
+						)}
 						empty={empty}
 						disabled={disabled}
 						className={className}
@@ -95,15 +124,34 @@ export function ScopeChip({
 				</span>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
-				<DropdownMenuCheckboxItem
-					checked={isAny}
-					onCheckedChange={() =>
-						onChange(isAny ? { mode: "list", ids: [] } : { mode: "any" })
-					}
-				>
-					{anyLabel}
-				</DropdownMenuCheckboxItem>
-				{options.map((option) => (
+				{/* A list short enough to scan doesn't need a second control. */}
+				{options.length > 8 && (
+					<Input
+						autoFocus
+						value={filter}
+						placeholder="Search..."
+						onChange={(event) => setFilter(event.target.value)}
+						// Radix would typeahead-jump on printable keys; Escape and the
+						// arrows still belong to the menu.
+						onKeyDown={(event) => {
+							if (event.key.length === 1 || event.key === "Backspace") {
+								event.stopPropagation();
+							}
+						}}
+						className="mb-1 h-7 border-none bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-0 dark:bg-transparent"
+					/>
+				)}
+				{!query && (
+					<DropdownMenuCheckboxItem
+						checked={isAny}
+						onCheckedChange={() =>
+							onChange(isAny ? { mode: "list", ids: [] } : { mode: "any" })
+						}
+					>
+						{anyLabel}
+					</DropdownMenuCheckboxItem>
+				)}
+				{shown.map((option) => (
 					<DropdownMenuCheckboxItem
 						key={option.id}
 						checked={selected.includes(option.id)}
@@ -112,7 +160,11 @@ export function ScopeChip({
 						{option.label}
 					</DropdownMenuCheckboxItem>
 				))}
-				{allowCustom &&
+				{query && shown.length === 0 && (
+					<DropdownMenuItem disabled>No matches</DropdownMenuItem>
+				)}
+				{!query &&
+					allowCustom &&
 					customSelected.map((id) => (
 						<DropdownMenuCheckboxItem
 							key={id}
@@ -122,9 +174,20 @@ export function ScopeChip({
 							{id}
 						</DropdownMenuCheckboxItem>
 					))}
-				{options.length === 0 && !allowCustom && (
-					<DropdownMenuItem disabled>Nothing to choose yet</DropdownMenuItem>
-				)}
+				{options.length === 0 &&
+					(state?.isLoading ? (
+						<DropdownMenuItem disabled>Loading…</DropdownMenuItem>
+					) : state?.isError ? (
+						<DropdownMenuItem onSelect={() => state.refetch()}>
+							Couldn't load — retry
+						</DropdownMenuItem>
+					) : (
+						!allowCustom && (
+							<DropdownMenuItem disabled>
+								Nothing to choose yet
+							</DropdownMenuItem>
+						)
+					))}
 				{allowCustom && (
 					<>
 						<DropdownMenuSeparator />
@@ -146,6 +209,22 @@ export function ScopeChip({
 								className="h-7 text-[13px]"
 							/>
 						</div>
+					</>
+				)}
+				{state && options.length > 0 && (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							disabled={state.isLoading}
+							onSelect={(event) => {
+								// Keep the menu open: refreshing is a step, not a choice.
+								event.preventDefault();
+								state.refetch();
+							}}
+						>
+							<LuRefreshCw className="size-3.5" />
+							Refresh
+						</DropdownMenuItem>
 					</>
 				)}
 			</DropdownMenuContent>

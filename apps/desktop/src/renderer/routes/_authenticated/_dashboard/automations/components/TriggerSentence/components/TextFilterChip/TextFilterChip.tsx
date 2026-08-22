@@ -33,9 +33,11 @@ export function TextFilterChip({
 		<Popover open={open} onOpenChange={(next) => !disabled && setOpen(next)}>
 			<PopoverTrigger asChild>
 				<span>
+					{/* No `empty` styling: a null filter IS the value — "Any message"
+					    is a deliberate wide-open match, not a blank to fill in, and
+					    muting it made a configured chip read as disabled. */}
 					<ChipButton
 						label={value?.pattern || emptyLabel}
-						empty={!value?.pattern}
 						disabled={disabled}
 						className="max-w-52"
 					/>

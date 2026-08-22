@@ -16,7 +16,7 @@ import { Separator } from "@superset/ui/separator";
 import { useFeatureFlagPayload } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
-import { TRIGGER_PROVIDERS } from "../providers";
+import { providerFor, TRIGGER_PROVIDERS } from "../providers";
 import { useProviderOptions } from "../providers/useProviderOptions";
 import { TriggerSentence } from "../TriggerSentence";
 import { TriggerMenuItems } from "./TriggerMenuItems";
@@ -56,7 +56,10 @@ export function TriggersEditor({
 	// silently once it happened to become valid is no better: nothing tells you
 	// which edit crossed the line, or that anything was written at all.
 	const [drafts, setDrafts] = useState(triggers);
-	const options = useProviderOptions(organizationId, drafts);
+	const { options, state: optionState } = useProviderOptions(
+		organizationId,
+		drafts,
+	);
 	const [dirty, setDirty] = useState(false);
 	const savedKey = JSON.stringify(triggers);
 	const [prevSavedKey, setPrevSavedKey] = useState(savedKey);
@@ -68,6 +71,21 @@ export function TriggersEditor({
 	}
 
 	const problems = useMemo(() => describeTriggerProblems(drafts), [drafts]);
+
+	// Unlike problems, these show without waiting for a save attempt: they
+	// describe the world (a channel the bot is not in), not an unfinished edit,
+	// and the person who can fix them may not be the one editing.
+	const runtimeWarnings = useMemo(() => {
+		const seen = new Set<string>();
+		for (const draft of drafts) {
+			const provider = providerFor(draft.config);
+			for (const warning of provider.runtimeWarnings?.(draft.config, options) ??
+				[]) {
+				seen.add(warning);
+			}
+		}
+		return [...seen];
+	}, [drafts, options]);
 
 	// Nothing is wrong until someone says they are done. Every trigger is
 	// incomplete the instant it is added, so validating as you type marks a row
@@ -185,6 +203,7 @@ export function TriggersEditor({
 						}
 						onRemove={() => edit(drafts.filter((_, i) => i !== index))}
 						options={options}
+						optionState={optionState}
 						problems={shownProblems.filter((p) => p.index === index)}
 						nextRun={
 							trigger.config.kind === "schedule"
@@ -269,6 +288,18 @@ export function TriggersEditor({
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
+
+			{/* Below the surface, like the save banner is above it: these outlive
+			    any save, so they cannot live in the submit-gated banner. */}
+			{runtimeWarnings.map((warning) => (
+				<p
+					key={warning}
+					className="mt-1 flex items-start gap-1.5 px-1 text-[13px] text-amber-600 dark:text-amber-400"
+				>
+					<LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+					<span>{warning}</span>
+				</p>
+			))}
 		</div>
 	);
 }
