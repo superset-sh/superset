@@ -278,6 +278,7 @@ export function useDashboardSidebarData() {
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 					pinnedAt: sidebarWorkspaces.sidebarState.pinnedAt,
+					lineageCollapsed: sidebarWorkspaces.sidebarState.lineageCollapsed,
 				})),
 		[collections],
 	);
@@ -301,6 +302,8 @@ export function useDashboardSidebarData() {
 						sectionId: localState.sectionId,
 						isHidden: localState.isHidden,
 						pinnedAt: localState.pinnedAt,
+						parentWorkspaceId: workspace.parentWorkspaceId ?? null,
+						lineageCollapsed: localState.lineageCollapsed ?? false,
 					},
 				];
 			}),
@@ -351,6 +354,9 @@ export function useDashboardSidebarData() {
 					// Auto-included mains have no local-state row; pinning one
 					// creates a row first (see setWorkspacePinned).
 					pinnedAt: null as number | null,
+					parentWorkspaceId: workspace.parentWorkspaceId ?? null,
+					// Auto-included mains have no local-state row to collapse with.
+					lineageCollapsed: false,
 				})),
 		[hostWorkspaces],
 	);

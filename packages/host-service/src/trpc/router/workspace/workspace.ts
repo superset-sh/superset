@@ -5,6 +5,7 @@ import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import {
+	getLocalWorkspace,
 	toCloudShape,
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
@@ -67,6 +68,7 @@ export const workspaceRouter = router({
 			return rows.map((row) => ({
 				...toCloudShape(row, ctx.organizationId),
 				worktreePath: row.worktreePath,
+				parentWorkspaceId: row.parentWorkspaceId,
 				// Tombstones' worktrees are gone by definition; stat-checking an
 				// unbounded, forever-growing archive on every poll adds up.
 				worktreeExists:
@@ -92,6 +94,7 @@ export const workspaceRouter = router({
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
 				taskId: z.string().uuid().nullable().optional(),
+				parentWorkspaceId: z.string().uuid().nullable().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -111,11 +114,64 @@ export const workspaceRouter = router({
 						'The local workspace cannot be renamed — it always displays as "local".',
 				});
 			}
-			const patch: { name?: string; branch?: string; taskId?: string | null } =
-				{};
+			const patch: {
+				name?: string;
+				branch?: string;
+				taskId?: string | null;
+				parentWorkspaceId?: string | null;
+			} = {};
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
 			if (input.taskId !== undefined) patch.taskId = input.taskId;
+			// Re-parenting is an explicit correction, so unlike create's
+			// ambient env inference every invalid target errors loudly instead
+			// of silently recording nothing.
+			if (input.parentWorkspaceId !== undefined) {
+				if (current.type === "main") {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "The local workspace cannot be nested under another",
+					});
+				}
+				if (input.parentWorkspaceId !== null) {
+					if (input.parentWorkspaceId === input.id) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "A workspace cannot be its own parent",
+						});
+					}
+					const parent = getLocalWorkspace(ctx.db, input.parentWorkspaceId);
+					if (!parent || parent.archivedAt != null) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Parent workspace not found: ${input.parentWorkspaceId}`,
+						});
+					}
+					if (parent.projectId !== current.projectId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Parent workspace belongs to a different project",
+						});
+					}
+					// Walk the proposed parent's ancestor chain: reaching this
+					// workspace means the move would close a cycle. The visited
+					// set terminates the walk even if the DB already holds one.
+					const visited = new Set<string>();
+					let ancestor: string | null = parent.parentWorkspaceId;
+					while (ancestor !== null && !visited.has(ancestor)) {
+						if (ancestor === input.id) {
+							throw new TRPCError({
+								code: "BAD_REQUEST",
+								message: "Cannot move a workspace under its own descendant",
+							});
+						}
+						visited.add(ancestor);
+						ancestor =
+							getLocalWorkspace(ctx.db, ancestor)?.parentWorkspaceId ?? null;
+					}
+				}
+				patch.parentWorkspaceId = input.parentWorkspaceId;
+			}
 			if (Object.keys(patch).length === 0) {
 				return toCloudShape(current, ctx.organizationId);
 			}
@@ -141,7 +197,10 @@ export const workspaceRouter = router({
 					);
 				});
 			}
-			return toCloudShape(updated, ctx.organizationId);
+			return {
+				...toCloudShape(updated, ctx.organizationId),
+				parentWorkspaceId: updated.parentWorkspaceId,
+			};
 		}),
 
 	// Workspaces are host-owned now; the cloud list it proxied is gone. Kept as

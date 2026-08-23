@@ -8,7 +8,12 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronRight,
+	HiMiniMinus,
+	HiMiniXMark,
+} from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -54,6 +59,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	onWorkspaceChipsClick?: MouseEventHandler<HTMLDivElement>;
 	onDoubleClick?: () => void;
 	onCloseWorkspaceClick: () => void;
+	onToggleLineageCollapsed: () => void;
 	onRemoveFromSidebarClick: () => void;
 	onRenameValueChange: (value: string) => void;
 	onSubmitRename: () => void;
@@ -82,6 +88,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			onWorkspaceChipsClick,
 			onDoubleClick,
 			onCloseWorkspaceClick,
+			onToggleLineageCollapsed,
 			onRemoveFromSidebarClick,
 			onRenameValueChange,
 			onSubmitRename,
@@ -102,6 +109,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const isPending = pendingTransaction?.type === "insert";
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
+		const isLineageParent = workspace.lineageChildCount > 0;
+		const handleLineageChevronClick: MouseEventHandler<HTMLButtonElement> = (
+			event,
+		) => {
+			event.stopPropagation();
+			onToggleLineageCollapsed();
+		};
 
 		useEffect(() => {
 			if (isActive) {
@@ -147,6 +161,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 				data-selected={isSelected || undefined}
 				{...props}
 			>
+				{/* Lineage guide rails: one thin vertical line per ancestor level,
+				    aligned under that ancestor's icon column (file-tree styling).
+				    Per-row segments join into continuous lines across siblings. */}
+				{workspace.lineageDepth > 0 &&
+					Array.from({ length: workspace.lineageDepth }, (_, level) => (
+						<span
+							// biome-ignore lint/suspicious/noArrayIndexKey: the index IS the identity — one rail per fixed ancestor level
+							key={level}
+							aria-hidden
+							className="pointer-events-none absolute inset-y-0 w-px bg-border"
+							style={{ left: (isInSection ? 32 : 12) + level * 16 + 9 }}
+						/>
+					))}
 				{/* biome-ignore lint/a11y/useSemanticElements: The row contains nested action buttons, so it cannot be a native button. */}
 				<div
 					role="button"
@@ -167,6 +194,16 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						isInSection ? "pl-8" : "pl-3",
 						onClick && "cursor-pointer",
 					)}
+					// Lineage indent: spawned children step in from their container's
+					// base padding (pl-3 = 12px, pl-8 = 32px), one step per level.
+					style={
+						workspace.lineageDepth > 0
+							? {
+									paddingLeft:
+										(isInSection ? 32 : 12) + workspace.lineageDepth * 16,
+								}
+							: undefined
+					}
 				>
 					{isSelected ? (
 						<span className="mr-2.5 flex size-5 shrink-0 items-center justify-center text-foreground">
@@ -203,16 +240,63 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									</button>
 								) : (
 									<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
-										<DashboardSidebarWorkspaceIcon
-											hostType={hostType}
-											workspaceType={workspace.type}
-											hostIsOnline={hostIsOnline}
-											isActive={isActive}
-											variant="expanded"
-											workspaceStatus={workspaceStatus}
-											isCreatePending={isPending}
-											pullRequestState={null}
-										/>
+										{isLineageParent && !isPending ? (
+											// Expanded: same affordance as the project header — the
+											// status icon swaps to a collapse chevron on row hover.
+											// Collapsed: the chevron is persistent (file-tree
+											// closed-folder convention), so hidden children stay
+											// discoverable at rest.
+											<button
+												type="button"
+												aria-expanded={!workspace.lineageCollapsed}
+												aria-label={
+													workspace.lineageCollapsed
+														? `Expand ${workspace.lineageChildCount} child workspaces`
+														: "Collapse child workspaces"
+												}
+												onClick={handleLineageChevronClick}
+												onKeyDown={(event) => {
+													if (event.key === "Enter" || event.key === " ") {
+														event.stopPropagation();
+													}
+												}}
+												className="flex size-5 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
+											>
+												{!workspace.lineageCollapsed && (
+													<span className="contents group-hover:hidden group-focus-within:hidden">
+														<DashboardSidebarWorkspaceIcon
+															hostType={hostType}
+															workspaceType={workspace.type}
+															hostIsOnline={hostIsOnline}
+															isActive={isActive}
+															variant="expanded"
+															workspaceStatus={workspaceStatus}
+															isCreatePending={isPending}
+															pullRequestState={null}
+														/>
+													</span>
+												)}
+												<HiChevronRight
+													className={cn(
+														"size-4 text-muted-foreground transition-transform",
+														workspace.lineageCollapsed
+															? "block"
+															: "hidden rotate-90 group-hover:block group-focus-within:block",
+													)}
+												/>
+											</button>
+										) : (
+											<DashboardSidebarWorkspaceIcon
+												hostType={hostType}
+												workspaceType={workspace.type}
+												hostIsOnline={hostIsOnline}
+												isActive={isActive}
+												variant="expanded"
+												workspaceStatus={workspaceStatus}
+												isCreatePending={isPending}
+												pullRequestState={null}
+											/>
+										)}
 									</div>
 								)}
 							</TooltipTrigger>
@@ -295,6 +379,16 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)}
 							>
 								{name || branch}
+								{isLineageParent && workspace.lineageCollapsed && (
+									// aria-hidden: the chevron button already announces
+									// "Expand N child workspaces" — this is its visual twin.
+									<span
+										aria-hidden
+										className="ml-1.5 text-[10px] tabular-nums text-muted-foreground"
+									>
+										+{workspace.lineageChildCount}
+									</span>
+								)}
 								{isSelected && <span className="sr-only">, selected</span>}
 							</span>
 						)}
@@ -391,6 +485,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					<DashboardSidebarWorkspaceChips
 						workspaceId={workspace.id}
 						isInSection={isInSection}
+						lineageDepth={workspace.lineageDepth}
 						onClick={onWorkspaceChipsClick}
 					/>
 				)}

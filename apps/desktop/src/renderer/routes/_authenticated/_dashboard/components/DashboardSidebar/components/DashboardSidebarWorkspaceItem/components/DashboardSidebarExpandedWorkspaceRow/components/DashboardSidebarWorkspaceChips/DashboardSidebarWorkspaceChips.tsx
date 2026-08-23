@@ -10,6 +10,8 @@ import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardS
 interface DashboardSidebarWorkspaceChipsProps {
 	workspaceId: string;
 	isInSection?: boolean;
+	/** Lineage depth of the owning row; keeps the strip title-aligned. */
+	lineageDepth?: number;
 	/** Invoked when the strip itself (not one of its chips) is clicked. */
 	onClick?: MouseEventHandler<HTMLDivElement>;
 }
@@ -23,6 +25,7 @@ interface DashboardSidebarWorkspaceChipsProps {
 export function DashboardSidebarWorkspaceChips({
 	workspaceId,
 	isInSection = false,
+	lineageDepth = 0,
 	onClick,
 }: DashboardSidebarWorkspaceChipsProps) {
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
@@ -50,6 +53,12 @@ export function DashboardSidebarWorkspaceChips({
 				isInSection ? "pl-[50px]" : "pl-[42px]",
 				onClick && "cursor-pointer",
 			)}
+			// Matches the row's lineage indent (16px per level).
+			style={
+				lineageDepth > 0
+					? { paddingLeft: (isInSection ? 50 : 42) + lineageDepth * 16 }
+					: undefined
+			}
 			onMouseDown={(event) => event.stopPropagation()}
 			onTouchStart={(event) => event.stopPropagation()}
 			onClick={(event) => {

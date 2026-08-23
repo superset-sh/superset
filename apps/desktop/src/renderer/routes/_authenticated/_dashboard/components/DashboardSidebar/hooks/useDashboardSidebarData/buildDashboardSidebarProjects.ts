@@ -8,6 +8,7 @@ import type {
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspaceType,
 } from "../../types";
+import { nestSidebarWorkspaceLineage } from "./nestSidebarWorkspaceLineage";
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 
@@ -50,6 +51,10 @@ export interface SidebarWorkspaceInput {
 	sectionId: string | null;
 	pinnedAt: number | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	/** Lineage: the workspace this one was spawned from. Null = top-level. */
+	parentWorkspaceId: string | null;
+	/** True when the user collapsed this workspace's child subtree. */
+	lineageCollapsed: boolean;
 }
 
 /**
@@ -105,6 +110,10 @@ function decorateSidebarWorkspace(
 		taskId: workspace.taskId,
 		isPinned: workspace.pinnedAt != null,
 		pendingTransaction: workspace.pendingTransaction,
+		parentWorkspaceId: workspace.parentWorkspaceId,
+		lineageDepth: 0,
+		lineageChildCount: 0,
+		lineageCollapsed: workspace.lineageCollapsed,
 	};
 }
 
@@ -177,17 +186,19 @@ export function buildDashboardSidebarSessionWorkspaces({
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
 }): DashboardSidebarWorkspace[] {
-	return sessionSidebarWorkspaces
-		.slice()
-		.sort((left, right) => left.tabOrder - right.tabOrder)
-		.map((workspace) =>
-			decorateSidebarWorkspace(
-				workspace,
-				{ githubOwner: null, githubRepoName: null },
-				machineId,
-				pullRequestsByWorkspaceId,
+	return nestSidebarWorkspaceLineage(
+		sessionSidebarWorkspaces
+			.slice()
+			.sort((left, right) => left.tabOrder - right.tabOrder)
+			.map((workspace) =>
+				decorateSidebarWorkspace(
+					workspace,
+					{ githubOwner: null, githubRepoName: null },
+					machineId,
+					pullRequestsByWorkspaceId,
+				),
 			),
-		);
+	);
 }
 
 export interface BuildDashboardSidebarProjectsParams {
@@ -352,7 +363,52 @@ export function buildDashboardSidebarProjects({
 			);
 		}
 
-		sidebarProject.children = children;
+		sidebarProject.children = nestProjectChildrenLineage(children);
 		return [sidebarProject];
+	});
+}
+
+/**
+ * Applies lineage nesting per container: top-level workspaces regroup so
+ * children follow their parent (regardless of tabOrder), and each section
+ * nests its own members. Cross-container edges (parent in a section, child
+ * at top level, or vice versa) re-root — nesting never moves a row between
+ * containers, so section membership and DnD identity stay untouched.
+ */
+function nestProjectChildrenLineage(
+	children: DashboardSidebarProjectChild[],
+): DashboardSidebarProjectChild[] {
+	const topLevelWorkspaces = children.flatMap((child) =>
+		child.type === "workspace" ? [child.workspace] : [],
+	);
+	const nested = nestSidebarWorkspaceLineage(topLevelWorkspaces);
+	// Depth-first chunks keyed by their root, so the rebuild below can emit a
+	// parent's whole subtree at the parent's original slot.
+	const chunksByRootId = new Map<string, DashboardSidebarWorkspace[]>();
+	let currentChunk: DashboardSidebarWorkspace[] | null = null;
+	for (const workspace of nested) {
+		if (workspace.lineageDepth === 0) {
+			currentChunk = [workspace];
+			chunksByRootId.set(workspace.id, currentChunk);
+		} else {
+			currentChunk?.push(workspace);
+		}
+	}
+	return children.flatMap((child): DashboardSidebarProjectChild[] => {
+		if (child.type === "section") {
+			return [
+				{
+					type: "section",
+					section: {
+						...child.section,
+						workspaces: nestSidebarWorkspaceLineage(child.section.workspaces),
+					},
+				},
+			];
+		}
+		const chunk = chunksByRootId.get(child.workspace.id);
+		// A workspace with no chunk was emitted as some parent's descendant.
+		if (!chunk) return [];
+		return chunk.map((workspace) => ({ type: "workspace", workspace }));
 	});
 }

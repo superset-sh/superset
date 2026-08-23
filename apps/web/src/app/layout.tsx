@@ -44,7 +44,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="en" className="dark" style={{ colorScheme: "dark" }}>
 			<body
 				className={cn(
 					"bg-background text-foreground min-h-screen font-sans antialiased",
@@ -54,7 +54,7 @@ export default function RootLayout({
 			>
 				<Providers>
 					{children}
-					<Toaster />
+					<Toaster theme="dark" />
 				</Providers>
 			</body>
 		</html>

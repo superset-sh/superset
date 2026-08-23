@@ -58,8 +58,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 		clearManualUnread(workspaceId);
 		markWorkspaceTerminalsSeen();
 	};
-	const { createSection, moveWorkspaceToSection, setWorkspacePinned } =
-		useDashboardSidebarState();
+	const {
+		createSection,
+		moveWorkspaceToSection,
+		setWorkspacePinned,
+		toggleWorkspaceLineageCollapsed,
+	} = useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -90,6 +94,9 @@ export function useDashboardSidebarWorkspaceItemActions({
 			params: { workspaceId },
 		});
 	};
+
+	const toggleLineageCollapsed = () =>
+		toggleWorkspaceLineageCollapsed(workspaceId, projectId);
 
 	const startRename = () => {
 		setRenameValue(workspaceName);
@@ -232,6 +239,26 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	// Detaches the row from its lineage parent — the workspace:changed
+	// broadcast re-flattens the subtree, so no local state is touched.
+	const handleMoveToTopLevel = async () => {
+		if (!workspaceHostUrl) {
+			showHostServiceUnavailableToast(hostService, {
+				action: "move the workspace to the top level",
+			});
+			return;
+		}
+		try {
+			await getHostServiceClientByUrl(workspaceHostUrl).workspace.update.mutate(
+				{ id: workspaceId, parentWorkspaceId: null },
+			);
+		} catch (error) {
+			toast.error(
+				`Failed to move workspace: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	};
+
 	const handleCopyBranchName = async () => {
 		if (!branch) {
 			toast.error("Branch name is not available");
@@ -255,6 +282,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyBranchName,
 		handleCreateSection,
 		handleOpenInFinder,
+		handleMoveToTopLevel,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
 		handleTogglePin,
@@ -269,5 +297,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		setRenameValue,
 		startRename,
 		submitRename,
+		toggleLineageCollapsed,
 	};
 }

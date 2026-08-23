@@ -77,6 +77,7 @@ function itemFromCloudRow(
 		updatedAt: served?.updatedAt ?? cloud.updatedAt,
 		worktreePath: served?.worktreePath ?? "",
 		worktreeExists: served ? served.worktreeExists : true,
+		parentWorkspaceId: served?.parentWorkspaceId ?? null,
 		projectName: served?.projectName ?? null,
 		archivedAt: null,
 		archiveReason: null,

@@ -11,6 +11,12 @@ export default command({
 		name: string().desc("Workspace name"),
 		taskId: string().desc("Link the workspace to a task by id"),
 		clearTask: boolean().desc("Unlink the workspace from its current task"),
+		parent: string().desc(
+			"Re-parent the workspace under another workspace (lineage only — never affects the git base branch)",
+		),
+		noParent: boolean().desc(
+			"Detach the workspace from its parent, moving it to the top level",
+		),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
@@ -32,10 +38,28 @@ export default command({
 				? options.taskId
 				: undefined;
 
-		if (options.name === undefined && taskId === undefined) {
+		if (options.parent !== undefined && options.noParent) {
+			throw new CLIError(
+				"Cannot combine --parent and --no-parent",
+				"Pass one or the other",
+			);
+		}
+
+		// Explicit null detaches; leaving both flags off never touches lineage.
+		const parentWorkspaceId = options.noParent
+			? null
+			: options.parent !== undefined
+				? options.parent
+				: undefined;
+
+		if (
+			options.name === undefined &&
+			taskId === undefined &&
+			parentWorkspaceId === undefined
+		) {
 			throw new CLIError(
 				"No fields to update",
-				"Pass --name, --task-id, or --clear-task",
+				"Pass --name, --task-id, --clear-task, --parent, or --no-parent",
 			);
 		}
 
@@ -49,6 +73,7 @@ export default command({
 			id,
 			...(options.name !== undefined ? { name: options.name } : {}),
 			...(taskId !== undefined ? { taskId } : {}),
+			...(parentWorkspaceId !== undefined ? { parentWorkspaceId } : {}),
 		});
 
 		return {

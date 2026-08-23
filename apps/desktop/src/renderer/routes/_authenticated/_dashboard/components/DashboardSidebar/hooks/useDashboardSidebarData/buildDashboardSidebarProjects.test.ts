@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type { DashboardSidebarWorkspace } from "../../types";
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
@@ -62,6 +63,8 @@ function makeWorkspace(
 		sectionId: null,
 		pinnedAt: null,
 		pendingTransaction: null,
+		parentWorkspaceId: null,
+		lineageCollapsed: false,
 		...overrides,
 	};
 }
@@ -78,6 +81,18 @@ function build(params: {
 		machineId: MACHINE_ID,
 		pullRequestsByWorkspaceId: new Map(),
 	});
+}
+
+/** Top-level workspace rows as "id:<label>" strings, sections skipped. */
+function renderedWorkspaces(
+	project: ReturnType<typeof build>[number],
+	label: (workspace: DashboardSidebarWorkspace) => string | number,
+) {
+	return project.children.flatMap((child) =>
+		child.type === "workspace"
+			? [`${child.workspace.id}:${label(child.workspace)}`]
+			: [],
+	);
 }
 
 describe("buildDashboardSidebarProjects", () => {
@@ -193,6 +208,136 @@ describe("buildDashboardSidebarProjects", () => {
 			"orphan-late",
 			"section:section-1",
 		]);
+	});
+});
+
+describe("lineage nesting", () => {
+	it("snaps a child under its parent with lineageDepth regardless of tabOrder", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", tabOrder: 1 }),
+				makeWorkspace({ id: "unrelated", tabOrder: 2 }),
+				makeWorkspace({
+					id: "child",
+					tabOrder: 3,
+					parentWorkspaceId: "parent",
+				}),
+			],
+		});
+
+		const rendered = renderedWorkspaces(project, (w) => w.lineageDepth);
+		expect(rendered).toEqual(["parent:0", "child:1", "unrelated:0"]);
+	});
+
+	it("nests grandchildren depth-first and keeps sibling order", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "root", tabOrder: 1 }),
+				makeWorkspace({ id: "kid-a", tabOrder: 2, parentWorkspaceId: "root" }),
+				makeWorkspace({ id: "kid-b", tabOrder: 4, parentWorkspaceId: "root" }),
+				makeWorkspace({
+					id: "grandkid",
+					tabOrder: 3,
+					parentWorkspaceId: "kid-a",
+				}),
+			],
+		});
+
+		const rendered = renderedWorkspaces(project, (w) => w.lineageDepth);
+		expect(rendered).toEqual(["root:0", "kid-a:1", "grandkid:2", "kid-b:1"]);
+	});
+
+	it("re-roots a child whose parent is not rendered in the same container", () => {
+		const [project] = build({
+			sidebarSections: [makeSection({ id: "section-1", tabOrder: 1 })],
+			visibleSidebarWorkspaces: [
+				// Parent lives in a section; child is top-level → different
+				// containers, so the child renders as a top-level root.
+				makeWorkspace({ id: "parent", sectionId: "section-1", tabOrder: 1 }),
+				makeWorkspace({
+					id: "child",
+					tabOrder: 2,
+					parentWorkspaceId: "parent",
+				}),
+				makeWorkspace({
+					id: "missing-parent-child",
+					tabOrder: 3,
+					parentWorkspaceId: "never-rendered",
+				}),
+			],
+		});
+
+		const topLevel = renderedWorkspaces(project, (w) => w.lineageDepth);
+		expect(topLevel).toEqual(["child:0", "missing-parent-child:0"]);
+	});
+
+	it("nests within a section's own members", () => {
+		const [project] = build({
+			sidebarSections: [makeSection({ id: "section-1", tabOrder: 1 })],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", sectionId: "section-1", tabOrder: 1 }),
+				makeWorkspace({
+					id: "child",
+					sectionId: "section-1",
+					tabOrder: 2,
+					parentWorkspaceId: "parent",
+				}),
+			],
+		});
+
+		const section = project.children.find((child) => child.type === "section");
+		if (section?.type !== "section") throw new Error("expected section");
+		expect(
+			section.section.workspaces.map(
+				(workspace) => `${workspace.id}:${workspace.lineageDepth}`,
+			),
+		).toEqual(["parent:0", "child:1"]);
+	});
+
+	it("sets lineageChildCount on parents", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", tabOrder: 1 }),
+				makeWorkspace({ id: "a", tabOrder: 2, parentWorkspaceId: "parent" }),
+				makeWorkspace({ id: "b", tabOrder: 3, parentWorkspaceId: "parent" }),
+			],
+		});
+
+		const rendered = renderedWorkspaces(project, (w) => w.lineageChildCount);
+		expect(rendered).toEqual(["parent:2", "a:0", "b:0"]);
+	});
+
+	it("hides a collapsed parent's subtree without re-rooting it", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", tabOrder: 1, lineageCollapsed: true }),
+				makeWorkspace({ id: "kid", tabOrder: 2, parentWorkspaceId: "parent" }),
+				makeWorkspace({
+					id: "grandkid",
+					tabOrder: 3,
+					parentWorkspaceId: "kid",
+				}),
+				makeWorkspace({ id: "unrelated", tabOrder: 4 }),
+			],
+		});
+
+		const rendered = renderedWorkspaces(project, (w) => w.lineageChildCount);
+		// Count is direct children only; the whole subtree stays hidden.
+		expect(rendered).toEqual(["parent:1", "unrelated:0"]);
+	});
+
+	it("re-promotes cycle members instead of hiding them", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "a", tabOrder: 1, parentWorkspaceId: "b" }),
+				makeWorkspace({ id: "b", tabOrder: 2, parentWorkspaceId: "a" }),
+			],
+		});
+
+		const rendered = project.children.flatMap((child) =>
+			child.type === "workspace" ? [child.workspace.id] : [],
+		);
+		expect(rendered.sort()).toEqual(["a", "b"]);
 	});
 });
 

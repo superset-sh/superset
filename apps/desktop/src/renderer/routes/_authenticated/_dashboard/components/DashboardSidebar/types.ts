@@ -46,6 +46,19 @@ export interface DashboardSidebarWorkspace {
 	taskId: string | null;
 	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	/** Lineage: the workspace this one was spawned from. Null = top-level. */
+	parentWorkspaceId: string | null;
+	/**
+	 * Nesting depth in the rendered tree (0 = root). Derived per container by
+	 * nestSidebarWorkspaceLineage — a child whose parent is not rendered in
+	 * the same container re-roots at 0.
+	 */
+	lineageDepth: number;
+	/** Direct lineage children present in the same container (rendered or
+	 * hidden by collapse). Drives the expand/collapse chevron. */
+	lineageChildCount: number;
+	/** True when this row's child subtree is collapsed in the sidebar. */
+	lineageCollapsed: boolean;
 }
 
 /**
