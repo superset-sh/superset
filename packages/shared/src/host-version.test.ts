@@ -38,4 +38,10 @@ describe("MIN_HOST_SERVICE_VERSION", () => {
 			false,
 		);
 	});
+
+	// Rejecting 1.20.2 alone would still pass with a floor of 1.21.0, which
+	// admits hosts without terminal.list. Pin the introduction version.
+	it("is not below the terminal.list introduction version", () => {
+		expect(semver.gte(MIN_HOST_SERVICE_VERSION, "1.22.0")).toBe(true);
+	});
 });
