@@ -83,9 +83,16 @@ export function useWorkspacePullRequests(
 	);
 }
 
-/** The one worth showing when there is only room for one. */
+/**
+ * The currently linked pull request only. Surfaces with room for one PR
+ * (Files Changed's share/open actions) must never point at a historical PR
+ * from a branch the workspace has moved past.
+ */
 export function useWorkspacePullRequest(
 	workspaceId: string | null,
 ): WorkspacePullRequest | null {
-	return useWorkspacePullRequests(workspaceId)[0] ?? null;
+	return (
+		useWorkspacePullRequests(workspaceId).find((entry) => entry.isCurrent) ??
+		null
+	);
 }

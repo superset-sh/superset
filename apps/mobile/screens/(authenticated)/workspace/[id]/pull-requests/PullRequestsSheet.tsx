@@ -62,6 +62,8 @@ export function PullRequestsSheet() {
 									params: {
 										id: id ?? "",
 										pullRequestId: String(pullRequest.prNumber),
+										owner: pullRequest.repoOwner,
+										repo: pullRequest.repoName,
 									},
 								})
 							}

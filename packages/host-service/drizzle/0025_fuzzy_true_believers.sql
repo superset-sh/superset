@@ -9,7 +9,8 @@ CREATE TABLE `workspace_pull_requests` (
 --> statement-breakpoint
 CREATE INDEX `workspace_pull_requests_workspace_idx` ON `workspace_pull_requests` (`workspace_id`);--> statement-breakpoint
 INSERT INTO `workspace_pull_requests` (`workspace_id`, `pull_request_id`, `linked_at`)
-SELECT `id`, `pull_request_id`, CAST(strftime('%s','now') AS INTEGER) * 1000
-FROM `workspaces`
-WHERE `pull_request_id` IS NOT NULL
+SELECT `w`.`id`, `w`.`pull_request_id`, CAST(strftime('%s','now') AS INTEGER) * 1000
+FROM `workspaces` `w`
+JOIN `pull_requests` `p` ON `p`.`id` = `w`.`pull_request_id`
+WHERE `w`.`pull_request_id` IS NOT NULL
 ON CONFLICT DO NOTHING;
