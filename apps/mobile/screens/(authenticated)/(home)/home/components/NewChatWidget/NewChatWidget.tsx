@@ -2,7 +2,7 @@ import { Composer, type ComposerHandle } from "@superset/composer";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
@@ -47,14 +47,9 @@ export function NewChatWidget({
 	const openAttachmentsSheet = useAttachmentsSheet(HOME_DRAFT_KEY);
 	const addPasted = usePasteAttachments(HOME_DRAFT_KEY);
 
-	// Put back whatever was typed here last time. Mount only: after this the
-	// composer owns its text and only reports it outward, so re-running would
-	// overwrite live typing with a stale copy of itself.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: restore is a mount-time handoff, not a sync
-	useEffect(() => {
-		const saved = draft.readText();
-		if (saved) composerRef.current?.restoreDraft(saved);
-	}, []);
+	// What was typed here last time, pinned at mount: a starting value handed to
+	// the composer as it is set up, never a binding.
+	const [initialDraft] = useState(() => draft.readText());
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -246,6 +241,7 @@ export function NewChatWidget({
 		<Composer
 			ref={composerRef}
 			placeholder={placeholder ?? "Plan, ask, build..."}
+			initialDraft={initialDraft}
 			isSending={isSending}
 			onDictationError={(message: string) => Alert.alert(message)}
 			attachments={draft.attachments.map((item) => ({
@@ -257,7 +253,7 @@ export function NewChatWidget({
 			headerChips={headerChips}
 			selectedModel={selectedModel}
 			onSubmit={(text) => submit({ text, attachments: draft.attachments })}
-			onChangeText={draft.setText}
+			onDraftChange={draft.setText}
 			onRemoveAttachment={(id) => draft.remove(id)}
 			onExpandedChange={(expanded) => {
 				wasExpanded.current = expanded;

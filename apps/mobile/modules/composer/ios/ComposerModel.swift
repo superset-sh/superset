@@ -108,7 +108,11 @@ final class ComposerModel {
   /// Native holds is pushed back in mid-edit. A controlled `value` prop is the
   /// one shape that would break growth — the resize would land outside the
   /// transaction that revealed send.
-  @ObservationIgnored var onChangeText: ((String) -> Void)?
+  @ObservationIgnored var onDraftChange: ((String) -> Void)?
+
+  /// First delivery of `initialDraft` wins; React Native pins the value at
+  /// mount, so later deliveries are the same text and must not clobber typing.
+  @ObservationIgnored private var hasAppliedInitialDraft = false
 
   /// Internal plumbing, not a React Native event — see `ComposerPassthroughView`.
   @ObservationIgnored var onInteractiveFrameChange: ((CGRect) -> Void)?
@@ -138,7 +142,7 @@ final class ComposerModel {
   /// in one transaction the mic travels along an arc.
   func setDraft(_ text: String) {
     withAnimation(ComposerMetrics.typingGrowth) { draft = text }
-    onChangeText?(text)
+    onDraftChange?(text)
   }
 
   /// Empties the draft. Animated, so the card shrinks back, but reports
@@ -148,10 +152,18 @@ final class ComposerModel {
     withAnimation(ComposerMetrics.typingGrowth) { draft = "" }
   }
 
-  /// Puts a saved draft back when the composer mounts: unanimated, because it
-  /// is appearing rather than growing, and unreported, because React Native is
-  /// where this text just came from.
-  func restoreDraft(_ text: String) {
+  /// The draft React Native saved for this surface, put back once as the view
+  /// is set up.
+  ///
+  /// A prop rather than a call through the ref: at mount a ref call races the
+  /// view's own creation and lands before there is anything to receive it,
+  /// where a prop is delivered as part of setting the view up. Unanimated,
+  /// because the composer is appearing rather than growing, and unreported,
+  /// because React Native is where this text just came from.
+  func applyInitialDraft(_ text: String) {
+    guard !hasAppliedInitialDraft else { return }
+    hasAppliedInitialDraft = true
+    guard !text.isEmpty else { return }
     draft = text
   }
 

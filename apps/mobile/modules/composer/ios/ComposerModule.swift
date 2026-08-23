@@ -15,7 +15,7 @@ public final class ComposerModule: Module {
         "onChipPress",
         "onQuickKeyPress",
         "onPaste",
-        "onChangeText",
+        "onDraftChange",
         "onHeightChange",
         "onRemoveAttachment",
         "onAttachmentPress",
@@ -24,6 +24,12 @@ public final class ComposerModule: Module {
 
       Prop("placeholder") { (view: ComposerAnchorView, placeholder: String) in
         view.overlay.model.placeholder = placeholder
+      }
+
+      /// Whatever this surface had typed when it was last open. Applied once —
+      /// see `ComposerModel.applyInitialDraft`.
+      Prop("initialDraft") { (view: ComposerAnchorView, text: String) in
+        view.overlay.model.applyInitialDraft(text)
       }
 
       Prop("backdrop") { (view: ComposerAnchorView, backdrop: String) in
@@ -91,12 +97,6 @@ public final class ComposerModule: Module {
       /// Re-open after something else took first responder — an attachments
       /// sheet, a picker — so the keyboard and the draft come back together.
       /// Dictation's transcript. Appends to whatever is already typed.
-      /// Restores a draft React Native saved when this surface was last open.
-      /// Separate from `appendDraft`, which joins with a space for dictation.
-      AsyncFunction("restoreDraft") { (view: ComposerAnchorView, text: String) in
-        view.overlay.model.restoreDraft(text)
-      }
-
       AsyncFunction("appendDraft") { (view: ComposerAnchorView, text: String) in
         view.overlay.model.appendDraft(text)
       }.runOnQueue(.main)
@@ -129,7 +129,7 @@ final class ComposerAnchorView: ExpoView {
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
   private let onPaste = EventDispatcher()
-  private let onChangeText = EventDispatcher()
+  private let onDraftChange = EventDispatcher()
   private let onHeightChange = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
   private let onAttachmentPress = EventDispatcher()
@@ -154,8 +154,8 @@ final class ComposerAnchorView: ExpoView {
         }
       ])
     }
-    overlay.model.onChangeText = { [weak self] text in
-      self?.onChangeText(["text": text])
+    overlay.model.onDraftChange = { [weak self] text in
+      self?.onDraftChange(["text": text])
     }
     overlay.model.onHeightChange = { [weak self] height in
       self?.onHeightChange(["height": height])

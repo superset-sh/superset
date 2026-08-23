@@ -4,7 +4,6 @@ import { forwardRef, type Ref, useImperativeHandle, useRef } from "react";
 /** The imperative surface the native view exposes through its ref. */
 interface NativeComposerRef {
 	clear: () => void;
-	restoreDraft: (text: string) => void;
 	appendDraft: (text: string) => void;
 	focus: () => void;
 	blur: () => void;
@@ -13,6 +12,7 @@ interface NativeComposerRef {
 interface NativeComposerViewProps {
 	ref?: Ref<NativeComposerRef>;
 	placeholder?: string;
+	initialDraft?: string;
 	backdrop?: ComposerBackdrop;
 	attachments?: ComposerAttachment[];
 	selectedModel?: ComposerMenuOption;
@@ -29,7 +29,7 @@ interface NativeComposerViewProps {
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
 	onHeightChange?: (event: { nativeEvent: { height: number } }) => void;
 	onPaste?: (event: { nativeEvent: { items: ComposerPastedItem[] } }) => void;
-	onChangeText?: (event: { nativeEvent: { text: string } }) => void;
+	onDraftChange?: (event: { nativeEvent: { text: string } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
 	onAttachmentPress?: (event: { nativeEvent: { id: string } }) => void;
 	onExpandedChange?: (event: { nativeEvent: { expanded: boolean } }) => void;
@@ -116,12 +116,6 @@ export interface ComposerHandle {
 	/** Empties the draft. */
 	clear: () => void;
 	/**
-	 * Puts a saved draft back when the composer mounts — unanimated, since it is
-	 * appearing rather than growing, and it fires no `onChangeText`, since the
-	 * text came from the caller in the first place.
-	 */
-	restoreDraft: (text: string) => void;
-	/**
 	 * Appends to the draft, for dictation. The composer owns the base text and
 	 * does the join, so callers never have to read it back.
 	 */
@@ -136,6 +130,13 @@ export interface ComposerHandle {
 
 export interface ComposerProps {
 	placeholder?: string;
+	/**
+	 * Whatever this surface had typed when it was last open, put back as the
+	 * composer is set up. Read once by the caller and never changed after: this
+	 * is a starting value, not a binding, and the composer owns its text from
+	 * here on. There is deliberately no `value` prop — see `onDraftChange`.
+	 */
+	initialDraft?: string;
 	backdrop?: ComposerBackdrop;
 	attachments?: ComposerAttachment[];
 	/**
@@ -202,7 +203,7 @@ export interface ComposerProps {
 	 * text while it is live and takes nothing back mid-edit, which is why there
 	 * is no `value` prop. Restore through the ref at mount instead.
 	 */
-	onChangeText?: (text: string) => void;
+	onDraftChange?: (text: string) => void;
 	onRemoveAttachment?: (id: string) => void;
 	/**
 	 * Fires only for non-image attachments. Images open in the composer's own
@@ -233,6 +234,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 	function Composer(
 		{
 			placeholder = "",
+			initialDraft = "",
 			backdrop = "dim",
 			attachments,
 			selectedModel,
@@ -249,7 +251,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onQuickKeyPress,
 			onHeightChange,
 			onPaste,
-			onChangeText,
+			onDraftChange,
 			onRemoveAttachment,
 			onAttachmentPress,
 			onExpandedChange,
@@ -260,7 +262,6 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 
 		useImperativeHandle(ref, () => ({
 			clear: () => nativeRef.current?.clear(),
-			restoreDraft: (text: string) => nativeRef.current?.restoreDraft(text),
 			appendDraft: (text: string) => nativeRef.current?.appendDraft(text),
 			focus: () => nativeRef.current?.focus(),
 			blur: () => nativeRef.current?.blur(),
@@ -270,6 +271,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			<NativeComposerView
 				ref={nativeRef}
 				placeholder={placeholder}
+				initialDraft={initialDraft}
 				backdrop={backdrop}
 				attachments={attachments}
 				selectedModel={selectedModel}
@@ -288,7 +290,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
 				onHeightChange={(event) => onHeightChange?.(event.nativeEvent.height)}
 				onPaste={(event) => onPaste?.(event.nativeEvent.items)}
-				onChangeText={(event) => onChangeText?.(event.nativeEvent.text)}
+				onDraftChange={(event) => onDraftChange?.(event.nativeEvent.text)}
 				onRemoveAttachment={(event) =>
 					onRemoveAttachment?.(event.nativeEvent.id)
 				}

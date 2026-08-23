@@ -3,13 +3,7 @@ import {
 	type ComposerHandle,
 	type ComposerQuickKey,
 } from "@superset/composer";
-import {
-	forwardRef,
-	useEffect,
-	useImperativeHandle,
-	useRef,
-	useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
@@ -93,7 +87,6 @@ export const TerminalComposer = forwardRef<
 		focus: () => composerRef.current?.focus(),
 		blur: () => composerRef.current?.blur(),
 		clear: () => composerRef.current?.clear(),
-		restoreDraft: (text: string) => composerRef.current?.restoreDraft(text),
 		appendDraft: (text: string) => composerRef.current?.appendDraft(text),
 	}));
 
@@ -102,13 +95,9 @@ export const TerminalComposer = forwardRef<
 	const openAttachmentsSheet = useAttachmentsSheet(draftKey);
 	const addPasted = usePasteAttachments(draftKey);
 
-	// Put back what was typed here last time. Mount only — past this point the
-	// composer owns its text and only reports it outward.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: restore is a mount-time handoff, not a sync
-	useEffect(() => {
-		const saved = draft.readText();
-		if (saved) composerRef.current?.restoreDraft(saved);
-	}, []);
+	// What was typed here last time, pinned at mount: a starting value handed to
+	// the composer as it is set up, never a binding.
+	const [initialDraft] = useState(() => draft.readText());
 	const wasExpanded = useRef(false);
 	const writeAttachments = useWriteTerminalAttachments();
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,6 +154,7 @@ export const TerminalComposer = forwardRef<
 			<Composer
 				ref={composerRef}
 				placeholder={placeholder}
+				initialDraft={initialDraft}
 				// The transcript stays live behind the composer: reading the scrollback
 				// while typing the next command is the whole point of this screen.
 				backdrop="passthrough"
@@ -189,7 +179,7 @@ export const TerminalComposer = forwardRef<
 						: []
 				}
 				onSubmit={(text) => submit({ text, attachments: draft.attachments })}
-				onChangeText={draft.setText}
+				onDraftChange={draft.setText}
 				onRemoveAttachment={(id) => draft.remove(id)}
 				onHeightChange={onHeightChange}
 				onExpandedChange={(expanded) => {
