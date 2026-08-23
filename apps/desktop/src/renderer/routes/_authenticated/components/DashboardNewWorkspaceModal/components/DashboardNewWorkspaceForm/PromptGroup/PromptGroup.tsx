@@ -388,6 +388,19 @@ export function PromptGroup({
 		return () => window.removeEventListener("keydown", handler);
 	}, [isNewWorkspaceModalOpen, handleSubmit]);
 
+	// ── Keyboard focus order ─────────────────────────────────────────
+	// The Tab key goes from the workspace name field to the prompt, and then to
+	// the branch name field. The prompt editor comes last in the markup, so
+	// these three elements pass the focus to each other. The editor also stays
+	// out of the browser's tab order (see the onTabOut prop below), so the Tab
+	// key does not go back into it from the branch name field.
+	const composerRef = useRef<HTMLDivElement | null>(null);
+	const workspaceNameInputRef = useRef<HTMLInputElement | null>(null);
+	const branchNameInputRef = useRef<HTMLInputElement | null>(null);
+	const focusPromptEditor = useCallback(() => {
+		composerRef.current?.querySelector<HTMLElement>(".ProseMirror")?.focus();
+	}, []);
+
 	// ── Linked issues / PR ───────────────────────────────────────────
 	const {
 		addLinkedIssue,
@@ -399,10 +412,11 @@ export function PromptGroup({
 
 	// ── Render ────────────────────────────────────────────────────────
 	return (
-		<div className="p-3 space-y-2">
+		<div ref={composerRef} className="p-3 space-y-2">
 			{/* Workspace name + branch name */}
 			<div className="flex items-center">
 				<Input
+					ref={workspaceNameInputRef}
 					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder="Workspace name (optional)"
 					value={workspaceName}
@@ -412,6 +426,11 @@ export function PromptGroup({
 							workspaceNameEdited: true,
 						})
 					}
+					onKeyDown={(e) => {
+						if (e.key !== "Tab" || e.shiftKey) return;
+						e.preventDefault();
+						focusPromptEditor();
+					}}
 					onBlur={() => {
 						if (!workspaceName.trim())
 							updateDraft({ workspaceName: "", workspaceNameEdited: false });
@@ -419,6 +438,7 @@ export function PromptGroup({
 				/>
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
+						ref={branchNameInputRef}
 						className={cn(
 							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
@@ -431,6 +451,11 @@ export function PromptGroup({
 								branchNameFromProvider: false,
 							})
 						}
+						onKeyDown={(e) => {
+							if (e.key !== "Tab" || !e.shiftKey) return;
+							e.preventDefault();
+							focusPromptEditor();
+						}}
 						onBlur={() => {
 							const sanitized = sanitizeUserBranchName(branchName.trim());
 							if (!sanitized)
@@ -550,6 +575,10 @@ export function PromptGroup({
 					content={prompt}
 					onChange={(markdown) => updateDraft({ prompt: markdown })}
 					onPasteFiles={(files) => attachments.add(files)}
+					onTabOut={(direction) => {
+						if (direction === "forward") branchNameInputRef.current?.focus();
+						else workspaceNameInputRef.current?.focus();
+					}}
 					autoFocus={promptSeed > 0 || prompt ? "end" : "start"}
 					placeholder="What do you want to do?"
 					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"

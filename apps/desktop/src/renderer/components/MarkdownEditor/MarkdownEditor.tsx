@@ -150,6 +150,13 @@ interface MarkdownEditorProps {
 	searchFiles?: FileMentionSearchFn;
 	/** If provided, pasted file items (e.g. clipboard images) are forwarded here. */
 	onPasteFiles?: (files: File[]) => void;
+	/**
+	 * Called when the user presses Tab (forward) or Shift+Tab (backward) while
+	 * the caret sits outside a list, where Tab changes the indent instead. When
+	 * this is set, the editor stays out of the browser's tab order, and the
+	 * parent picks the element that gets the focus.
+	 */
+	onTabOut?: (direction: "forward" | "backward") => void;
 	/** Toggle optional affordances. Each defaults to enabled. */
 	features?: {
 		slashCommand?: boolean;
@@ -213,6 +220,7 @@ export function MarkdownEditor({
 	onEnterSubmit,
 	searchFiles,
 	onPasteFiles,
+	onTabOut,
 	features,
 	editable = true,
 }: MarkdownEditorProps) {
@@ -229,6 +237,8 @@ export function MarkdownEditor({
 	onPasteFilesRef.current = onPasteFiles;
 	const onEnterSubmitRef = useRef(onEnterSubmit);
 	onEnterSubmitRef.current = onEnterSubmit;
+	const onTabOutRef = useRef(onTabOut);
+	onTabOutRef.current = onTabOut;
 	const editorRef = useRef<Editor | null>(null);
 
 	const urlPolicy = useInlineUrlPolicy();
@@ -359,8 +369,20 @@ export function MarkdownEditor({
 		editorProps: {
 			attributes: {
 				class: cn("focus:outline-none min-h-[100px]", editorClassName),
+				...(onTabOut ? { tabindex: "-1" } : {}),
 			},
 			handleKeyDown: (_, event) => {
+				if (event.key === "Tab" && onTabOutRef.current) {
+					const currentEditor = editorRef.current;
+					const changedIndent = event.shiftKey
+						? currentEditor?.commands.liftListItem("listItem") ||
+							currentEditor?.commands.liftListItem("taskItem")
+						: currentEditor?.commands.sinkListItem("listItem") ||
+							currentEditor?.commands.sinkListItem("taskItem");
+					if (changedIndent) return true;
+					onTabOutRef.current(event.shiftKey ? "backward" : "forward");
+					return true;
+				}
 				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
 					onModEnter?.();
 					return true;
