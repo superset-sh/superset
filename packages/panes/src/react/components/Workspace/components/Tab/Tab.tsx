@@ -63,6 +63,20 @@ function SplitView<TData>({
 		};
 	}, [onSplitResizeDragging, resizeSourceId]);
 
+	// `defaultSize` is only read when the group mounts, so a layout change that
+	// comes from the store (equalize, a preset) has to be pushed through the
+	// imperative handle or the panels stay where the user last dragged them.
+	useEffect(() => {
+		const group = groupRef.current;
+		if (!group) return;
+
+		const layout = group.getLayout();
+		if (layout.length !== 2) return;
+		if (Math.abs((layout[0] ?? 0) - firstSize) < 0.01) return;
+
+		group.setLayout([firstSize, secondSize]);
+	}, [firstSize, secondSize]);
+
 	return (
 		<ResizablePanelGroup
 			ref={groupRef}
