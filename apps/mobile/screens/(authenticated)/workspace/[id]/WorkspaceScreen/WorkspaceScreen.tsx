@@ -235,6 +235,15 @@ export function WorkspaceScreen() {
 	// old tab in the same commit the fresh row arrived, and the new session
 	// never activated.
 	const adoptedTabRef = useRef<string | null>(null);
+	// A manual pick while the ?tab= row is still pending consumes the
+	// adoption — the arriving row must not yank the user off their choice.
+	const pickTerminal = useCallback(
+		(terminalId: string) => {
+			adoptedTabRef.current = params.tab ?? null;
+			setPickedTerminalId(terminalId);
+		},
+		[params.tab],
+	);
 	useEffect(() => {
 		if (
 			params.tab &&
@@ -483,7 +492,7 @@ export function WorkspaceScreen() {
 				<TerminalTabs
 					rows={rows}
 					activeTerminalId={activeTerminalId}
-					onSelect={setPickedTerminalId}
+					onSelect={pickTerminal}
 					onAdd={openAddMenu}
 					onManage={openSessions}
 					onClose={killTerminal}
