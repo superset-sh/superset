@@ -189,9 +189,11 @@ export function PromptGroup({
 		});
 
 	// ── Model picker (per agent preset) ──────────────────────────────
-	// `iconId` carries the presetId for v2 agents ("superset" for chat).
+	// Keyed off `presetId` ("superset" for chat) — `iconId` is display-only
+	// and diverges from the preset when the user overrides the agent icon.
 	const selectedPresetId = useMemo(
-		() => v2Agents.find((agent) => agent.id === selectedAgent)?.iconId ?? null,
+		() =>
+			v2Agents.find((agent) => agent.id === selectedAgent)?.presetId ?? null,
 		[v2Agents, selectedAgent],
 	);
 	const modelSupport = selectedPresetId

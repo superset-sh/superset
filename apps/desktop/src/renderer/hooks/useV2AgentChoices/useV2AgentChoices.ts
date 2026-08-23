@@ -11,6 +11,7 @@ const SUPERSET_AGENT: AgentSelectAgent = {
 	id: "superset",
 	label: "Superset",
 	iconId: "superset",
+	presetId: "superset",
 };
 
 // Superset chat isn't in the host's `host_agent_configs` table — it's
