@@ -12,21 +12,27 @@ struct ComposerModelPicker: View {
   let onPress: () -> Void
 
   var body: some View {
-    Button(action: onPress) {
-      HStack(spacing: 4) {
-        if let selected, selected.hasIcon {
-          ComposerOptionIcon(option: selected)
-            .padding(.trailing, 2)
+    // Nothing at all without a selection. The terminal surface has no agent to
+    // pick, and an empty label still drew its chevron — an orphan control in
+    // the corner of the card, pointing at a menu that does not exist.
+    if let selected {
+      Button(action: onPress) {
+        HStack(spacing: 4) {
+          if selected.hasIcon {
+            ComposerOptionIcon(option: selected)
+              .padding(.trailing, 2)
+          }
+          Text(selected.label)
+            .font(.system(size: ComposerMetrics.chromeFontSize))
+            .foregroundStyle(.primary)
+          Image(systemName: "chevron.down")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
         }
-        Text(selected?.label ?? "")
-          .foregroundStyle(.primary)
-        Image(systemName: "chevron.down")
-          .font(.system(size: 11, weight: .semibold))
-          .foregroundStyle(.secondary)
+        .lineLimit(1)
       }
-      .lineLimit(1)
+      .buttonStyle(.plain)
+      .accessibilityLabel("Model: \(selected.label)")
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel("Model: \(selected?.label ?? "none")")
   }
 }

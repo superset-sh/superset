@@ -10,6 +10,7 @@ import { killAndReapTrackedChildren } from "./worker-child-tracker.ts";
 import {
 	isWorkerShutdownRequestMessage,
 	serializeWorkerError,
+	type WorkerTaskPhaseMessage,
 	type WorkerTaskRequestMessage,
 } from "./worker-task-protocol.ts";
 
@@ -56,7 +57,14 @@ parentPort.on("message", async (message: unknown) => {
 		if (!def) {
 			throw new Error(`unknown worker task type: ${task.taskType}`);
 		}
-		const result = await def.handler(task.payload);
+		const result = await def.handler(task.payload, (phase) => {
+			const phaseMessage: WorkerTaskPhaseMessage = {
+				kind: "phase",
+				taskId: task.taskId,
+				phase,
+			};
+			parentPort?.postMessage(phaseMessage);
+		});
 		parentPort?.postMessage({
 			kind: "result",
 			taskId: task.taskId,

@@ -69,3 +69,5 @@ export default function AuthenticatedLayout() {
   title and ✕, the body is RN + uniwind (never `@expo/ui` SwiftUI content, which can't be themed to
   match ours), and the list stays the screen's only layout child or it cold-mounts at zero height.
   Copy `PullRequestsSheet` and its route entry.
+- **Iterating on a native module?** Build its own pod scheme (`-scheme Composer`), not the app —
+  the difference between ~6s and minutes.

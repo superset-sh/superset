@@ -48,6 +48,16 @@ final class ComposerModel {
 
   var isDictating: Bool { dictation.isActive }
 
+  /// The terminal's quick keys, above the card. Empty on every other surface.
+  var quickKeys: [ComposerQuickKey] = []
+
+  /// Whether the `+` button is offered. A plain shell would try to *execute* an
+  /// attachment path, so only agent sessions get it.
+  var showsAttachments = true
+
+  /// The terminal wants `never`; prose surfaces want sentences.
+  var autocapitalization: TextInputAutocapitalization = .sentences
+
   /// Frame 4's header row — project+branch and target. Same shape as the model
   /// options; their menus arrive with the data at cutover, so for now a press
   /// is reported and the caller decides what to present.
@@ -71,6 +81,16 @@ final class ComposerModel {
   @ObservationIgnored var onDictationError: ((String) -> Void)?
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
+  @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
+  /// How much room the composer occupies above the bottom of the safe area —
+  /// its card, the quick keys, and the gaps between them.
+  ///
+  /// The composer draws in an overlay and takes no React Native layout space,
+  /// so a caller with content underneath cannot measure it and has no other way
+  /// to know how far to inset. Deliberately excludes the keyboard: the caller
+  /// already tracks that, and it arrives there with a duration and a curve
+  /// worth animating to.
+  @ObservationIgnored var onHeightChange: ((CGFloat) -> Void)?
   @ObservationIgnored var onRemoveAttachment: ((String) -> Void)?
   @ObservationIgnored var onAttachmentPress: ((String) -> Void)?
   /// Lets the caller restore the composer only when it was actually open —

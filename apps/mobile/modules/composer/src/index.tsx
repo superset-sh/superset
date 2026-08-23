@@ -16,12 +16,17 @@ interface NativeComposerViewProps {
 	attachments?: ComposerAttachment[];
 	selectedModel?: ComposerMenuOption;
 	headerChips?: ComposerMenuOption[];
+	quickKeys?: ComposerQuickKey[];
+	showAttachments?: boolean;
+	autocapitalization?: "sentences" | "never";
 	isSending?: boolean;
 	onSubmit?: (event: { nativeEvent: { text: string } }) => void;
 	onAttachmentsPress?: () => void;
 	onDictationError?: (event: { nativeEvent: { message: string } }) => void;
 	onModelPress?: () => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
+	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
+	onHeightChange?: (event: { nativeEvent: { height: number } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
 	onAttachmentPress?: (event: { nativeEvent: { id: string } }) => void;
 	onExpandedChange?: (event: { nativeEvent: { expanded: boolean } }) => void;
@@ -80,6 +85,20 @@ export interface ComposerAttachment {
 	name?: string;
 }
 
+/**
+ * One key in the strip above the composer — the terminal's esc/tab/arrows.
+ *
+ * Deliberately carries no behaviour: what a key writes into the PTY stays with
+ * the terminal that owns it. The composer draws the mark and reports the id.
+ */
+export interface ComposerQuickKey {
+	id: string;
+	/** Monospaced label. Ignored when `symbol` is set. */
+	label?: string;
+	/** SF Symbol name, e.g. `arrow.up`. */
+	symbol?: string;
+}
+
 export interface ComposerHandle {
 	/** Empties the draft. */
 	clear: () => void;
@@ -109,6 +128,20 @@ export interface ComposerProps {
 	/** Frame 4's header row. Empty on the session surface (frame 13). */
 	headerChips?: ComposerMenuOption[];
 	/**
+	 * Keys above the card — the terminal's esc/tab/arrows. Rendered natively
+	 * rather than by the caller: as a React Native sibling the gap to the card
+	 * had to guess a height it could not measure, and drifted every time the
+	 * card grew.
+	 */
+	quickKeys?: ComposerQuickKey[];
+	/**
+	 * Offer the `+` button. A plain shell would try to *execute* an attachment
+	 * path, so only agent sessions get it.
+	 */
+	showAttachments?: boolean;
+	/** `never` for the terminal — a shell command is not a sentence. */
+	autocapitalization?: "sentences" | "never";
+	/**
 	 * A submit is in flight. Send becomes a grey spinner and the mic steps
 	 * aside. The caller owns this because only it knows when delivery finished.
 	 */
@@ -127,6 +160,16 @@ export interface ComposerProps {
 	onDictationError?: (message: string) => void;
 	onModelPress?: () => void;
 	onChipPress?: (id: string) => void;
+	onQuickKeyPress?: (id: string) => void;
+	/**
+	 * How much room the composer occupies above the bottom safe area — card,
+	 * quick keys and the gaps between them.
+	 *
+	 * The composer draws in an overlay and takes no layout space, so a caller
+	 * with content underneath cannot measure it. Excludes the keyboard, which
+	 * the caller already tracks and gets a duration and curve for.
+	 */
+	onHeightChange?: (height: number) => void;
 	onRemoveAttachment?: (id: string) => void;
 	/**
 	 * Fires only for non-image attachments. Images open in the composer's own
@@ -161,12 +204,17 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			attachments,
 			selectedModel,
 			headerChips,
+			quickKeys,
+			showAttachments = true,
+			autocapitalization = "sentences",
 			isSending = false,
 			onSubmit,
 			onAttachmentsPress,
 			onDictationError,
 			onModelPress,
 			onChipPress,
+			onQuickKeyPress,
+			onHeightChange,
 			onRemoveAttachment,
 			onAttachmentPress,
 			onExpandedChange,
@@ -190,6 +238,9 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				attachments={attachments}
 				selectedModel={selectedModel}
 				headerChips={headerChips}
+				quickKeys={quickKeys}
+				showAttachments={showAttachments}
+				autocapitalization={autocapitalization}
 				isSending={isSending}
 				onSubmit={(event) => onSubmit?.(event.nativeEvent.text)}
 				onAttachmentsPress={onAttachmentsPress}
@@ -198,6 +249,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				}
 				onModelPress={onModelPress}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
+				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
+				onHeightChange={(event) => onHeightChange?.(event.nativeEvent.height)}
 				onRemoveAttachment={(event) =>
 					onRemoveAttachment?.(event.nativeEvent.id)
 				}

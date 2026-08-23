@@ -35,8 +35,26 @@ enum ComposerMetrics {
   /// leaves an empty card the size of the cap.
   static let maxLines = 8
   static let grabberSize = CGSize(width: 36, height: 5)
+  /// The chips and the model picker, measured off frames 4 and 10: the
+  /// reference's chrome is ~14pt, not the 17pt body every `Text` inherits by
+  /// default. The editor stays at the body size — that one already matches.
+  static let chromeFontSize: CGFloat = 14
+  /// Gap under the header row, measured rather than reused from `textInset`.
+  /// The reference puts 19pt between the chips' ink and the first line of the
+  /// draft; 17pt chrome plus an 8pt inset gave 30pt. Dropping to 14pt chrome
+  /// took ~11pt out of the line box on its own, so what is left to add is 7.
+  static let headerBottomGap: CGFloat = 5
   static let modelIconSize: CGFloat = 16
   static let chipSpacing: CGFloat = 12
+  /// The quick-key strip, matching the gap the React Native composer used
+  /// between its `above` cluster and the pill.
+  static let quickKeyGap: CGFloat = 10
+  static let quickKeySpacing: CGFloat = 8
+  /// Only the glyph and a floor for single-character keys are set; `.glass`
+  /// owns the padding and the height.
+  static let quickKeyGlyphSize: CGFloat = 13
+  static let quickKeyMinWidth: CGFloat = 22
+  static let quickKeyRadius: CGFloat = 10
   /// Measured off frames 6 and 9. The badge sits *inside* the thumbnail, inset
   /// by roughly its own radius — an earlier pass had it bleeding outside the
   /// corner, and the thumbnails were a third too small and proportionally
@@ -147,12 +165,26 @@ struct ComposerRootView: View {
       backdrop
       VStack(spacing: 0) {
         Spacer(minLength: 0)
-        surface
-          .padding(.horizontal, ComposerMetrics.horizontalMargin)
-          .padding(.bottom, ComposerMetrics.bottomGap)
-          .offset(y: dragOffset)
-          .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
-            action: { surfaceFrame = $0 }
+        // The quick keys ride with the card rather than sitting beside it: one
+        // stack, one spacing, one transaction. As a sibling laid out by React
+        // Native the gap had to guess the card's height and drifted every time
+        // it grew — see `ComposerQuickKeys`.
+        VStack(spacing: ComposerMetrics.quickKeyGap) {
+          if !model.quickKeys.isEmpty {
+            ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
+          }
+          surface
+            .padding(.horizontal, ComposerMetrics.horizontalMargin)
+        }
+        .padding(.bottom, ComposerMetrics.bottomGap)
+        .offset(y: dragOffset)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
+          action: { surfaceFrame = $0 }
+        // Its own size, not its position — the keyboard moves this cluster but
+        // does not resize it, so the caller gets a value that only changes when
+        // the composer genuinely grows.
+        .onGeometryChange(for: CGFloat.self) { $0.size.height }
+          action: { model.onHeightChange?($0) }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -318,7 +350,7 @@ struct ComposerRootView: View {
       }
     ), axis: .vertical)
       .lineLimit(1...ComposerMetrics.maxLines)
-      .textInputAutocapitalization(.sentences)
+      .textInputAutocapitalization(model.autocapitalization)
       .focused($isFocused)
       // The editor exists only while expanded, so this is the first moment it
       // can take first responder.
@@ -332,12 +364,14 @@ struct ComposerRootView: View {
 
   private var controlRow: some View {
     HStack(spacing: ComposerMetrics.rowSpacing) {
-      Button { model.onAttachmentsPress?() } label: {
-        Image(systemName: "plus")
-          .font(.system(size: 17, weight: .regular))
+      if model.showsAttachments {
+        Button { model.onAttachmentsPress?() } label: {
+          Image(systemName: "plus")
+            .font(.system(size: 17, weight: .regular))
+        }
+        .buttonStyle(.composerControl)
+        .accessibilityLabel("Add attachment")
       }
-      .buttonStyle(.composerControl)
-      .accessibilityLabel("Add attachment")
 
       if !isExpanded {
         ComposerCollapsedAttachments(attachments: model.attachments)
@@ -479,6 +513,7 @@ struct ComposerRootView: View {
                 .padding(.trailing, 2)
             }
             Text(chip.label)
+              .font(.system(size: ComposerMetrics.chromeFontSize))
               // The project is the subject and the branch qualifies it, which
               // is the split the reference draws. Everything reading the same
               // weight makes the row look like one long string.
@@ -494,6 +529,6 @@ struct ComposerRootView: View {
       Spacer(minLength: 0)
     }
     .padding(.horizontal, ComposerMetrics.textInset + ComposerMetrics.rowPadding)
-    .padding(.bottom, ComposerMetrics.textInset)
+    .padding(.bottom, ComposerMetrics.headerBottomGap)
   }
 }

@@ -13,6 +13,8 @@ public final class ComposerModule: Module {
         "onDictationError",
         "onModelPress",
         "onChipPress",
+        "onQuickKeyPress",
+        "onHeightChange",
         "onRemoveAttachment",
         "onAttachmentPress",
         "onExpandedChange"
@@ -49,6 +51,25 @@ public final class ComposerModule: Module {
         withAnimation(ComposerMetrics.controlSwap) {
           view.overlay.model.isSending = isSending
         }
+      }
+
+      /// The terminal's keys above the card. Same transaction rule: the strip
+      /// appearing or changing resizes the whole cluster.
+      Prop("quickKeys") { (view: ComposerAnchorView, keys: [ComposerQuickKey]) in
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.quickKeys = keys
+        }
+      }
+
+      Prop("showAttachments") { (view: ComposerAnchorView, shows: Bool) in
+        withAnimation(ComposerMetrics.controlSwap) {
+          view.overlay.model.showsAttachments = shows
+        }
+      }
+
+      /// The terminal wants `never` — a shell command is not a sentence.
+      Prop("autocapitalization") { (view: ComposerAnchorView, mode: String) in
+        view.overlay.model.autocapitalization = mode == "never" ? .never : .sentences
       }
 
       /// Same reasoning as `attachments`: the chip row is a whole row of card
@@ -98,6 +119,8 @@ final class ComposerAnchorView: ExpoView {
   private let onDictationError = EventDispatcher()
   private let onModelPress = EventDispatcher()
   private let onChipPress = EventDispatcher()
+  private let onQuickKeyPress = EventDispatcher()
+  private let onHeightChange = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
   private let onAttachmentPress = EventDispatcher()
   private let onExpandedChange = EventDispatcher()
@@ -111,6 +134,12 @@ final class ComposerAnchorView: ExpoView {
       self?.onDictationError(["message": message])
     }
     overlay.model.onModelPress = { [weak self] in self?.onModelPress([:]) }
+    overlay.model.onQuickKeyPress = { [weak self] id in
+      self?.onQuickKeyPress(["id": id])
+    }
+    overlay.model.onHeightChange = { [weak self] height in
+      self?.onHeightChange(["height": height])
+    }
     overlay.model.onChipPress = { [weak self] id in self?.onChipPress(["id": id]) }
     overlay.model.onRemoveAttachment = { [weak self] id in
       self?.onRemoveAttachment(["id": id])

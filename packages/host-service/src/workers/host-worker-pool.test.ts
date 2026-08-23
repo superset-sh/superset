@@ -5,7 +5,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { defineWorkerTask } from "./define-worker-task.ts";
 import { HostWorkerPool } from "./host-worker-pool.ts";
-import { gitStatusSnapshotTask } from "./tasks/git.ts";
+import {
+	gitStatusSnapshotTask,
+	gitWorktreeRemoveTask,
+	gitWorktreeStateTask,
+} from "./tasks/git.ts";
 
 const WORKER_ENTRY = path.resolve(import.meta.dirname, "host-worker.ts");
 const CRASH_WORKER = path.resolve(
@@ -68,6 +72,65 @@ function makeFixtureRepo(): string {
 	return dir;
 }
 
+// A `git` shimmed onto the front of PATH that blocks on one subcommand:
+// `gitEnv` is the spawned process's whole environment, so this is how a real
+// task can be stalled in a chosen phase without stalling real git. The rest
+// of PATH stays real — the shim needs `sleep`.
+//
+// It blocks on a sentinel rather than for a fixed duration: a `sleep` long
+// enough to survive a loaded machine is also a `sleep` left running after the
+// test, and one short enough to clean up can expire mid-assertion and let the
+// task succeed. Waiting on its own existence gives an unbounded hang that
+// afterEach's fixture cleanup releases within ~100ms.
+function makeHangingGitShim(hangOn: "remove" | "list" | "status" | "none"): {
+	dir: string;
+	gitEnv: { PATH: string };
+} {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "host-worker-gitshim-"));
+	fixtureDirs.push(dir);
+	const shim = path.join(dir, "git");
+	const hang = `while [ -f "${shim}" ]; do sleep 0.1; done`;
+	fs.writeFileSync(
+		shim,
+		`#!/bin/sh
+case "$*" in
+  *"worktree remove"*) ${hangOn === "remove" ? hang : ""} ;;
+  *"worktree list"*) ${hangOn === "list" ? hang : ""} ;;
+  status*) ${hangOn === "status" ? hang : ""} ;;
+esac
+exit 0
+`,
+		{ mode: 0o755 },
+	);
+	return { dir, gitEnv: { PATH: `${dir}:/usr/bin:/bin` } };
+}
+
+function shimInput(shim: { dir: string; gitEnv: { PATH: string } }) {
+	return {
+		repoPath: shim.dir,
+		worktreePath: path.join(shim.dir, "wt"),
+		gitEnv: shim.gitEnv,
+	};
+}
+
+// Boot the worker before a timed run. A cold worker compiles the whole task
+// module graph first (~300ms idle, more under load), which can burn a short
+// budget before the handler runs at all — the task would then time out having
+// reported nothing and the phase assertions would flake. Warm, the first
+// phase is reported within a message hop of dispatch.
+async function warmPool(pool: HostWorkerPool): Promise<void> {
+	await pool.run(gitWorktreeRemoveTask, shimInput(makeHangingGitShim("none")));
+}
+
+async function rejectionOf(promise: Promise<unknown>): Promise<Error> {
+	const error = await promise.then(
+		() => null,
+		(reason: Error) => reason,
+	);
+	if (!error) throw new Error("expected a rejection, got a resolved value");
+	return error;
+}
+
 describe("HostWorkerPool", () => {
 	test("worker result matches inline handler result (parity)", async () => {
 		const worktreePath = makeFixtureRepo();
@@ -86,6 +149,80 @@ describe("HostWorkerPool", () => {
 		expect(fromWorker.snapshot.staged.map((f) => f.path)).toEqual([
 			"staged.txt",
 		]);
+	});
+
+	// HOST-SERVICE-17 / HOST-SERVICE-47: `git/removeWorktree` blows its budget
+	// in the field and the timeout named only the budget, so the steps that
+	// stall for unrelated reasons were indistinguishable. These drive the real
+	// task through the real pool and worker and assert, on the exact message
+	// the caller sees, that it says which step hung.
+	test("worker timeout names the phase that was running (worktree-remove)", async () => {
+		const shim = makeHangingGitShim("remove");
+		const pool = makePool();
+		await warmPool(pool);
+
+		const error = await rejectionOf(
+			pool.run(gitWorktreeRemoveTask, shimInput(shim), { timeoutMs: 1_000 }),
+		);
+
+		expect(error.message).toBe(
+			'[host-worker] Task "git/removeWorktree" timed out after 1000ms in phase "worktree-remove"',
+		);
+	});
+
+	test("worker timeout names the phase that was running (worktree-list)", async () => {
+		// Same task, same budget, same shim — only the stalling subcommand
+		// differs. A label that tracked the task rather than the step, or one
+		// left over from the step before, fails here.
+		const shim = makeHangingGitShim("list");
+		const pool = makePool();
+		await warmPool(pool);
+
+		const error = await rejectionOf(
+			pool.run(gitWorktreeRemoveTask, shimInput(shim), { timeoutMs: 1_000 }),
+		);
+
+		expect(error.message).toBe(
+			'[host-worker] Task "git/removeWorktree" timed out after 1000ms in phase "worktree-list"',
+		);
+	});
+
+	test("a task that reports no phase keeps its timeout message unchanged", async () => {
+		// The other half of the contract: this adds information to a failure,
+		// it does not change one. `git/worktreeState` reports no phases, so its
+		// timeout must read exactly as it did before.
+		const shim = makeHangingGitShim("status");
+		const pool = makePool();
+		await warmPool(pool);
+
+		const error = await rejectionOf(
+			pool.run(
+				gitWorktreeStateTask,
+				{ worktreePath: shim.dir, gitEnv: shim.gitEnv },
+				{ timeoutMs: 1_000 },
+			),
+		);
+
+		expect(error.message).toBe(
+			'[host-worker] Task "git/worktreeState" timed out after 1000ms',
+		);
+	});
+
+	test("inline timeout names the phase too", async () => {
+		// The pool degrades to inline on a missing bundle or crash-looping
+		// workers; that path enforces the same budget and must stay as
+		// diagnosable as the worker one.
+		const shim = makeHangingGitShim("remove");
+		const pool = makePool({ scriptPathResolver: () => null });
+		expect(pool.getMode()).toBe("inline");
+
+		const error = await rejectionOf(
+			pool.run(gitWorktreeRemoveTask, shimInput(shim), { timeoutMs: 1_000 }),
+		);
+
+		expect(error.message).toBe(
+			'[host-worker] Task "git/removeWorktree" timed out after 1000ms in phase "worktree-remove" (inline)',
+		);
 	});
 
 	test("unknown task type rejects with the worker's error", async () => {
