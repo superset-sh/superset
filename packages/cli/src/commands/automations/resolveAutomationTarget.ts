@@ -16,10 +16,17 @@ export async function resolveAutomationTarget(args: {
 	userJwt: string;
 	api: ApiClient;
 	hostId?: string;
+	/**
+	 * Host to fall back to when `hostId` (--host) is omitted. Create leaves
+	 * this unset and targets this machine; update passes the automation's
+	 * current host so that omitting --host never moves the automation as a
+	 * side effect (#6522).
+	 */
+	defaultHostId?: string;
 	workspaceId?: string;
 	projectId?: string;
 }): Promise<{ targetHostId: string; v2ProjectId: string | null }> {
-	const targetHostId = args.hostId ?? getHostId();
+	const targetHostId = args.hostId ?? args.defaultHostId ?? getHostId();
 
 	// The cloud rejects automations whose target host has no v2Hosts row
 	// (the host-service registers one at startup, and that registration can
@@ -30,13 +37,16 @@ export async function resolveAutomationTarget(args: {
 		organizationId: args.organizationId,
 	});
 	if (!hosts.some((host) => host.id === targetHostId)) {
+		// Key the wording on which host is actually failing, not on how it
+		// was chosen: a defaulted host may be a remote machine.
+		const isThisMachine = targetHostId === getHostId();
 		throw new CLIError(
-			args.hostId
-				? `Host ${targetHostId} is not registered in this organization`
-				: `This machine (host ${targetHostId}) isn't registered with the cloud`,
-			args.hostId
-				? "Run: superset hosts list"
-				: "Restart the host service (superset stop && superset start), then check: superset hosts list",
+			isThisMachine
+				? `This machine (host ${targetHostId}) isn't registered with the cloud`
+				: `Host ${targetHostId} is not registered in this organization`,
+			isThisMachine
+				? "Restart the host service (superset stop && superset start), then check: superset hosts list"
+				: "Run: superset hosts list",
 		);
 	}
 
