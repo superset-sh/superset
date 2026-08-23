@@ -106,6 +106,50 @@ describe("reconcileRenameEvents", () => {
 		});
 	});
 
+	it("carries an undeterminable type through the pair", () => {
+		const events = reconcileRenameEvents([
+			createInternalEvent({
+				kind: "delete",
+				absolutePath: "/workspace/src/old",
+				isDirectory: false,
+			}),
+			createInternalEvent({
+				// The watcher couldn't stat the new path — it must not be
+				// coerced to "file" here, or the consumer loses its chance to
+				// fall back to the type it already holds for the old path.
+				kind: "create",
+				absolutePath: "/workspace/src/new",
+			}),
+		]);
+
+		expect(events).toEqual([
+			{
+				kind: "rename",
+				oldAbsolutePath: "/workspace/src/old",
+				absolutePath: "/workspace/src/new",
+				isDirectory: undefined,
+			},
+		]);
+	});
+
+	it("still refuses to pair a directory with a file", () => {
+		const events = reconcileRenameEvents([
+			createInternalEvent({
+				kind: "delete",
+				absolutePath: "/workspace/src/old-dir",
+				isDirectory: true,
+			}),
+			createInternalEvent({
+				kind: "create",
+				absolutePath: "/workspace/src/new-file.ts",
+				isDirectory: false,
+			}),
+		]);
+
+		expect(events).toHaveLength(2);
+		expect(events.every((event) => event.kind !== "rename")).toEqual(true);
+	});
+
 	it("leaves ambiguous churn as separate events", () => {
 		const events = reconcileRenameEvents([
 			createInternalEvent({

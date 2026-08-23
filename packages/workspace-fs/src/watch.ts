@@ -205,11 +205,15 @@ function internalToSearchPatchEvent(
 	if (event.kind === "overflow") {
 		return null;
 	}
+	// The search index only ever holds files, so an undeterminable type is
+	// worth no more than "not a directory" here. Treating it as a directory
+	// instead would invalidate the whole index for every build temp file that
+	// vanishes mid-batch.
 	return {
 		kind: event.kind,
 		absolutePath: event.absolutePath,
 		oldAbsolutePath: event.oldAbsolutePath,
-		isDirectory: event.isDirectory,
+		isDirectory: event.isDirectory ?? false,
 	};
 }
 
@@ -1122,7 +1126,8 @@ export class FsWatcherManager {
 		event: ParcelWatcherEvent,
 	): Promise<InternalWatchEvent> {
 		const absolutePath = normalizeAbsolutePath(event.path);
-		let isDirectory = state.directoryPaths.has(absolutePath);
+		let isDirectory: boolean | undefined =
+			state.directoryPaths.has(absolutePath);
 
 		if (event.type === "delete") {
 			state.filePaths.delete(absolutePath);
@@ -1147,7 +1152,19 @@ export class FsWatcherManager {
 					state.directoryPaths.delete(absolutePath);
 				}
 			} catch {
-				isDirectory = state.directoryPaths.has(absolutePath);
+				// The stat lost a race with whatever changed the path again (the
+				// ordinary case for the rename that produced this event), so all
+				// we have left is what we already recorded. With no record, say
+				// nothing: reporting "file" for a directory we couldn't inspect
+				// puts it in consumers' trees as a file node, where it can't be
+				// expanded and poisons every lookup beneath it (DESKTOP-11E).
+				if (state.directoryPaths.has(absolutePath)) {
+					isDirectory = true;
+				} else if (state.filePaths.has(absolutePath)) {
+					isDirectory = false;
+				} else {
+					isDirectory = undefined;
+				}
 			}
 		}
 
