@@ -567,12 +567,17 @@ async function runDestroyPhases(
 						const message = err instanceof Error ? err.message : String(err);
 						throw new TRPCError({
 							code: "INTERNAL_SERVER_ERROR",
-							message: `Worktree at ${local.worktreePath} is no longer registered with git, but its folder could not be removed: ${removeError ?? message}`,
+							message: `Worktree at ${local.worktreePath} is no longer registered with git, but its folder could not be removed: ${message}${
+								removeError ? ` (git worktree remove: ${removeError})` : ""
+							}`,
 						});
 					}
 				}
 			}
-			worktreeRemoved = true;
+			// The outside-root branch above leaves the folder in place, so
+			// report removal from the final disk state rather than assuming
+			// this path always cleared it (#6785 review).
+			worktreeRemoved = !existsSync(local.worktreePath);
 		}
 	}
 

@@ -489,6 +489,9 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 			});
 			expect(result.success).toBe(true);
 			expect(existsSync(tmp)).toBe(true);
+			// The folder is still on disk, so the result must not claim the
+			// worktree was removed (#6785 review).
+			expect(result.worktreeRemoved).toBe(false);
 			expect(
 				result.warnings.some((warning) => warning.includes("left on disk")),
 			).toBe(true);
