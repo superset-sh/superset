@@ -98,6 +98,8 @@ export const SETTING_ITEM_ID = {
 	HOST_MEMBER_ROLE: "host-member-role",
 	HOST_WORKTREE_LOCATION: "host-worktree-location",
 	HOST_DELETE: "host-delete",
+
+	WORKSPACES_LIST: "workspaces-list",
 } as const;
 
 /** One settings-search row per roster entry, id derived from the provider. */
@@ -236,6 +238,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
 	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
 	[SETTING_ITEM_ID.HOST_DELETE]: "shared",
+
+	[SETTING_ITEM_ID.WORKSPACES_LIST]: "v2",
 };
 
 export function isItemAllowedForVariant(
@@ -1650,6 +1654,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"workspace",
 			"owner",
 			"danger zone",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.WORKSPACES_LIST,
+		section: "workspaces",
+		title: "Workspaces",
+		description: "Browse all workspaces across your projects and devices",
+		keywords: [
+			"workspace",
+			"workspaces",
+			"worktree",
+			"branch",
+			"list",
+			"all",
+			"device",
 		],
 	},
 ];

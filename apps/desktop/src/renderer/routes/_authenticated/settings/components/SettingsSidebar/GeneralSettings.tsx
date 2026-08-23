@@ -21,7 +21,7 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuBrain, LuGitBranch, LuKeyboard, LuLayers } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
@@ -52,6 +52,7 @@ type SettingsRoute =
 	| "/settings/security"
 	| "/settings/permissions"
 	| "/settings/projects"
+	| "/settings/workspaces"
 	| "/settings/hosts";
 
 interface SectionItem {
@@ -164,6 +165,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "project",
 				label: "Projects",
 				icon: <HiOutlineFolder className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/workspaces",
+				section: "workspaces",
+				label: "Workspaces",
+				icon: <LuLayers className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/hosts",
