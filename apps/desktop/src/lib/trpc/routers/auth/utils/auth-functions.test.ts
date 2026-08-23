@@ -245,6 +245,60 @@ describe("auth token storage", () => {
 			fs.rmdirSync(lockEntry);
 		}
 	});
+
+	test("survives another writer reclaiming the write lock mid-write", async () => {
+		// proper-lockfile keeps the entry it handed us fresh on a timer (stale / 2,
+		// so five seconds out) and calls onCompromised once that refresh finds the
+		// entry gone. Its default handler rethrows from inside the timer, where no
+		// caller can catch it. Run the library's own refresh as soon as the entry
+		// is gone rather than waiting five seconds for it: everything that detects
+		// and reports the loss is the real thing, only the delay is skipped.
+		const lockEntry = `${tokenFile}.lock`;
+		const realSetTimeout = globalThis.setTimeout;
+		let refreshRan = false;
+		globalThis.setTimeout = ((
+			handler: () => void,
+			delay?: number,
+			...args: unknown[]
+		) => {
+			if (typeof delay !== "number" || delay < 1_000) {
+				return realSetTimeout(handler, delay, ...args);
+			}
+			// The lock refresh, armed the moment the write took the lock. Take the
+			// entry away the way a second desktop process reclaiming it would.
+			globalThis.setTimeout = realSetTimeout;
+			refreshRan = true;
+			fs.rmdirSync(lockEntry);
+			handler();
+			// The refresh has already run; hand the library a timer it can unref
+			// and clear like the one it asked for.
+			return realSetTimeout(() => undefined, 0);
+		}) as typeof globalThis.setTimeout;
+		let recordedLosses = 0;
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {
+			recordedLosses += 1;
+		});
+
+		try {
+			// Rethrowing from the refresh would fail this test outright, and a
+			// release that overrode the operation's result would reject here.
+			await saveToken({ token: "token", expiresAt: "2099-01-01" });
+		} finally {
+			globalThis.setTimeout = realSetTimeout;
+			warnSpy.mockRestore();
+		}
+
+		expect(refreshRan).toBe(true);
+		expect(recordedLosses).toBeGreaterThan(0);
+		// Losing the lock says nothing about whether the write landed, so it must
+		// never stand in for the operation's own result. This one landed.
+		expect(await loadToken()).toEqual({
+			token: "token",
+			expiresAt: "2099-01-01",
+			organizationIds: null,
+			organizationIdsRevision: 0,
+		});
+	});
 });
 
 describe("cached organization membership", () => {
