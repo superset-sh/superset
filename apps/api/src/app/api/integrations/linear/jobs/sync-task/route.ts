@@ -161,6 +161,7 @@ async function syncTaskToLinear(
 					// Linear derives branchName from identifier + title, so a
 					// title update can change it.
 					branch: issue.branchName || null,
+					externalUpdatedAt: new Date(issue.updatedAt),
 					lastSyncedAt: new Date(),
 					syncError: null,
 				})
@@ -217,6 +218,7 @@ async function syncTaskToLinear(
 				externalKey: issue.identifier,
 				externalUrl: issue.url,
 				branch: issue.branchName || null,
+				externalUpdatedAt: new Date(issue.updatedAt),
 				lastSyncedAt: new Date(),
 				syncError: null,
 			})

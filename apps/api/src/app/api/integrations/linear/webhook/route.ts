@@ -21,7 +21,7 @@ import {
 	isLinearAuthError,
 	mapPriorityFromLinear,
 } from "@superset/trpc/integrations/linear";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
@@ -283,13 +283,37 @@ async function processIssueEvent(
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
-		const taskStatus = await db.query.taskStatuses.findFirst({
-			where: and(
-				eq(taskStatuses.organizationId, connection.organizationId),
-				eq(taskStatuses.externalProvider, "linear"),
-				eq(taskStatuses.externalId, issue.state.id),
-			),
-		});
+		const externalUpdatedAt = new Date(issue.updatedAt);
+
+		const [taskStatus, existing] = await Promise.all([
+			db.query.taskStatuses.findFirst({
+				where: and(
+					eq(taskStatuses.organizationId, connection.organizationId),
+					eq(taskStatuses.externalProvider, "linear"),
+					eq(taskStatuses.externalId, issue.state.id),
+				),
+			}),
+			db.query.tasks.findFirst({
+				where: and(
+					eq(tasks.organizationId, connection.organizationId),
+					eq(tasks.externalProvider, "linear"),
+					eq(tasks.externalId, issue.id),
+				),
+				columns: { externalUpdatedAt: true },
+			}),
+		]);
+
+		// Either our own write coming back through Linear, or a redelivery that
+		// a later edit has already overtaken. Applying it would revert whatever
+		// the newer write left behind. Checked here, ahead of the branchName
+		// fetch below, so an echo costs no Linear API call; the upsert's
+		// setWhere is what makes the decision atomic.
+		if (
+			existing?.externalUpdatedAt &&
+			existing.externalUpdatedAt >= externalUpdatedAt
+		) {
+			return "processed";
+		}
 
 		if (!taskStatus) {
 			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
@@ -365,6 +389,7 @@ async function processIssueEvent(
 						externalCycleName: issue.cycle?.name ?? null,
 					}
 				: {}),
+			externalUpdatedAt,
 			lastSyncedAt: new Date(),
 		};
 
@@ -383,6 +408,9 @@ async function processIssueEvent(
 					tasks.externalId,
 				],
 				set: { ...taskData, syncError: null },
+				// The read above can go stale before this runs, and two deliveries
+				// for one issue can race here.
+				setWhere: sql`${tasks.externalUpdatedAt} IS NULL OR ${tasks.externalUpdatedAt} < excluded.external_updated_at`,
 			});
 	} else if (payload.action === "remove") {
 		await db

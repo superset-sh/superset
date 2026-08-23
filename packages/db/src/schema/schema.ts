@@ -144,6 +144,10 @@ export const tasks = pgTable(
 		externalUrl: text("external_url"),
 		lastSyncedAt: timestamp("last_synced_at"),
 		syncError: text("sync_error"),
+		// The provider's own updatedAt, recorded on every write in either
+		// direction. An inbound event no newer than this is our own echo or a
+		// redelivery that arrived late, and is not applied.
+		externalUpdatedAt: timestamp("external_updated_at"),
 
 		// External project/cycle snapshot (from Linear)
 		externalProjectId: text("external_project_id"),
