@@ -134,7 +134,7 @@ const createInputSchema = z
 	})
 	.refine((value) => !(value.noWorktree && value.pr), {
 		message:
-			"`noWorktree` and `pr` cannot both be set — checking out a pull request needs its own worktree",
+			"`noWorktree` and `pr` cannot both be set. Checking out a pull request needs its own worktree",
 	})
 	.refine((value) => !(value.noWorktree && value.worktreePath), {
 		message: "`noWorktree` and `worktreePath` cannot both be set",
@@ -484,10 +484,33 @@ async function fetchLinkedTaskBranch(
 }
 
 /**
+ * Refuse to start an agent or a shell command in the project folder unless
+ * the caller asked to work there.
+ *
+ * A branch that the project folder itself has checked out resolves to that
+ * project's main workspace, whose directory is the folder the user edits
+ * in. Handing it back is fine on its own; launching work inside it when the
+ * caller expected a worktree of its own is not.
+ */
+function assertNotStartingWorkInProjectFolder(args: {
+	input: z.infer<typeof createInputSchema>;
+	existing: CloudWorkspace;
+	repoPath: string;
+}): void {
+	const { input, existing, repoPath } = args;
+	if (existing.type !== "main") return;
+	if (!input.agents?.length && !input.command) return;
+	throw new TRPCError({
+		code: "CONFLICT",
+		message: `Branch "${existing.branch}" is checked out in the project folder (${repoPath}), so this workspace is that folder. Set noWorktree to work there, or pick another branch.`,
+	});
+}
+
+/**
  * `noWorktree` create: the workspace is the project folder itself.
  *
  * Every project already has exactly one `type='main'` workspace whose path
- * is the project folder, so nothing is inserted — this returns that row.
+ * is the project folder, so nothing is inserted. This returns that row.
  * When the caller named a branch, the project folder is checked out to it
  * first, and the row follows the checkout.
  */
@@ -502,6 +525,9 @@ async function useProjectRepoAsWorkspace(args: {
 	const { ctx, input, git, localProject, repoPath, fetchBaseRef } = args;
 
 	const main = await ensureMainWorkspaceStrict(ctx, localProject.id, repoPath);
+	// Both worktree paths set this on every create. An agent that commits
+	// on a branch with no upstream needs it just as much here.
+	await enablePushAutoSetupRemote(git, repoPath, "[workspaces.create]");
 	const readRow = () => {
 		const row = getLocalWorkspace(ctx.db, main.id);
 		if (!row) {
@@ -528,7 +554,7 @@ async function useProjectRepoAsWorkspace(args: {
 		]);
 		let plan = planned;
 		// Namespace a branch this call would create, and leave one that
-		// already exists alone — same rule as the worktree path.
+		// already exists alone. Same rule as the worktree path.
 		if (!plan.usedExistingBranch && !(input.skipBranchPrefix || taskBranch)) {
 			const prefix = await resolveProjectBranchPrefix({
 				ctx,
@@ -549,16 +575,13 @@ async function useProjectRepoAsWorkspace(args: {
 
 		if (plan.branch !== readRow().branch) {
 			await checkoutBranchInProjectRepo({ git, repoPath, plan });
-			if (!plan.usedExistingBranch) {
-				await enablePushAutoSetupRemote(git, repoPath, "[workspaces.create]");
-				if (plan.startPoint.kind !== "head") {
-					await recordBaseBranchConfig({
-						git,
-						worktreePath: repoPath,
-						branch: plan.branch,
-						baseBranch: plan.startPoint.shortName,
-					});
-				}
+			if (!plan.usedExistingBranch && plan.startPoint.kind !== "head") {
+				await recordBaseBranchConfig({
+					git,
+					worktreePath: repoPath,
+					branch: plan.branch,
+					baseBranch: plan.startPoint.shortName,
+				});
 			}
 			// Reads HEAD again, so the row's branch (and its name, while the
 			// name is just the branch) follow the checkout.
@@ -704,14 +727,24 @@ export const workspacesRouter = router({
 			let workspaceRow: CloudWorkspace;
 
 			if (input.noWorktree) {
-				workspaceRow = await useProjectRepoAsWorkspace({
-					ctx,
-					input,
-					git,
-					localProject,
-					repoPath,
-					fetchBaseRef: fetchBaseRefOffLoop,
-				});
+				// One shared working tree, so two of these creates cannot run
+				// their checkouts at the same time. The worktree paths need no
+				// such lock: each one writes a directory only it owns.
+				const releaseCreateLock = await acquireWorkspaceCreateLock(
+					`repo:${input.projectId}`,
+				);
+				try {
+					workspaceRow = await useProjectRepoAsWorkspace({
+						ctx,
+						input,
+						git,
+						localProject,
+						repoPath,
+						fetchBaseRef: fetchBaseRefOffLoop,
+					});
+				} finally {
+					releaseCreateLock();
+				}
 				resolvedBranch = workspaceRow.branch;
 				worktreePath = repoPath;
 				// The project folder is not a folder this call created, and its
@@ -737,6 +770,11 @@ export const workspacesRouter = router({
 						resolvedBranch,
 					);
 					if (existing) {
+						assertNotStartingWorkInProjectFolder({
+							input,
+							existing,
+							repoPath,
+						});
 						workspaceRow = existing;
 						alreadyExists = true;
 					} else {
@@ -1050,6 +1088,11 @@ export const workspacesRouter = router({
 					resolvedBranch,
 				);
 				if (existing) {
+					assertNotStartingWorkInProjectFolder({
+						input,
+						existing,
+						repoPath,
+					});
 					workspaceRow = existing;
 					alreadyExists = true;
 				} else {

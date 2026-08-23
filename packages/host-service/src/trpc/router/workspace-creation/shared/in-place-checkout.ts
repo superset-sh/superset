@@ -11,8 +11,8 @@ import { normalizeWorktreePath } from "./worktree-list";
  *
  * A workspace normally gets its own directory from `git worktree add`, so a
  * checkout there cannot disturb anything. These helpers run against the
- * project's own clone, where the user may have edits open, so every one of
- * them refuses rather than moves files it did not create.
+ * project's own clone, where the user may have edits open, so they refuse
+ * rather than move a file the user did not ask them to move.
  */
 
 /** The branch name checked out in the repo, or null when HEAD is detached. */
@@ -25,11 +25,38 @@ async function readCheckedOutBranch(git: GitClient): Promise<string | null> {
 	}
 }
 
+/** The commit a ref points at, or null when the ref does not resolve. */
+async function readCommit(git: GitClient, ref: string): Promise<string | null> {
+	try {
+		const out = await git.raw(["rev-parse", "--verify", `${ref}^{commit}`]);
+		const trimmed = out.trim();
+		return /^[0-9a-f]{40,}/.test(trimmed) ? trimmed : null;
+	} catch {
+		return null;
+	}
+}
+
 /**
- * Refuse when the repo has edits to files git already tracks. Such edits
- * follow the checkout onto the other branch, which is a surprise nobody
- * asked for. Files git does not track stay put during a checkout, so they
- * do not block it — build output and local scratch files are normal.
+ * True when the checkout writes no file: a branch this call creates, whose
+ * start point is the commit the folder is already on. `git checkout -b` at
+ * the same commit only writes a new ref, and edits in progress stay exactly
+ * where they are, on the new branch.
+ */
+async function movesNoFiles(
+	git: GitClient,
+	plan: BranchSourcePlan,
+): Promise<boolean> {
+	if (plan.usedExistingBranch) return false;
+	if (plan.startPoint.kind === "head") return true;
+	const target = await readCommit(git, startPointArg(plan));
+	const head = await readCommit(git, "HEAD");
+	return target !== null && target === head;
+}
+
+/**
+ * Refuse when the repo has edits to files git already tracks. A checkout
+ * that changes which commit the folder holds carries those edits onto the
+ * other branch, which is a surprise nobody asked for.
  */
 async function assertNoUncommittedChanges(
 	git: GitClient,
@@ -92,7 +119,9 @@ export async function checkoutBranchInProjectRepo(args: {
 	const { git, repoPath, plan } = args;
 
 	await assertBranchNotCheckedOutElsewhere(git, repoPath, plan.branch);
-	await assertNoUncommittedChanges(git, repoPath, plan.branch);
+	if (!(await movesNoFiles(git, plan))) {
+		await assertNoUncommittedChanges(git, repoPath, plan.branch);
+	}
 
 	const checkoutArgs = plan.usedExistingBranch
 		? plan.startPoint.kind === "remote-tracking"
@@ -111,11 +140,24 @@ export async function checkoutBranchInProjectRepo(args: {
 			// first push sets one.
 			["checkout", "--no-track", "-b", plan.branch, startPointArg(plan)];
 
-	await runWithPostCheckoutHookTolerance({
-		run: async () => {
-			await git.raw(checkoutArgs);
-		},
-		didSucceed: async () => (await readCheckedOutBranch(git)) === plan.branch,
-		context: `${repoPath} checked out ${plan.branch}`,
-	});
+	try {
+		await runWithPostCheckoutHookTolerance({
+			run: async () => {
+				await git.raw(checkoutArgs);
+			},
+			didSucceed: async () => (await readCheckedOutBranch(git)) === plan.branch,
+			context: `${repoPath} checked out ${plan.branch}`,
+		});
+	} catch (err) {
+		// Git refuses a checkout that would write over a file it does not
+		// track, so a folder holding build output or a local scratch file
+		// can fail here even though the two guards above passed. The folder
+		// is left on the branch it started on either way.
+		throw new TRPCError({
+			code: "CONFLICT",
+			message: `Could not check out "${plan.branch}" in ${repoPath}: ${
+				err instanceof Error ? err.message : String(err)
+			}`,
+		});
+	}
 }

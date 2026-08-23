@@ -711,13 +711,16 @@ export function PromptGroup({
 						)}
 					</AnimatePresence>
 					{/* A pull request is checked out into a worktree of its own,
-					    so the folder is not a choice there. */}
-					{!draft.isSession && !linkedPR && (
-						<WorkspaceFolderPicker
-							noWorktree={draft.noWorktree}
-							onChange={(noWorktree) => updateDraft({ noWorktree })}
-						/>
-					)}
+					    and a cloud workspace runs on a machine that has no
+					    project folder, so neither offers the choice. */}
+					{!draft.isSession &&
+						!linkedPR &&
+						(draft.hostId ?? machineId) !== CLOUD_HOST_ID && (
+							<WorkspaceFolderPicker
+								noWorktree={draft.noWorktree}
+								onChange={(noWorktree) => updateDraft({ noWorktree })}
+							/>
+						)}
 				</div>
 				<div className="flex items-center gap-1.5">
 					{needsSetup ? (

@@ -33,7 +33,13 @@ export function register(server: McpServer): void {
 				.describe(
 					"Project UUID. Omit to create a project-less session (managed scratch folder).",
 				),
-			name: z.string().min(1).describe("Workspace name (display)."),
+			name: z
+				.string()
+				.min(1)
+				.optional()
+				.describe(
+					"Workspace name (display). Optional: the host names the workspace after its branch when this is omitted, and `noWorktree` ignores it entirely.",
+				),
 			branch: z
 				.string()
 				.min(1)
@@ -83,6 +89,11 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
+			if (input.noWorktree && input.pr !== undefined) {
+				throw new Error(
+					"`noWorktree` and `pr` cannot both be set. Checking out a pull request needs its own worktree",
+				);
+			}
 			if (input.projectId === undefined) {
 				for (const [field, value] of [
 					["branch", input.branch],

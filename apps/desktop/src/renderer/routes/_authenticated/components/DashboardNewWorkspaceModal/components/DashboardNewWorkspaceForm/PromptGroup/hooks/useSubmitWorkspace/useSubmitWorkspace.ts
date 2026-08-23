@@ -199,7 +199,9 @@ export function useSubmitWorkspace(
 					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
 					baseBranch: draft.baseBranch ?? undefined,
 					taskId: linkedTaskId,
-					noWorktree: draft.noWorktree || undefined,
+					// A pull request is checked out into a worktree of its own,
+					// and the server rejects the two together.
+					noWorktree: !isPrCheckout && draft.noWorktree ? true : undefined,
 					agents,
 					namingPrompt:
 						!isPrCheckout && !wantAgent && trimmedPrompt
