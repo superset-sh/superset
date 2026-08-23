@@ -551,7 +551,15 @@ async function drainReviewThreads(
 	const nodes: (ReviewThreadNode | null)[] = [];
 	let page = pageInfo ?? null;
 	let pages = 0;
-	while (page?.hasNextPage && page.endCursor) {
+	while (page?.hasNextPage) {
+		// hasNextPage with no cursor would end the loop on a partial set —
+		// the silent truncation this drain exists to remove.
+		if (!page.endCursor) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `GitHub reported more review threads but no cursor for pull request #${input.pullNumber}.`,
+			});
+		}
 		if (++pages > MAX_DRAIN_PAGES) {
 			throw new TRPCError({
 				code: "CONFLICT",
@@ -591,7 +599,13 @@ async function drainCheckContexts(
 	const nodes: (CheckContextNode | null)[] = [];
 	let page = pageInfo ?? null;
 	let pages = 0;
-	while (page?.hasNextPage && page.endCursor) {
+	while (page?.hasNextPage) {
+		if (!page.endCursor) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `GitHub reported more checks but no cursor for pull request #${input.pullNumber}.`,
+			});
+		}
 		if (++pages > MAX_DRAIN_PAGES) {
 			throw new TRPCError({
 				code: "CONFLICT",
