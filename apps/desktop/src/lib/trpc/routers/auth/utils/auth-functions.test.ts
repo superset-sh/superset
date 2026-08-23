@@ -275,14 +275,25 @@ describe("auth token storage", () => {
 			return realSetTimeout(() => undefined, 0);
 		}) as typeof globalThis.setTimeout;
 		let recordedLosses = 0;
+		let recordLoss: () => void = () => undefined;
+		const lossRecorded = new Promise<void>((resolve) => {
+			recordLoss = resolve;
+		});
 		const warnSpy = spyOn(console, "warn").mockImplementation(() => {
 			recordedLosses += 1;
+			recordLoss();
 		});
 
 		try {
 			// Rethrowing from the refresh would fail this test outright, and a
 			// release that overrode the operation's result would reject here.
 			await saveToken({ token: "token", expiresAt: "2099-01-01" });
+			// The library reports the loss from its own stat callback, which can
+			// land after the write resolves. Wait for it rather than racing it:
+			// a count read straight after the write would pass or fail on
+			// scheduling. If the loss is never reported this hangs to the test
+			// timeout, which is the failure we want.
+			await lossRecorded;
 		} finally {
 			globalThis.setTimeout = realSetTimeout;
 			warnSpy.mockRestore();
