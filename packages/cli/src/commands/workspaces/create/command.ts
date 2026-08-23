@@ -23,6 +23,9 @@ export default command({
 		skipBranchPrefix: boolean().desc(
 			"Use --branch exactly as given instead of namespacing it under the project branch prefix",
 		),
+		noWorktree: boolean().desc(
+			"Work in the project folder itself instead of adding a git worktree. Without --branch the folder keeps the branch it is on; with --branch it is checked out to that branch, which fails when the folder has uncommitted changes. That workspace is named after the branch, so --name is ignored",
+		),
 		agent: string().desc(
 			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset`",
 		),
@@ -56,6 +59,7 @@ export default command({
 				["--base-branch", options.baseBranch],
 				["--task", options.task],
 				["--skip-branch-prefix", options.skipBranchPrefix || undefined],
+				["--no-worktree", options.noWorktree || undefined],
 			] as const) {
 				if (value !== undefined) {
 					throw new CLIError(
@@ -71,10 +75,23 @@ export default command({
 					"Use --branch <name> or --pr <number>",
 				);
 			}
-			if (!options.branch && !options.pr && !options.task) {
+			if (options.noWorktree && options.pr) {
+				throw new CLIError(
+					"Specify only one of --no-worktree or --pr",
+					"Checking out a pull request needs its own worktree",
+				);
+			}
+			// --no-worktree keeps the branch the project folder is already
+			// on, so it is the one case that needs no branch at all.
+			if (
+				!options.noWorktree &&
+				!options.branch &&
+				!options.pr &&
+				!options.task
+			) {
 				throw new CLIError(
 					"Specify --branch, --pr, or --task",
-					"Use --branch <name>, --pr <number>, or --task <id>",
+					"Use --branch <name>, --pr <number>, --task <id>, or --no-worktree",
 				);
 			}
 		}
@@ -116,7 +133,7 @@ export default command({
 			api: ctx.api,
 		});
 
-		if (!isSession && !options.name) {
+		if (!isSession && !options.name && !options.noWorktree) {
 			throw new CLIError("--name is required when --project is set");
 		}
 
@@ -148,9 +165,6 @@ export default command({
 			};
 		}
 
-		if (!options.name) {
-			throw new CLIError("--name is required when --project is set");
-		}
 		const result = await target.client.workspaces.create.mutate({
 			projectId,
 			name: options.name,
@@ -159,6 +173,7 @@ export default command({
 			taskId: options.task,
 			baseBranch: options.baseBranch,
 			skipBranchPrefix: options.skipBranchPrefix ?? undefined,
+			noWorktree: options.noWorktree ?? undefined,
 			agents,
 			command: options.command ?? undefined,
 		});

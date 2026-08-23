@@ -18,6 +18,7 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
+	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import {
 	createCallerFactory,
@@ -26,7 +27,10 @@ import {
 	router,
 } from "../../index";
 import { buildTerminalAgentLaunch, validateAgentLaunchEffort } from "../agents";
-import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
+import {
+	ensureMainWorkspace,
+	ensureMainWorkspaceStrict,
+} from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
@@ -42,7 +46,9 @@ import {
 	dispatchSugarAgents,
 } from "../workspace-creation/shared/dispatch-agents";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
+import { checkoutBranchInProjectRepo } from "../workspace-creation/shared/in-place-checkout";
 import {
+	type LocalProject,
 	requireLocalProject,
 	requireProjectRepoPath,
 } from "../workspace-creation/shared/local-project";
@@ -113,12 +119,25 @@ const createInputSchema = z
 		// When false, skip the setup terminal. Used by worktree import,
 		// where the worktree is usually already set up.
 		runSetup: z.boolean().optional(),
+		// Work in the folder the project itself lives in, with no
+		// `git worktree add`. The call resolves to the project's one
+		// `type='main'` workspace. Without `branch` the repo keeps the
+		// branch it already has; with one, the repo is checked out to that
+		// branch, which fails when it has uncommitted changes.
+		noWorktree: z.boolean().optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
 	})
 	.refine((value) => !(value.worktreePath && value.pr), {
 		message: "`worktreePath` and `pr` cannot both be set",
+	})
+	.refine((value) => !(value.noWorktree && value.pr), {
+		message:
+			"`noWorktree` and `pr` cannot both be set — checking out a pull request needs its own worktree",
+	})
+	.refine((value) => !(value.noWorktree && value.worktreePath), {
+		message: "`noWorktree` and `worktreePath` cannot both be set",
 	});
 
 const workspaceCreateLocks = new Map<string, Promise<void>>();
@@ -465,6 +484,97 @@ async function fetchLinkedTaskBranch(
 }
 
 /**
+ * `noWorktree` create: the workspace is the project folder itself.
+ *
+ * Every project already has exactly one `type='main'` workspace whose path
+ * is the project folder, so nothing is inserted — this returns that row.
+ * When the caller named a branch, the project folder is checked out to it
+ * first, and the row follows the checkout.
+ */
+async function useProjectRepoAsWorkspace(args: {
+	ctx: HostServiceContext;
+	input: z.infer<typeof createInputSchema>;
+	git: GitClient;
+	localProject: LocalProject;
+	repoPath: string;
+	fetchBaseRef: BaseRefFetcher;
+}): Promise<CloudWorkspace> {
+	const { ctx, input, git, localProject, repoPath, fetchBaseRef } = args;
+
+	const main = await ensureMainWorkspaceStrict(ctx, localProject.id, repoPath);
+	const readRow = () => {
+		const row = getLocalWorkspace(ctx.db, main.id);
+		if (!row) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Workspace ${main.id} disappeared during creation`,
+			});
+		}
+		return row;
+	};
+
+	// A linked task can name the branch when the caller didn't, exactly as
+	// on the worktree path.
+	const taskBranch =
+		!input.branch && input.taskId
+			? await fetchLinkedTaskBranch(ctx, input.taskId)
+			: undefined;
+	const requestedBranch = input.branch?.trim() || taskBranch;
+
+	if (requestedBranch) {
+		const [planned, existingBranches] = await Promise.all([
+			planBranchSource(git, requestedBranch, input.baseBranch, fetchBaseRef),
+			listBranchNames(ctx, repoPath),
+		]);
+		let plan = planned;
+		// Namespace a branch this call would create, and leave one that
+		// already exists alone — same rule as the worktree path.
+		if (!plan.usedExistingBranch && !(input.skipBranchPrefix || taskBranch)) {
+			const prefix = await resolveProjectBranchPrefix({
+				ctx,
+				project: localProject,
+				git,
+				existingBranches,
+			});
+			if (prefix) {
+				plan = {
+					...plan,
+					branch: deduplicateBranchName(
+						`${prefix}/${plan.branch}`,
+						existingBranches,
+					),
+				};
+			}
+		}
+
+		if (plan.branch !== readRow().branch) {
+			await checkoutBranchInProjectRepo({ git, repoPath, plan });
+			if (!plan.usedExistingBranch) {
+				await enablePushAutoSetupRemote(git, repoPath, "[workspaces.create]");
+				if (plan.startPoint.kind !== "head") {
+					await recordBaseBranchConfig({
+						git,
+						worktreePath: repoPath,
+						branch: plan.branch,
+						baseBranch: plan.startPoint.shortName,
+					});
+				}
+			}
+			// Reads HEAD again, so the row's branch (and its name, while the
+			// name is just the branch) follow the checkout.
+			await ensureMainWorkspaceStrict(ctx, localProject.id, repoPath);
+		}
+	}
+
+	// The main workspace outlives any one task, so the newest link wins.
+	if (input.taskId && readRow().taskId !== input.taskId) {
+		updateLocalWorkspace(ctx, main.id, { taskId: input.taskId });
+	}
+
+	return toCloudShape(readRow(), ctx.organizationId);
+}
+
+/**
  * Fully local registration: the host mints the id and commits the local
  * row — the authoritative and only record; workspaces have no cloud mirror.
  */
@@ -539,9 +649,13 @@ export const workspacesRouter = router({
 			// their names are already meaningful.
 			const composerPrompt =
 				input.agents?.[0]?.prompt?.trim() || input.namingPrompt?.trim() || "";
+			// The `main` workspace is named after the branch the project
+			// folder is on, and renaming it would fight that, so noWorktree
+			// skips naming too.
 			const wantAi =
 				input.pr === undefined &&
 				input.worktreePath === undefined &&
+				input.noWorktree !== true &&
 				input.name === undefined &&
 				!!composerPrompt;
 			const namingAgent = input.agents?.[0]?.agent;
@@ -589,7 +703,23 @@ export const workspacesRouter = router({
 			let alreadyExists = false;
 			let workspaceRow: CloudWorkspace;
 
-			if (input.pr !== undefined) {
+			if (input.noWorktree) {
+				workspaceRow = await useProjectRepoAsWorkspace({
+					ctx,
+					input,
+					git,
+					localProject,
+					repoPath,
+					fetchBaseRef: fetchBaseRefOffLoop,
+				});
+				resolvedBranch = workspaceRow.branch;
+				worktreePath = repoPath;
+				// The project folder is not a folder this call created, and its
+				// `main` workspace already existed. Setup scripts belong to a
+				// fresh worktree, so they stay out of it; the agents and the
+				// command below still run.
+				alreadyExists = true;
+			} else if (input.pr !== undefined) {
 				const releaseCreateLock = await acquireWorkspaceCreateLock(
 					`pr:${input.projectId}:${input.pr}`,
 				);

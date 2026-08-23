@@ -49,6 +49,12 @@ export interface NewWorkspaceDraft {
 	branchNameFromProvider: boolean;
 	linkedIssues: LinkedIssue[];
 	linkedPR: LinkedPR | null;
+	/**
+	 * True to work in the project's own folder instead of adding a git
+	 * worktree for this workspace. The create then resolves to the
+	 * project's one main workspace.
+	 */
+	noWorktree: boolean;
 	selectedAgentId: string | null;
 	attachments: DraftAttachment[];
 }
@@ -79,6 +85,7 @@ function buildInitialDraft(): NewWorkspaceDraft {
 		branchNameFromProvider: false,
 		linkedIssues: [],
 		linkedPR: null,
+		noWorktree: false,
 		selectedAgentId: null,
 		attachments: [],
 	};
@@ -95,7 +102,8 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 		selectProject: (projectId) =>
 			set({ selectedProjectId: projectId, isSession: false }),
 		// Sessions can't check out a PR or fork a branch — clear the
-		// repo-scoped inputs instead of failing at submit.
+		// repo-scoped inputs instead of failing at submit. A session has no
+		// project folder to work in either, so it drops noWorktree too.
 		selectSession: () =>
 			set({
 				selectedProjectId: null,
@@ -103,6 +111,7 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 				linkedPR: null,
 				baseBranch: null,
 				baseBranchSource: null,
+				noWorktree: false,
 			}),
 		addAttachment: (attachment) =>
 			set((state) => ({

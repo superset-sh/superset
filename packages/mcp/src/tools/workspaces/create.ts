@@ -24,7 +24,7 @@ export function register(server: McpServer): void {
 		name: "workspaces_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. When `projectId` is set, provide exactly one of `branch` or `pr`. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. When `projectId` is set, provide exactly one of `branch` or `pr`, or set `noWorktree` to work in the project folder itself. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
 			projectId: z
 				.string()
@@ -75,6 +75,12 @@ export function register(server: McpServer): void {
 				.min(1)
 				.optional()
 				.describe("Shell command to run in the new worktree after creation."),
+			noWorktree: z
+				.boolean()
+				.optional()
+				.describe(
+					"Work in the project folder itself instead of adding a git worktree, which resolves to the project's one main workspace. Without `branch` that folder keeps the branch it is on; with `branch` it is checked out to that branch, which fails when the folder has uncommitted changes. That workspace is named after the branch, so `name` is ignored. Cannot be combined with `pr`.",
+				),
 		},
 		handler: async (input, ctx) => {
 			if (input.projectId === undefined) {
@@ -83,6 +89,7 @@ export function register(server: McpServer): void {
 					["pr", input.pr],
 					["baseBranch", input.baseBranch],
 					["taskId", input.taskId],
+					["noWorktree", input.noWorktree || undefined],
 				] as const) {
 					if (value !== undefined) {
 						throw new Error(
@@ -149,6 +156,7 @@ export function register(server: McpServer): void {
 					taskId: input.taskId,
 					agents: input.agents,
 					command: input.command,
+					noWorktree: input.noWorktree,
 				},
 			);
 		},

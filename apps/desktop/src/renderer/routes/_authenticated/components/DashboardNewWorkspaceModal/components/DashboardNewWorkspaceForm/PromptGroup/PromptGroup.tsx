@@ -56,6 +56,7 @@ import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { PromptHistoryCommand } from "./components/PromptHistoryCommand";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
+import { WorkspaceFolderPicker } from "./components/WorkspaceFolderPicker";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
@@ -709,6 +710,14 @@ export function PromptGroup({
 							</motion.div>
 						)}
 					</AnimatePresence>
+					{/* A pull request is checked out into a worktree of its own,
+					    so the folder is not a choice there. */}
+					{!draft.isSession && !linkedPR && (
+						<WorkspaceFolderPicker
+							noWorktree={draft.noWorktree}
+							onChange={(noWorktree) => updateDraft({ noWorktree })}
+						/>
+					)}
 				</div>
 				<div className="flex items-center gap-1.5">
 					{needsSetup ? (

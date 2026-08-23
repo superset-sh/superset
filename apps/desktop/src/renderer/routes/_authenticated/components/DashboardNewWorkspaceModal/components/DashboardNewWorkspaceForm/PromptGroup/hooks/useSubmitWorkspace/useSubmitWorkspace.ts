@@ -183,7 +183,14 @@ export function useSubmitWorkspace(
 			: {
 					id: workspaceId,
 					projectId: projectId as string,
-					name: isPrCheckout ? prName : (workspaceName ?? undefined),
+					// A workspace in the project folder is that project's one
+					// main workspace, which is named after the branch the
+					// folder is on, so a typed name has nowhere to go.
+					name: isPrCheckout
+						? prName
+						: draft.noWorktree
+							? undefined
+							: (workspaceName ?? undefined),
 					branch: isPrCheckout ? undefined : (branchName ?? undefined),
 					skipBranchPrefix:
 						!isPrCheckout && branchName !== null && draft.branchNameFromProvider
@@ -192,6 +199,7 @@ export function useSubmitWorkspace(
 					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
 					baseBranch: draft.baseBranch ?? undefined,
 					taskId: linkedTaskId,
+					noWorktree: draft.noWorktree || undefined,
 					agents,
 					namingPrompt:
 						!isPrCheckout && !wantAgent && trimmedPrompt
