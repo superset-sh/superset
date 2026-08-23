@@ -4,6 +4,7 @@ import { forwardRef, type Ref, useImperativeHandle, useRef } from "react";
 /** The imperative surface the native view exposes through its ref. */
 interface NativeComposerRef {
 	clear: () => void;
+	restoreDraft: (text: string) => void;
 	appendDraft: (text: string) => void;
 	focus: () => void;
 	blur: () => void;
@@ -28,6 +29,7 @@ interface NativeComposerViewProps {
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
 	onHeightChange?: (event: { nativeEvent: { height: number } }) => void;
 	onPaste?: (event: { nativeEvent: { items: ComposerPastedItem[] } }) => void;
+	onChangeText?: (event: { nativeEvent: { text: string } }) => void;
 	onRemoveAttachment?: (event: { nativeEvent: { id: string } }) => void;
 	onAttachmentPress?: (event: { nativeEvent: { id: string } }) => void;
 	onExpandedChange?: (event: { nativeEvent: { expanded: boolean } }) => void;
@@ -114,6 +116,12 @@ export interface ComposerHandle {
 	/** Empties the draft. */
 	clear: () => void;
 	/**
+	 * Puts a saved draft back when the composer mounts — unanimated, since it is
+	 * appearing rather than growing, and it fires no `onChangeText`, since the
+	 * text came from the caller in the first place.
+	 */
+	restoreDraft: (text: string) => void;
+	/**
 	 * Appends to the draft, for dictation. The composer owns the base text and
 	 * does the join, so callers never have to read it back.
 	 */
@@ -188,6 +196,13 @@ export interface ComposerProps {
 	 * tray is the caller's.
 	 */
 	onPaste?: (items: ComposerPastedItem[]) => void;
+	/**
+	 * Every keystroke, so a caller can keep a shadow copy of the draft and put
+	 * it back later. Outward only, like `onHeightChange`: the composer owns its
+	 * text while it is live and takes nothing back mid-edit, which is why there
+	 * is no `value` prop. Restore through the ref at mount instead.
+	 */
+	onChangeText?: (text: string) => void;
 	onRemoveAttachment?: (id: string) => void;
 	/**
 	 * Fires only for non-image attachments. Images open in the composer's own
@@ -234,6 +249,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onQuickKeyPress,
 			onHeightChange,
 			onPaste,
+			onChangeText,
 			onRemoveAttachment,
 			onAttachmentPress,
 			onExpandedChange,
@@ -244,6 +260,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 
 		useImperativeHandle(ref, () => ({
 			clear: () => nativeRef.current?.clear(),
+			restoreDraft: (text: string) => nativeRef.current?.restoreDraft(text),
 			appendDraft: (text: string) => nativeRef.current?.appendDraft(text),
 			focus: () => nativeRef.current?.focus(),
 			blur: () => nativeRef.current?.blur(),
@@ -271,6 +288,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
 				onHeightChange={(event) => onHeightChange?.(event.nativeEvent.height)}
 				onPaste={(event) => onPaste?.(event.nativeEvent.items)}
+				onChangeText={(event) => onChangeText?.(event.nativeEvent.text)}
 				onRemoveAttachment={(event) =>
 					onRemoveAttachment?.(event.nativeEvent.id)
 				}

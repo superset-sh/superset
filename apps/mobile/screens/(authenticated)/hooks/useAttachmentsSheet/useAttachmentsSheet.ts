@@ -6,19 +6,20 @@ import * as ImagePicker from "expo-image-picker";
 import { useCallback } from "react";
 import { Alert } from "react-native";
 import { useUniwind } from "uniwind";
-import {
-	imageAssetToAttachment,
-	usePromptInputAttachments,
-} from "@/components/ai-elements/prompt-input";
+import { imageAssetToAttachment } from "@/components/ai-elements/prompt-input";
 import { THEME } from "@/lib/theme";
+import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 
 /**
  * Opens the native attachments sheet. Row actions arrive after the sheet's
  * dismissal completes natively, so presenting a second picker never races the
  * sheet's teardown.
+ *
+ * Takes the surface's draft key: whatever the sheet adds belongs to the
+ * composer that opened it.
  */
-export function useAttachmentsSheet() {
-	const attachments = usePromptInputAttachments();
+export function useAttachmentsSheet(draftKey: string) {
+	const attachments = useComposerDraft(draftKey);
 	const { theme } = useUniwind();
 
 	return useCallback(

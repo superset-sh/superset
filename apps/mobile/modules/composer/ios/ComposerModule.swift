@@ -15,6 +15,7 @@ public final class ComposerModule: Module {
         "onChipPress",
         "onQuickKeyPress",
         "onPaste",
+        "onChangeText",
         "onHeightChange",
         "onRemoveAttachment",
         "onAttachmentPress",
@@ -84,12 +85,18 @@ public final class ComposerModule: Module {
       /// React Native clears the draft once its own delivery succeeded, so a
       /// failed send keeps what the user typed.
       AsyncFunction("clear") { (view: ComposerAnchorView) in
-        view.overlay.model.setDraft("")
+        view.overlay.model.clearDraft()
       }.runOnQueue(.main)
 
       /// Re-open after something else took first responder — an attachments
       /// sheet, a picker — so the keyboard and the draft come back together.
       /// Dictation's transcript. Appends to whatever is already typed.
+      /// Restores a draft React Native saved when this surface was last open.
+      /// Separate from `appendDraft`, which joins with a space for dictation.
+      AsyncFunction("restoreDraft") { (view: ComposerAnchorView, text: String) in
+        view.overlay.model.restoreDraft(text)
+      }
+
       AsyncFunction("appendDraft") { (view: ComposerAnchorView, text: String) in
         view.overlay.model.appendDraft(text)
       }.runOnQueue(.main)
@@ -122,6 +129,7 @@ final class ComposerAnchorView: ExpoView {
   private let onChipPress = EventDispatcher()
   private let onQuickKeyPress = EventDispatcher()
   private let onPaste = EventDispatcher()
+  private let onChangeText = EventDispatcher()
   private let onHeightChange = EventDispatcher()
   private let onRemoveAttachment = EventDispatcher()
   private let onAttachmentPress = EventDispatcher()
@@ -145,6 +153,9 @@ final class ComposerAnchorView: ExpoView {
           ["uri": item.uri, "name": item.name, "kind": item.isImage ? "image" : "file"]
         }
       ])
+    }
+    overlay.model.onChangeText = { [weak self] text in
+      self?.onChangeText(["text": text])
     }
     overlay.model.onHeightChange = { [weak self] height in
       self?.onHeightChange(["height": height])

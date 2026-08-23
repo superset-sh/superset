@@ -3,12 +3,19 @@ import {
 	type ComposerHandle,
 	type ComposerQuickKey,
 } from "@superset/composer";
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import {
+	forwardRef,
+	useEffect,
+	useImperativeHandle,
+	useRef,
+	useState,
+} from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { usePromptInputAttachments } from "@/components/ai-elements/prompt-input";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
+import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import { QUICK_KEYS, type TerminalQuickKey } from "./constants";
 import {
 	type TerminalAttachmentTarget,
@@ -19,6 +26,13 @@ import {
 const COPY_SELECTION_KEY = "copy-selection";
 
 interface TerminalComposerProps {
+	/**
+	 * Scopes the draft. One draft per workspace rather than per terminal: an
+	 * agent per workspace is the common shape, and starting to type before
+	 * noticing you are on the wrong terminal is far more common than wanting the
+	 * two sessions to hold different drafts.
+	 */
+	workspaceId: string;
 	placeholder?: string;
 	/** Submit the current draft to the PTY. Rejects if it never got there. */
 	onSubmit: (text: string) => Promise<void>;
@@ -57,6 +71,7 @@ export const TerminalComposer = forwardRef<
 	TerminalComposerProps
 >(function TerminalComposer(
 	{
+		workspaceId,
 		placeholder = "Type a message...",
 		onSubmit,
 		onQuickKey,
@@ -78,12 +93,22 @@ export const TerminalComposer = forwardRef<
 		focus: () => composerRef.current?.focus(),
 		blur: () => composerRef.current?.blur(),
 		clear: () => composerRef.current?.clear(),
+		restoreDraft: (text: string) => composerRef.current?.restoreDraft(text),
 		appendDraft: (text: string) => composerRef.current?.appendDraft(text),
 	}));
 
-	const attachments = usePromptInputAttachments();
-	const openAttachmentsSheet = useAttachmentsSheet();
-	const addPasted = usePasteAttachments();
+	const draftKey = workspaceDraftKey(workspaceId);
+	const draft = useComposerDraft(draftKey);
+	const openAttachmentsSheet = useAttachmentsSheet(draftKey);
+	const addPasted = usePasteAttachments(draftKey);
+
+	// Put back what was typed here last time. Mount only — past this point the
+	// composer owns its text and only reports it outward.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: restore is a mount-time handoff, not a sync
+	useEffect(() => {
+		const saved = draft.readText();
+		if (saved) composerRef.current?.restoreDraft(saved);
+	}, []);
 	const wasExpanded = useRef(false);
 	const writeAttachments = useWriteTerminalAttachments();
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -124,7 +149,7 @@ export const TerminalComposer = forwardRef<
 			// Draft and tray together — `clear()` only reaches the composer's own
 			// text, and leaving the tray behind resends the attachments next time.
 			composerRef.current?.clear();
-			attachments.clear();
+			draft.clear();
 		} catch (cause) {
 			Alert.alert(
 				"Could not send",
@@ -147,16 +172,25 @@ export const TerminalComposer = forwardRef<
 				showAttachments={allowAttachments}
 				quickKeys={quickKeys}
 				isSending={writeAttachments.isPending || isSubmitting}
-				attachments={attachments.attachments.map((item) => ({
-					id: item.id,
-					uri: item.uri ?? "",
-					kind: item.type === "image" ? ("image" as const) : ("file" as const),
-					name: item.name,
-				}))}
-				onSubmit={(text) =>
-					submit({ text, attachments: attachments.attachments })
+				// Hidden in a plain shell rather than shown and silently dropped: the
+				// draft is the workspace's, so a tray filled in an agent session is
+				// still there after switching, and submit will not send it.
+				attachments={
+					allowAttachments
+						? draft.attachments.map((item) => ({
+								id: item.id,
+								uri: item.uri ?? "",
+								kind:
+									item.type === "image"
+										? ("image" as const)
+										: ("file" as const),
+								name: item.name,
+							}))
+						: []
 				}
-				onRemoveAttachment={(id) => attachments.remove(id)}
+				onSubmit={(text) => submit({ text, attachments: draft.attachments })}
+				onChangeText={draft.setText}
+				onRemoveAttachment={(id) => draft.remove(id)}
 				onHeightChange={onHeightChange}
 				onExpandedChange={(expanded) => {
 					wasExpanded.current = expanded;

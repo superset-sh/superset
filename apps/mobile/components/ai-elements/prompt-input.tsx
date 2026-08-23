@@ -81,7 +81,7 @@ export interface PromptInputControllerProps {
 
 let attachmentIdCounter = 0;
 
-const createAttachmentId = () => {
+export const createAttachmentId = () => {
 	attachmentIdCounter += 1;
 	return `attachment-${Date.now()}-${attachmentIdCounter}`;
 };
@@ -129,7 +129,7 @@ const EXIF_IMAGE_TYPES = new Set([
 
 // The document picker always hands back original bytes — EXIF GPS included.
 // PNG stays PNG for transparency.
-const documentAssetToAttachment = async (
+export const documentAssetToAttachment = async (
 	asset: DocumentPicker.DocumentPickerAsset,
 ): Promise<PromptInputAttachmentInput> => {
 	if (asset.mimeType && EXIF_IMAGE_TYPES.has(asset.mimeType)) {

@@ -613,6 +613,7 @@ export function WorkspaceScreen() {
 					) : null}
 					{showComposer ? (
 						<TerminalComposer
+							workspaceId={id}
 							allowAttachments={activeRow?.agentId != null}
 							attachmentTarget={attachmentTarget}
 							onActiveChange={setComposerActive}

@@ -102,6 +102,14 @@ final class ComposerModel {
   /// re-focusing unconditionally after a sheet pops the keyboard back up over a
   /// composer the user had left collapsed.
   @ObservationIgnored var onExpandedChange: ((Bool) -> Void)?
+  /// Reports every draft change out so React Native can keep a shadow copy for
+  /// draft restore. Outward only, the way `onHeightChange` is: the composer
+  /// stays the source of truth while the field is live, and nothing React
+  /// Native holds is pushed back in mid-edit. A controlled `value` prop is the
+  /// one shape that would break growth — the resize would land outside the
+  /// transaction that revealed send.
+  @ObservationIgnored var onChangeText: ((String) -> Void)?
+
   /// Internal plumbing, not a React Native event — see `ComposerPassthroughView`.
   @ObservationIgnored var onInteractiveFrameChange: ((CGRect) -> Void)?
 
@@ -130,6 +138,21 @@ final class ComposerModel {
   /// in one transaction the mic travels along an arc.
   func setDraft(_ text: String) {
     withAnimation(ComposerMetrics.typingGrowth) { draft = text }
+    onChangeText?(text)
+  }
+
+  /// Empties the draft. Animated, so the card shrinks back, but reports
+  /// nothing out: React Native calls this while clearing its own copy, so an
+  /// echo would be a bridge round trip to tell the caller what it just did.
+  func clearDraft() {
+    withAnimation(ComposerMetrics.typingGrowth) { draft = "" }
+  }
+
+  /// Puts a saved draft back when the composer mounts: unanimated, because it
+  /// is appearing rather than growing, and unreported, because React Native is
+  /// where this text just came from.
+  func restoreDraft(_ text: String) {
+    draft = text
   }
 
   func appendDraft(_ text: String) {

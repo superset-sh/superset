@@ -4,17 +4,16 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Alert } from "react-native";
-import {
-	type PromptInputMessage,
-	usePromptInputAttachments,
-} from "@/components/ai-elements/prompt-input";
+import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
+import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import {
 	type ChatTarget,
 	useChatTargetStore,
@@ -44,9 +43,18 @@ export function NewChatWidget({
 	// Whether the composer was open when a sheet took first responder, so it is
 	// restored only when it actually was.
 	const wasExpanded = useRef(false);
-	const attachments = usePromptInputAttachments();
-	const openAttachmentsSheet = useAttachmentsSheet();
-	const addPasted = usePasteAttachments();
+	const draft = useComposerDraft(HOME_DRAFT_KEY);
+	const openAttachmentsSheet = useAttachmentsSheet(HOME_DRAFT_KEY);
+	const addPasted = usePasteAttachments(HOME_DRAFT_KEY);
+
+	// Put back whatever was typed here last time. Mount only: after this the
+	// composer owns its text and only reports it outward, so re-running would
+	// overwrite live typing with a stale copy of itself.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: restore is a mount-time handoff, not a sync
+	useEffect(() => {
+		const saved = draft.readText();
+		if (saved) composerRef.current?.restoreDraft(saved);
+	}, []);
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -135,7 +143,7 @@ export function NewChatWidget({
 	// splitting them silently left attachments behind after every send.
 	const clearComposer = () => {
 		composerRef.current?.clear();
-		attachments.clear();
+		draft.clear();
 	};
 
 	const dismiss = () => {
@@ -240,7 +248,7 @@ export function NewChatWidget({
 			placeholder={placeholder ?? "Plan, ask, build..."}
 			isSending={isSending}
 			onDictationError={(message: string) => Alert.alert(message)}
-			attachments={attachments.attachments.map((item) => ({
+			attachments={draft.attachments.map((item) => ({
 				id: item.id,
 				uri: item.uri ?? "",
 				kind: item.type === "image" ? ("image" as const) : ("file" as const),
@@ -248,10 +256,9 @@ export function NewChatWidget({
 			}))}
 			headerChips={headerChips}
 			selectedModel={selectedModel}
-			onSubmit={(text) =>
-				submit({ text, attachments: attachments.attachments })
-			}
-			onRemoveAttachment={(id) => attachments.remove(id)}
+			onSubmit={(text) => submit({ text, attachments: draft.attachments })}
+			onChangeText={draft.setText}
+			onRemoveAttachment={(id) => draft.remove(id)}
 			onExpandedChange={(expanded) => {
 				wasExpanded.current = expanded;
 			}}
