@@ -556,7 +556,13 @@ async function drainReviewThreads(
 			cursor: page.endCursor,
 		});
 		const connection = data.repository?.pullRequest?.reviewThreads;
-		if (!connection) break;
+		// A missing page mid-drain would silently re-create the truncation this
+		// drain exists to remove — fail the query instead of grading on less.
+		if (!connection) {
+			throw new Error(
+				`GitHub returned no reviewThreads page for pull request #${input.pullNumber} while paginating.`,
+			);
+		}
 		nodes.push(...connection.nodes);
 		page = connection.pageInfo;
 	}
@@ -587,7 +593,11 @@ async function drainCheckContexts(
 		});
 		const connection =
 			data.repository?.pullRequest?.statusCheckRollup?.contexts;
-		if (!connection) break;
+		if (!connection) {
+			throw new Error(
+				`GitHub returned no check contexts page for pull request #${input.pullNumber} while paginating.`,
+			);
+		}
 		nodes.push(...connection.nodes);
 		page = connection.pageInfo;
 	}
