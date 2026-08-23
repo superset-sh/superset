@@ -40,7 +40,10 @@ struct ComposerPastedItem {
         let name = url.lastPathComponent
         let destination = FileManager.default.temporaryDirectory
           .appendingPathComponent("\(UUID().uuidString.prefix(8))-\(name)")
-        try? FileManager.default.copyItem(at: url, to: destination)
+        // A failed copy would otherwise hand back an item pointing at a file
+        // that was never written, and the tray would only find out at upload.
+        guard (try? FileManager.default.copyItem(at: url, to: destination)) != nil
+        else { return continuation.resume(returning: nil) }
         let isImage = UTType(filenameExtension: url.pathExtension)?
           .conforms(to: .image) ?? false
         continuation.resume(

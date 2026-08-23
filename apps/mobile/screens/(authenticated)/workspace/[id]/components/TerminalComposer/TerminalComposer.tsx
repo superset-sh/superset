@@ -135,10 +135,14 @@ export const TerminalComposer = forwardRef<
 		setIsSubmitting(true);
 		try {
 			await onSubmit(body);
-			// Draft and tray together — `clear()` only reaches the composer's own
-			// text, and leaving the tray behind resends the attachments next time.
+			// Clear what actually went out, and only that. The text always did.
+			// The tray only did if this session could carry it — a plain shell
+			// submits without attachments, and the draft belongs to the workspace
+			// rather than to one terminal, so clearing here would delete an image
+			// attached in an agent session that this send never sent.
 			composerRef.current?.clear();
-			draft.clear();
+			if (allowAttachments) draft.clear();
+			else draft.setText("");
 		} catch (cause) {
 			Alert.alert(
 				"Could not send",
