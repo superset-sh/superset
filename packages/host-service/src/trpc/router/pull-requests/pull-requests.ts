@@ -18,6 +18,24 @@ export const pullRequestsRouter = router({
 				);
 			return { workspaces };
 		}),
+	/**
+	 * Every PR each workspace has ever been linked to, current one first.
+	 * `getByWorkspaces` stays the sidebar's view (the one currently-linked PR,
+	 * honoring Remove PR Link); this is the full record behind it.
+	 */
+	historyByWorkspaces: protectedProcedure
+		.input(
+			z.object({
+				workspaceIds: z.array(z.string()),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const workspaces =
+				await ctx.runtime.pullRequests.getPullRequestHistoryByWorkspaces(
+					input.workspaceIds,
+				);
+			return { workspaces };
+		}),
 	unlinkFromWorkspace: protectedProcedure
 		.input(
 			z.object({

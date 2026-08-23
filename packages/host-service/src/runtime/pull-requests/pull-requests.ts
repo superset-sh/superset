@@ -4,7 +4,12 @@ import type { Octokit } from "@octokit/rest";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { HostDb } from "../../db";
-import { projects, pullRequests, workspaces } from "../../db/schema";
+import {
+	projects,
+	pullRequests,
+	workspacePullRequests,
+	workspaces,
+} from "../../db/schema";
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
@@ -98,6 +103,32 @@ export interface PullRequestWorkspaceSnapshot {
 	pullRequest: PullRequestStateSnapshot | null;
 	error: string | null;
 	lastFetchedAt: string | null;
+}
+
+export interface WorkspacePullRequestHistoryEntry {
+	repoOwner: string;
+	repoName: string;
+	number: number;
+	url: string;
+	title: string;
+	state: PullRequestState;
+	isDraft: boolean;
+	headBranch: string;
+	reviewDecision: ReviewDecision;
+	checksStatus: ChecksStatus;
+	/** First observed merged, epoch ms. Never cleared once set. */
+	mergedAt: number | null;
+	/** Row refresh time, epoch ms — ordering, not GitHub's own clock. */
+	updatedAt: number;
+	/** When this workspace first linked to the PR, epoch ms. */
+	linkedAt: number;
+	/** True for the PR the sidebar shows: the one on the current branch. */
+	isCurrent: boolean;
+}
+
+export interface WorkspacePullRequestHistory {
+	workspaceId: string;
+	pullRequests: WorkspacePullRequestHistoryEntry[];
 }
 
 export interface PullRequestRuntimeManagerOptions {
@@ -334,6 +365,80 @@ export class PullRequestRuntimeManager {
 		}));
 	}
 
+	/**
+	 * Every PR each workspace has ever been linked to, currently-linked one
+	 * first and then newest link first. Suppressed ("Remove PR Link") PRs stay
+	 * listed — suppression governs the sidebar pointer, not the history.
+	 */
+	async getPullRequestHistoryByWorkspaces(
+		workspaceIds: string[],
+	): Promise<WorkspacePullRequestHistory[]> {
+		if (workspaceIds.length === 0) return [];
+
+		const rows = this.db
+			.select({
+				workspaceId: workspacePullRequests.workspaceId,
+				linkedAt: workspacePullRequests.linkedAt,
+				currentPullRequestId: workspaces.pullRequestId,
+				pullRequestRowId: pullRequests.id,
+				repoOwner: pullRequests.repoOwner,
+				repoName: pullRequests.repoName,
+				prNumber: pullRequests.prNumber,
+				url: pullRequests.url,
+				title: pullRequests.title,
+				state: pullRequests.state,
+				isDraft: pullRequests.isDraft,
+				headBranch: pullRequests.headBranch,
+				reviewDecision: pullRequests.reviewDecision,
+				checksStatus: pullRequests.checksStatus,
+				mergedAt: pullRequests.mergedAt,
+				updatedAt: pullRequests.updatedAt,
+			})
+			.from(workspacePullRequests)
+			.innerJoin(
+				pullRequests,
+				eq(workspacePullRequests.pullRequestId, pullRequests.id),
+			)
+			.innerJoin(
+				workspaces,
+				eq(workspacePullRequests.workspaceId, workspaces.id),
+			)
+			.where(inArray(workspacePullRequests.workspaceId, workspaceIds))
+			.all();
+
+		const byWorkspace = new Map<string, WorkspacePullRequestHistoryEntry[]>();
+		for (const row of rows) {
+			const entry: WorkspacePullRequestHistoryEntry = {
+				repoOwner: row.repoOwner,
+				repoName: row.repoName,
+				number: row.prNumber,
+				url: row.url,
+				title: row.title,
+				state: coercePullRequestState(row.state),
+				isDraft: row.isDraft,
+				headBranch: row.headBranch,
+				reviewDecision: coerceReviewDecision(row.reviewDecision),
+				checksStatus: coerceChecksStatus(row.checksStatus),
+				mergedAt: row.mergedAt ?? null,
+				updatedAt: row.updatedAt,
+				linkedAt: row.linkedAt,
+				isCurrent: row.pullRequestRowId === row.currentPullRequestId,
+			};
+			const list = byWorkspace.get(row.workspaceId);
+			if (list) list.push(entry);
+			else byWorkspace.set(row.workspaceId, [entry]);
+		}
+
+		return workspaceIds.map((workspaceId) => {
+			const entries = byWorkspace.get(workspaceId) ?? [];
+			entries.sort((a, b) => {
+				if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+				return b.linkedAt - a.linkedAt;
+			});
+			return { workspaceId, pullRequests: entries };
+		});
+	}
+
 	async refreshPullRequestsByWorkspaces(workspaceIds: string[]): Promise<void> {
 		if (workspaceIds.length === 0) return;
 
@@ -439,8 +544,27 @@ export class PullRequestRuntimeManager {
 			})
 			.where(eq(workspaces.id, workspaceId))
 			.run();
+		this.recordWorkspacePullRequestLink(workspaceId, rowId, now);
 
 		return rowId;
+	}
+
+	/**
+	 * Append-only memory of every PR a workspace has been linked to. The
+	 * current-link pointer moves on when the branch does; this row stays, so
+	 * the workspace's whole PR history remains listable. Unlinking hides a PR
+	 * from the sidebar surfaces, never from here.
+	 */
+	private recordWorkspacePullRequestLink(
+		workspaceId: string,
+		pullRequestId: string,
+		linkedAt: number,
+	): void {
+		this.db
+			.insert(workspacePullRequests)
+			.values({ workspaceId, pullRequestId, linkedAt })
+			.onConflictDoNothing()
+			.run();
 	}
 
 	private async syncWorkspaceBranches(): Promise<void> {
@@ -756,6 +880,9 @@ export class PullRequestRuntimeManager {
 						and(eq(workspaces.id, workspace.id), isNull(workspaces.archivedAt)),
 					)
 					.run();
+				// The sweep re-asserts the link every pass, so this also heals
+				// history rows for links that predate the table.
+				this.recordWorkspacePullRequestLink(workspace.id, match.id, Date.now());
 				continue;
 			}
 
