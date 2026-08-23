@@ -224,6 +224,27 @@ describe("auth token storage", () => {
 			fs.chmodSync(readOnlyHome, 0o700);
 		}
 	});
+
+	test("does not report a saved token when the write lock never frees up", async () => {
+		// A lock entry with a fresh mtime never looks stale, so acquisition runs
+		// out of retries. Giving up on the lock must stay a failure the caller
+		// sees: a token that was never written must never look written.
+		const lockEntry = `${tokenFile}.lock`;
+		fs.mkdirSync(lockEntry);
+		const tokenSaved = mock(() => {});
+		authEvents.once("token-saved", tokenSaved);
+
+		try {
+			await expect(
+				saveToken({ token: "token", expiresAt: "2099-01-01" }),
+			).rejects.toThrow();
+			expect(tokenSaved).not.toHaveBeenCalled();
+			expect(fs.existsSync(tokenFile)).toBe(false);
+		} finally {
+			authEvents.off("token-saved", tokenSaved);
+			fs.rmdirSync(lockEntry);
+		}
+	});
 });
 
 describe("cached organization membership", () => {

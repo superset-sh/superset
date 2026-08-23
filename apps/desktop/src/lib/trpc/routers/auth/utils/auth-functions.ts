@@ -52,11 +52,22 @@ async function withAuthLock<Result>(
 		realpath: false,
 		stale: 10_000,
 		retries: { retries: 10, factor: 1, minTimeout: 25, maxTimeout: 250 },
+		// Another writer can reclaim a lock this process still holds once our
+		// refresh falls behind. proper-lockfile's default handler rethrows from
+		// its own timer, where no caller can catch it; the write itself is still
+		// atomic, so record the loss and let the operation report its own result.
+		onCompromised: (error) =>
+			console.warn("[auth] Lost the auth token lock while writing", error),
 	});
 	try {
 		return await operation();
 	} finally {
-		await release();
+		// Releasing is cleanup. It fails when the lock was already taken from us,
+		// which says nothing about whether the write landed, so it must never
+		// replace the operation's own success or failure.
+		await release().catch((error) =>
+			console.warn("[auth] Failed to release the auth token lock", error),
+		);
 	}
 }
 
