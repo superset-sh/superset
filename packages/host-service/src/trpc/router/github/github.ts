@@ -323,10 +323,143 @@ export const githubRouter = router({
 				});
 				return data;
 			} catch (error) {
-				throw mergeRejectionError(error);
+				throw actionRejectionError(error, "GitHub refused the merge.");
+			}
+		}),
+
+	markPullRequestReady: protectedProcedure
+		.input(
+			z.object({
+				owner: z.string(),
+				repo: z.string(),
+				pullNumber: z.number(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const octokit = await ctx.github();
+			try {
+				const id = await pullRequestNodeId(octokit, input);
+				await octokit.graphql(
+					`mutation($id: ID!) {
+						markPullRequestReadyForReview(input: { pullRequestId: $id }) {
+							pullRequest { isDraft }
+						}
+					}`,
+					{ id },
+				);
+			} catch (error) {
+				throw actionRejectionError(
+					error,
+					"GitHub refused to mark the pull request ready.",
+				);
+			}
+		}),
+
+	updatePullRequestBranch: protectedProcedure
+		.input(
+			z.object({
+				owner: z.string(),
+				repo: z.string(),
+				pullNumber: z.number(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const octokit = await ctx.github();
+			try {
+				await octokit.pulls.updateBranch({
+					owner: input.owner,
+					repo: input.repo,
+					pull_number: input.pullNumber,
+				});
+			} catch (error) {
+				throw actionRejectionError(
+					error,
+					"GitHub refused to update the branch.",
+				);
+			}
+		}),
+
+	reopenPullRequest: protectedProcedure
+		.input(
+			z.object({
+				owner: z.string(),
+				repo: z.string(),
+				pullNumber: z.number(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const octokit = await ctx.github();
+			try {
+				await octokit.pulls.update({
+					owner: input.owner,
+					repo: input.repo,
+					pull_number: input.pullNumber,
+					state: "open",
+				});
+			} catch (error) {
+				throw actionRejectionError(
+					error,
+					"GitHub refused to reopen the pull request.",
+				);
+			}
+		}),
+
+	dequeuePullRequest: protectedProcedure
+		.input(
+			z.object({
+				owner: z.string(),
+				repo: z.string(),
+				pullNumber: z.number(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const octokit = await ctx.github();
+			try {
+				const id = await pullRequestNodeId(octokit, input);
+				await octokit.graphql(
+					`mutation($id: ID!) {
+						dequeuePullRequest(input: { id: $id }) {
+							mergeQueueEntry { position }
+						}
+					}`,
+					{ id },
+				);
+			} catch (error) {
+				throw actionRejectionError(
+					error,
+					"GitHub refused to remove the pull request from the queue.",
+				);
 			}
 		}),
 });
+
+/** The GraphQL mutations address the pull request by node id, not number. */
+async function pullRequestNodeId(
+	octokit: {
+		graphql: <T>(
+			query: string,
+			variables: Record<string, unknown>,
+		) => Promise<T>;
+	},
+	input: { owner: string; repo: string; pullNumber: number },
+): Promise<string> {
+	const data = await octokit.graphql<{
+		repository: { pullRequest: { id: string } | null } | null;
+	}>(
+		`query($owner: String!, $name: String!, $number: Int!) {
+			repository(owner: $owner, name: $name) { pullRequest(number: $number) { id } }
+		}`,
+		{ owner: input.owner, name: input.repo, number: input.pullNumber },
+	);
+	const id = data.repository?.pullRequest?.id;
+	if (!id) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Pull request #${input.pullNumber} not found.`,
+		});
+	}
+	return id;
+}
 
 /**
  * One round trip for the whole view. `isRequired` is asked per pull request
@@ -457,20 +590,34 @@ interface PullRequestDetailQuery {
 }
 
 /**
- * GitHub rejects merges for conflicts, branch protection, missing reviews and
- * stale heads. Those are states of the PR, not host bugs, so they get a
- * non-500 code (500s page Sentry) and GitHub's own wording, which is the only
- * text that says which of them happened.
+ * GitHub rejects pull request actions for conflicts, branch protection,
+ * missing reviews and stale heads. Those are states of the PR, not host bugs,
+ * so they get a non-500 code (500s page Sentry) and GitHub's own wording,
+ * which is the only text that says which of them happened.
  */
-export function mergeRejectionError(error: unknown): TRPCError {
+export function actionRejectionError(
+	error: unknown,
+	fallback: string,
+): TRPCError {
+	if (error instanceof TRPCError) return error;
+
 	const status =
 		typeof error === "object" && error !== null && "status" in error
 			? Number((error as { status: unknown }).status)
 			: null;
 	const message =
-		error instanceof Error && error.message
-			? error.message
-			: "GitHub refused the merge.";
+		error instanceof Error && error.message ? error.message : fallback;
+
+	// GraphQL rejections arrive as errors in a 200 response — no status, but
+	// still the PR's state talking (already queued, not in a queue, not draft).
+	if (
+		status === null &&
+		typeof error === "object" &&
+		error !== null &&
+		"errors" in error
+	) {
+		return new TRPCError({ code: "BAD_REQUEST", message, cause: error });
+	}
 
 	switch (status) {
 		// 405 not mergeable (conflicts/draft), 409 head branch moved on.

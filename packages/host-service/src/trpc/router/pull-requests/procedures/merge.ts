@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
-import { mergeRejectionError } from "../../github/github";
+import { actionRejectionError } from "../../github/github";
 import { resolveGithubRepo } from "../../workspace-creation/shared/project-helpers";
 
 const mergeInputSchema = z.object({
@@ -28,6 +28,6 @@ export const mergePR = protectedProcedure
 			});
 			return data;
 		} catch (error) {
-			throw mergeRejectionError(error);
+			throw actionRejectionError(error, "GitHub refused the merge.");
 		}
 	});

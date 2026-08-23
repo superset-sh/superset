@@ -5,7 +5,6 @@ import { ChevronRight } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
 	Linking,
 	Pressable,
 	RefreshControl,
@@ -20,9 +19,11 @@ import { HeaderNotice } from "../../components/HeaderNotice";
 import { PullRequestCard } from "./components/PullRequestCard";
 import { PullRequestDescription } from "./components/PullRequestDescription";
 import { PullRequestHeader } from "./components/PullRequestHeader";
+import { useAskAgent } from "./hooks/useAskAgent";
 import { useMergePullRequest } from "./hooks/useMergePullRequest";
+import { usePullRequestActions } from "./hooks/usePullRequestActions";
 import { usePullRequestRoute } from "./usePullRequestRoute";
-import type { ActionId } from "./utils/pullRequestState";
+import { type ActionId, isAgentAction } from "./utils/pullRequestState";
 
 const NOTICE_MS = 1500;
 
@@ -50,6 +51,14 @@ export function PullRequestScreen() {
 			requestAppReview("pr_merged");
 		},
 	});
+	const actions = usePullRequestActions({
+		workspaceId,
+		owner,
+		repo,
+		pullNumber,
+		onDone: () => void refetch(),
+	});
+	const askAgent = useAskAgent({ workspaceId });
 
 	const [notice, setNotice] = useState<string | null>(null);
 	const hideNotice = useCallback(() => setNotice(null), []);
@@ -108,7 +117,11 @@ export function PullRequestScreen() {
 			merge.confirmAndMerge(detail);
 			return;
 		}
-		Alert.alert("Not available yet", "This action is not wired up yet.");
+		if (isAgentAction(action)) {
+			askAgent.ask(action, detail);
+			return;
+		}
+		actions.run(action);
 	};
 
 	return (
@@ -180,7 +193,11 @@ export function PullRequestScreen() {
 					queued={detail.mergeability.queue !== null}
 				/>
 				<PullRequestCard
-					busyAction={merge.isMerging ? "merge" : null}
+					busyAction={
+						merge.isMerging
+							? "merge"
+							: (actions.busyAction ?? askAgent.busyAction)
+					}
 					capabilities={detail.capabilities}
 					checks={detail.checks}
 					mergeability={detail.mergeability}
