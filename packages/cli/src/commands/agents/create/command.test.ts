@@ -91,6 +91,22 @@ afterEach(() => {
 });
 
 describe("agents create", () => {
+	test("forwards an explicit model to the host", async () => {
+		await invoke(undefined, {
+			prompt: "Review this diff",
+			model: "gpt-5.6-sol",
+		});
+
+		expect(runInput).toEqual({
+			workspaceId: "00000000-0000-4000-8000-000000000001",
+			agent: "codex",
+			prompt: "Review this diff",
+			model: "gpt-5.6-sol",
+			effort: undefined,
+			attachmentIds: undefined,
+		});
+	});
+
 	test("forwards an explicit reasoning effort to the host", async () => {
 		await invoke("xhigh");
 
@@ -98,6 +114,7 @@ describe("agents create", () => {
 			workspaceId: "00000000-0000-4000-8000-000000000001",
 			agent: "codex",
 			prompt: "Review this diff",
+			model: undefined,
 			effort: "xhigh",
 			attachmentIds: undefined,
 		});
@@ -110,6 +127,7 @@ describe("agents create", () => {
 			workspaceId: "00000000-0000-4000-8000-000000000001",
 			agent: "codex",
 			prompt: "Review this diff",
+			model: undefined,
 			effort: undefined,
 			attachmentIds: undefined,
 		});
@@ -123,6 +141,7 @@ describe("agents create", () => {
 			agent: "codex",
 			prompt: "",
 			resumeSessionId: "abc-123",
+			model: undefined,
 			effort: undefined,
 			attachmentIds: undefined,
 		});

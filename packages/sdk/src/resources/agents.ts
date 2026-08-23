@@ -46,6 +46,7 @@ export class Agents extends APIResource {
 				agent: params.agent,
 				prompt: params.prompt,
 				resumeSessionId: params.resumeSessionId,
+				model: params.model,
 				effort: params.effort,
 				attachmentIds: params.attachmentIds,
 			},
@@ -97,6 +98,8 @@ export interface AgentCreateParams {
 	prompt?: string;
 	/** Session id of a previous run of this agent to restore instead of starting fresh (e.g. `claude --resume <id>`). */
 	resumeSessionId?: string;
+	/** Model for this launch. Supported values depend on the agent; omit to use its default. */
+	model?: string;
 	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
 	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
