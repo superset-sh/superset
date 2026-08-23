@@ -19,7 +19,7 @@ export function SidebarHeader({
 	const actions = tabs.find((t) => t.id === activeTab)?.actions;
 
 	return (
-		<div className="flex h-10 shrink-0 items-stretch">
+		<div className="-mt-px flex h-10 shrink-0 items-stretch">
 			<div className="flex min-w-0 flex-1 items-center h-full overflow-hidden">
 				{tabs.map((tab, index) => {
 					const isActive = activeTab === tab.id;
