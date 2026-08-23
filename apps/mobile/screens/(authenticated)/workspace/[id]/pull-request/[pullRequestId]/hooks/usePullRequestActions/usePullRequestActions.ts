@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { useRef } from "react";
 import { Alert } from "react-native";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
@@ -64,10 +65,19 @@ export function usePullRequestActions({
 		},
 	});
 
+	// mutation.isPending is a render snapshot — two taps inside one frame both
+	// read false. The ref latches synchronously.
+	const inFlight = useRef(false);
+
 	return {
 		run: (action: PlainActionId) => {
-			if (mutation.isPending) return;
-			mutation.mutate(action);
+			if (inFlight.current) return;
+			inFlight.current = true;
+			mutation.mutate(action, {
+				onSettled: () => {
+					inFlight.current = false;
+				},
+			});
 		},
 		busyAction: mutation.isPending ? mutation.variables : null,
 	};
