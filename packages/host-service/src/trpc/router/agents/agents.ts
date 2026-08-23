@@ -11,7 +11,7 @@ import {
 	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
@@ -346,7 +346,16 @@ export async function runAgentInWorkspace(
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
 	const workspace = ctx.db.query.workspaces
-		.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+		.findFirst({
+			// A tombstoned (archived) row is gone for agent launches: without
+			// the filter an archived workspace still resolves, and the failure
+			// surfaces one layer deeper as a worktree-path error that carries
+			// no workspace id (#6521).
+			where: and(
+				eq(workspaces.id, input.workspaceId),
+				isNull(workspaces.archivedAt),
+			),
+		})
 		.sync();
 	if (!workspace) {
 		// NOT_FOUND (not a 500) so callers like automation dispatch can tell a
