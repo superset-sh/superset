@@ -110,13 +110,15 @@ export function decryptCookieValue(
 	encryptedValue: Buffer,
 	key: Buffer,
 ): string | null {
-	if (
-		encryptedValue.length < 3 ||
-		encryptedValue.subarray(0, 3).toString() !== "v10"
-	) {
-		return null;
-	}
 	try {
+		// Inside the guard: SQLite is dynamically typed, so a row that stored
+		// encrypted_value as TEXT arrives as a string, which has no .subarray.
+		if (
+			encryptedValue.length < 3 ||
+			encryptedValue.subarray(0, 3).toString() !== "v10"
+		) {
+			return null;
+		}
 		const decipher = createDecipheriv("aes-128-cbc", key, AES_IV);
 		decipher.setAutoPadding(false);
 		const padded = Buffer.concat([

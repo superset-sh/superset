@@ -64,6 +64,13 @@ describe("decryptCookieValue", () => {
 		expect(decryptCookieValue(v20, KEY)).toBeNull();
 	});
 
+	it("returns null when the stored value is text rather than a buffer", () => {
+		// SQLite is dynamically typed: a row that stored encrypted_value as TEXT
+		// comes back from better-sqlite3 as a string, which has no .subarray.
+		const text = "GS1:some-plain-text-value" as unknown as Buffer;
+		expect(decryptCookieValue(text, KEY)).toBeNull();
+	});
+
 	it("returns null when decrypted with the wrong key", () => {
 		const enc = encryptV10("secret", KEY, { withHostPrefix: true });
 		expect(
@@ -119,6 +126,14 @@ describe("mapCookieRow", () => {
 		const row = {
 			...base,
 			encrypted_value: Buffer.concat([Buffer.from("v20"), Buffer.alloc(48, 7)]),
+		};
+		expect(mapCookieRow(row, KEY)).toBeNull();
+	});
+
+	it("drops a row whose stored value is text rather than a buffer", () => {
+		const row = {
+			...base,
+			encrypted_value: "GS1:some-plain-text-value" as unknown as Buffer,
 		};
 		expect(mapCookieRow(row, KEY)).toBeNull();
 	});
