@@ -65,7 +65,10 @@ export function usePullRequestActions({
 	});
 
 	return {
-		run: (action: PlainActionId) => mutation.mutate(action),
+		run: (action: PlainActionId) => {
+			if (mutation.isPending) return;
+			mutation.mutate(action);
+		},
 		busyAction: mutation.isPending ? mutation.variables : null,
 	};
 }

@@ -20,12 +20,34 @@ export function agentPrompt(
 		case "ask-fix-checks": {
 			const failing = checks
 				.filter((check) => effectiveCheckStatus(check) === "failed")
-				.map((check) => check.name);
+				.map(quotedCheckName);
+			const named = failing.slice(0, MAX_NAMED_CHECKS);
+			const more = failing.length - named.length;
 			const which =
-				failing.length > 0 ? ` Failing: ${failing.join(", ")}.` : "";
+				named.length > 0
+					? ` Failing: ${named.join(", ")}${more > 0 ? ` and ${more} more` : ""}.`
+					: "";
 			return `Checks are failing on ${pr}.${which} Find out why, fix the code, and push the fix to this branch.`;
 		}
 		case "ask-address-comments":
 			return `Reviewers left feedback on ${pr}. Address the requested changes and unresolved review comments, then push your fixes.`;
 	}
+}
+
+const MAX_NAMED_CHECKS = 10;
+const MAX_CHECK_NAME_LENGTH = 80;
+
+/**
+ * Check names ride the PR head branch, so on a fork PR they are the
+ * contributor's text and this prompt is the only place such text reaches
+ * instruction position. They go in as quoted data: control characters
+ * stripped, length capped, double quotes swapped out.
+ */
+function quotedCheckName(check: { name: string }): string {
+	const cleaned = check.name
+		.replace(/\p{C}+/gu, " ")
+		.replaceAll('"', "'")
+		.trim()
+		.slice(0, MAX_CHECK_NAME_LENGTH);
+	return `"${cleaned}"`;
 }
