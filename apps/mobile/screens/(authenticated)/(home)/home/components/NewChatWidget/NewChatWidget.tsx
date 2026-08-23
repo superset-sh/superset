@@ -12,6 +12,7 @@ import { apiClient } from "@/lib/trpc/client";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import {
@@ -96,19 +97,12 @@ export function NewChatWidget({
 
 	const createTerminalWorkspace = useCreateTerminalWorkspace();
 	const createCloudWorkspace = useCreateCloudWorkspace();
-	const { data: agentConfigs } = useQuery({
-		queryKey: ["host-agent-configs", selectedTarget?.machineId ?? null],
+	const { data: agentConfigs } = useHostAgentConfigs({
+		machineId: selectedTarget?.machineId ?? null,
+		hostUrl: selectedTarget?.hostUrl ?? null,
 		// A cloud target has no host to list agents from, and create doesn't
 		// launch one (the prompt only feeds the auto-name).
-		enabled: selectedTarget !== null && !isCloudTarget,
-		staleTime: 60_000,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!selectedTarget) return [];
-			return getHostServiceClientByUrl(
-				selectedTarget.hostUrl,
-			).settings.agentConfigs.list.query();
-		},
+		enabled: !isCloudTarget,
 	});
 	const selectedAgent = agentConfigs?.find(
 		(config) => config.presetId === agentId,

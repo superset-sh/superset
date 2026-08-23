@@ -1,14 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useQuery } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { Image, Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { agentIconSource } from "@/lib/agent-icons";
-import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 
 export function AgentMark({
 	agentId,
@@ -44,17 +43,9 @@ export function AgentPickerScreen() {
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 
-	const configsQuery = useQuery({
-		queryKey: ["host-agent-configs", selectedTarget?.machineId ?? null],
-		enabled: selectedTarget !== null,
-		staleTime: 60_000,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!selectedTarget) return [];
-			return getHostServiceClientByUrl(
-				selectedTarget.hostUrl,
-			).settings.agentConfigs.list.query();
-		},
+	const configsQuery = useHostAgentConfigs({
+		machineId: selectedTarget?.machineId ?? null,
+		hostUrl: selectedTarget?.hostUrl ?? null,
 	});
 	const configs = configsQuery.data ?? [];
 

@@ -226,17 +226,27 @@ export function WorkspaceScreen() {
 	const hostCompatibility = useHostCompatibility(hostUrl);
 
 	// The + sheet lands back here via dismissTo with the new session in
-	// ?tab= — adopt it over any manual pick so the fresh tab activates.
+	// ?tab= — adopt it once its row arrives, since the terminals query hasn't
+	// heard of the session when the sheet closes. Otherwise pin whatever ended
+	// up active, including the implicit first row: without the pin, reordering
+	// in the sessions sheet moves a different row into first place and the
+	// terminal you're watching switches out from under you. One effect, so the
+	// adoption outranks the pin — as separate effects the pin re-asserted the
+	// old tab in the same commit the fresh row arrived, and the new session
+	// never activated.
+	const adoptedTabRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (params.tab) setPickedTerminalId(params.tab);
-	}, [params.tab]);
-
-	// Pin whatever ended up active, including the implicit first row: without
-	// this, reordering in the sessions sheet moves a different row into first
-	// place and the terminal you're watching switches out from under you.
-	useEffect(() => {
+		if (
+			params.tab &&
+			adoptedTabRef.current !== params.tab &&
+			rows.some((row) => row.terminalId === params.tab)
+		) {
+			adoptedTabRef.current = params.tab;
+			setPickedTerminalId(params.tab);
+			return;
+		}
 		if (activeTerminalId) setPickedTerminalId(activeTerminalId);
-	}, [activeTerminalId]);
+	}, [params.tab, rows, activeTerminalId]);
 
 	// Port of desktop's useClearActivePaneAttention: viewing the tab clears
 	// its `review` state by advancing the seen mark to the binding's last

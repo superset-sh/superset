@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useState } from "react";
@@ -13,6 +13,7 @@ import {
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { AgentMark } from "@/screens/(authenticated)/(home)/new-session/agent";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 
 /**
  * Bottom sheet for the tab strip's + — the host's agent presets plus a plain
@@ -28,17 +29,9 @@ export function NewSessionSheet() {
 		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 
-	const presetsQuery = useQuery({
-		queryKey: ["host-agent-configs", host?.machineId ?? null],
-		enabled: hostUrl !== null,
-		staleTime: 60_000,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!hostUrl) return [];
-			return getHostServiceClientByUrl(
-				hostUrl,
-			).settings.agentConfigs.list.query();
-		},
+	const presetsQuery = useHostAgentConfigs({
+		machineId: host?.machineId ?? null,
+		hostUrl,
 	});
 	const presets = presetsQuery.data ?? [];
 
