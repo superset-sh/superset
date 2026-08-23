@@ -514,8 +514,9 @@ async function runDestroyPhases(
 			// treat that like "still registered" and block rather than risk
 			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
+			let removeError: string | undefined;
 			try {
-				({ stillRegistered } = await cleanupGitOps.removeWorktree({
+				({ stillRegistered, removeError } = await cleanupGitOps.removeWorktree({
 					repoPath: project.repoPath,
 					worktreePath: local.worktreePath,
 					gitEnv: repoGitEnv,
@@ -533,8 +534,43 @@ async function runDestroyPhases(
 				// retryable instead of orphaning disk past the commit point.
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: `Failed to remove worktree at ${local.worktreePath}`,
+					message: `Failed to remove worktree at ${local.worktreePath}${
+						removeError ? `: ${removeError}` : ""
+					}`,
 				});
+			}
+			if (existsSync(local.worktreePath)) {
+				// Unregistered is not removed: git's unregistration and its
+				// recursive delete are not atomic, so `remove --force --force`
+				// can drop the registration and still fail partway through
+				// deleting files (locked file, live writer). Trusting the
+				// registry alone silently orphaned the folder — no list shows
+				// it, and a retry reports success without touching it (#6730).
+				// Fall back to the same guarded direct removal the other
+				// branches use.
+				const worktreeBaseDir =
+					project.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
+				if (
+					!isInsideProjectWorktreesRoot(
+						local.worktreePath,
+						project.id,
+						worktreeBaseDir,
+					)
+				) {
+					warnings.push(
+						`Worktree at ${local.worktreePath} is no longer registered with git, but its folder is outside the managed worktrees root and was left on disk`,
+					);
+				} else {
+					try {
+						await rm(local.worktreePath, { recursive: true, force: true });
+					} catch (err) {
+						const message = err instanceof Error ? err.message : String(err);
+						throw new TRPCError({
+							code: "INTERNAL_SERVER_ERROR",
+							message: `Worktree at ${local.worktreePath} is no longer registered with git, but its folder could not be removed: ${removeError ?? message}`,
+						});
+					}
+				}
 			}
 			worktreeRemoved = true;
 		}
