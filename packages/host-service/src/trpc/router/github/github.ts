@@ -537,6 +537,12 @@ interface GithubGraphqlClient {
  * be seen, and the card would grade a partial pull request as ready. Drains
  * the connection; a handful of round trips at most.
  */
+// GitHub's own flags are trusted but not absolutely: a stuck cursor from a
+// GitHub-side pagination bug must not turn one detail query into an infinite
+// loop that pins the host and burns the token's rate limit. 20 pages is
+// 2,000 nodes — far past any real pull request.
+const MAX_DRAIN_PAGES = 20;
+
 async function drainReviewThreads(
 	octokit: GithubGraphqlClient,
 	input: { owner: string; repo: string; pullNumber: number },
@@ -544,7 +550,14 @@ async function drainReviewThreads(
 ): Promise<(ReviewThreadNode | null)[]> {
 	const nodes: (ReviewThreadNode | null)[] = [];
 	let page = pageInfo ?? null;
+	let pages = 0;
 	while (page?.hasNextPage && page.endCursor) {
+		if (++pages > MAX_DRAIN_PAGES) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `Pull request #${input.pullNumber} did not finish paginating review threads after ${MAX_DRAIN_PAGES} pages.`,
+			});
+		}
 		const data = await octokit.graphql<{
 			repository: {
 				pullRequest: { reviewThreads: ReviewThreadsConnection | null } | null;
@@ -559,9 +572,10 @@ async function drainReviewThreads(
 		// A missing page mid-drain would silently re-create the truncation this
 		// drain exists to remove — fail the query instead of grading on less.
 		if (!connection) {
-			throw new Error(
-				`GitHub returned no reviewThreads page for pull request #${input.pullNumber} while paginating.`,
-			);
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `GitHub returned no reviewThreads page for pull request #${input.pullNumber} while paginating.`,
+			});
 		}
 		nodes.push(...connection.nodes);
 		page = connection.pageInfo;
@@ -576,7 +590,14 @@ async function drainCheckContexts(
 ): Promise<(CheckContextNode | null)[]> {
 	const nodes: (CheckContextNode | null)[] = [];
 	let page = pageInfo ?? null;
+	let pages = 0;
 	while (page?.hasNextPage && page.endCursor) {
+		if (++pages > MAX_DRAIN_PAGES) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `Pull request #${input.pullNumber} did not finish paginating checks after ${MAX_DRAIN_PAGES} pages.`,
+			});
+		}
 		const data = await octokit.graphql<{
 			repository: {
 				pullRequest: {
@@ -594,9 +615,10 @@ async function drainCheckContexts(
 		const connection =
 			data.repository?.pullRequest?.statusCheckRollup?.contexts;
 		if (!connection) {
-			throw new Error(
-				`GitHub returned no check contexts page for pull request #${input.pullNumber} while paginating.`,
-			);
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: `GitHub returned no check contexts page for pull request #${input.pullNumber} while paginating.`,
+			});
 		}
 		nodes.push(...connection.nodes);
 		page = connection.pageInfo;
