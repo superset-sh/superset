@@ -21,7 +21,7 @@ export function RowDiffstat({
 	enabled: boolean;
 }) {
 	const { data } = useQuery({
-		queryKey: ["pull-request-diffstat", pullRequest.key],
+		queryKey: ["pull-request-diffstat", hostUrl, pullRequest.key],
 		enabled: enabled && hostUrl !== null,
 		staleTime: 5 * 60_000,
 		networkMode: "always" as const,

@@ -22,8 +22,9 @@ export function usePullRequestRoute() {
 	// The history sheet passes the entry's own coordinates: an old entry can
 	// predate a remote rename, and the workspace's current repo would then
 	// resolve the number against the wrong repository.
-	const owner = params.owner ?? workspaceRepo.owner;
-	const repo = params.repo ?? workspaceRepo.repo;
+	const hasExplicitRepo = Boolean(params.owner && params.repo);
+	const owner = hasExplicitRepo ? (params.owner ?? null) : workspaceRepo.owner;
+	const repo = hasExplicitRepo ? (params.repo ?? null) : workspaceRepo.repo;
 	const detail = useWorkspacePullRequestDetail({
 		workspaceId,
 		owner,
