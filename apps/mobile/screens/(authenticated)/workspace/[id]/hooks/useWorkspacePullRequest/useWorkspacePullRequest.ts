@@ -16,7 +16,7 @@ export interface WorkspacePullRequest {
 	prNumber: number;
 	url: string;
 	title: string;
-	state: "open" | "closed" | "merged";
+	state: "open" | "draft" | "merged" | "closed" | "queued";
 	isDraft: boolean;
 	headBranch: string;
 	mergedAt: Date | null;
@@ -71,7 +71,7 @@ export function useWorkspacePullRequests(
 					prNumber: entry.number,
 					url: entry.url,
 					title: entry.title,
-					state: entry.state as WorkspacePullRequest["state"],
+					state: entry.state,
 					isDraft: entry.isDraft,
 					headBranch: entry.headBranch,
 					mergedAt: entry.mergedAt ? new Date(entry.mergedAt) : null,
