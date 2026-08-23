@@ -5,6 +5,22 @@ export function hmacHex(payload: string, secret: string): string {
 	return createHmac("sha256", secret).update(payload, "utf8").digest("hex");
 }
 
+/** HMAC-SHA256 of `payload` as base64 — what Hookdeck signs with. */
+export function hmacBase64(payload: string, secret: string): string {
+	return createHmac("sha256", secret).update(payload, "utf8").digest("base64");
+}
+
+/**
+ * Constant-time compare of two base64 digests. Compares decoded bytes, so
+ * padding differences do not matter; a length mismatch is a mismatch rather
+ * than a throw, as with the hex form.
+ */
+export function timingSafeBase64(received: string, expected: string): boolean {
+	const a = Buffer.from(received.trim(), "base64");
+	const b = Buffer.from(expected, "base64");
+	return a.length === b.length && a.length > 0 && timingSafeEqual(a, b);
+}
+
 /**
  * Constant-time compare of two hex digests. A length mismatch is a mismatch,
  * never a throw, so a malformed header cannot 500 the route.

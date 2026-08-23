@@ -26,6 +26,7 @@ import { env } from "@/env";
 import { ingestAutomationEvent } from "@/lib/automations/ingestAutomationEvent";
 import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
+import { verifyHookdeckDelivery } from "@/lib/webhooks/hookdeck";
 import {
 	type LinearDelivery,
 	matchableFrom,
@@ -36,21 +37,38 @@ const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
 export async function POST(request: Request) {
 	const body = await request.text();
-	const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
 
-	if (!signature) {
-		return Response.json({ error: "Missing signature" }, { status: 401 });
-	}
+	// Both paths stay live through a cutover: traffic still arriving straight
+	// from Linear verifies as it always has, and rolling back is repointing the
+	// URL rather than shipping a deploy.
+	const hookdeck = verifyHookdeckDelivery(request, body);
+	if (hookdeck instanceof Response) return hookdeck;
 
 	let payload: LinearWebhookPayload;
-	try {
-		payload = parseVerifiedPayload(body, signature);
-	} catch (error) {
-		console.warn(
-			"[linear/webhook] rejected delivery:",
-			error instanceof Error ? error.message : error,
-		);
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	if (hookdeck === "verified") {
+		// Deliberately not re-checking Linear's signature. Hookdeck verified it
+		// at ingest, and Linear's covers a timestamp inside a ±60s replay window
+		// that Hookdeck preserves on retry — so checking it here would reject
+		// every retry, which is the delivery the gateway exists to save.
+		try {
+			payload = JSON.parse(body) as LinearWebhookPayload;
+		} catch {
+			return Response.json({ error: "Malformed payload" }, { status: 400 });
+		}
+	} else {
+		const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
+		if (!signature) {
+			return Response.json({ error: "Missing signature" }, { status: 401 });
+		}
+		try {
+			payload = parseVerifiedPayload(body, signature);
+		} catch (error) {
+			console.warn(
+				"[linear/webhook] rejected delivery:",
+				error instanceof Error ? error.message : error,
+			);
+			return Response.json({ error: "Invalid signature" }, { status: 401 });
+		}
 	}
 	const deliveryId = request.headers.get("linear-delivery");
 
