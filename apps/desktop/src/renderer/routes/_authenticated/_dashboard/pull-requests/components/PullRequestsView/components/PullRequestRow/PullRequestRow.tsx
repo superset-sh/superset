@@ -105,7 +105,7 @@ export function PullRequestRow({
 							<span className="text-emerald-600 [.dark_&]:text-[#34d399]">
 								+{pr.additions ?? 0}
 							</span>
-							<span className="text-red-600 [.dark_&]:text-[#e0918a]">
+							<span className="text-red-600 [.dark_&]:text-[#f87171]">
 								-{pr.deletions ?? 0}
 							</span>
 						</span>
