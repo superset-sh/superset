@@ -90,6 +90,9 @@ describe("redactUpdateErrorMessage", () => {
 describe("redactUpdateError", () => {
 	test("returns the very same error when there is nothing to redact", () => {
 		const error = new Error(CHECKSUM_MISMATCH);
+		// Pinned rather than left ambient: a real thrown error's stack carries
+		// whatever path the test file lives under, which would itself redact.
+		error.stack = `Error: ${CHECKSUM_MISMATCH}\n    at doUpdate (/Applications/Superset.app/Contents/Resources/app.asar/main.js:1:1)`;
 		expect(redactUpdateError(error)).toBe(error);
 	});
 
@@ -196,5 +199,61 @@ describe("redactUpdateError property fidelity", () => {
 		expect(
 			(redactUpdateError(error) as Error & { statusCode?: number }).statusCode,
 		).toBe(404);
+	});
+});
+
+// Every carve-out below was originally written with `\b`, which matches before
+// `.` and `-` — so an account whose name merely *starts* with a system
+// directory name was excluded from redaction and leaked. These pin that.
+describe("redactUpdateErrorMessage carve-out precision", () => {
+	test("an account whose name starts with a system directory is still an account", () => {
+		expect(redactUpdateErrorMessage("/Users/Shared.dev/Library/Caches/x")).toBe(
+			"~/Library/Caches/x",
+		);
+		expect(redactUpdateErrorMessage("/Users/Shared-user/Library/x")).toBe(
+			"~/Library/x",
+		);
+		expect(redactUpdateErrorMessage("/home/linuxbrew.dev/.cache/x")).toBe(
+			"~/.cache/x",
+		);
+		expect(redactUpdateErrorMessage("C:\\Users\\Public.dev\\AppData\\x")).toBe(
+			"~\\AppData\\x",
+		);
+	});
+
+	test("the exact system directories are still left alone", () => {
+		for (const message of [
+			"/Users/Shared/Superset/staged.zip",
+			"/home/linuxbrew/.linuxbrew/bin/superset",
+			"C:\\Users\\Public\\Desktop\\Superset.lnk",
+			"C:\\Users\\Default\\NTUSER.DAT",
+			"C:\\Users\\All Users\\Superset\\config",
+		]) {
+			expect(redactUpdateErrorMessage(message)).toBe(message);
+		}
+	});
+
+	test("Windows paths are case-insensitive", () => {
+		expect(redactUpdateErrorMessage("c:\\users\\ada\\AppData\\Local\\x")).toBe(
+			"~\\AppData\\Local\\x",
+		);
+		expect(redactUpdateErrorMessage("C:\\USERS\\PUBLIC\\Desktop\\x")).toBe(
+			"C:\\USERS\\PUBLIC\\Desktop\\x",
+		);
+	});
+});
+
+describe("redactUpdateError stack coverage", () => {
+	test("redacts a home path that appears only in the stack", () => {
+		// Real whenever the app is installed under ~/Applications: the message
+		// carries no path but every frame does.
+		const error = new Error(CHECKSUM_MISMATCH);
+		error.stack = `Error: ${CHECKSUM_MISMATCH}\n    at doUpdate (/Users/ada/Applications/Superset.app/Contents/Resources/app.asar/main.js:1:1)`;
+
+		const redacted = redactUpdateError(error);
+
+		expect(redacted.message).toBe(CHECKSUM_MISMATCH);
+		expect(redacted.stack).not.toContain("/Users/");
+		expect(redacted.stack).toContain("main.js:1:1");
 	});
 });

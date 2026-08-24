@@ -10,15 +10,18 @@
 // reports all three, so all three home layouts are covered — the existing
 // classifier already looks for an "-updater" path marker alongside "shipit"
 // for exactly that reason. Each pattern carves out the directories under that
-// root that are system locations rather than somebody's account; `\b` keeps
-// each carve-out from swallowing an account merely starting with the same word.
-const MACOS_HOME_PATH = /\/Users\/(?!Shared\b)[A-Za-z0-9._-]+/g;
+// root that are system locations rather than somebody's account. Each carve-out
+// requires a path separator or end of string after the name: `\b` would also
+// match before `.` and `-`, which would exempt real accounts like `Shared.dev`
+// from redaction and leak exactly what this exists to remove. Windows paths are
+// case-insensitive, so that pattern carries the `i` flag.
+const MACOS_HOME_PATH = /\/Users\/(?!Shared(?:\/|$))[A-Za-z0-9._-]+/g;
 // `/home/` only counts as the home root at the start of a path, so a deeper
 // directory that merely ends in `/home` (`/var/lib/home/...`) is left alone.
 const LINUX_HOME_PATH =
-	/(?<![A-Za-z0-9._-])\/home\/(?!linuxbrew\b)[A-Za-z0-9._-]+/g;
+	/(?<![A-Za-z0-9._-])\/home\/(?!linuxbrew(?:\/|$))[A-Za-z0-9._-]+/g;
 const WINDOWS_HOME_PATH =
-	/[A-Za-z]:\\Users\\(?!Public\b|Default\b|All\b)[A-Za-z0-9._-]+/g;
+	/[A-Za-z]:\\Users\\(?!(?:Public|Default|All Users)(?:\\|$))[A-Za-z0-9._-]+/gi;
 
 // Every staging attempt unpacks into a freshly named `update.XXXXXXX`
 // directory, so one recurring condition otherwise groups as a brand-new issue
@@ -41,14 +44,19 @@ export function redactUpdateErrorMessage(message: string): string {
  */
 export function redactUpdateError(error: Error): Error {
 	const message = redactUpdateErrorMessage(error.message);
-	if (message === error.message) {
+	// The stack is checked too: a message can be clean while every frame carries
+	// a home path, which is the ordinary case when the app is installed under
+	// the user's own Applications folder.
+	const stack =
+		error.stack === undefined
+			? undefined
+			: redactUpdateErrorMessage(error.stack);
+	if (message === error.message && stack === error.stack) {
 		return error;
 	}
 	const redacted = new Error(message);
 	redacted.name = error.name;
-	redacted.stack = error.stack
-		? redactUpdateErrorMessage(error.stack)
-		: undefined;
+	redacted.stack = stack;
 	// electron-updater attaches an own `code` to the errors it builds, and Sentry
 	// serialises non-standard error properties, so rebuilding the error must
 	// carry them across or the report loses its most triageable field. String
