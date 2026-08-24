@@ -213,14 +213,6 @@ export function DiffHeaderMetadata({
 							</TooltipTrigger>
 							<TooltipContent side="bottom">{policy.hint}</TooltipContent>
 						</Tooltip>
-						<button
-							type="button"
-							onClick={handleToggleViewed}
-							aria-pressed={viewed}
-							className="rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-						>
-							{viewed ? "Viewed" : "Mark as viewed"}
-						</button>
 						{requestDiscard ? (
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -237,6 +229,15 @@ export function DiffHeaderMetadata({
 								<TooltipContent side="bottom">Discard changes</TooltipContent>
 							</Tooltip>
 						) : null}
+						<button
+							type="button"
+							onClick={handleToggleViewed}
+							aria-pressed={viewed}
+							className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						>
+							{viewed ? <LuCheck className="size-3.5" /> : null}
+							{viewed ? "Marked as viewed" : "Mark as viewed"}
+						</button>
 					</>
 				)}
 			</div>
