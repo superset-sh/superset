@@ -52,7 +52,8 @@ export function useCreateCloudWorkspace() {
 			});
 		},
 		onSuccess: (row: CloudWorkspaceRow, { target, branch }) => {
-			posthog.capture("workspace_created", {
+			// The API emits `workspace_created`; this is only the client asking.
+			posthog.capture("workspace_create_requested", {
 				workspace_id: row.id,
 				project_id: target.projectId,
 				organization_id: organizationId,

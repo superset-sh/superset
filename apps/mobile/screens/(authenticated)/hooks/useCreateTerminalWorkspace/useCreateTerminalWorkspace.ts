@@ -108,7 +108,9 @@ export function useCreateTerminalWorkspace() {
 						queryKey: getHostTerminalsQueryKey(target.machineId),
 					});
 				}
-				posthog.capture("workspace_created", {
+				// The host emits `workspace_created` itself when the row lands; this
+				// is only the client asking, and counting both would double.
+				posthog.capture("workspace_create_requested", {
 					workspace_id: workspaceId,
 					project_id: target.projectId,
 					host_kind: "remote",

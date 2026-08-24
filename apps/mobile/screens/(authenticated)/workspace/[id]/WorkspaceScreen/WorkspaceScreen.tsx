@@ -228,9 +228,9 @@ export function WorkspaceScreen() {
 
 	useEffect(() => {
 		if (!id) return;
-		posthog.capture("session_opened", {
+		posthog.capture("workspace_opened", {
 			workspace_id: id,
-			entry: router.canGoBack() ? "list" : "deeplink",
+			source: router.canGoBack() ? "list" : "deeplink",
 		});
 	}, [id, router]);
 

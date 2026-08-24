@@ -136,12 +136,12 @@ export const TerminalComposer = forwardRef<
 		setIsSubmitting(true);
 		try {
 			await onSubmit(body);
-			posthog.capture("terminal_input_submitted", {
+			posthog.capture("terminal_rich_input_submitted", {
 				workspace_id: workspaceId,
+				message_length: text.trim().length,
+				line_count: text.split("\n").length,
 				has_attachments: allowAttachments && files.length > 0,
 				attachment_count: allowAttachments ? files.length : 0,
-				message_length: text.trim().length,
-				is_agent_session: allowAttachments,
 			});
 			// Clear what actually went out, and only that. The text always did.
 			// The tray only did if this session could carry it — a plain shell
