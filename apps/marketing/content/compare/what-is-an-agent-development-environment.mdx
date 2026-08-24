@@ -1,0 +1,165 @@
+---
+title: "What Is an ADE? Agent Development Environments Explained"
+description: "An ADE is an agent development environment: the workspace for running, isolating, monitoring, and reviewing AI coding agents. Learn how ADEs differ from IDEs."
+date: 2026-08-24
+lastUpdated: 2026-08-24
+type: "tutorial"
+competitors:
+  - orca
+  - emdash
+  - conductor
+keywords:
+  - what is an ade
+  - ade meaning coding
+  - agent development environment
+  - agentic development environment
+  - ade vs ide
+  - ai agent workspace
+---
+
+An **ADE** is an **agent development environment**: a workspace for assigning software tasks to AI coding agents, giving each task a safe place to run, monitoring progress, and reviewing the resulting code.
+
+In older software literature, ADE can also mean "application development environment." Current AI coding tools use both "agent development environment" and "agentic development environment." The term is still settling.
+
+---
+
+## ADE in One Sentence
+
+An IDE helps you write code. An ADE helps you manage agents that write code.
+
+That does not mean an ADE removes the editor. Most keep a file viewer, diff editor, terminal, and browser, and can hand the work off to VS Code, Cursor, JetBrains, or Xcode. The difference is what sits at the center.
+
+In an IDE, the primary object is a project or file. In an ADE, the primary object is a task with an agent, an environment, a branch, and a result.
+
+## What an ADE Does
+
+A coding agent such as Claude Code or Codex already knows how to read files, edit code, run commands, and react to test failures. The ADE handles the system around that agent.
+
+### 1. Creates an environment for each task
+
+The ADE checks out a Git worktree, starts a sandbox, or connects to a remote machine. Dependencies, environment variables, ports, and setup scripts belong to that task.
+
+### 2. Launches and tracks agent sessions
+
+You choose an agent, write a prompt, and let it work. The ADE keeps the session visible and often preserves terminal state across app restarts or network disconnects.
+
+### 3. Isolates parallel work
+
+Two agents should not edit the same working directory. A strong ADE gives each task its own working directory and branch, or a full sandbox, so agents can share a repository without overwriting each other.
+
+### 4. Shows when an agent needs a human
+
+Agents pause for permissions, questions, errors, or review. An ADE collects those states so you do not have to scan a wall of terminal tabs to find the session waiting for input.
+
+### 5. Turns output into reviewable work
+
+When an agent finishes, the ADE shows the changed files and diff, then helps you revise, commit, push, merge, or open a pull request. The result is normal Git work, not a mysterious transcript.
+
+## ADE vs IDE
+
+| Question | IDE | ADE |
+|---|---|---|
+| What is the main unit? | File, project, editor tab | Task, agent session, workspace |
+| Who does most of the typing? | The developer | The coding agent |
+| What does the human watch? | Code, diagnostics, debugger | Status, questions, diffs, tests |
+| How is parallel work handled? | More windows or sessions | Separate worktrees, branches, or sandboxes |
+| What is the final handoff? | Saved files and a commit | A reviewed diff, branch, or pull request |
+
+The categories overlap. Cursor, VS Code, Zed, JetBrains, and Devin Desktop add task-oriented agent surfaces to full editors. Superset, Orca, Emdash, and Conductor start from the workspace and orchestration side, then add enough editing and review to complete the loop.
+
+"Agentic IDE" is a broad label for both shapes. "ADE" is more precise when agents and their environments are the primary objects.
+
+## ADE vs Coding Agent
+
+The agent and ADE are different layers:
+
+- **Model:** the language model that reasons about the task
+- **Agent or harness:** the loop that gives the model tools to read, edit, run, and iterate
+- **ADE:** the environment that launches agents, isolates tasks, preserves state, and presents work for review
+
+For example, Codex can be the agent running inside Superset. Codex decides which files to change and commands to run. Superset creates the worktree, keeps the terminal and workspace attached to the task, and presents the diff for review.
+
+Some products bundle all three layers. Others let you bring your own agent and subscription.
+
+## ADE vs Agent Orchestrator
+
+An orchestrator coordinates work across agents. An ADE gives that orchestration a usable development surface: repositories, worktrees, terminals, browsers, diffs, and Git actions.
+
+A headless script that assigns subtasks to five agents can orchestrate without becoming an ADE. A desktop app that launches those agents in isolated workspaces and lets you review each result is both.
+
+## Why ADEs Exist Now
+
+One coding agent fits comfortably in a terminal or editor sidebar. Five agents create a different problem:
+
+- Which session is still running?
+- Which one needs permission?
+- Are two agents changing the same files?
+- Which branch contains the useful result?
+- How do you compare attempts and discard the rest?
+- Can work continue on another machine or after the laptop closes?
+
+Terminal panes improve visibility, but they do not create isolation or a review queue. IDE chat improves editing, but agent sessions can still collide unless each has a separate environment. ADEs handle that coordination layer.
+
+## The Worktree-Per-Task Pattern
+
+Local ADEs commonly use Git worktrees. A worktree is another working directory connected to the same repository. Each task gets its own branch and files, while all tasks share repository history.
+
+That gives agent work three useful properties:
+
+- **Isolation:** agents do not overwrite one another's uncommitted edits
+- **Reviewability:** each task has a separate diff and branch
+- **Low overhead:** worktrees share Git objects instead of cloning the whole repository every time
+
+Worktrees do not solve every problem. Setup scripts must prepare dependencies and ignored files, services may need separate ports, and agents still need appropriate permissions. A good ADE manages those details instead of leaving them as manual Git chores.
+
+## What To Look For in an ADE
+
+Ignore the agent count in screenshots. Check the workflow:
+
+- Does every task get isolation by default?
+- Can it run the agents and subscriptions you already use?
+- Are setup, environment variables, ports, and secrets handled safely?
+- Can you see which sessions are running, blocked, or finished?
+- Is the full diff easy to review and revise?
+- Can you commit, push, and open a pull request without losing context?
+- Do sessions survive restarts and remote connections?
+- Can scripts, schedules, issue trackers, or other agents create work?
+
+The best choice depends on which of these becomes your bottleneck. See [Best Agent Development Environments in 2026](/compare/best-agent-development-environment) for a tool-by-tool comparison.
+
+## Do You Need an ADE?
+
+You probably do not need one if you run a single coding agent occasionally and review every edit as it happens. A good terminal or IDE is enough.
+
+An ADE becomes useful when you regularly:
+
+- Run two or more agents on one repository
+- Delegate tasks while continuing other work
+- Compare competing attempts at the same problem
+- Lose track of branches, terminals, or agent state
+- Want recurring agents to produce reviewable changes
+- Run agents on remote machines or managed sandboxes
+
+The practical setup is often an IDE plus an ADE. Use the IDE for direct coding and debugging. Use the ADE for parallel delegation and review.
+
+## Frequently Asked Questions
+
+### What does ADE stand for in AI coding?
+
+ADE stands for agent development environment or agentic development environment. Both describe a workspace built around running and reviewing coding agents. The acronym can also mean application development environment in older contexts, so check whether the surrounding text is about AI agents or classic app tooling.
+
+### Who coined the term ADE?
+
+No single person or standards body owns the term. AI coding products now use it to describe an agent-first development workspace. Treat it as an emerging category name, not a formal specification.
+
+### Is an ADE an AI code editor?
+
+Not necessarily. An AI code editor helps a developer write code with AI. An ADE manages tasks performed by agents. Some products combine the two, while dedicated ADEs often hand work off to your existing editor.
+
+### Is Superset an ADE?
+
+Yes. Superset treats each task as an isolated workspace with its own Git worktree, branch, terminals, ports, agent sessions, and review flow. It also exposes the workspace layer through a desktop app, CLI, SDK, and MCP server.
+
+### Can I use an ADE with my current IDE?
+
+Yes. A worktree managed by an ADE is still a normal directory and Git branch. You can open it in VS Code, Cursor, JetBrains, Xcode, Zed, or another editor whenever you want to inspect or edit the code directly.
