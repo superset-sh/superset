@@ -6,6 +6,7 @@ import {
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { SidebarWorkspaceNamesSection } from "./components/SidebarWorkspaceNamesSection";
 import { ThemeSection } from "./components/ThemeSection";
 
 /**
@@ -49,6 +50,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showSidebarWorkspaceNames = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -63,6 +68,9 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			<SectionList>
 				{showThemeSection && <ThemeSection key="theme" />}
 				{showMarkdown && <MarkdownStyleSection key="markdown" />}
+				{showSidebarWorkspaceNames && (
+					<SidebarWorkspaceNamesSection key="sidebar-workspace-names" />
+				)}
 				{(showEditorFont || showTerminalFont) && (
 					<FontSettingSection
 						key="typography"
