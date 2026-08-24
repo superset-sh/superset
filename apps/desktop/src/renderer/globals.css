@@ -34,8 +34,8 @@
 	--tertiary-active: #252220;
 	--destructive: #cc4444;
 	--destructive-foreground: #ffcccc;
-	--warning: #e0a458;
-	--warning-foreground: #2a1810;
+	--warning: #e5c07b;
+	--warning-foreground: #000000;
 	--border: #2a2827;
 	--input: #2a2827;
 	--ring: #3a3837;
@@ -82,7 +82,7 @@
 	--tertiary-active: oklch(0.9 0.003 40);
 	--destructive: oklch(0.577 0.245 27.325);
 	--destructive-foreground: oklch(0.985 0 0);
-	--warning: oklch(0.666 0.179 58.318);
+	--warning: oklch(0.554 0.113 86.265);
 	--warning-foreground: oklch(0.985 0 0);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);

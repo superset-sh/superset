@@ -56,6 +56,12 @@ export function applyUIColors(colors: UIColors): void {
 		const value = colors[key as keyof UIColors];
 		if (value) {
 			root.style.setProperty(cssVar, value);
+		} else {
+			// Clear it rather than skip it. Inline styles persist across theme
+			// switches, so skipping would leave the previous theme's value on
+			// :root and a theme that omits an optional colour would silently
+			// inherit it instead of the stylesheet default.
+			root.style.removeProperty(cssVar);
 		}
 	}
 }
