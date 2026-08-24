@@ -14,16 +14,19 @@ const SELECTOR_WIDTH = 240;
 // Undocked hero state: larger than the container and pushed down
 const HERO_SCALE = 1.08;
 const HERO_Y = 56;
+// The 8% hero oversize needs enough viewport gutter to remain fully visible.
+// Between the lg layout switch and this width, keep the mockup fitted instead.
+const HERO_EXPANSION_MEDIA_QUERY = "(min-width: 1440px)";
 
 export function ProductDemo() {
 	const [activeOption, setActiveOption] = useState<ActiveDemo>(
 		"Orchestrate Parallel Agents",
 	);
-	const [isDesktop, setIsDesktop] = useState(false);
+	const [hasHeroExpansionRoom, setHasHeroExpansionRoom] = useState(false);
 
 	useEffect(() => {
-		const mq = window.matchMedia("(min-width: 1024px)");
-		const update = () => setIsDesktop(mq.matches);
+		const mq = window.matchMedia(HERO_EXPANSION_MEDIA_QUERY);
+		const update = () => setHasHeroExpansionRoom(mq.matches);
 		update();
 		mq.addEventListener("change", update);
 		return () => mq.removeEventListener("change", update);
@@ -66,15 +69,13 @@ export function ProductDemo() {
 			<div className="relative flex-1 min-w-0">
 				<m.div
 					className="relative"
-					style={
-						isDesktop
-							? {
-									scale: mockupScale,
-									y: mockupY,
-									transformOrigin: "100% 100%",
-								}
-							: undefined
-					}
+					style={{
+						// Keep these style keys mounted so Framer Motion can attach the
+						// scroll-linked values when the media query changes after hydration.
+						scale: hasHeroExpansionRoom ? mockupScale : 1,
+						y: hasHeroExpansionRoom ? mockupY : 0,
+						transformOrigin: "100% 100%",
+					}}
 				>
 					{/* Stage lighting: soft ember-tinted glow behind the top of the
 					    window, falling off to the page black at the edges */}
