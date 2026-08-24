@@ -11,6 +11,9 @@ export const MODEL_STORAGE_KEY = "lastSelectedV2WorkspaceCreateModelByPreset";
 // JSON map of presetId → effort id; same contract as MODEL_STORAGE_KEY.
 export const EFFORT_STORAGE_KEY = "lastSelectedV2WorkspaceCreateEffortByPreset";
 
+// JSON map of presetId → launch mode id; same contract as MODEL_STORAGE_KEY.
+export const MODE_STORAGE_KEY = "lastSelectedV2WorkspaceCreateModeByPreset";
+
 export const PILL_BUTTON_CLASS =
 	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
 

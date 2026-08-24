@@ -12,6 +12,7 @@ import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
 	validateAgentEffortSelection,
+	validateAgentModeSelection,
 	validateAgentResumeSelection,
 } from "./agents";
 
@@ -279,6 +280,37 @@ describe("buildTerminalAgentLaunch", () => {
 		).toThrow(/does not support resuming a session by id/);
 	});
 
+	it("builds OMP model, effort, and plan-mode arguments", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000c",
+				presetId: "pi",
+				label: "Oh My Pi",
+				command: "omp",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: JSON.stringify(["--resume"]),
+				envJson: "{}",
+				displayOrder: 2,
+			})
+			.run();
+
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: "11111111-1111-1111-1111-111111111111",
+			agent: "pi",
+			prompt: "do the thing",
+			model: "@plan",
+			effort: "high",
+			mode: "plan",
+		});
+
+		expect(launch.fullCommand).toBe(
+			"'omp' '--model' '@plan' '--thinking' 'high' '--plan-yolo' 'do the thing'",
+		);
+	});
+
 	it("throws NOT_FOUND for an unknown agent", () => {
 		const db = createTestDb();
 		expect(() =>
@@ -430,5 +462,31 @@ describe("validateAgentEffortSelection", () => {
 				"Superset does not support a reasoning effort override. Omit effort to use the agent default.",
 			);
 		}
+	});
+});
+
+describe("validateAgentModeSelection", () => {
+	it("leaves the mode unset so the agent can use its own default", () => {
+		expect(() =>
+			validateAgentModeSelection("omp", "Oh My Pi", undefined),
+		).not.toThrow();
+	});
+
+	it("accepts OMP plan mode", () => {
+		expect(() =>
+			validateAgentModeSelection("omp", "Oh My Pi", "plan"),
+		).not.toThrow();
+	});
+
+	it("rejects unsupported launch modes", () => {
+		expect(() =>
+			validateAgentModeSelection("omp", "Oh My Pi", "review"),
+		).toThrow('Unsupported launch mode "review" for Oh My Pi');
+		expect(() => validateAgentModeSelection("pi", "Pi", "plan")).toThrow(
+			"Pi does not support a launch mode override",
+		);
+		expect(() =>
+			validateAgentModeSelection("claude", "Claude", "plan"),
+		).toThrow("Claude does not support a launch mode override");
 	});
 });

@@ -25,7 +25,10 @@ import {
 	protectedProcedure,
 	router,
 } from "../../index";
-import { buildTerminalAgentLaunch, validateAgentLaunchEffort } from "../agents";
+import {
+	buildTerminalAgentLaunch,
+	validateAgentLaunchOptions,
+} from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
@@ -523,7 +526,7 @@ export const workspacesRouter = router({
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			for (const launch of input.agents ?? []) {
-				validateAgentLaunchEffort(ctx.db, launch);
+				validateAgentLaunchOptions(ctx.db, launch);
 			}
 
 			const localProject = requireLocalProject(ctx, input.projectId);
@@ -1125,6 +1128,7 @@ export const workspacesRouter = router({
 						attachmentIds: soleLaunch.attachmentIds,
 						model: soleLaunch.model,
 						effort: soleLaunch.effort,
+						mode: soleLaunch.mode,
 					});
 				} catch (err) {
 					console.warn(
@@ -1237,7 +1241,7 @@ export const workspacesRouter = router({
 				});
 			}
 			for (const launch of input.agents ?? []) {
-				validateAgentLaunchEffort(ctx.db, launch);
+				validateAgentLaunchOptions(ctx.db, launch);
 			}
 			requireProjectRepoPath(requireLocalProject(ctx, input.projectId));
 

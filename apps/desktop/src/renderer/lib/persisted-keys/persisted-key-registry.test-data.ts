@@ -147,6 +147,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["lastSelectedV2WorkspaceCreateEffortByPreset"],
 	],
 	[
+		"src/renderer/hooks/useAgentModePreference/useAgentModePreference.ts",
+		["lastSelectedV2WorkspaceCreateModeByPreset"],
+	],
+	[
 		"src/renderer/hooks/useAgentLaunchPreferences/useAgentLaunchPreferences.ts",
 		[
 			"lastSelectedV2WorkspaceCreateAgent",
