@@ -18,6 +18,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
@@ -234,6 +235,14 @@ function PullRequestDetailPage() {
 	const createdAtMs = data?.createdAt
 		? new Date(data.createdAt).getTime()
 		: null;
+	const createdAtRelative =
+		createdAtMs === null ? null : formatRelativeTime(createdAtMs);
+	const createdAtLabel =
+		createdAtRelative === null
+			? null
+			: createdAtRelative === "now"
+				? "now"
+				: `${createdAtRelative} ago`;
 	const header = (
 		<div className="flex shrink-0 flex-col border-b border-border">
 			<div className="flex h-10 shrink-0 items-center gap-1 px-4">
@@ -263,10 +272,14 @@ function PullRequestDetailPage() {
 			</div>
 
 			<div className="flex items-start justify-between gap-3 px-4 pb-3">
-				<h1 className="min-w-0 truncate text-xl font-semibold leading-tight">
-					{data?.title ??
-						(itemNumber === null ? "Pull request" : `#${itemNumber}`)}
-				</h1>
+				{isLoading ? (
+					<Skeleton className="h-6 w-72 max-w-full" />
+				) : (
+					<h1 className="min-w-0 truncate text-xl font-semibold leading-tight">
+						{data?.title ??
+							(itemNumber === null ? "Pull request" : `#${itemNumber}`)}
+					</h1>
+				)}
 				{data && (
 					<div className="flex shrink-0 items-center gap-2">
 						<Button variant="ghost" size="icon-sm" asChild>
@@ -332,7 +345,8 @@ function PullRequestDetailPage() {
 											</span>
 										</DropdownMenuItem>
 									))}
-									{data.checksStatus !== "success" && (
+									{(data.checksStatus === "pending" ||
+										data.checksStatus === "failure") && (
 										<>
 											<DropdownMenuSeparator />
 											{data.checksStatus === "pending" && (
@@ -384,6 +398,15 @@ function PullRequestDetailPage() {
 				)}
 			</div>
 
+			{isLoading && (
+				<div className="flex flex-wrap items-center gap-2 px-4 pb-3">
+					<Skeleton className="h-[22px] w-16 rounded-full" />
+					<Skeleton className="size-5 rounded-full" />
+					<Skeleton className="h-3 w-20" />
+					<Skeleton className="h-3 w-10" />
+					<Skeleton className="h-3 w-14" />
+				</div>
+			)}
 			{data && (
 				<div className="flex flex-wrap items-center gap-2 px-4 pb-3 text-xs text-muted-foreground">
 					<span
@@ -413,12 +436,10 @@ function PullRequestDetailPage() {
 					<span className="shrink-0 font-mono tabular-nums">
 						#{data.number}
 					</span>
-					{createdAtMs !== null && (
+					{createdAtLabel !== null && (
 						<>
 							<span aria-hidden>·</span>
-							<span className="shrink-0">
-								{formatRelativeTime(createdAtMs)} ago
-							</span>
+							<span className="shrink-0">{createdAtLabel}</span>
 						</>
 					)}
 				</div>
