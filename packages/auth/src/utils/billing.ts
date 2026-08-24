@@ -27,13 +27,21 @@ export async function getOrganizationOwners(organizationId: string) {
 		);
 }
 
-/** Everyone who should hear about a billing change: owners and admins. */
+/**
+ * Everyone who should hear about a billing change: owners and admins.
+ *
+ * Returns the role too. Admins are told what happened, but anything that
+ * grants billing control — a Stripe portal session, which is a bearer link —
+ * stays with owners, because `requireOwnerWithCustomer` denies admins exactly
+ * that in the app.
+ */
 export async function getOrganizationBillingRecipients(organizationId: string) {
 	return db
 		.select({
 			id: authSchema.users.id,
 			name: authSchema.users.name,
 			email: authSchema.users.email,
+			role: members.role,
 		})
 		.from(members)
 		.innerJoin(authSchema.users, eq(members.userId, authSchema.users.id))

@@ -185,6 +185,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 					<PaymentFailedBanner
 						amountDue={amountDue}
 						hostedInvoiceUrl={outstandingInvoice?.hostedInvoiceUrl ?? null}
+						isOwner={isOwner}
 						onPayInvoice={(url) => openUrl.mutate(url)}
 					/>
 				)}

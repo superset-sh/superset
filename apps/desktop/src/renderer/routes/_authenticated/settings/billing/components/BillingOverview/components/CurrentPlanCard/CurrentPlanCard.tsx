@@ -30,17 +30,20 @@ export function CurrentPlanCard({
 	const isCancelingAtPeriodEnd = isPaidPlan && !isEnterprise && !!cancelAt;
 	const isPaymentFailing = isPaidPlan && isPaymentFailingStatus(status);
 
-	// While collection is failing, the period end is not a renewal we can
-	// promise, so this row says nothing about it — the banner above covers it.
-	const hint = isPaymentFailing
-		? null
-		: isCancelingAtPeriodEnd && cancelAt
-			? `Cancels ${format(new Date(cancelAt), "MMMM d, yyyy")} — downgrades to Free at the end of the billing period.`
-			: isEnterprise
-				? "Managed by your organization admin."
-				: isPaidPlan && periodEnd
-					? `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}.`
-					: `${plan.description}.`;
+	// While collection is failing the period end is not a renewal we can
+	// promise, so this row drops that line — the banner above covers it. A
+	// scheduled cancellation still shows: the banner never mentions it, and it
+	// is the date the organization actually loses access.
+	const hint =
+		isPaymentFailing && !isCancelingAtPeriodEnd
+			? null
+			: isCancelingAtPeriodEnd && cancelAt
+				? `Cancels ${format(new Date(cancelAt), "MMMM d, yyyy")} — downgrades to Free at the end of the billing period.`
+				: isEnterprise
+					? "Managed by your organization admin."
+					: isPaidPlan && periodEnd
+						? `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}.`
+						: `${plan.description}.`;
 
 	return (
 		<div className="flex items-center justify-between gap-8 py-3">

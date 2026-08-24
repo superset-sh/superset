@@ -647,7 +647,15 @@ export const auth = betterAuth({
 
 					if (subscription) return;
 
-					const currentCount = await countBillableSeats(organization.id);
+					// Not countBillableSeats: the free-plan limit is about how many
+					// people are in the organization, not how many seats we bill,
+					// so a member pending deletion still occupies the one slot.
+					const memberCount = await db
+						.select({ count: count() })
+						.from(members)
+						.where(eq(members.organizationId, organization.id));
+
+					const currentCount = memberCount[0]?.count ?? 0;
 
 					if (currentCount >= 1) {
 						throw new Error(
@@ -757,10 +765,14 @@ export const auth = betterAuth({
 						typeof stripeSub.customer === "string"
 							? stripeSub.customer
 							: stripeSub.customer.id;
-					const preview = await previewNextInvoice(
-						customerId,
-						subscription.stripeSubscriptionId,
-					);
+					const preview = itemId
+						? await previewNextInvoice(
+								customerId,
+								subscription.stripeSubscriptionId,
+								itemId,
+								"charge",
+							)
+						: null;
 
 					await resend.batch.send(
 						recipients.map((recipient) => ({
@@ -864,10 +876,14 @@ export const auth = betterAuth({
 						typeof stripeSub.customer === "string"
 							? stripeSub.customer
 							: stripeSub.customer.id;
-					const preview = await previewNextInvoice(
-						customerId,
-						subscription.stripeSubscriptionId,
-					);
+					const preview = itemId
+						? await previewNextInvoice(
+								customerId,
+								subscription.stripeSubscriptionId,
+								itemId,
+								"credit",
+							)
+						: null;
 
 					await resend.batch.send(
 						recipients.map((recipient) => ({
@@ -1153,7 +1169,8 @@ export const auth = betterAuth({
 								organizationName: org.name,
 								planName: subscription.plan,
 								accessEndsAt,
-								billingPortalUrl: portalSession.url,
+								billingPortalUrl:
+									recipient.role === "owner" ? portalSession.url : undefined,
 							}),
 						})),
 					);
@@ -1221,7 +1238,8 @@ export const auth = betterAuth({
 									organizationName: org.name,
 									planName: subscription?.plan ?? "Pro",
 									amount,
-									billingPortalUrl: portalSession.url,
+									billingPortalUrl:
+										recipient.role === "owner" ? portalSession.url : undefined,
 								}),
 							})),
 						);

@@ -83,18 +83,34 @@ function isBillableInvoice(invoice: Stripe.Invoice): boolean {
 	return invoice.status === "paid" || isUnpaid(invoice);
 }
 
-function toInvoiceSummary(invoice: Stripe.Invoice) {
+function toInvoiceSummary(
+	invoice: Stripe.Invoice,
+	options: { includeHostedUrl?: boolean } = {},
+) {
 	return {
 		id: invoice.id,
 		date: invoice.created,
 		status: invoice.status,
 		isUnpaid: isUnpaid(invoice),
 		amountPaid: invoice.amount_paid,
-		amountDue: invoice.amount_due,
+		// amount_due is frozen at finalization; amount_remaining is what is
+		// still owed after any partial payment through the hosted invoice.
+		amountDue: invoice.amount_remaining ?? invoice.amount_due,
 		currency: invoice.currency,
-		hostedInvoiceUrl: invoice.hosted_invoice_url,
+		hostedInvoiceUrl:
+			options.includeHostedUrl === false ? null : invoice.hosted_invoice_url,
 		dueDate: invoice.due_date,
 	};
+}
+
+async function isBillingOwner(userId: string, organizationId: string) {
+	const member = await db.query.members.findFirst({
+		where: and(
+			eq(members.userId, userId),
+			eq(members.organizationId, organizationId),
+		),
+	});
+	return member?.role === "owner";
 }
 
 export const billingRouter = {
@@ -153,7 +169,7 @@ export const billingRouter = {
 		return invoiceList.data
 			.filter(isBillableInvoice)
 			.sort((a, b) => b.created - a.created)
-			.map(toInvoiceSummary);
+			.map((invoice) => toInvoiceSummary(invoice));
 	}),
 
 	/**
@@ -188,7 +204,10 @@ export const billingRouter = {
 			.filter(isUnpaid)
 			.sort((a, b) => b.created - a.created)[0];
 
-		return unpaid ? toInvoiceSummary(unpaid) : null;
+		if (!unpaid) return null;
+
+		const isOwner = await isBillingOwner(ctx.session.user.id, activeOrgId);
+		return toInvoiceSummary(unpaid, { includeHostedUrl: isOwner });
 	}),
 
 	details: protectedProcedure.query(async ({ ctx }) => {

@@ -5,6 +5,7 @@ import { LuTriangleAlert } from "react-icons/lu";
 interface PaymentFailedBannerProps {
 	amountDue: string | null;
 	hostedInvoiceUrl: string | null;
+	isOwner: boolean;
 	onPayInvoice?: (hostedInvoiceUrl: string) => void;
 	className?: string;
 }
@@ -17,9 +18,19 @@ interface PaymentFailedBannerProps {
 export function PaymentFailedBanner({
 	amountDue,
 	hostedInvoiceUrl,
+	isOwner,
 	onPayInvoice,
 	className,
 }: PaymentFailedBannerProps) {
+	// Same split as the sidebar card: only owners can act, so only owners are
+	// told to. Non-owners get the amount without a dead-end button.
+	const message = isOwner
+		? amountDue
+			? `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`
+			: "We couldn't charge your payment method. Update it to keep this plan."
+		: amountDue
+			? `We couldn't charge this organization's payment method for ${amountDue}. Ask an owner to update it.`
+			: "We couldn't charge this organization's payment method. Ask an owner to update it.";
 	return (
 		<div
 			className={cn(
@@ -33,13 +44,10 @@ export function PaymentFailedBanner({
 					aria-hidden="true"
 				/>
 				<span>
-					<span className="font-medium">Payment failed.</span>{" "}
-					{amountDue
-						? `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`
-						: "We couldn't charge your payment method. Update it to keep this plan."}
+					<span className="font-medium">Payment failed.</span> {message}
 				</span>
 			</div>
-			{hostedInvoiceUrl && onPayInvoice && (
+			{isOwner && hostedInvoiceUrl && onPayInvoice && (
 				<Button
 					variant="outline"
 					size="sm"
