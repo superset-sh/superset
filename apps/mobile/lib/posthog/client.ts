@@ -14,8 +14,12 @@ export const posthogConfig = {
 	},
 };
 
-/** Ours rather than the provider's: half the captures are in mutation bodies
- *  and stores, where `usePostHog()` is not reachable. */
+/**
+ * Ours rather than the provider's so `registerSuperProperties` below can run at
+ * import time. Registering from a provider effect instead loses the app's first
+ * $screen: child effects run first, so the screen tracker captures before the
+ * properties exist (measured — that event went out with no `app_name`).
+ */
 export const posthog = new PostHog(posthogConfig.apiKey, {
 	host: posthogConfig.host,
 	enableSessionReplay: posthogConfig.options.enableSessionReplay,

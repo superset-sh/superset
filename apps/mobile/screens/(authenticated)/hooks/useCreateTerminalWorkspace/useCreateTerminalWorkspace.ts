@@ -125,7 +125,6 @@ export function useCreateTerminalWorkspace() {
 					project_id: target.projectId,
 					host_kind: "remote",
 					source: "mobile_composer",
-					failure_reason: failureReason,
 				});
 				throw error;
 			}

@@ -31,8 +31,10 @@ function ScreenTracker() {
 		const path = segments.filter((segment) => !segment.startsWith("("));
 		if (path.at(-1) === "index") path.pop();
 		const screen = path.length > 0 ? `/${path.join("/")}` : "/";
-		if (screen === previous.current) return;
-		previous.current = screen;
+		// Keyed on the pair: one workspace to another keeps the same pattern.
+		const key = `${screen}:${id ?? ""}`;
+		if (key === previous.current) return;
+		previous.current = key;
 		posthog.screen(screen, id ? { workspace_id: id } : undefined);
 	}, [segments, id]);
 

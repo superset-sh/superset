@@ -80,7 +80,6 @@ export function useCreateCloudWorkspace() {
 				host_kind: "cloud",
 				source: "mobile_composer",
 				base_branch: branch,
-				failure_reason: error instanceof Error ? error.message : String(error),
 			});
 			Alert.alert(
 				"Could not create cloud workspace",

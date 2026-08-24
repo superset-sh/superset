@@ -77,7 +77,6 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				agent_type: agentId,
 				workspace_id: target.workspaceId,
 				result: "failed",
-				failure_reason: error.message,
 			});
 			Alert.alert(
 				"Could not start agent",
