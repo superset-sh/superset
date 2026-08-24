@@ -1,4 +1,3 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import {
 	LuPanelRight,
 	LuPanelRightClose,
@@ -20,35 +19,26 @@ export function PullRequestDetailToggle() {
 	);
 
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<button
-					type="button"
-					onClick={toggleDetailCollapsed}
-					aria-label={
-						isDetailCollapsed
-							? "Show pull request preview"
-							: "Hide pull request preview"
-					}
-					className="group flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
-				>
-					<span className="group-hover:hidden">
-						<LuPanelRight className="size-4" strokeWidth={1.5} />
-					</span>
-					<span className="hidden group-hover:block">
-						{isDetailCollapsed ? (
-							<LuPanelRightOpen className="size-4" strokeWidth={1.5} />
-						) : (
-							<LuPanelRightClose className="size-4" strokeWidth={1.5} />
-						)}
-					</span>
-				</button>
-			</TooltipTrigger>
-			<TooltipContent side="bottom">
-				{isDetailCollapsed
+		<button
+			type="button"
+			onClick={toggleDetailCollapsed}
+			aria-label={
+				isDetailCollapsed
 					? "Show pull request preview"
-					: "Hide pull request preview"}
-			</TooltipContent>
-		</Tooltip>
+					: "Hide pull request preview"
+			}
+			className="group flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+		>
+			<span className="group-hover:hidden">
+				<LuPanelRight className="size-4" strokeWidth={1.5} />
+			</span>
+			<span className="hidden group-hover:block">
+				{isDetailCollapsed ? (
+					<LuPanelRightOpen className="size-4" strokeWidth={1.5} />
+				) : (
+					<LuPanelRightClose className="size-4" strokeWidth={1.5} />
+				)}
+			</span>
+		</button>
 	);
 }

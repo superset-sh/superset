@@ -102,10 +102,10 @@ export function PullRequestRow({
 					<PullRequestChecksSummary checks={pr.checks} />
 					{hasDiffStat && (
 						<span className="flex items-center gap-1 tabular-nums">
-							<span className="text-emerald-600 dark:text-emerald-400">
+							<span className="text-emerald-600 [.dark_&]:text-[#34d399]">
 								+{pr.additions ?? 0}
 							</span>
-							<span className="text-red-600 dark:text-red-400">
+							<span className="text-red-600 [.dark_&]:text-[#e0918a]">
 								-{pr.deletions ?? 0}
 							</span>
 						</span>
