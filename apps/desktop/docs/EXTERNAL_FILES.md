@@ -47,13 +47,16 @@ its hook entries into these files while preserving user-defined entries:
 
 For Codex specifically, Superset now relies on native `~/.codex/hooks.json`
 registration for durable prompt/tool lifecycle events. The wrapper in
-`~/.superset[-{workspace}]/bin/codex` enables those hooks and keeps the
-session-log watcher as a best-effort compatibility bridge for Start and
-permission events on older Codex releases. It does not override the legacy
-`notify` callback because that callback cannot distinguish main-agent and
-subagent completions. On startup, Superset rewrites only its own managed entries in
-`~/.codex/hooks.json` to point at the current environment's `notify.sh`, while
-preserving any user-defined Codex hooks.
+`~/.superset[-{workspace}]/bin/codex` enables those hooks — appending
+`--dangerously-bypass-hook-trust` when the launch command doesn't already pass
+it, because Codex silently skips untrusted `hooks.json` entries and Superset
+would otherwise lose the Stop signal — and keeps the session-log watcher as a
+best-effort compatibility bridge for Start and permission events on older
+Codex releases. It does not override the legacy `notify` callback because that
+callback cannot distinguish main-agent and subagent completions. On startup,
+Superset rewrites only its own managed entries in `~/.codex/hooks.json` to
+point at the current environment's `notify.sh`, while preserving any
+user-defined Codex hooks.
 
 ### `zsh/` and `bash/` - Shell Integration
 
