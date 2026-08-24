@@ -586,13 +586,15 @@ export function WorkspaceScreen() {
 						{/* The WebView swallows every touch that lands on it, so the back
 						    swipe never starts over the terminal. This strip keeps a
 						    finger's width of the left edge native, which is all UIKit
-						    needs. collapsable={false} is load-bearing: with nothing to
-						    draw, the view is flattened away and the touch reaches WebKit
-						    again. Dragging further right stays the terminal's — WebKit
-						    still owns those touches, so no drag over output can pop. */}
-						<View
+						    needs. Dragging further right stays the terminal's — WebKit
+						    still owns those touches, so no drag over output can pop.
+						    It sits above the dismiss backdrop, so it carries the same
+						    blur; a Pressable also can't be flattened away, which an
+						    undrawn View would be — leaving the edge to WebKit again. */}
+						<Pressable
+							accessibilityLabel="Dismiss keyboard"
 							className="absolute bottom-0 left-0 top-0 w-5"
-							collapsable={false}
+							onPress={() => composerRef.current?.blur()}
 						/>
 					</>
 				) : cloud && !workspace ? (
