@@ -744,6 +744,12 @@ export const auth = betterAuth({
 						pricePerSeat * quantity,
 						currency,
 					);
+					// unit_amount is per billing period: on an annual price the total
+					// above is yearly, and calling it monthly understates it 12x.
+					const billingInterval =
+						stripeSub.items.data[0]?.price?.recurring?.interval === "year"
+							? ("yearly" as const)
+							: ("monthly" as const);
 
 					// The base total above is not what gets charged: the mid-cycle
 					// catch-up rides on the same invoice. Quote both or quote neither.
@@ -771,6 +777,7 @@ export const auth = betterAuth({
 								addedByName: "A team admin",
 								newSeatCount: quantity,
 								newMonthlyTotal,
+								billingInterval,
 							}),
 						})),
 					);
@@ -846,6 +853,12 @@ export const auth = betterAuth({
 						pricePerSeat * quantity,
 						currency,
 					);
+					// unit_amount is per billing period: on an annual price the total
+					// above is yearly, and calling it monthly understates it 12x.
+					const billingInterval =
+						stripeSub.items.data[0]?.price?.recurring?.interval === "year"
+							? ("yearly" as const)
+							: ("monthly" as const);
 
 					const customerId =
 						typeof stripeSub.customer === "string"
@@ -871,6 +884,7 @@ export const auth = betterAuth({
 								removedByName: "A team admin",
 								newSeatCount: quantity,
 								newMonthlyTotal,
+								billingInterval,
 							}),
 						})),
 					);

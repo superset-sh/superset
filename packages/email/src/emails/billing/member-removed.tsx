@@ -9,6 +9,7 @@ interface MemberRemovedBillingEmailProps {
 	removedByName: string;
 	newSeatCount: number;
 	newMonthlyTotal: string;
+	billingInterval?: "monthly" | "yearly";
 	prorationAmount?: string | null;
 	nextInvoiceTotal?: string | null;
 }
@@ -21,10 +22,15 @@ export function MemberRemovedBillingEmail({
 	removedByName = "John Smith",
 	newSeatCount = 4,
 	newMonthlyTotal = "$40.00",
+	billingInterval = "monthly",
 	prorationAmount = "-$8.20",
 	nextInvoiceTotal = "$31.80",
 }: MemberRemovedBillingEmailProps) {
 	const hasPreview = Boolean(prorationAmount && nextInvoiceTotal);
+	// unit_amount is per billing period, so on an annual price this total is
+	// yearly. Labelling it monthly understates the charge twelvefold.
+	const totalLabel =
+		billingInterval === "yearly" ? "New yearly total" : "New monthly total";
 
 	return (
 		<EmailLayout
@@ -46,7 +52,7 @@ export function MemberRemovedBillingEmail({
 
 			<Hr className="border-border my-4" />
 			<DetailRow label="Seats" value={String(newSeatCount)} />
-			<DetailRow label="New monthly total" value={newMonthlyTotal} />
+			<DetailRow label={totalLabel} value={newMonthlyTotal} />
 			{hasPreview && (
 				<>
 					<DetailRow
@@ -60,8 +66,8 @@ export function MemberRemovedBillingEmail({
 
 			<Text className="text-[13px] leading-5 text-muted m-0 mb-4">
 				{hasPreview
-					? `Your next invoice is ${nextInvoiceTotal} — the new monthly total with ${prorationAmount} credited for the unused time on the removed seat.`
-					: "Your next invoice includes a credit for the unused time on the removed seat, so it will differ from the monthly total above."}
+					? `Your next invoice is ${nextInvoiceTotal} — the new plan total with ${prorationAmount} credited for the unused time on the removed seat.`
+					: "Your next invoice includes a credit for the unused time on the removed seat, so it will differ from the plan total above."}
 			</Text>
 
 			<Text className="text-[13px] leading-5 text-muted m-0">
