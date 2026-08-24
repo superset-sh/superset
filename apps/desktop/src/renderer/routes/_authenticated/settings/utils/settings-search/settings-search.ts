@@ -312,6 +312,15 @@ const INTEGRATION_KEYWORDS: Record<IntegrationProvider, string[]> = {
 		"triggers",
 		"automations",
 	],
+	plain: [
+		"support",
+		"threads",
+		"tickets",
+		"customers",
+		"tasks",
+		"sync",
+		"customer support",
+	],
 };
 
 const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(
@@ -1361,25 +1370,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	...INTEGRATION_SEARCH_ITEMS,
-	{
-		id: SETTING_ITEM_ID.INTEGRATIONS_PLAIN,
-		section: "integrations",
-		title: "Plain",
-		description: "Sync Plain support threads as tasks",
-		keywords: [
-			"integrations",
-			"plain",
-			"support",
-			"threads",
-			"tickets",
-			"customers",
-			"tasks",
-			"sync",
-			"connect",
-			"connected",
-			"customer support",
-		],
-	},
 	{
 		id: SETTING_ITEM_ID.BILLING_OVERVIEW,
 		section: "billing",
