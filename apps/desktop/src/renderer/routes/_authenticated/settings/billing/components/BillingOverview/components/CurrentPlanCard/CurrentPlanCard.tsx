@@ -1,15 +1,7 @@
 import { isPaymentFailingStatus } from "@superset/shared/billing";
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import { cn } from "@superset/ui/utils";
 import { format } from "date-fns";
 import { PLANS, type PlanTier } from "../../../../constants";
-
-interface OutstandingInvoice {
-	amountDue: number;
-	currency: string;
-	hostedInvoiceUrl: string | null | undefined;
-}
 
 interface CurrentPlanCardProps {
 	currentPlan: PlanTier;
@@ -20,15 +12,6 @@ interface CurrentPlanCardProps {
 	cancelAt?: Date | null;
 	periodEnd?: Date | null;
 	status?: string | null;
-	outstandingInvoice?: OutstandingInvoice | null;
-	onPayInvoice?: (hostedInvoiceUrl: string) => void;
-}
-
-function formatAmount(amount: number, currency: string) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: currency.toUpperCase(),
-	}).format(amount / 100);
 }
 
 export function CurrentPlanCard({
@@ -40,8 +23,6 @@ export function CurrentPlanCard({
 	cancelAt,
 	periodEnd,
 	status,
-	outstandingInvoice,
-	onPayInvoice,
 }: CurrentPlanCardProps) {
 	const plan = PLANS[currentPlan];
 	const isPaidPlan = currentPlan !== "free";
@@ -49,19 +30,10 @@ export function CurrentPlanCard({
 	const isCancelingAtPeriodEnd = isPaidPlan && !isEnterprise && !!cancelAt;
 	const isPaymentFailing = isPaidPlan && isPaymentFailingStatus(status);
 
-	const amountDue = outstandingInvoice
-		? formatAmount(outstandingInvoice.amountDue, outstandingInvoice.currency)
-		: null;
-	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
-
-	// The badge already says "Payment failed"; the hint adds the amount and the
-	// consequence, and leaves the action to the button next to it.
-	const paymentFailedHint = amountDue
-		? `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`
-		: "Update your payment method to keep this plan.";
-
+	// While collection is failing, the period end is not a renewal we can
+	// promise, so this row says nothing about it — the banner above covers it.
 	const hint = isPaymentFailing
-		? paymentFailedHint
+		? null
 		: isCancelingAtPeriodEnd && cancelAt
 			? `Cancels ${format(new Date(cancelAt), "MMMM d, yyyy")} — downgrades to Free at the end of the billing period.`
 			: isEnterprise
@@ -80,36 +52,13 @@ export function CurrentPlanCard({
 							{plan.name}
 						</span>
 					)}
-					{isPaymentFailing && (
-						<Badge
-							variant="outline"
-							className="border-warning/30 bg-warning/10 text-warning"
-						>
-							Payment failed
-						</Badge>
-					)}
 				</div>
-				<div
-					className={cn(
-						"text-xs mt-0.5",
-						isPaymentFailing ? "text-warning" : "text-muted-foreground",
-					)}
-				>
-					{hint}
-				</div>
+				{hint && (
+					<div className="text-xs mt-0.5 text-muted-foreground">{hint}</div>
+				)}
 			</div>
 			{isPaidPlan && !isEnterprise && (
-				<div className="flex shrink-0 items-center gap-1">
-					{isPaymentFailing && hostedInvoiceUrl && onPayInvoice && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => onPayInvoice(hostedInvoiceUrl)}
-							className="text-warning hover:bg-warning/10 hover:text-warning"
-						>
-							Pay now
-						</Button>
-					)}
+				<div className="shrink-0">
 					{isCancelingAtPeriodEnd ? (
 						<Button
 							variant="ghost"

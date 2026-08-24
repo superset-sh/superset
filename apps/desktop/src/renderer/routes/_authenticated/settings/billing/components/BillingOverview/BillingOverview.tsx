@@ -20,6 +20,7 @@ import {
 import type { PlanTier } from "../../constants";
 import { BillingDetails } from "./components/BillingDetails";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
+import { PaymentFailedBanner } from "./components/PaymentFailedBanner";
 import { RecentInvoices } from "./components/RecentInvoices";
 import { UpgradeCard } from "./components/UpgradeCard";
 
@@ -69,11 +70,18 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const memberCount =
 		members && members.length > 0 ? members.length : undefined;
 
+	const isPaymentFailing = isPaymentFailingStatus(activePlan?.status);
 	const { data: outstandingInvoice } =
 		cloudTrpc.billing.outstandingInvoice.useQuery(undefined, {
-			enabled: isPaymentFailingStatus(activePlan?.status),
+			enabled: isPaymentFailing,
 		});
 	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const amountDue = outstandingInvoice
+		? new Intl.NumberFormat("en-US", {
+				style: "currency",
+				currency: outstandingInvoice.currency.toUpperCase(),
+			}).format(outstandingInvoice.amountDue / 100)
+		: null;
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -173,6 +181,13 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			</div>
 
 			<div className="space-y-6">
+				{isPaymentFailing && (
+					<PaymentFailedBanner
+						amountDue={amountDue}
+						hostedInvoiceUrl={outstandingInvoice?.hostedInvoiceUrl ?? null}
+						onPayInvoice={(url) => openUrl.mutate(url)}
+					/>
+				)}
 				{showOverview && (
 					<div>
 						<h3 className="text-sm font-medium mb-2">Plan</h3>
@@ -186,8 +201,6 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 								cancelAt={activePlan?.cancelAt}
 								periodEnd={activePlan?.periodEnd}
 								status={activePlan?.status}
-								outstandingInvoice={outstandingInvoice}
-								onPayInvoice={(url) => openUrl.mutate(url)}
 							/>
 							{plan === "free" && (
 								<UpgradeCard
