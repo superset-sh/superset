@@ -60,11 +60,13 @@ import { WorkspacePlaceholder } from "./components/WorkspacePlaceholder";
 
 const NOTICE_MS = 1500;
 
+// No fullScreenGestureEnabled: false here. On iOS 26 the system's back swipe
+// IS the full-screen one, and react-native-screens reads that flag as "no back
+// gesture at all" rather than "edge only" — the old edge recognizer is gone.
 const headerOptions = {
 	headerShown: true,
 	headerBackButtonDisplayMode: "minimal",
 	headerShadowVisible: false,
-	fullScreenGestureEnabled: false,
 } as const;
 
 const PENDING_CREATE_POLL_MS = 2_000;
@@ -581,6 +583,17 @@ export function WorkspaceScreen() {
 								style={StyleSheet.absoluteFill}
 							/>
 						) : null}
+						{/* The WebView swallows every touch that lands on it, so the back
+						    swipe never starts over the terminal. This strip keeps a
+						    finger's width of the left edge native, which is all UIKit
+						    needs. collapsable={false} is load-bearing: with nothing to
+						    draw, the view is flattened away and the touch reaches WebKit
+						    again. Dragging further right stays the terminal's — WebKit
+						    still owns those touches, so no drag over output can pop. */}
+						<View
+							className="absolute bottom-0 left-0 top-0 w-5"
+							collapsable={false}
+						/>
 					</>
 				) : cloud && !workspace ? (
 					<CloudWorkspaceProvisioningState cloud={cloud} />

@@ -61,7 +61,6 @@ export default function AuthenticatedLayout() {
 					headerBackButtonDisplayMode: "minimal",
 					headerShadowVisible: false,
 					title: "Workspace",
-					fullScreenGestureEnabled: false,
 				}}
 			/>
 			<Stack.Screen
