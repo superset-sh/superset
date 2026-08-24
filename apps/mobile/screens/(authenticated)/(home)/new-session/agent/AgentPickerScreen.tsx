@@ -124,40 +124,41 @@ export function AgentPickerScreen() {
 					) : null}
 				</View>
 			) : null}
-			{configs.map((config) => {
-				// Persist the presetId, not the row id: config ids are per-host
-				// UUIDs, presetIds resolve on any host (agents.run accepts both).
-				const isSelected = config.presetId === agentId;
-				return (
-					<Pressable
-						key={config.id}
-						onPress={() => {
-							setAgentId(config.presetId);
-							router.back();
-						}}
-						className="flex-row items-center gap-2.5 py-2.5"
-					>
-						<AgentMark
-							agentId={config.iconId ?? config.presetId}
-							size={18}
-							color={theme.mutedForeground}
-						/>
-						<Text
-							className="flex-1 text-sm font-medium"
-							style={{ color: theme.foreground }}
+			{notice === null &&
+				configs.map((config) => {
+					// Persist the presetId, not the row id: config ids are per-host
+					// UUIDs, presetIds resolve on any host (agents.run accepts both).
+					const isSelected = config.presetId === agentId;
+					return (
+						<Pressable
+							key={config.id}
+							onPress={() => {
+								setAgentId(config.presetId);
+								router.back();
+							}}
+							className="flex-row items-center gap-2.5 py-2.5"
 						>
-							{config.label}
-						</Text>
-						{isSelected ? (
-							<Ionicons
-								name="checkmark-circle"
+							<AgentMark
+								agentId={config.iconId ?? config.presetId}
 								size={18}
-								color={theme.primary}
+								color={theme.mutedForeground}
 							/>
-						) : null}
-					</Pressable>
-				);
-			})}
+							<Text
+								className="flex-1 text-sm font-medium"
+								style={{ color: theme.foreground }}
+							>
+								{config.label}
+							</Text>
+							{isSelected ? (
+								<Ionicons
+									name="checkmark-circle"
+									size={18}
+									color={theme.primary}
+								/>
+							) : null}
+						</Pressable>
+					);
+				})}
 		</ScrollView>
 	);
 }

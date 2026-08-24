@@ -110,6 +110,7 @@ export function BranchPickerScreen() {
 		},
 	});
 
+	const resolvingHost = !isCloud && !host && hostsQuery.isPending;
 	const defaultBranch = data?.defaultBranch ?? null;
 	const branches = useMemo(
 		() => (data?.items ?? []).filter((branch) => branch.name !== defaultBranch),
@@ -183,12 +184,15 @@ export function BranchPickerScreen() {
 						onPress={() => selectAndClose(branch.name)}
 					/>
 				))}
-				{isLoading && !data ? (
+				{(isLoading || resolvingHost) && !data ? (
 					<View className="items-center py-6">
 						<Spinner size="small" />
 					</View>
 				) : null}
-				{!isLoading && !defaultBranch && branches.length === 0 ? (
+				{!isLoading &&
+				!resolvingHost &&
+				!defaultBranch &&
+				branches.length === 0 ? (
 					<Text
 						className="py-6 text-center text-sm"
 						style={{ color: theme.mutedForeground }}
