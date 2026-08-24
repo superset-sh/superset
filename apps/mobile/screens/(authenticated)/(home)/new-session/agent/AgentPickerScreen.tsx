@@ -60,26 +60,35 @@ export function AgentPickerScreen() {
 
 	const configsQuery = useHostAgentConfigs({
 		machineId: host?.machineId ?? null,
-		hostUrl: host ? hostServiceUrl(host.organizationId, host.machineId) : null,
+		hostUrl:
+			host && isOnline
+				? hostServiceUrl(host.organizationId, host.machineId)
+				: null,
 	});
 	const configs = configsQuery.data ?? [];
 
 	let notice: string | null = null;
 	let isLoading = false;
-	let canRetry = false;
+	let retry: (() => void) | null = null;
 	if (!machineId) {
 		notice = "No project selected";
 	} else if (machineId === CLOUD_TARGET_ID) {
 		notice = "Cloud workspaces don't run an agent yet";
 	} else if (!host) {
-		if (hostsQuery.isPending) isLoading = true;
-		else notice = "That machine is no longer available";
+		if (hostsQuery.isPending) {
+			isLoading = true;
+		} else if (hostsQuery.isError) {
+			notice = "Could not load your machines";
+			retry = () => void hostsQuery.refetch();
+		} else {
+			notice = "That machine is no longer available";
+		}
+	} else if (!isOnline) {
+		notice = `${host.name} is offline`;
 	} else if (configs.length === 0) {
 		if (configsQuery.isError) {
-			notice = isOnline
-				? `Could not load agents from ${host.name}`
-				: `${host.name} is offline`;
-			canRetry = true;
+			notice = `Could not load agents from ${host.name}`;
+			retry = () => void configsQuery.refetch();
 		} else if (configsQuery.isPending) {
 			isLoading = true;
 		} else {
@@ -108,12 +117,8 @@ export function AgentPickerScreen() {
 					>
 						{notice}
 					</Text>
-					{canRetry ? (
-						<Button
-							size="sm"
-							variant="secondary"
-							onPress={() => void configsQuery.refetch()}
-						>
+					{retry ? (
+						<Button size="sm" variant="secondary" onPress={retry}>
 							<Text>Try again</Text>
 						</Button>
 					) : null}
