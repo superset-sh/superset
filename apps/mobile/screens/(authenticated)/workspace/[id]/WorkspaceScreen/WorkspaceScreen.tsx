@@ -25,7 +25,7 @@ import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import {
 	getHostTerminalsQueryKey,
 	useHostTerminals,
@@ -226,15 +226,12 @@ export function WorkspaceScreen() {
 		: null;
 	const hostCompatibility = useHostCompatibility(hostUrl);
 
-	// Once per visit, as soon as the screen knows which of its three shapes it
-	// is. A create navigates here itself, so that entry is neither of the two
-	// ways a user arrives at one that already exists.
 	const openedWorkspaceRef = useRef<string | null>(null);
 	useEffect(() => {
 		if (!id || openedWorkspaceRef.current === id || isResolving) return;
 		if (!workspace && !cloud && !pendingCreate) return;
 		openedWorkspaceRef.current = id;
-		track("session_opened", {
+		posthog.capture("session_opened", {
 			workspace_id: id,
 			workspace_kind: cloud && !workspace ? "cloud" : "host",
 			entry: pendingCreate
@@ -262,14 +259,13 @@ export function WorkspaceScreen() {
 			adoptedTabRef.current = params.tab ?? null;
 			setPickedTerminalId(terminalId);
 			if (terminalId !== activeTerminalId) {
-				track("session_switched", {
+				posthog.capture("session_switched", {
 					workspace_id: id ?? null,
 					source: "tab_strip",
-					session_count: rows.length,
 				});
 			}
 		},
-		[params.tab, activeTerminalId, id, rows.length],
+		[params.tab, activeTerminalId, id],
 	);
 	useEffect(() => {
 		if (
@@ -427,11 +423,8 @@ export function WorkspaceScreen() {
 		[handleSubmit],
 	);
 
-	// Mobile's terminal dials from inside the WebView, so there is no preflight
-	// probe to classify the way desktop's transport does — the page reports one
-	// of two terminal states and that is the whole diagnosis available here.
-	// Keyed by terminal because switching tabs carries the previous tab's failed
-	// state over until the new one reports, which is not a second failure.
+	// Keyed by terminal: switching tabs carries the old tab's failed state over
+	// until the new one reports, which is not a second failure.
 	const reportedFailureRef = useRef<string | null>(null);
 	useEffect(() => {
 		if (connectionState !== "error" && connectionState !== "denied") {
@@ -441,7 +434,7 @@ export function WorkspaceScreen() {
 		const failure = `${activeTerminalId}:${connectionState}`;
 		if (reportedFailureRef.current === failure) return;
 		reportedFailureRef.current = failure;
-		track("terminal_connect_failed", {
+		posthog.capture("terminal_connect_failed", {
 			workspace_id: id ?? null,
 			terminal_id: activeTerminalId,
 			category: connectionState,

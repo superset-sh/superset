@@ -6,10 +6,9 @@ import {
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
-import { useComposerDraftTracking } from "@/screens/(authenticated)/hooks/useComposerDraftTracking";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
 import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import { QUICK_KEYS, type TerminalQuickKey } from "./constants";
@@ -100,7 +99,6 @@ export const TerminalComposer = forwardRef<
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
 	const [initialDraft] = useState(() => draft.readText());
-	const noteDraftText = useComposerDraftTracking("workspace", initialDraft);
 	const wasExpanded = useRef(false);
 	const writeAttachments = useWriteTerminalAttachments();
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,19 +133,16 @@ export const TerminalComposer = forwardRef<
 			if (!paths) return;
 			body = text ? `${text}\n\n${paths.join("\n")}` : paths.join("\n");
 		}
-		const sent = {
-			workspace_id: workspaceId,
-			has_attachments: allowAttachments && files.length > 0,
-			attachment_count: allowAttachments ? files.length : 0,
-			message_length: text.trim().length,
-			draft_restored: initialDraft.length > 0,
-			// A plain shell would execute attachment paths, so it never gets them.
-			is_agent_session: allowAttachments,
-		};
 		setIsSubmitting(true);
 		try {
 			await onSubmit(body);
-			track("terminal_input_submitted", { ...sent, result: "sent" });
+			posthog.capture("terminal_input_submitted", {
+				workspace_id: workspaceId,
+				has_attachments: allowAttachments && files.length > 0,
+				attachment_count: allowAttachments ? files.length : 0,
+				message_length: text.trim().length,
+				is_agent_session: allowAttachments,
+			});
 			// Clear what actually went out, and only that. The text always did.
 			// The tray only did if this session could carry it — a plain shell
 			// submits without attachments, and the draft belongs to the workspace
@@ -157,11 +152,6 @@ export const TerminalComposer = forwardRef<
 			if (allowAttachments) draft.clear();
 			else draft.setText("");
 		} catch (cause) {
-			track("terminal_input_submitted", {
-				...sent,
-				result: "failed",
-				failure_reason: cause instanceof Error ? cause.message : String(cause),
-			});
 			Alert.alert(
 				"Could not send",
 				cause instanceof Error ? cause.message : String(cause),
@@ -201,10 +191,7 @@ export const TerminalComposer = forwardRef<
 						: []
 				}
 				onSubmit={(text) => submit({ text, attachments: draft.attachments })}
-				onDraftChange={(text) => {
-					draft.setText(text);
-					noteDraftText(text);
-				}}
+				onDraftChange={draft.setText}
 				onRemoveAttachment={(id) => draft.remove(id)}
 				onHeightChange={onHeightChange}
 				onExpandedChange={(expanded) => {

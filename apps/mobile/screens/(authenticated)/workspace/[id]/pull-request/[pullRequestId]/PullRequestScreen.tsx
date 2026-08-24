@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { HeaderNotice } from "../../components/HeaderNotice";
 import { PullRequestCard } from "./components/PullRequestCard";
@@ -47,7 +47,7 @@ export function PullRequestScreen() {
 		const key = `${workspaceId}:${pullNumber}`;
 		if (pullNumber === null || openedPullRequestRef.current === key) return;
 		openedPullRequestRef.current = key;
-		track("pull_request_opened", {
+		posthog.capture("pull_request_opened", {
 			workspace_id: workspaceId,
 			pr_number: pullNumber,
 		});

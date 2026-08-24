@@ -5,7 +5,7 @@ import { File } from "expo-file-system";
 import { useRouter } from "expo-router";
 import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import {
 	type PendingWorkspaceCreateInput,
@@ -50,27 +50,13 @@ export function useCreateTerminalWorkspace() {
 		mutationFn: async ({ replace, ...input }: CreateTerminalWorkspaceArgs) => {
 			const { target, baseBranch, agentId, message } = input;
 			const workspaceId = randomUUID();
-			const startedAt = Date.now();
 			startPending({
 				workspaceId,
 				hostId: target.machineId,
 				hostUrl: target.hostUrl,
-				startedAt,
+				startedAt: Date.now(),
 				input,
 			});
-			// The three states the screen already models. Enqueued is the
-			// optimistic navigation, before the host has been asked at all.
-			const createProperties = {
-				workspace_id: workspaceId,
-				project_id: target.projectId,
-				host_id: target.machineId,
-				host_kind: "remote",
-				source: "mobile_composer",
-				base_branch: baseBranch,
-				agent: agentId,
-				is_retry: replace === true,
-			};
-			track("workspace_create_enqueued", createProperties);
 			const href = `/(authenticated)/workspace/${workspaceId}` as const;
 			if (replace) router.replace(href);
 			else router.push(href);
@@ -103,7 +89,6 @@ export function useCreateTerminalWorkspace() {
 					],
 				};
 
-				let enqueued = true;
 				try {
 					await client.workspaces.createEnqueued.mutate(createInput);
 				} catch (error) {
@@ -113,7 +98,6 @@ export function useCreateTerminalWorkspace() {
 					// optimistic. On success the row and session already exist;
 					// refetch so the screen resolves without waiting for a poll.
 					await client.workspaces.create.mutate(createInput);
-					enqueued = false;
 					void queryClient.invalidateQueries({
 						queryKey: getHostWorkspacesQueryKey(
 							target.machineId,
@@ -124,24 +108,24 @@ export function useCreateTerminalWorkspace() {
 						queryKey: getHostTerminalsQueryKey(target.machineId),
 					});
 				}
-				// The host has accepted it. On the enqueued path the worktree is
-				// still being built — the workspace screen polls for the row — but
-				// this is the last thing the client is told either way.
-				track("workspace_created", {
-					...createProperties,
-					enqueued,
-					attachment_count: attachmentIds.length,
-					latency_ms: Date.now() - startedAt,
+				posthog.capture("workspace_created", {
+					workspace_id: workspaceId,
+					project_id: target.projectId,
+					host_kind: "remote",
+					source: "mobile_composer",
+					base_branch: baseBranch,
+					agent: agentId,
 				});
 				return { workspaceId };
 			} catch (error) {
 				const failureReason =
 					error instanceof Error ? error.message : String(error);
 				failPending(workspaceId, failureReason);
-				track("workspace_create_failed", {
-					...createProperties,
+				posthog.capture("workspace_create_failed", {
+					project_id: target.projectId,
+					host_kind: "remote",
+					source: "mobile_composer",
 					failure_reason: failureReason,
-					latency_ms: Date.now() - startedAt,
 				});
 				throw error;
 			}

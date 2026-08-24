@@ -7,7 +7,7 @@ import { useCallback } from "react";
 import { Alert } from "react-native";
 import { useUniwind } from "uniwind";
 import { imageAssetToAttachment } from "@/components/ai-elements/prompt-input";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { THEME } from "@/lib/theme";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
@@ -27,7 +27,7 @@ export function useAttachmentsSheet(draftKey: string) {
 	return useCallback(
 		(options?: { onClosed?: () => void }) => {
 			const composer = draftKey === HOME_DRAFT_KEY ? "home" : "workspace";
-			track("attachments_sheet_opened", { composer });
+			posthog.capture("attachments_sheet_opened", { composer });
 
 			const openCamera = async () => {
 				const permission = await ImagePicker.requestCameraPermissionsAsync();

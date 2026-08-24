@@ -8,11 +8,10 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
-import { useComposerDraftTracking } from "@/screens/(authenticated)/hooks/useComposerDraftTracking";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
@@ -53,7 +52,6 @@ export function NewChatWidget({
 	// What was typed here last time, pinned at mount: a starting value handed to
 	// the composer as it is set up, never a binding.
 	const [initialDraft] = useState(() => draft.readText());
-	const noteDraftText = useComposerDraftTracking("home", initialDraft);
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -144,7 +142,7 @@ export function NewChatWidget({
 	};
 
 	const submit = (message: PromptInputMessage) => {
-		track("chat_message_sent", {
+		posthog.capture("chat_message_sent", {
 			has_attachments: message.attachments.length > 0,
 			attachment_count: message.attachments.length,
 			message_length: message.text.trim().length,
@@ -264,16 +262,13 @@ export function NewChatWidget({
 			headerChips={headerChips}
 			selectedModel={selectedModel}
 			onSubmit={(text) => submit({ text, attachments: draft.attachments })}
-			onDraftChange={(text) => {
-				draft.setText(text);
-				noteDraftText(text);
-			}}
+			onDraftChange={draft.setText}
 			onRemoveAttachment={(id) => draft.remove(id)}
 			onExpandedChange={(expanded) => {
 				// Only where the project/branch/agent rows are live: pinned to a
 				// workspace, expanding the composer starts a message, not a session.
 				if (expanded && !wasExpanded.current && !fixedTarget && !storeTarget) {
-					track("new_session_started", {
+					posthog.capture("new_session_started", {
 						target_kind: selectedTarget?.kind ?? null,
 						agent: isCloudTarget ? null : agentId,
 					});

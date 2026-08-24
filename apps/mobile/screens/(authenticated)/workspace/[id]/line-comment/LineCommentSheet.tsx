@@ -3,7 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useCommentComposerStore } from "../stores/commentComposerStore";
 import { useDraftCommentsStore } from "../stores/draftCommentsStore";
@@ -36,7 +36,7 @@ export function LineCommentSheet() {
 				createdAt: Date.now(),
 			});
 		}
-		track("line_comment_added", {
+		posthog.capture("line_comment_added", {
 			workspace_id: anchor.workspaceId,
 			is_edit: !!anchor.editingDraftId,
 			line_type: anchor.lineType,

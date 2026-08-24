@@ -1,2 +1,1 @@
-export { posthog, posthogConfig } from "./client";
-export { type MobileEvent, track } from "./track";
+export { posthog, posthogConfig, registerSuperProperties } from "./client";

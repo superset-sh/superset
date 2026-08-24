@@ -21,7 +21,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import {
 	type ChangesetFile,
 	useWorkspaceChangeset,
@@ -94,7 +94,7 @@ export function FilesChangedScreen() {
 	);
 
 	useEffect(() => {
-		track("files_changed_viewed", { workspace_id: workspaceId });
+		posthog.capture("files_changed_viewed", { workspace_id: workspaceId });
 	}, [workspaceId]);
 
 	const viewedPaths = useViewedFilesStore(
@@ -426,10 +426,8 @@ export function FilesChangedScreen() {
 
 	const viewFile = useCallback(
 		(file: ChangesetFile) => {
-			// The path is the user's repository; only its shape is sent.
-			track("file_viewed", {
+			posthog.capture("file_viewed", {
 				workspace_id: workspaceId,
-				source: file.source,
 				extension: file.path.split(".").pop()?.toLowerCase() ?? null,
 			});
 			router.push(

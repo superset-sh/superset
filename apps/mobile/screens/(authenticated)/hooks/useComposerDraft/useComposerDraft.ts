@@ -8,17 +8,15 @@ import {
 	imageAssetToAttachment,
 	type PromptInputAttachmentInput,
 } from "@/components/ai-elements/prompt-input";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import {
 	EMPTY_DRAFT,
 	HOME_DRAFT_KEY,
 	useComposerDraftsStore,
 } from "@/screens/(authenticated)/stores/composerDraftsStore";
 
-/** Where an attachment came from. The sheet's own grid counts as photos. */
 export type AttachmentSource = "camera" | "photos" | "files" | "paste";
 
-/** Draft keys carry a workspace id; the analytics only wants which composer. */
 const composerName = (key: string) =>
 	key === HOME_DRAFT_KEY ? "home" : "workspace";
 
@@ -70,7 +68,7 @@ export function useComposerDraft(key: string) {
 				key,
 				items.map((item) => ({ ...item, id: createAttachmentId() })),
 			);
-			track("attachment_added", {
+			posthog.capture("attachment_added", {
 				source,
 				count: items.length,
 				composer: composerName(key),
@@ -82,7 +80,7 @@ export function useComposerDraft(key: string) {
 	const remove = useCallback(
 		(id: string) => {
 			removeForKey(key, id);
-			track("attachment_removed", { composer: composerName(key) });
+			posthog.capture("attachment_removed", { composer: composerName(key) });
 		},
 		[key, removeForKey],
 	);

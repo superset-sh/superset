@@ -5,7 +5,7 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { getCloudWorkspacesQueryKey } from "@/hooks/useCloudWorkspaces";
 import { useSession } from "@/lib/auth/client";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import type { NewChatTarget } from "../useNewChatTargets";
 
@@ -52,7 +52,7 @@ export function useCreateCloudWorkspace() {
 			});
 		},
 		onSuccess: (row: CloudWorkspaceRow, { target, branch }) => {
-			track("workspace_created", {
+			posthog.capture("workspace_created", {
 				workspace_id: row.id,
 				project_id: target.projectId,
 				organization_id: organizationId,
@@ -74,7 +74,7 @@ export function useCreateCloudWorkspace() {
 			router.push(`/(authenticated)/workspace/${row.id}`);
 		},
 		onError: (error, { target, branch }) => {
-			track("workspace_create_failed", {
+			posthog.capture("workspace_create_failed", {
 				project_id: target.projectId,
 				organization_id: organizationId,
 				host_kind: "cloud",

@@ -6,7 +6,7 @@ import { FlatList, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { track } from "@/lib/posthog";
+import { posthog } from "@/lib/posthog";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
 import { useWorkspaceCommits } from "../hooks/useWorkspaceCommits";
 import { compactTime } from "../utils/compactTime";
@@ -24,7 +24,7 @@ export function CommitsSheet() {
 	const { baseBranch } = useWorkspaceChangeset(workspaceId);
 
 	useEffect(() => {
-		track("commits_viewed", { workspace_id: workspaceId });
+		posthog.capture("commits_viewed", { workspace_id: workspaceId });
 	}, [workspaceId]);
 
 	const statTargets = useMemo(
