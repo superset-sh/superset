@@ -461,7 +461,8 @@ export function NewWorkspaceScreen({
 	}, [v2AgentsFetched, selectableAgentIds, selectedAgent, setSelectedAgent]);
 
 	const selectedPresetId = useMemo(
-		() => v2Agents.find((agent) => agent.id === selectedAgent)?.iconId ?? null,
+		() =>
+			v2Agents.find((agent) => agent.id === selectedAgent)?.presetId ?? null,
 		[v2Agents, selectedAgent],
 	);
 	const modelSupport = selectedPresetId
