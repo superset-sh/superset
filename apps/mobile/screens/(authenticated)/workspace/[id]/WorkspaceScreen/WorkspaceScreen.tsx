@@ -592,7 +592,9 @@ export function WorkspaceScreen() {
 						    blur; a Pressable also can't be flattened away, which an
 						    undrawn View would be — leaving the edge to WebKit again. */}
 						<Pressable
-							accessibilityLabel="Dismiss keyboard"
+							// Silent to VoiceOver: it is always mounted, and the backdrop
+							// above already offers Dismiss keyboard when there is one.
+							accessible={false}
 							className="absolute bottom-0 left-0 top-0 w-5"
 							onPress={() => composerRef.current?.blur()}
 						/>
