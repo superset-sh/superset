@@ -56,7 +56,7 @@ export function usePaymentFailedCard({
 	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
 
 	const ownerDescription = amount
-		? `We couldn't charge your payment method for ${amount}. Pay it to keep your plan.`
+		? `We couldn't charge ${amount}. Update your payment method to keep your plan.`
 		: "We couldn't charge your payment method. Update it to keep your plan.";
 	const memberDescription = amount
 		? `We couldn't charge this organization's payment method for ${amount}. Ask an owner to update it.`
@@ -84,7 +84,7 @@ export function usePaymentFailedCard({
 					navigate({ to: "/settings/billing" });
 				}
 			: undefined,
-		className: "border-amber-500/50",
+		className: "border-destructive/50",
 		onShown: () => track("payment_failed_banner_shown", { surface, isOwner }),
 	};
 }

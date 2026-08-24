@@ -1,4 +1,5 @@
 import { isPaymentFailingStatus } from "@superset/shared/billing";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { format } from "date-fns";
@@ -53,9 +54,11 @@ export function CurrentPlanCard({
 		: null;
 	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
 
+	// The badge already says "Payment failed"; the hint adds the amount and the
+	// consequence, and leaves the action to the button next to it.
 	const paymentFailedHint = amountDue
-		? `Payment failed — ${amountDue} is due. Pay it to keep this plan.`
-		: "Payment failed — update your payment method to keep this plan.";
+		? `We couldn't charge ${amountDue}. Update your payment method to keep this plan.`
+		: "Update your payment method to keep this plan.";
 
 	const hint = isPaymentFailing
 		? paymentFailedHint
@@ -78,15 +81,18 @@ export function CurrentPlanCard({
 						</span>
 					)}
 					{isPaymentFailing && (
-						<span className="inline-flex items-center rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
-							{amountDue ? `Payment failed — ${amountDue}` : "Payment failed"}
-						</span>
+						<Badge
+							variant="outline"
+							className="border-destructive/30 bg-destructive/10 text-destructive"
+						>
+							Payment failed
+						</Badge>
 					)}
 				</div>
 				<div
 					className={cn(
 						"text-xs mt-0.5",
-						isPaymentFailing ? "text-amber-500" : "text-muted-foreground",
+						isPaymentFailing ? "text-destructive" : "text-muted-foreground",
 					)}
 				>
 					{hint}
@@ -99,7 +105,7 @@ export function CurrentPlanCard({
 							variant="ghost"
 							size="sm"
 							onClick={() => onPayInvoice(hostedInvoiceUrl)}
-							className="text-amber-500 hover:text-amber-500"
+							className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 						>
 							Pay now
 						</Button>

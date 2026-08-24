@@ -1,4 +1,4 @@
-import { Button } from "@superset/ui/button";
+import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import { format } from "date-fns";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
@@ -18,7 +18,7 @@ function formatDate(timestamp: number) {
 
 const UNPAID_LABEL: Record<string, string> = {
 	open: "Unpaid",
-	uncollectible: "Unpaid",
+	uncollectible: "Uncollectible",
 };
 
 export function RecentInvoices() {
@@ -47,7 +47,7 @@ export function RecentInvoices() {
 							<span
 								className={cn(
 									"tabular-nums",
-									invoice.isUnpaid && "text-amber-500 font-medium",
+									invoice.isUnpaid && "font-medium",
 								)}
 							>
 								{formatAmount(
@@ -56,36 +56,30 @@ export function RecentInvoices() {
 								)}
 							</span>
 							{invoice.isUnpaid && (
-								<span className="inline-flex items-center rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
+								<Badge
+									variant="outline"
+									className="border-destructive/30 bg-destructive/10 text-destructive"
+								>
 									{UNPAID_LABEL[invoice.status ?? ""] ?? "Unpaid"}
-								</span>
+								</Badge>
 							)}
 						</div>
 						{invoice.hostedInvoiceUrl ? (
-							invoice.isUnpaid ? (
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() =>
-										openUrl.mutate(invoice.hostedInvoiceUrl as string)
-									}
-									className="text-amber-500 hover:text-amber-500"
-								>
-									Pay now
-									<HiArrowTopRightOnSquare className="h-3 w-3" />
-								</Button>
-							) : (
-								<button
-									type="button"
-									onClick={() =>
-										openUrl.mutate(invoice.hostedInvoiceUrl as string)
-									}
-									className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-								>
-									View
-									<HiArrowTopRightOnSquare className="h-3 w-3" />
-								</button>
-							)
+							<button
+								type="button"
+								onClick={() =>
+									openUrl.mutate(invoice.hostedInvoiceUrl as string)
+								}
+								className={cn(
+									"flex items-center gap-1 text-xs",
+									invoice.isUnpaid
+										? "text-destructive hover:text-destructive/80"
+										: "text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{invoice.isUnpaid ? "Pay now" : "View"}
+								<HiArrowTopRightOnSquare className="h-3 w-3" />
+							</button>
 						) : null}
 					</div>
 				))}
