@@ -799,6 +799,10 @@ const runtimeJs = /* js */ `
 	scrollbar.addEventListener("touchcancel", endThumbDrag);
 
 	post({ type: "ready" });
+	// Announce the initial scroll state: updateScrollbar only posts on flips,
+	// so a remounted page starting at the live edge would otherwise leave RN
+	// holding whatever the previous terminal reported.
+	post({ type: "scroll", atBottom: atBottom });
 	connect();
 })();
 `;
