@@ -133,6 +133,9 @@ fi
 # gate.
 _superset_bypass_hook_trust="--dangerously-bypass-hook-trust"
 for _superset_arg in "$@"; do
+  # Tokens past `--` are prompt text, never flags — stop scanning there so a
+  # prompt that mentions the flag doesn't suppress the real one.
+  [ "$_superset_arg" = "--" ] && break
   if [ "$_superset_arg" = "--dangerously-bypass-hook-trust" ]; then
     _superset_bypass_hook_trust=""
     break

@@ -335,6 +335,32 @@ exit 0
 				"--dangerously-bypass-hook-trust",
 			].join("\n")}\n`,
 		);
+
+		// A prompt that merely mentions the flag after `--` is text, not a flag —
+		// the real bypass must still be appended.
+		execFileSync(
+			wrapperPath,
+			["--", "explain what --dangerously-bypass-hook-trust does"],
+			{
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_WORKSPACE_PATH: "",
+					SUPERSET_TERMINAL_ID: "terminal-1",
+				},
+				encoding: "utf-8",
+			},
+		);
+
+		expect(readFileSync(argsFile, "utf-8")).toBe(
+			`${[
+				"--enable",
+				"hooks",
+				"--dangerously-bypass-hook-trust",
+				"--",
+				"explain what --dangerously-bypass-hook-trust does",
+			].join("\n")}\n`,
+		);
 	});
 
 	it("emits codex Start from the wrapper-owned TUI session log", () => {
