@@ -2,15 +2,7 @@ import { Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { ChecksFilterValue } from "../../utils/checksFilter";
 
-/**
- * The sheet's filter row, under the header rather than in its title: the
- * title slot is shared with the ✕ and the Fix All action, and four segments
- * competing for what is left of it squeezed the first one to nothing. Its own
- * row is also what the reference set shows.
- *
- * Scrolls horizontally so a narrow screen or a fifth segment pushes off the
- * edge instead of compressing every tab.
- */
+/** The sheet's filter row; segments scroll rather than compress. */
 export function ChecksFilter({
 	value,
 	onChange,

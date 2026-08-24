@@ -34,10 +34,7 @@ const CHECK_FILTER: Record<
 	ignored: "skipped",
 };
 
-/**
- * Segments to offer and groups to show. Only "All" is unconditional — a tab
- * whose count is zero is noise, "Failed 0" included.
- */
+/** Segments to offer and groups to show; zero-count tabs are dropped, All never. */
 export function checksFilterState(
 	checks: PullRequestCheck[],
 	filter: ChecksFilterValue,
@@ -60,8 +57,7 @@ export function checksFilterState(
 		})),
 	].filter((option) => option.value === "all" || counts[option.value] > 0);
 
-	// Checks settle while the sheet is open, so the selected tab can stop
-	// existing under the user. All is the one segment that never leaves.
+	// Checks settle while the sheet is open; the selected tab can stop existing.
 	const active = options.some((option) => option.value === filter)
 		? filter
 		: ("all" as ChecksFilterValue);

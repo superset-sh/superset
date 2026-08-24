@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Cloud } from "lucide-react-native";
 import { useMemo } from "react";
 import { Pressable, ScrollView, View } from "react-native";
@@ -20,6 +20,7 @@ import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/
  */
 export function ProjectPickerScreen() {
 	const router = useRouter();
+	const routeParams = useLocalSearchParams<{ selectedKey?: string }>();
 	const theme = useTheme();
 	const { targets, defaultTarget } = useNewChatTargets();
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -28,9 +29,10 @@ export function ProjectPickerScreen() {
 	);
 
 	const selectedKey =
-		targets.find((target) => target.key === targetKey)?.key ??
-		defaultTarget?.key ??
-		null;
+		routeParams.selectedKey ||
+		(targets.find((target) => target.key === targetKey)?.key ??
+			defaultTarget?.key ??
+			null);
 
 	const sections = useMemo(() => {
 		const cloud = targets.filter((target) => target.kind === "cloud");

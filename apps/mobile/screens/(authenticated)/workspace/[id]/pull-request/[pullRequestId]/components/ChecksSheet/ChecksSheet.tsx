@@ -11,8 +11,8 @@ import {
 } from "./utils/checksFilter";
 
 /**
- * Every check, filterable. The filter leads the list rather than sharing the
- * header's title slot with the ✕ and Fix All, which left it squeezed.
+ * Every check, filterable. The filter cannot share the header title slot
+ * with the ✕ and Fix All — there is not enough width for four segments.
  */
 export function ChecksSheet({
 	checks,
@@ -25,8 +25,6 @@ export function ChecksSheet({
 }) {
 	const router = useRouter();
 	const [filter, setFilter] = useState<ChecksFilterValue>("all");
-	// `active` is `filter` unless its tab has stopped existing, so the row and
-	// the groups below can never disagree about what is selected.
 	const {
 		counts,
 		options,

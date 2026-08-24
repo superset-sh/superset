@@ -32,5 +32,5 @@ export const SettledWithOneFailure: Story = {
 	args: { name: "openTwoChecksOneFailed" },
 };
 export const TwoFailures: Story = { args: { name: "openTwoChecksFailed" } };
-/** All green: no Failed tab at all, since a "Failed 0" segment is just noise. */
+/** All green: no Failed tab. */
 export const AllGreen: Story = { args: { name: "openWaitingForReview" } };

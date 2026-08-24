@@ -38,12 +38,6 @@ export function AgentMark({
  * Picks which host agent preset the next session launches with — the target
  * host's agent configs (Claude Code, Codex, …), fetched live so the list
  * matches what the host can actually run.
- *
- * The machine arrives as a route param because the composer already resolved
- * it. Re-deriving it here landed somewhere else: the composer weighs the
- * recent workspace list this screen never sees, so the fallback picked the
- * first target alphabetically — usually a cloud one, which has no host to
- * list agents from and left the screen loading forever.
  */
 export function AgentPickerScreen() {
 	const router = useRouter();
@@ -70,8 +64,6 @@ export function AgentPickerScreen() {
 	});
 	const configs = configsQuery.data ?? [];
 
-	// Every way this can come up empty, told apart. A spinner is for a fetch
-	// that is genuinely in flight and nothing else.
 	let notice: string | null = null;
 	let isLoading = false;
 	let canRetry = false;

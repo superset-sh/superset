@@ -100,7 +100,6 @@ describe("checksFilterState active filter", () => {
 	});
 
 	it("falls back to All when the selected segment disappears", () => {
-		// The Failed tab the user selected is gone now that the run went green.
 		const state = checksFilterState([passed("CI / Test")], "failed");
 		expect(state.filter).toBe("all");
 		expect(state.options.map((option) => option.value)).toEqual([

@@ -11,9 +11,7 @@ export function getHostAgentConfigsQueryKey(machineId: string | null) {
  * app is backgrounded, so focus refetches unconditionally — returning to the
  * app is the earliest moment the fresh list can matter.
  *
- * An empty `hostUrl` disables the query the way null does: a cloud target
- * carries `""`, and treating that as addressable used to resolve the query
- * to an empty list, which callers cannot tell from a host with no agents.
+ * A cloud target's hostUrl is "" — unaddressable, same as null.
  */
 export function useHostAgentConfigs({
 	machineId,

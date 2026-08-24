@@ -1,16 +1,20 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useQuery } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
-import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import {
+	getHostServiceClientByUrl,
+	hostServiceUrl,
+} from "@/lib/host-service/client";
 import { apiClient } from "@/lib/trpc/client";
-import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
+import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 
 function BranchRow({
@@ -43,18 +47,27 @@ export function BranchPickerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const [query, setQuery] = useState("");
-	const { targets, defaultTarget } = useNewChatTargets();
-	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
+	const params = useLocalSearchParams<{
+		projectId?: string;
+		machineId?: string;
+	}>();
 	const baseBranch = useNewSessionPreferencesStore((state) => state.baseBranch);
 	const setBaseBranch = useNewSessionPreferencesStore(
 		(state) => state.setBaseBranch,
 	);
 
-	const selectedTarget =
-		targets.find((target) => target.key === targetKey) ?? defaultTarget;
-	const isCloud = selectedTarget?.kind === "cloud";
-	const hostUrl = selectedTarget?.hostUrl ?? null;
-	const projectId = selectedTarget?.projectId ?? null;
+	const isCloud = params.machineId === CLOUD_TARGET_ID;
+	const hostsQuery = useOrgHostsQuery();
+	const host =
+		!isCloud && params.machineId
+			? (hostsQuery.data?.find(
+					(entry) => entry.machineId === params.machineId,
+				) ?? null)
+			: null;
+	const hostUrl = host
+		? hostServiceUrl(host.organizationId, host.machineId)
+		: null;
+	const projectId = params.projectId || null;
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
 

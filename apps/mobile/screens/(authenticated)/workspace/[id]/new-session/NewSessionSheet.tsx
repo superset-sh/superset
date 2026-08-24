@@ -40,8 +40,6 @@ export function NewSessionSheet() {
 	// resolves so a double-tap can't start two sessions.
 	const [launchingKey, setLaunchingKey] = useState<string | null>(null);
 
-	// Told apart rather than conflated: a spinner used to stand for a failed
-	// fetch, an unresolved host and a host with nothing configured alike.
 	let notice: string | null = null;
 	let isLoading = false;
 	let canRetry = false;

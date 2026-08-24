@@ -264,9 +264,6 @@ export function NewChatWidget({
 			}}
 			onModelPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				// Hand the picker the machine resolved here. It has no workspace
-				// list of its own, so left to re-derive one it picks a different
-				// target than this composer is about to create on.
 				router.push({
 					pathname: "/(authenticated)/(home)/new-session/agent",
 					params: { machineId: selectedTarget?.machineId ?? "" },
@@ -278,10 +275,19 @@ export function NewChatWidget({
 					dismiss();
 				} else if (id === "project") {
 					if (targets.length > 0) {
-						router.push("/(authenticated)/(home)/new-session/project");
+						router.push({
+							pathname: "/(authenticated)/(home)/new-session/project",
+							params: { selectedKey: selectedTarget?.key ?? "" },
+						});
 					}
 				} else if (selectedTarget) {
-					router.push("/(authenticated)/(home)/new-session/branch");
+					router.push({
+						pathname: "/(authenticated)/(home)/new-session/branch",
+						params: {
+							projectId: selectedTarget.projectId,
+							machineId: selectedTarget.machineId,
+						},
+					});
 				}
 			}}
 		/>
