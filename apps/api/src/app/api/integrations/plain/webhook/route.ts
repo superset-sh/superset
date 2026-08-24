@@ -13,7 +13,8 @@ import {
 	fetchThread,
 	mapThreadToTask,
 } from "@superset/trpc/integrations/plain";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { recordWebhookDelivery } from "@/lib/ingest/recordWebhookDelivery";
 import { stripNullChars } from "@/lib/strip-null-chars";
 import { verifyPlainSignature } from "./verify-signature";
 
@@ -146,24 +147,12 @@ async function processForConnection(
 	// tenant's processing status is independently retryable.
 	const eventId = `${connection.id}-${envelope.id}`;
 
-	const [webhookEvent] = await db
-		.insert(webhookEvents)
-		.values({
-			provider: "plain",
-			eventId,
-			eventType: envelope.type,
-			payload: stripNullChars(envelope),
-			status: "pending",
-		})
-		.onConflictDoUpdate({
-			target: [webhookEvents.provider, webhookEvents.eventId],
-			set: {
-				status: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN 'pending' ELSE ${webhookEvents.status} END`,
-				retryCount: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN ${webhookEvents.retryCount} + 1 ELSE ${webhookEvents.retryCount} END`,
-				error: sql`CASE WHEN ${webhookEvents.status} = 'failed' THEN NULL ELSE ${webhookEvents.error} END`,
-			},
-		})
-		.returning();
+	const webhookEvent = await recordWebhookDelivery({
+		provider: "plain",
+		eventId,
+		eventType: envelope.type,
+		payload: stripNullChars(envelope),
+	});
 
 	if (!webhookEvent) {
 		return {
