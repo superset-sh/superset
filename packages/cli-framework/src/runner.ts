@@ -41,7 +41,7 @@ export async function run(opts: RunOptions): Promise<void> {
 	try {
 		await execute(opts, opts.tree, ac.signal);
 	} catch (error) {
-		handleError(error, opts.name);
+		await handleError(error, opts.name);
 	} finally {
 		process.off("SIGINT", onSignal);
 		process.off("SIGTERM", onSignal);
@@ -108,10 +108,15 @@ export function formatError(
 	return { message: String(error) };
 }
 
-function handleError(error: unknown, cliName: string): never {
+async function handleError(error: unknown, cliName: string): Promise<never> {
 	const { message, hint } = formatError(error, cliName);
-	process.stderr.write(`Error: ${message}\n`);
-	if (hint) process.stderr.write(`Hint: ${hint}\n`);
+	// Same drain rule as stdout (see writeStream): exiting before the pipe
+	// reader catches up would drop the message. Best effort; a failed stderr
+	// write must not mask the exit code.
+	await writeStream(process.stderr, `Error: ${message}\n`).catch(() => {});
+	if (hint) {
+		await writeStream(process.stderr, `Hint: ${hint}\n`).catch(() => {});
+	}
 	process.exit(1);
 }
 
@@ -400,7 +405,9 @@ async function execute(
 			json: isJson,
 			quiet: isQuiet,
 		});
-		if (output) await writeStdout(`${output}\n`);
+		// All command output must leave through writeStream; a bare console.log
+		// here reintroduces truncation for any payload past the pipe buffer.
+		if (output) await writeStream(process.stdout, `${output}\n`);
 	}
 }
 
@@ -411,8 +418,8 @@ async function execute(
  * capture). Awaiting the write callback keeps the process alive until the
  * whole payload reaches the pipe.
  */
-function writeStdout(text: string): Promise<void> {
+function writeStream(stream: NodeJS.WriteStream, text: string): Promise<void> {
 	return new Promise((resolve, reject) => {
-		process.stdout.write(text, (error) => (error ? reject(error) : resolve()));
+		stream.write(text, (error) => (error ? reject(error) : resolve()));
 	});
 }
