@@ -43,10 +43,11 @@ export async function GET(request: Request): Promise<Response> {
 		);
 	}
 	const token = bearerToken(request.headers.get("authorization")) ?? "";
-	if (
-		token.length !== secret.length ||
-		!timingSafeEqual(Buffer.from(token), Buffer.from(secret))
-	) {
+	// Digest both sides so the comparison is fixed-size and leaks nothing
+	// about the configured token's length.
+	const tokenDigest = createHash("sha256").update(token).digest();
+	const secretDigest = createHash("sha256").update(secret).digest();
+	if (!timingSafeEqual(tokenDigest, secretDigest)) {
 		return Response.json({ error: "Invalid bearer token" }, { status: 401 });
 	}
 

@@ -22,7 +22,7 @@ export const env = createEnv({
 		GOOGLE_PUBSUB_PUSH_TOKEN: z.string().min(1).optional(),
 		// Static bearer token for the read-only support account lookup; the
 		// endpoint answers 404 while unset.
-		SUPPORT_LOOKUP_TOKEN: z.string().min(1).optional(),
+		SUPPORT_LOOKUP_TOKEN: z.string().regex(/^\S+$/).optional(),
 		BETTER_AUTH_SECRET: z.string(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
