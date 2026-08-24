@@ -44,6 +44,7 @@ import {
 	removePiExtension,
 	removeVibeManagedHooks,
 } from "./agent-wrappers";
+import { resolveDisabledSkillIds } from "./disabled-skills";
 import { createManagedSkills } from "./managed-skills";
 import { createNotifyScript } from "./notify-hook";
 
@@ -221,6 +222,18 @@ export function setupSingleAgent(agentId: string): boolean {
 	const failed: string[] = [];
 	for (const [label, action] of BOOTSTRAP_SETUP) {
 		if (!runSetupAction(label, action)) failed.push(label);
+	}
+	// Re-adding/re-enabling one agent used to incidentally refresh managed
+	// skills too (it was part of BOOTSTRAP_SETUP); keep that behavior now
+	// that it's split out.
+	if (
+		!runSetupAction(
+			"managed-skills",
+			() =>
+				void createManagedSkills({ disabledSkills: resolveDisabledSkillIds() }),
+		)
+	) {
+		failed.push("managed-skills");
 	}
 	runAgentActions(agentId, definition.setup, failed);
 	warnOnFailures(failed);

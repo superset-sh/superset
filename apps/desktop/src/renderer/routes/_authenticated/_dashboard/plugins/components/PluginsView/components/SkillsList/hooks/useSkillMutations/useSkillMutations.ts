@@ -32,6 +32,10 @@ export function useSkillMutations() {
 		disabledSkills,
 		setEnabled: (name: string, enabled: boolean) =>
 			setEnabledMutation.mutate({ name, enabled }),
-		isBusy: setEnabledMutation.isPending,
+		// Also true while the initial disabled-list fetch is in flight — until
+		// it resolves, disabledSkills is an empty Set, so every skill would
+		// otherwise render (and be toggleable) as enabled regardless of its
+		// real state.
+		isBusy: setEnabledMutation.isPending || disabledQuery.isLoading,
 	};
 }

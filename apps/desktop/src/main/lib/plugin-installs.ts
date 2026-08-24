@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
 	createManagedSkills,
+	resolveDisabledSkillIds,
 	syncManagedMcpServers,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
@@ -188,13 +189,32 @@ export function getDisabledSkills(): string[] {
 	return localDb.select().from(settings).get()?.disabledSkills ?? [];
 }
 
+// Serializes the createManagedSkills resyncs triggered by setSkillEnabled so
+// overlapping toggles can't interleave: createManagedSkills does multi-await
+// fs work, and without this a second toggle's resync could finish before the
+// first's, leaving disk state contradicting whichever DB write actually
+// happened last.
+let managedSkillsSyncQueue: Promise<void> = Promise.resolve();
+function queueManagedSkillsSync(disabledSkills: readonly string[]): void {
+	managedSkillsSyncQueue = managedSkillsSyncQueue
+		.catch(() => {}) // a prior failure must not stall later toggles
+		.then(() => createManagedSkills({ disabledSkills }));
+}
+
 /**
  * Toggling re-syncs immediately: disable reaps the skill from every agent
  * (and the Claude plugin mirror), enable rewrites it. Mirrored to the shared
  * disabled-skills file so CLI-launched host-services on this machine honor
  * the choice instead of re-provisioning a skill the user just disabled.
+ * Returns null for a name outside SUPERSET_MANAGED_SKILLS.
  */
-export function setSkillEnabled(name: string, enabled: boolean): string[] {
+export function setSkillEnabled(
+	name: string,
+	enabled: boolean,
+): string[] | null {
+	if (!SUPERSET_MANAGED_SKILLS.some((skill) => skill.name === name)) {
+		return null;
+	}
 	const current = new Set(getDisabledSkills());
 	if (enabled) {
 		current.delete(name);
@@ -211,6 +231,9 @@ export function setSkillEnabled(name: string, enabled: boolean): string[] {
 		})
 		.run();
 	writeSharedDisabledSkillIds(next);
-	void createManagedSkills({ disabledSkills: next });
+	// resolveDisabledSkillIds folds in SUPERSET_DISABLED_SKILLS — passing
+	// `next` straight through would silently re-enable an env-disabled skill
+	// on the next unrelated toggle.
+	queueManagedSkillsSync(resolveDisabledSkillIds(next));
 	return next;
 }

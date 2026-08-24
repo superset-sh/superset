@@ -84,6 +84,7 @@ export {
 } from "./disabled-agent-hooks";
 export {
 	readSharedDisabledSkillIds,
+	resolveDisabledSkillIds,
 	writeSharedDisabledSkillIds,
 } from "./disabled-skills";
 export {
