@@ -11,6 +11,7 @@ import { AppMockup } from "@/app/components/HeroSection/components/AppMockup";
 import { WaitlistForm } from "@/app/components/WaitlistForm";
 import { isMacPlatform, Platform, usePlatform } from "@/app/hooks/useOS";
 import { track } from "@/lib/analytics";
+import { DownloadLinkForm } from "../DownloadLinkForm";
 
 const AUTO_DOWNLOAD_DELAY_MS = 600;
 
@@ -25,9 +26,11 @@ export function DownloadInterstitial() {
 	const firedRef = useRef(false);
 
 	const isMac = isMacPlatform(platform);
-	// Only auto-download on Mac (the only built binary). Windows/Linux/Mobile see
-	// the waitlist instead, never the .dmg. Unknown waits for detection.
-	const showWaitlist = !isMac && platform !== Platform.Unknown;
+	// Only auto-download on Mac (the only built binary). Mobile visitors can send
+	// the link to their desktop; Windows/Linux visitors see the platform waitlist.
+	const showEmailLink = platform === Platform.Mobile;
+	const showWaitlist =
+		!isMac && platform !== Platform.Unknown && !showEmailLink;
 
 	useEffect(() => {
 		if (firedRef.current) return;
@@ -54,7 +57,21 @@ export function DownloadInterstitial() {
 
 			<div className="mt-20 grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
 				<div className="flex flex-col gap-6">
-					{showWaitlist ? (
+					{showEmailLink ? (
+						<>
+							<h1
+								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
+								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
+							>
+								Get Superset on your Mac
+							</h1>
+							<p className="text-sm text-muted-foreground sm:text-base">
+								Superset is a desktop app. Enter your email and we&apos;ll send
+								you a download link to open on your Mac.
+							</p>
+							<DownloadLinkForm />
+						</>
+					) : showWaitlist ? (
 						<>
 							<h1
 								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
