@@ -4,6 +4,12 @@ import { cn } from "@superset/ui/utils";
 import { format } from "date-fns";
 import { PLANS, type PlanTier } from "../../../../constants";
 
+interface OutstandingInvoice {
+	amountDue: number;
+	currency: string;
+	hostedInvoiceUrl: string | null | undefined;
+}
+
 interface CurrentPlanCardProps {
 	currentPlan: PlanTier;
 	onCancel?: () => void;
@@ -13,6 +19,15 @@ interface CurrentPlanCardProps {
 	cancelAt?: Date | null;
 	periodEnd?: Date | null;
 	status?: string | null;
+	outstandingInvoice?: OutstandingInvoice | null;
+	onPayInvoice?: (hostedInvoiceUrl: string) => void;
+}
+
+function formatAmount(amount: number, currency: string) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currency.toUpperCase(),
+	}).format(amount / 100);
 }
 
 export function CurrentPlanCard({
@@ -24,6 +39,8 @@ export function CurrentPlanCard({
 	cancelAt,
 	periodEnd,
 	status,
+	outstandingInvoice,
+	onPayInvoice,
 }: CurrentPlanCardProps) {
 	const plan = PLANS[currentPlan];
 	const isPaidPlan = currentPlan !== "free";
@@ -31,8 +48,17 @@ export function CurrentPlanCard({
 	const isCancelingAtPeriodEnd = isPaidPlan && !isEnterprise && !!cancelAt;
 	const isPaymentFailing = isPaidPlan && isPaymentFailingStatus(status);
 
+	const amountDue = outstandingInvoice
+		? formatAmount(outstandingInvoice.amountDue, outstandingInvoice.currency)
+		: null;
+	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
+
+	const paymentFailedHint = amountDue
+		? `Payment failed — ${amountDue} is due. Pay it to keep this plan.`
+		: "Payment failed — update your payment method to keep this plan.";
+
 	const hint = isPaymentFailing
-		? "Payment failed — update your payment method to keep this plan."
+		? paymentFailedHint
 		: isCancelingAtPeriodEnd && cancelAt
 			? `Cancels ${format(new Date(cancelAt), "MMMM d, yyyy")} — downgrades to Free at the end of the billing period.`
 			: isEnterprise
@@ -53,7 +79,7 @@ export function CurrentPlanCard({
 					)}
 					{isPaymentFailing && (
 						<span className="inline-flex items-center rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
-							Payment failed
+							{amountDue ? `Payment failed — ${amountDue}` : "Payment failed"}
 						</span>
 					)}
 				</div>
@@ -67,7 +93,17 @@ export function CurrentPlanCard({
 				</div>
 			</div>
 			{isPaidPlan && !isEnterprise && (
-				<div className="shrink-0">
+				<div className="flex shrink-0 items-center gap-1">
+					{isPaymentFailing && hostedInvoiceUrl && onPayInvoice && (
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => onPayInvoice(hostedInvoiceUrl)}
+							className="text-amber-500 hover:text-amber-500"
+						>
+							Pay now
+						</Button>
+					)}
 					{isCancelingAtPeriodEnd ? (
 						<Button
 							variant="ghost"

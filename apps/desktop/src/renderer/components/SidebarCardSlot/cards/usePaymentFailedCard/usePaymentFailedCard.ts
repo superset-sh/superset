@@ -3,7 +3,15 @@ import { useNavigate } from "@tanstack/react-router";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SidebarCardEntry } from "../../types";
+
+function formatAmount(amount: number, currency: string) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: currency.toUpperCase(),
+	}).format(amount / 100);
+}
 
 /**
  * Stripe keeps retrying for ~14 days before canceling, and access continues
@@ -26,6 +34,13 @@ export function usePaymentFailedCard({
 		{ includeDeactivated: false },
 		{ enabled: isFailing },
 	);
+	// The amount is the whole point of the card: "a payment failed" without it
+	// sends people hunting for a number the app never shows them.
+	const { data: outstandingInvoice } =
+		cloudTrpc.billing.outstandingInvoice.useQuery(undefined, {
+			enabled: isFailing,
+		});
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const navigate = useNavigate();
 
 	if (!isFailing) return null;
@@ -35,17 +50,37 @@ export function usePaymentFailedCard({
 	const isOwner =
 		members?.find((m) => m.userId === session?.user?.id)?.role === "owner";
 
+	const amount = outstandingInvoice
+		? formatAmount(outstandingInvoice.amountDue, outstandingInvoice.currency)
+		: null;
+	const hostedInvoiceUrl = outstandingInvoice?.hostedInvoiceUrl ?? null;
+
+	const ownerDescription = amount
+		? `We couldn't charge your payment method for ${amount}. Pay it to keep your plan.`
+		: "We couldn't charge your payment method. Update it to keep your plan.";
+	const memberDescription = amount
+		? `We couldn't charge this organization's payment method for ${amount}. Ask an owner to update it.`
+		: "We couldn't charge this organization's payment method. Ask an owner to update it.";
+
 	return {
 		id: "payment-failed",
 		badge: "Action needed",
-		title: "Payment failed",
-		description: isOwner
-			? "We couldn't charge your payment method. Update it to keep your plan."
-			: "We couldn't charge this organization's payment method. Ask an owner to update it.",
-		actionLabel: isOwner ? "Update payment method" : undefined,
+		title: amount ? `Payment failed — ${amount} due` : "Payment failed",
+		description: isOwner ? ownerDescription : memberDescription,
+		actionLabel: isOwner
+			? hostedInvoiceUrl
+				? "Pay now"
+				: "Update payment method"
+			: undefined,
 		onAction: isOwner
 			? () => {
 					track("payment_failed_banner_clicked", { surface });
+					// Straight to the invoice when we have one — the billing portal
+					// is several clicks from the same place.
+					if (hostedInvoiceUrl) {
+						openUrl.mutate(hostedInvoiceUrl);
+						return;
+					}
 					navigate({ to: "/settings/billing" });
 				}
 			: undefined,

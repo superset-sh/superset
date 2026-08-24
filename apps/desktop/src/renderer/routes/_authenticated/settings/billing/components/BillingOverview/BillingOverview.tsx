@@ -1,3 +1,4 @@
+import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Link } from "@tanstack/react-router";
@@ -8,6 +9,7 @@ import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId"
 import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -60,12 +62,18 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		subscriptionsLoaded: activePlan !== undefined,
 	});
 
-	const { data: membersData } =
-		cloudTrpc.organization.listMembers.useQuery(undefined);
 	// Seats are billed from this — never derive it from an unresolved query.
-	// undefined (not 0) keeps the upgrade action disabled until it loads.
+	// undefined (not 0) keeps the upgrade action disabled until it loads. It is
+	// the same list rendered above, which excludes members pending deletion, so
+	// checkout bills exactly the seats the organization can see.
 	const memberCount =
-		membersData && membersData.length > 0 ? membersData.length : undefined;
+		members && members.length > 0 ? members.length : undefined;
+
+	const { data: outstandingInvoice } =
+		cloudTrpc.billing.outstandingInvoice.useQuery(undefined, {
+			enabled: isPaymentFailingStatus(activePlan?.status),
+		});
+	const openUrl = electronTrpc.external.openUrl.useMutation();
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -178,6 +186,8 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 								cancelAt={activePlan?.cancelAt}
 								periodEnd={activePlan?.periodEnd}
 								status={activePlan?.status}
+								outstandingInvoice={outstandingInvoice}
+								onPayInvoice={(url) => openUrl.mutate(url)}
 							/>
 							{plan === "free" && (
 								<UpgradeCard

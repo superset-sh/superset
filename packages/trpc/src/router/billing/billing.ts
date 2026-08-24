@@ -68,7 +68,34 @@ const EMPTY_ACTIVE_PLAN = {
 	cancelAt: null,
 	periodStart: null,
 	periodEnd: null,
+	billingInterval: null,
 };
+
+function isUnpaid(invoice: Stripe.Invoice): boolean {
+	return invoice.status === "open" || invoice.status === "uncollectible";
+}
+
+/**
+ * Drafts are not owed yet and voided invoices never will be; everything else
+ * — paid, open, uncollectible — is part of the customer's billing history.
+ */
+function isBillableInvoice(invoice: Stripe.Invoice): boolean {
+	return invoice.status === "paid" || isUnpaid(invoice);
+}
+
+function toInvoiceSummary(invoice: Stripe.Invoice) {
+	return {
+		id: invoice.id,
+		date: invoice.created,
+		status: invoice.status,
+		isUnpaid: isUnpaid(invoice),
+		amountPaid: invoice.amount_paid,
+		amountDue: invoice.amount_due,
+		currency: invoice.currency,
+		hostedInvoiceUrl: invoice.hosted_invoice_url,
+		dueDate: invoice.due_date,
+	};
+}
 
 export const billingRouter = {
 	activePlan: protectedProcedure.query(async ({ ctx }) => {
@@ -93,6 +120,7 @@ export const billingRouter = {
 			cancelAt: subscription.cancelAt,
 			periodStart: subscription.periodStart,
 			periodEnd: subscription.periodEnd,
+			billingInterval: subscription.billingInterval,
 		};
 	}),
 
@@ -119,19 +147,48 @@ export const billingRouter = {
 		const invoiceList = await stripeClient.invoices.list({
 			customer: organization.stripeCustomerId,
 			limit: 100,
-			status: "paid",
 			created: { gte: Math.floor(twelveMonthsAgo.getTime() / 1000) },
 		});
 
 		return invoiceList.data
+			.filter(isBillableInvoice)
 			.sort((a, b) => b.created - a.created)
-			.map((invoice) => ({
-				id: invoice.id,
-				date: invoice.created,
-				amount: invoice.amount_paid,
-				currency: invoice.currency,
-				hostedInvoiceUrl: invoice.hosted_invoice_url,
-			}));
+			.map(toInvoiceSummary);
+	}),
+
+	/**
+	 * The invoice a failed payment is about. Drives the amount and the direct
+	 * "Pay now" link on the payment-failure surfaces, which otherwise can only
+	 * say that something failed.
+	 */
+	outstandingInvoice: protectedProcedure.query(async ({ ctx }) => {
+		const activeOrgId = ctx.activeOrganizationId;
+		if (!activeOrgId) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "No active organization",
+			});
+		}
+
+		const organization = await db.query.organizations.findFirst({
+			where: eq(organizations.id, activeOrgId),
+			columns: { stripeCustomerId: true },
+		});
+
+		if (!organization?.stripeCustomerId) {
+			return null;
+		}
+
+		const invoiceList = await stripeClient.invoices.list({
+			customer: organization.stripeCustomerId,
+			limit: 20,
+		});
+
+		const unpaid = invoiceList.data
+			.filter(isUnpaid)
+			.sort((a, b) => b.created - a.created)[0];
+
+		return unpaid ? toInvoiceSummary(unpaid) : null;
 	}),
 
 	details: protectedProcedure.query(async ({ ctx }) => {

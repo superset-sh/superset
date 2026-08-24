@@ -43,7 +43,13 @@ import {
 	type SessionOrganizationContext,
 } from "./lib/resolve-session-organization-state";
 import { stripeClient } from "./stripe";
-import { formatPrice, getOrganizationOwners } from "./utils";
+import {
+	countBillableSeats,
+	formatPrice,
+	getOrganizationBillingRecipients,
+	getOrganizationOwners,
+} from "./utils";
+import { previewNextInvoice } from "./utils/invoice-preview";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -641,12 +647,7 @@ export const auth = betterAuth({
 
 					if (subscription) return;
 
-					const memberCount = await db
-						.select({ count: count() })
-						.from(members)
-						.where(eq(members.organizationId, organization.id));
-
-					const currentCount = memberCount[0]?.count ?? 0;
+					const currentCount = await countBillableSeats(organization.id);
 
 					if (currentCount >= 1) {
 						throw new Error(
@@ -714,12 +715,10 @@ export const auth = betterAuth({
 					if (!subscription?.stripeSubscriptionId) return;
 					if (subscription.plan === "enterprise") return;
 
-					const memberCount = await db
-						.select({ count: count() })
-						.from(members)
-						.where(eq(members.organizationId, organization.id));
-
-					const quantity = memberCount[0]?.count ?? 1;
+					const quantity = Math.max(
+						1,
+						await countBillableSeats(organization.id),
+					);
 
 					const stripeSub = await stripeClient.subscriptions.retrieve(
 						subscription.stripeSubscriptionId,
@@ -736,7 +735,9 @@ export const auth = betterAuth({
 						);
 					}
 
-					const owners = await getOrganizationOwners(organization.id);
+					const recipients = await getOrganizationBillingRecipients(
+						organization.id,
+					);
 					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
 					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
 					const newMonthlyTotal = formatPrice(
@@ -744,13 +745,26 @@ export const auth = betterAuth({
 						currency,
 					);
 
+					// The base total above is not what gets charged: the mid-cycle
+					// catch-up rides on the same invoice. Quote both or quote neither.
+					const customerId =
+						typeof stripeSub.customer === "string"
+							? stripeSub.customer
+							: stripeSub.customer.id;
+					const preview = await previewNextInvoice(
+						customerId,
+						subscription.stripeSubscriptionId,
+					);
+
 					await resend.batch.send(
-						owners.map((owner) => ({
+						recipients.map((recipient) => ({
 							from: "Superset <noreply@superset.sh>",
-							to: owner.email,
+							to: recipient.email,
 							subject: `Billing update: New member added to ${organization.name}`,
 							react: MemberAddedBillingEmail({
-								ownerName: owner.name,
+								recipientName: recipient.name,
+								prorationAmount: preview?.prorationAmount ?? null,
+								nextInvoiceTotal: preview?.nextInvoiceTotal ?? null,
 								organizationName: organization.name,
 								newMemberName: user.name ?? "New member",
 								newMemberEmail: user.email,
@@ -803,12 +817,10 @@ export const auth = betterAuth({
 					if (!subscription?.stripeSubscriptionId) return;
 					if (subscription.plan === "enterprise") return;
 
-					const memberCount = await db
-						.select({ count: count() })
-						.from(members)
-						.where(eq(members.organizationId, organization.id));
-
-					const quantity = Math.max(1, memberCount[0]?.count ?? 1);
+					const quantity = Math.max(
+						1,
+						await countBillableSeats(organization.id),
+					);
 
 					const stripeSub = await stripeClient.subscriptions.retrieve(
 						subscription.stripeSubscriptionId,
@@ -825,7 +837,9 @@ export const auth = betterAuth({
 						);
 					}
 
-					const owners = await getOrganizationOwners(organization.id);
+					const recipients = await getOrganizationBillingRecipients(
+						organization.id,
+					);
 					const pricePerSeat = stripeSub.items.data[0]?.price?.unit_amount ?? 0;
 					const currency = stripeSub.items.data[0]?.price?.currency ?? "usd";
 					const newMonthlyTotal = formatPrice(
@@ -833,13 +847,24 @@ export const auth = betterAuth({
 						currency,
 					);
 
+					const customerId =
+						typeof stripeSub.customer === "string"
+							? stripeSub.customer
+							: stripeSub.customer.id;
+					const preview = await previewNextInvoice(
+						customerId,
+						subscription.stripeSubscriptionId,
+					);
+
 					await resend.batch.send(
-						owners.map((owner) => ({
+						recipients.map((recipient) => ({
 							from: "Superset <noreply@superset.sh>",
-							to: owner.email,
+							to: recipient.email,
 							subject: `Billing update: Member removed from ${organization.name}`,
 							react: MemberRemovedBillingEmail({
-								ownerName: owner.name,
+								recipientName: recipient.name,
+								prorationAmount: preview?.prorationAmount ?? null,
+								nextInvoiceTotal: preview?.nextInvoiceTotal ?? null,
 								organizationName: organization.name,
 								removedMemberName: user.name ?? "Former member",
 								removedMemberEmail: user.email,
@@ -1093,7 +1118,9 @@ export const auth = betterAuth({
 
 					if (!org?.stripeCustomerId) return;
 
-					const owners = await getOrganizationOwners(subscription.referenceId);
+					const recipients = await getOrganizationBillingRecipients(
+						subscription.referenceId,
+					);
 					const accessEndsAt = subscription.periodEnd ?? new Date();
 
 					const portalSession =
@@ -1103,12 +1130,12 @@ export const auth = betterAuth({
 						});
 
 					await resend.batch.send(
-						owners.map((owner) => ({
+						recipients.map((recipient) => ({
 							from: "Superset <noreply@superset.sh>",
-							to: owner.email,
+							to: recipient.email,
 							subject: `Your ${subscription.plan} subscription has been cancelled`,
 							react: SubscriptionCancelledEmail({
-								ownerName: owner.name,
+								recipientName: recipient.name,
 								organizationName: org.name,
 								planName: subscription.plan,
 								accessEndsAt,
@@ -1161,7 +1188,7 @@ export const auth = betterAuth({
 							where: eq(subscriptions.referenceId, org.id),
 						});
 
-						const owners = await getOrganizationOwners(org.id);
+						const recipients = await getOrganizationBillingRecipients(org.id);
 						const amount = formatPrice(invoice.amount_due, invoice.currency);
 
 						const portalSession =
@@ -1171,12 +1198,12 @@ export const auth = betterAuth({
 							});
 
 						await resend.batch.send(
-							owners.map((owner) => ({
+							recipients.map((recipient) => ({
 								from: "Superset <noreply@superset.sh>",
-								to: owner.email,
+								to: recipient.email,
 								subject: `Payment failed for ${org.name}`,
 								react: PaymentFailedEmail({
-									ownerName: owner.name,
+									recipientName: recipient.name,
 									organizationName: org.name,
 									planName: subscription?.plan ?? "Pro",
 									amount,
