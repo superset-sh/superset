@@ -18,13 +18,13 @@
 //
 // The account segment is "everything up to the separator" rather than an ASCII
 // class: account names are not ASCII in much of the world, and an ASCII class
-// only partly rewrites `jos\u00e9` and does not match `\u674e` at all, leaking exactly
-// what this removes. Whitespace, quotes and colons end the segment too, so a
-// path at the end of a sentence cannot run on and swallow the message after
-// it. The carve-outs end on that same delimiter set rather than on the
-// separator alone, so a reserved directory named at the end of a sentence
-// (`/Users/Shared: access denied`) is still recognised as reserved instead of
-// being rewritten as though it were somebody's account.
+// only partly rewrites an accented name and does not match a name written in a
+// non-Latin script at all, leaking exactly what this exists to remove.
+// Whitespace, quotes and colons end the segment too, so a path at the end of a
+// sentence cannot run on and swallow the message after it. The carve-outs end
+// on that same delimiter set rather than on the separator alone, so a reserved
+// directory named at the end of a sentence (`/Users/Shared: access denied`) is
+// still recognised as reserved instead of being rewritten as an account.
 const MACOS_HOME_PATH = /\/Users\/(?!Shared(?:[/\s'":]|$))[^/\s'":]+/g;
 // `/home/` only counts as the home root at the start of a path, so a deeper
 // directory that merely ends in `/home` (`/var/lib/home/...`) is left alone.
