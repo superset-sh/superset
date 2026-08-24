@@ -9,6 +9,7 @@ import type {
 } from "../../types";
 import {
 	equalizeAllSplits,
+	equalizeSplitBoundary,
 	findFirstPaneId,
 	findPaneInLayout,
 	generateId,
@@ -632,11 +633,7 @@ export function createWorkspaceStore<TData>(
 						t.id === args.tabId
 							? {
 									...t,
-									layout: updateAtPath(
-										tab.layout,
-										args.path,
-										equalizeAllSplits,
-									),
+									layout: equalizeSplitBoundary(tab.layout, args.path),
 								}
 							: t,
 					),

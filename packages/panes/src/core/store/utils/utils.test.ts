@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { LayoutNode } from "../../../types";
 import {
 	equalizeAllSplits,
+	equalizeSplitBoundary,
 	findFirstPaneId,
 	findPaneInLayout,
 	getActiveIdAfterRemoval,
@@ -375,6 +376,232 @@ describe("equalizeAllSplits", () => {
 				}
 			}
 		}
+	});
+});
+
+describe("equalizeSplitBoundary", () => {
+	function getTrackWeights(
+		node: LayoutNode,
+		direction: "horizontal" | "vertical",
+		weight = 1,
+	): number[] {
+		if (node.type !== "split" || node.direction !== direction) {
+			return [weight];
+		}
+
+		const firstWeight = (node.splitPercentage ?? 50) / 100;
+		return [
+			...getTrackWeights(node.first, direction, weight * firstWeight),
+			...getTrackWeights(node.second, direction, weight * (1 - firstWeight)),
+		];
+	}
+
+	it("equalizes only the tracks adjacent to a nested sash", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 60,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 70,
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "c" },
+			},
+		};
+
+		const result = equalizeSplitBoundary(layout, ["second"]);
+		expect(result.type).toBe("split");
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBe(60);
+			expect(result.second.type).toBe("split");
+			if (result.second.type === "split") {
+				expect(result.second.splitPercentage).toBe(50);
+			}
+		}
+	});
+
+	it("equalizes adjacent tracks across a nested group boundary", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 60,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 70,
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "c" },
+			},
+		};
+
+		const result = equalizeSplitBoundary(layout, []);
+		expect(result.type).toBe("split");
+		if (result.type === "split") {
+			// a=60%, b=28%, c=12% → a=b=44%, c remains 12%.
+			expect(result.splitPercentage).toBe(44);
+			expect(result.second.type).toBe("split");
+			if (result.second.type === "split") {
+				expect(result.second.splitPercentage).toBeCloseTo(78.57, 1);
+			}
+		}
+	});
+
+	it("leaves perpendicular split sizes untouched", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 70,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				direction: "vertical",
+				splitPercentage: 25,
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "c" },
+			},
+		};
+
+		const result = equalizeSplitBoundary(layout, []);
+		expect(result.type).toBe("split");
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBe(50);
+			expect(result.second).toEqual(layout.second);
+		}
+	});
+
+	it("restores a fully collapsed split", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 0,
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "b" },
+		};
+
+		const result = equalizeSplitBoundary(layout, []);
+		expect(result.type).toBe("split");
+		if (result.type === "split") {
+			expect(result.splitPercentage).toBe(50);
+		}
+	});
+
+	it("preserves both outer tracks when equalizing a four-track interior sash", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 20,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 25,
+				first: { type: "pane", paneId: "b" },
+				second: {
+					type: "split",
+					direction: "horizontal",
+					splitPercentage: 66.6666666667,
+					first: { type: "pane", paneId: "c" },
+					second: { type: "pane", paneId: "d" },
+				},
+			},
+		};
+
+		const result = equalizeSplitBoundary(layout, ["second"]);
+		const weights = getTrackWeights(result, "horizontal");
+
+		// a=20%, b=20%, c=40%, d=20% → b=c=30%; a/d stay fixed.
+		expect(weights[0]).toBeCloseTo(0.2, 6);
+		expect(weights[1]).toBeCloseTo(0.3, 6);
+		expect(weights[2]).toBeCloseTo(0.3, 6);
+		expect(weights[3]).toBeCloseTo(0.2, 6);
+	});
+
+	it("handles reverse nesting without changing the track before the clicked pair", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 70,
+			first: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 20,
+				first: { type: "pane", paneId: "a" },
+				second: { type: "pane", paneId: "b" },
+			},
+			second: { type: "pane", paneId: "c" },
+		};
+
+		const result = equalizeSplitBoundary(layout, []);
+		const weights = getTrackWeights(result, "horizontal");
+
+		// a=14%, b=56%, c=30% → b=c=43%, while a remains 14%.
+		expect(weights[0]).toBeCloseTo(0.14, 6);
+		expect(weights[1]).toBeCloseTo(0.43, 6);
+		expect(weights[2]).toBeCloseTo(0.43, 6);
+	});
+
+	it("applies the same adjacent-only rule to vertical tracks", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "vertical",
+			splitPercentage: 40,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				direction: "vertical",
+				splitPercentage: 25,
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "c" },
+			},
+		};
+
+		const result = equalizeSplitBoundary(layout, []);
+		const weights = getTrackWeights(result, "vertical");
+
+		// a=40%, b=15%, c=45% → a=b=27.5%, while c remains 45%.
+		expect(weights[0]).toBeCloseTo(0.275, 6);
+		expect(weights[1]).toBeCloseTo(0.275, 6);
+		expect(weights[2]).toBeCloseTo(0.45, 6);
+	});
+
+	it("restores a collapsed adjacent track without changing the third track", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 0,
+			first: { type: "pane", paneId: "a" },
+			second: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 50,
+				first: { type: "pane", paneId: "b" },
+				second: { type: "pane", paneId: "c" },
+			},
+		};
+
+		const result = equalizeSplitBoundary(layout, []);
+		const weights = getTrackWeights(result, "horizontal");
+
+		expect(weights[0]).toBeCloseTo(0.25, 6);
+		expect(weights[1]).toBeCloseTo(0.25, 6);
+		expect(weights[2]).toBeCloseTo(0.5, 6);
+	});
+
+	it("is idempotent and ignores invalid paths", () => {
+		const layout: LayoutNode = {
+			type: "split",
+			direction: "horizontal",
+			splitPercentage: 60,
+			first: { type: "pane", paneId: "a" },
+			second: { type: "pane", paneId: "b" },
+		};
+
+		const once = equalizeSplitBoundary(layout, []);
+		expect(equalizeSplitBoundary(once, [])).toEqual(once);
+		expect(equalizeSplitBoundary(layout, ["first"])).toBe(layout);
 	});
 });
 
