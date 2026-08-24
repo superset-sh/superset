@@ -104,6 +104,11 @@ export const store = {
 		return res.changes === 1;
 	},
 
+	/** Failed delivery: release the id so the webhook retry gets to run it. */
+	unmarkInboundProcessed(emailId: string) {
+		db.run(`DELETE FROM processed_inbound WHERE email_id = ?`, [emailId]);
+	},
+
 	getSetting(key: string): string | undefined {
 		return db
 			.query<{ value: string }, [string]>(
