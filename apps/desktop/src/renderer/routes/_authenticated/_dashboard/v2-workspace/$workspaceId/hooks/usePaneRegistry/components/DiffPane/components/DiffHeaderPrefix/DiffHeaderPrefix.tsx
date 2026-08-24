@@ -1,5 +1,6 @@
+import { cn } from "@superset/ui/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FileIcon } from "renderer/lib/fileIcons";
 import type { ChangesetFile } from "../../../../../useChangeset";
 
@@ -14,20 +15,57 @@ export function DiffHeaderPrefix({
 	collapsed,
 	onSetCollapsed,
 }: DiffHeaderPrefixProps) {
+	const prefixRef = useRef<HTMLDivElement>(null);
+	const [headerHovered, setHeaderHovered] = useState(false);
 	const onToggle = useCallback(
 		() => onSetCollapsed(!collapsed),
 		[onSetCollapsed, collapsed],
 	);
 
+	useEffect(() => {
+		const show = () => setHeaderHovered(true);
+		const hide = () => setHeaderHovered(false);
+		let header: Element | null = null;
+		let frame = 0;
+		const connect = () => {
+			header =
+				prefixRef.current
+					?.closest("diffs-container")
+					?.shadowRoot?.querySelector("[data-diffs-header='default']") ?? null;
+			if (!header) {
+				frame = requestAnimationFrame(connect);
+				return;
+			}
+			header.addEventListener("pointerenter", show);
+			header.addEventListener("pointerleave", hide);
+			setHeaderHovered(header.matches(":hover"));
+		};
+		connect();
+		return () => {
+			cancelAnimationFrame(frame);
+			header?.removeEventListener("pointerenter", show);
+			header?.removeEventListener("pointerleave", hide);
+		};
+	}, []);
+
 	return (
 		// Flex wrapper: Tailwind preflight sets `img { display: block }`,
 		// so without this the FileIcon drops below the chevron button.
-		<div className="flex shrink-0 items-center gap-1">
+		<div ref={prefixRef} className="flex shrink-0 items-center gap-1">
 			<button
 				type="button"
-				onClick={onToggle}
+				onPointerDown={(event) => event.stopPropagation()}
+				onClick={(event) => {
+					event.stopPropagation();
+					onToggle();
+				}}
+				onFocus={() => setHeaderHovered(true)}
+				onBlur={() => setHeaderHovered(false)}
 				aria-label={collapsed ? "Expand file" : "Collapse file"}
-				className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-accent hover:text-muted-foreground"
+				className={cn(
+					"rounded p-1 text-muted-foreground/60 transition-all duration-100 hover:bg-accent hover:text-muted-foreground",
+					!headerHovered && "pointer-events-none opacity-0",
+				)}
 			>
 				{collapsed ? (
 					<ChevronRight className="size-3.5" />

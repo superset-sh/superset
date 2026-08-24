@@ -142,13 +142,6 @@ export function useDiffCodeViewTheme() {
 				[data-diffs-header='default'] [data-deletions-count] {
 					color: ${deletionColor};
 				}
-				[data-diffs-header='default'] [data-discard-button] {
-					opacity: 0;
-				}
-				[data-diffs-header='default']:hover [data-discard-button],
-				[data-diffs-header='default']:focus-within [data-discard-button] {
-					opacity: 1;
-				}
 				/* Pierre sets --diffs-light-bg/--diffs-dark-bg
 				 * inline on <pre data-diff> from the Shiki theme;
 				 * inline beats :host so we override at the pre. */
