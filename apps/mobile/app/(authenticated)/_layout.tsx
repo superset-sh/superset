@@ -28,11 +28,18 @@ export default function AuthenticatedLayout() {
 	const { data: session } = useSession();
 	const pathname = usePathname();
 
-	// Unpaid sessions may only see home (which renders the paywall) and
-	// settings — App Review requires sign-out, org switching, and account
-	// deletion to stay reachable behind a gate.
+	// Unpaid sessions may only see home (which renders the paywall), the
+	// organizations sheet, and settings — App Review requires sign-out, org
+	// switching, and account deletion to stay reachable behind a gate, and that
+	// sheet is the only route to all three. Leaving it out sealed unpaid
+	// accounts in: it mounted and was redirected away in the same frame.
 	const unpaid = !!session && !session.session.plan;
-	if (unpaid && pathname !== "/" && !pathname.startsWith("/settings")) {
+	if (
+		unpaid &&
+		pathname !== "/" &&
+		pathname !== "/organizations" &&
+		!pathname.startsWith("/settings")
+	) {
 		return <Redirect href="/(authenticated)/(home)" />;
 	}
 
