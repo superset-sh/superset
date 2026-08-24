@@ -114,17 +114,11 @@ async function handleError(
 	signal?: AbortSignal,
 ): Promise<never> {
 	const { message, hint } = formatError(error, cliName);
+	const text = `Error: ${message}\n${hint ? `Hint: ${hint}\n` : ""}`;
 	// Same drain rule as stdout (see writeStream): exiting before the pipe
 	// reader catches up would drop the message. Best effort; a failed stderr
 	// write must not mask the exit code.
-	await writeStream(process.stderr, `Error: ${message}\n`, signal).catch(
-		() => {},
-	);
-	if (hint) {
-		await writeStream(process.stderr, `Hint: ${hint}\n`, signal).catch(
-			() => {},
-		);
-	}
+	await writeStream(process.stderr, text, signal).catch(() => {});
 	process.exit(1);
 }
 
