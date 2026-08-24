@@ -1,11 +1,17 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
-import { Image, Pressable, ScrollView } from "react-native";
+import { useMemo } from "react";
+import { Image, Pressable, ScrollView, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { useHostsPresence } from "@/hooks/useHostsPresence";
+import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { agentIconSource } from "@/lib/agent-icons";
-import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
+import { hostServiceUrl } from "@/lib/host-service/client";
+import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 
@@ -32,22 +38,62 @@ export function AgentMark({
  * Picks which host agent preset the next session launches with — the target
  * host's agent configs (Claude Code, Codex, …), fetched live so the list
  * matches what the host can actually run.
+ *
+ * The machine arrives as a route param because the composer already resolved
+ * it. Re-deriving it here landed somewhere else: the composer weighs the
+ * recent workspace list this screen never sees, so the fallback picked the
+ * first target alphabetically — usually a cloud one, which has no host to
+ * list agents from and left the screen loading forever.
  */
 export function AgentPickerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const setAgentId = useNewSessionPreferencesStore((state) => state.setAgentId);
-	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
-	const { targets, defaultTarget } = useNewChatTargets();
-	const selectedTarget =
-		targets.find((target) => target.key === targetKey) ?? defaultTarget;
+	const { machineId } = useLocalSearchParams<{ machineId?: string }>();
+
+	const hostsQuery = useOrgHostsQuery();
+	const host =
+		machineId && machineId !== CLOUD_TARGET_ID
+			? (hostsQuery.data?.find((entry) => entry.machineId === machineId) ??
+				null)
+			: null;
+	const presenceTargets = useMemo(() => (host ? [host] : []), [host]);
+	const presence = useHostsPresence(presenceTargets);
+	const isOnline = host
+		? (presence?.get(host.machineId) ?? host.isOnline)
+		: false;
 
 	const configsQuery = useHostAgentConfigs({
-		machineId: selectedTarget?.machineId ?? null,
-		hostUrl: selectedTarget?.hostUrl ?? null,
+		machineId: host?.machineId ?? null,
+		hostUrl: host ? hostServiceUrl(host.organizationId, host.machineId) : null,
 	});
 	const configs = configsQuery.data ?? [];
+
+	// Every way this can come up empty, told apart. A spinner is for a fetch
+	// that is genuinely in flight and nothing else.
+	let notice: string | null = null;
+	let isLoading = false;
+	let canRetry = false;
+	if (!machineId) {
+		notice = "No project selected";
+	} else if (machineId === CLOUD_TARGET_ID) {
+		notice = "Cloud workspaces don't run an agent yet";
+	} else if (!host) {
+		if (hostsQuery.isPending) isLoading = true;
+		else notice = "That machine is no longer available";
+	} else if (configs.length === 0) {
+		if (configsQuery.isError) {
+			notice = isOnline
+				? `Could not load agents from ${host.name}`
+				: `${host.name} is offline`;
+			canRetry = true;
+		} else if (configsQuery.isPending) {
+			isLoading = true;
+		} else {
+			notice = `No agents configured on ${host.name}`;
+		}
+	}
 
 	return (
 		<ScrollView
@@ -57,13 +103,29 @@ export function AgentPickerScreen() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
 			</Stack.Toolbar>
-			{configs.length === 0 ? (
-				<Text
-					className="py-6 text-center text-sm"
-					style={{ color: theme.mutedForeground }}
-				>
-					{selectedTarget ? "Loading agents…" : "No projects on an online host"}
-				</Text>
+			{isLoading ? (
+				<View className="items-center py-8">
+					<Spinner />
+				</View>
+			) : null}
+			{notice ? (
+				<View className="items-center gap-3 py-6">
+					<Text
+						className="text-center text-sm"
+						style={{ color: theme.mutedForeground }}
+					>
+						{notice}
+					</Text>
+					{canRetry ? (
+						<Button
+							size="sm"
+							variant="secondary"
+							onPress={() => void configsQuery.refetch()}
+						>
+							<Text>Try again</Text>
+						</Button>
+					) : null}
+				</View>
 			) : null}
 			{configs.map((config) => {
 				// Persist the presetId, not the row id: config ids are per-host

@@ -11,8 +11,8 @@ import {
 } from "./utils/checksFilter";
 
 /**
- * Every check, filterable. The filter is the sheet's title rather than a row in
- * the list, so it stays put while the checks scroll under it.
+ * Every check, filterable. The filter leads the list rather than sharing the
+ * header's title slot with the ✕ and Fix All, which left it squeezed.
  */
 export function ChecksSheet({
 	checks,
@@ -25,21 +25,18 @@ export function ChecksSheet({
 }) {
 	const router = useRouter();
 	const [filter, setFilter] = useState<ChecksFilterValue>("all");
-	const { counts, options, groups } = checksFilterState(checks, filter);
+	// `active` is `filter` unless its tab has stopped existing, so the row and
+	// the groups below can never disagree about what is selected.
+	const {
+		counts,
+		options,
+		groups,
+		filter: active,
+	} = checksFilterState(checks, filter);
 
 	return (
 		<>
-			<Stack.Screen
-				options={{
-					headerTitle: () => (
-						<ChecksFilter
-							onChange={setFilter}
-							options={options}
-							value={filter}
-						/>
-					),
-				}}
-			/>
+			<Stack.Screen options={{ headerTitle: "Checks" }} />
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					accessibilityLabel="Close"
@@ -58,11 +55,12 @@ export function ChecksSheet({
 			) : null}
 			<ScrollView
 				className="bg-background flex-1"
-				contentContainerClassName="gap-6 px-4 pb-10 pt-2"
+				contentContainerClassName="gap-6 pb-10 pt-2"
 				contentInsetAdjustmentBehavior="automatic"
 			>
+				<ChecksFilter onChange={setFilter} options={options} value={active} />
 				{groups.map((group) => (
-					<View className="gap-3" key={group.filter}>
+					<View className="gap-3 px-4" key={group.filter}>
 						<Text className="text-muted-foreground text-[15px]">
 							{group.title}{" "}
 							<Text className="text-muted-foreground/60 text-[15px]">

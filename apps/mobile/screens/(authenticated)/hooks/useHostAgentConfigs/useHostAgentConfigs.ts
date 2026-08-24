@@ -10,6 +10,10 @@ export function getHostAgentConfigsQueryKey(machineId: string | null) {
  * the host can actually run. Edits usually happen on the desktop while this
  * app is backgrounded, so focus refetches unconditionally — returning to the
  * app is the earliest moment the fresh list can matter.
+ *
+ * An empty `hostUrl` disables the query the way null does: a cloud target
+ * carries `""`, and treating that as addressable used to resolve the query
+ * to an empty list, which callers cannot tell from a host with no agents.
  */
 export function useHostAgentConfigs({
 	machineId,
@@ -22,12 +26,12 @@ export function useHostAgentConfigs({
 }) {
 	return useQuery({
 		queryKey: getHostAgentConfigsQueryKey(machineId),
-		enabled: enabled && hostUrl !== null,
+		enabled: enabled && Boolean(hostUrl),
 		staleTime: 60_000,
 		refetchOnWindowFocus: "always" as const,
 		networkMode: "always" as const,
 		queryFn: async () => {
-			if (!hostUrl) return [];
+			if (!hostUrl) throw new Error("no host to list agents from");
 			return getHostServiceClientByUrl(
 				hostUrl,
 			).settings.agentConfigs.list.query();

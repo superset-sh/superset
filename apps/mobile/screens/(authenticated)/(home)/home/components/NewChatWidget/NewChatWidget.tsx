@@ -264,7 +264,13 @@ export function NewChatWidget({
 			}}
 			onModelPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				router.push("/(authenticated)/(home)/new-session/agent");
+				// Hand the picker the machine resolved here. It has no workspace
+				// list of its own, so left to re-derive one it picks a different
+				// target than this composer is about to create on.
+				router.push({
+					pathname: "/(authenticated)/(home)/new-session/agent",
+					params: { machineId: selectedTarget?.machineId ?? "" },
+				});
 			}}
 			onChipPress={(id) => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
