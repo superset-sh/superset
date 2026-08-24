@@ -78,10 +78,9 @@ describe("store", () => {
 			store.findThreadByMessageIds(["<unknown>", "<plain-reply@mtasv.net>"])
 				?.discordThreadId,
 		).toBe("t1");
-		expect(
-			store.findThreadBySubject("u1", "App crashes on launch")?.discordThreadId,
-		).toBe("t1");
 		expect(store.markInboundProcessed("e1")).toBe(true);
 		expect(store.markInboundProcessed("e1")).toBe(false);
+		store.unmarkInboundProcessed("e1");
+		expect(store.markInboundProcessed("e1")).toBe(true);
 	});
 });

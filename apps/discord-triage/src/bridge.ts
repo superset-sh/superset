@@ -32,11 +32,6 @@ function customerAddress(user: User): string {
 	return `${name} <discord-${user.id}@${domain}>`;
 }
 
-function userIdFromAddress(address: string): string | undefined {
-	const m = address.match(/discord-(\d+)@/);
-	return m?.[1];
-}
-
 function splitAttachments(attachments: Attachment[]): {
 	attached: OutboundAttachment[];
 	linked: Attachment[];
@@ -139,10 +134,6 @@ function referencedIds(email: ReceivedEmail): string[] {
 	return raw.match(/<[^>]+>/g) ?? [];
 }
 
-function normalizeSubject(subject: string): string {
-	return subject.replace(/^(\s*(re|fwd?)\s*:\s*)+/i, "").trim();
-}
-
 // Keep the fresh reply; drop the quoted history mail clients append.
 export function replyText(text: string): string {
 	const lines = text.replace(/\r\n/g, "\n").split("\n");
@@ -189,16 +180,11 @@ async function discordFiles(
 }
 
 async function deliverReply(discord: Client, email: ReceivedEmail) {
-	const userId = email.to.map(userIdFromAddress).find(Boolean);
-	const thread =
-		store.findThreadByMessageIds(referencedIds(email)) ??
-		(userId && email.subject
-			? store.findThreadBySubject(userId, normalizeSubject(email.subject))
-			: undefined);
+	// Message-ID correlation only: anyone can email a synthetic address, so a
+	// subject or recipient match must never be enough to speak in a thread.
+	const thread = store.findThreadByMessageIds(referencedIds(email));
 	if (!thread) {
-		console.warn(
-			`inbound email ${email.id} matches no bridged thread (to ${email.to.join(",")}, subject ${email.subject})`,
-		);
+		console.warn(`inbound email ${email.id} matches no bridged thread`);
 		return;
 	}
 	if (email.message_id) {
@@ -238,12 +224,15 @@ export async function handleResendWebhook(
 	if (payload.type !== "email.received" || !emailId) {
 		return new Response("ignored");
 	}
-	// At-least-once delivery: acknowledge duplicates without reposting.
+	// At-least-once delivery: acknowledge duplicates without reposting. The
+	// claim is released on failure so Resend's retry is not treated as a
+	// duplicate of a delivery that never happened.
 	if (!store.markInboundProcessed(emailId)) return new Response("duplicate");
 	try {
 		const email = await getReceivedEmail(emailId);
 		if (!isAutomatic(email)) await deliverReply(discord, email);
 	} catch (err) {
+		store.unmarkInboundProcessed(emailId);
 		console.error(`resend webhook handling failed for ${emailId}`, err);
 		return new Response("handling failed", { status: 500 });
 	}

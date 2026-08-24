@@ -84,20 +84,6 @@ export const store = {
 		return undefined;
 	},
 
-	// Last resort when every reference is unknown: the customer's most recent
-	// thread with the same subject.
-	findThreadBySubject(
-		discordUserId: string,
-		subject: string,
-	): BridgeThread | undefined {
-		const row = db
-			.query<Row, [string, string]>(
-				`SELECT * FROM threads WHERE discord_user_id = ? AND subject = ? ORDER BY created_at DESC LIMIT 1`,
-			)
-			.get(discordUserId, subject);
-		return row ? toThread(row) : undefined;
-	},
-
 	rememberMessageId(messageId: string, discordThreadId: string) {
 		db.run(`INSERT OR IGNORE INTO message_ids VALUES (?, ?)`, [
 			messageId,
