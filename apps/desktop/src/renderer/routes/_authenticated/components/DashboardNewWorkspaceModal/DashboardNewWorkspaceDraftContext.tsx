@@ -67,6 +67,7 @@ export function useDashboardNewWorkspaceDraft() {
 			branchNameFromProvider: store.branchNameFromProvider,
 			linkedIssues: store.linkedIssues,
 			linkedPR: store.linkedPR,
+			noWorktree: store.noWorktree,
 			selectedAgentId: store.selectedAgentId,
 			attachments: store.attachments,
 		})),

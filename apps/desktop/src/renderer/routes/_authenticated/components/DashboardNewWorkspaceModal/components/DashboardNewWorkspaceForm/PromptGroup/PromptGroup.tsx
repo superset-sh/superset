@@ -56,6 +56,7 @@ import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { PromptHistoryCommand } from "./components/PromptHistoryCommand";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
+import { WorkspaceFolderPicker } from "./components/WorkspaceFolderPicker";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
@@ -709,6 +710,17 @@ export function PromptGroup({
 							</motion.div>
 						)}
 					</AnimatePresence>
+					{/* A pull request is checked out into a worktree of its own,
+					    and a cloud workspace runs on a machine that has no
+					    project folder, so neither offers the choice. */}
+					{!draft.isSession &&
+						!linkedPR &&
+						(draft.hostId ?? machineId) !== CLOUD_HOST_ID && (
+							<WorkspaceFolderPicker
+								noWorktree={draft.noWorktree}
+								onChange={(noWorktree) => updateDraft({ noWorktree })}
+							/>
+						)}
 				</div>
 				<div className="flex items-center gap-1.5">
 					{needsSetup ? (
