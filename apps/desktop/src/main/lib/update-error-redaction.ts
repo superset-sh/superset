@@ -21,13 +21,17 @@
 // only partly rewrites `jos\u00e9` and does not match `\u674e` at all, leaking exactly
 // what this removes. Whitespace, quotes and colons end the segment too, so a
 // path at the end of a sentence cannot run on and swallow the message after
-// it.
-const MACOS_HOME_PATH = /\/Users\/(?!Shared(?:\/|$))[^/\s'":]+/g;
+// it. The carve-outs end on that same delimiter set rather than on the
+// separator alone, so a reserved directory named at the end of a sentence
+// (`/Users/Shared: access denied`) is still recognised as reserved instead of
+// being rewritten as though it were somebody's account.
+const MACOS_HOME_PATH = /\/Users\/(?!Shared(?:[/\s'":]|$))[^/\s'":]+/g;
 // `/home/` only counts as the home root at the start of a path, so a deeper
 // directory that merely ends in `/home` (`/var/lib/home/...`) is left alone.
-const LINUX_HOME_PATH = /(?<![^\s'"])\/home\/(?!linuxbrew(?:\/|$))[^/\s'":]+/g;
+const LINUX_HOME_PATH =
+	/(?<![^\s'"])\/home\/(?!linuxbrew(?:[/\s'":]|$))[^/\s'":]+/g;
 const WINDOWS_HOME_PATH =
-	/[A-Za-z]:\\Users\\(?!(?:Public|Default|All Users)(?:\\|$))[^\\\s'":]+/gi;
+	/[A-Za-z]:\\Users\\(?!(?:Public|Default|All Users)(?:[\\\s'":]|$))[^\\\s'":]+/gi;
 
 // Every staging attempt unpacks into a freshly named `update.XXXXXXX`
 // directory, so one recurring condition otherwise groups as a brand-new issue

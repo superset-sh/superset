@@ -297,3 +297,31 @@ describe("redactUpdateErrorMessage with non-ASCII account names", () => {
 		).toBe("Cannot read ~/x and ~/y");
 	});
 });
+
+// The carve-outs and the account segment have to agree on where a segment
+// ends. They did not: widening the account terminator to stop at whitespace,
+// quotes and colons without widening the carve-out boundary meant a reserved
+// system directory followed by one of those was treated as an account.
+describe("redactUpdateErrorMessage carve-outs at message delimiters", () => {
+	test("reserved directories survive at a delimiter, not just a separator", () => {
+		for (const message of [
+			"ditto: /Users/Shared: access denied",
+			"open '/Users/Shared' failed",
+			"ditto: /home/linuxbrew: permission denied",
+			"open '/home/linuxbrew' failed",
+			"EPERM: open 'C:\\Users\\Public' failed",
+			"EPERM: C:\\Users\\Public: access denied",
+		]) {
+			expect(redactUpdateErrorMessage(message)).toBe(message);
+		}
+	});
+
+	test("an account starting with a reserved name is still redacted at a delimiter", () => {
+		expect(redactUpdateErrorMessage("ditto: /Users/Sharedrive: denied")).toBe(
+			"ditto: ~: denied",
+		);
+		expect(redactUpdateErrorMessage("/Users/Sharedrive/Library")).toBe(
+			"~/Library",
+		);
+	});
+});
