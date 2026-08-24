@@ -39,6 +39,7 @@ import {
 	getChangesetFileKey,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
+import { useFileDrag } from "../../hooks/useFileDrag";
 
 function splitPath(path: string): { dir: string; basename: string } {
 	const lastSlash = path.lastIndexOf("/");
@@ -102,12 +103,14 @@ export const FileRow = memo(function FileRow({
 	const diffNewTabTier = policy.tierForIntent("diffNewTab");
 	const fileTier = policy.tierForIntent("file");
 	const externalTier = policy.tierForIntent("external");
+	const fileDrag = useFileDrag({ absolutePath });
 
 	const rowButton = (
 		<div className="group relative">
 			<button
 				type="button"
 				className="flex w-full items-center gap-1.5 py-1 pr-3 pl-3 text-left text-xs hover:bg-accent/50"
+				{...fileDrag}
 				onClick={(e) => {
 					const intent = policy.getIntent(e);
 					if (intent === "external") onOpenInEditor?.(file.path);
