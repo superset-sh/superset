@@ -1,11 +1,11 @@
 "use server";
 
-import { DownloadLinkEmail } from "@superset/email/emails/marketing/download-link";
+import { DownloadLinkEmail } from "@superset/email/emails/marketing/DownloadLinkEmail";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
 import { checkEmailFormRateLimit } from "@/lib/email-rate-limit";
-import { sanitizeSingleLine, validateEmail } from "@/lib/form-utils";
+import { sanitizeSingleLine } from "@/lib/form-utils";
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -32,7 +32,7 @@ export async function sendDownloadLink(
 	}
 
 	const sanitizedEmail = sanitizeSingleLine(email).toLowerCase();
-	if (!validateEmail(sanitizedEmail)) {
+	if (!z.email().safeParse(sanitizedEmail).success) {
 		return { success: false, error: "Enter a valid email address." };
 	}
 

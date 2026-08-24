@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { Button, EmailLayout } from "../../components";
+import { Button, EmailLayout } from "../../../components";
 
 const DOWNLOAD_URL =
 	"https://superset.sh/download?utm_source=email&utm_medium=transactional&utm_campaign=mobile-download-link";

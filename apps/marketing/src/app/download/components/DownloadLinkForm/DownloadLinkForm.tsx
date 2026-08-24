@@ -19,16 +19,20 @@ export function DownloadLinkForm() {
 
 		setError("");
 		setIsSubmitting(true);
-		const result = await sendDownloadLink({ email, honeypot });
-		setIsSubmitting(false);
+		try {
+			const result = await sendDownloadLink({ email, honeypot });
+			if (!result.success) {
+				setError(result.error);
+				return;
+			}
 
-		if (!result.success) {
-			setError(result.error);
-			return;
+			setSubmittedEmail(email);
+			track("download_link_emailed", { platform: "mobile" });
+		} catch {
+			setError("Something went wrong. Please try again.");
+		} finally {
+			setIsSubmitting(false);
 		}
-
-		setSubmittedEmail(email);
-		track("download_link_emailed", { platform: "mobile" });
 	}
 
 	if (submittedEmail) {
