@@ -49,5 +49,14 @@ export function redactUpdateError(error: Error): Error {
 	redacted.stack = error.stack
 		? redactUpdateErrorMessage(error.stack)
 		: undefined;
+	// electron-updater attaches an own `code` to the errors it builds, and Sentry
+	// serialises non-standard error properties, so rebuilding the error must
+	// carry them across or the report loses its most triageable field. String
+	// values go through the same redaction: a path can be carried out here too.
+	for (const key of Object.keys(error)) {
+		const value = (error as unknown as Record<string, unknown>)[key];
+		(redacted as unknown as Record<string, unknown>)[key] =
+			typeof value === "string" ? redactUpdateErrorMessage(value) : value;
+	}
 	return redacted;
 }

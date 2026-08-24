@@ -159,3 +159,42 @@ describe("redactUpdateErrorMessage across platforms", () => {
 		}
 	});
 });
+
+// electron-updater builds its errors with `newError(message, code)`, which sets
+// an own `code` property, and Sentry serialises non-standard error properties.
+// Rebuilding the error must not drop them — the code is the most triageable
+// field on the whole report.
+describe("redactUpdateError property fidelity", () => {
+	test("keeps a code set by the updater", () => {
+		const error = new Error(DITTO_MISSING_ASAR_ADA) as Error & {
+			code?: string;
+		};
+		error.code = "ERR_UPDATER_ZIP_FILE_NOT_FOUND";
+
+		const redacted = redactUpdateError(error) as Error & { code?: string };
+
+		expect(redacted.message).not.toContain("ada");
+		expect(redacted.code).toBe("ERR_UPDATER_ZIP_FILE_NOT_FOUND");
+	});
+
+	test("redacts a home path carried on another property too", () => {
+		const error = new Error(DITTO_MISSING_ASAR_ADA) as Error & {
+			path?: string;
+		};
+		error.path = "/Users/ada/Library/Caches/com.superset.desktop.ShipIt";
+
+		const redacted = redactUpdateError(error) as Error & { path?: string };
+
+		expect(redacted.path).toBe("~/Library/Caches/com.superset.desktop.ShipIt");
+	});
+
+	test("carries non-string properties across untouched", () => {
+		const error = new Error(DITTO_MISSING_ASAR_ADA) as Error & {
+			statusCode?: number;
+		};
+		error.statusCode = 404;
+		expect(
+			(redactUpdateError(error) as Error & { statusCode?: number }).statusCode,
+		).toBe(404);
+	});
+});
