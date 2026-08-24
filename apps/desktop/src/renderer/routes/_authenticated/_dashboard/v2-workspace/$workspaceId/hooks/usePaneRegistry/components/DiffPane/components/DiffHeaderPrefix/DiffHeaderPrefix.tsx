@@ -49,9 +49,14 @@ export function DiffHeaderPrefix({
 	}, []);
 
 	return (
-		// Flex wrapper: Tailwind preflight sets `img { display: block }`,
-		// so without this the FileIcon drops below the chevron button.
-		<div ref={prefixRef} className="flex shrink-0 items-center gap-1">
+		<div ref={prefixRef} className="relative size-3.5 shrink-0">
+			<FileIcon
+				fileName={file.path}
+				className={cn(
+					"size-3.5 transition-opacity duration-100",
+					headerHovered && "opacity-0",
+				)}
+			/>
 			<button
 				type="button"
 				onPointerDown={(event) => event.stopPropagation()}
@@ -63,7 +68,7 @@ export function DiffHeaderPrefix({
 				onBlur={() => setHeaderHovered(false)}
 				aria-label={collapsed ? "Expand file" : "Collapse file"}
 				className={cn(
-					"rounded p-1 text-muted-foreground/60 transition-all duration-100 hover:bg-accent hover:text-muted-foreground",
+					"absolute -inset-1 flex items-center justify-center rounded text-muted-foreground/60 transition-all duration-100 hover:bg-accent hover:text-muted-foreground",
 					!headerHovered && "pointer-events-none opacity-0",
 				)}
 			>
@@ -73,7 +78,6 @@ export function DiffHeaderPrefix({
 					<ChevronDown className="size-3.5" />
 				)}
 			</button>
-			<FileIcon fileName={file.path} className="size-3.5 shrink-0" />
 		</div>
 	);
 }
