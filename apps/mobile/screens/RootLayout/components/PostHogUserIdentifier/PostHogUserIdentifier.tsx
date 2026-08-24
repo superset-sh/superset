@@ -15,10 +15,9 @@ export function PostHogUserIdentifier() {
 			posthog.identify(user.id, { email: user.email, name: user.name });
 			return;
 		}
-		// Only an actual sign-OUT resets. Resetting whenever there is merely no
-		// session meant every signed-out launch minted a fresh anonymous id, and
-		// `reset()` drops the registered properties with it — which is why events
-		// after the first one in a signed-out launch arrived with no `app_name`.
+		// `session === null` is the steady state of a signed-out app, not an
+		// event: resetting on it minted a fresh anonymous id every launch, and
+		// `reset()` drops the registered properties along with the id.
 		if (session === null && identifiedUserId.current !== null) {
 			identifiedUserId.current = null;
 			posthog.reset();

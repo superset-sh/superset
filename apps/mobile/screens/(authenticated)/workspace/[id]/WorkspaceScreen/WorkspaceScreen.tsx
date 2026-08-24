@@ -226,21 +226,13 @@ export function WorkspaceScreen() {
 		: null;
 	const hostCompatibility = useHostCompatibility(hostUrl);
 
-	const openedWorkspaceRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!id || openedWorkspaceRef.current === id || isResolving) return;
-		if (!workspace && !cloud && !pendingCreate) return;
-		openedWorkspaceRef.current = id;
+		if (!id) return;
 		posthog.capture("session_opened", {
 			workspace_id: id,
-			workspace_kind: cloud && !workspace ? "cloud" : "host",
-			entry: pendingCreate
-				? "create"
-				: router.canGoBack()
-					? "list"
-					: "deeplink",
+			entry: router.canGoBack() ? "list" : "deeplink",
 		});
-	}, [id, isResolving, workspace, cloud, pendingCreate, router]);
+	}, [id, router]);
 
 	// The + sheet lands back here via dismissTo with the new session in
 	// ?tab= — adopt it once its row arrives, since the terminals query hasn't
@@ -423,24 +415,14 @@ export function WorkspaceScreen() {
 		[handleSubmit],
 	);
 
-	// Keyed by terminal: switching tabs carries the old tab's failed state over
-	// until the new one reports, which is not a second failure.
-	const reportedFailureRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (connectionState !== "error" && connectionState !== "denied") {
-			reportedFailureRef.current = null;
-			return;
-		}
-		const failure = `${activeTerminalId}:${connectionState}`;
-		if (reportedFailureRef.current === failure) return;
-		reportedFailureRef.current = failure;
+		if (connectionState !== "error" && connectionState !== "denied") return;
 		posthog.capture("terminal_connect_failed", {
 			workspace_id: id ?? null,
 			terminal_id: activeTerminalId,
 			category: connectionState,
-			host_kind: cloud && !workspace ? "cloud" : "remote",
 		});
-	}, [connectionState, id, activeTerminalId, cloud, workspace]);
+	}, [connectionState, id, activeTerminalId]);
 
 	const banner = STATE_BANNERS[connectionState];
 	const showComposer =
