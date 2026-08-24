@@ -7,6 +7,10 @@ import {
 	getChangesetFileKey,
 } from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
+import {
+	type AssertedScroll,
+	shouldReassertScroll,
+} from "./shouldReassertScroll";
 import { shouldRestoreCachedScrollState } from "./shouldRestoreCachedScrollState";
 
 interface UseDiffCodeViewScrollOptions {
@@ -53,6 +57,7 @@ export function useDiffCodeViewScroll({
 	const activeScrollKeyRef = useRef<string | null>(null);
 	const stickyRef = useRef(true);
 	const lastProgrammaticScrollAtRef = useRef(0);
+	const lastAssertedRef = useRef<AssertedScroll | null>(null);
 	const resolvedScrollStateKeyRef = useRef<string | null>(null);
 	const itemById = useMemo(() => {
 		const map = new Map<string, CodeViewItem<DiffAnnotationMetadata>>();
@@ -83,6 +88,7 @@ export function useDiffCodeViewScroll({
 		if (resolvedScrollStateKeyRef.current !== scrollStateKey) {
 			activeScrollKeyRef.current = null;
 			stickyRef.current = true;
+			lastAssertedRef.current = null;
 			if (shouldRestoreCachedScrollState(initialScrollState, data.focusTick)) {
 				const instance = codeViewRef.current?.getInstance();
 				if (!instance || items.length === 0) return;
@@ -134,7 +140,19 @@ export function useDiffCodeViewScroll({
 						behavior: "smooth-auto",
 					};
 
+		// Re-assert only when the target actually moved under us (or this is a
+		// new request). CodeView suspends pointer events on its pinned header
+		// for a settle window after every `scrollTo`, so re-firing on unrelated
+		// re-renders made the pinned header's buttons drop clicks and snapped
+		// the viewport back whenever the user scrolled away.
+		const targetTop = codeViewRef.current
+			?.getInstance()
+			?.getTopForItem(targetItemId);
+		if (!shouldReassertScroll(lastAssertedRef.current, scrollKey, targetTop))
+			return;
+
 		codeViewRef.current?.scrollTo(target);
+		lastAssertedRef.current = { scrollKey, targetTop };
 		lastProgrammaticScrollAtRef.current = Date.now();
 	}, [
 		codeViewRef,
