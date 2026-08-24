@@ -46,6 +46,8 @@ export interface TerminalWebViewHandle {
 	retry: () => void;
 	/** Copy the select-mode selection to the clipboard and leave select mode. */
 	copySelection: () => void;
+	/** Return the viewport to the live edge of the scrollback. */
+	scrollToBottom: () => void;
 }
 
 export interface TerminalHost {
@@ -65,6 +67,9 @@ interface TerminalWebViewProps {
 	onSelectChange?: (select: TerminalSelectState) => void;
 	/** Select-mode text landed on the clipboard (either copy path). */
 	onCopied?: () => void;
+	/** The viewport reached or left the bottom of the scrollback — drives the
+	 *  scroll-to-bottom button, which lives outside the WebView. */
+	onScrollChange?: (atBottom: boolean) => void;
 }
 
 type PageMessage =
@@ -74,7 +79,8 @@ type PageMessage =
 	| { type: "control"; message: TerminalControlMessage }
 	| { type: "openUrl"; url: string }
 	| { type: "copy"; text: string }
-	| { type: "select"; active: boolean; hasSelection: boolean };
+	| { type: "select"; active: boolean; hasSelection: boolean }
+	| { type: "scroll"; atBottom: boolean };
 
 /**
  * Hosts the xterm.js page (terminalHtml.generated.ts) and speaks its bridge
@@ -96,6 +102,7 @@ export const TerminalWebView = forwardRef<
 		onControl,
 		onSelectChange,
 		onCopied,
+		onScrollChange,
 	},
 	ref,
 ) {
@@ -110,6 +117,8 @@ export const TerminalWebView = forwardRef<
 	onSelectChangeRef.current = onSelectChange;
 	const onCopiedRef = useRef(onCopied);
 	onCopiedRef.current = onCopied;
+	const onScrollChangeRef = useRef(onScrollChange);
+	onScrollChangeRef.current = onScrollChange;
 
 	// Parsing the ~400KB generated module is deferred to first mount instead of
 	// app startup (expo-router requires route modules eagerly).
@@ -193,6 +202,8 @@ export const TerminalWebView = forwardRef<
 					active: message.active,
 					hasSelection: message.hasSelection,
 				});
+			} else if (message.type === "scroll") {
+				onScrollChangeRef.current?.(message.atBottom);
 			}
 		},
 		[buildDialUrl, postToPage],
@@ -224,6 +235,7 @@ export const TerminalWebView = forwardRef<
 			focus: () => postToPage({ type: "focus" }),
 			retry: () => postToPage({ type: "resume" }),
 			copySelection: () => postToPage({ type: "copySelection" }),
+			scrollToBottom: () => postToPage({ type: "scrollToBottom" }),
 		}),
 		[postToPage],
 	);

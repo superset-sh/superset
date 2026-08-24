@@ -36,10 +36,11 @@ const xtermVersion = (
  *   page -> RN: {type:"ready"} | {type:"dial", id, replay} |
  *               {type:"state", state} | {type:"control", message} |
  *               {type:"openUrl", url} | {type:"copy", text} |
- *               {type:"select", active, hasSelection}
+ *               {type:"select", active, hasSelection} |
+ *               {type:"scroll", atBottom}
  *   RN -> page: {type:"dialUrl", id, url?, error?} | {type:"input", data} |
  *               {type:"resume"} | {type:"focus"} |
- *               {type:"copySelection"}
+ *               {type:"copySelection"} | {type:"scrollToBottom"}
  *
  * Touch: a tap on a link opens it, a long press enters select mode (native
  * iOS selection over a frozen snapshot of the buffer), and an overlay
@@ -296,9 +297,14 @@ const runtimeJs = /* js */ `
 			}
 			exitSelectMode();
 			term.reset();
+			// reset() fires neither onScroll nor onWriteParsed, so the scrollbar
+			// and the at-bottom flag would still describe the session we left.
+			scheduleScrollbar();
 			connect();
 		} else if (message.type === "copySelection") {
 			copySelection();
+		} else if (message.type === "scrollToBottom") {
+			term.scrollToBottom();
 		} else if (message.type === "focus") {
 			allowTextareaFocus = true;
 			term.focus();
@@ -721,11 +727,22 @@ const runtimeJs = /* js */ `
 	var scrollbar = document.getElementById("scrollbar");
 	var thumb = document.getElementById("scrollbar-thumb");
 	var scrollbarFrame = 0;
+	// RN draws the scroll-to-bottom button, so it needs this side's answer to
+	// the question the scrollbar already asks — the two appear together. The
+	// alternate buffer keeps no scrollback, so \`hidden\` is 0 there and neither
+	// shows: a TUI in full-screen mode owns its own scroll, and scrollToBottom
+	// would be a no-op.
+	var atBottom = true;
 
 	function updateScrollbar() {
 		scrollbarFrame = 0;
 		var buffer = term.buffer.active;
 		var hidden = buffer.length - term.rows;
+		var nowAtBottom = hidden <= 0 || buffer.viewportY >= hidden;
+		if (nowAtBottom !== atBottom) {
+			atBottom = nowAtBottom;
+			post({ type: "scroll", atBottom: atBottom });
+		}
 		// Never hide mid-drag: reaching the bottom would remove the track (and
 		// its pointer-events) under the finger.
 		if (hidden <= 0 || (buffer.viewportY >= hidden && !thumbDrag)) {

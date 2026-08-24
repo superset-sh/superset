@@ -39,6 +39,7 @@ import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/termi
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { HeaderNotice } from "../components/HeaderNotice";
 import { PullRequestsButton } from "../components/PullRequestsButton";
+import { ScrollToBottomButton } from "../components/ScrollToBottomButton";
 import {
 	TerminalComposer,
 	type TerminalQuickKey,
@@ -343,6 +344,7 @@ export function WorkspaceScreen() {
 		active: false,
 		hasSelection: false,
 	});
+	const [atBottom, setAtBottom] = useState(true);
 	// seq gives each notice its own identity: a repeat copy while "Copied" is
 	// still up remounts HeaderNotice, restarting its timer.
 	const [notice, setNotice] = useState<{ text: string; seq: number } | null>(
@@ -572,6 +574,7 @@ export function WorkspaceScreen() {
 							onControl={handleControl}
 							onSelectChange={setSelect}
 							onCopied={handleCopied}
+							onScrollChange={setAtBottom}
 						/>
 						{/* Tap-outside-to-dismiss, the terminal's answer to the home
 						    composer's backdrop. Transparent, not a scrim: the point of
@@ -597,6 +600,22 @@ export function WorkspaceScreen() {
 							accessible={false}
 							className="absolute bottom-0 left-0 top-0 w-5"
 							onPress={() => composerRef.current?.blur()}
+						/>
+						{/* After the dismiss target so it stays tappable with the
+						    keyboard up, and hidden in select mode: the frozen snapshot
+						    covers the viewport this would move. Always mounted — it
+						    fades itself, which it cannot do if the parent unmounts it. */}
+						<ScrollToBottomButton
+							visible={!atBottom && !select.active}
+							onPress={() => {
+								// The tap lands in SwiftUI, where RN autocapture cannot see
+								// it — this surface only exists if it is captured by hand.
+								posthog.capture("terminal_scrolled_to_bottom", {
+									workspace_id: id ?? null,
+									source: "button",
+								});
+								terminalRef.current?.scrollToBottom();
+							}}
 						/>
 					</>
 				) : cloud && !workspace ? (
