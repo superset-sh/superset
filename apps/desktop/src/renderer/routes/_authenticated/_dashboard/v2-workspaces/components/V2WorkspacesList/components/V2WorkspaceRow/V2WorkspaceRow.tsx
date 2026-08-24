@@ -2,12 +2,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { CgLaptop } from "react-icons/cg";
+import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { workspaceActivityAt } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
-import { WorkspaceNameMarquee } from "./components/WorkspaceNameMarquee";
 import { WorkspaceStateGlyph } from "./components/WorkspaceStateGlyph";
 
 interface V2WorkspaceRowProps {

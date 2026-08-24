@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-const PIXELS_PER_SECOND = 45;
+const PIXELS_PER_SECOND = 32;
 const MIN_SCROLL_DURATION_S = 0.5;
 const MAX_SCROLL_DURATION_S = 6;
 const SCROLL_START_DELAY_S = 0.35;

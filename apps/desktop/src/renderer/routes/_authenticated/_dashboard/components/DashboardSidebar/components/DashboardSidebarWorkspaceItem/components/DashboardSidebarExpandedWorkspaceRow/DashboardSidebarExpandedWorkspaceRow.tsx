@@ -7,8 +7,10 @@ import {
 	type MouseEventHandler,
 	useEffect,
 	useRef,
+	useState,
 } from "react";
 import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -102,6 +104,9 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const isPending = pendingTransaction?.type === "insert";
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
+		// Drives the name's hover-reveal for keyboard users: the row, not the
+		// name span, is what's actually tabbable.
+		const [isFocused, setIsFocused] = useState(false);
 
 		useEffect(() => {
 			if (isActive) {
@@ -162,6 +167,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						}
 					}}
 					onDoubleClick={onDoubleClick}
+					onFocus={() => setIsFocused(true)}
+					onBlur={() => setIsFocused(false)}
 					className={cn(
 						"group relative flex w-full items-center py-1.5 pr-2",
 						isInSection ? "pl-8" : "pl-3",
@@ -286,17 +293,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)}
 							/>
 						) : (
-							<span
-								className={cn(
-									"truncate text-[13px] leading-tight transition-colors",
-									isActive || isSelected
-										? "text-foreground"
-										: "text-foreground/80",
-								)}
-							>
-								{name || branch}
+							<>
+								<WorkspaceNameMarquee
+									name={name || branch}
+									forceActive={isFocused}
+									className={cn(
+										"text-[13px] leading-tight transition-colors",
+										isActive || isSelected
+											? "text-foreground"
+											: "text-foreground/80",
+									)}
+								/>
 								{isSelected && <span className="sr-only">, selected</span>}
-							</span>
+							</>
 						)}
 
 						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
