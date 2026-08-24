@@ -6,9 +6,19 @@
 // the tool that failed, the file it wanted and the reason are what we triage
 // on, and they have to survive intact.
 //
-// `Shared` is a real macOS directory rather than an account, so it is left
-// alone; `\b` keeps that from swallowing an account merely starting with it.
-const USER_HOME_PATH = /\/Users\/(?!Shared\b)[A-Za-z0-9._-]+/g;
+// The updater ships on Windows and Linux as well as macOS and this handler
+// reports all three, so all three home layouts are covered — the existing
+// classifier already looks for an "-updater" path marker alongside "shipit"
+// for exactly that reason. Each pattern carves out the directories under that
+// root that are system locations rather than somebody's account; `\b` keeps
+// each carve-out from swallowing an account merely starting with the same word.
+const MACOS_HOME_PATH = /\/Users\/(?!Shared\b)[A-Za-z0-9._-]+/g;
+// `/home/` only counts as the home root at the start of a path, so a deeper
+// directory that merely ends in `/home` (`/var/lib/home/...`) is left alone.
+const LINUX_HOME_PATH =
+	/(?<![A-Za-z0-9._-])\/home\/(?!linuxbrew\b)[A-Za-z0-9._-]+/g;
+const WINDOWS_HOME_PATH =
+	/[A-Za-z]:\\Users\\(?!Public\b|Default\b|All\b)[A-Za-z0-9._-]+/g;
 
 // Every staging attempt unpacks into a freshly named `update.XXXXXXX`
 // directory, so one recurring condition otherwise groups as a brand-new issue
@@ -19,7 +29,9 @@ const STAGING_ATTEMPT_DIR = /\/update\.[A-Za-z0-9]+\//g;
 
 export function redactUpdateErrorMessage(message: string): string {
 	return message
-		.replace(USER_HOME_PATH, "~")
+		.replace(MACOS_HOME_PATH, "~")
+		.replace(LINUX_HOME_PATH, "~")
+		.replace(WINDOWS_HOME_PATH, "~")
 		.replace(STAGING_ATTEMPT_DIR, "/update.<id>/");
 }
 

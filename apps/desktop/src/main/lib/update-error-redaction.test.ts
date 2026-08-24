@@ -112,3 +112,50 @@ describe("redactUpdateError", () => {
 		expect(redactUpdateError(error).stack).toBeUndefined();
 	});
 });
+
+// The updater ships on Windows (nsis) and Linux (AppImage) as well as macOS,
+// and the same handler reports all three. Their staging directories live under
+// the user's home too — which is why the existing classifier already looks for
+// an "-updater" path marker alongside "shipit".
+describe("redactUpdateErrorMessage across platforms", () => {
+	test("removes the account name from a Linux staging path", () => {
+		const redacted = redactUpdateErrorMessage(
+			"ENOENT: no such file or directory, open '/home/ada/.cache/superset-updater/pending/Superset.AppImage'",
+		);
+		expect(redacted).not.toContain("ada");
+		expect(redacted).toBe(
+			"ENOENT: no such file or directory, open '~/.cache/superset-updater/pending/Superset.AppImage'",
+		);
+	});
+
+	test("removes the account name from a Windows staging path", () => {
+		const redacted = redactUpdateErrorMessage(
+			"EBUSY: resource busy or locked, open 'C:\\Users\\grace.h\\AppData\\Local\\superset-updater\\installer.exe'",
+		);
+		expect(redacted).not.toContain("grace.h");
+		expect(redacted).toBe(
+			"EBUSY: resource busy or locked, open '~\\AppData\\Local\\superset-updater\\installer.exe'",
+		);
+	});
+
+	test("converges the same Linux failure from two different accounts", () => {
+		expect(
+			redactUpdateErrorMessage("ditto: /home/ada/.cache/x: I/O error"),
+		).toBe(
+			redactUpdateErrorMessage("ditto: /home/grace.h/.cache/x: I/O error"),
+		);
+	});
+
+	// Negative cases: real system directories that are not somebody's account,
+	// and a "/home/" that is only a substring of a deeper path.
+	test("leaves non-account system directories alone", () => {
+		for (const message of [
+			"EPERM: operation not permitted, open 'C:\\Users\\Public\\Desktop\\Superset.lnk'",
+			"EPERM: operation not permitted, open 'C:\\Users\\Default\\NTUSER.DAT'",
+			"ditto: /home/linuxbrew/.linuxbrew/bin/superset: Permission denied",
+			"ENOENT: no such file or directory, open '/var/lib/home/superset/cache'",
+		]) {
+			expect(redactUpdateErrorMessage(message)).toBe(message);
+		}
+	});
+});
