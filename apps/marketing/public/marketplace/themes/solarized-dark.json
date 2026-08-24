@@ -23,6 +23,8 @@
 		"tertiaryActive": "#073642",
 		"destructive": "#dc322f",
 		"destructiveForeground": "#fdf6e3",
+		"warning": "#b58900",
+		"warningForeground": "#ffffff",
 		"border": "#073642",
 		"input": "#073642",
 		"ring": "#268bd2",
