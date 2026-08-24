@@ -400,6 +400,19 @@ async function execute(
 			json: isJson,
 			quiet: isQuiet,
 		});
-		if (output) console.log(output);
+		if (output) await writeStdout(`${output}\n`);
 	}
+}
+
+/**
+ * console.log queues pipe writes asynchronously; when the process exits while
+ * the reader is slow, Bun drops the still-queued tail, truncating output
+ * beyond ~64KB (seen with `superset tasks list --json | jq` and `$(...)`
+ * capture). Awaiting the write callback keeps the process alive until the
+ * whole payload reaches the pipe.
+ */
+function writeStdout(text: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+		process.stdout.write(text, (error) => (error ? reject(error) : resolve()));
+	});
 }
