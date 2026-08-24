@@ -14,20 +14,18 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { toast } from "@superset/ui/sonner";
+import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import {
-	LuEllipsis,
-	LuGitPullRequestClosed,
-	LuRotateCcw,
-} from "react-icons/lu";
+import { LuChevronRight } from "react-icons/lu";
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -59,11 +57,18 @@ export const Route = createFileRoute(
 type MergeMethod = "merge" | "squash" | "rebase";
 const MERGE_METHOD_LABELS: Record<MergeMethod, string> = {
 	squash: "Squash and merge",
-	merge: "Create merge commit",
+	merge: "Merge commit",
 	rebase: "Rebase and merge",
 };
+const MERGE_METHOD_DESCRIPTIONS: Record<MergeMethod, string> = {
+	squash: "Combine all commits",
+	merge: "Preserve commit history",
+	rebase: "Reapply all commits",
+};
 
-type PendingAction = { kind: "close" } | { kind: "merge"; method: MergeMethod };
+type PendingAction =
+	| { kind: "close" }
+	| { kind: "merge"; method: MergeMethod; force?: boolean };
 
 type DetailTab = "summary" | "code";
 const DETAIL_TABS: ReadonlyArray<{ value: DetailTab; label: string }> = [
@@ -115,6 +120,7 @@ function PullRequestDetailPage() {
 		null,
 	);
 	const [activeTab, setActiveTab] = useState<DetailTab>("summary");
+	const [mergeComment, setMergeComment] = useState("");
 
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: ["pull-request-detail", projectId, hostUrl, prNumber],
@@ -159,7 +165,13 @@ function PullRequestDetailPage() {
 	});
 
 	const mergePullRequest = useMutation({
-		mutationFn: async (mergeMethod: MergeMethod) => {
+		mutationFn: async ({
+			mergeMethod,
+			commitMessage,
+		}: {
+			mergeMethod: MergeMethod;
+			commitMessage?: string;
+		}) => {
 			if (!hostUrl || !projectId || prNumber === null) {
 				throw new Error("This project isn't linked to a GitHub repository.");
 			}
@@ -168,6 +180,7 @@ function PullRequestDetailPage() {
 				projectId,
 				prNumber,
 				mergeMethod,
+				commitMessage,
 			});
 		},
 		onSuccess: invalidatePullRequestQueries,
@@ -186,12 +199,14 @@ function PullRequestDetailPage() {
 		if (pendingAction.kind === "close") {
 			setPullRequestState.mutate("closed");
 		} else {
-			mergePullRequest.mutate(pendingAction.method);
+			mergePullRequest.mutate({
+				mergeMethod: pendingAction.method,
+				commitMessage: mergeComment.trim() || undefined,
+			});
 		}
 		setPendingAction(null);
+		setMergeComment("");
 	};
-
-	const handleReopen = () => setPullRequestState.mutate("open");
 
 	const handleAddToWorkspace = () => {
 		if (!projectId || !hostId || !data) return;
@@ -243,41 +258,8 @@ function PullRequestDetailPage() {
 				</div>
 				{/* Window-drag leaf standing in for the hidden TopBar. */}
 				<div className="drag h-full min-w-0 flex-1" />
-				{data && (
-					<div className="flex shrink-0 items-center gap-1">
-						{/* Share is coming soon — hidden until it has real functionality. */}
-						{data.state !== "merged" && (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										aria-label="More actions"
-									>
-										<LuEllipsis className="size-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									{data.state === "open" && (
-										<DropdownMenuItem
-											variant="destructive"
-											onClick={() => setPendingAction({ kind: "close" })}
-										>
-											<LuGitPullRequestClosed className="size-3.5" />
-											Close pull request
-										</DropdownMenuItem>
-									)}
-									{data.state === "closed" && (
-										<DropdownMenuItem onClick={handleReopen}>
-											<LuRotateCcw className="size-3.5" />
-											Reopen pull request
-										</DropdownMenuItem>
-									)}
-								</DropdownMenuContent>
-							</DropdownMenu>
-						)}
-					</div>
-				)}
+				{/* Share and the "..." overflow (close/reopen) are coming soon —
+				    both hidden until they have real functionality wired up. */}
 			</div>
 
 			<div className="flex items-start justify-between gap-3 px-4 pb-3">
@@ -321,21 +303,80 @@ function PullRequestDetailPage() {
 										<VscChevronDown className="size-3" />
 									</Button>
 								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end" className="w-56">
-									<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-										Merge
+								<DropdownMenuContent align="end" className="w-80 p-0">
+									<div className="p-3 pb-2">
+										<Textarea
+											value={mergeComment}
+											onChange={(e) => setMergeComment(e.target.value)}
+											onKeyDown={(e) => e.stopPropagation()}
+											placeholder="Leave a comment (optional)"
+											className="min-h-16 resize-none text-sm"
+										/>
+									</div>
+									<DropdownMenuLabel className="px-3 pb-1 pt-0 text-xs font-normal text-muted-foreground">
+										Select method
 									</DropdownMenuLabel>
 									{(["squash", "merge", "rebase"] as const).map((method) => (
 										<DropdownMenuItem
 											key={method}
+											className="flex-col items-start gap-0.5 px-3 py-2"
 											onClick={() =>
 												setPendingAction({ kind: "merge", method })
 											}
 										>
-											<VscGitMerge className="size-3.5" />
-											{MERGE_METHOD_LABELS[method]}
+											<span className="text-sm font-medium">
+												{MERGE_METHOD_LABELS[method]}
+											</span>
+											<span className="text-xs text-muted-foreground">
+												{MERGE_METHOD_DESCRIPTIONS[method]}
+											</span>
 										</DropdownMenuItem>
 									))}
+									{data.checksStatus !== "success" && (
+										<>
+											<DropdownMenuSeparator />
+											{data.checksStatus === "pending" && (
+												<DropdownMenuItem
+													className="flex items-center justify-between gap-2 px-3 py-2"
+													onClick={() =>
+														toast.info("Auto-merge is coming soon")
+													}
+												>
+													<div className="flex flex-col gap-0.5">
+														<span className="text-sm font-medium">
+															Enable auto-merge
+														</span>
+														<span className="text-xs text-muted-foreground">
+															Merge when checks pass
+														</span>
+													</div>
+													<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+												</DropdownMenuItem>
+											)}
+											{data.checksStatus === "failure" && (
+												<DropdownMenuItem
+													className="flex items-center justify-between gap-2 px-3 py-2"
+													onClick={() =>
+														setPendingAction({
+															kind: "merge",
+															method: "squash",
+															force: true,
+														})
+													}
+												>
+													<div className="flex flex-col gap-0.5">
+														<span className="text-sm font-medium">
+															Force merge
+														</span>
+														<span className="text-xs text-muted-foreground">
+															Attempt before checks pass
+														</span>
+													</div>
+													<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+												</DropdownMenuItem>
+											)}
+										</>
+									)}
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
@@ -473,7 +514,9 @@ function PullRequestDetailPage() {
 						<AlertDialogTitle className="font-medium">
 							{pendingAction?.kind === "close"
 								? `Close #${data.number}?`
-								: `Merge #${data.number}?`}
+								: pendingAction?.kind === "merge" && pendingAction.force
+									? `Force merge #${data.number}?`
+									: `Merge #${data.number}?`}
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{pendingAction?.kind === "close"
@@ -482,7 +525,11 @@ function PullRequestDetailPage() {
 										pendingAction?.kind === "merge"
 											? ` via ${MERGE_METHOD_LABELS[pendingAction.method].toLowerCase()}`
 											: ""
-									}. This can't be undone from here.`}
+									}.${
+										pendingAction?.kind === "merge" && pendingAction.force
+											? " Checks haven't passed yet — this overrides them."
+											: ""
+									} This can't be undone from here.`}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pb-4 pt-2">
@@ -496,7 +543,10 @@ function PullRequestDetailPage() {
 						</Button>
 						<AlertDialogAction
 							variant={
-								pendingAction?.kind === "close" ? "destructive" : "default"
+								pendingAction?.kind === "close" ||
+								(pendingAction?.kind === "merge" && pendingAction.force)
+									? "destructive"
+									: "default"
 							}
 							size="sm"
 							className="h-7 px-3 text-xs"
@@ -504,7 +554,9 @@ function PullRequestDetailPage() {
 						>
 							{pendingAction?.kind === "close"
 								? "Close pull request"
-								: "Merge pull request"}
+								: pendingAction?.kind === "merge" && pendingAction.force
+									? "Force merge"
+									: "Merge pull request"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</EnterEnabledAlertDialogContent>
