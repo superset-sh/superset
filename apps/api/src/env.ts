@@ -20,6 +20,9 @@ export const env = createEnv({
 		// Gmail triggers are configured but never watched.
 		GOOGLE_PUBSUB_TOPIC: z.string().min(1).optional(),
 		GOOGLE_PUBSUB_PUSH_TOKEN: z.string().min(1).optional(),
+		// Static bearer token for the read-only support account lookup; the
+		// endpoint answers 404 while unset.
+		SUPPORT_LOOKUP_TOKEN: z.string().min(1).optional(),
 		BETTER_AUTH_SECRET: z.string(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
