@@ -116,6 +116,13 @@ export function useDiffCodeViewTheme() {
 				[data-diffs-header='default'] {
 					container-type: inline-size;
 					container-name: diff-header;
+					justify-content: flex-start;
+				}
+				[data-diffs-header='default'] [data-header-content] {
+					flex: 0 1 auto;
+				}
+				[data-diffs-header='default'] [data-metadata] {
+					flex-shrink: 0;
 				}
 				/* Drop Pierre's status badge — we render a language-specific
 				 * FileIcon in the prefix slot instead. */
