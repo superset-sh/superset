@@ -14,8 +14,17 @@ describe("attachSpawnFailureDiagnostics", () => {
 		// synchronously for EBADF, and simple-git keeps only String(err).
 		const { diagnostics } = diagnose("Error: spawn EBADF");
 		expect(diagnostics).toBeDefined();
+		// The count stays strict: both shipped platforms always let a process
+		// list its own descriptor table, so anything but a positive number here
+		// means the counter stopped working.
 		expect(diagnostics?.open_file_descriptors).toBeGreaterThan(0);
-		expect(diagnostics?.file_descriptor_soft_limit).toBeGreaterThan(0);
+		// The limit is the one that genuinely varies — a container with no cap
+		// reports it as "unlimited", which is a fact worth recording, not a
+		// failure. Anything else would be.
+		const limit = diagnostics?.file_descriptor_soft_limit;
+		expect(
+			limit === "unlimited" || (typeof limit === "number" && limit > 0),
+		).toBe(true);
 	});
 
 	test("spawn refused via the child's error event → recorded too", () => {
