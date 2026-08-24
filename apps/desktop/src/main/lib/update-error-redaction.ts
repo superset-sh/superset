@@ -15,13 +15,19 @@
 // match before `.` and `-`, which would exempt real accounts like `Shared.dev`
 // from redaction and leak exactly what this exists to remove. Windows paths are
 // case-insensitive, so that pattern carries the `i` flag.
-const MACOS_HOME_PATH = /\/Users\/(?!Shared(?:\/|$))[A-Za-z0-9._-]+/g;
+//
+// The account segment is "everything up to the separator" rather than an ASCII
+// class: account names are not ASCII in much of the world, and an ASCII class
+// only partly rewrites `jos\u00e9` and does not match `\u674e` at all, leaking exactly
+// what this removes. Whitespace, quotes and colons end the segment too, so a
+// path at the end of a sentence cannot run on and swallow the message after
+// it.
+const MACOS_HOME_PATH = /\/Users\/(?!Shared(?:\/|$))[^/\s'":]+/g;
 // `/home/` only counts as the home root at the start of a path, so a deeper
 // directory that merely ends in `/home` (`/var/lib/home/...`) is left alone.
-const LINUX_HOME_PATH =
-	/(?<![A-Za-z0-9._-])\/home\/(?!linuxbrew(?:\/|$))[A-Za-z0-9._-]+/g;
+const LINUX_HOME_PATH = /(?<![^\s'"])\/home\/(?!linuxbrew(?:\/|$))[^/\s'":]+/g;
 const WINDOWS_HOME_PATH =
-	/[A-Za-z]:\\Users\\(?!(?:Public|Default|All Users)(?:\\|$))[A-Za-z0-9._-]+/gi;
+	/[A-Za-z]:\\Users\\(?!(?:Public|Default|All Users)(?:\\|$))[^\\\s'":]+/gi;
 
 // Every staging attempt unpacks into a freshly named `update.XXXXXXX`
 // directory, so one recurring condition otherwise groups as a brand-new issue

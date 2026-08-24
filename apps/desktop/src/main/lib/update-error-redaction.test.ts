@@ -257,3 +257,43 @@ describe("redactUpdateError stack coverage", () => {
 		expect(redacted.stack).toContain("main.js:1:1");
 	});
 });
+
+// An ASCII-only account-name class leaves non-ASCII accounts exposed: a name
+// with an accent is only partly rewritten, and a name with no ASCII in it does
+// not match at all. Account names are not ASCII in much of the world.
+describe("redactUpdateErrorMessage with non-ASCII account names", () => {
+	test("redacts accented and non-Latin account names completely", () => {
+		expect(redactUpdateErrorMessage("/Users/jos\u00e9/Library/Caches/x")).toBe(
+			"~/Library/Caches/x",
+		);
+		expect(redactUpdateErrorMessage("/Users/\u674e/Library/Caches/x")).toBe(
+			"~/Library/Caches/x",
+		);
+		expect(redactUpdateErrorMessage("/home/jos\u00e9/.cache/x")).toBe(
+			"~/.cache/x",
+		);
+		expect(
+			redactUpdateErrorMessage("C:\\Users\\\u674e\\AppData\\Local\\x"),
+		).toBe("~\\AppData\\Local\\x");
+	});
+
+	test("converges non-ASCII accounts with ASCII ones", () => {
+		expect(redactUpdateErrorMessage("/Users/\u674e/Library/x")).toBe(
+			redactUpdateErrorMessage("/Users/ada/Library/x"),
+		);
+	});
+
+	// Widening the account class must not let it run past the segment and eat
+	// the surrounding message.
+	test("stops at the segment, not at the end of the message", () => {
+		expect(redactUpdateErrorMessage("ditto: /Users/ada: No such file")).toBe(
+			"ditto: ~: No such file",
+		);
+		expect(redactUpdateErrorMessage("open '/Users/ada' failed")).toBe(
+			"open '~' failed",
+		);
+		expect(
+			redactUpdateErrorMessage("Cannot read /Users/ada/x and /Users/bob/y"),
+		).toBe("Cannot read ~/x and ~/y");
+	});
+});
