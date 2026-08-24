@@ -1,8 +1,16 @@
 # Production Postgres schema audit — 2026-08-24
 
-**Report only. Nothing here was fixed, and nothing here implies a fix should land.**
-Every statement run against production was a `SELECT` or a plain `EXPLAIN`, with
+**The audit is report-only, and this file changes nothing.** Every statement run
+against production was a `SELECT` or a plain `EXPLAIN`, with
 `statement_timeout='60s'` and `default_transaction_read_only=on` on every session.
+No finding here implies a fix should land; that call is a human one, made after
+reading this.
+
+Two of those calls were subsequently made and are recorded so next week's diff is
+not confusing: **[§2](#2) was fixed in PR #6842** (`TIME_BUDGET_MS`, plus the
+missing `maxDuration`; no schema change), and the **[§5](#5) index drop was
+explicitly deferred** — see [what I'd actually do](#what-id-actually-do) for why.
+Everything else stands as found.
 
 Target: Neon project `frosty-lab-32416990`, branch `br-billowing-dream-af839yib`
 (`production`, `Default = true`, confirmed via `neonctl branches list`).
@@ -55,7 +63,7 @@ not evidence it is droppable. Only non-unique indexes are called out as unused.
 |---|---|---|---|
 | 1 | 419 GB of dead TOAST on `ingest.webhook_events` from `DROP COLUMN payload` — 68% of the entire database | **Urgent** | [§1](#1) |
 | 2 | Retention job runs at ~24% of its designed rate; the headroom comment overstates capacity ~4× | **Urgent** | [§2](#2) |
-| 3 | `automation_events` has no retention and a hard deadline of ~2026-09-14 | **Urgent** | [§3](#3) |
+| 3 | `automation_events` has no retention, a ~2026-09-14 deadline, and its mitigation (`SUPER-191`) is **Canceled** | **Urgent** | [§3](#3) |
 | 4 | 36 foreign keys with no supporting index; one is load-bearing for #3 | **Moderate** | [§4](#4) |
 | 5 | 1.2 GB of genuinely unused indexes, incl. a 1 GB index no code references | **Moderate** | [§5](#5) |
 | 6 | `task_statuses.type` holds two values its schema comment forbids | **Moderate** | [§6](#6) |
@@ -210,18 +218,32 @@ Three things fall out of that row:
    `deleteAgedRows` returns `more: false` only when `rows < BATCH_SIZE`. That has
    never once happened. The job has never run out of work.
 2. **A 5,000-row batch averages 35 seconds** against a `TIME_BUDGET_MS` of
-   **20,000**. The budget is checked *before* each batch, so a run gets one batch
-   started for free and then exits. Measured: `1226 calls ÷ (43.5 h ÷ 5 min)` =
-   **2.35 batches per run** ≈ 11,750 rows, against the `MAX_ROWS_PER_TABLE`
-   ceiling of 50,000. `MAX_ROWS_PER_TABLE` is never the binding constraint;
-   `TIME_BUDGET_MS` is.
+   **20,000**. `deleteAgedRows` checks `Date.now() < deadline` *before* each
+   batch, so batch one starts for free at t≈0, runs ~35 s, and the check before
+   batch two compares t≈35 s against a deadline of t=20 s and fails. **Every
+   invocation therefore runs exactly one batch and deletes exactly 5,000 rows**
+   — not as an average but as an invariant, for as long as the mean batch
+   exceeds the budget. `MAX_ROWS_PER_TABLE` (50,000) is never the binding
+   constraint and never can be; `TIME_BUDGET_MS` is.
 3. **The worst batch took 582 seconds.** That is far past any normal serverless
    function timeout, so some runs are being killed mid-flight rather than ending
    "by choice rather than by kill" as the comment intends.
 
-The 5-minute cadence is not in the repo — there is no `vercel.json` cron and no
-QStash schedule config under version control, so it is configured out-of-band.
-It is inferred here from the call count, which lands at 5.2 min/run.
+**The route sets no `maxDuration`.** It is the only job route under `apps/api`
+that does not — every other one declares 60 or 300 (`apps/api/src/app/api/
+analytics/jobs/refresh-mrr/route.ts:6`, `…/google/jobs/sweep-schedules/
+route.ts:16`, and eleven more). So it runs on the platform default, which is
+shorter than a single batch now costs. Note this does **not** lose the work: the
+`DELETE` completes server-side regardless, because Postgres only discovers the
+client is gone when it next tries to send — which is why all 1,226 batches are
+recorded complete in `pg_stat_statements` even though the invocations around
+them were being killed.
+
+The cadence is not in the repo — no `vercel.json` cron, no QStash schedule under
+version control — so it is configured out-of-band and cannot be verified here.
+It can only be *derived*: at exactly one batch per invocation, 1,226 invocations
+over 43.5 h is **one run every ~2.1 minutes**, not the 5 minutes the code
+comment assumes.
 
 ### The arithmetic the code comment gets wrong
 
@@ -239,8 +261,10 @@ Measured over the job's 43.5-hour life:
 | **Net drain** | | **1.72M/day** |
 
 So the real capacity is **3.4M rows/day, not 14M** — a ~4× overstatement, because
-the estimate assumed 50,000 rows/run when the time budget only permits ~11,750.
-Intake is also ~1.4× the assumed 1.2M/day.
+the estimate assumed 50,000 rows/run when the time budget permits exactly 5,000.
+Intake is also ~1.4× the assumed 1.2M/day. The two errors partly cancel — the
+schedule runs ~2.4× more often than the comment assumes, which is the only reason
+the shortfall is 4× rather than 10×.
 
 At a net 1.72M/day, the 65.4M backlog clears in **~38 days — around 2026-10-01**.
 
@@ -327,13 +351,33 @@ Confirmed: the oldest row is 2026-08-16 and only ~653 rows are past 30 days toda
 (`explain select 1 from public.automation_events where received_at < now() -
 interval '30 days'` → `rows=653`). So nothing is broken *yet*.
 
-**The risk is schedule, not code.** The plan is sound but depends entirely on a
-us-east-1 restore happening before ~2026-09-14. That restore is not referenced
-anywhere in this repo, so this audit cannot confirm it is scheduled. If it slips,
-this table starts growing unbounded at ~800k rows/day with the two enabling
-indexes still unbuilt — and building them then means taking write locks on a live
-ingest table under time pressure, which is the exact situation the current plan
-was designed to avoid.
+**The risk is schedule, not code — and the schedule has already failed.**
+
+The plan depends entirely on a us-east-1 restore landing before ~2026-09-14. That
+restore is not referenced anywhere in this repo, so it was checked in Linear:
+
+> **`SUPER-191` — "Migrate Neon database from US West to US East"**
+> Status: **Canceled**. Created 2025-12-28, last updated **2026-05-07**.
+> <https://linear.app/superset-sh/issue/SUPER-191/migrate-neon-database-from-us-west-to-us-east>
+
+It is the only issue in the workspace matching the restore, including archived
+ones, and there is no successor under another name. There is also **no tracking
+issue for the `automation_events` retention or either of the two index builds**.
+
+So the load-bearing assumption in `enforce-retention/route.ts:39-47` — "the
+us-east-1 restore rebuilds both tables before then with those indexes created on
+the way in, for free" — refers to work that was cancelled **three and a half
+months before that comment was written**. The free rebuild is not coming.
+
+Consequence, unless something changes: from ~2026-09-14 this table grows
+unbounded at ~800k rows/day with both enabling indexes unbuilt, and building them
+then means taking write locks on a live ingest table under time pressure — the
+exact situation the current plan was designed to avoid. The window to build them
+calmly is the next three weeks.
+
+*(This is the one place where the audit's own recommendation moved after the
+report was first drafted. The Linear check was originally listed as a five-minute
+confirmation; it came back negative.)*
 
 ---
 
@@ -736,12 +780,19 @@ decision.**
    near 1.66M/day. The thing to actually watch is the intake rate, because at
    ~3.4M/day net drain reaches zero. Cheapest intervention by a wide margin is
    raising `TIME_BUDGET_MS` or the schedule frequency, neither of which touches
-   the schema. Re-measure `rows_per_call` and `mean_exec_time` next week: if mean
-   batch time has climbed above 35 s, the feedback loop in §2 is winning.
-2. **Confirm the us-east-1 restore is scheduled before ~2026-09-14** (§3). This
-   is a calendar check, not an engineering task, and it is the single cheapest
-   item here. If the restore has slipped, the two index builds need planning now
-   rather than under pressure in three weeks.
+   the schema. **Done — PR #6842** raises `TIME_BUDGET_MS` to 240s and adds the
+   missing `maxDuration`. Re-measure `rows_per_call` and `mean_exec_time` next
+   week: `rows_per_call` should no longer be pinned at exactly 5,000, and if mean
+   batch time has climbed above 35 s the feedback loop in §2 is winning.
+2. **Plan the two `automation_events` index builds — the free rebuild is not
+   coming** (§3). This was drafted as a calendar check; the check came back
+   negative. `SUPER-191` is **Canceled** and has no successor, so the restore
+   `enforce-retention/route.ts:39-47` is waiting on will not happen. Someone
+   needs to decide whether to build
+   `automation_events(received_at)` and `automation_runs(event_id)` deliberately
+   in the next three weeks, or accept the table growing unbounded past
+   ~2026-09-14. Doing them now is cheap — the table is 6.5M rows today and grows
+   ~800k/day, so every week of delay makes the build longer and the lock worse.
 3. **Treat §1 as a consequence of §2, not a separate task.** The 419 GB frees
    itself as the backlog drains. A `VACUUM FULL` / `pg_repack` to return it to
    billed storage is a real option but takes `ACCESS EXCLUSIVE` on a table taking
@@ -751,6 +802,15 @@ decision.**
 4. **`webhook_events_provider_status_idx`** (§5) — 1,082 MB, 12 scans in 31 days,
    zero code references. The clearest single win on the list, and the write-path
    saving on a table taking 1.7M inserts/day is the real prize, not the gigabyte.
+   **Deliberately deferred.** `DROP INDEX` needs `ACCESS EXCLUSIVE`, and with
+   PR #6842 in place retention deletes near-continuously, so the drop would queue
+   behind a batch and every webhook `INSERT` would queue behind it — 35 s
+   typical, 582 s worst. Cheapest once the backlog clears and batches are fast.
+   Note for whoever picks up `SUPER-1855` (sweeper for events stuck at
+   `pending`): do not resurrect this index for it. `(provider, status)` leads on
+   the wrong column for "all pending regardless of provider" — that wants a
+   partial index such as `(received_at) WHERE status = 'pending'`, which would be
+   a few MB rather than a gigabyte.
 5. **Add a CHECK or pgEnum to `task_statuses.type`** (§6) — but fix the comment
    first, or backfill the 15,748 `duplicate`/`triage` rows. Adding a constraint
    matching the current comment would fail validation against live data.
