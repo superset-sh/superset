@@ -33,6 +33,25 @@ URLs you visit are saved locally and appear as autocomplete suggestions. To clea
 
 Open the DevTools pane alongside any browser tab to inspect and debug the page running in the browser.
 
+## Design Mode
+
+Design mode turns UI feedback into agent context. Click any element in the page and describe the change; the agent receives the element's markup, styles, and a screenshot instead of a prose description.
+
+![Design mode capturing a button and describing the change](/images/design-mode.png)
+
+1. Click **Design** in the browser toolbar. Hovering now highlights the element under the cursor.
+2. Click an element to capture it. A prompt card opens next to it.
+3. Describe the change, pick an agent (an active session or a new one), and press **Enter**.
+
+The agent receives a one-line prompt plus a context file staged in `.superset/attachments/`:
+
+- The element's selector, HTML, computed styles, and accessibility info
+- React component names, props, and the source file, when the page is a dev build
+- A cropped screenshot of the element
+- CLI commands to reload, inspect, and screenshot the live pane, so the agent can verify its own change
+
+Press **esc** or click anywhere on the page to discard a capture and pick a different element. Leave design mode with the **Design** button or the close button in the banner.
+
 ## Ports Integration
 
 When Superset detects a port in use (e.g. `localhost:3000`), clicking its external link icon opens it in an in-app browser tab instead of the system browser.
@@ -41,7 +60,7 @@ For [remote workspaces](/remote-workspaces), ports listen on the remote host and
 
 ## Drive it from the CLI and agents
 
-Browser panes can be driven programmatically with the [`superset browser`](/cli/cli-reference#browser) commands, so an agent can open a page, read it, screenshot it, and interact with it — in the same pane you're watching.
+Browser panes can be driven programmatically with the [`superset browser`](/cli/cli-reference#browser) commands, so an agent can open a page, read it, screenshot it, and interact with it, in the same pane you're watching.
 
 ```bash
 # Open a page and get its pane id back
@@ -53,31 +72,31 @@ superset browser screenshot --workspace <id> --pane <paneId> --out shot.png
 superset browser console --workspace <id> --pane <paneId>
 ```
 
-For full interaction — clicking, typing, scrolling, form flows — `superset browser cdp` prints a raw [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) WebSocket endpoint you can point a browser-use / Playwright-class client at. The endpoint drives only that pane's page (never the Superset app itself), and pane operations are scoped to their workspace.
+For full interaction (clicking, typing, scrolling, form flows), `superset browser cdp` prints a raw [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) WebSocket endpoint you can point a browser-use / Playwright-class client at. The endpoint drives only that pane's page (never the Superset app itself), and pane operations are scoped to their workspace.
 
-Agents pick this up automatically through the [`superset:browser` skill](/skills). A pane runs against the browser's real, logged-in session — agents are instructed to treat it accordingly and to confirm before consequential actions.
+Agents pick this up automatically through the [`superset:browser` skill](/skills). A pane runs against the browser's real, logged-in session; agents are instructed to treat it accordingly and to confirm before consequential actions.
 
 ## Pane or standalone browser?
 
-The `superset:browser` skill is engine-generic with the in-app pane as the default: when a page is (or can be) open in a workspace pane — previewing a dev server, verifying UI you're watching, clicking through a flow — agents use the `superset browser` commands above.
+The `superset:browser` skill is engine-generic with the in-app pane as the default: when a page is (or can be) open in a workspace pane (previewing a dev server, verifying UI you're watching, clicking through a flow), agents use the `superset browser` commands above.
 
 Some targets are out of the panes' reach: a real Chrome window outside Superset, a host running without the desktop app attached, or work that needs an isolated or cloud browser. For those, the skill routes to [Browser Use 3.0](https://docs.browser-use.com/open-source/browser-use-cli) as a second engine.
 
 ### Browser Use 3.0
 
 <Callout type="info" title="Optional third-party software">
-	Browser Use is built by [Browser Use](https://browser-use.com), not by Superset, and nothing in Superset requires it — the in-app pane engine works with no extra install. Only add it if you want standalone automation, and note that attaching it to your running Chrome hands agents your signed-in sessions.
+	Browser Use is built by [Browser Use](https://browser-use.com), not by Superset, and nothing in Superset requires it: the in-app pane engine works with no extra install. Only add it if you want standalone automation, and note that attaching it to your running Chrome hands agents your signed-in sessions.
 </Callout>
 
-Browser Use 3.0 is a CLI that lets agents execute Python against a browser over the Chrome DevTools Protocol. It isn't bundled with Superset — agents check for it and ask before installing. To install it yourself (requires [uv](https://docs.astral.sh/uv/)) so the `browser-use` command lands on your `PATH`:
+Browser Use 3.0 is a CLI that lets agents execute Python against a browser over the Chrome DevTools Protocol. It isn't bundled with Superset; agents check for it and ask before installing. To install it yourself (requires [uv](https://docs.astral.sh/uv/)) so the `browser-use` command lands on your `PATH`:
 
 ```bash
 uv tool install browser-use
 browser-use --help
 ```
 
-You can also run it ephemerally with `uvx --from 'browser-use[cli]' browser-use …`, but that doesn't add `browser-use` to your `PATH` — each call needs the full `uvx --from` prefix.
+You can also run it ephemerally with `uvx --from 'browser-use[cli]' browser-use …`, but that doesn't add `browser-use` to your `PATH`, so each call needs the full `uvx --from` prefix.
 
-By default it attaches to your running Chrome — your real, signed-in profile — so the skill requires your explicit consent before taking that path; otherwise agents use a scratch browser or a Browser Use cloud browser (which bills until stopped, so they ask first and stop it after). `browser-use --doctor` diagnoses connection problems, and `browser-use skill` prints the engine's own usage reference.
+By default it attaches to your running Chrome (your real, signed-in profile), so the skill requires your explicit consent before taking that path; otherwise agents use a scratch browser or a Browser Use cloud browser (which bills until stopped, so they ask first and stop it after). `browser-use --doctor` diagnoses connection problems, and `browser-use skill` prints the engine's own usage reference.
 
 Browser Use can also drive an in-app pane: point it at the pane's endpoint from `superset browser cdp` (as `BU_CDP_WS`) and the pane presents itself as a single page target. For panes the `superset browser` verbs are the simpler default, but this lets Browser Use's harness reach the same pane when you want it.
