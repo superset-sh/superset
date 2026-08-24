@@ -9,6 +9,7 @@ import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { track } from "@/lib/posthog";
 import { useStartWorkspaceTerminal } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceTerminal";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
 import {
@@ -73,6 +74,15 @@ export function FinishReviewSheet() {
 	const submit = async () => {
 		if (!workspace || !host || comments.length === 0 || sending) return;
 		const prompt = composeReviewPrompt(message, comments);
+		// Mobile has no approve/request-changes: a review here is feedback
+		// handed to an agent, so where it was sent is the dimension that exists.
+		track("review_submitted", {
+			workspace_id: workspaceId,
+			comment_count: comments.length,
+			target: target === "new" ? "new_session" : "existing_session",
+			has_summary: message.trim().length > 0,
+			message_length: message.trim().length,
+		});
 		setSending(true);
 		try {
 			if (target === "new") {

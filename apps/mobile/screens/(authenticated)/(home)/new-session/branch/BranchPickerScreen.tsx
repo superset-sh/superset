@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { track } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
@@ -24,7 +25,11 @@ function BranchRow({
 }) {
 	const theme = useTheme();
 	return (
-		<Pressable className="flex-row items-center gap-2 py-2.5" onPress={onPress}>
+		<Pressable
+			className="flex-row items-center gap-2 py-2.5"
+			onPress={onPress}
+			ph-label="new-session-branch-row"
+		>
 			<Text
 				className="flex-1 text-sm"
 				numberOfLines={1}
@@ -105,6 +110,13 @@ export function BranchPickerScreen() {
 
 	const selectAndClose = (branch: string | null) => {
 		setBaseBranch(branch);
+		// The name itself rides on workspace_created, where desktop already
+		// sends it — repeating it here would only widen the blast radius.
+		track("new_session_branch_selected", {
+			is_default_branch: branch === null || branch === defaultBranch,
+			from_search: trimmedQuery.length > 0,
+			target_kind: isCloud ? "cloud" : "host",
+		});
 		router.back();
 	};
 

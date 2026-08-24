@@ -47,6 +47,7 @@ function SessionRowComponent({
 				accessible
 				accessibilityLabel={row.title}
 				accessibilityRole="button"
+				ph-label="session-row"
 				className="h-full flex-1 flex-row items-center gap-2.5 pl-1.5 pr-3"
 				onPress={() => onSelect(row.terminalId)}
 				onLongPress={lift}

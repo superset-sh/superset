@@ -44,6 +44,7 @@ export function TerminalTabs({
 					return (
 						<Pressable
 							key={row.terminalId}
+							ph-label="terminal-tab"
 							onPress={() => onSelect(row.terminalId)}
 							onLongPress={() =>
 								Alert.alert("Close session", row.title, [
@@ -92,6 +93,7 @@ export function TerminalTabs({
 			<Pressable
 				onPress={onManage}
 				accessibilityLabel="Manage sessions"
+				ph-label="terminal-tabs-manage"
 				className="bg-secondary/40 size-7 items-center justify-center rounded-md active:opacity-60"
 			>
 				<List size={15} color={theme.foreground} strokeWidth={2.25} />
@@ -99,6 +101,7 @@ export function TerminalTabs({
 			<Pressable
 				onPress={onAdd}
 				accessibilityLabel="New session"
+				ph-label="terminal-tabs-add"
 				className="bg-secondary/40 size-7 items-center justify-center rounded-md active:opacity-60"
 			>
 				<Plus size={15} color={theme.foreground} strokeWidth={2.25} />

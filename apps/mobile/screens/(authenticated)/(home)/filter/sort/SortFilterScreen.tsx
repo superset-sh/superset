@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { View } from "react-native";
+import { track } from "@/lib/posthog";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
@@ -21,6 +22,11 @@ export function SortFilterScreen() {
 					trailing={<ListRowCheck visible={option.value === sort} />}
 					onPress={() => {
 						setSort(option.value);
+						track("filter_applied", {
+							dimension: "sort",
+							value: option.value,
+							changed: option.value !== sort,
+						});
 						router.back();
 					}}
 					isLast={index === SORT_OPTIONS.length - 1}

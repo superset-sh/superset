@@ -7,6 +7,7 @@ import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { track } from "@/lib/posthog";
 import { getHostTerminalsQueryKey } from "../../../../hooks/useHostTerminals";
 import type { ChatTarget } from "../../../../stores/chatTargetStore";
 
@@ -31,27 +32,54 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 			message: PromptInputMessage;
 			agentId: string;
 		}) => {
+			// Mirrors desktop's agent-session-orchestrator payload so the same
+			// funnel splits by surface rather than needing its own.
+			const startedAt = Date.now();
+			const launch = {
+				launch_source: "mobile_composer",
+				request_kind: "workspace_session",
+				agent_type: agentId,
+				workspace_id: target.workspaceId,
+			};
+			const fail = (reason: string): Error => {
+				track("agent_session_launch", {
+					...launch,
+					result: "failed",
+					latency_ms: Date.now() - startedAt,
+					failure_reason: reason,
+				});
+				return new Error(reason);
+			};
+
 			const workspace = workspaces.find(
 				(item) => item.id === target.workspaceId,
 			);
-			if (!workspace) throw new Error("Workspace is not available");
+			if (!workspace) throw fail("Workspace is not available");
 			if (message.attachments.length > 0) {
-				throw new Error(
-					"Attachments are not supported in terminal sessions yet",
-				);
+				throw fail("Attachments are not supported in terminal sessions yet");
 			}
 			const hostUrl = hostServiceUrl(workspace.organizationId, target.hostId);
 			const client = getHostServiceClientByUrl(hostUrl);
 			const text = message.text.trim();
 
-			const result = await client.agents.run.mutate({
-				workspaceId: target.workspaceId,
-				agent: agentId,
-				prompt: text,
-			});
+			const result = await client.agents.run
+				.mutate({
+					workspaceId: target.workspaceId,
+					agent: agentId,
+					prompt: text,
+				})
+				.catch((cause: unknown) => {
+					throw fail(cause instanceof Error ? cause.message : String(cause));
+				});
 			if (result.kind !== "terminal") {
-				throw new Error(`${result.label} did not start a terminal session`);
+				throw fail(`${result.label} did not start a terminal session`);
 			}
+			track("agent_session_launch", {
+				...launch,
+				result: "launched",
+				latency_ms: Date.now() - startedAt,
+				failure_reason: null,
+			});
 			return {
 				workspaceId: target.workspaceId,
 				terminalId: result.sessionId,

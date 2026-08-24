@@ -17,6 +17,7 @@ export function Chip({ label, leading, onPress }: ChipProps) {
 		<Pressable
 			onPress={onPress}
 			accessibilityLabel={label}
+			ph-label="scope-chip"
 			className="bg-secondary/60 flex-row items-center gap-1.5 rounded-full py-1.5 pl-3 pr-2.5 active:opacity-60"
 		>
 			{leading}

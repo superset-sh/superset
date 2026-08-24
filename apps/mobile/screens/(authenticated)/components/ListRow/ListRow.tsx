@@ -25,6 +25,8 @@ export function ListRow({
 		<Pressable
 			onPress={onPress}
 			disabled={!onPress}
+			// Not the row's own label: some of these are host names.
+			ph-label="list-row"
 			className="flex-row items-center gap-3 py-4"
 			style={
 				isLast

@@ -93,6 +93,7 @@ export function WorkspaceRow({
 				onPress={() =>
 					router.push(`/(authenticated)/workspace/${workspace.id}`)
 				}
+				ph-label="workspace-row"
 			>
 				{/* Desktop WorkspaceIcon semantics: working replaces the icon with
 				    the braille spinner; other statuses overlay a corner ping on the
@@ -106,6 +107,7 @@ export function WorkspaceRow({
 						{prIcon && pullRequest ? (
 							<Button
 								accessibilityLabel={`Pull request #${pullRequest.prNumber}`}
+								ph-label="workspace-row-pull-request"
 								variant="ghost"
 								size="icon"
 								className="size-6"
@@ -198,6 +200,7 @@ export function WorkspaceRow({
 				) : null}
 				<Button
 					accessibilityLabel={`New agent in ${workspace.name}`}
+					ph-label="workspace-row-new-agent"
 					variant="ghost"
 					size="icon"
 					disabled={!canChat}

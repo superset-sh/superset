@@ -5,6 +5,7 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { CloudWorkspaceRow } from "@/hooks/useCloudWorkspaces";
 import { getCloudWorkspacesQueryKey } from "@/hooks/useCloudWorkspaces";
 import { useSession } from "@/lib/auth/client";
+import { track } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
 import type { NewChatTarget } from "../useNewChatTargets";
 
@@ -50,7 +51,18 @@ export function useCreateCloudWorkspace() {
 				branch: branch ?? undefined,
 			});
 		},
-		onSuccess: (row: CloudWorkspaceRow) => {
+		onSuccess: (row: CloudWorkspaceRow, { target, branch }) => {
+			track("workspace_created", {
+				workspace_id: row.id,
+				project_id: target.projectId,
+				organization_id: organizationId,
+				host_kind: "cloud",
+				source: "mobile_composer",
+				base_branch: branch,
+				// Nothing launches on a cloud create today; the prompt only feeds
+				// the server-side auto-name.
+				agent: null,
+			});
 			// Seed the list before navigating: the workspace screen decides
 			// between "provisioning" and "not found" off this cache, and even
 			// one refetch round trip is long enough to flash the wrong one.
@@ -61,7 +73,15 @@ export function useCreateCloudWorkspace() {
 			void queryClient.invalidateQueries({ queryKey: key });
 			router.push(`/(authenticated)/workspace/${row.id}`);
 		},
-		onError: (error) => {
+		onError: (error, { target, branch }) => {
+			track("workspace_create_failed", {
+				project_id: target.projectId,
+				organization_id: organizationId,
+				host_kind: "cloud",
+				source: "mobile_composer",
+				base_branch: branch,
+				failure_reason: error instanceof Error ? error.message : String(error),
+			});
 			Alert.alert(
 				"Could not create cloud workspace",
 				error instanceof Error ? error.message : String(error),

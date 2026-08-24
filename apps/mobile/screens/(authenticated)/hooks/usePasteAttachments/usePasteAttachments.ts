@@ -24,6 +24,7 @@ export function usePasteAttachments(draftKey: string) {
 					uri: item.uri,
 					mediaType: mediaTypeFor(item.name, item.kind),
 				})),
+				"paste",
 			);
 		},
 		[attachments],

@@ -25,6 +25,7 @@ import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { track } from "@/lib/posthog";
 import {
 	getHostTerminalsQueryKey,
 	useHostTerminals,
@@ -225,6 +226,25 @@ export function WorkspaceScreen() {
 		: null;
 	const hostCompatibility = useHostCompatibility(hostUrl);
 
+	// Once per visit, as soon as the screen knows which of its three shapes it
+	// is. A create navigates here itself, so that entry is neither of the two
+	// ways a user arrives at one that already exists.
+	const openedWorkspaceRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!id || openedWorkspaceRef.current === id || isResolving) return;
+		if (!workspace && !cloud && !pendingCreate) return;
+		openedWorkspaceRef.current = id;
+		track("session_opened", {
+			workspace_id: id,
+			workspace_kind: cloud && !workspace ? "cloud" : "host",
+			entry: pendingCreate
+				? "create"
+				: router.canGoBack()
+					? "list"
+					: "deeplink",
+		});
+	}, [id, isResolving, workspace, cloud, pendingCreate, router]);
+
 	// The + sheet lands back here via dismissTo with the new session in
 	// ?tab= — adopt it once its row arrives, since the terminals query hasn't
 	// heard of the session when the sheet closes. Otherwise pin whatever ended
@@ -241,8 +261,15 @@ export function WorkspaceScreen() {
 		(terminalId: string) => {
 			adoptedTabRef.current = params.tab ?? null;
 			setPickedTerminalId(terminalId);
+			if (terminalId !== activeTerminalId) {
+				track("session_switched", {
+					workspace_id: id ?? null,
+					source: "tab_strip",
+					session_count: rows.length,
+				});
+			}
 		},
-		[params.tab],
+		[params.tab, activeTerminalId, id, rows.length],
 	);
 	useEffect(() => {
 		if (
@@ -399,6 +426,28 @@ export function WorkspaceScreen() {
 		},
 		[handleSubmit],
 	);
+
+	// Mobile's terminal dials from inside the WebView, so there is no preflight
+	// probe to classify the way desktop's transport does — the page reports one
+	// of two terminal states and that is the whole diagnosis available here.
+	// Keyed by terminal because switching tabs carries the previous tab's failed
+	// state over until the new one reports, which is not a second failure.
+	const reportedFailureRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (connectionState !== "error" && connectionState !== "denied") {
+			reportedFailureRef.current = null;
+			return;
+		}
+		const failure = `${activeTerminalId}:${connectionState}`;
+		if (reportedFailureRef.current === failure) return;
+		reportedFailureRef.current = failure;
+		track("terminal_connect_failed", {
+			workspace_id: id ?? null,
+			terminal_id: activeTerminalId,
+			category: connectionState,
+			host_kind: cloud && !workspace ? "cloud" : "remote",
+		});
+	}, [connectionState, id, activeTerminalId, cloud, workspace]);
 
 	const banner = STATE_BANNERS[connectionState];
 	const showComposer =

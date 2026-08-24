@@ -1,54 +1,42 @@
-import { usePathname } from "expo-router";
 import {
 	PostHogProvider as PHProvider,
-	usePostHog,
+	type PostHogAutocaptureOptions,
 } from "posthog-react-native";
-import { type ReactNode, useEffect, useRef } from "react";
-import { posthogConfig } from "@/lib/posthog";
+import type { ReactNode } from "react";
+import { posthog, posthogConfig } from "@/lib/posthog";
+import { PostHogScreenTracker } from "./components/PostHogScreenTracker";
 
 interface PostHogProviderProps {
 	children: ReactNode;
 }
 
-function PostHogInitializer({ children }: { children: ReactNode }) {
-	const posthog = usePostHog();
-	const pathname = usePathname();
-	const previousPathname = useRef<string | null>(null);
-
-	useEffect(() => {
-		if (posthogConfig.options.debug) {
-			posthog.debug(true);
-		}
-		posthog.register({
-			app_name: "mobile",
-		});
-	}, [posthog]);
-
-	// Track screen views on pathname change
-	useEffect(() => {
-		if (pathname && pathname !== previousPathname.current) {
-			posthog.screen(pathname, { path: pathname });
-			previousPathname.current = pathname;
-		}
-	}, [pathname, posthog]);
-
-	return <>{children}</>;
-}
+const autocapture: PostHogAutocaptureOptions = {
+	// Kept on deliberately: strip the content out of touches, don't stop
+	// seeing them.
+	captureTouches: true,
+	// PostHogScreenTracker sends these, and it knows the route pattern rather
+	// than the pathname. The library's expo-router capture never produced an
+	// event here anyway.
+	captureScreens: false,
+	// The default list ends in 'children', which serialises each element's
+	// rendered text into $el_text. What that collected in production:
+	// workspace names — which are AI summaries of the user's own prompt —
+	// alongside branch names, host names and teammates' names.
+	propsToCapture: ["style", "testID", "accessibilityLabel", "ph-label"],
+	// Walking 20 ancestors of flattened style strings is what made the average
+	// captured element chain 1.2KB, 93% of them over 1KB.
+	maxElementsCaptured: 6,
+};
 
 export function PostHogProvider({ children }: PostHogProviderProps) {
 	return (
 		<PHProvider
-			apiKey={posthogConfig.apiKey}
-			options={{
-				host: posthogConfig.host,
-				enableSessionReplay: posthogConfig.options.enableSessionReplay,
-				sessionReplayConfig: posthogConfig.options.sessionReplayConfig,
-			}}
-			autocapture={{
-				captureTouches: true,
-			}}
+			client={posthog}
+			debug={posthogConfig.options.debug}
+			autocapture={autocapture}
 		>
-			<PostHogInitializer>{children}</PostHogInitializer>
+			<PostHogScreenTracker />
+			{children}
 		</PHProvider>
 	);
 }

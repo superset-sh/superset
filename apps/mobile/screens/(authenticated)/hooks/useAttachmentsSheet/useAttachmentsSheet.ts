@@ -7,8 +7,10 @@ import { useCallback } from "react";
 import { Alert } from "react-native";
 import { useUniwind } from "uniwind";
 import { imageAssetToAttachment } from "@/components/ai-elements/prompt-input";
+import { track } from "@/lib/posthog";
 import { THEME } from "@/lib/theme";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
+import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
 
 /**
  * Opens the native attachments sheet. Row actions arrive after the sheet's
@@ -24,6 +26,9 @@ export function useAttachmentsSheet(draftKey: string) {
 
 	return useCallback(
 		(options?: { onClosed?: () => void }) => {
+			const composer = draftKey === HOME_DRAFT_KEY ? "home" : "workspace";
+			track("attachments_sheet_opened", { composer });
+
 			const openCamera = async () => {
 				const permission = await ImagePicker.requestCameraPermissionsAsync();
 				if (!permission.granted) {
@@ -42,7 +47,10 @@ export function useAttachmentsSheet(draftKey: string) {
 				const items = await Promise.all(
 					result.assets.map(imageAssetToAttachment),
 				);
-				attachments.add(items.filter((item) => item !== null));
+				attachments.add(
+					items.filter((item) => item !== null),
+					"camera",
+				);
 			};
 
 			const handleAction = (action: AttachmentsSheetAction) => {
@@ -70,6 +78,7 @@ export function useAttachmentsSheet(draftKey: string) {
 						options?.onClosed?.();
 						attachments.add(
 							assets.map((asset) => ({ ...asset, type: "image" as const })),
+							"photos",
 						);
 					},
 					onAction: handleAction,
@@ -78,6 +87,6 @@ export function useAttachmentsSheet(draftKey: string) {
 				},
 			);
 		},
-		[attachments, theme],
+		[attachments, draftKey, theme],
 	);
 }

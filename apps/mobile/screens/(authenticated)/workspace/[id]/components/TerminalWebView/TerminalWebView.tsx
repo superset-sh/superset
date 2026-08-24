@@ -231,6 +231,10 @@ export const TerminalWebView = forwardRef<
 	return (
 		<StyledWebView
 			ref={webViewRef}
+			// Scrollback is whatever the agent printed — files, diffs, secrets.
+			// A WebView is opaque to autocapture's tree walk today, so this is
+			// belt and braces, but it is the subtree that must never be read.
+			ph-no-capture
 			// Background must match the page's #0a0a0a so resizes don't flash.
 			className="flex-1 bg-[#0a0a0a]"
 			source={{ html }}
