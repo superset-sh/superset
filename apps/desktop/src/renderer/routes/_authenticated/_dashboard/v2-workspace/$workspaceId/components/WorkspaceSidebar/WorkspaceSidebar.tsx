@@ -1,14 +1,17 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
-import { LuFile, LuGitCompareArrows } from "react-icons/lu";
+import { LuFile, LuFileText, LuGitCompareArrows } from "react-icons/lu";
 import { getChangesetFileKey } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useSettings } from "renderer/stores/settings";
-import type { CommentPaneData, DiffFocusSide } from "../../types";
+import type { CommentPaneData, DiffFocusSide, PagePaneData } from "../../types";
 import { FilesTab } from "./components/FilesTab";
+import { PagesTab } from "./components/PagesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
@@ -20,9 +23,14 @@ import type { SidebarTabDefinition } from "./types";
 // exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
 // always renders so users can see PR state and merge once a PR exists.
 
-type SidebarTabId = "changes" | "files" | "review";
+type SidebarTabId = "changes" | "files" | "review" | "pages";
 
-const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
+const VALID_TAB_IDS: readonly SidebarTabId[] = [
+	"changes",
+	"files",
+	"review",
+	"pages",
+];
 
 function isSidebarTabId(tab: string): tab is SidebarTabId {
 	return (VALID_TAB_IDS as readonly string[]).includes(tab);
@@ -43,6 +51,7 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	onOpenPage?: (page: PagePaneData) => void;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
@@ -53,6 +62,7 @@ export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
+	onOpenPage,
 	onSearch,
 	selectedFilePath,
 	pendingReveal,
@@ -166,8 +176,32 @@ export function WorkspaceSidebar({
 		),
 	};
 
-	const tabs: SidebarTabDefinition[] = [filesTab, changesTab, reviewTab];
-	const activeTabDef = tabs.find((t) => t.id === activeTab);
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+	const pagesTab: SidebarTabDefinition = {
+		id: "pages",
+		label: "Pages",
+		icon: LuFileText,
+		content: (
+			<PagesTab
+				workspaceId={workspaceId}
+				onOpenPage={(page) =>
+					onOpenPage?.({
+						pageId: page.id,
+						slug: page.slug,
+						title: page.title,
+					})
+				}
+			/>
+		),
+	};
+
+	const tabs: SidebarTabDefinition[] = [
+		filesTab,
+		changesTab,
+		reviewTab,
+		...(isPagesEnabled ? [pagesTab] : []),
+	];
+	const activeTabDef = tabs.find((t) => t.id === activeTab) ?? tabs[0];
 
 	return (
 		<div
@@ -181,7 +215,7 @@ export function WorkspaceSidebar({
 			/>
 			<SidebarHeader
 				tabs={tabs}
-				activeTab={activeTab}
+				activeTab={activeTabDef?.id ?? activeTab}
 				onTabChange={setActiveTab}
 				compact={compact}
 			/>

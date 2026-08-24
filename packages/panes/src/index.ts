@@ -7,9 +7,11 @@ export type {
 export { createWorkspaceStore } from "./core/store";
 export type { FocusDirection } from "./core/store/utils";
 export {
+	findFirstPaneId,
 	getActiveIdAfterRemoval,
 	getPaneParentDirection,
 	getSpatialNeighborPaneId,
+	removePaneFromLayout,
 } from "./core/store/utils";
 export type {
 	ContextMenuActionConfig,

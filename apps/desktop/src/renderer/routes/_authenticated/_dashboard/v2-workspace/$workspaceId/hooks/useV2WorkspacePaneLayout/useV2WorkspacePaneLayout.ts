@@ -1,10 +1,13 @@
 import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { PaneViewerData } from "../../types";
+import { dropUnavailablePanes } from "./utils/dropUnavailablePanes";
 
 const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 	version: 1,
@@ -61,14 +64,23 @@ export function useV2WorkspacePaneLayout() {
 		);
 	const localWorkspaceState =
 		localWorkspaceRows.find((row) => row.workspaceId === workspaceId) ?? null;
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES);
+	const unavailableKinds = useMemo(
+		() => (isPagesEnabled === false ? ["page"] : []),
+		[isPagesEnabled],
+	);
+
 	const persistedPaneLayout = useMemo(
 		() =>
-			localWorkspaceState?.workspaceId === workspaceId
-				? ((localWorkspaceState.paneLayout as
-						| WorkspaceState<PaneViewerData>
-						| undefined) ?? EMPTY_STATE)
-				: EMPTY_STATE,
-		[localWorkspaceState, workspaceId],
+			dropUnavailablePanes(
+				localWorkspaceState?.workspaceId === workspaceId
+					? ((localWorkspaceState.paneLayout as
+							| WorkspaceState<PaneViewerData>
+							| undefined) ?? EMPTY_STATE)
+					: EMPTY_STATE,
+				unavailableKinds,
+			),
+		[localWorkspaceState, workspaceId, unavailableKinds],
 	);
 
 	useEffect(() => {

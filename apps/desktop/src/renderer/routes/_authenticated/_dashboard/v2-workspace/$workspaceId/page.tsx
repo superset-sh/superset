@@ -200,6 +200,7 @@ function V2WorkspaceContent() {
 		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
+		openPagePane,
 	} = useWorkspacePaneOpeners({
 		store,
 		launcher,
@@ -414,6 +415,7 @@ function V2WorkspaceContent() {
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}
+								onOpenPage={openPagePane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 								pendingReveal={pendingReveal}

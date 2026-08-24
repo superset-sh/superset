@@ -39,6 +39,8 @@ export const CLOUD_TRPC_ROUTER_ROOTS = [
 	"host",
 	"integration",
 	"organization",
+	"page",
+	"pageComment",
 	"support",
 	"task",
 	"team",

@@ -38,6 +38,7 @@ import {
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import type { FoldSignal } from "../../ChangesFileList";
+import { setFileDragData } from "../../hooks/useFileDrag";
 import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
 import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
@@ -273,6 +274,41 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		},
 	);
 
+	// Native file drag (drop a row on a terminal to paste its path). Pierre
+	// owns the row DOM and renders rows `draggable="false"`, so the drag
+	// source is this wrapper instead; Chromium still starts the drag from the
+	// nearest draggable ancestor. `dragstart` targets that source, not the
+	// row, so the row is captured on pointerdown and cancelled for non-files.
+	const dragRowRef = useRef<HTMLElement | null>(null);
+	const onPointerDownCapture = useCallback(
+		(e: React.PointerEvent) => {
+			dragRowRef.current = findFileRow(e);
+		},
+		[findFileRow],
+	);
+	const onDragStart = useCallback(
+		(e: React.DragEvent) => {
+			const row = dragRowRef.current;
+			const treePath = row?.getAttribute("data-item-path");
+			if (!row || !treePath || !worktreePath) {
+				e.preventDefault();
+				return;
+			}
+			const realPath = toRealPath.get(treePath) ?? treePath;
+			setFileDragData(
+				e.dataTransfer,
+				toAbsoluteWorkspacePath(worktreePath, realPath),
+			);
+			const rect = row.getBoundingClientRect();
+			e.dataTransfer.setDragImage(
+				row,
+				e.clientX - rect.left,
+				e.clientY - rect.top,
+			);
+		},
+		[worktreePath, toRealPath],
+	);
+
 	// Hoisted so the dialog outlives the menu/hover overlay that triggers it.
 	const [discardTarget, setDiscardTarget] = useState<ChangesetFile | null>(
 		null,
@@ -366,7 +402,13 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		: "";
 
 	return (
-		<div onClickCapture={onClickCapture}>
+		// biome-ignore lint/a11y/noStaticElementInteractions: drag source for rows Pierre renders inside a shadow root
+		<div
+			draggable
+			onClickCapture={onClickCapture}
+			onPointerDownCapture={onPointerDownCapture}
+			onDragStart={onDragStart}
+		>
 			<ShadowClickHint hint={filePolicy.hint} findRow={findFileRow}>
 				<ShadowRowHoverActions
 					findFileRow={findFileRow}

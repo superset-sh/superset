@@ -8,6 +8,10 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./page-schema": {
+			"types": "./src/router/page/schema.ts",
+			"default": "./src/router/page/schema.ts"
+		},
 		"./integrations/*": {
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
@@ -35,7 +39,8 @@
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",

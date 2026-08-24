@@ -1,3 +1,4 @@
+import { Pixel404 } from "@superset/ui/pixel-404";
 import { Link } from "@tanstack/react-router";
 
 export function NotFound() {
@@ -7,8 +8,8 @@ export function NotFound() {
 
 			<div className="flex flex-1 items-center justify-center">
 				<div className="flex flex-col items-center w-full max-w-md px-8">
-					<div className="text-center">
-						<h1 className="text-6xl font-bold text-foreground mb-4">404</h1>
+					<div className="flex flex-col items-center text-center">
+						<Pixel404 className="max-w-[260px] text-foreground mb-6" />
 						<h2 className="text-xl font-semibold text-foreground mb-2">
 							Page Not Found
 						</h2>

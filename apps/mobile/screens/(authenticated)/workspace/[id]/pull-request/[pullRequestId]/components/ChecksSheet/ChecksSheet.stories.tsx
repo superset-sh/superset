@@ -27,9 +27,10 @@ type Story = StoryObj<typeof meta>;
 export const MidRunWithInProgress: Story = {
 	args: { name: "draftChecksRunning" },
 };
-/** Settled, so there is no In Progress tab — but Failed still shows at zero. */
+/** Settled with a failure, so All / Failed / Passed and no In Progress tab. */
 export const SettledWithOneFailure: Story = {
 	args: { name: "openTwoChecksOneFailed" },
 };
 export const TwoFailures: Story = { args: { name: "openTwoChecksFailed" } };
+/** All green: no Failed tab. */
 export const AllGreen: Story = { args: { name: "openWaitingForReview" } };

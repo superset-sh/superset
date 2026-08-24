@@ -7,19 +7,34 @@ import type { ZodRawShape, z } from "zod";
 import { isMcpUnauthorized, type McpContext } from "./auth";
 import { getMcpContextFromExtra, type McpRequestExtra } from "./context-utils";
 
-export interface ToolDef<
-	Input extends ZodRawShape,
-	Output extends ZodRawShape,
-> {
+/**
+ * A tool's input may be declared either as a raw shape — the common case, one
+ * entry per argument — or as a whole `ZodObject`. Use the object form when the
+ * tool needs a cross-field rule: a raw shape has nowhere to hang a `.refine()`,
+ * so a constraint like "exactly one of id or slug" would otherwise go
+ * undeclared and surface only as a runtime error on a call the model thought
+ * was well-formed.
+ *
+ * Zod 4 keeps `.refine()` on `ZodObject` (rather than wrapping it), so the SDK
+ * still reads `.shape` for the tool listing while validating against the
+ * refinement. Refinements aren't expressible in JSON Schema and are simply
+ * absent from the listing — state the rule in `description` as well.
+ */
+export type ToolInput = ZodRawShape | z.ZodObject;
+
+export type ToolInputOf<Input extends ToolInput> = Input extends z.ZodType
+	? z.output<Input>
+	: Input extends ZodRawShape
+		? z.output<z.ZodObject<Input>>
+		: never;
+
+export interface ToolDef<Input extends ToolInput, Output extends ZodRawShape> {
 	name: string;
 	description: string;
 	annotations?: ToolAnnotations;
 	inputSchema?: Input;
 	outputSchema?: Output;
-	handler: (
-		input: z.infer<z.ZodObject<Input>>,
-		ctx: McpContext,
-	) => Promise<unknown>;
+	handler: (input: ToolInputOf<Input>, ctx: McpContext) => Promise<unknown>;
 }
 
 export interface McpToolCallEvent {
@@ -97,20 +112,20 @@ function describeError(error: unknown): string {
 	}
 }
 
-export function defineTool<
-	Input extends ZodRawShape,
-	Output extends ZodRawShape,
->(server: McpServer, def: ToolDef<Input, Output>): void {
+export function defineTool<Input extends ToolInput, Output extends ZodRawShape>(
+	server: McpServer,
+	def: ToolDef<Input, Output>,
+): void {
 	server.registerTool(
 		def.name,
 		{
 			description: def.description,
 			...(def.annotations ? { annotations: def.annotations } : {}),
-			inputSchema: (def.inputSchema ?? {}) as Input,
+			inputSchema: (def.inputSchema ?? {}) as ZodRawShape,
 			...(def.outputSchema ? { outputSchema: def.outputSchema } : {}),
 		},
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the SDK callback type depends on whether inputSchema is provided; we always invoke with two args.
-		(async (args: z.infer<z.ZodObject<Input>>, extra: McpRequestExtra) => {
+		(async (args: ToolInputOf<Input>, extra: McpRequestExtra) => {
 			let ctx: McpContext;
 			try {
 				ctx = getMcpContextFromExtra(extra);

@@ -8,6 +8,7 @@ import type {
 	CommentPaneData,
 	DiffFocusSide,
 	DiffPaneData,
+	PagePaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
@@ -39,6 +40,7 @@ export function useWorkspacePaneOpeners({
 	addChatV3Tab: () => void;
 	addBrowserTab: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
+	openPagePane: (page: PagePaneData) => void;
 } {
 	const openDiffPane = useCallback(
 		(
@@ -189,11 +191,31 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
+	const openPagePane = useCallback(
+		(page: PagePaneData) => {
+			const state = store.getState();
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "page") continue;
+					if ((pane.data as PagePaneData).pageId !== page.pageId) continue;
+					state.setActiveTab(tab.id);
+					state.setActivePane({ tabId: tab.id, paneId: pane.id });
+					return;
+				}
+			}
+			state.addTab({
+				panes: [{ kind: "page", data: page as PaneViewerData }],
+			});
+		},
+		[store],
+	);
+
 	return {
 		openDiffPane,
 		addTerminalTab,
 		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
+		openPagePane,
 	};
 }

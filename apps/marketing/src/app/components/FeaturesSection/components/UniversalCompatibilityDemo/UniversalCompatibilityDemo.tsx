@@ -15,6 +15,10 @@ const AGENTS = [
 	{ name: "Mistral Vibe", icon: "/app-icons/vibe.svg", size: 18 },
 	{ name: "Kimi Code", icon: "/app-icons/kimi.svg", size: 18 },
 	{ name: "Grok CLI", icon: "/app-icons/grok.svg", size: 18 },
+	{ name: "Hermes", icon: "/app-icons/hermes.svg", size: 18 },
+	{ name: "fx", icon: "/app-icons/fx.svg", size: 18 },
+	{ name: "Antigravity", icon: "/app-icons/agy.svg", size: 18 },
+	{ name: "Kiro", icon: "/app-icons/kiro.svg", size: 18 },
 ];
 
 export function UniversalCompatibilityDemo() {

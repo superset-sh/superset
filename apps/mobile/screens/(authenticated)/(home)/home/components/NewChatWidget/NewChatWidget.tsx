@@ -287,7 +287,10 @@ export function NewChatWidget({
 			}}
 			onModelPress={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-				router.push("/(authenticated)/(home)/new-session/agent");
+				router.push({
+					pathname: "/(authenticated)/(home)/new-session/agent",
+					params: { machineId: selectedTarget?.machineId ?? "" },
+				});
 			}}
 			onChipPress={(id) => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -295,10 +298,19 @@ export function NewChatWidget({
 					dismiss();
 				} else if (id === "project") {
 					if (targets.length > 0) {
-						router.push("/(authenticated)/(home)/new-session/project");
+						router.push({
+							pathname: "/(authenticated)/(home)/new-session/project",
+							params: { selectedKey: selectedTarget?.key ?? "" },
+						});
 					}
 				} else if (selectedTarget) {
-					router.push("/(authenticated)/(home)/new-session/branch");
+					router.push({
+						pathname: "/(authenticated)/(home)/new-session/branch",
+						params: {
+							projectId: selectedTarget.projectId,
+							machineId: selectedTarget.machineId,
+						},
+					});
 				}
 			}}
 		/>

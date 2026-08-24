@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
+import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
@@ -24,7 +25,7 @@ export function NewSessionSheet() {
 	const router = useRouter();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
-	const { workspace, host } = useWorkspaceHost(id ?? null);
+	const { workspace, host, isResolving } = useWorkspaceHost(id ?? null);
 	const hostUrl = host
 		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
@@ -38,6 +39,23 @@ export function NewSessionSheet() {
 	// The launching row shows a spinner; every row locks until the launch
 	// resolves so a double-tap can't start two sessions.
 	const [launchingKey, setLaunchingKey] = useState<string | null>(null);
+
+	let notice: string | null = null;
+	let isLoading = false;
+	let canRetry = false;
+	if (!host) {
+		if (isResolving) isLoading = true;
+		else notice = "Could not reach this workspace's machine";
+	} else if (presets.length === 0) {
+		if (presetsQuery.isError) {
+			notice = "Could not load presets from the host";
+			canRetry = true;
+		} else if (presetsQuery.isPending) {
+			isLoading = true;
+		} else {
+			notice = "No agents configured on this machine";
+		}
+	}
 
 	const launch = async (agentId: string | null) => {
 		if (!workspace || !hostUrl || launchingKey !== null) return;
@@ -93,15 +111,19 @@ export function NewSessionSheet() {
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
-			{presets.length === 0 ? (
-				<View className="items-center py-8">
-					{presetsQuery.isError ? (
-						<Text className="text-muted-foreground text-sm">
-							Could not load presets from the host.
-						</Text>
-					) : (
-						spinner
-					)}
+			{isLoading ? <View className="items-center py-8">{spinner}</View> : null}
+			{notice ? (
+				<View className="items-center gap-3 py-8">
+					<Text className="text-muted-foreground text-sm">{notice}</Text>
+					{canRetry ? (
+						<Button
+							size="sm"
+							variant="secondary"
+							onPress={() => void presetsQuery.refetch()}
+						>
+							<Text>Try again</Text>
+						</Button>
+					) : null}
 				</View>
 			) : null}
 			{presets.map((preset) => (

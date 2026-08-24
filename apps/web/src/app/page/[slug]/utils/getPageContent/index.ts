@@ -1,0 +1,1 @@
+export { getPageContent } from "./getPageContent";

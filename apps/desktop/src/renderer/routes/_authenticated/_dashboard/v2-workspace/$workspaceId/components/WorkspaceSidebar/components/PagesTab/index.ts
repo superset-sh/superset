@@ -1,0 +1,1 @@
+export { PagesTab } from "./PagesTab";

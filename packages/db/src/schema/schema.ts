@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import {
 	boolean,
 	check,
@@ -28,6 +28,9 @@ import {
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
 	integrationProviderValues,
+	pageCommentAnchorKindValues,
+	pageCommentAuthorKindValues,
+	pageVisibilityValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
 	v2ClientTypeValues,
@@ -63,6 +66,15 @@ export const v2UsersHostRole = pgEnum(
 export const v2WorkspaceType = pgEnum(
 	"v2_workspace_type",
 	v2WorkspaceTypeValues,
+);
+export const pageVisibility = pgEnum("page_visibility", pageVisibilityValues);
+export const pageCommentAnchorKind = pgEnum(
+	"page_comment_anchor_kind",
+	pageCommentAnchorKindValues,
+);
+export const pageCommentAuthorKind = pgEnum(
+	"page_comment_author_kind",
+	pageCommentAuthorKindValues,
 );
 
 export const taskStatuses = pgTable(
@@ -1159,3 +1171,182 @@ export const desktopNotices = pgTable(
 
 export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
 export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
+
+export const pages = pgTable(
+	"pages",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		slug: text().notNull(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		title: text().notNull(),
+		description: text(),
+		visibility: pageVisibility().notNull().default("just_me"),
+		sharedVersion: integer("shared_version"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("pages_slug_unique").on(table.slug),
+		index("pages_organization_id_updated_at_idx").on(
+			table.organizationId,
+			desc(table.updatedAt),
+		),
+		index("pages_created_by_user_id_idx").on(table.createdByUserId),
+	],
+);
+
+export type InsertPage = typeof pages.$inferInsert;
+export type SelectPage = typeof pages.$inferSelect;
+
+export const pageVersions = pgTable(
+	"page_versions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		version: integer().notNull(),
+		label: text(),
+		blobPathname: text("blob_pathname").notNull(),
+		contentType: text("content_type").notNull(),
+		sizeBytes: integer("size_bytes").notNull(),
+		sha256: text().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+	},
+	(table) => [
+		unique("page_versions_page_id_version_unique").on(
+			table.pageId,
+			table.version,
+		),
+		index("page_versions_page_id_idx").on(table.pageId),
+	],
+);
+
+export type InsertPageVersion = typeof pageVersions.$inferInsert;
+export type SelectPageVersion = typeof pageVersions.$inferSelect;
+
+export const workspacePages = pgTable(
+	"workspace_pages",
+	{
+		workspaceId: uuid("workspace_id").notNull(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		entryPath: text("entry_path").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.workspaceId, table.pageId] }),
+		uniqueIndex("workspace_pages_workspace_id_entry_path_unique").on(
+			table.workspaceId,
+			table.entryPath,
+		),
+		index("workspace_pages_page_id_idx").on(table.pageId),
+	],
+);
+
+export type InsertWorkspacePage = typeof workspacePages.$inferInsert;
+export type SelectWorkspacePage = typeof workspacePages.$inferSelect;
+
+export const pageCommentThreads = pgTable(
+	"page_comment_threads",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		pageVersionId: uuid("page_version_id")
+			.notNull()
+			.references(() => pageVersions.id, { onDelete: "cascade" }),
+		anchorKind: pageCommentAnchorKind("anchor_kind").notNull(),
+		anchor: jsonb(),
+		anchorText: text("anchor_text"),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		agentActivatedAt: timestamp("agent_activated_at", { withTimezone: true }),
+		agentActivatedByUserId: uuid("agent_activated_by_user_id").references(
+			() => users.id,
+			{ onDelete: "set null" },
+		),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+		resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("page_comment_threads_page_id_idx").on(table.pageId),
+		index("page_comment_threads_page_version_id_idx").on(table.pageVersionId),
+		index("page_comment_threads_open_idx")
+			.on(table.pageId)
+			.where(sql`resolved_at IS NULL`),
+		check(
+			"page_comment_threads_anchor_matches_kind",
+			sql`(anchor_kind = 'page') = (anchor IS NULL)`,
+		),
+	],
+);
+
+export type InsertPageCommentThread = typeof pageCommentThreads.$inferInsert;
+export type SelectPageCommentThread = typeof pageCommentThreads.$inferSelect;
+
+export const pageComments = pgTable(
+	"page_comments",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		threadId: uuid("thread_id")
+			.notNull()
+			.references(() => pageCommentThreads.id, { onDelete: "cascade" }),
+		authorKind: pageCommentAuthorKind("author_kind").notNull().default("human"),
+		authorUserId: uuid("author_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		agentSessionId: text("agent_session_id"),
+		body: text().notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+		deletedAt: timestamp("deleted_at", { withTimezone: true }),
+	},
+	(table) => [
+		index("page_comments_thread_id_created_at_idx").on(
+			table.threadId,
+			table.createdAt,
+		),
+		check(
+			"page_comments_agent_has_session",
+			sql`author_kind <> 'agent' OR agent_session_id IS NOT NULL`,
+		),
+	],
+);
+
+export type InsertPageComment = typeof pageComments.$inferInsert;
+export type SelectPageComment = typeof pageComments.$inferSelect;

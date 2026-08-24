@@ -34,7 +34,7 @@ const CHECK_FILTER: Record<
 	ignored: "skipped",
 };
 
-/** Segments to offer and groups to show; "Failed" is offered even at zero. */
+/** Segments to offer and groups to show; zero-count tabs are dropped, All never. */
 export function checksFilterState(
 	checks: PullRequestCheck[],
 	filter: ChecksFilterValue,
@@ -55,12 +55,12 @@ export function checksFilterState(
 			label: group.segment,
 			count: counts[group.filter],
 		})),
-	].filter(
-		(option) =>
-			option.value === "all" ||
-			option.value === "failed" ||
-			counts[option.value] > 0,
-	);
+	].filter((option) => option.value === "all" || counts[option.value] > 0);
+
+	// Checks settle while the sheet is open; the selected tab can stop existing.
+	const active = options.some((option) => option.value === filter)
+		? filter
+		: ("all" as ChecksFilterValue);
 
 	const groups = GROUPS.map((group) => ({
 		...group,
@@ -69,8 +69,8 @@ export function checksFilterState(
 		),
 	})).filter(
 		(group) =>
-			group.members.length > 0 && (filter === "all" || filter === group.filter),
+			group.members.length > 0 && (active === "all" || active === group.filter),
 	);
 
-	return { counts, options, groups, tally };
+	return { counts, options, groups, tally, filter: active };
 }

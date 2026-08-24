@@ -30,16 +30,38 @@ export function parseClientHeader(headers: Headers): ApiClientInfo | null {
 	return { product: product as ApiClientInfo["product"], version };
 }
 
+/**
+ * Set when a request arrived over a transport only agents use — today that is
+ * the MCP server, which `packages/mcp` marks when it builds its caller.
+ * Derived from the transport, never from the request body, so it is safe to
+ * attribute a write to an agent on the strength of it.
+ *
+ * Deliberately NOT set for the CLI. `superset` authenticates with the user's
+ * own OAuth bearer or API key, identically whether a human typed the command
+ * or an agent running in a pane did — the server cannot tell those apart. A
+ * CLI agent self-reports instead (see `agentSessionId` on the page-comment
+ * reply input), which is a hint, not an attestation. Don't treat the absence
+ * of `agentCaller` as proof a human is calling.
+ */
+export type AgentCaller = { transport: "mcp"; label: string | null };
+
 export type TRPCContext = {
 	session: Session | null;
 	auth: typeof auth;
 	headers: Headers;
 	client: ApiClientInfo | null;
+	agentCaller: AgentCaller | null;
 };
 
 export const createTRPCContext = (
-	opts: Omit<TRPCContext, "client">,
-): TRPCContext => ({ ...opts, client: parseClientHeader(opts.headers) });
+	opts: Omit<TRPCContext, "client" | "agentCaller"> & {
+		agentCaller?: AgentCaller | null;
+	},
+): TRPCContext => ({
+	...opts,
+	client: parseClientHeader(opts.headers),
+	agentCaller: opts.agentCaller ?? null,
+});
 
 const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,

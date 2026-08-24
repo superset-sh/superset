@@ -17,6 +17,10 @@ import {
 	agentCommands,
 	chatSessions,
 	integrationConnections,
+	pageComments,
+	pageCommentThreads,
+	pages,
+	pageVersions,
 	projects,
 	subscriptions,
 	taskStatuses,
@@ -26,6 +30,7 @@ import {
 	v2Projects,
 	v2UsersHosts,
 	v2Workspaces,
+	workspacePages,
 	workspaces,
 } from "./schema";
 
@@ -331,5 +336,67 @@ export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
 	workspace: one(workspaces, {
 		fields: [chatSessions.workspaceId],
 		references: [workspaces.id],
+	}),
+}));
+
+export const pagesRelations = relations(pages, ({ one, many }) => ({
+	organization: one(organizations, {
+		fields: [pages.organizationId],
+		references: [organizations.id],
+	}),
+	createdBy: one(users, {
+		fields: [pages.createdByUserId],
+		references: [users.id],
+	}),
+	versions: many(pageVersions),
+	workspaceLinks: many(workspacePages),
+	commentThreads: many(pageCommentThreads),
+}));
+
+export const pageVersionsRelations = relations(pageVersions, ({ one }) => ({
+	page: one(pages, {
+		fields: [pageVersions.pageId],
+		references: [pages.id],
+	}),
+	createdBy: one(users, {
+		fields: [pageVersions.createdByUserId],
+		references: [users.id],
+	}),
+}));
+
+export const pageCommentThreadsRelations = relations(
+	pageCommentThreads,
+	({ one, many }) => ({
+		page: one(pages, {
+			fields: [pageCommentThreads.pageId],
+			references: [pages.id],
+		}),
+		version: one(pageVersions, {
+			fields: [pageCommentThreads.pageVersionId],
+			references: [pageVersions.id],
+		}),
+		createdBy: one(users, {
+			fields: [pageCommentThreads.createdByUserId],
+			references: [users.id],
+		}),
+		comments: many(pageComments),
+	}),
+);
+
+export const pageCommentsRelations = relations(pageComments, ({ one }) => ({
+	thread: one(pageCommentThreads, {
+		fields: [pageComments.threadId],
+		references: [pageCommentThreads.id],
+	}),
+	author: one(users, {
+		fields: [pageComments.authorUserId],
+		references: [users.id],
+	}),
+}));
+
+export const workspacePagesRelations = relations(workspacePages, ({ one }) => ({
+	page: one(pages, {
+		fields: [workspacePages.pageId],
+		references: [pages.id],
 	}),
 }));
