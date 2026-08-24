@@ -33,7 +33,7 @@ export function ApprovalRow({
 		<div
 			className={
 				pending
-					? "flex flex-col gap-2 rounded-lg border border-amber-500/50 bg-amber-500/5 p-3"
+					? "flex flex-col gap-2 rounded-lg border border-warning/50 bg-warning/5 p-3"
 					: "flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3"
 			}
 		>

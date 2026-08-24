@@ -49,7 +49,7 @@ export function HostOfflineRunDialog({
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<LuTriangleAlert
-							className="size-4 shrink-0 text-amber-500"
+							className="size-4 shrink-0 text-warning"
 							aria-hidden="true"
 						/>
 						Target host is offline
