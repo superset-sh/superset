@@ -187,7 +187,13 @@ export function DiffPane({
 			const editedFile = editedFilesRef.current.get(itemId);
 			const file = fileByItemId.get(itemId);
 			const worktreePath = workspaceQuery.data?.worktreePath;
-			if (!editedFile || !file || !worktreePath) return true;
+			if (!editedFile) return true;
+			if (!file || !worktreePath) {
+				toast.error("Couldn't save edits", {
+					description: "The workspace is not ready yet. Try again.",
+				});
+				return false;
+			}
 			try {
 				const result = await writeFile.mutateAsync({
 					workspaceId,

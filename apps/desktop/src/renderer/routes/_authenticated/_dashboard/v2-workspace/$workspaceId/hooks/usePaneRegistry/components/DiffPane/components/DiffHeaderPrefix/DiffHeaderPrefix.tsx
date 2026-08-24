@@ -1,8 +1,9 @@
 import { cn } from "@superset/ui/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { FileIcon } from "renderer/lib/fileIcons";
 import type { ChangesetFile } from "../../../../../useChangeset";
+import { useDiffHeaderHover } from "../../hooks/useDiffHeaderHover";
 
 interface DiffHeaderPrefixProps {
 	file: ChangesetFile;
@@ -16,37 +17,11 @@ export function DiffHeaderPrefix({
 	onSetCollapsed,
 }: DiffHeaderPrefixProps) {
 	const prefixRef = useRef<HTMLDivElement>(null);
-	const [headerHovered, setHeaderHovered] = useState(false);
+	const headerHovered = useDiffHeaderHover(prefixRef);
 	const onToggle = useCallback(
 		() => onSetCollapsed(!collapsed),
 		[onSetCollapsed, collapsed],
 	);
-
-	useEffect(() => {
-		const show = () => setHeaderHovered(true);
-		const hide = () => setHeaderHovered(false);
-		let header: Element | null = null;
-		let frame = 0;
-		const connect = () => {
-			header =
-				prefixRef.current
-					?.closest("diffs-container")
-					?.shadowRoot?.querySelector("[data-diffs-header='default']") ?? null;
-			if (!header) {
-				frame = requestAnimationFrame(connect);
-				return;
-			}
-			header.addEventListener("pointerenter", show);
-			header.addEventListener("pointerleave", hide);
-			setHeaderHovered(header.matches(":hover"));
-		};
-		connect();
-		return () => {
-			cancelAnimationFrame(frame);
-			header?.removeEventListener("pointerenter", show);
-			header?.removeEventListener("pointerleave", hide);
-		};
-	}, []);
 
 	return (
 		<div ref={prefixRef} className="relative size-3.5 shrink-0">
@@ -64,8 +39,6 @@ export function DiffHeaderPrefix({
 					event.stopPropagation();
 					onToggle();
 				}}
-				onFocus={() => setHeaderHovered(true)}
-				onBlur={() => setHeaderHovered(false)}
 				aria-label={collapsed ? "Expand file" : "Collapse file"}
 				className={cn(
 					"absolute -inset-1 flex items-center justify-center rounded text-muted-foreground/60 transition-all duration-100 hover:bg-accent hover:text-muted-foreground",

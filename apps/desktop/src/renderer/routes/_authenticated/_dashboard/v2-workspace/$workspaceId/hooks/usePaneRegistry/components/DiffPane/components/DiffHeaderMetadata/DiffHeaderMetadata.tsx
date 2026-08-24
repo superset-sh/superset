@@ -2,12 +2,13 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { LuCheck, LuCopy, LuExternalLink, LuUndo2, LuX } from "react-icons/lu";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useSidebarFilePolicy } from "renderer/lib/clickPolicy";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import type { ChangesetFile } from "../../../../../useChangeset";
+import { useDiffHeaderHover } from "../../hooks/useDiffHeaderHover";
 
 interface DiffHeaderMetadataProps {
 	file: ChangesetFile;
@@ -39,34 +40,9 @@ export function DiffHeaderMetadata({
 	onCancelEditing,
 }: DiffHeaderMetadataProps) {
 	const actionsRef = useRef<HTMLDivElement>(null);
-	const [headerHovered, setHeaderHovered] = useState(false);
+	const headerHovered = useDiffHeaderHover(actionsRef);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const policy = useSidebarFilePolicy();
-
-	useEffect(() => {
-		const show = () => setHeaderHovered(true);
-		const hide = () => setHeaderHovered(false);
-		let header: Element | null = null;
-		let frame = 0;
-		const connect = () => {
-			header =
-				actionsRef.current
-					?.closest("diffs-container")
-					?.shadowRoot?.querySelector("[data-diffs-header='default']") ?? null;
-			if (!header) {
-				frame = requestAnimationFrame(connect);
-				return;
-			}
-			header.addEventListener("pointerenter", show);
-			header.addEventListener("pointerleave", hide);
-		};
-		connect();
-		return () => {
-			cancelAnimationFrame(frame);
-			header?.removeEventListener("pointerenter", show);
-			header?.removeEventListener("pointerleave", hide);
-		};
-	}, []);
 
 	const handleToggleViewed = useCallback(() => {
 		const next = !viewed;
@@ -135,12 +111,6 @@ export function DiffHeaderMetadata({
 				)}
 				data-diff-actions
 				data-editing={isEditing ? "" : undefined}
-				onFocusCapture={() => setHeaderHovered(true)}
-				onBlurCapture={(event) => {
-					if (!event.currentTarget.contains(event.relatedTarget)) {
-						setHeaderHovered(false);
-					}
-				}}
 			>
 				{isEditing && onSaveEditing && onCancelEditing ? (
 					<>
