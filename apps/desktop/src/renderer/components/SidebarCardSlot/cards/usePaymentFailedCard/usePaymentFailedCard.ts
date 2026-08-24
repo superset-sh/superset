@@ -84,7 +84,7 @@ export function usePaymentFailedCard({
 					navigate({ to: "/settings/billing" });
 				}
 			: undefined,
-		className: "border-destructive/50",
+		className: "border-warning/50",
 		onShown: () => track("payment_failed_banner_shown", { surface, isOwner }),
 	};
 }

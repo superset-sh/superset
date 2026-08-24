@@ -58,7 +58,7 @@ export function RecentInvoices() {
 							{invoice.isUnpaid && (
 								<Badge
 									variant="outline"
-									className="border-destructive/30 bg-destructive/10 text-destructive"
+									className="border-warning/30 bg-warning/10 text-warning"
 								>
 									{UNPAID_LABEL[invoice.status ?? ""] ?? "Unpaid"}
 								</Badge>
@@ -73,7 +73,7 @@ export function RecentInvoices() {
 								className={cn(
 									"flex items-center gap-1 text-xs",
 									invoice.isUnpaid
-										? "text-destructive hover:text-destructive/80"
+										? "text-warning hover:text-warning/80"
 										: "text-muted-foreground hover:text-foreground",
 								)}
 							>

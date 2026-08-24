@@ -83,7 +83,7 @@ export function CurrentPlanCard({
 					{isPaymentFailing && (
 						<Badge
 							variant="outline"
-							className="border-destructive/30 bg-destructive/10 text-destructive"
+							className="border-warning/30 bg-warning/10 text-warning"
 						>
 							Payment failed
 						</Badge>
@@ -92,7 +92,7 @@ export function CurrentPlanCard({
 				<div
 					className={cn(
 						"text-xs mt-0.5",
-						isPaymentFailing ? "text-destructive" : "text-muted-foreground",
+						isPaymentFailing ? "text-warning" : "text-muted-foreground",
 					)}
 				>
 					{hint}
@@ -105,7 +105,7 @@ export function CurrentPlanCard({
 							variant="ghost"
 							size="sm"
 							onClick={() => onPayInvoice(hostedInvoiceUrl)}
-							className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+							className="text-warning hover:bg-warning/10 hover:text-warning"
 						>
 							Pay now
 						</Button>
