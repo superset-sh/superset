@@ -174,6 +174,10 @@ function prCodeTabCardUnsafeCss(
 		 * PR list row's own diff-stat placement. Overrides the shared
 		 * hook's flex-start (same selector, appended later so it wins). */
 		justify-content: space-between;
+		/* Pierre's own padding (0 16px) sits the collapse chevron well right
+		 * of the Files pill above it (px-2 on the toolbar row, 8px) — cut to
+		 * match so the two rows read as left-aligned. */
+		padding-left: 8px;
 	}
 	/* Every header carries data-sticky from first render (confirmed live —
 	 * it's there even scrolled to the very top), since position: sticky
