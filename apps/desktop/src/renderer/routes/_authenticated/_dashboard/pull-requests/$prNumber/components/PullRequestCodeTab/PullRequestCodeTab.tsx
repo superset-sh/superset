@@ -948,7 +948,7 @@ export function PullRequestCodeTab({
 									aria-label={
 										isTreeCollapsed ? "Show file tree" : "Hide file tree"
 									}
-									className="flex items-center gap-1.5 rounded px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+									className="flex items-center gap-1.5 rounded-md bg-muted/50 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 								>
 									<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
 									<span className="text-[11px] font-medium">Files</span>
