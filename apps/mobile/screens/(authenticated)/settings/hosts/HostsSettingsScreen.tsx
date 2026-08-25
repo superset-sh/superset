@@ -1,8 +1,12 @@
+import { COMPANY } from "@superset/shared/constants";
 import { useMemo } from "react";
-import { ScrollView, Text } from "react-native";
+import { ScrollView, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { useHostsPresence } from "@/hooks/useHostsPresence";
 import { useOrgHosts } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
+import { openUrl } from "@/lib/open-url";
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 
@@ -27,6 +31,29 @@ export function HostsSettingsScreen() {
 			className="bg-background flex-1"
 			contentContainerClassName="px-6 pb-12"
 		>
+			{hostRows.length === 0 ? (
+				// Same dead end as the home screen's: a device only reaches the
+				// relay once someone opts it in on a desktop, so an empty list here
+				// is a setup step nobody has been told about.
+				<View className="items-center gap-4 py-16">
+					<Text className="text-base font-medium text-foreground">
+						No devices yet
+					</Text>
+					<Text
+						className="text-center text-sm leading-5"
+						style={{ color: theme.mutedForeground }}
+					>
+						In the Superset desktop app, open Settings → Security and turn on
+						“Allow remote workspaces to access this device via relay”.
+					</Text>
+					<Button
+						variant="secondary"
+						onPress={() => openUrl(`${COMPANY.DOCS_URL}/remote-workspaces`)}
+					>
+						<Text>Read the setup guide</Text>
+					</Button>
+				</View>
+			) : null}
 			{hostRows.map((host, index) => (
 				<ListRow
 					key={host.machineId}
