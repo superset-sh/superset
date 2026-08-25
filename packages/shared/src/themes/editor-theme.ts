@@ -13,7 +13,10 @@ function deriveCommentColor(theme: Theme): string {
 	if (!brightBlack) {
 		return theme.ui.mutedForeground;
 	}
-	const background = theme.terminal?.background ?? theme.ui.background;
+	const background =
+		theme.editor?.colors?.background ??
+		theme.terminal?.background ??
+		theme.ui.background;
 	const brightBlackContrast = wcagContrast(brightBlack, background);
 	if (brightBlackContrast >= MIN_COMMENT_CONTRAST) {
 		return brightBlack;
