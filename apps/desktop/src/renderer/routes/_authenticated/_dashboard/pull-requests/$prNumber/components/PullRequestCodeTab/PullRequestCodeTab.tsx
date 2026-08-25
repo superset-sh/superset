@@ -1188,7 +1188,10 @@ export function PullRequestCodeTab({
 								<span className="flex min-w-0 items-center gap-1.5">
 									<span className="shrink-0 text-foreground">{name}</span>
 									{dir && (
-										<span className="min-w-0 truncate text-muted-foreground/70">
+										<span
+											className="min-w-0 truncate text-muted-foreground/70"
+											title={dir}
+										>
 											{dir}
 										</span>
 									)}
