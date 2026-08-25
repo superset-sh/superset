@@ -309,6 +309,7 @@ export function MarkdownEditor({
 			TableKit.configure({
 				table: {
 					resizable: false,
+					renderWrapper: true,
 					cellMinWidth: 192,
 					HTMLAttributes: {
 						class: "markdown-table my-4 min-w-full border-collapse",

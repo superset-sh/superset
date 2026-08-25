@@ -90,6 +90,12 @@
 	margin: 1rem 0;
 }
 
+.default-markdown .tableWrapper {
+	max-width: 100%;
+	overflow-x: auto;
+	overscroll-behavior-inline: contain;
+}
+
 .default-markdown th {
 	text-align: left;
 	padding: 0.5rem 1rem;
