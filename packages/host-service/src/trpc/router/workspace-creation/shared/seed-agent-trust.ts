@@ -17,7 +17,15 @@
  */
 
 import { existsSync, realpathSync } from "node:fs";
-import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+	chmod,
+	mkdtemp,
+	readFile,
+	rename,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import type { HostDb } from "../../../../db";
@@ -79,12 +87,22 @@ function resolveTrustTarget(
 	return { family, file: join(codexHome, "config.toml") };
 }
 
-/** Same-directory tmp write + rename, so a crash never truncates the store. */
+/**
+ * Same-directory tmp write + rename, so a crash never truncates the store.
+ * The replacement keeps the store's existing mode — these files can sit next
+ * to credentials, so a user-tightened mode must survive the rewrite — and a
+ * brand-new store starts owner-only.
+ */
 async function atomicWrite(file: string, content: string): Promise<void> {
+	const mode = await stat(file).then(
+		(info) => info.mode & 0o777,
+		() => 0o600,
+	);
 	const tmpDir = await mkdtemp(join(dirname(file), ".superset-trust-"));
 	const tmpFile = join(tmpDir, "next");
 	try {
 		await writeFile(tmpFile, content);
+		await chmod(tmpFile, mode);
 		await rename(tmpFile, file);
 	} finally {
 		await rm(tmpDir, { recursive: true, force: true });
@@ -112,6 +130,10 @@ export async function seedClaudeFolderTrust(
 		string,
 		Record<string, unknown> | undefined
 	>;
+	// `false` is Claude's default scaffold value ("dialog never accepted"),
+	// not a recorded decline — the CLI persists no decline state (declining
+	// just exits). So overwriting false → true is the intended seed, unlike
+	// Codex's explicit "untrusted", which is preserved below.
 	const existing = projects[folderPath];
 	if (existing?.hasTrustDialogAccepted === true) return;
 	state.projects = {
@@ -122,24 +144,43 @@ export async function seedClaudeFolderTrust(
 }
 
 /**
+ * True when the config already defines a `projects` entry for `folderPath`,
+ * tolerating header spacing and both TOML string styles (plus top-level
+ * dotted keys). Appending a duplicate table would make the whole file
+ * unparseable for Codex, so detection must be broader than the exact header
+ * Codex itself writes.
+ */
+function codexProjectEntryExists(content: string, folderPath: string): boolean {
+	const entry =
+		/^\s*\[?\s*projects\s*\.\s*(?:"((?:[^"\\]|\\.)*)"|'([^']*)')\s*[\].]/;
+	for (const line of content.split(/\r?\n/)) {
+		const match = entry.exec(line);
+		if (!match) continue;
+		const key =
+			match[1] !== undefined ? match[1].replace(/\\(["\\])/g, "$1") : match[2];
+		if (key === folderPath) return true;
+	}
+	return false;
+}
+
+/**
  * Append a `[projects."<path>"]` table with `trust_level = "trusted"` to a
- * Codex config.toml. An existing table for the path is left untouched — a
+ * Codex config.toml. An existing entry for the path is left untouched — a
  * user's explicit "untrusted" must not be overridden.
  */
 export async function seedCodexFolderTrust(
 	configFile: string,
 	folderPath: string,
 ): Promise<void> {
-	const escaped = folderPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-	const header = `[projects."${escaped}"]`;
 	let content = "";
 	if (existsSync(configFile)) {
 		content = await readFile(configFile, "utf-8");
-		if (content.split(/\r?\n/).some((line) => line.trim() === header)) return;
+		if (codexProjectEntryExists(content, folderPath)) return;
 	} else if (!existsSync(dirname(configFile))) {
 		return;
 	}
-	const block = `${header}\ntrust_level = "trusted"\n`;
+	const escaped = folderPath.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+	const block = `[projects."${escaped}"]\ntrust_level = "trusted"\n`;
 	const next =
 		content.length === 0 ? block : `${content.replace(/\n*$/, "\n\n")}${block}`;
 	await atomicWrite(configFile, next);

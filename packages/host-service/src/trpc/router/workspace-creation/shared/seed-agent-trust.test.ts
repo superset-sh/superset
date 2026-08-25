@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -107,6 +114,20 @@ describe("seedClaudeFolderTrust", () => {
 		await seedClaudeFolderTrust(file, "/tmp/session-e");
 		expect(() => readFileSync(file, "utf-8")).toThrow();
 	});
+
+	test("preserves a tightened file mode across the rewrite", async () => {
+		const file = join(dir, ".claude.json");
+		writeFileSync(file, "{}");
+		chmodSync(file, 0o600);
+		await seedClaudeFolderTrust(file, "/tmp/session-f");
+		expect(statSync(file).mode & 0o777).toBe(0o600);
+	});
+
+	test("creates a brand-new store owner-only", async () => {
+		const file = join(dir, ".claude.json");
+		await seedClaudeFolderTrust(file, "/tmp/session-g");
+		expect(statSync(file).mode & 0o777).toBe(0o600);
+	});
 });
 
 describe("seedCodexFolderTrust", () => {
@@ -150,5 +171,49 @@ describe("seedCodexFolderTrust", () => {
 		const file = join(dir, "missing-home", "config.toml");
 		await seedCodexFolderTrust(file, "/tmp/session-d");
 		expect(() => readFileSync(file, "utf-8")).toThrow();
+	});
+
+	test("detects an equivalent header with different spacing", async () => {
+		const file = join(dir, "config.toml");
+		const content =
+			'[ projects . "/tmp/session-e" ]\ntrust_level = "untrusted"\n';
+		writeFileSync(file, content);
+		await seedCodexFolderTrust(file, "/tmp/session-e");
+		expect(readFileSync(file, "utf-8")).toBe(content);
+	});
+
+	test("detects a literal-string header", async () => {
+		const file = join(dir, "config.toml");
+		const content =
+			"[projects.'/tmp/session-f']\ntrust_level = \"untrusted\"\n";
+		writeFileSync(file, content);
+		await seedCodexFolderTrust(file, "/tmp/session-f");
+		expect(readFileSync(file, "utf-8")).toBe(content);
+	});
+
+	test("detects a top-level dotted key", async () => {
+		const file = join(dir, "config.toml");
+		const content = 'projects."/tmp/session-g".trust_level = "untrusted"\n';
+		writeFileSync(file, content);
+		await seedCodexFolderTrust(file, "/tmp/session-g");
+		expect(readFileSync(file, "utf-8")).toBe(content);
+	});
+
+	test("matches an escaped header against the raw path", async () => {
+		const file = join(dir, "config.toml");
+		const content =
+			'[projects."/tmp/we\\"ird\\\\path"]\ntrust_level = "untrusted"\n';
+		writeFileSync(file, content);
+		await seedCodexFolderTrust(file, '/tmp/we"ird\\path');
+		expect(readFileSync(file, "utf-8")).toBe(content);
+	});
+
+	test("still appends when only a different path is defined", async () => {
+		const file = join(dir, "config.toml");
+		writeFileSync(file, '[ projects . "/other" ]\ntrust_level = "trusted"\n');
+		await seedCodexFolderTrust(file, "/tmp/session-h");
+		expect(readFileSync(file, "utf-8")).toContain(
+			'[projects."/tmp/session-h"]\ntrust_level = "trusted"\n',
+		);
 	});
 });
