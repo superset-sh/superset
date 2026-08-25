@@ -298,7 +298,6 @@ export function DashboardSidebar({
 										<DashboardSidebarSessionsSection
 											sessionWorkspaces={sessionWorkspaces}
 											isCollapsed={isCollapsed}
-											rowsHidden={!isCollapsed && workspacesListCollapsed}
 											workspaceShortcutLabels={workspaceShortcutLabels}
 											onWorkspaceHover={refreshWorkspacePullRequest}
 										/>
