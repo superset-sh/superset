@@ -1,4 +1,7 @@
-import { COMPANY } from "@superset/shared/constants";
+import {
+	COMPANY,
+	STRIP_KATALON_ATTRS_SCRIPT,
+} from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
@@ -114,6 +117,9 @@ export default function RootLayout({
 			suppressHydrationWarning
 		>
 			<head>
+				<Script id="strip-katalon-attrs" strategy="beforeInteractive">
+					{STRIP_KATALON_ATTRS_SCRIPT}
+				</Script>
 				<OrganizationJsonLd />
 				<SoftwareApplicationJsonLd />
 				<WebsiteJsonLd />
