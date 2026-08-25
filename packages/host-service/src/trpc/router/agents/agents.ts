@@ -24,6 +24,7 @@ import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 import { toTerminalSessionError } from "../terminal/errors";
 import { resolveDefaultAccountEnv } from "../usage/default-account";
+import { seedAgentFolderTrust } from "../workspace-creation/shared/seed-agent-trust";
 
 interface ResolvedHostAgentConfig {
 	id: string;
@@ -397,6 +398,17 @@ export async function runAgentInWorkspace(
 			code: "NOT_FOUND",
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
+	}
+	// Session workspaces are standalone repos the host itself scaffolded, so
+	// agent CLIs can't inherit folder trust from anywhere — pre-trust the
+	// folder in the launching agent's own trust store so its first
+	// interactive boot skips the trust dialog. Worktree workspaces inherit
+	// trust from the main checkout and need nothing.
+	if (workspace.projectId === null) {
+		const config = resolveHostAgentConfig(ctx.db, input.agent);
+		if (config) {
+			await seedAgentFolderTrust(ctx.db, workspace.worktreePath, config);
+		}
 	}
 	return runTerminalAgent(ctx, input);
 }
