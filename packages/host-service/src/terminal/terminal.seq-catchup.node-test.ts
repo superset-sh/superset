@@ -176,13 +176,11 @@ done
 const SIZE_SCRIPT = String.raw`
 trap '' WINCH
 stty -echo
-printf 'READY-SIZE
-'
+printf 'READY-SIZE\n'
 n=0
 while IFS= read -r line; do
   n=$((n+1))
-  printf 'SIZE %03d %s
-' "$n" "$(stty size | tr ' ' 'x')"
+  printf 'SIZE %03d %s\n' "$n" "$(stty size | tr ' ' 'x')"
   case $line in *stop*) exit 0 ;; esac
 done
 `;
