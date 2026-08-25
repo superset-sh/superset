@@ -118,12 +118,41 @@ const TREE_STYLE = createPierreTreeStyle({
 // pane's own width — a fully reactive re-collapse on resize would need a
 // bulk collapse-all the tree model doesn't expose.
 const NARROW_WINDOW_WIDTH_THRESHOLD = 1400;
-// Below this (stricter) width, even a collapsed-folders tree panel is more
-// than the split can spare — hide the whole panel by default rather than
-// just defaulting its folders closed. Same one-time, mount-only read as
-// NARROW_WINDOW_WIDTH_THRESHOLD, for the same reason (isTreeCollapsed is a
-// plain default here, not a continuously-tracked breakpoint).
-const NARROW_WINDOW_WIDTH_HIDE_TREE_THRESHOLD = 1150;
+// Below this (stricter) *pane* width — this tab's own rendered width, via
+// ResizeObserver, not the window's — even a collapsed-folders tree panel is
+// more than the split can spare, so the whole panel hides by default. Unlike
+// NARROW_WINDOW_WIDTH_THRESHOLD this one does stay reactive after mount:
+// isTreeCollapsed is plain component state (no Pierre store tied to it), so
+// nothing stops it tracking width for the tab's whole lifetime.
+const NARROW_PANE_WIDTH_HIDE_TREE_THRESHOLD = 1150;
+
+// Extra unsafeCSS appended to (not replacing) useDiffCodeViewTheme's own —
+// that hook is shared with the v2-workspace DiffPane, so styling specific to
+// this tab's card-per-file look lives here instead of there. Pierre has no
+// single wrapping element around one file's header+content (confirmed live:
+// [data-diffs-header]'s parentElement is the shadow root itself), so the
+// "card" is an illusion built from two adjacent elements — the header gets
+// rounded top corners, the diff body gets rounded bottom corners, matching
+// borders on both meet with no gap between them, and layout.gap (set where
+// this is used) puts real space before the *next* file's header. Mirrors
+// packages/ui's shared Card component's own recipe (rounded-xl border
+// shadow-sm) rather than inventing a new one.
+const PR_CODE_TAB_CARD_UNSAFE_CSS = `
+	[data-diffs-header='default'] {
+		border: 1px solid var(--border);
+		border-bottom: none;
+		border-top-left-radius: 0.75rem;
+		border-top-right-radius: 0.75rem;
+		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	}
+	[data-diff] {
+		border: 1px solid var(--border);
+		border-top: none;
+		border-bottom-left-radius: 0.75rem;
+		border-bottom-right-radius: 0.75rem;
+		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	}
+`;
 
 // GitHub's diff-file-type vocabulary (from parsePatchFiles) mapped onto
 // Pierre's tree git-status vocabulary — a distinct mapping from
@@ -203,9 +232,32 @@ export function PullRequestCodeTab({
 	const [initialTreeExpansion] = useState<"open" | "closed">(() =>
 		window.innerWidth < NARROW_WINDOW_WIDTH_THRESHOLD ? "closed" : "open",
 	);
-	const [isTreeCollapsed, setIsTreeCollapsed] = useState(
-		() => window.innerWidth < NARROW_WINDOW_WIDTH_HIDE_TREE_THRESHOLD,
-	);
+	// Tracks this tab's own rendered width, not the window's — the PR list
+	// pane, an app sidebar, or a split view can all make the detail pane
+	// (where this tab lives) far narrower than the window, and window width
+	// alone missed that entirely.
+	const rootRef = useRef<HTMLDivElement>(null);
+	const [containerWidth, setContainerWidth] = useState<number | null>(null);
+	useEffect(() => {
+		const el = rootRef.current;
+		if (!el) return;
+		const update = () => setContainerWidth(el.getBoundingClientRect().width);
+		update();
+		const observer = new ResizeObserver(update);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, []);
+	// null = no explicit user choice yet, so the panel auto-collapses/expands
+	// as the pane crosses the width threshold. Once the reviewer clicks the
+	// toggle, their choice sticks regardless of further resizing — auto
+	// behavior only ever supplies a default, never fights a deliberate click.
+	const [manualTreeCollapsed, setManualTreeCollapsed] = useState<
+		boolean | null
+	>(null);
+	const isTreeCollapsed =
+		manualTreeCollapsed ??
+		(containerWidth != null &&
+			containerWidth < NARROW_PANE_WIDTH_HIDE_TREE_THRESHOLD);
 	const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
 	const [isResizingTree, setIsResizingTree] = useState(false);
 	const [composer, setComposer] = useState<ComposerState | null>(null);
@@ -635,6 +687,13 @@ export function PullRequestCodeTab({
 		() =>
 			({
 				...options,
+				// A visible gap between files is what makes the rounded
+				// header/diff pair (PR_CODE_TAB_CARD_UNSAFE_CSS) read as
+				// separate cards rather than one continuous, oddly-cornered
+				// block — DiffPane's own gap: 0 doesn't need this since it
+				// has no such per-file card styling.
+				layout: { ...options.layout, gap: 16 },
+				unsafeCSS: `${options.unsafeCSS ?? ""}\n${PR_CODE_TAB_CARD_UNSAFE_CSS}`,
 				enableLineSelection: true,
 				enableGutterUtility: true,
 				// Pierre gates the gutter "+" button's pointer flow behind a
@@ -729,40 +788,48 @@ export function PullRequestCodeTab({
 
 	if (isLoading) {
 		return (
-			<div className="flex flex-1 items-center justify-center">
-				<WorkItemDetailState message="Loading diff…" isLoading />
+			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
+				<div className="flex flex-1 items-center justify-center">
+					<WorkItemDetailState message="Loading diff…" isLoading />
+				</div>
 			</div>
 		);
 	}
 
 	if (error instanceof Error) {
 		return (
-			<div className="flex flex-1 items-center justify-center">
-				<WorkItemDetailState
-					message={error.message}
-					isError
-					onRetry={() => void refetch()}
-				/>
+			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
+				<div className="flex flex-1 items-center justify-center">
+					<WorkItemDetailState
+						message={error.message}
+						isError
+						onRetry={() => void refetch()}
+					/>
+				</div>
 			</div>
 		);
 	}
 
 	if (patchParseError) {
 		return (
-			<div className="flex flex-1 items-center justify-center">
-				<WorkItemDetailState
-					message={`Couldn't parse this diff: ${patchParseError}`}
-					isError
-					onRetry={() => void refetch()}
-				/>
+			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
+				<div className="flex flex-1 items-center justify-center">
+					<WorkItemDetailState
+						message={`Couldn't parse this diff: ${patchParseError}`}
+						isError
+						onRetry={() => void refetch()}
+					/>
+				</div>
 			</div>
 		);
 	}
 
 	if (items.length === 0) {
 		return (
-			<div className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
-				No changes to display.
+			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
+				<div className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
+					No changes to display.
+				</div>
 			</div>
 		);
 	}
@@ -776,7 +843,10 @@ export function PullRequestCodeTab({
 		);
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 @md:px-6">
+		<div
+			ref={rootRef}
+			className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 @md:px-6"
+		>
 			<div className="flex min-h-0 flex-1 overflow-hidden">
 				{!isTreeCollapsed && (
 					<ResizablePanel
@@ -802,7 +872,7 @@ export function PullRequestCodeTab({
 							<TooltipTrigger asChild>
 								<button
 									type="button"
-									onClick={() => setIsTreeCollapsed((prev) => !prev)}
+									onClick={() => setManualTreeCollapsed(!isTreeCollapsed)}
 									aria-label={
 										isTreeCollapsed ? "Show file tree" : "Hide file tree"
 									}
