@@ -37,7 +37,7 @@ Nothing below suggests changing it.
 
 **2. Our image addon does not implement the placement mode those clients then use.**
 `@xterm/addon-image@0.10.0-beta.289`, `src/kitty/KittyGraphicsTypes.ts`. The
-`KittyKey` enum has 21 keys — `a f i I s v x y w h X Y c r m o q C z t d p` — and
+`KittyKey` enum has 22 keys — `a f i I s v x y w h X Y c r m o q C z t d p` — and
 **no `U` key**. `parseKittyCommand()` silently drops `U=1`, and nothing in
 `KittyGraphicsHandler.ts` consumes `U+10EEEE`. Confirmed still absent in the
 latest published `0.10.0-beta.300`.
@@ -58,16 +58,22 @@ still open. Related: #6098, #6132.
 
 ([source](https://docs.rs/ratatui-image/10.0.6/src/ratatui_image/protocol/kitty.rs.html))
 
-Our handler stores the image on step 1 and then never places it, because step 2
-is not a control sequence — it is ordinary text. So the placeholder cells fall
-through to the normal renderer and paint as literal glyphs. Hence garbage rows
-and no image: the two halves fail together, and only in a terminal that claims
-kitty while lacking `U=1`.
+`@xterm/addon-image@0.10.0-beta.289` ignores `U=1`: `a=T` invokes
+`_handleTransmitDisplay`, which stores the image *and* immediately displays it
+— the plain transmit+display path, not an inert virtual placement. So step 1
+alone can paint a direct image in our terminal. Step 2's placeholder cells are
+then rendered independently: since they are ordinary text, not a control
+sequence, they fall through to the normal renderer and paint as literal
+glyphs. The result can be a directly-displayed image *plus* garbage rows from
+the placeholder cells, in a terminal that claims kitty while lacking `U=1`.
 
 ## Repro
 
-Self-contained, no Rust toolchain. Sends the exact byte sequence `ratatui-image`
-sends. Correct result is a checkerboard; the bug shows garbage glyphs.
+Self-contained, no Rust toolchain. Sends an equivalent `U=1` sequence to what
+`ratatui-image` sends: PNG via `f=100` here vs. `ratatui-image`'s raw RGBA via
+`f=32`, and without its `s`/`v`/cursor/`id_extra` fields — both exercise the
+same placement/placeholder decoding path. Correct result is a checkerboard;
+the bug shows garbage glyphs.
 
 ```bash
 bash scripts/repro/kitty-unicode-placeholder.sh
@@ -88,10 +94,19 @@ is currently tied to the writing cursor. Best done upstream in
 xtermjs/xterm.js#5711 rather than as a patch, since a `patchedDependencies` entry
 of this size would be painful to carry (see `patches/README.md`).
 
-**B. Advertise the truth in the kitty capability query.** Small and principled:
-answer `a=q` so clients can tell that virtual placements are unavailable, letting
-well-behaved ones choose another protocol. It does not help `ratatui-image`
-today, which does not degrade, but it stops us from silently over-claiming.
+**B. Ship explicit feature negotiation for `U=1`.** `a=q` only confirms that
+the terminal understands the kitty graphics protocol at all — it says nothing
+about which keys are supported, and the spec defines no error response for an
+unsupported key, so it cannot tell a client whether `U=1` virtual placements
+will actually render. Instead, expose a dedicated signal a TUI can check
+*before* choosing a placement mode — e.g. alongside `SUPERSET_TERMINAL_ID`
+(used in option C), add `SUPERSET_KITTY_UNICODE_PLACEHOLDERS=0` (or an
+equivalent OSC query) that explicitly states virtual placements are
+unsupported. A conforming client reads that and falls back to IIP or direct
+kitty placement instead of assuming `a=T,U=1` will render. This still requires
+client-side opt-in — `ratatui-image` does not check for it today — but it
+gives any TUI author a real contract to code against instead of inferring
+behavior from protocol silence.
 
 **C. Client-side workaround (what affected apps can do now).** Detect Superset
 via `SUPERSET_TERMINAL_ID` and prefer the iTerm2 inline-image (IIP) protocol,
@@ -101,10 +116,11 @@ discover it independently — which is the reason this document exists.
 
 ## Recommendation
 
-Pursue **A** upstream and land **B** here in the meantime, so the terminal stops
-claiming a capability it does not have. Until either ships, **C** is the only
-thing users can act on, so it is worth stating in the docs that Superset supports
-kitty direct placements and IIP, but not kitty Unicode placeholders.
+Pursue **A** upstream and land **B** here in the meantime, so TUIs have an
+explicit signal instead of inferring `U=1` support from protocol silence.
+Until either ships, **C** is the only thing users can act on, so it is worth
+stating in the docs that Superset supports kitty direct placements and IIP,
+but not kitty Unicode placeholders.
 
 ## Verified
 

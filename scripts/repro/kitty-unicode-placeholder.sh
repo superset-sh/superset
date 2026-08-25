@@ -2,18 +2,24 @@
 # Repro for kitty Unicode placeholders (U=1) — see
 # plans/20260825-kitty-unicode-placeholder-images.md
 #
-# Emits the exact byte sequence ratatui-image sends when it detects a
-# kitty-class terminal: transmit the image as a *virtual* placement (U=1),
-# then position it with U+10EEEE placeholder cells whose diacritics encode
-# row/column and whose foreground color encodes the image id.
+# Emits an equivalent kitty Unicode-placeholder (U=1) sequence to what
+# ratatui-image sends when it detects a kitty-class terminal: transmit the
+# image as a *virtual* placement (U=1), then position it with U+10EEEE
+# placeholder cells whose diacritics encode row/column and whose foreground
+# color encodes the image id. For repro simplicity this uses f=100 (PNG) and
+# omits ratatui-image's s/v/cursor/id_extra fields — ratatui-image 10.0.6
+# itself uses f=32 (raw RGBA chunks); both exercise the same U=1 placement
+# semantics that trigger the bug.
 #
-#   Ghostty / kitty        -> a checkerboard image appears.
-#   Superset terminal      -> no image; the placeholder rows render as
-#                             literal combining-diacritic garbage.
+#   Ghostty / kitty        -> may show a checkerboard image.
+#   Superset terminal      -> may show the image directly (addon-image
+#                             ignores U=1 and displays on a=T), while the
+#                             placeholder rows still render as literal
+#                             combining-diacritic garbage.
 #
 # The image is a tiny 64x64 PNG inlined as base64, so this script is
 # self-contained and needs no Rust toolchain and no network.
-set -u
+set -euo pipefail
 
 IMAGE_ID=31
 PNG_B64="iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAlklEQVR4nO3PsRHAQBDCwO+/absCAiIdMyImWL0X9oWt/M+BDKBBBtAgA2hQ/M9AV0AG0CADaJABNKgOWIHWYddABtAgA2iQATQo/megKyADaJABNMgAGlQHrEDrsGsgA2iQATTIABoU/zPQFZABNMgAGmQADaoDVqB12DWQATTIABpkAA2K/xnoCsgAGmQADTKABrX/H/1C6Vq1O0GZAAAAAElFTkSuQmCC"
