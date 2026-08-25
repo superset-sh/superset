@@ -19,7 +19,9 @@ import {
 	LuChevronUp,
 	LuColumns2,
 	LuFiles,
+	LuFoldVertical,
 	LuRows2,
+	LuUnfoldVertical,
 } from "react-icons/lu";
 import {
 	type AgentPromptFileSide,
@@ -341,10 +343,12 @@ export function PullRequestCodeTab({
 		new Set(),
 	);
 	const collapseVersionRef = useRef(0);
-	const collapseAffectedIdRef = useRef<string | null>(null);
+	// A single id for a per-file toggle, every id for collapse/expand-all —
+	// either way, every item this set names gets the version bump below.
+	const collapseAffectedIdsRef = useRef<ReadonlySet<string>>(new Set());
 	const toggleFileCollapsed = useCallback((itemId: string) => {
 		collapseVersionRef.current += 1;
-		collapseAffectedIdRef.current = itemId;
+		collapseAffectedIdsRef.current = new Set([itemId]);
 		setCollapsedFileIds((prev) => {
 			const next = new Set(prev);
 			if (next.has(itemId)) next.delete(itemId);
@@ -352,6 +356,14 @@ export function PullRequestCodeTab({
 			return next;
 		});
 	}, []);
+	const setAllFilesCollapsed = useCallback(
+		(collapsed: boolean, allItemIds: readonly string[]) => {
+			collapseVersionRef.current += 1;
+			collapseAffectedIdsRef.current = new Set(allItemIds);
+			setCollapsedFileIds(collapsed ? new Set(allItemIds) : new Set());
+		},
+		[],
+	);
 	const queryClient = useQueryClient();
 
 	const { data, isLoading, error, refetch } = useQuery({
@@ -615,6 +627,8 @@ export function PullRequestCodeTab({
 	}, [data?.patch]);
 	const files = parsedPatch.files;
 	const patchParseError = parsedPatch.error;
+	const areAllFilesCollapsed =
+		files.length > 0 && files.every((f) => collapsedFileIds.has(f.item.id));
 	const pathByItemId = useMemo(
 		() => new Map(files.map((f) => [f.item.id, f.path])),
 		[files],
@@ -648,7 +662,7 @@ export function PullRequestCodeTab({
 						: threadAnnotations;
 				const isVersionAffected =
 					composerAffectedPathsRef.current.has(f.path) ||
-					collapseAffectedIdRef.current === f.item.id;
+					collapseAffectedIdsRef.current.has(f.item.id);
 				return {
 					...f.item,
 					annotations: annotations.length > 0 ? annotations : undefined,
@@ -671,7 +685,7 @@ export function PullRequestCodeTab({
 				};
 			}),
 		// composerVersionRef.current, composerAffectedPathsRef.current,
-		// collapseVersionRef.current, and collapseAffectedIdRef.current are
+		// collapseVersionRef.current, and collapseAffectedIdsRef.current are
 		// read directly, not listed as dependencies — all are written
 		// synchronously in their respective update callbacks before the
 		// state setter, so they're already current by the time this
@@ -940,27 +954,55 @@ export function PullRequestCodeTab({
 				)}
 				<div className="flex min-h-0 flex-1 flex-col">
 					<div className="flex shrink-0 items-center justify-between gap-1 border-b border-border/20 px-2 py-1.5">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={() => setManualTreeCollapsed(!isTreeCollapsed)}
-									aria-label={
-										isTreeCollapsed ? "Show file tree" : "Hide file tree"
-									}
-									className="flex items-center gap-1.5 rounded-md bg-muted/50 px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-								>
-									<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
-									<span className="text-[11px] font-medium">Files</span>
-									<span className="text-[11px] tabular-nums text-muted-foreground/70">
-										{files.length}
-									</span>
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom">
-								{isTreeCollapsed ? "Show file tree" : "Hide file tree"}
-							</TooltipContent>
-						</Tooltip>
+						<div className="flex items-center gap-1">
+							<button
+								type="button"
+								onClick={() => setManualTreeCollapsed(!isTreeCollapsed)}
+								aria-label={
+									isTreeCollapsed ? "Show file tree" : "Hide file tree"
+								}
+								className="flex items-center gap-1.5 rounded-md bg-fill-hover px-1.5 py-1 text-muted-foreground transition-colors hover:bg-fill-selected hover:text-foreground"
+							>
+								<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
+								<span className="text-[11px] font-medium">Files</span>
+								<span className="text-[11px] tabular-nums text-muted-foreground/70">
+									{files.length}
+								</span>
+							</button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<button
+										type="button"
+										onClick={() =>
+											setAllFilesCollapsed(
+												!areAllFilesCollapsed,
+												files.map((f) => f.item.id),
+											)
+										}
+										aria-label={
+											areAllFilesCollapsed
+												? "Expand all files"
+												: "Collapse all files"
+										}
+										className="flex items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
+									>
+										{areAllFilesCollapsed ? (
+											<LuUnfoldVertical
+												className="size-3.5"
+												strokeWidth={1.5}
+											/>
+										) : (
+											<LuFoldVertical className="size-3.5" strokeWidth={1.5} />
+										)}
+									</button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom">
+									{areAllFilesCollapsed
+										? "Expand all files"
+										: "Collapse all files"}
+								</TooltipContent>
+							</Tooltip>
+						</div>
 						<div className="flex items-center gap-1">
 							{orderedThreads.length > 0 && (
 								<>
