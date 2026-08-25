@@ -46,10 +46,10 @@ export function TerminalPaneHeaderExtras({
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
-							"flex size-5 items-center justify-center transition-colors",
+							"rounded p-0.5 transition-colors",
 							isOpen
 								? "bg-secondary text-foreground"
-								: "text-muted-foreground hover:text-foreground",
+								: "text-muted-foreground/60 hover:text-muted-foreground",
 						)}
 					>
 						<SquarePen className="size-3.5" />

@@ -32,7 +32,7 @@ export function TerminalIdCopyMenu({
 	const tooltipLabel =
 		copiedLabel && copied ? `Copied ${copiedLabel}` : "Copy IDs";
 	const buttonClassName =
-		"flex size-5 items-center justify-center text-muted-foreground transition-[color,opacity] hover:text-foreground";
+		"rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground";
 
 	if (!agentSessionId) {
 		const terminalTooltipLabel = copied

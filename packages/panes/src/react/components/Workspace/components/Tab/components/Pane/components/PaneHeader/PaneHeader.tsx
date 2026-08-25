@@ -2,7 +2,6 @@ import { cn } from "@superset/ui/utils";
 import { type ReactNode, useCallback, useRef } from "react";
 import { useDrag } from "react-dnd";
 import { DefaultHeaderContent } from "./components/DefaultHeaderContent";
-import "./PaneHeader.css";
 
 interface PaneHeaderProps {
 	title: ReactNode;
@@ -59,7 +58,9 @@ export function PaneHeader({
 			ref={setRef}
 			className={cn(
 				"flex h-7 shrink-0 cursor-grab items-center transition-opacity duration-150",
-				!isActive && "pane-header-inactive opacity-60",
+				!isActive &&
+					!isDragging &&
+					"opacity-60 hover:opacity-100 focus-within:opacity-100",
 				isDragging && "opacity-30",
 			)}
 			onClick={onClick}
