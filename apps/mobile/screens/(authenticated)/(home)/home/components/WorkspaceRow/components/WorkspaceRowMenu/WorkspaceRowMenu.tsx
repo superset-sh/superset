@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 export function WorkspaceRowMenu({
 	canRename,
 	canDelete,
+	isUnread,
+	onToggleUnread,
 	onRename,
 	onDelete,
 	onCopyId,
@@ -12,6 +14,8 @@ export function WorkspaceRowMenu({
 }: {
 	canRename: boolean;
 	canDelete: boolean;
+	isUnread: boolean;
+	onToggleUnread: () => void;
 	onRename: () => void;
 	onDelete: () => void;
 	onCopyId: () => void;
@@ -30,6 +34,12 @@ export function WorkspaceRowMenu({
 			<Link.Menu>
 				{/* Each action is its own direct child: Link.Menu drops anything
 				    wrapped in a Fragment. */}
+				<Link.MenuAction
+					icon={isUnread ? "envelope.open" : "envelope.badge"}
+					onPress={onToggleUnread}
+				>
+					{isUnread ? "Mark as Read" : "Mark as Unread"}
+				</Link.MenuAction>
 				{canRename ? (
 					<Link.MenuAction icon="pencil" onPress={onRename}>
 						Rename

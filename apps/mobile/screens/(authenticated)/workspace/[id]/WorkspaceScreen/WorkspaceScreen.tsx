@@ -36,6 +36,7 @@ import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useC
 import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
+import { useUnreadWorkspacesStore } from "@/screens/(authenticated)/stores/unreadWorkspacesStore";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { HeaderNotice } from "../components/HeaderNotice";
 import { PullRequestsButton } from "../components/PullRequestsButton";
@@ -274,6 +275,15 @@ export function WorkspaceScreen() {
 		}
 		if (activeTerminalId) setPickedTerminalId(activeTerminalId);
 	}, [params.tab, rows, activeTerminalId]);
+
+	// Opening the workspace reads it, the way clicking a desktop sidebar row
+	// does — the mark is only there to bring you back here.
+	const clearManualUnread = useUnreadWorkspacesStore(
+		(state) => state.clearManualUnread,
+	);
+	useEffect(() => {
+		if (id) clearManualUnread(id);
+	}, [id, clearManualUnread]);
 
 	// Port of desktop's useClearActivePaneAttention: viewing the tab clears
 	// its `review` state by advancing the seen mark to the binding's last

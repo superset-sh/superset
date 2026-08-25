@@ -10,16 +10,56 @@ import type {
 } from "@/hooks/useHostWorkspaces";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { workspaceShareUrl } from "@/lib/web-links";
+import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
+import { useUnreadWorkspacesStore } from "@/screens/(authenticated)/stores/unreadWorkspacesStore";
+import type { TerminalRowData } from "../../../../hooks/useHostTerminals";
 
 export function useWorkspaceRowActions(
 	workspace: HostWorkspaceItem,
 	cache: HostWorkspacesCacheOps,
+	/** The workspace's live sessions — marked seen when the row is read. */
+	sessions: TerminalRowData[],
 	/** Set for a cloud workspace, whose name and lifetime the API owns. */
 	cloudStatus?: CloudWorkspaceStatus,
 ) {
 	const cloud = useCloudWorkspaceActions();
 	const remove = useDeleteWorkspace();
 	const isCloud = cloudStatus !== undefined;
+	const manuallyUnread = useUnreadWorkspacesStore(
+		(state) => workspace.id in state.manualUnread,
+	);
+	const setManualUnread = useUnreadWorkspacesStore(
+		(state) => state.setManualUnread,
+	);
+	const clearManualUnread = useUnreadWorkspacesStore(
+		(state) => state.clearManualUnread,
+	);
+	const markTerminalSeen = useTerminalSeenStore(
+		(state) => state.markTerminalSeen,
+	);
+
+	// Desktop's isUnread: the manual mark, or any session still wanting a
+	// look — reading the row has to clear both, or the dot survives it.
+	const isUnread =
+		manuallyUnread ||
+		sessions.some(
+			(session) =>
+				session.attention === "review" || session.attention === "failed",
+		);
+
+	const toggleUnread = () => {
+		if (!isUnread) {
+			setManualUnread(workspace.id);
+			return;
+		}
+		clearManualUnread(workspace.id);
+		for (const session of sessions) {
+			// Host clock only: "seen through this session's last agent event".
+			if (session.lastEventAt !== null) {
+				markTerminalSeen(session.terminalId, session.lastEventAt);
+			}
+		}
+	};
 
 	const renameWorkspace = async () => {
 		const hostUrl = isCloud ? null : cache.resolveHostUrl(workspace.hostId);
@@ -72,5 +112,7 @@ export function useWorkspaceRowActions(
 		deleteWorkspace,
 		copyId,
 		shareWorkspace,
+		isUnread,
+		toggleUnread,
 	};
 }

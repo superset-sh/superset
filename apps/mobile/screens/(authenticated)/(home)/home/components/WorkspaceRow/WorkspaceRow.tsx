@@ -63,8 +63,17 @@ export function WorkspaceRow({
 		workspace.hostReachable &&
 		workspace.worktreeExists !== false &&
 		(cloudStatus === undefined || cloudStatus === "ready");
-	const { renameWorkspace, deleteWorkspace, copyId, shareWorkspace } =
-		useWorkspaceRowActions(workspace, cache, cloudStatus);
+	const {
+		renameWorkspace,
+		deleteWorkspace,
+		copyId,
+		shareWorkspace,
+		isUnread,
+		toggleUnread,
+	} = useWorkspaceRowActions(workspace, cache, sessions, cloudStatus);
+	// A manual mark reads as `review` — desktop's rollup ranks it lowest, so
+	// any live status the sessions are reporting keeps the slot.
+	const rowAttention = attention ?? (isUnread ? "review" : null);
 
 	return (
 		<WorkspaceRowMenu
@@ -78,6 +87,8 @@ export function WorkspaceRow({
 					? workspace.type !== "main"
 					: cloudStatus !== "provisioning"
 			}
+			isUnread={isUnread}
+			onToggleUnread={toggleUnread}
 			onRename={() => void renameWorkspace()}
 			onDelete={deleteWorkspace}
 			onCopyId={copyId}
@@ -98,7 +109,7 @@ export function WorkspaceRow({
 				{/* Desktop WorkspaceIcon semantics: working replaces the icon with
 				    the braille spinner; other statuses overlay a corner ping on the
 				    base icon (PR state when one exists, else the workspace mark). */}
-				{attention === "working" || cloudStatus === "provisioning" ? (
+				{rowAttention === "working" || cloudStatus === "provisioning" ? (
 					<View className="size-6 items-center justify-center">
 						<AsciiSpinner />
 					</View>
@@ -131,15 +142,15 @@ export function WorkspaceRow({
 								strokeWidth={1.75}
 							/>
 						)}
-						{attention === "permission" ? (
+						{rowAttention === "permission" ? (
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#eab308" size={7} />
 							</View>
-						) : attention === "failed" || cloudStatus === "failed" ? (
+						) : rowAttention === "failed" || cloudStatus === "failed" ? (
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#ef4444" size={7} />
 							</View>
-						) : attention === "review" ? (
+						) : rowAttention === "review" ? (
 							<View className="bg-green-500 absolute -right-0.5 -top-0.5 size-2 rounded-full" />
 						) : null}
 					</View>
