@@ -280,7 +280,7 @@ function formatDiffStats(additions: number, deletions: number): string {
 // (data-title); the filename-first look (name in the foreground color, then
 // the containing directory trailing off in the muted color) is built by
 // hiding that native title and rendering our own split via
-// renderHeaderFilenameSuffix instead — see PR_CODE_TAB_CARD_UNSAFE_CSS's
+// renderHeaderFilenameSuffix instead — see prCodeTabCardUnsafeCss's
 // `[data-title] { display: none }` rule.
 function splitPath(path: string): { dir: string; name: string } {
 	const slashIndex = path.lastIndexOf("/");
@@ -846,7 +846,7 @@ export function PullRequestCodeTab({
 			({
 				...options,
 				// A visible gap between files is what makes the rounded
-				// header/diff pair (PR_CODE_TAB_CARD_UNSAFE_CSS) read as
+				// header/diff pair (prCodeTabCardUnsafeCss) read as
 				// separate cards rather than one continuous, oddly-cornered
 				// block — DiffPane's own gap: 0 doesn't need this since it
 				// has no such per-file card styling.
