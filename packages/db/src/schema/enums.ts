@@ -38,6 +38,21 @@ export const integrationProviderValues = [
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
 
+/**
+ * Who acts on GitHub for an organization when both the App installation and a
+ * member's own connected account could. `bot` is always the App;
+ * `user_or_bot` is the member when they have connected, otherwise the App;
+ * `user_only` is the member, and refuses when they have not connected
+ * (automations, having no member, still fall back to the App).
+ */
+export const githubActorPolicyValues = [
+	"bot",
+	"user_or_bot",
+	"user_only",
+] as const;
+export const githubActorPolicyEnum = z.enum(githubActorPolicyValues);
+export type GithubActorPolicy = z.infer<typeof githubActorPolicyEnum>;
+
 export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
 export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
 export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;

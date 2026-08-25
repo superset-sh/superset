@@ -27,6 +27,7 @@ import {
 	desktopNoticeCtaActionValues,
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
+	githubActorPolicyValues,
 	integrationProviderValues,
 	pageCommentAnchorKindValues,
 	pageCommentAuthorKindValues,
@@ -54,6 +55,10 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const commandStatus = pgEnum("command_status", commandStatusValues);
+export const githubActorPolicy = pgEnum(
+	"github_actor_policy",
+	githubActorPolicyValues,
+);
 export const cloudWorkspaceStatus = pgEnum(
 	"cloud_workspace_status",
 	cloudWorkspaceStatusValues,
@@ -242,10 +247,12 @@ export const integrationConnections = pgTable(
 	},
 	(table) => [
 		// One connection per organization for org-scoped providers (Linear,
-		// Slack, ...). Google is the exception: Calendar and Gmail are one
-		// person's, so each member connects their own account. Two partial
-		// indexes rather than one constraint, and callers name the predicate in
-		// their ON CONFLICT target so Postgres can infer the right one.
+		// Slack, ...). Google and GitHub are the exceptions: Calendar and Gmail
+		// are one person's, and a GitHub connection is a member's own account
+		// (the org's side of GitHub is the App installation, its own table), so
+		// each member connects their own. Partial indexes rather than one
+		// constraint, and callers name the predicate in their ON CONFLICT
+		// target so Postgres can infer the right one.
 		//
 		// The predicate names the enum literal 'google', which 0083 added. Postgres
 		// refuses to USE a new enum value in the same transaction that added it,
@@ -256,10 +263,13 @@ export const integrationConnections = pgTable(
 		// is not IMMUTABLE and cannot sit in an index predicate.
 		uniqueIndex("integration_connections_org_provider_unique")
 			.on(table.organizationId, table.provider)
-			.where(sql`${table.provider} <> 'google'`),
+			.where(sql`${table.provider} NOT IN ('google', 'github')`),
 		uniqueIndex("integration_connections_google_user_unique")
 			.on(table.organizationId, table.provider, table.connectedByUserId)
 			.where(sql`${table.provider} = 'google'`),
+		uniqueIndex("integration_connections_github_user_unique")
+			.on(table.organizationId, table.provider, table.connectedByUserId)
+			.where(sql`${table.provider} = 'github'`),
 		uniqueIndex("integration_connections_slack_external_org_active_unique")
 			.on(table.externalOrgId)
 			.where(
@@ -273,6 +283,31 @@ export type InsertIntegrationConnection =
 	typeof integrationConnections.$inferInsert;
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
+
+/**
+ * Organization-level product settings, one row per organization, created on
+ * first write. Typed columns on purpose: a key/value bag is where "what
+ * settings exist?" stops being answerable from the schema. Kept off
+ * `organizations` because that table is better-auth's.
+ */
+export const organizationSettings = pgTable("organization_settings", {
+	organizationId: uuid("organization_id")
+		.primaryKey()
+		.references(() => organizations.id, { onDelete: "cascade" }),
+	githubActorPolicy: githubActorPolicy("github_actor_policy")
+		.notNull()
+		.default("user_or_bot"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at")
+		.notNull()
+		.defaultNow()
+		.$onUpdate(() => new Date()),
+});
+
+export type InsertOrganizationSettings =
+	typeof organizationSettings.$inferInsert;
+export type SelectOrganizationSettings =
+	typeof organizationSettings.$inferSelect;
 
 // Stripe subscriptions (org-based billing)
 export const subscriptions = pgTable(

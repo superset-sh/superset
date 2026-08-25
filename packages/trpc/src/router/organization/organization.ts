@@ -23,6 +23,7 @@ import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { organizationMembersRouter } from "./members";
+import { organizationSettingsRouter } from "./settings";
 
 async function getInvitationById(invitationId: string) {
 	const invitation = await db.query.invitations.findFirst({
@@ -64,6 +65,7 @@ function verificationMatchesInvitation({
 
 export const organizationRouter = {
 	members: organizationMembersRouter,
+	settings: organizationSettingsRouter,
 
 	list: protectedProcedure.query(async ({ ctx }) => {
 		return db

@@ -39,6 +39,10 @@ export const env = createEnv({
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
+		// See apps/api/src/env.ts: the App's own OAuth client, used here to
+		// refresh a member's user-to-server token.
+		GH_APP_CLIENT_ID: z.string().min(1).optional(),
+		GH_APP_CLIENT_SECRET: z.string().min(1).optional(),
 		SENTRY_CLIENT_ID: z.string().optional(),
 		SENTRY_CLIENT_SECRET: z.string().optional(),
 		// Optional: the Teams integration is off wherever these are unset, and

@@ -13,6 +13,7 @@ import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { RepositoryList } from "./components/RepositoryList";
+import { UserConnectionControls } from "./components/UserConnectionControls";
 
 const CALLBACK_MESSAGES = {
 	installation_cancelled: "GitHub App installation was cancelled.",
@@ -25,6 +26,12 @@ const CALLBACK_MESSAGES = {
 		"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
 	unauthorized: "You are not authorized to perform this action.",
 	unexpected: "Something went wrong. Please try again.",
+	// Account connection (the App's user authorization).
+	not_configured: "Connecting a GitHub account isn't set up on this server.",
+	oauth_denied: "GitHub authorization was cancelled.",
+	token_exchange_failed:
+		"GitHub didn't accept the authorization. Please try again.",
+	userinfo_failed: "Couldn't read your GitHub account. Please try again.",
 };
 
 const CALLBACK_WARNINGS = {
@@ -50,9 +57,14 @@ export default async function GitHubIntegrationPage() {
 		);
 	}
 
-	const installation = await trpc.integration.github.getInstallation.query({
-		organizationId: organization.id,
-	});
+	const [installation, userConnection] = await Promise.all([
+		trpc.integration.github.getInstallation.query({
+			organizationId: organization.id,
+		}),
+		trpc.integration.github.getUserConnection.query({
+			organizationId: organization.id,
+		}),
+	]);
 	const isConnected = !!installation;
 
 	return (
@@ -120,6 +132,38 @@ export default async function GitHubIntegrationPage() {
 					)}
 				</CardContent>
 			</Card>
+
+			{userConnection.available && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Your GitHub account</CardTitle>
+						<CardDescription>
+							Connect your own account so pushes and pull requests made from
+							Superset are yours, not the app's. Commits are authored as you
+							either way.
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<UserConnectionControls
+							organizationId={organization.id}
+							isConnected={!!userConnection.connection}
+							needsReconnect={
+								userConnection.connection?.needsReconnect ?? false
+							}
+						/>
+						{userConnection.connection?.login && (
+							<div className="mt-4 text-sm text-muted-foreground">
+								Connected as <strong>@{userConnection.connection.login}</strong>
+								{userConnection.connection.needsReconnect && (
+									<Badge variant="destructive" className="ml-2">
+										Needs reconnect
+									</Badge>
+								)}
+							</div>
+						)}
+					</CardContent>
+				</Card>
+			)}
 
 			{installation && (
 				<Card>
