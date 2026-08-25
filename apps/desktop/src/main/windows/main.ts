@@ -99,9 +99,17 @@ const forceRepaint = (win: BrowserWindow) => {
 };
 
 // GPU process restarts don't repaint existing compositor layers automatically.
+// Rate-limited: each repaint resizes the window, which runs a full fit +
+// refresh on every attached terminal, so a crash-looping GPU process must not
+// turn into an unbounded resize storm (GH #6822).
+const GPU_GONE_REPAINT_COOLDOWN_MS = 10_000;
+let lastGpuGoneRepaintAt = 0;
 app.on("child-process-gone", (_event, details) => {
 	if (details.type === "GPU") {
 		console.warn("[main-window] GPU process gone:", details.reason);
+		const now = Date.now();
+		if (now - lastGpuGoneRepaintAt < GPU_GONE_REPAINT_COOLDOWN_MS) return;
+		lastGpuGoneRepaintAt = now;
 		const win = getWindow();
 		if (win) forceRepaint(win);
 	}
