@@ -215,6 +215,14 @@ function prCodeTabCardUnsafeCss(
 		border-bottom-right-radius: 0.75rem;
 		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
+	/* The shared hook zeroes this strip's own inline padding to sit flush
+	 * with DiffPane's edge-to-edge pane — appropriate there, but it leaves
+	 * "N unmodified lines" text touching this card's left border with no
+	 * breathing room. Restored (higher specificity: same selector, later in
+	 * the concatenated string, so this !important wins over that one). */
+	[data-separator^='line-info'] [data-separator-content] {
+		padding-inline: 8px !important;
+	}
 `;
 }
 
