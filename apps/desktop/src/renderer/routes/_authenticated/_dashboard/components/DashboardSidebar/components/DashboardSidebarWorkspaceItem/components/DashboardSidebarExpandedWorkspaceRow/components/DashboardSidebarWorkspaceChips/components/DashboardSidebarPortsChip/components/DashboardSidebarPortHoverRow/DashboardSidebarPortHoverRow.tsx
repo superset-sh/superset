@@ -1,7 +1,10 @@
 import { LuX } from "react-icons/lu";
+import { PortForwardBusyActions } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/PortForwardBusyActions";
 import { useDashboardSidebarPortKill } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPort } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortsData";
 import { usePortOpenActions } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/usePortOpenActions";
+import { usePortForward } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
+import { formatPortRowLabel } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/formatPortRowLabel";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 
 interface DashboardSidebarPortHoverRowProps {
@@ -13,6 +16,8 @@ export function DashboardSidebarPortHoverRow({
 }: DashboardSidebarPortHoverRowProps) {
 	const { isPending, killPort } = useDashboardSidebarPortKill();
 	const { openPrimary } = usePortOpenActions(port);
+	const forward = usePortForward(port);
+	const address = formatPortRowLabel({ port, forward });
 
 	return (
 		<div className="group/row flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
@@ -26,10 +31,14 @@ export function DashboardSidebarPortHoverRow({
 				{port.label && (
 					<span className="min-w-0 truncate text-xs">{port.label}</span>
 				)}
-				<span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-					localhost:{port.port}
+				<span
+					className="min-w-0 truncate font-mono text-[11px] tabular-nums text-muted-foreground"
+					title={address.title}
+				>
+					{address.text}
 				</span>
 			</button>
+			{forward && <PortForwardBusyActions forward={forward} />}
 			{/* Always in layout, shown via visibility so the row never changes
 			    size on hover. */}
 			<button

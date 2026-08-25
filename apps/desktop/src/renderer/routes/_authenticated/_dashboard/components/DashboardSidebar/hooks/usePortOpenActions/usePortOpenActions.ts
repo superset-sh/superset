@@ -3,6 +3,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { usePortForward } from "../../providers/PortForwardsProvider";
 import type { DashboardSidebarPort } from "../useDashboardSidebarPortsData";
 
 interface UsePortOpenActionsResult {
@@ -23,8 +24,14 @@ export function usePortOpenActions(
 	const navigate = useNavigate();
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { preferences } = useV2UserPreferences();
-	const canOpenInBrowser = port.hostType === "local-device";
-	const portUrl = `http://localhost:${port.port}`;
+	// A remote port opens like a local one once the main process forwards it
+	// to this machine; the local port number may differ from the remote one.
+	const forward = usePortForward(port);
+	const activeForward =
+		forward?.status.state === "active" ? forward.status : null;
+	const canOpenInBrowser =
+		port.hostType === "local-device" || activeForward !== null;
+	const portUrl = `http://localhost:${activeForward?.localPort ?? port.port}`;
 
 	const openExternal = () => {
 		if (!canOpenInBrowser || openUrl.isPending) return;
@@ -63,8 +70,9 @@ export function usePortOpenActions(
 		});
 	};
 
-	// Opening the port is the primary action; remote ports can't open a local
-	// browser tab, so clicking those jumps to the workspace instead.
+	// Opening the port is the primary action; a remote port that is not
+	// forwarded can't open a local browser tab, so clicking it jumps to the
+	// workspace instead.
 	const openPrimary = canOpenInBrowser ? openInBrowser : openWorkspace;
 
 	return {
