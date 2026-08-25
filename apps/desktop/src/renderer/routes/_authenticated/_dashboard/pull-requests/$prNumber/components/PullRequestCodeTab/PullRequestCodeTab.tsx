@@ -39,6 +39,7 @@ import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/v2-w
 import { useDiffCodeViewTheme } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/hooks/useDiffCodeViewTheme";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { useSettings } from "renderer/stores/settings";
+import { useResolvedTheme } from "renderer/stores/theme";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorkspaceCreates";
 import { PullRequestCommentComposer } from "../PullRequestCommentComposer";
 import { PullRequestCommentThread } from "../PullRequestCommentThread";
@@ -151,13 +152,28 @@ const NARROW_PANE_WIDTH_HIDE_TREE_THRESHOLD = 1150;
 // real space before the *next* file's header. Mirrors packages/ui's shared
 // Card component's own recipe (rounded-xl border shadow-sm) rather than
 // inventing a new one.
-const PR_CODE_TAB_CARD_UNSAFE_CSS = `
+//
+// A function (not a static string) because the additions/deletions colors
+// are theme-branched in JS — mirroring useDiffCodeViewTheme's own
+// additionColor/deletionColor — rather than relying on a `.dark` selector,
+// which can't reach in from outside the shadow root the way a CSS custom
+// property can.
+function prCodeTabCardUnsafeCss(
+	additionsColor: string,
+	deletionsColor: string,
+): string {
+	return `
 	[data-diffs-header='default'] {
 		border: 1px solid var(--border);
 		border-bottom: none;
 		border-top-left-radius: 0.75rem;
 		border-top-right-radius: 0.75rem;
 		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+		/* Pushes [data-metadata] (the +/- count) to the card's right edge
+		 * instead of leaving it flush against the filename — matches the
+		 * PR list row's own diff-stat placement. Overrides the shared
+		 * hook's flex-start (same selector, appended later so it wins). */
+		justify-content: space-between;
 	}
 	/* Every header carries data-sticky from first render (confirmed live —
 	 * it's there even scrolled to the very top), since position: sticky
@@ -171,6 +187,14 @@ const PR_CODE_TAB_CARD_UNSAFE_CSS = `
 		border-top-left-radius: 0;
 		border-top-right-radius: 0;
 	}
+	/* Match PullRequestRow's diff-stat colors (the PR list view) instead of
+	 * the shared hook's own green/red, which use a different palette. */
+	[data-diffs-header='default'] [data-additions-count] {
+		color: ${additionsColor};
+	}
+	[data-diffs-header='default'] [data-deletions-count] {
+		color: ${deletionsColor};
+	}
 	[data-diff] {
 		--diffs-light-bg: var(--background) !important;
 		--diffs-dark-bg: var(--background) !important;
@@ -181,6 +205,7 @@ const PR_CODE_TAB_CARD_UNSAFE_CSS = `
 		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
 `;
+}
 
 // GitHub's diff-file-type vocabulary (from parsePatchFiles) mapped onto
 // Pierre's tree git-status vocabulary — a distinct mapping from
@@ -250,6 +275,19 @@ export function PullRequestCodeTab({
 	hostId,
 }: PullRequestCodeTabProps) {
 	const { options, style } = useDiffCodeViewTheme();
+	// Matches PullRequestRow's diff-stat colors exactly (text-emerald-600 /
+	// [.dark_&]:text-[#34d399], text-red-600 / [.dark_&]:text-[#f87171]) so
+	// the same PR reads with the same additions/deletions colors in both the
+	// list and the diff viewer. Branched in JS rather than a `.dark`
+	// selector in unsafeCSS — `.dark` lives on an ancestor outside Pierre's
+	// shadow root, which a shadow-scoped stylesheet's descendant combinator
+	// can't reach (see additionColor/deletionColor in useDiffCodeViewTheme
+	// for the same pattern).
+	const activeTheme = useResolvedTheme();
+	const prAdditionsColor =
+		activeTheme.type === "dark" ? "#34d399" : "var(--color-emerald-600)";
+	const prDeletionsColor =
+		activeTheme.type === "dark" ? "#f87171" : "var(--color-red-600)";
 	// useDiffCodeViewTheme sources its background from the *terminal* theme
 	// (terminalTheme?.background ?? var(--background)) — sensible for
 	// DiffPane, which sits next to terminal panes in the workspace view, but
@@ -779,7 +817,7 @@ export function PullRequestCodeTab({
 				// block — DiffPane's own gap: 0 doesn't need this since it
 				// has no such per-file card styling.
 				layout: { ...options.layout, gap: 16 },
-				unsafeCSS: `${options.unsafeCSS ?? ""}\n${PR_CODE_TAB_CARD_UNSAFE_CSS}`,
+				unsafeCSS: `${options.unsafeCSS ?? ""}\n${prCodeTabCardUnsafeCss(prAdditionsColor, prDeletionsColor)}`,
 				enableLineSelection: true,
 				enableGutterUtility: true,
 				// Pierre gates the gutter "+" button's pointer flow behind a
@@ -802,7 +840,7 @@ export function PullRequestCodeTab({
 					updateComposer({ itemId: context.item.id, path, range });
 				},
 			}) as CodeViewOptions<PrAnnotationMetadata>,
-		[options, pathByItemId, updateComposer],
+		[options, pathByItemId, updateComposer, prAdditionsColor, prDeletionsColor],
 	);
 
 	const treePaths = useMemo(() => files.map((f) => f.path), [files]);
