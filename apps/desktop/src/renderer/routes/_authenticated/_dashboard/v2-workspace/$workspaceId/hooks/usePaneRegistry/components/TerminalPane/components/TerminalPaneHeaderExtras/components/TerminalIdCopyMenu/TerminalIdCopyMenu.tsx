@@ -5,7 +5,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { Bot, Check, Copy, TerminalSquare } from "lucide-react";
 import { useState } from "react";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
@@ -14,19 +13,16 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 interface TerminalIdCopyMenuProps {
 	workspaceId: string;
 	terminalId: string;
-	isActive: boolean;
 }
 
 export function TerminalIdCopyMenu({
 	workspaceId,
 	terminalId,
-	isActive,
 }: TerminalIdCopyMenuProps) {
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
 	const agentSessionId = binding?.agentSessionId;
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
-	const [isOpen, setIsOpen] = useState(false);
 
 	const copyId = (value: string, label: string) => {
 		setCopiedLabel(label);
@@ -35,12 +31,8 @@ export function TerminalIdCopyMenu({
 
 	const tooltipLabel =
 		copiedLabel && copied ? `Copied ${copiedLabel}` : "Copy IDs";
-	const buttonClassName = cn(
-		"flex size-5 items-center justify-center text-muted-foreground transition-[color,opacity] hover:text-foreground focus-visible:opacity-100",
-		isActive || (Boolean(agentSessionId) && isOpen)
-			? "opacity-100"
-			: "opacity-0 group-hover/pane-header:opacity-100",
-	);
+	const buttonClassName =
+		"flex size-5 items-center justify-center text-muted-foreground transition-[color,opacity] hover:text-foreground";
 
 	if (!agentSessionId) {
 		const terminalTooltipLabel = copied
@@ -69,7 +61,7 @@ export function TerminalIdCopyMenu({
 	}
 
 	return (
-		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+		<DropdownMenu>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<DropdownMenuTrigger asChild>

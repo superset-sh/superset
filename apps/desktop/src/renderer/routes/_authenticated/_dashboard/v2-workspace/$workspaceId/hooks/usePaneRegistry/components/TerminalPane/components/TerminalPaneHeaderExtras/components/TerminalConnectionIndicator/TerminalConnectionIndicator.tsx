@@ -190,6 +190,7 @@ export function TerminalConnectionIndicator({
 			<PopoverTrigger asChild>
 				<button
 					type="button"
+					data-pane-header-status
 					aria-label={`Terminal connection: ${label}`}
 					className="flex h-5 items-center gap-1.5 rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
 				>

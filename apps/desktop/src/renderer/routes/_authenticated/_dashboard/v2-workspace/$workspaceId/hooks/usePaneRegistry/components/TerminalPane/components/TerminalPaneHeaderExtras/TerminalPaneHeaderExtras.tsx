@@ -13,7 +13,6 @@ interface TerminalPaneHeaderExtrasProps {
 	workspaceId: string;
 	terminalId: string;
 	terminalInstanceId: string;
-	isActive: boolean;
 }
 
 /**
@@ -26,7 +25,6 @@ export function TerminalPaneHeaderExtras({
 	workspaceId,
 	terminalId,
 	terminalInstanceId,
-	isActive,
 }: TerminalPaneHeaderExtrasProps) {
 	const isOpen = useTerminalRichInputOpen();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
@@ -39,11 +37,7 @@ export function TerminalPaneHeaderExtras({
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}
 			/>
-			<TerminalIdCopyMenu
-				workspaceId={workspaceId}
-				terminalId={terminalId}
-				isActive={isActive}
-			/>
+			<TerminalIdCopyMenu workspaceId={workspaceId} terminalId={terminalId} />
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button

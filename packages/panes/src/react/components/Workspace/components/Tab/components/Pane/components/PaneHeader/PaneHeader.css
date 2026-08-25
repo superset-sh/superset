@@ -1,0 +1,19 @@
+.pane-header-inactive button:not([data-pane-header-status]),
+.pane-header-inactive a,
+.pane-header-inactive .pane-header-action {
+	opacity: 0;
+	transition-property:
+		color, background-color, border-color, text-decoration-color, fill, stroke,
+		opacity;
+	transition-duration: 150ms;
+}
+
+.pane-header-inactive:hover button,
+.pane-header-inactive:hover a,
+.pane-header-inactive:hover .pane-header-action,
+.pane-header-inactive:focus-within button,
+.pane-header-inactive:focus-within a,
+.pane-header-inactive:focus-within .pane-header-action,
+.pane-header-inactive button[data-state="open"] {
+	opacity: 1;
+}

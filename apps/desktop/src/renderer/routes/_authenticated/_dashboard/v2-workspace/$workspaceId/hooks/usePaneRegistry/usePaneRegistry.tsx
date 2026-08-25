@@ -390,7 +390,6 @@ export function usePaneRegistry({
 							workspaceId={workspaceId}
 							terminalId={terminalId}
 							terminalInstanceId={ctx.pane.id}
-							isActive={ctx.isActive}
 						/>
 					);
 				},

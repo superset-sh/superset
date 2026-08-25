@@ -55,7 +55,7 @@ export function DiffPaneHeaderExtras() {
 				<TooltipContent side="bottom">Split view</TooltipContent>
 			</Tooltip>
 			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
+				className="pane-header-action mx-1 h-3.5 w-px bg-muted-foreground/30"
 				aria-hidden="true"
 			/>
 			<Tooltip>
@@ -105,7 +105,7 @@ export function DiffPaneHeaderExtras() {
 				</TooltipContent>
 			</Tooltip>
 			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
+				className="pane-header-action mx-1 h-3.5 w-px bg-muted-foreground/30"
 				aria-hidden="true"
 			/>
 		</div>
