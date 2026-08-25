@@ -387,8 +387,10 @@ export function usePaneRegistry({
 					const { terminalId } = ctx.pane.data as TerminalPaneData;
 					return (
 						<TerminalPaneHeaderExtras
+							workspaceId={workspaceId}
 							terminalId={terminalId}
 							terminalInstanceId={ctx.pane.id}
+							isActive={ctx.isActive}
 						/>
 					);
 				},
