@@ -187,6 +187,13 @@ function prCodeTabCardUnsafeCss(
 		border-top-left-radius: 0;
 		border-top-right-radius: 0;
 	}
+	/* Pierre renders the full relative path as one plain-text node here;
+	 * replaced by our own filename/directory split rendered through
+	 * renderHeaderFilenameSuffix, which sits right after this in the DOM so
+	 * hiding it (rather than removing/reordering) keeps the same slot order. */
+	[data-diffs-header='default'] [data-title] {
+		display: none;
+	}
 	/* Match PullRequestRow's diff-stat colors (the PR list view) instead of
 	 * the shared hook's own green/red, which use a different palette. */
 	[data-diffs-header='default'] [data-additions-count] {
@@ -255,6 +262,21 @@ function formatDiffStats(additions: number, deletions: number): string {
 	if (additions === 0) return `−${deletions}`;
 	if (deletions === 0) return `+${additions}`;
 	return `+${additions} −${deletions}`;
+}
+
+// Pierre's own header renders the full relative path as one string
+// (data-title); the filename-first look (name in the foreground color, then
+// the containing directory trailing off in the muted color) is built by
+// hiding that native title and rendering our own split via
+// renderHeaderFilenameSuffix instead — see PR_CODE_TAB_CARD_UNSAFE_CSS's
+// `[data-title] { display: none }` rule.
+function splitPath(path: string): { dir: string; name: string } {
+	const slashIndex = path.lastIndexOf("/");
+	if (slashIndex === -1) return { dir: "", name: path };
+	return {
+		dir: path.slice(0, slashIndex + 1),
+		name: path.slice(slashIndex + 1),
+	};
 }
 
 // Matches DiffPane's useDiffCommentComposer: a range spanning both an
@@ -1144,6 +1166,21 @@ export function PullRequestCodeTab({
 										strokeWidth={1.5}
 									/>
 								</button>
+							);
+						}}
+						renderHeaderFilenameSuffix={(item) => {
+							const path = pathByItemId.get(item.id);
+							if (!path) return null;
+							const { dir, name } = splitPath(path);
+							return (
+								<span className="flex min-w-0 items-center gap-1.5">
+									<span className="shrink-0 text-foreground">{name}</span>
+									{dir && (
+										<span className="min-w-0 truncate text-muted-foreground/70">
+											{dir}
+										</span>
+									)}
+								</span>
 							);
 						}}
 						renderAnnotation={(annotation) => {
