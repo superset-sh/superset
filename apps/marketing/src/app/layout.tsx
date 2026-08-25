@@ -111,7 +111,7 @@ export default function RootLayout({
 		<html
 			lang="en"
 			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
-			suppressHydrationWarning
+			style={{ colorScheme: "dark" }}
 		>
 			<head>
 				<OrganizationJsonLd />
