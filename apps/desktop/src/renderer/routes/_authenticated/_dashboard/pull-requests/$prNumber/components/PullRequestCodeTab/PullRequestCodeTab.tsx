@@ -118,6 +118,12 @@ const TREE_STYLE = createPierreTreeStyle({
 // pane's own width — a fully reactive re-collapse on resize would need a
 // bulk collapse-all the tree model doesn't expose.
 const NARROW_WINDOW_WIDTH_THRESHOLD = 1400;
+// Below this (stricter) width, even a collapsed-folders tree panel is more
+// than the split can spare — hide the whole panel by default rather than
+// just defaulting its folders closed. Same one-time, mount-only read as
+// NARROW_WINDOW_WIDTH_THRESHOLD, for the same reason (isTreeCollapsed is a
+// plain default here, not a continuously-tracked breakpoint).
+const NARROW_WINDOW_WIDTH_HIDE_TREE_THRESHOLD = 1150;
 
 // GitHub's diff-file-type vocabulary (from parsePatchFiles) mapped onto
 // Pierre's tree git-status vocabulary — a distinct mapping from
@@ -197,7 +203,9 @@ export function PullRequestCodeTab({
 	const [initialTreeExpansion] = useState<"open" | "closed">(() =>
 		window.innerWidth < NARROW_WINDOW_WIDTH_THRESHOLD ? "closed" : "open",
 	);
-	const [isTreeCollapsed, setIsTreeCollapsed] = useState(false);
+	const [isTreeCollapsed, setIsTreeCollapsed] = useState(
+		() => window.innerWidth < NARROW_WINDOW_WIDTH_HIDE_TREE_THRESHOLD,
+	);
 	const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
 	const [isResizingTree, setIsResizingTree] = useState(false);
 	const [composer, setComposer] = useState<ComposerState | null>(null);
@@ -769,7 +777,7 @@ export function PullRequestCodeTab({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col px-4 pb-4 pt-3 @md:px-6">
-			<div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+			<div className="flex min-h-0 flex-1 overflow-hidden">
 				{!isTreeCollapsed && (
 					<ResizablePanel
 						width={treeWidth}
@@ -789,7 +797,7 @@ export function PullRequestCodeTab({
 					</ResizablePanel>
 				)}
 				<div className="flex min-h-0 flex-1 flex-col">
-					<div className="flex shrink-0 items-center justify-between gap-1 border-b border-border/50 px-2 py-1.5">
+					<div className="flex shrink-0 items-center justify-between gap-1 border-b border-border/20 px-2 py-1.5">
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<button
@@ -822,7 +830,7 @@ export function PullRequestCodeTab({
 						<div className="flex items-center gap-1">
 							{orderedThreads.length > 0 && (
 								<>
-									<div className="flex items-center gap-0.5 rounded-md border border-border/60 px-1 py-0.5">
+									<div className="flex items-center gap-0.5 rounded-md bg-muted/50 px-1 py-0.5">
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<button
