@@ -422,10 +422,17 @@ describe("terminal-ws-transport", () => {
 
 		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 		expect(transport.connectionState).toBe("open");
-		expect(sentMessages()).toEqual([{ type: "resize", cols: 101, rows: 27 }]);
+		// Visibility leads the dims: the host sizes the PTY to the smallest
+		// visible client, so it must know whether this pane counts before the
+		// dims it would count with.
+		expect(sentMessages()).toEqual([
+			{ type: "visible", visible: true },
+			{ type: "resize", cols: 101, rows: 27 },
+		]);
 
 		terminal.emitData("b");
 		expect(sentMessages()).toEqual([
+			{ type: "visible", visible: true },
 			{ type: "resize", cols: 101, rows: 27 },
 			{ type: "input", data: "b" },
 		]);

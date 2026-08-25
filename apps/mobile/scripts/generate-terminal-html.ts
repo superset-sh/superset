@@ -136,6 +136,12 @@ const runtimeJs = /* js */ `
 	// socket handlers, reconnect timers) bails when its generation is behind.
 	var generation = 0;
 
+	// Whether the terminal screen is actually on screen — RN owns this (screen
+	// focus AND app foreground) and pushes it in. The host sizes the PTY to the
+	// smallest visible client, so a phone that has been backgrounded must stop
+	// counting: otherwise it holds every desktop pane at phone width.
+	var isVisible = true;
+
 	function connect() {
 		if (terminated) return;
 		var gen = generation;
@@ -187,6 +193,9 @@ const runtimeJs = /* js */ `
 				attempts = 0;
 				everAttached = true;
 				setState("open");
+				// Before the dims: the host's minimum should never briefly
+				// include a phone that is already backgrounded.
+				sendVisible();
 				sendResize();
 			} else if (message.type === "exit" || message.type === "error") {
 				// Server closes after these; reconnecting would just repeat them.
@@ -236,6 +245,12 @@ const runtimeJs = /* js */ `
 		}
 		if (ws && ws.readyState === 1) {
 			ws.send(JSON.stringify({ type: "input", data: data }));
+		}
+	}
+
+	function sendVisible() {
+		if (ws && ws.readyState === 1) {
+			ws.send(JSON.stringify({ type: "visible", visible: isVisible }));
 		}
 	}
 
@@ -305,6 +320,10 @@ const runtimeJs = /* js */ `
 			copySelection();
 		} else if (message.type === "scrollToBottom") {
 			term.scrollToBottom();
+		} else if (message.type === "visible") {
+			if (isVisible === message.visible) return;
+			isVisible = message.visible;
+			sendVisible();
 		} else if (message.type === "focus") {
 			allowTextareaFocus = true;
 			term.focus();

@@ -1,5 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import * as Clipboard from "expo-clipboard";
+import { useFocusEffect } from "expo-router";
 import {
 	forwardRef,
 	useCallback,
@@ -7,6 +8,7 @@ import {
 	useImperativeHandle,
 	useMemo,
 	useRef,
+	useState,
 } from "react";
 import { AppState, Linking } from "react-native";
 import { WebView, type WebViewMessageEvent } from "react-native-webview";
@@ -219,12 +221,34 @@ export const TerminalWebView = forwardRef<
 		[buildDialUrl, postToPage],
 	);
 
+	// The host runs the PTY at the smallest box across the clients that are
+	// actually showing the terminal, so this screen has to say when it stops
+	// being one of them — a phone left attached in a pocket would otherwise hold
+	// every desktop pane at phone width. Neither unmount nor socket state can
+	// stand in for it: expo-router keeps a pushed-over screen mounted and its
+	// socket alive, so screen focus and app foreground are both required.
+	const [screenFocused, setScreenFocused] = useState(true);
+	useFocusEffect(
+		useCallback(() => {
+			setScreenFocused(true);
+			return () => setScreenFocused(false);
+		}, []),
+	);
+
+	const [appActive, setAppActive] = useState(
+		() => AppState.currentState === "active",
+	);
 	useEffect(() => {
 		const subscription = AppState.addEventListener("change", (state) => {
+			setAppActive(state === "active");
 			if (state === "active") postToPage({ type: "resume" });
 		});
 		return () => subscription.remove();
 	}, [postToPage]);
+
+	useEffect(() => {
+		postToPage({ type: "visible", visible: screenFocused && appActive });
+	}, [screenFocused, appActive, postToPage]);
 
 	// Tab switches swap sessions inside the live page instead of remounting
 	// the WebView — a remount pays the 400KB xterm parse and two cold TLS

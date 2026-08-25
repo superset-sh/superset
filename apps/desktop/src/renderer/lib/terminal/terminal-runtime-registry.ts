@@ -38,6 +38,7 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	setVisible,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -222,6 +223,7 @@ class TerminalRuntimeRegistryImpl {
 		}
 
 		const { runtime, transport } = entry;
+		setVisible(transport, true);
 		attachToContainer(
 			runtime,
 			container,
@@ -335,6 +337,9 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 
 		entry.lastUsedAt = ++this.useSeq;
+		// A parked pane keeps its socket, but it is no longer showing anything —
+		// stop its dims from constraining the clients that are.
+		setVisible(entry.transport, false);
 		// Land any frame-pending output in xterm before the buffer snapshot,
 		// so the persisted snapshot matches the persisted stream position.
 		entry.transport._writeCoalescer?.flushSync();
