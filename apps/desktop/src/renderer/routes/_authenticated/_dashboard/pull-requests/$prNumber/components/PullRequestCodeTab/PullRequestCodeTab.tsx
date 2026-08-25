@@ -158,6 +158,18 @@ const PR_CODE_TAB_CARD_UNSAFE_CSS = `
 		border-top-right-radius: 0.75rem;
 		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
+	/* Every header carries data-sticky from first render (confirmed live —
+	 * it's there even scrolled to the very top), since position: sticky
+	 * pins it while the code column scrolls behind it, not clipped away.
+	 * Rounded top corners cut a notch out of the header's own background,
+	 * and whatever's scrolled behind shows through that notch as a stray
+	 * border/text sliver. Squaring the top only (the diff body below,
+	 * [data-diff], keeps its rounded bottom) removes the notch entirely —
+	 * reads as a flat toolbar cap on a rounded card, not a broken corner. */
+	[data-diffs-header='default'][data-sticky] {
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
+	}
 	[data-diff] {
 		--diffs-light-bg: var(--background) !important;
 		--diffs-dark-bg: var(--background) !important;
