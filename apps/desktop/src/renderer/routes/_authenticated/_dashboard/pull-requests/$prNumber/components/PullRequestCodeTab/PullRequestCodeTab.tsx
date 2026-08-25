@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	LuChevronDown,
+	LuChevronRight,
 	LuChevronUp,
 	LuColumns2,
 	LuPanelLeft,
@@ -332,6 +333,27 @@ export function PullRequestCodeTab({
 		updateComposer(null);
 		codeViewRef.current?.clearSelectedLines();
 	}, [updateComposer]);
+	// Per-file collapse — Pierre's CodeViewDiffItem has a native `collapsed`
+	// field it uses to hide a file's body while keeping its header rendered,
+	// so this only needs to track *which* items are collapsed and bump their
+	// version (same reasoning as composerVersionRef above: Pierre skips an
+	// item whose version didn't change, and toggling collapsed doesn't touch
+	// threadsUpdatedAt on its own).
+	const [collapsedFileIds, setCollapsedFileIds] = useState<ReadonlySet<string>>(
+		new Set(),
+	);
+	const collapseVersionRef = useRef(0);
+	const collapseAffectedIdRef = useRef<string | null>(null);
+	const toggleFileCollapsed = useCallback((itemId: string) => {
+		collapseVersionRef.current += 1;
+		collapseAffectedIdRef.current = itemId;
+		setCollapsedFileIds((prev) => {
+			const next = new Set(prev);
+			if (next.has(itemId)) next.delete(itemId);
+			else next.add(itemId);
+			return next;
+		});
+	}, []);
 	const queryClient = useQueryClient();
 
 	const { data, isLoading, error, refetch } = useQuery({
@@ -626,31 +648,44 @@ export function PullRequestCodeTab({
 					composerAnnotation && composer?.path === f.path
 						? [...threadAnnotations, composerAnnotation]
 						: threadAnnotations;
+				const isVersionAffected =
+					composerAffectedPathsRef.current.has(f.path) ||
+					collapseAffectedIdRef.current === f.item.id;
 				return {
 					...f.item,
 					annotations: annotations.length > 0 ? annotations : undefined,
+					collapsed: collapsedFileIds.has(f.item.id),
 					// Pierre's controlled `items` prop diffs items by id and, per
 					// its own docs ("bump the version when also changing the
 					// value"), needs an explicit version bump to know an
 					// already-rendered item's content changed — otherwise a
 					// same-id item with new annotations (a reply landing, a
-					// resolve toggling, a composer opening/closing) can go stale
-					// in the live view even though the query cache/state is
-					// correct. Only the file(s) actually losing or gaining the
-					// composer annotation get the extra bump, so a composer
-					// transition elsewhere doesn't force Pierre to reprocess
-					// every file in the diff.
-					version: composerAffectedPathsRef.current.has(f.path)
-						? threadsUpdatedAt + composerVersionRef.current
+					// resolve toggling, a composer opening/closing) or a
+					// collapsed toggle can go stale in the live view even though
+					// the query cache/state is correct. Only the file(s) actually
+					// affected get the extra bump, so a transition elsewhere
+					// doesn't force Pierre to reprocess every file in the diff.
+					version: isVersionAffected
+						? threadsUpdatedAt +
+							composerVersionRef.current +
+							collapseVersionRef.current
 						: threadsUpdatedAt,
 				};
 			}),
-		// composerVersionRef.current and composerAffectedPathsRef.current
-		// are read directly, not listed as dependencies — both are written
-		// synchronously in updateComposer before setComposer, so they're
-		// already current by the time this recomputes off the `composer`
-		// change below.
-		[files, annotationsByPath, composer, composerAnnotation, threadsUpdatedAt],
+		// composerVersionRef.current, composerAffectedPathsRef.current,
+		// collapseVersionRef.current, and collapseAffectedIdRef.current are
+		// read directly, not listed as dependencies — all are written
+		// synchronously in their respective update callbacks before the
+		// state setter, so they're already current by the time this
+		// recomputes off the `composer`/`collapsedFileIds` change below.
+		[
+			files,
+			annotationsByPath,
+			composer,
+			composerAnnotation,
+			threadsUpdatedAt,
+			collapsedFileIds,
+		],
 	);
 	// Flattened in diff order (file order, then line number within a file)
 	// so next/prev walks the pane top-to-bottom instead of thread-creation
@@ -1019,6 +1054,28 @@ export function PullRequestCodeTab({
 						style={codeViewStyle}
 						items={items}
 						options={codeViewOptions}
+						renderHeaderPrefix={(item) => {
+							const isCollapsed = collapsedFileIds.has(item.id);
+							return (
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										toggleFileCollapsed(item.id);
+									}}
+									aria-label={isCollapsed ? "Expand file" : "Collapse file"}
+									className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+								>
+									<LuChevronRight
+										className={cn(
+											"size-3 shrink-0 transition-transform",
+											!isCollapsed && "rotate-90",
+										)}
+										strokeWidth={1.5}
+									/>
+								</button>
+							);
+						}}
 						renderAnnotation={(annotation) => {
 							const metadata = annotation.metadata;
 							if (!metadata) return null;
