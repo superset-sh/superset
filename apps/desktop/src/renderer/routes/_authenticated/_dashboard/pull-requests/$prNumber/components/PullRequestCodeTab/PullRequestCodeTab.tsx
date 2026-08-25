@@ -128,15 +128,28 @@ const NARROW_PANE_WIDTH_HIDE_TREE_THRESHOLD = 1150;
 
 // Extra unsafeCSS appended to (not replacing) useDiffCodeViewTheme's own —
 // that hook is shared with the v2-workspace DiffPane, so styling specific to
-// this tab's card-per-file look lives here instead of there. Pierre has no
-// single wrapping element around one file's header+content (confirmed live:
-// [data-diffs-header]'s parentElement is the shadow root itself), so the
-// "card" is an illusion built from two adjacent elements — the header gets
-// rounded top corners, the diff body gets rounded bottom corners, matching
-// borders on both meet with no gap between them, and layout.gap (set where
-// this is used) puts real space before the *next* file's header. Mirrors
-// packages/ui's shared Card component's own recipe (rounded-xl border
-// shadow-sm) rather than inventing a new one.
+// this tab lives here instead of there.
+//
+// [data-diff]'s --diffs-light-bg/--diffs-dark-bg override: the shared hook
+// sources its background from the *terminal* theme
+// (terminalTheme?.background ?? var(--background)), which makes sense for
+// DiffPane sitting next to terminal panes, but this tab has no terminal
+// nearby and the terminal theme's default background doesn't match this
+// app's own var(--background) — re-overridden here (both are !important, so
+// this wins by appearing later in the concatenated string) back to the
+// token the rest of the tab actually uses. The CodeView root's own
+// `style.backgroundColor` gets the equivalent fix directly as a prop
+// (see codeViewStyle) since that one isn't reachable through unsafeCSS.
+//
+// Card-per-file look: Pierre has no single wrapping element around one
+// file's header+content (confirmed live: [data-diffs-header]'s
+// parentElement is the shadow root itself), so the "card" is an illusion
+// built from two adjacent elements — the header gets rounded top corners,
+// the diff body gets rounded bottom corners, matching borders on both meet
+// with no gap between them, and layout.gap (set where this is used) puts
+// real space before the *next* file's header. Mirrors packages/ui's shared
+// Card component's own recipe (rounded-xl border shadow-sm) rather than
+// inventing a new one.
 const PR_CODE_TAB_CARD_UNSAFE_CSS = `
 	[data-diffs-header='default'] {
 		border: 1px solid var(--border);
@@ -146,6 +159,8 @@ const PR_CODE_TAB_CARD_UNSAFE_CSS = `
 		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	}
 	[data-diff] {
+		--diffs-light-bg: var(--background) !important;
+		--diffs-dark-bg: var(--background) !important;
 		border: 1px solid var(--border);
 		border-top: none;
 		border-bottom-left-radius: 0.75rem;
@@ -222,6 +237,18 @@ export function PullRequestCodeTab({
 	hostId,
 }: PullRequestCodeTabProps) {
 	const { options, style } = useDiffCodeViewTheme();
+	// useDiffCodeViewTheme sources its background from the *terminal* theme
+	// (terminalTheme?.background ?? var(--background)) — sensible for
+	// DiffPane, which sits next to terminal panes in the workspace view, but
+	// this tab has no terminal nearby and the terminal theme's default
+	// background doesn't match the app's own var(--background) (e.g. a flat
+	// white terminal background against this app's slightly-off-white
+	// #f9f9fa page). Most visible on the CodeView root's own native
+	// scrollbar, which paints against whatever background that element has.
+	const codeViewStyle = useMemo(
+		() => ({ ...style, backgroundColor: "var(--background)" }),
+		[style],
+	);
 	const codeViewRef = useRef<CodeViewHandle<PrAnnotationMetadata>>(null);
 	// Sourced from the same persisted setting DiffPane's toggle reads/writes
 	// (options.diffStyle already carries it via useDiffCodeViewTheme) — a
@@ -977,7 +1004,7 @@ export function PullRequestCodeTab({
 					<CodeView
 						ref={codeViewRef}
 						className="min-h-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
-						style={style}
+						style={codeViewStyle}
 						items={items}
 						options={codeViewOptions}
 						renderAnnotation={(annotation) => {
