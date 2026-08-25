@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { getSupervisor, startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
+import { startManifestClaim } from "./host-manifest";
 import {
 	ConfigFileSessionTokenSource,
 	JwtApiAuthProvider,
@@ -127,6 +128,17 @@ async function main(): Promise<void> {
 		console.log(`[host-service] listening on http://${address}:${info.port}`);
 
 		startTerminalReaper(db);
+
+		// CLI-spawned hosts get a manifest from spawn.ts, but systemd/direct
+		// launches previously had none — terminals under a deployed host
+		// couldn't discover it for session auth.
+		if (env.SUPERSET_HOST_RUN_MODE !== "sandbox" && env.ORGANIZATION_ID) {
+			startManifestClaim({
+				organizationId: env.ORGANIZATION_ID,
+				port: info.port,
+				authToken: env.HOST_SERVICE_SECRET,
+			});
+		}
 
 		if (env.RELAY_URL && env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
 			void connectRelay({

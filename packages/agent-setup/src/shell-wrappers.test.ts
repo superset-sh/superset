@@ -485,6 +485,63 @@ precmd_functions+=(_mise_hook_precmd)
 		expect(typeLine).toContain(integrationBinDir);
 	});
 
+	it("zsh moves BIN_DIR to the front when it is already present later in PATH", () => {
+		if (!isZshAvailable()) return;
+
+		const integrationRoot = path.join(TEST_ROOT, "path-shadow-repro");
+		const integrationBinDir = path.join(integrationRoot, "superset-bin");
+		const integrationZshDir = path.join(integrationRoot, "zsh");
+		const integrationBashDir = path.join(integrationRoot, "bash");
+		const homeDir = path.join(integrationRoot, "home");
+		const oldBinDir = path.join(integrationRoot, "old-bin");
+
+		mkdirSync(integrationBinDir, { recursive: true });
+		mkdirSync(integrationZshDir, { recursive: true });
+		mkdirSync(integrationBashDir, { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+		mkdirSync(oldBinDir, { recursive: true });
+
+		writeFileSync(
+			path.join(oldBinDir, "superset"),
+			"#!/usr/bin/env bash\necho old\n",
+		);
+		chmodSync(path.join(oldBinDir, "superset"), 0o755);
+
+		writeFileSync(
+			path.join(integrationBinDir, "superset"),
+			"#!/usr/bin/env bash\necho managed\n",
+		);
+		chmodSync(path.join(integrationBinDir, "superset"), 0o755);
+
+		createZshWrapper({
+			BIN_DIR: integrationBinDir,
+			ZSH_DIR: integrationZshDir,
+			BASH_DIR: integrationBashDir,
+		});
+
+		const output = execFileSync(
+			"zsh",
+			["-lic", "command -v superset && superset"],
+			{
+				encoding: "utf-8",
+				env: {
+					HOME: homeDir,
+					PATH: `${oldBinDir}:${integrationBinDir}:/usr/bin:/bin`,
+					SUPERSET_ORIG_ZDOTDIR: homeDir,
+					ZDOTDIR: integrationZshDir,
+				},
+			},
+		);
+
+		const lines = output
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		expect(lines).toContain(`${integrationBinDir}/superset`);
+		expect(lines).toContain("managed");
+		expect(lines).not.toContain("old");
+	});
+
 	it("zsh wrappers treat special characters in generated paths literally", () => {
 		if (!isZshAvailable()) return;
 
@@ -839,6 +896,7 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(args[0]).toBe("-l");
 			expect(args[1]).toBe("--init-command");
 			expect(args[2]).toContain(`set -l _superset_bin "${TEST_BIN_DIR}"`);
+			expect(args[2]).toContain(`test "$PATH[1]" = "$_superset_bin"`);
 			// Both markers are emitted so old v1 daemons (777 scanner) and new
 			// scanners (133;A) both detect readiness without a daemon restart.
 			expect(args[2]).toContain("\\033]777;superset-shell-ready\\007");

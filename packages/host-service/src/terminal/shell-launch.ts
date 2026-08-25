@@ -50,7 +50,7 @@ function fileContainsShellReadyMarker(filePath: string): boolean {
 }
 
 /**
- * Matches desktop shell-wrappers.ts fish init: idempotent PATH prepend +
+ * Matches desktop shell-wrappers.ts fish init: keep BIN_DIR first in PATH +
  * OSC 133;A prompt marker (FinalTerm standard) for shell readiness.
  *
  * Protocol ref: https://gitlab.freedesktop.org/Per_Bothner/specifications/blob/master/proposals/semantic-prompts.md
@@ -62,7 +62,7 @@ function buildFishInitCommand(binDir: string): string {
 		.replaceAll("$", "\\$");
 	return [
 		`set -l _superset_bin "${escaped}"`,
-		`contains -- "$_superset_bin" $PATH`,
+		`test "$PATH[1]" = "$_superset_bin"`,
 		`or set -gx PATH "$_superset_bin" $PATH`,
 		`function _superset_prompt_mark --on-event fish_prompt`,
 		`printf '\\033]133;A\\007'`,

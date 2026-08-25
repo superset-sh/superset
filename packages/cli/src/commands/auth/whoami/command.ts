@@ -11,6 +11,8 @@ export default command({
 		let authLine: string;
 		if (ctx.authSource === "oauth") {
 			authLine = "Session";
+		} else if (ctx.authSource === "host") {
+			authLine = "Superset-managed session (via local host service)";
 		} else if (ctx.authSource === "override") {
 			authLine = "API key (from --api-key flag or SUPERSET_API_KEY env)";
 		} else {

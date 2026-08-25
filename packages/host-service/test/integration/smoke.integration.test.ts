@@ -62,6 +62,68 @@ describe("host-service smoke", () => {
 		);
 	});
 
+	test("session-jwt returns the current bearer token for local host-auth clients", async () => {
+		host = await replaceHost(host, {
+			cloudApiUrl: "https://api.example.test",
+			apiAuthHeaders: { Authorization: "Bearer jwt-from-desktop-session" },
+		});
+
+		const response = await host.fetch(
+			"http://host-service.test/auth/session-jwt",
+			{
+				headers: { authorization: `Bearer ${host.psk}` },
+			},
+		);
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual({
+			token: "jwt-from-desktop-session",
+			apiUrl: "https://api.example.test",
+		});
+	});
+
+	test("session-jwt rejects unauthenticated requests", async () => {
+		const response = await host.fetch(
+			"http://host-service.test/auth/session-jwt",
+		);
+		expect(response.status).toBe(401);
+	});
+
+	test("session-jwt returns 412 when no session credential can be minted", async () => {
+		host = await replaceHost(host, {
+			apiAuthError: new Error("Failed to mint JWT: 401"),
+		});
+
+		const response = await host.fetch(
+			"http://host-service.test/auth/session-jwt",
+			{
+				headers: { authorization: `Bearer ${host.psk}` },
+			},
+		);
+
+		expect(response.status).toBe(412);
+	});
+
+	test("session-jwt does not exist in sandbox run mode", async () => {
+		process.env.SUPERSET_HOST_RUN_MODE = "sandbox";
+		try {
+			host = await replaceHost(host, {
+				apiAuthHeaders: { Authorization: "Bearer jwt-from-desktop-session" },
+			});
+
+			const response = await host.fetch(
+				"http://host-service.test/auth/session-jwt",
+				{
+					headers: { authorization: `Bearer ${host.psk}` },
+				},
+			);
+
+			expect(response.status).toBe(404);
+		} finally {
+			delete process.env.SUPERSET_HOST_RUN_MODE;
+		}
+	});
+
 	test("CORS preflight allows configured origin and rejects others", async () => {
 		const allowed = await host.fetch(
 			"http://host-service.test/trpc/health.check",
