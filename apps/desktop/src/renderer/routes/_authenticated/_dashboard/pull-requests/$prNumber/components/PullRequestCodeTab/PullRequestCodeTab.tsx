@@ -18,9 +18,7 @@ import {
 	LuChevronRight,
 	LuChevronUp,
 	LuColumns2,
-	LuPanelLeft,
-	LuPanelLeftClose,
-	LuPanelLeftOpen,
+	LuFiles,
 	LuRows2,
 } from "react-icons/lu";
 import {
@@ -950,20 +948,12 @@ export function PullRequestCodeTab({
 									aria-label={
 										isTreeCollapsed ? "Show file tree" : "Hide file tree"
 									}
-									className="group flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
+									className="flex items-center gap-1.5 rounded px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 								>
-									<span className="group-hover:hidden">
-										<LuPanelLeft className="size-3.5" strokeWidth={1.5} />
-									</span>
-									<span className="hidden group-hover:block">
-										{isTreeCollapsed ? (
-											<LuPanelLeftOpen className="size-3.5" strokeWidth={1.5} />
-										) : (
-											<LuPanelLeftClose
-												className="size-3.5"
-												strokeWidth={1.5}
-											/>
-										)}
+									<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
+									<span className="text-[11px] font-medium">Files</span>
+									<span className="text-[11px] tabular-nums text-muted-foreground/70">
+										{files.length}
 									</span>
 								</button>
 							</TooltipTrigger>
