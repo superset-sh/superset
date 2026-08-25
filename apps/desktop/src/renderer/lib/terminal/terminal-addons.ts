@@ -105,6 +105,13 @@ export function loadAddons(
 				"[terminal] WebGL renderer unavailable — this terminal falls back to the DOM renderer",
 				err,
 			);
+			// xterm's AddonManager pushes the addon and wraps its dispose
+			// BEFORE calling activate(), and does not roll back when activate
+			// throws. Dropping the reference alone would strand the instance in
+			// the manager for the terminal's lifetime, so dispose it explicitly.
+			try {
+				webglAddon?.dispose();
+			} catch {}
 			webglAddon = null;
 		}
 	});
