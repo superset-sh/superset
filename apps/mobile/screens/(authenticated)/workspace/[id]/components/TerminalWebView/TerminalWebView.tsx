@@ -176,12 +176,25 @@ export const TerminalWebView = forwardRef<
 		[host.machineId, host.organizationId, terminalId, workspaceId],
 	);
 
+	// Read by the `ready` handshake, which must not re-run on every change.
+	const visibleRef = useRef(true);
+
 	const handleMessage = useCallback(
 		(event: WebViewMessageEvent) => {
 			let message: PageMessage;
 			try {
 				message = JSON.parse(event.nativeEvent.data) as PageMessage;
 			} catch {
+				return;
+			}
+			if (message.type === "ready") {
+				// The page boots believing it is visible, so a visibility change
+				// that landed before it booted was dropped on the floor — and a
+				// phone that was already backgrounded would then attach declaring
+				// itself visible, holding the PTY at phone width for everyone
+				// else. `ready` precedes the page's first connect, so re-asserting
+				// here lands before it attaches.
+				postToPage({ type: "visible", visible: visibleRef.current });
 				return;
 			}
 			if (message.type === "dial") {
@@ -247,7 +260,9 @@ export const TerminalWebView = forwardRef<
 	}, [postToPage]);
 
 	useEffect(() => {
-		postToPage({ type: "visible", visible: screenFocused && appActive });
+		const visible = screenFocused && appActive;
+		visibleRef.current = visible;
+		postToPage({ type: "visible", visible });
 	}, [screenFocused, appActive, postToPage]);
 
 	// Tab switches swap sessions inside the live page instead of remounting
