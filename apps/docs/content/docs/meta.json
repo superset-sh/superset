@@ -26,6 +26,7 @@
 		"agent-integration",
 		"agent-status",
 		"tasks",
+		"pull-requests",
 		"remote-workspaces",
 		"automations",
 		"usage",
