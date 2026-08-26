@@ -36,12 +36,13 @@ const MAX_ZOOM = 5;
 const ZOOM_STEP = 0.1;
 
 /**
- * A Dialog opened synchronously from a DropdownMenuItem's select gets caught
- * by the menu's own close cycle and immediately dismisses itself (a
- * well-known Radix DropdownMenu + Dialog interaction): the closing menu's
- * exit animation (~150ms) is still running, and its eventual focus-restore
- * to the trigger button reads as a focus-outside on the just-opened dialog.
- * Waiting out the exit animation before opening the dialog avoids the race.
+ * A Dialog opened synchronously from the same click that's dismissing
+ * something else (a DropdownMenuItem select, a toast action) gets caught by
+ * that other element's own close cycle and immediately dismisses itself (a
+ * well-known Radix issue): the closing element's exit animation (~150ms) is
+ * still running, and its eventual focus-restore reads as a focus/pointer-
+ * outside on the just-opened dialog. Waiting out the exit animation before
+ * opening the dialog avoids the race.
  */
 const MENU_CLOSE_ANIMATION_MS = 200;
 
@@ -99,7 +100,11 @@ export function BrowserOverflowMenu({
 					),
 					action: {
 						label: "View all",
-						onClick: () => setIsScreenshotsOpen(true),
+						// Same Radix dismissable-layer race as the menu items below:
+						// opening the Dialog synchronously from this click lets Radix's
+						// newly-mounted outside-click detector see the tail of that same
+						// click and immediately close it.
+						onClick: openAfterClose(setIsScreenshotsOpen),
 					},
 				});
 			})
