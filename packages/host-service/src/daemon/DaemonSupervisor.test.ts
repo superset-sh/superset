@@ -23,6 +23,7 @@ import {
 } from "@superset/pty-daemon/protocol";
 import {
 	DaemonSupervisor,
+	probeDaemonHelloWithRetry,
 	probeDaemonVersion,
 	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
@@ -204,6 +205,96 @@ describe("probeDaemonVersion", () => {
 			}
 		} finally {
 			await fake.close();
+		}
+	});
+});
+
+describe("probeDaemonHelloWithRetry stopWhenNoListener", () => {
+	const deadSocket = () =>
+		path.join(
+			os.tmpdir(),
+			`nonexistent-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
+		);
+
+	test("without the flag, retries through refused connects for the whole budget", async () => {
+		// The handoff path depends on this: probes must survive the brief
+		// predecessor-exit → successor-bind gap where every connect is refused.
+		const started = Date.now();
+		const probe = await probeDaemonHelloWithRetry(deadSocket(), 400);
+		expect(probe).toBeNull();
+		expect(Date.now() - started).toBeGreaterThanOrEqual(350);
+	});
+
+	test("with the flag, a refused connect ends the retry loop immediately", async () => {
+		// The adoption-escalation path depends on this: a daemon that died
+		// mid-probe must cost ~one attempt, not the whole escalated budget.
+		const started = Date.now();
+		const probe = await probeDaemonHelloWithRetry(deadSocket(), 5_000, {
+			stopWhenNoListener: true,
+		});
+		expect(probe).toBeNull();
+		expect(Date.now() - started).toBeLessThan(1_000);
+	});
+
+	test("with the flag, a silent-but-accepting listener still gets the whole budget", async () => {
+		const fake = await startFakeDaemon({ silent: true });
+		const started = Date.now();
+		try {
+			const probe = await probeDaemonHelloWithRetry(fake.socketPath, 600, {
+				perAttemptTimeoutMs: 200,
+				stopWhenNoListener: true,
+			});
+			expect(probe).toBeNull();
+			expect(Date.now() - started).toBeGreaterThanOrEqual(550);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("honors the per-attempt cap: adopts a hello slower than the default attempt", async () => {
+		// A CPU-starved daemon can need more than VERSION_PROBE_TIMEOUT_MS to
+		// answer one hello; only a raised per-attempt cap can ever adopt it.
+		const socketPath = deadSocket();
+		const server = net.createServer((sock) => {
+			const decoder = new FrameDecoder();
+			sock.on("error", () => {});
+			sock.on("data", (chunk: Buffer) => {
+				decoder.push(chunk);
+				for (const decoded of decoder.drain()) {
+					if ((decoded.message as ClientMessage).type !== "hello") continue;
+					setTimeout(() => {
+						if (sock.destroyed) return;
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: 1,
+								daemonVersion: "0.1.0",
+								daemonPid: process.pid,
+							}),
+						);
+					}, 400);
+				}
+			});
+		});
+		await new Promise<void>((resolve) => server.listen(socketPath, resolve));
+		try {
+			// One 200ms attempt can never catch a 400ms hello…
+			expect(
+				await probeDaemonHelloWithRetry(socketPath, 300, {
+					perAttemptTimeoutMs: 200,
+					stopWhenNoListener: true,
+				}),
+			).toBeNull();
+			// …a 600ms attempt does.
+			const probe = await probeDaemonHelloWithRetry(socketPath, 1_000, {
+				perAttemptTimeoutMs: 600,
+				stopWhenNoListener: true,
+			});
+			expect(probe?.daemonVersion).toBe("0.1.0");
+		} finally {
+			await new Promise<void>((resolve) => {
+				server.close(() => resolve());
+			});
 		}
 	});
 });
