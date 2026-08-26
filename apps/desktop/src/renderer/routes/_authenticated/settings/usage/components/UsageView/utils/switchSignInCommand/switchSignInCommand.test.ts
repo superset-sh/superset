@@ -14,7 +14,7 @@ describe("switchSignInCommand", () => {
 				provider: "claude",
 				selection: "/Users/kietho/.claude-work",
 			}),
-		).toBe('CLAUDE_CONFIG_DIR="/Users/kietho/.claude-work" claude auth login');
+		).toBe("CLAUDE_CONFIG_DIR=/Users/kietho/.claude-work claude auth login");
 	});
 
 	it("keeps dirs with spaces pasteable", () => {
@@ -24,7 +24,7 @@ describe("switchSignInCommand", () => {
 				selection: "/Users/kietho/.config/claude work",
 			}),
 		).toBe(
-			'CLAUDE_CONFIG_DIR="/Users/kietho/.config/claude work" claude auth login',
+			"CLAUDE_CONFIG_DIR='/Users/kietho/.config/claude work' claude auth login",
 		);
 	});
 
@@ -37,6 +37,42 @@ describe("switchSignInCommand", () => {
 				provider: "codex",
 				selection: "/Users/kietho/.codex-work",
 			}),
-		).toBe('CODEX_HOME="/Users/kietho/.codex-work" codex login');
+		).toBe("CODEX_HOME=/Users/kietho/.codex-work codex login");
+	});
+
+	it("neutralizes command substitution in the config dir", () => {
+		expect(
+			switchSignInCommand({
+				provider: "claude",
+				selection: "/tmp/$(rm -rf ~)",
+			}),
+		).toBe("CLAUDE_CONFIG_DIR='/tmp/$(rm -rf ~)' claude auth login");
+	});
+
+	it("neutralizes backticks in the config dir", () => {
+		expect(
+			switchSignInCommand({
+				provider: "codex",
+				selection: "/tmp/`whoami`",
+			}),
+		).toBe("CODEX_HOME='/tmp/`whoami`' codex login");
+	});
+
+	it("escapes an embedded single quote in the config dir", () => {
+		expect(
+			switchSignInCommand({
+				provider: "claude",
+				selection: "/tmp/it's-a-dir",
+			}),
+		).toBe("CLAUDE_CONFIG_DIR='/tmp/it'\\''s-a-dir' claude auth login");
+	});
+
+	it("neutralizes a double quote in the config dir", () => {
+		expect(
+			switchSignInCommand({
+				provider: "claude",
+				selection: '/tmp/"; rm -rf ~; echo "',
+			}),
+		).toBe(`CLAUDE_CONFIG_DIR='/tmp/"; rm -rf ~; echo "' claude auth login`);
 	});
 });
