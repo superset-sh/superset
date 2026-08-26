@@ -633,7 +633,7 @@ function PullRequestDetailPage() {
 				className={cn("min-h-0 flex-1", activeTab !== "summary" && "hidden")}
 			>
 				<ScrollArea className="h-full">
-					<div className="grid w-full gap-8 px-4 pt-3 pb-6 @md:px-6 @md:pt-4 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:pb-8">
+					<div className="grid w-full gap-8 px-4 pt-3 pb-6 @md:px-6 @md:pt-4 @3xl:grid-cols-[minmax(0,1fr)_20rem] @3xl:pb-8">
 						<article className="group/description relative min-w-0">
 							<a
 								href={data.url}
@@ -653,7 +653,7 @@ function PullRequestDetailPage() {
 							)}
 						</article>
 
-						<aside className="min-w-0 @4xl:sticky @4xl:top-4 @4xl:self-start">
+						<aside className="min-w-0 @3xl:sticky @3xl:top-4 @3xl:self-start">
 							<PullRequestChecksSection checks={data.checks} />
 						</aside>
 					</div>
