@@ -1,4 +1,4 @@
-import "highlight.js/styles/github-dark.css";
+import "../../styles/hljs-github.css";
 import "./markdown-editor.css";
 
 import { cn } from "@superset/ui/utils";

@@ -1,4 +1,4 @@
-import "highlight.js/styles/github-dark.css";
+import "../../../../styles/hljs-github.css";
 
 import { cn } from "@superset/ui/utils";
 import { EditorState } from "@tiptap/pm/state";
