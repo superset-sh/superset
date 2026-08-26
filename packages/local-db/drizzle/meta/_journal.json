@@ -365,6 +365,13 @@
       "when": 1787696314712,
       "tag": "0051_add_downloads",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1787733523610,
+      "tag": "0052_add_screenshots",
+      "breakpoints": true
     }
   ]
 }

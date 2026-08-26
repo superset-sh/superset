@@ -5,6 +5,7 @@ import {
 	browserManager,
 	type ForwardedKey,
 } from "main/lib/browser/browser-manager";
+import { screenshotManager } from "main/lib/browser/screenshot-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -75,8 +76,9 @@ export const createBrowserRouter = () => {
 		screenshot: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(async ({ input }) => {
-				const base64 = await browserManager.screenshot(input.paneId);
-				return { base64 };
+				const { image, url } = await browserManager.screenshot(input.paneId);
+				const saved = screenshotManager.save(image, url);
+				return { base64: saved.base64, id: saved.id };
 			}),
 
 		evaluateJS: publicProcedure

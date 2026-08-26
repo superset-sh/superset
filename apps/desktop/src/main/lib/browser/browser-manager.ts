@@ -641,10 +641,13 @@ class BrowserManager extends EventEmitter {
 		wc.loadURL(resolved);
 	}
 
-	async screenshot(paneId: string): Promise<string> {
+	async screenshot(
+		paneId: string,
+	): Promise<{ image: Electron.NativeImage; url: string }> {
 		const image = await this.capturePageImage(paneId);
 		clipboard.writeImage(image);
-		return image.toPNG().toString("base64");
+		const wc = this.getWebContents(paneId);
+		return { image, url: wc?.getURL() ?? "" };
 	}
 
 	/** Screenshot for programmatic callers — must not clobber the clipboard. */

@@ -25,6 +25,7 @@ import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
+import { createScreenshotsRouter } from "./screenshots";
 import { createSettingsRouter } from "./settings";
 import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
@@ -39,6 +40,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		browser: createBrowserRouter(),
 		browserHistory: createBrowserHistoryRouter(),
 		downloads: createDownloadsRouter(),
+		screenshots: createScreenshotsRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		window: createWindowRouter(),

@@ -5,6 +5,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { CheckIcon, MinusIcon, PlusIcon, RotateCcwIcon } from "lucide-react";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { ClearBrowsingDataDialog } from "../ClearBrowsingDataDialog";
 import { DownloadsDialog } from "../DownloadsDialog";
 import { HistoryDialog } from "../HistoryDialog";
+import { ScreenshotsDialog } from "../ScreenshotsDialog";
 import { SignedInSitesSubmenu } from "../SignedInSitesSubmenu";
 
 interface BrowserOverflowMenuProps {
@@ -64,6 +66,7 @@ export function BrowserOverflowMenu({
 	const [isImportOpen, setIsImportOpen] = useState(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 	const [isDownloadsOpen, setIsDownloadsOpen] = useState(false);
+	const [isScreenshotsOpen, setIsScreenshotsOpen] = useState(false);
 	const [isClearDataOpen, setIsClearDataOpen] = useState(false);
 
 	const handlePrint = () => browserRuntimeRegistry.print(paneId);
@@ -83,7 +86,26 @@ export function BrowserOverflowMenu({
 	const handleZoomReset = () => browserRuntimeRegistry.setZoomFactor(paneId, 1);
 
 	const handleScreenshot = () => {
-		electronTrpcClient.browser.screenshot.mutate({ paneId }).catch(() => {});
+		electronTrpcClient.browser.screenshot
+			.mutate({ paneId })
+			.then(({ base64 }) => {
+				toast.success("Screenshot copied to clipboard", {
+					description: (
+						<img
+							src={`data:image/png;base64,${base64}`}
+							alt="Screenshot preview"
+							className="mt-1 max-h-32 w-full rounded border border-border object-contain"
+						/>
+					),
+					action: {
+						label: "View all",
+						onClick: () => setIsScreenshotsOpen(true),
+					},
+				});
+			})
+			.catch(() => {
+				toast.error("Could not take a screenshot");
+			});
 	};
 
 	const handleHardReload = () => {
@@ -213,6 +235,9 @@ export function BrowserOverflowMenu({
 					<DropdownMenuItem onSelect={openAfterClose(setIsDownloadsOpen)}>
 						Downloads
 					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={openAfterClose(setIsScreenshotsOpen)}>
+						Screenshots
+					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsHistoryOpen)}>
 						History
 					</DropdownMenuItem>
@@ -234,6 +259,10 @@ export function BrowserOverflowMenu({
 			<DownloadsDialog
 				open={isDownloadsOpen}
 				onOpenChange={setIsDownloadsOpen}
+			/>
+			<ScreenshotsDialog
+				open={isScreenshotsOpen}
+				onOpenChange={setIsScreenshotsOpen}
 			/>
 			<ClearBrowsingDataDialog
 				open={isClearDataOpen}
