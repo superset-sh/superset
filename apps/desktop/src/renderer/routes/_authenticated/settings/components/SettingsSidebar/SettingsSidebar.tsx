@@ -30,7 +30,7 @@ export function SettingsSidebar() {
 			{/* Back button */}
 			<Link
 				to={originRoute}
-				className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
+				className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1"
 			>
 				<HiArrowLeft className="h-4 w-4" />
 				<span>Back</span>
