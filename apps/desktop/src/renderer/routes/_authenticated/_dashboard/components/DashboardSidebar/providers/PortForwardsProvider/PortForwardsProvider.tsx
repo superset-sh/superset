@@ -9,6 +9,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PortForward } from "shared/types";
 import { portForwardId } from "shared/types";
 import type { DashboardSidebarPort } from "../../hooks/useDashboardSidebarPortsData";
+import { portForwardClientId } from "../../utils/portForwardClientId";
 
 const PortForwardsContext = createContext<Map<string, PortForward> | null>(
 	null,
@@ -17,9 +18,12 @@ const PortForwardsContext = createContext<Map<string, PortForward> | null>(
 /** Mirrors the main process's port-forward list; one subscription per window. */
 export function PortForwardsProvider({ children }: { children: ReactNode }) {
 	const [forwards, setForwards] = useState<PortForward[]>([]);
-	electronTrpc.portForwards.subscribe.useSubscription(undefined, {
-		onData: setForwards,
-	});
+	// clientId ties this window's subscription lifetime to its wanted
+	// forwards in main: window closes -> subscription tears down -> released.
+	electronTrpc.portForwards.subscribe.useSubscription(
+		{ clientId: portForwardClientId },
+		{ onData: setForwards },
+	);
 	const byId = useMemo(
 		() => new Map(forwards.map((f) => [f.id, f])),
 		[forwards],

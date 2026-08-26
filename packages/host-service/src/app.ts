@@ -10,8 +10,8 @@ import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
+import { registerForwardMuxRoute } from "./ports/forward-mux-route";
 import { portManager } from "./ports/port-manager";
-import { registerTcpForwardRoute } from "./ports/tcp-forward-route";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
@@ -262,7 +262,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	app.use("/events", wsAuth);
 	app.use("/chat-v3/*", wsAuth);
 	app.use("/browser/*", wsAuth);
-	app.use("/tcp/*", wsAuth);
+	app.use("/fwd", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerBrowserCdpRoute({
@@ -270,7 +270,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		upgradeWebSocket,
 		getBridge: () => config.browserBridge,
 	});
-	registerTcpForwardRoute({
+	registerForwardMuxRoute({
 		app,
 		upgradeWebSocket,
 		getPortsByWorkspace: (workspaceId) =>

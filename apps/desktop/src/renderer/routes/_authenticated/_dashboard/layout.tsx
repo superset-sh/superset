@@ -18,6 +18,7 @@ import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_d
 import { PortForwardsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
@@ -99,6 +100,16 @@ function DashboardLayout() {
 				: null,
 		[hostWorkspaces, currentV2WorkspaceId],
 	);
+	const { machineId: localMachineId } = useLocalHostService();
+	// Forwarding needs port data only for a workspace on another machine;
+	// a local selection must not switch on cross-host port polling.
+	// machineId is "" until the device query answers; treat unknown as local
+	// rather than switching on cross-host polling for a workspace that may
+	// not be remote at all.
+	const selectedWorkspaceIsRemote =
+		currentV2Workspace != null &&
+		localMachineId !== "" &&
+		currentV2Workspace.hostId !== localMachineId;
 
 	const {
 		isOpen: isWorkspaceSidebarOpen,
@@ -243,7 +254,7 @@ function DashboardLayout() {
 					(isWorkspaceSidebarOpen && !isWorkspaceSidebarCollapsed()) ||
 					// Port forwarding follows the selected remote workspace and
 					// needs its port list even when no ports UI is on screen.
-					currentV2WorkspaceId !== null)
+					selectedWorkspaceIsRemote)
 			}
 		>
 			<PortForwardsProvider>

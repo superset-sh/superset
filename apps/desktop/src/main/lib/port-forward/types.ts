@@ -8,8 +8,13 @@ import type { ForwardTarget, ForwardTransportKind } from "shared/types";
  */
 export interface ForwardTransport {
 	readonly kind: ForwardTransportKind;
-	/** Resolves when the transport can serve this host; rejects with a reason. */
-	probe(target: Pick<ForwardTarget, "hostUrl">): Promise<void>;
+	/**
+	 * Resolves when the transport can serve this target; rejects with a
+	 * reason. Also where a transport warms anything it wants ready before the
+	 * first connection (the relay transport establishes its mux session here,
+	 * so an unsupported host errors the row at sync time, not on first click).
+	 */
+	probe(target: ForwardTarget): Promise<void>;
 	/** One bidirectional byte stream to 127.0.0.1:<remotePort> on the host. */
 	openStream(target: ForwardTarget): Promise<Duplex>;
 }

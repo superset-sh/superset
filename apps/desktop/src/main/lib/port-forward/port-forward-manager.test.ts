@@ -75,6 +75,7 @@ describe("PortForwardManager", () => {
 		const m = manager(transport);
 		const local = await freePort();
 		const [fwd] = await m.sync({
+			clientId: "w1",
 			hostUrl: HOST,
 			workspaceId: "ws1",
 			ports: [local],
@@ -94,9 +95,15 @@ describe("PortForwardManager", () => {
 		const echo = await startEcho();
 		const m = manager(echoTransport(echo.port));
 		const a = await freePort();
-		await m.sync({ hostUrl: HOST, workspaceId: "ws1", ports: [a] });
+		await m.sync({
+			clientId: "w1",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [a],
+		});
 		const b = await freePort();
 		const list = await m.sync({
+			clientId: "w1",
 			hostUrl: HOST,
 			workspaceId: "ws2",
 			ports: [b],
@@ -122,6 +129,7 @@ describe("PortForwardManager", () => {
 			getLocalPorts: () => [owner],
 		});
 		const [fwd] = await m.sync({
+			clientId: "w1",
 			hostUrl: HOST,
 			workspaceId: "ws1",
 			ports: [echo.port],
@@ -144,6 +152,7 @@ describe("PortForwardManager", () => {
 		const echo = await startEcho();
 		const m = manager(echoTransport(echo.port));
 		const [fwd] = await m.sync({
+			clientId: "w1",
 			hostUrl: HOST,
 			workspaceId: "ws1",
 			ports: [echo.port],
@@ -181,6 +190,7 @@ describe("PortForwardManager", () => {
 			canBindPort: freeToBind,
 		});
 		const [fwd] = await m.sync({
+			clientId: "w1",
 			hostUrl: HOST,
 			workspaceId: "ws1",
 			ports: [echo.port],
@@ -204,6 +214,7 @@ describe("PortForwardManager", () => {
 			openStream: async () => new PassThrough(),
 		});
 		const [fwd] = await m.sync({
+			clientId: "w1",
 			hostUrl: HOST,
 			workspaceId: "ws1",
 			ports: [await freePort()],
@@ -216,10 +227,131 @@ describe("PortForwardManager", () => {
 		const echo = await startEcho();
 		const m = manager(echoTransport(echo.port));
 		const local = await freePort();
-		await m.sync({ hostUrl: HOST, workspaceId: "ws1", ports: [local] });
+		await m.sync({
+			clientId: "w1",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [local],
+		});
 		m.stopAll();
 		expect(m.list()).toEqual([]);
 		expect(await freeToBind(local)).toBe(true);
+		echo.close();
+	});
+
+	test("a sync during the probe never orphans a listener", async () => {
+		const local = await freePort();
+		let releaseProbe: () => void = () => {};
+		const transport: ForwardTransport = {
+			kind: "relay",
+			probe: () =>
+				new Promise<void>((resolve) => {
+					releaseProbe = resolve;
+				}),
+			openStream: async () => new PassThrough() as unknown as Duplex,
+		};
+		const m = manager(transport);
+		const first = m.sync({
+			clientId: "w1",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [local],
+		});
+		// Deselect before the probe answers.
+		await m.sync({ clientId: "w1", hostUrl: HOST, workspaceId: "", ports: [] });
+		releaseProbe();
+		await first;
+		expect(m.list()).toEqual([]);
+		expect(await freeToBind(local)).toBe(true);
+	});
+
+	test("a later successful stream restores active after a failure", async () => {
+		const echo = await startEcho();
+		let fail = true;
+		const echoing = echoTransport(echo.port);
+		const transport: ForwardTransport = {
+			kind: "relay",
+			probe: async () => {},
+			openStream: (target) => {
+				if (fail) return Promise.reject(new Error("relay hiccup"));
+				return echoing.openStream(target);
+			},
+		};
+		const m = manager(transport);
+		const local = await freePort();
+		await m.sync({
+			clientId: "w1",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [local],
+		});
+		// The first connection fails and poisons the status.
+		const s = net.connect({ host: "127.0.0.1", port: local });
+		await new Promise((r) => s.once("close", r));
+		expect(m.list()[0]?.status.state).toBe("error");
+		// The listener is still bound; the next connection heals it.
+		fail = false;
+		expect(await roundTrip(local, "healed")).toBe("healed");
+		expect(m.list()[0]?.status).toEqual({
+			state: "active",
+			localPort: local,
+		});
+		m.stopAll();
+		echo.close();
+	});
+
+	test("two clients wanting different forwards do not fight", async () => {
+		const echo = await startEcho();
+		const m = manager(echoTransport(echo.port));
+		const a = await freePort();
+		const b = await freePort();
+		await m.sync({
+			clientId: "w1",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [a],
+		});
+		await m.sync({
+			clientId: "w2",
+			hostUrl: HOST,
+			workspaceId: "ws2",
+			ports: [b],
+		});
+		// Both forwards run; neither sync tore the other down.
+		expect(
+			m
+				.list()
+				.map((f) => f.target.remotePort)
+				.sort(),
+		).toEqual([a, b].sort());
+		// Releasing one client stops only its forward.
+		await m.releaseClient("w1");
+		expect(m.list().map((f) => f.target.remotePort)).toEqual([b]);
+		expect(await freeToBind(a)).toBe(true);
+		m.stopAll();
+		echo.close();
+	});
+
+	test("a forward both clients want survives either releasing it", async () => {
+		const echo = await startEcho();
+		const m = manager(echoTransport(echo.port));
+		const a = await freePort();
+		await m.sync({
+			clientId: "w1",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [a],
+		});
+		await m.sync({
+			clientId: "w2",
+			hostUrl: HOST,
+			workspaceId: "ws1",
+			ports: [a],
+		});
+		await m.releaseClient("w1");
+		expect(m.list()).toHaveLength(1);
+		expect(await roundTrip(a, "still here")).toBe("still here");
+		m.stopAll();
 		echo.close();
 	});
 });

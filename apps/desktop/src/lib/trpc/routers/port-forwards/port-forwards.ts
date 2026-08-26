@@ -14,20 +14,26 @@ export const createPortForwardsRouter = () => {
 
 		list: publicProcedure.query((): PortForward[] => portForwardManager.list()),
 
-		subscribe: publicProcedure.subscription(() => {
-			return observable<PortForward[]>((emit) => {
-				const onChange = (forwards: PortForward[]) => emit.next(forwards);
-				portForwardManager.on("change", onChange);
-				emit.next(portForwardManager.list());
-				return () => {
-					portForwardManager.off("change", onChange);
-				};
-			});
-		}),
+		subscribe: publicProcedure
+			.input(z.object({ clientId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<PortForward[]>((emit) => {
+					const onChange = (forwards: PortForward[]) => emit.next(forwards);
+					portForwardManager.on("change", onChange);
+					emit.next(portForwardManager.list());
+					return () => {
+						portForwardManager.off("change", onChange);
+						// The subscription is per window; its teardown is how the
+						// manager learns a window (and its wanted set) is gone.
+						void portForwardManager.releaseClient(input.clientId);
+					};
+				});
+			}),
 
 		sync: publicProcedure
 			.input(
 				z.object({
+					clientId: z.string(),
 					hostUrl: z.string(),
 					workspaceId: z.string(),
 					ports: z.array(z.number().int().positive()),

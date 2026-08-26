@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarAllPorts } from "../../providers/DashboardSidebarPortsProvider";
+import { portForwardClientId } from "../../utils/portForwardClientId";
 import { deriveForwardSyncInput } from "./deriveForwardSyncInput";
 
 // A dev server restart emits remove+add within milliseconds; collapse the
@@ -33,7 +34,7 @@ export function useRemotePortForwarding(activeWorkspaceId: string | null) {
 		if (lastSyncedKey.current === key) return;
 		const timer = setTimeout(() => {
 			lastSyncedKey.current = key;
-			mutate(JSON.parse(key));
+			mutate({ clientId: portForwardClientId, ...JSON.parse(key) });
 		}, SYNC_DEBOUNCE_MS);
 		return () => clearTimeout(timer);
 	}, [key, mutate]);

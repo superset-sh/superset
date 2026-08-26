@@ -33,14 +33,20 @@ const KILL_WAIT_MS = 3_000;
 const KILL_POLL_MS = 250;
 
 /**
- * Owns every local listener that forwards to a remote workspace port. Only the
- * selected workspace forwards, so `sync` is the single entry point: it stops
- * everything outside the requested set and starts what is missing.
+ * Owns every local listener that forwards to a remote workspace port. Each
+ * window is a client with its own wanted set (its selected workspace's remote
+ * ports); the manager keeps exactly the union running, so two windows on
+ * different workspaces don't tear each other's forwards down. A client's set
+ * is dropped when its window's subscription goes away.
  */
 export class PortForwardManager extends EventEmitter<{
 	change: [PortForward[]];
 }> {
 	private readonly entries = new Map<string, ForwardEntry>();
+	private readonly wantedByClient = new Map<
+		string,
+		Map<string, ForwardTarget>
+	>();
 
 	constructor(private readonly options: PortForwardManagerOptions) {
 		super();
@@ -51,10 +57,12 @@ export class PortForwardManager extends EventEmitter<{
 	}
 
 	async sync({
+		clientId,
 		hostUrl,
 		workspaceId,
 		ports,
 	}: {
+		clientId: string;
 		hostUrl: string;
 		workspaceId: string;
 		ports: number[];
@@ -64,11 +72,30 @@ export class PortForwardManager extends EventEmitter<{
 			const target = { hostUrl, workspaceId, remotePort };
 			wanted.set(portForwardId(target), target);
 		}
+		if (wanted.size > 0) {
+			this.wantedByClient.set(clientId, wanted);
+		} else {
+			this.wantedByClient.delete(clientId);
+		}
+		return this.reconcile();
+	}
+
+	/** A window went away; whatever only it wanted stops. */
+	async releaseClient(clientId: string): Promise<void> {
+		if (!this.wantedByClient.delete(clientId)) return;
+		await this.reconcile();
+	}
+
+	private async reconcile(): Promise<PortForward[]> {
+		const union = new Map<string, ForwardTarget>();
+		for (const wanted of this.wantedByClient.values()) {
+			for (const [id, target] of wanted) union.set(id, target);
+		}
 		for (const id of Array.from(this.entries.keys())) {
-			if (!wanted.has(id)) this.stop(id);
+			if (!union.has(id)) this.stop(id);
 		}
 		await Promise.all(
-			Array.from(wanted.entries())
+			Array.from(union.entries())
 				.filter(([id]) => !this.entries.has(id))
 				.map(([, target]) => this.start(target)),
 		);
@@ -80,6 +107,10 @@ export class PortForwardManager extends EventEmitter<{
 		if (!entry) return null;
 		if (entry.forward.status.state !== "busy") return { ...entry.forward };
 		await this.listen({ entry, localPort: 0 });
+		if (this.entries.get(id) !== entry) {
+			this.closeServer(entry);
+			return null;
+		}
 		return { ...entry.forward };
 	}
 
@@ -100,8 +131,12 @@ export class PortForwardManager extends EventEmitter<{
 		if (!result.success) return result;
 		const deadline = Date.now() + KILL_WAIT_MS;
 		while (Date.now() < deadline) {
+			if (this.entries.get(id) !== entry) {
+				return { success: false, error: "Forward was stopped" };
+			}
 			if (await this.options.canBindPort(port)) {
 				await this.listen({ entry, localPort: port });
+				if (this.entries.get(id) !== entry) this.closeServer(entry);
 				return { success: true };
 			}
 			await new Promise((r) => setTimeout(r, KILL_POLL_MS));
@@ -136,6 +171,9 @@ export class PortForwardManager extends EventEmitter<{
 			});
 			return;
 		}
+		// A sync during the probe may have stopped this forward; binding now
+		// would orphan a listener nothing owns.
+		if (this.entries.get(id) !== entry) return;
 		await this.listen({ entry, localPort: target.remotePort });
 	}
 
@@ -225,6 +263,23 @@ export class PortForwardManager extends EventEmitter<{
 				if (socket.destroyed) {
 					stream.destroy();
 					return;
+				}
+				// A transient stream failure flips the forward to error; the
+				// listener is still bound, so the next success restores it.
+				if (
+					entry.forward.status.state === "error" &&
+					this.entries.get(entry.forward.id) === entry &&
+					entry.server
+				) {
+					const address = entry.server.address();
+					const bound =
+						address && typeof address === "object"
+							? address.port
+							: entry.forward.target.remotePort;
+					this.setStatus({
+						entry,
+						status: { state: "active", localPort: bound },
+					});
 				}
 				stream.on("error", () => socket.destroy());
 				stream.on("close", () => socket.destroy());

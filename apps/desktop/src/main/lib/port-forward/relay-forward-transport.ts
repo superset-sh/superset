@@ -1,29 +1,30 @@
 import type { Duplex } from "node:stream";
 import type { ForwardTarget } from "shared/types";
-import { createWebSocketStream, WebSocket } from "ws";
+import { MuxSession } from "./mux-session";
 import type { ForwardTransport } from "./types";
-
-const OPEN_TIMEOUT_MS = 15_000;
 
 export interface RelayForwardTransportOptions {
 	getToken: () => string | null;
-	fetchFn?: typeof fetch;
+	fetchFn?: (input: string) => Promise<Response>;
 }
 
 /**
- * Forwards over relay2's per-stream dial-back: the desktop upgrades
- * `/hosts/<key>/tcp/<port>` on the relay, the host dials back, and the relay
- * splices frames verbatim. Only protocol v2 relays can carry binary client
- * frames, so the probe refuses v1 (`/health` without `proto: 2`).
+ * Forwards over one mux session per (host, workspace), spliced through
+ * relay2's per-stream dial-back exactly like a terminal stream. The first
+ * connection after selecting a workspace pays the relay dial; every later
+ * connection is an OPEN frame on the warm session. Only protocol v2 relays
+ * can carry binary client frames, so the probe refuses v1 (`/health`
+ * without `proto: 2`).
  */
 export class RelayForwardTransport implements ForwardTransport {
 	readonly kind = "relay" as const;
 	private readonly probes = new Map<string, Promise<void>>();
+	private readonly sessions = new Map<string, MuxSession>();
 
 	constructor(private readonly options: RelayForwardTransportOptions) {}
 
-	probe({ hostUrl }: Pick<ForwardTarget, "hostUrl">): Promise<void> {
-		const origin = new URL(hostUrl).origin;
+	async probe(target: ForwardTarget): Promise<void> {
+		const origin = new URL(target.hostUrl).origin;
 		let pending = this.probes.get(origin);
 		if (!pending) {
 			pending = this.checkProtocol(origin).catch((err) => {
@@ -33,7 +34,11 @@ export class RelayForwardTransport implements ForwardTransport {
 			});
 			this.probes.set(origin, pending);
 		}
-		return pending;
+		await pending;
+		// Establish the mux session now, so a host without forwarding support
+		// errors the row at sync time and the first connection is one OPEN
+		// frame on an already-warm pipe instead of a relay dial.
+		await this.session(target).ready;
 	}
 
 	private async checkProtocol(origin: string): Promise<void> {
@@ -49,48 +54,30 @@ export class RelayForwardTransport implements ForwardTransport {
 	}
 
 	async openStream(target: ForwardTarget): Promise<Duplex> {
+		const session = this.session(target);
+		await session.ready;
+		return session.openStream(target.remotePort);
+	}
+
+	private session(target: ForwardTarget): MuxSession {
+		const key = `${target.hostUrl}|${target.workspaceId}`;
+		const existing = this.sessions.get(key);
+		if (existing && !existing.isDead) return existing;
+
 		const token = this.options.getToken();
 		if (!token) throw new Error("Not signed in");
-		const url = new URL(`${target.hostUrl}/tcp/${target.remotePort}`);
+		const url = new URL(`${target.hostUrl}/fwd`);
 		if (url.protocol === "http:") url.protocol = "ws:";
 		if (url.protocol === "https:") url.protocol = "wss:";
 		url.searchParams.set("workspaceId", target.workspaceId);
 		url.searchParams.set("token", token);
 
-		const ws = new WebSocket(url.toString());
-		await new Promise<void>((resolve, reject) => {
-			const timer = setTimeout(() => {
-				ws.terminate();
-				reject(new Error("Relay did not answer"));
-			}, OPEN_TIMEOUT_MS);
-			ws.once("open", () => {
-				clearTimeout(timer);
-				resolve();
-			});
-			ws.once("unexpected-response", (_req, res) => {
-				clearTimeout(timer);
-				reject(new Error(describeUpgradeFailure(res.statusCode)));
-			});
-			ws.once("error", (err) => {
-				clearTimeout(timer);
-				reject(err);
-			});
+		const session = new MuxSession(url.toString(), {
+			onClosed: () => {
+				if (this.sessions.get(key) === session) this.sessions.delete(key);
+			},
 		});
-		return createWebSocketStream(ws);
-	}
-}
-
-function describeUpgradeFailure(status: number | undefined): string {
-	switch (status) {
-		case 401:
-			return "Session expired, sign in again";
-		case 403:
-			return "No access to this host";
-		case 503:
-			return "Host is offline";
-		case 504:
-			return "Host did not answer";
-		default:
-			return `Relay refused the stream (${status ?? "unknown"})`;
+		this.sessions.set(key, session);
+		return session;
 	}
 }
