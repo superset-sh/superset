@@ -125,11 +125,32 @@ export function BrowserOverflowMenu({
 						Print
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
-					<div className="flex items-center justify-between gap-2 px-2 py-1.5 text-sm">
+					{/* A plain row of buttons here would be unreachable by arrow-key menu
+					    navigation (Radix only moves focus between registered items) and
+					    Tab closes the menu — so the whole row is one item, with
+					    Left/Right/Enter driving zoom while it's focused. */}
+					<DropdownMenuItem
+						disabled={!hasPage}
+						onSelect={(e) => e.preventDefault()}
+						onKeyDown={(e) => {
+							if (e.key === "ArrowLeft") {
+								e.preventDefault();
+								handleZoomOut();
+							} else if (e.key === "ArrowRight") {
+								e.preventDefault();
+								handleZoomIn();
+							} else if (e.key === "Enter" || e.key === "0") {
+								e.preventDefault();
+								handleZoomReset();
+							}
+						}}
+						className="justify-between gap-2"
+					>
 						<span>Zoom</span>
 						<div className="flex items-center gap-0.5">
 							<button
 								type="button"
+								tabIndex={-1}
 								onClick={handleZoomOut}
 								disabled={!hasPage || zoomFactor <= MIN_ZOOM}
 								aria-label="Zoom out"
@@ -142,6 +163,7 @@ export function BrowserOverflowMenu({
 							</span>
 							<button
 								type="button"
+								tabIndex={-1}
 								onClick={handleZoomIn}
 								disabled={!hasPage || zoomFactor >= MAX_ZOOM}
 								aria-label="Zoom in"
@@ -151,6 +173,7 @@ export function BrowserOverflowMenu({
 							</button>
 							<button
 								type="button"
+								tabIndex={-1}
 								onClick={handleZoomReset}
 								disabled={!hasPage || zoomFactor === 1}
 								aria-label="Reset zoom"
@@ -159,7 +182,7 @@ export function BrowserOverflowMenu({
 								<RotateCcwIcon className="size-3.5" />
 							</button>
 						</div>
-					</div>
+					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
 						onClick={onToggleDeviceToolbar}

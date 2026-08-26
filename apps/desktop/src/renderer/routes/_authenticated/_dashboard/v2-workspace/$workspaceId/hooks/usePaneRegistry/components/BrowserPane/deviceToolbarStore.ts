@@ -1,9 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
-import {
-	DEFAULT_DEVICE_PRESET,
-	DEVICE_PRESETS,
-} from "./components/DeviceToolbar/constants";
+import { DEFAULT_DEVICE_PRESET, DEVICE_PRESETS } from "./constants";
 
 export interface DeviceToolbarState {
 	isOpen: boolean;

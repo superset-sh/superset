@@ -16,10 +16,7 @@ import { BrowserTabFavicon } from "./components/BrowserTabFavicon";
 import { ChromeImportBanner } from "./components/ChromeImportBanner";
 import { DesignModePopover } from "./components/DesignModePopover";
 import { DeviceToolbar } from "./components/DeviceToolbar";
-import {
-	DEFAULT_DEVICE_PRESET,
-	DEVICE_PRESETS,
-} from "./components/DeviceToolbar/constants";
+import { DEFAULT_DEVICE_PRESET, DEVICE_PRESETS } from "./constants";
 import { designModeStore, useDesignModeState } from "./designModeStore";
 import {
 	deviceToolbarStore,

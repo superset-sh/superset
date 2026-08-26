@@ -1,3 +1,4 @@
+import type { SelectDownload } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -10,18 +11,7 @@ import { useEffect, useState } from "react";
 import { TbFolderOpen, TbX } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 
-interface DownloadRow {
-	id: string;
-	url: string;
-	filename: string;
-	savePath: string;
-	mimeType: string | null;
-	totalBytes: number | null;
-	receivedBytes: number;
-	state: "progressing" | "completed" | "cancelled" | "interrupted";
-	startedAt: number;
-	completedAt: number | null;
-}
+type DownloadRow = SelectDownload;
 
 interface DownloadsDialogProps {
 	open: boolean;

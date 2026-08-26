@@ -5,6 +5,7 @@ import {
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
+import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
 import { TbX } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -39,7 +40,9 @@ export function SignedInSitesSubmenu() {
 		electronTrpcClient.browser.clearCookiesForDomain
 			.mutate({ domain })
 			.then(loadDomains)
-			.catch(() => {});
+			.catch(() => {
+				toast.error(`Could not forget ${domain}`);
+			});
 	};
 
 	const matches = useMemo(() => {
@@ -91,13 +94,21 @@ export function SignedInSitesSubmenu() {
 							{visible.map(({ domain, cookieCount }) => (
 								<DropdownMenuItem
 									key={domain}
-									onSelect={(e) => e.preventDefault()}
+									// Keeping the forget action on the item itself (rather than
+									// only the nested button's onClick) is what makes it
+									// reachable via arrow-key navigation + Enter/Space — a click
+									// anywhere in the row, including the button, already bubbles
+									// here, so the button doesn't need its own handler.
+									onSelect={(e) => {
+										e.preventDefault();
+										handleForget(domain);
+									}}
 									className="justify-between gap-2"
 								>
 									<span className="min-w-0 truncate">{domain}</span>
 									<button
 										type="button"
-										onClick={() => handleForget(domain)}
+										tabIndex={-1}
 										aria-label={`Forget ${domain}`}
 										title={`${cookieCount} cookie${cookieCount === 1 ? "" : "s"} — forget this site`}
 										className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
