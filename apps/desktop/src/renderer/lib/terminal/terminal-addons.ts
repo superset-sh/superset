@@ -70,8 +70,9 @@ export function loadAddons(
 	setLigaturesEnabled(options.ligatures);
 
 	// Every terminal attempts WebGL on its own. A failure here degrades THIS
-	// terminal to xterm's DOM renderer, which costs roughly an order of
-	// magnitude more per frame — so it must never be latched for the session.
+	// terminal to xterm's DOM renderer, which costs 1.2x (a TUI redrawing a few
+	// dirty rows) to 13.7x (bulk scrolling output) more renderer CPU — so it
+	// must never be latched for the session.
 	// Losses are routinely transient (a driver reset after an OS update) or
 	// routine (browsers cap live WebGL contexts, so opening enough terminals
 	// evicts the oldest), and latching turned either into a permanently
