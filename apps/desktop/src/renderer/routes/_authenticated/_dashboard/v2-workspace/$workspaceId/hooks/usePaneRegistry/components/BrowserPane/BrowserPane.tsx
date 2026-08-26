@@ -263,10 +263,7 @@ export function BrowserPane({
 				<ChromeImportBanner
 					browserKey={importSource.browserKey}
 					browserName={importSource.browserName}
-					onImport={() => {
-						setIsImportOpen(true);
-						dismissBanner(BROWSER_IMPORT_BANNER_ID);
-					}}
+					onImport={() => setIsImportOpen(true)}
 					onDismiss={() => dismissBanner(BROWSER_IMPORT_BANNER_ID)}
 				/>
 			)}

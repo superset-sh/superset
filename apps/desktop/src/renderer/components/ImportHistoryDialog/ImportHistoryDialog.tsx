@@ -17,6 +17,10 @@ import type { IconType } from "react-icons";
 import { SiArc } from "react-icons/si";
 import { TbWorld } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	BROWSER_IMPORT_BANNER_ID,
+	useBrowserImportBannerDismissalsStore,
+} from "renderer/stores/browser-import-banner-dismissals";
 
 interface ImportSource {
 	id: string;
@@ -54,6 +58,12 @@ export function ImportHistoryDialog({
 	// Logins (cookies) currently only decryptable on macOS.
 	const [importLogins, setImportLogins] = useState(isMac);
 	const [isImporting, setIsImporting] = useState(false);
+	// This dialog is opened from three places (the pane's banner, its
+	// overflow menu, and Settings > Browser) — dismissing the banner here, on
+	// an actual successful import, is the one place that covers all of them.
+	const dismissImportBanner = useBrowserImportBannerDismissalsStore(
+		(s) => s.dismiss,
+	);
 
 	const loadSources = useCallback(() => {
 		setLoadState({ status: "loading" });
@@ -120,6 +130,7 @@ export function ImportHistoryDialog({
 			}
 
 			toast.success(`Imported ${messages.join(" and ")}`);
+			dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
 			onOpenChange(false);
 		} catch (error: unknown) {
 			toast.error("Could not import from browser", {
