@@ -59,7 +59,7 @@ export function V2SetupScriptCard({
 			>
 				<SidebarCard
 					badge="Setup"
-					title="Setup scripts"
+					title="Lifecycle scripts"
 					description={`Automate workspace setup for ${projectName}`}
 					actionLabel="Configure"
 					onAction={handleConfigure}

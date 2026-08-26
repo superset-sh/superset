@@ -181,7 +181,7 @@ export const SETTINGS: SettingDefinition[] = [
 		key: "showPresetsBar",
 		type: "boolean",
 		section: "terminal",
-		description: "Show the terminal presets bar",
+		description: "Show the terminal scripts bar",
 		defaultValue: true,
 	},
 	{
@@ -195,7 +195,7 @@ export const SETTINGS: SettingDefinition[] = [
 		key: "autoApplyDefaultPreset",
 		type: "boolean",
 		section: "terminal",
-		description: "Apply the default terminal preset to new workspaces",
+		description: "Apply the default terminal script to new workspaces",
 		defaultValue: true,
 	},
 	{

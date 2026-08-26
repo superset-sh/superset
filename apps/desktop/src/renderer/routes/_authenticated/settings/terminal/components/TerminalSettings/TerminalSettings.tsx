@@ -75,7 +75,7 @@ export function TerminalSettings({
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Terminal</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure terminal behavior and presets
+					Configure terminal behavior and reusable terminal scripts
 				</p>
 			</div>
 

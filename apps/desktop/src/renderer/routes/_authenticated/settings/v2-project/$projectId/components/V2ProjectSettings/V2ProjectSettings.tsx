@@ -313,8 +313,8 @@ export function V2ProjectSettings({
 
 				{targetHostUrl && (
 					<SettingsSection
-						title="Scripts"
-						description="Runs in a terminal for setup, teardown, and the workspace Run button."
+						title="Project lifecycle scripts"
+						description="Commands run for workspace setup, teardown, and the Run button."
 					>
 						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
 					</SettingsSection>

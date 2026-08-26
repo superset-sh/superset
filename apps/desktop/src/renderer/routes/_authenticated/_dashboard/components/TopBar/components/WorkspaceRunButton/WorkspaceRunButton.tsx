@@ -175,7 +175,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
 						{runDefinition?.source === "terminal-preset"
-							? "Edit Run Preset"
+							? "Edit Run Script"
 							: "Configure"}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
