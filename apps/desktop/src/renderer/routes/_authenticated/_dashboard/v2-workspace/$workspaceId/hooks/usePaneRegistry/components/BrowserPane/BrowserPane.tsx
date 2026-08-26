@@ -288,8 +288,6 @@ export function BrowserPane({
 							? {
 									width: deviceToolbarSize.width,
 									height: deviceToolbarSize.height,
-									maxWidth: "100%",
-									maxHeight: "100%",
 								}
 							: undefined
 					}

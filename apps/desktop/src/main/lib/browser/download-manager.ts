@@ -11,17 +11,6 @@ import { localDb } from "../local-db";
 const BROWSER_PARTITION = "persist:superset";
 const MAX_TRACKED_DOWNLOADS = 200;
 
-/** Chrome-style dedupe: "report.pdf" -> "report (1).pdf" -> "report (2).pdf". */
-function resolveSavePath(dir: string, filename: string): string {
-	const ext = extname(filename);
-	const base = basename(filename, ext);
-	let candidate = join(dir, filename);
-	for (let n = 1; existsSync(candidate); n++) {
-		candidate = join(dir, `${base} (${n})${ext}`);
-	}
-	return candidate;
-}
-
 /**
  * Tracks downloads started from the in-app browser pane's session. A single
  * `will-download` listener on the shared partition covers every pane (and
@@ -29,7 +18,28 @@ function resolveSavePath(dir: string, filename: string): string {
  */
 class DownloadManager extends EventEmitter {
 	private activeItems = new Map<string, Electron.DownloadItem>();
+	// Paths chosen for a download that's still in flight — `existsSync` alone
+	// can't see these, since Electron doesn't create the file on disk until
+	// the transfer actually starts writing, so two downloads picked close
+	// together could otherwise resolve to (and overwrite) the same path.
+	private reservedPaths = new Set<string>();
 	private started = false;
+
+	/** Chrome-style dedupe: "report.pdf" -> "report (1).pdf" -> "report (2).pdf". */
+	private reserveSavePath(dir: string, filename: string): string {
+		const ext = extname(filename);
+		const base = basename(filename, ext);
+		let candidate = join(dir, filename);
+		for (
+			let n = 1;
+			existsSync(candidate) || this.reservedPaths.has(candidate);
+			n++
+		) {
+			candidate = join(dir, `${base} (${n})${ext}`);
+		}
+		this.reservedPaths.add(candidate);
+		return candidate;
+	}
 
 	start(): void {
 		if (this.started) return;
@@ -50,7 +60,7 @@ class DownloadManager extends EventEmitter {
 
 		ses.on("will-download", (_event, item) => {
 			const id = randomUUID();
-			const savePath = resolveSavePath(downloadDir, item.getFilename());
+			const savePath = this.reserveSavePath(downloadDir, item.getFilename());
 			item.setSavePath(savePath);
 
 			localDb
@@ -85,6 +95,7 @@ class DownloadManager extends EventEmitter {
 
 			item.once("done", (_e, state) => {
 				this.activeItems.delete(id);
+				this.reservedPaths.delete(savePath);
 				localDb
 					.update(downloads)
 					.set({

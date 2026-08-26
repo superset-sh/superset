@@ -96,9 +96,11 @@ export function ImportHistoryDialog({
 		if (!selectedId) return;
 		setIsImporting(true);
 		const messages: string[] = [];
-		// Set as soon as either mutation resolves, so a failure in the second
-		// one (e.g. cookie import) doesn't hide that the first already wrote
-		// real data — the banner should stop nagging either way.
+		// True only once a mutation both resolves and actually wrote a record —
+		// a zero-result run (empty source) or a skipped one (Keychain denied)
+		// must not count, or the banner dismisses for good after finding
+		// nothing. Kept true if a later branch fails, so a failure in the
+		// second mutation doesn't hide that the first already wrote real data.
 		let importedSomething = false;
 		try {
 			if (importHistory) {
@@ -106,7 +108,7 @@ export function ImportHistoryDialog({
 					await electronTrpcClient.browserHistory.importFromSource.mutate({
 						sourceId: selectedId,
 					});
-				importedSomething = true;
+				importedSomething ||= result.imported > 0;
 				messages.push(
 					result.imported === 0
 						? "no history"
@@ -126,7 +128,7 @@ export function ImportHistoryDialog({
 					// must not count toward importedSomething below.
 					messages.push("logins skipped (Keychain access denied)");
 				} else {
-					importedSomething = true;
+					importedSomething ||= result.imported > 0;
 					messages.push(
 						result.imported === 0
 							? "no logins"
