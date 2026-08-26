@@ -183,7 +183,7 @@ export const actionsProvider: CommandProvider = {
 			},
 			{
 				id: "actions.newWindow",
-				title: "New Window",
+				title: "New window",
 				section: "actions",
 				icon: AppWindowIcon,
 				keywords: ["window", "open", "multi"],

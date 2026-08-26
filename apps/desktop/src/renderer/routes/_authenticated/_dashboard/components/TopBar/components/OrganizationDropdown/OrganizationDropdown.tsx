@@ -195,7 +195,7 @@ export function OrganizationDropdown({
 
 					<DropdownMenuItem onSelect={() => openNewWindow.mutate()}>
 						<HiOutlineWindow className="h-4 w-4" />
-						<span>New Window</span>
+						<span>New window</span>
 					</DropdownMenuItem>
 
 					<HelpSubMenu onSubmitPrompt={() => setSubmitPromptOpen(true)} />
