@@ -23,7 +23,6 @@ import {
 } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
@@ -83,6 +82,25 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		}
 	};
 
+	const revokeMutation = cloudTrpc.apiKey.revoke.useMutation({
+		onMutate: async ({ id }) => {
+			await utils.apiKey.list.cancel();
+			const previousKeys = utils.apiKey.list.getData();
+			utils.apiKey.list.setData(undefined, (keys) =>
+				keys?.filter((key) => key.id !== id),
+			);
+			return { previousKeys };
+		},
+		onError: (error, _input, context) => {
+			utils.apiKey.list.setData(undefined, context?.previousKeys);
+			toast.error(error.message || "Failed to revoke API key");
+		},
+		onSuccess: () => {
+			toast.success("API key revoked");
+		},
+		onSettled: () => utils.apiKey.list.invalidate(),
+	});
+
 	const handleRevokeKey = (id: string, name: string | null) => {
 		alert({
 			title: "Revoke API key",
@@ -92,10 +110,8 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				{
 					label: "Revoke",
 					variant: "destructive",
-					onClick: async () => {
-						await authClient.apiKey.delete({ keyId: id });
-						await utils.apiKey.list.invalidate();
-						toast.success("API key revoked");
+					onClick: () => {
+						revokeMutation.mutate({ id });
 					},
 				},
 			],

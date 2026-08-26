@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { apikeys } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure } from "../../trpc";
@@ -43,5 +43,27 @@ export const apiKeyRouter = {
 			});
 
 			return { key: result.key };
+		}),
+
+	revoke: protectedProcedure
+		.input(z.object({ id: z.uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const deleted = await db
+				.delete(apikeys)
+				.where(
+					and(
+						eq(apikeys.id, input.id),
+						eq(apikeys.organizationId, organizationId),
+					),
+				)
+				.returning({ id: apikeys.id });
+
+			if (deleted.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "API key not found",
+				});
+			}
 		}),
 };
