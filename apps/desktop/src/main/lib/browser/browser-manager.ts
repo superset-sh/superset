@@ -777,6 +777,32 @@ class BrowserManager extends EventEmitter {
 		wc.openDevTools({ mode: "detach" });
 	}
 
+	/**
+	 * Emulate a fixed device viewport (Chrome's "device toolbar"), or clear the
+	 * emulation when `params` is null. Device metrics live on the main-process
+	 * `WebContents`, not the renderer-side `<webview>` tag, so this is the one
+	 * viewport control that can't be done directly from the registry.
+	 */
+	setDeviceEmulation(
+		paneId: string,
+		params: { width: number; height: number } | null,
+	): void {
+		const wc = this.getWebContents(paneId);
+		if (!wc) return;
+		if (!params) {
+			wc.disableDeviceEmulation();
+			return;
+		}
+		wc.enableDeviceEmulation({
+			screenPosition: "mobile",
+			screenSize: { width: params.width, height: params.height },
+			viewPosition: { x: 0, y: 0 },
+			deviceScaleFactor: 0,
+			viewSize: { width: params.width, height: params.height },
+			scale: 1,
+		});
+	}
+
 	// Block navigations to disallowed schemes (file:, chrome:, devtools:, …) on
 	// the guest itself, so the policy holds whether the load came from the
 	// toolbar, a link, or a raw CDP `Page.navigate` (which skips sanitizeUrl).

@@ -9,6 +9,7 @@ import { createChangesRouter } from "./changes";
 import { createChatServiceRouter } from "./chat-service";
 import { createConfigRouter } from "./config";
 import { createDeviceRouter } from "./device";
+import { createDownloadsRouter } from "./downloads";
 import { createExternalRouter } from "./external";
 import { createFilesystemRouter } from "./filesystem";
 import { createGithubStarRouter } from "./github-star";
@@ -37,6 +38,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		analytics: createAnalyticsRouter(),
 		browser: createBrowserRouter(),
 		browserHistory: createBrowserHistoryRouter(),
+		downloads: createDownloadsRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		window: createWindowRouter(),
