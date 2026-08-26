@@ -47,11 +47,15 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 		// The old query's count no longer describes anything — drop it until
 		// the new search reports back (repopulated by the next found-in-page).
 		setMatch(null);
-		runSearch(value, true, false);
+		// findNext: true starts a new find session — required here since the
+		// search text itself just changed (Electron's naming is backwards from
+		// what it sounds like: true = initial/new-term request, false = a
+		// follow-up within the same still-active session).
+		runSearch(value, true, true);
 	};
 
-	const goNext = () => runSearch(query, true, true);
-	const goPrev = () => runSearch(query, false, true);
+	const goNext = () => runSearch(query, true, false);
+	const goPrev = () => runSearch(query, false, false);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Escape") {

@@ -108,6 +108,10 @@ class DownloadManager extends EventEmitter {
 			.all();
 	}
 
+	getById(id: string) {
+		return localDb.select().from(downloads).where(eq(downloads.id, id)).get();
+	}
+
 	/** True if a live in-progress download was found and cancelled. */
 	cancel(id: string): boolean {
 		const item = this.activeItems.get(id);

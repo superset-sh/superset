@@ -33,17 +33,25 @@ export const createDownloadsRouter = () => {
 			return { success: true };
 		}),
 
+		// Both procedures resolve the path from the tracked download row rather
+		// than trusting a renderer-supplied path, so a compromised/buggy
+		// renderer can't point shell.openPath/showItemInFolder at an arbitrary
+		// file on disk.
 		showInFolder: publicProcedure
-			.input(z.object({ savePath: z.string() }))
+			.input(z.object({ id: z.string() }))
 			.mutation(({ input }) => {
-				downloadManager.showInFolder(input.savePath);
+				const row = downloadManager.getById(input.id);
+				if (!row) return { success: false };
+				downloadManager.showInFolder(row.savePath);
 				return { success: true };
 			}),
 
 		openFile: publicProcedure
-			.input(z.object({ savePath: z.string() }))
+			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				const error = await downloadManager.openFile(input.savePath);
+				const row = downloadManager.getById(input.id);
+				if (!row) return { success: false };
+				const error = await downloadManager.openFile(row.savePath);
 				return { success: error === "" };
 			}),
 	});

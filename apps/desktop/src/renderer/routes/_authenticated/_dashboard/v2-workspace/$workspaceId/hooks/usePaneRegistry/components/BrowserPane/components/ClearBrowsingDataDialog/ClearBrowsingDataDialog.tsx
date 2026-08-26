@@ -31,29 +31,55 @@ export function ClearBrowsingDataDialog({
 
 	const handleClear = async () => {
 		setIsClearing(true);
-		try {
-			await Promise.all([
-				clearHistory ? electronTrpcClient.browserHistory.clear.mutate() : null,
-				clearCookies
-					? electronTrpcClient.browser.clearBrowsingData.mutate({
-							type: "cookies",
-						})
-					: null,
-				clearCache
-					? electronTrpcClient.browser.clearBrowsingData.mutate({
-							type: "cache",
-						})
-					: null,
-			]);
+		// Each task is independent (history vs. cookies vs. cache are separate
+		// destructive operations) — settle them individually so one rejecting
+		// doesn't misreport the others, which may have already completed, as
+		// failed too and invite the user to retry work that's already done.
+		const tasks: Array<{ label: string; run: () => Promise<unknown> }> = [];
+		if (clearHistory) {
+			tasks.push({
+				label: "history",
+				run: () => electronTrpcClient.browserHistory.clear.mutate(),
+			});
+		}
+		if (clearCookies) {
+			tasks.push({
+				label: "cookies and site data",
+				run: () =>
+					electronTrpcClient.browser.clearBrowsingData.mutate({
+						type: "cookies",
+					}),
+			});
+		}
+		if (clearCache) {
+			tasks.push({
+				label: "cached files",
+				run: () =>
+					electronTrpcClient.browser.clearBrowsingData.mutate({
+						type: "cache",
+					}),
+			});
+		}
+
+		const results = await Promise.allSettled(tasks.map((task) => task.run()));
+		const failed = tasks.filter((_, i) => results[i]?.status === "rejected");
+		const succeeded = tasks.filter(
+			(_, i) => results[i]?.status === "fulfilled",
+		);
+
+		if (failed.length === 0) {
 			toast.success("Browsing data cleared");
 			onOpenChange(false);
-		} catch (error) {
-			toast.error("Could not clear browsing data", {
-				description: error instanceof Error ? error.message : undefined,
-			});
-		} finally {
-			setIsClearing(false);
+		} else if (succeeded.length > 0) {
+			toast.error(
+				`Cleared ${succeeded.map((t) => t.label).join(", ")} — could not clear ${failed
+					.map((t) => t.label)
+					.join(", ")}`,
+			);
+		} else {
+			toast.error("Could not clear browsing data");
 		}
+		setIsClearing(false);
 	};
 
 	return (

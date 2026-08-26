@@ -68,14 +68,12 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 		electronTrpcClient.downloads.cancel.mutate({ id }).catch(() => {});
 	};
 
-	const handleOpen = (savePath: string) => {
-		electronTrpcClient.downloads.openFile.mutate({ savePath }).catch(() => {});
+	const handleOpen = (id: string) => {
+		electronTrpcClient.downloads.openFile.mutate({ id }).catch(() => {});
 	};
 
-	const handleShowInFolder = (savePath: string) => {
-		electronTrpcClient.downloads.showInFolder
-			.mutate({ savePath })
-			.catch(() => {});
+	const handleShowInFolder = (id: string) => {
+		electronTrpcClient.downloads.showInFolder.mutate({ id }).catch(() => {});
 	};
 
 	const handleClear = () => {
@@ -105,7 +103,7 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 									<button
 										type="button"
 										onClick={() =>
-											row.state === "completed" && handleOpen(row.savePath)
+											row.state === "completed" && handleOpen(row.id)
 										}
 										disabled={row.state !== "completed"}
 										className="min-w-0 flex-1 text-left disabled:cursor-default"
@@ -129,7 +127,7 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 									) : (
 										<button
 											type="button"
-											onClick={() => handleShowInFolder(row.savePath)}
+											onClick={() => handleShowInFolder(row.id)}
 											aria-label="Show in folder"
 											className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
 										>

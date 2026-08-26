@@ -121,10 +121,12 @@ export function ImportHistoryDialog({
 					await electronTrpcClient.browserHistory.importCookiesFromSource.mutate(
 						{ sourceId: selectedId },
 					);
-				importedSomething = true;
 				if (result.keyUnavailable) {
+					// Nothing was actually written — Keychain denied access — so this
+					// must not count toward importedSomething below.
 					messages.push("logins skipped (Keychain access denied)");
 				} else {
+					importedSomething = true;
 					messages.push(
 						result.imported === 0
 							? "no logins"
@@ -135,8 +137,14 @@ export function ImportHistoryDialog({
 				}
 			}
 
-			toast.success(`Imported ${messages.join(" and ")}`);
-			dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
+			if (importedSomething) {
+				toast.success(`Imported ${messages.join(" and ")}`);
+				dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
+			} else {
+				toast.error("Could not import from browser", {
+					description: messages.join(" and ") || undefined,
+				});
+			}
 			onOpenChange(false);
 		} catch (error: unknown) {
 			// A failure here means one of the two imports above threw — if the
