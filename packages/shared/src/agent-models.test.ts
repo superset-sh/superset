@@ -1,12 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import {
 	AGENT_EFFORT_SUPPORT,
+	AGENT_MODE_SUPPORT,
 	AGENT_MODEL_SUPPORT,
 	buildAgentEffortArgs,
+	buildAgentModeArgs,
 	buildAgentModelArgs,
 	buildAgentModelEnv,
 	getAgentEffortSupport,
 	getAgentModelSupport,
+	getAgentModeSupport,
+	resolveAgentLaunchPresetId,
 	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
 import { BUILTIN_TERMINAL_AGENT_TYPES } from "./builtin-terminal-agents";
@@ -16,6 +20,7 @@ describe("AGENT_MODEL_SUPPORT", () => {
 		const validIds = new Set<string>([
 			...BUILTIN_TERMINAL_AGENT_TYPES,
 			"superset",
+			"omp",
 		]);
 		for (const entry of AGENT_MODEL_SUPPORT) {
 			expect(validIds.has(entry.presetId)).toBe(true);
@@ -168,11 +173,19 @@ describe("buildAgentModelArgs", () => {
 		expect(buildAgentModelArgs("polygraph", "")).toEqual([]);
 		expect(buildAgentModelArgs("polygraph", "gemini")).toEqual([]);
 	});
+
+	it("builds OMP model args for configured roles and exact models", () => {
+		expect(buildAgentModelArgs("omp", "@plan")).toEqual(["--model", "@plan"]);
+		expect(buildAgentModelArgs("omp", "openai-codex/gpt-5.6-sol")).toEqual([
+			"--model",
+			"openai-codex/gpt-5.6-sol",
+		]);
+	});
 });
 
 describe("AGENT_EFFORT_SUPPORT", () => {
 	it("only references builtin presets", () => {
-		const validIds = new Set<string>(BUILTIN_TERMINAL_AGENT_TYPES);
+		const validIds = new Set<string>([...BUILTIN_TERMINAL_AGENT_TYPES, "omp"]);
 		for (const entry of AGENT_EFFORT_SUPPORT) {
 			expect(validIds.has(entry.presetId)).toBe(true);
 		}
@@ -182,6 +195,54 @@ describe("AGENT_EFFORT_SUPPORT", () => {
 		for (const entry of AGENT_EFFORT_SUPPORT) {
 			expect(entry.efforts.length).toBeGreaterThan(0);
 		}
+	});
+});
+
+describe("AGENT_MODE_SUPPORT", () => {
+	it("only references builtin presets", () => {
+		const validIds = new Set<string>([...BUILTIN_TERMINAL_AGENT_TYPES, "omp"]);
+		for (const entry of AGENT_MODE_SUPPORT) {
+			expect(validIds.has(entry.presetId)).toBe(true);
+		}
+	});
+
+	it("lists at least one mode per entry", () => {
+		for (const entry of AGENT_MODE_SUPPORT) {
+			expect(entry.modes.length).toBeGreaterThan(0);
+		}
+	});
+});
+
+describe("getAgentModeSupport", () => {
+	it("returns OMP plan-mode support", () => {
+		expect(getAgentModeSupport("omp")?.modes.map((mode) => mode.id)).toEqual([
+			"plan",
+		]);
+	});
+
+	it("returns undefined for presets without launch modes", () => {
+		expect(getAgentModeSupport("claude")).toBeUndefined();
+	});
+});
+
+describe("resolveAgentLaunchPresetId", () => {
+	it("recognizes OMP without reclassifying legacy Pi", () => {
+		expect(resolveAgentLaunchPresetId("pi", "omp")).toBe("omp");
+		expect(
+			resolveAgentLaunchPresetId("custom:omp", "/opt/homebrew/bin/omp"),
+		).toBe("omp");
+		expect(resolveAgentLaunchPresetId("pi", "C:\\Tools\\OMP.EXE")).toBe("omp");
+		expect(resolveAgentLaunchPresetId("pi", "pi")).toBe("pi");
+		expect(resolveAgentLaunchPresetId("custom", "")).toBe("custom");
+	});
+
+	it("recognizes OMP when the configured command carries arguments", () => {
+		expect(resolveAgentLaunchPresetId("pi", "omp --foo")).toBe("omp");
+		expect(resolveAgentLaunchPresetId("pi", "/usr/local/bin/omp --foo")).toBe(
+			"omp",
+		);
+		expect(resolveAgentLaunchPresetId("pi", "OMP.EXE --foo")).toBe("omp");
+		expect(resolveAgentLaunchPresetId("pi", "pi --foo")).toBe("pi");
 	});
 });
 
@@ -223,6 +284,19 @@ describe("buildAgentEffortArgs", () => {
 	it("returns [] for effort ids outside the preset's curated list", () => {
 		expect(buildAgentEffortArgs("claude", "bogus")).toEqual([]);
 		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
+	});
+});
+
+describe("buildAgentModeArgs", () => {
+	it("starts OMP in plan-first mode", () => {
+		expect(buildAgentModeArgs("omp", "plan")).toEqual(["--plan-yolo"]);
+	});
+
+	it("degrades unset and unsupported modes to the CLI default", () => {
+		expect(buildAgentModeArgs("omp", undefined)).toEqual([]);
+		expect(buildAgentModeArgs("omp", "bogus")).toEqual([]);
+		expect(buildAgentModeArgs("pi", "plan")).toEqual([]);
+		expect(buildAgentModeArgs("claude", "plan")).toEqual([]);
 	});
 });
 

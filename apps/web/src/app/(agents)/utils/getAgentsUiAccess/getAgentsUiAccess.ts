@@ -2,16 +2,9 @@ import { auth } from "@superset/auth/server";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { PostHog } from "posthog-node";
 import { cache } from "react";
 
-import { env } from "@/env";
-
-const posthog = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
-	host: env.NEXT_PUBLIC_POSTHOG_HOST,
-	flushAt: 1,
-	flushInterval: 0,
-});
+import { posthogServer } from "@/lib/posthog-server";
 
 export const getAgentsUiAccess = cache(async () => {
 	const session = await auth.api.getSession({
@@ -26,7 +19,7 @@ export const getAgentsUiAccess = cache(async () => {
 
 	try {
 		hasAgentsUiAccess = Boolean(
-			await posthog.getFeatureFlag(
+			await posthogServer.getFeatureFlag(
 				FEATURE_FLAGS.WEB_AGENTS_UI_ACCESS,
 				session.user.id,
 			),

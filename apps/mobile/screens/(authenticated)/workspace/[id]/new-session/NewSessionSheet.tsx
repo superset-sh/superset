@@ -1,8 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, View } from "react-native";
+import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
@@ -13,6 +14,7 @@ import {
 import { getHostTerminalsQueryKey } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
 import { AgentMark } from "@/screens/(authenticated)/(home)/new-session/agent";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 
 /**
  * Bottom sheet for the tab strip's + — the host's agent presets plus a plain
@@ -23,28 +25,37 @@ export function NewSessionSheet() {
 	const router = useRouter();
 	const theme = useTheme();
 	const queryClient = useQueryClient();
-	const { workspace, host } = useWorkspaceHost(id ?? null);
+	const { workspace, host, isResolving } = useWorkspaceHost(id ?? null);
 	const hostUrl = host
 		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
 
-	const presetsQuery = useQuery({
-		queryKey: ["host-agent-configs", host?.machineId ?? null],
-		enabled: hostUrl !== null,
-		staleTime: 60_000,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!hostUrl) return [];
-			return getHostServiceClientByUrl(
-				hostUrl,
-			).settings.agentConfigs.list.query();
-		},
+	const presetsQuery = useHostAgentConfigs({
+		machineId: host?.machineId ?? null,
+		hostUrl,
 	});
 	const presets = presetsQuery.data ?? [];
 
 	// The launching row shows a spinner; every row locks until the launch
 	// resolves so a double-tap can't start two sessions.
 	const [launchingKey, setLaunchingKey] = useState<string | null>(null);
+
+	let notice: string | null = null;
+	let isLoading = false;
+	let canRetry = false;
+	if (!host) {
+		if (isResolving) isLoading = true;
+		else notice = "Could not reach this workspace's machine";
+	} else if (presets.length === 0) {
+		if (presetsQuery.isError) {
+			notice = "Could not load presets from the host";
+			canRetry = true;
+		} else if (presetsQuery.isPending) {
+			isLoading = true;
+		} else {
+			notice = "No agents configured on this machine";
+		}
+	}
 
 	const launch = async (agentId: string | null) => {
 		if (!workspace || !hostUrl || launchingKey !== null) return;
@@ -100,15 +111,19 @@ export function NewSessionSheet() {
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
-			{presets.length === 0 ? (
-				<View className="items-center py-8">
-					{presetsQuery.isError ? (
-						<Text className="text-muted-foreground text-sm">
-							Could not load presets from the host.
-						</Text>
-					) : (
-						spinner
-					)}
+			{isLoading ? <View className="items-center py-8">{spinner}</View> : null}
+			{notice ? (
+				<View className="items-center gap-3 py-8">
+					<Text className="text-muted-foreground text-sm">{notice}</Text>
+					{canRetry ? (
+						<Button
+							size="sm"
+							variant="secondary"
+							onPress={() => void presetsQuery.refetch()}
+						>
+							<Text>Try again</Text>
+						</Button>
+					) : null}
 				</View>
 			) : null}
 			{presets.map((preset) => (

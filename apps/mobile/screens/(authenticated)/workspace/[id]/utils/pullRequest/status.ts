@@ -58,5 +58,7 @@ export function pullRequestStatus(
 	if (pullRequest.mergedAt || pullRequest.state === "merged") return "merged";
 	if (pullRequest.state === "closed") return "closed";
 	if (pullRequest.isDraft) return "draft";
-	return queued ? "queued" : "open";
+	// The host history rows carry "queued" as a state; the detail path derives
+	// it from mergeability and passes the flag instead.
+	return queued || pullRequest.state === "queued" ? "queued" : "open";
 }

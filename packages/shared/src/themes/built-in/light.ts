@@ -29,6 +29,8 @@ export const lightTheme: Theme = {
 		tertiaryActive: "oklch(0.90 0.003 40)",
 		destructive: "oklch(0.577 0.245 27.325)",
 		destructiveForeground: "oklch(0.985 0 0)",
+		warning: "#906d00",
+		warningForeground: "#ffffff",
 		border: "oklch(0.922 0 0)",
 		input: "oklch(0.922 0 0)",
 		ring: "oklch(0.708 0 0)",

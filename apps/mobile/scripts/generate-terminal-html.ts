@@ -36,10 +36,11 @@ const xtermVersion = (
  *   page -> RN: {type:"ready"} | {type:"dial", id, replay} |
  *               {type:"state", state} | {type:"control", message} |
  *               {type:"openUrl", url} | {type:"copy", text} |
- *               {type:"select", active, hasSelection}
+ *               {type:"select", active, hasSelection} |
+ *               {type:"scroll", atBottom}
  *   RN -> page: {type:"dialUrl", id, url?, error?} | {type:"input", data} |
  *               {type:"resume"} | {type:"focus"} |
- *               {type:"copySelection"}
+ *               {type:"copySelection"} | {type:"scrollToBottom"}
  *
  * Touch: a tap on a link opens it, a long press enters select mode (native
  * iOS selection over a frozen snapshot of the buffer), and an overlay
@@ -135,6 +136,12 @@ const runtimeJs = /* js */ `
 	// socket handlers, reconnect timers) bails when its generation is behind.
 	var generation = 0;
 
+	// Whether the terminal screen is actually on screen — RN owns this (screen
+	// focus AND app foreground) and pushes it in. The host sizes the PTY to the
+	// smallest visible client, so a phone that has been backgrounded must stop
+	// counting: otherwise it holds every desktop pane at phone width.
+	var isVisible = true;
+
 	function connect() {
 		if (terminated) return;
 		var gen = generation;
@@ -186,6 +193,9 @@ const runtimeJs = /* js */ `
 				attempts = 0;
 				everAttached = true;
 				setState("open");
+				// Before the dims: the host's minimum should never briefly
+				// include a phone that is already backgrounded.
+				sendVisible();
 				sendResize();
 			} else if (message.type === "exit" || message.type === "error") {
 				// Server closes after these; reconnecting would just repeat them.
@@ -235,6 +245,12 @@ const runtimeJs = /* js */ `
 		}
 		if (ws && ws.readyState === 1) {
 			ws.send(JSON.stringify({ type: "input", data: data }));
+		}
+	}
+
+	function sendVisible() {
+		if (ws && ws.readyState === 1) {
+			ws.send(JSON.stringify({ type: "visible", visible: isVisible }));
 		}
 	}
 
@@ -296,9 +312,18 @@ const runtimeJs = /* js */ `
 			}
 			exitSelectMode();
 			term.reset();
+			// reset() fires neither onScroll nor onWriteParsed, so the scrollbar
+			// and the at-bottom flag would still describe the session we left.
+			scheduleScrollbar();
 			connect();
 		} else if (message.type === "copySelection") {
 			copySelection();
+		} else if (message.type === "scrollToBottom") {
+			term.scrollToBottom();
+		} else if (message.type === "visible") {
+			if (isVisible === message.visible) return;
+			isVisible = message.visible;
+			sendVisible();
 		} else if (message.type === "focus") {
 			allowTextareaFocus = true;
 			term.focus();
@@ -709,7 +734,13 @@ const runtimeJs = /* js */ `
 			return;
 		}
 		if (event.type !== "touchend" || Date.now() - touch.at > TAP_MAX_MS) return;
-		if (activateLinkAt(touch.x, touch.y)) event.preventDefault();
+		if (activateLinkAt(touch.x, touch.y)) {
+			event.preventDefault();
+			return;
+		}
+		// A plain tap on the terminal. The app uses it to dismiss the keyboard
+		// now that no overlay sits above the WebView eating scroll drags.
+		post({ type: "tap" });
 	}
 	termEl.addEventListener("touchend", endTermTouch, { passive: false });
 	termEl.addEventListener("touchcancel", endTermTouch, { passive: false });
@@ -721,11 +752,22 @@ const runtimeJs = /* js */ `
 	var scrollbar = document.getElementById("scrollbar");
 	var thumb = document.getElementById("scrollbar-thumb");
 	var scrollbarFrame = 0;
+	// RN draws the scroll-to-bottom button, so it needs this side's answer to
+	// the question the scrollbar already asks — the two appear together. The
+	// alternate buffer keeps no scrollback, so \`hidden\` is 0 there and neither
+	// shows: a TUI in full-screen mode owns its own scroll, and scrollToBottom
+	// would be a no-op.
+	var atBottom = true;
 
 	function updateScrollbar() {
 		scrollbarFrame = 0;
 		var buffer = term.buffer.active;
 		var hidden = buffer.length - term.rows;
+		var nowAtBottom = hidden <= 0 || buffer.viewportY >= hidden;
+		if (nowAtBottom !== atBottom) {
+			atBottom = nowAtBottom;
+			post({ type: "scroll", atBottom: atBottom });
+		}
 		// Never hide mid-drag: reaching the bottom would remove the track (and
 		// its pointer-events) under the finger.
 		if (hidden <= 0 || (buffer.viewportY >= hidden && !thumbDrag)) {
@@ -782,6 +824,10 @@ const runtimeJs = /* js */ `
 	scrollbar.addEventListener("touchcancel", endThumbDrag);
 
 	post({ type: "ready" });
+	// Announce the initial scroll state: updateScrollbar only posts on flips,
+	// so a remounted page starting at the live edge would otherwise leave RN
+	// holding whatever the previous terminal reported.
+	post({ type: "scroll", atBottom: atBottom });
 	connect();
 })();
 `;

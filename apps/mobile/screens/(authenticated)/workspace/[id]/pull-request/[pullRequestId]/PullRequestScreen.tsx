@@ -2,10 +2,9 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
 	Linking,
 	Pressable,
 	RefreshControl,
@@ -15,14 +14,17 @@ import {
 } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { posthog } from "@/lib/posthog";
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { HeaderNotice } from "../../components/HeaderNotice";
 import { PullRequestCard } from "./components/PullRequestCard";
 import { PullRequestDescription } from "./components/PullRequestDescription";
 import { PullRequestHeader } from "./components/PullRequestHeader";
+import { useAskAgent } from "./hooks/useAskAgent";
 import { useMergePullRequest } from "./hooks/useMergePullRequest";
+import { usePullRequestActions } from "./hooks/usePullRequestActions";
 import { usePullRequestRoute } from "./usePullRequestRoute";
-import type { ActionId } from "./utils/pullRequestState";
+import { type ActionId, isAgentAction } from "./utils/pullRequestState";
 
 const NOTICE_MS = 1500;
 
@@ -39,6 +41,18 @@ export function PullRequestScreen() {
 		repo,
 	} = usePullRequestRoute();
 
+	// Once per pull request the screen shows, not once per refetch.
+	const openedPullRequestRef = useRef<string | null>(null);
+	useEffect(() => {
+		const key = `${workspaceId}:${pullNumber}`;
+		if (pullNumber === null || openedPullRequestRef.current === key) return;
+		openedPullRequestRef.current = key;
+		posthog.capture("pull_request_opened", {
+			workspace_id: workspaceId,
+			pr_number: pullNumber,
+		});
+	}, [workspaceId, pullNumber]);
+
 	const requestAppReview = useAppReviewPrompt();
 	const merge = useMergePullRequest({
 		workspaceId,
@@ -50,6 +64,14 @@ export function PullRequestScreen() {
 			requestAppReview("pr_merged");
 		},
 	});
+	const actions = usePullRequestActions({
+		workspaceId,
+		owner,
+		repo,
+		pullNumber,
+		onDone: () => void refetch(),
+	});
+	const askAgent = useAskAgent({ workspaceId });
 
 	const [notice, setNotice] = useState<string | null>(null);
 	const hideNotice = useCallback(() => setNotice(null), []);
@@ -108,7 +130,11 @@ export function PullRequestScreen() {
 			merge.confirmAndMerge(detail);
 			return;
 		}
-		Alert.alert("Not available yet", "This action is not wired up yet.");
+		if (isAgentAction(action)) {
+			askAgent.ask(action, detail);
+			return;
+		}
+		actions.run(action);
 	};
 
 	return (
@@ -180,7 +206,11 @@ export function PullRequestScreen() {
 					queued={detail.mergeability.queue !== null}
 				/>
 				<PullRequestCard
-					busyAction={merge.isMerging ? "merge" : null}
+					busyAction={
+						merge.isMerging
+							? "merge"
+							: (actions.busyAction ?? askAgent.busyAction)
+					}
 					capabilities={detail.capabilities}
 					checks={detail.checks}
 					mergeability={detail.mergeability}

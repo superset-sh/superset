@@ -5,10 +5,15 @@
 // clone-safe and free of DB/event-bus/native imports (see
 // no-native-worker-imports.test.ts).
 
+/** Names the step a multi-step handler is about to start. The pool keeps the
+ * last value and names it in the task's timeout error, so a handler that
+ * hangs says where it hung. Single-step handlers ignore it. */
+export type ReportTaskPhase = (phase: string) => void;
+
 export interface WorkerTaskDefinition<TInput, TResult> {
 	/** Namespaced as "<domain>/<task>", e.g. "git/getStatusSnapshot". */
 	type: string;
-	handler: (input: TInput) => Promise<TResult>;
+	handler: (input: TInput, reportPhase?: ReportTaskPhase) => Promise<TResult>;
 }
 
 export function defineWorkerTask<TInput, TResult>(

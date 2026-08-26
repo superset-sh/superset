@@ -11,9 +11,9 @@ import { UniversalCompatibilityDemo } from "./components/UniversalCompatibilityD
 import { FEATURES } from "./constants";
 
 const DEMO_COMPONENTS = [
+	UniversalCompatibilityDemo,
 	ParallelExecutionDemo,
 	AutomationsDemo,
-	UniversalCompatibilityDemo,
 	IsolationDemo,
 	RemoteWorkspacesDemo,
 	CliDemo,

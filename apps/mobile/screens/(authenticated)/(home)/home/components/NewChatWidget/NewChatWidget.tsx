@@ -1,49 +1,27 @@
-import { Button, HStack, Image, Text } from "@expo/ui/swift-ui";
-import {
-	aspectRatio,
-	bold,
-	buttonStyle,
-	clipped,
-	disabled,
-	foregroundStyle,
-	frame,
-	lineLimit,
-	opacity,
-	resizable,
-	tint,
-	truncationMode,
-} from "@expo/ui/swift-ui/modifiers";
+import { Composer, type ComposerHandle } from "@superset/composer";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import {
-	Alert,
-	KeyboardAvoidingView,
-	Pressable,
-	StyleSheet,
-	View,
-} from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEffect, useRef, useState } from "react";
+import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
-import {
-	FOREGROUND,
-	GlassComposer,
-	type GlassComposerHandle,
-	MUTED,
-} from "@/screens/(authenticated)/components/GlassComposer";
+import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
+import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
+import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
+import { HOME_DRAFT_KEY } from "@/screens/(authenticated)/stores/composerDraftsStore";
 import {
 	type ChatTarget,
 	useChatTargetStore,
 } from "../../stores/chatTargetStore";
 import { useAgentIconUri } from "./hooks/useAgentIconUri";
 import { useCreateCloudWorkspace } from "./hooks/useCreateCloudWorkspace";
-import { useCreateTerminalWorkspace } from "./hooks/useCreateTerminalWorkspace";
 import { useNewChatTargets } from "./hooks/useNewChatTargets";
 import { useStartWorkspaceTerminal } from "./hooks/useStartWorkspaceTerminal";
 import { useNewSessionPreferencesStore } from "./stores/newSessionPreferencesStore";
@@ -52,7 +30,6 @@ export function NewChatWidget({
 	workspaces,
 	fixedTarget,
 	placeholder,
-	above,
 }: {
 	workspaces: HostWorkspaceItem[];
 	/**
@@ -61,14 +38,20 @@ export function NewChatWidget({
 	 */
 	fixedTarget?: ChatTarget;
 	placeholder?: string;
-	/** Rendered above the glass surface in the bottom cluster (action chips). */
-	above?: ReactNode;
 }) {
 	const router = useRouter();
-	const insets = useSafeAreaInsets();
-	const composerRef = useRef<GlassComposerHandle>(null);
+	const composerRef = useRef<ComposerHandle>(null);
 
-	const [active, setActive] = useState(false);
+	// Whether the composer was open when a sheet took first responder, so it is
+	// restored only when it actually was.
+	const wasExpanded = useRef(false);
+	const draft = useComposerDraft(HOME_DRAFT_KEY);
+	const openAttachmentsSheet = useAttachmentsSheet(HOME_DRAFT_KEY);
+	const addPasted = usePasteAttachments(HOME_DRAFT_KEY);
+
+	// What was typed here last time, pinned at mount: a starting value handed to
+	// the composer as it is set up, never a binding.
+	const [initialDraft] = useState(() => draft.readText());
 
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -115,25 +98,20 @@ export function NewChatWidget({
 
 	const createTerminalWorkspace = useCreateTerminalWorkspace();
 	const createCloudWorkspace = useCreateCloudWorkspace();
-	const { data: agentConfigs } = useQuery({
-		queryKey: ["host-agent-configs", selectedTarget?.machineId ?? null],
+	const { data: agentConfigs } = useHostAgentConfigs({
+		machineId: selectedTarget?.machineId ?? null,
+		hostUrl: selectedTarget?.hostUrl ?? null,
 		// A cloud target has no host to list agents from, and create doesn't
 		// launch one (the prompt only feeds the auto-name).
-		enabled: selectedTarget !== null && !isCloudTarget,
-		staleTime: 60_000,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!selectedTarget) return [];
-			return getHostServiceClientByUrl(
-				selectedTarget.hostUrl,
-			).settings.agentConfigs.list.query();
-		},
+		enabled: !isCloudTarget,
 	});
 	const selectedAgent = agentConfigs?.find(
 		(config) => config.presetId === agentId,
 	);
 	const agentIconUri = useAgentIconUri(selectedAgent?.iconId ?? agentId);
-	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? "default";
+	// Null until the branch list resolves. The previous fallback was the literal
+	// string "default", which reads as a branch name and is not one.
+	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? null;
 
 	const storeTarget = useChatTargetStore((state) => state.target);
 	const clearChatTarget = useChatTargetStore((state) => state.clearTarget);
@@ -149,18 +127,41 @@ export function NewChatWidget({
 		createCloudWorkspace.isPending ||
 		startWorkspaceTerminal.isPending;
 
+	// The draft and the tray are cleared together, on success only. The native
+	// composer's `clear()` reaches its own text and nothing else — the tray is
+	// React Native's — and the old React Native form used to clear both, so
+	// splitting them silently left attachments behind after every send.
+	const clearComposer = () => {
+		composerRef.current?.clear();
+		draft.clear();
+	};
+
 	const dismiss = () => {
 		clearChatTarget();
 		composerRef.current?.blur();
 	};
 
 	const submit = (message: PromptInputMessage) => {
+		posthog.capture("chat_message_sent", {
+			has_attachments: message.attachments.length > 0,
+			attachment_count: message.attachments.length,
+			message_length: message.text.trim().length,
+			draft_restored: initialDraft.length > 0,
+			// A cloud create launches nothing today — the prompt only feeds the
+			// server-side auto-name — so there is no agent to name.
+			agent: chatTarget || !isCloudTarget ? agentId : null,
+			destination: chatTarget
+				? "existing_workspace"
+				: isCloudTarget
+					? "new_cloud_workspace"
+					: "new_workspace",
+		});
 		if (chatTarget) {
 			startWorkspaceTerminal
 				.mutateAsync({ target: chatTarget, message, agentId })
 				.then(() => {
 					clearChatTarget();
-					composerRef.current?.clear();
+					clearComposer();
 				})
 				.catch(() => {});
 			return;
@@ -178,17 +179,23 @@ export function NewChatWidget({
 				})
 				.then(() => {
 					setBaseBranch(null);
-					composerRef.current?.clear();
+					clearComposer();
 				})
 				.catch(() => {});
 			return;
 		}
 		createTerminalWorkspace
-			.mutateAsync({ target: selectedTarget, baseBranch, agentId, message })
-			.then((result) => {
-				if (!result.agents[0]?.ok) return;
+			.mutateAsync({
+				target: selectedTarget,
+				baseBranch,
+				branchLabel,
+				agentId,
+				agentLabel: selectedAgent?.label ?? "Claude",
+				message,
+			})
+			.then(() => {
 				setBaseBranch(null);
-				composerRef.current?.clear();
+				clearComposer();
 			})
 			.catch(() => {});
 	};
@@ -196,160 +203,116 @@ export function NewChatWidget({
 	// Collapse BOTH dimensions: a width-0 proposal makes Text wrap one glyph
 	// per line, leaving a tall invisible column that clipped() hides but layout
 	// still counts.
-	const header = fixedTarget ? undefined : (
-		<>
-			<HStack
-				spacing={6}
-				modifiers={[
-					frame({
-						width: chatTarget ? undefined : 0,
-						height: chatTarget ? undefined : 0,
-					}),
-					opacity(chatTarget ? 1 : 0),
-					clipped(),
-				]}
-			>
-				<Text modifiers={[foregroundStyle(MUTED)]}>New agent in</Text>
-				<Text
-					modifiers={[
-						bold(),
-						foregroundStyle(FOREGROUND),
-						lineLimit(1),
-						truncationMode("tail"),
-					]}
-				>
-					{chatTarget?.workspaceName ?? ""}
-				</Text>
-				<Button
-					onPress={clearChatTarget}
-					modifiers={[buttonStyle("borderless"), tint(MUTED)]}
-				>
-					<Image systemName="xmark.circle.fill" size={14} />
-				</Button>
-			</HStack>
-			<HStack
-				spacing={6}
-				modifiers={[
-					frame({
-						width: chatTarget ? 0 : undefined,
-						height: chatTarget ? 0 : undefined,
-					}),
-					opacity(chatTarget ? 0 : 1),
-					clipped(),
-				]}
-			>
-				<Button
-					label={
-						selectedTarget
+	// Frame 4's header row, as data. A target picked at runtime replaces the
+	// project/branch pair, the way the old `header` slot swapped them out —
+	// but only a *picked* one. `fixedTarget` pins the composer to a workspace
+	// and is not the user's to clear, so it gets no chips at all: the chip's
+	// press only clears `storeTarget`, which would leave it stuck on screen.
+	const headerChips = fixedTarget
+		? []
+		: storeTarget
+			? [
+					{
+						id: "clear-target",
+						label: `New agent in ${storeTarget.workspaceName}`,
+					},
+				]
+			: [
+					{
+						id: "project",
+						label: selectedTarget
 							? isCloudTarget
 								? `${selectedTarget.projectName} · Cloud`
 								: selectedTarget.projectName
-							: "No project"
-					}
-					onPress={() => {
-						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						router.push("/(authenticated)/(home)/new-session/project");
-					}}
-					modifiers={[
-						buttonStyle("borderless"),
-						tint(FOREGROUND),
-						disabled(targets.length === 0),
-					]}
-				/>
-				<Button
-					onPress={() => {
-						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						router.push("/(authenticated)/(home)/new-session/branch");
-					}}
-					modifiers={[
-						buttonStyle("borderless"),
-						tint(MUTED),
-						disabled(!selectedTarget),
-					]}
-				>
-					<HStack spacing={4}>
-						<Text>{branchLabel}</Text>
-						<Image systemName="chevron.down" size={11} />
-					</HStack>
-				</Button>
-			</HStack>
-		</>
-	);
+							: "No project",
+						avatar: true,
+						iconUri: selectedTarget?.projectIconUrl ?? undefined,
+					},
+					...(branchLabel
+						? [{ id: "branch", label: branchLabel, muted: true }]
+						: []),
+				];
 
 	// No agent chip for a cloud target: nothing launches on create (parity
 	// with desktop; the sandbox-side launch is a follow-up).
-	const agentPicker =
-		fixedTarget || isCloudTarget ? undefined : (
-			<Button
-				onPress={() => {
-					void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-					router.push("/(authenticated)/(home)/new-session/agent");
-				}}
-				modifiers={[buttonStyle("borderless"), tint(FOREGROUND)]}
-			>
-				<HStack spacing={5}>
-					{agentIconUri ? (
-						<Image
-							uiImage={agentIconUri}
-							modifiers={[
-								resizable(),
-								aspectRatio({ contentMode: "fit" }),
-								frame({ width: 15, height: 15 }),
-							]}
-						/>
-					) : null}
-					<Text>{selectedAgent?.label ?? "Claude"}</Text>
-					<Image systemName="chevron.down" size={11} />
-				</HStack>
-			</Button>
-		);
+	const selectedModel =
+		fixedTarget || isCloudTarget
+			? undefined
+			: {
+					id: agentId ?? "claude",
+					label: selectedAgent?.label ?? "Claude",
+					iconUri: agentIconUri ?? undefined,
+				};
 
+	// No KeyboardAvoidingView, no absolute-fill backdrop, no safe-area padding:
+	// the native composer owns its own keyboard tracking, dimming and dismissal.
 	return (
-		<View
-			testID="home-screen"
-			pointerEvents="box-none"
-			style={StyleSheet.absoluteFill}
-		>
-			<KeyboardAvoidingView
-				behavior="padding"
-				pointerEvents="box-none"
-				style={{ flex: 1, justifyContent: "flex-end" }}
-			>
-				{active ? (
-					<Animated.View
-						entering={FadeIn.duration(200)}
-						exiting={FadeOut.duration(150)}
-						style={[
-							StyleSheet.absoluteFill,
-							{ backgroundColor: "rgba(0, 0, 0, 0.45)" },
-						]}
-					>
-						<Pressable
-							accessibilityLabel="Dismiss keyboard"
-							onPress={dismiss}
-							style={StyleSheet.absoluteFill}
-						/>
-					</Animated.View>
-				) : null}
-				<View
-					className="px-3"
-					style={{ paddingBottom: active ? 8 : insets.bottom + 8 }}
-				>
-					<GlassComposer
-						ref={composerRef}
-						above={above}
-						header={header}
-						toolbarLeading={agentPicker}
-						isSending={isSending}
-						// A picked workspace target holds the composer open so its
-						// chip stays visible; a fixed target is ambient and doesn't.
-						keepExpanded={storeTarget !== null}
-						onActiveChange={setActive}
-						onSubmit={submit}
-						placeholder={placeholder ?? "Plan, ask, build..."}
-					/>
-				</View>
-			</KeyboardAvoidingView>
-		</View>
+		<Composer
+			ref={composerRef}
+			placeholder={placeholder ?? "Plan, ask, build..."}
+			initialDraft={initialDraft}
+			isSending={isSending}
+			onDictationError={(message: string) => Alert.alert(message)}
+			attachments={draft.attachments.map((item) => ({
+				id: item.id,
+				uri: item.uri ?? "",
+				kind: item.type === "image" ? ("image" as const) : ("file" as const),
+				name: item.name,
+			}))}
+			headerChips={headerChips}
+			selectedModel={selectedModel}
+			onSubmit={(text) => submit({ text, attachments: draft.attachments })}
+			onDraftChange={draft.setText}
+			onRemoveAttachment={(id) => draft.remove(id)}
+			onExpandedChange={(expanded) => {
+				// Only where the project/branch/agent rows are live: pinned to a
+				// workspace, expanding the composer starts a message, not a session.
+				if (expanded && !wasExpanded.current && !fixedTarget && !storeTarget) {
+					posthog.capture("new_session_started", {
+						target_kind: selectedTarget?.kind ?? null,
+						agent: isCloudTarget ? null : agentId,
+					});
+				}
+				wasExpanded.current = expanded;
+			}}
+			onPaste={addPasted}
+			onAttachmentsPress={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				const restore = wasExpanded.current;
+				openAttachmentsSheet({
+					onClosed: () => {
+						if (restore) composerRef.current?.focus();
+					},
+				});
+			}}
+			onModelPress={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				router.push({
+					pathname: "/(authenticated)/(home)/new-session/agent",
+					params: { machineId: selectedTarget?.machineId ?? "" },
+				});
+			}}
+			onChipPress={(id) => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				if (id === "clear-target") {
+					dismiss();
+				} else if (id === "project") {
+					if (targets.length > 0) {
+						router.push({
+							pathname: "/(authenticated)/(home)/new-session/project",
+							params: { selectedKey: selectedTarget?.key ?? "" },
+						});
+					}
+				} else if (selectedTarget) {
+					router.push({
+						pathname: "/(authenticated)/(home)/new-session/branch",
+						params: {
+							projectId: selectedTarget.projectId,
+							machineId: selectedTarget.machineId,
+						},
+					});
+				}
+			}}
+		/>
 	);
 }

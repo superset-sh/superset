@@ -263,7 +263,7 @@ function formatOptions(
 	const formatted = entries.map(([_key, config]) => {
 		const flag = config.name.startsWith("-") ? config.name : `--${config.name}`;
 		const aliasStr = config.aliases.length
-			? `${config.aliases.map((a) => (a.startsWith("-") ? a : `-${a}`)).join(", ")}, `
+			? `${config.aliases.map((a) => (a.startsWith("-") ? a : a.length > 1 ? `--${a}` : `-${a}`)).join(", ")}, `
 			: "";
 
 		let typeHint = "";

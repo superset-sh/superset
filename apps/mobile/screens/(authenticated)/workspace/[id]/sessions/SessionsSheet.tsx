@@ -7,6 +7,7 @@ import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { posthog } from "@/lib/posthog";
 import {
 	getHostTerminalsQueryKey,
 	type TerminalRowData,
@@ -55,9 +56,15 @@ export function SessionsSheet() {
 
 	const handleSelect = useCallback(
 		(terminalId: string) => {
+			if (terminalId !== params.active) {
+				posthog.capture("session_switched", {
+					workspace_id: id ?? null,
+					source: "sessions_sheet",
+				});
+			}
 			router.dismissTo(`/(authenticated)/workspace/${id}?tab=${terminalId}`);
 		},
-		[router, id],
+		[router, id, params.active],
 	);
 
 	const handleClose = useCallback(

@@ -23,6 +23,7 @@ import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { TeamMember } from "../../../../types";
 
 export function MemberActions({
@@ -59,6 +60,14 @@ export function MemberActions({
 		await authClient.organization.setActive({
 			organizationId: result.activeOrganizationId ?? null,
 		});
+		// Move this window too. The window registry holds the org we just left;
+		// left alone it would win on the next provider mount and pin the window
+		// to an organization the user is no longer a member of.
+		if (result.activeOrganizationId) {
+			await electronTrpcClient.window.setActiveOrg.mutate({
+				organizationId: result.activeOrganizationId,
+			});
+		}
 		await refetchSession();
 		await utils.organization.listMembers.invalidate();
 		navigate({ to: "/" });

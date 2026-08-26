@@ -279,7 +279,7 @@ export const actionsProvider: CommandProvider = {
 					keywords: ["star", "github", "nag", "dev", "preview", "test"],
 					// A dynamic import here would only defer this file's own module —
 					// AnimatedStarButton (and framer-motion) is already statically
-					// imported by StarNagCard, which DashboardSidebar/WorkspaceSidebar
+					// imported by useStarNagCard, which DashboardSidebar/WorkspaceSidebar
 					// import unconditionally, so it's already in the eager bundle.
 					run: () => previewStarNagOnboardingToast(),
 				},

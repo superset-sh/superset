@@ -28,6 +28,7 @@ export function PullRequestsButton({
 				count === 1 ? "View pull request" : `View ${count} pull requests`
 			}
 			accessibilityRole="button"
+			ph-label="pull-requests-button"
 			className="border-border h-8 flex-row items-center gap-1.5 self-start rounded-full border px-3 active:opacity-60"
 			onPress={onPress}
 		>

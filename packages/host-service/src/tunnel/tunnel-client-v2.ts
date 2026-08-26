@@ -5,9 +5,33 @@ import {
 } from "@superset/shared/tunnel-v2-protocol";
 import ReconnectingWebSocket from "partysocket/ws";
 
+import { reportTunnelRescue } from "../sentry";
+
 const PING_INTERVAL_MS = 30_000;
 const INBOUND_SILENCE_TIMEOUT_MS = 75_000;
 const WATCHDOG_INTERVAL_MS = 10_000;
+// How long the control socket may sit outside OPEN before the watchdog kicks
+// partysocket. Generous: covers its 5s max backoff plus 20s connect timeout.
+// Partysocket owns retries, but a rejected url provider or a close handshake
+// that never lands can kill its cycle with nothing left to revive it.
+const STUCK_CONTROL_GRACE_MS = 60_000;
+// Bound on the url provider's async work. Partysocket awaits the provider
+// before it creates a socket, so its connectionTimeout cannot cover a hang
+// here — an auth or resolve call that never settles stalls the reconnect
+// cycle forever with no timer left running.
+const URL_PROVIDER_STEP_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+	return Promise.race([
+		promise,
+		new Promise<T>((resolve) => {
+			setTimeout(
+				() => resolve(fallback),
+				URL_PROVIDER_STEP_TIMEOUT_MS,
+			).unref?.();
+		}),
+	]);
+}
 const MAX_BUFFERED_FRAMES = 256;
 // Bodies are chunked below the Durable Object's per-message ceiling; large
 // tRPC payloads (file contents, diffs) would otherwise fail outright.
@@ -26,6 +50,10 @@ export interface TunnelClientV2Options {
 	getAuthToken: () => Promise<string | null>;
 	localPort: number;
 	hostServiceSecret: string;
+	/** Re-asked on every reconnect attempt so a server-side relay move is
+	 * picked up without a process restart. On failure the last known URL is
+	 * reused. */
+	resolveRelayUrl?: () => Promise<string>;
 }
 
 function toWs(url: string): string {
@@ -41,19 +69,45 @@ export class TunnelClientV2 {
 	private pingTimer: ReturnType<typeof setInterval> | null = null;
 	private watchdogTimer: ReturnType<typeof setInterval> | null = null;
 	private lastInboundAt = 0;
+	private notOpenSince: number | null = null;
+	private relayUrl: string;
 	private closed = false;
 
 	constructor(options: TunnelClientV2Options) {
 		this.options = options;
+		this.relayUrl = options.relayUrl;
 	}
 
 	async connect(): Promise<void> {
 		if (this.closed || this.control) return;
 
-		// Re-invoked on every reconnect, picking up rotated tokens.
+		// Re-invoked on every reconnect, picking up rotated tokens and relay
+		// moves. It must never reject: a rejection kills partysocket's retry
+		// cycle permanently, wedging the host until a process restart.
 		const urlProvider = async (): Promise<string> => {
-			const token = await this.options.getAuthToken();
-			const url = new URL("/v2/control", toWs(this.options.relayUrl));
+			if (this.options.resolveRelayUrl) {
+				try {
+					this.relayUrl = await withTimeout(
+						this.options.resolveRelayUrl(),
+						this.relayUrl,
+					);
+				} catch {
+					// keep the last known URL
+				}
+			}
+			let token: string | null = null;
+			try {
+				token = await withTimeout(this.options.getAuthToken(), null);
+			} catch (error) {
+				console.warn(
+					"[host-service:tunnel-v2] token fetch failed; connecting unauthenticated so the retry cycle survives:",
+					error instanceof Error ? error.message : error,
+				);
+				reportTunnelRescue("v2_token_fetch_failed", {
+					message: error instanceof Error ? error.message.slice(0, 200) : "",
+				});
+			}
+			const url = new URL("/v2/control", toWs(this.relayUrl));
 			url.searchParams.set("hostId", this.options.hostId);
 			url.searchParams.set("token", token ?? "");
 			return url.toString();
@@ -102,12 +156,27 @@ export class TunnelClientV2 {
 		}, PING_INTERVAL_MS);
 
 		this.watchdogTimer = setInterval(() => {
-			if (control.readyState !== WebSocket.OPEN) return;
-			const silentFor = Date.now() - this.lastInboundAt;
-			if (silentFor > INBOUND_SILENCE_TIMEOUT_MS) {
+			if (control.readyState === WebSocket.OPEN) {
+				this.notOpenSince = null;
+				const silentFor = Date.now() - this.lastInboundAt;
+				if (silentFor > INBOUND_SILENCE_TIMEOUT_MS) {
+					console.warn(
+						`[host-service:tunnel-v2] no inbound traffic for ${silentFor}ms, forcing reconnect`,
+					);
+					control.reconnect();
+				}
+				return;
+			}
+			this.notOpenSince ??= Date.now();
+			const stuckFor = Date.now() - this.notOpenSince;
+			if (stuckFor > STUCK_CONTROL_GRACE_MS) {
+				// Reset the clock so a dead cycle gets kicked once per grace
+				// window for as long as it stays down.
+				this.notOpenSince = Date.now();
 				console.warn(
-					`[host-service:tunnel-v2] no inbound traffic for ${silentFor}ms, forcing reconnect`,
+					`[host-service:tunnel-v2] control not open for ${stuckFor}ms, kicking reconnect`,
 				);
+				reportTunnelRescue("v2_control_stuck", { stuckForMs: stuckFor });
 				control.reconnect();
 			}
 		}, WATCHDOG_INTERVAL_MS);
@@ -124,7 +193,7 @@ export class TunnelClientV2 {
 	}
 
 	private dialUrl(ticket: string): string {
-		const url = new URL("/v2/dial", toWs(this.options.relayUrl));
+		const url = new URL("/v2/dial", toWs(this.relayUrl));
 		url.searchParams.set("hostId", this.options.hostId);
 		url.searchParams.set("ticket", ticket);
 		return url.toString();

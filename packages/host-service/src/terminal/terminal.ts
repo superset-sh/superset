@@ -180,6 +180,12 @@ type TerminalClientMessage =
 	// The host forwards it as \x1b[I / \x1b[O only when the program actually
 	// enabled focus reporting (mode 1004), which the tracker knows.
 	| { type: "focus"; focused: boolean }
+	// Whether this client is actually showing the terminal right now — its pane
+	// is on screen and its app is foregrounded. Distinct from keyboard focus: a
+	// visible unfocused pane still has to render at the right size. Only visible
+	// clients constrain the PTY size. A client that never sends this counts as
+	// visible, so builds predating the message keep their existing sizing.
+	| { type: "visible"; visible: boolean }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -579,6 +585,21 @@ interface TerminalSession {
 	 * client-focus ownership model).
 	 */
 	focusedSockets: Set<TerminalSocket>;
+	/**
+	 * Last dims each attached client reported. The PTY runs at the smallest box
+	 * across the visible ones (tmux's rule) rather than at whatever client
+	 * resized last — last-writer-wins left every other client rendering output
+	 * laid out for a width it doesn't have, and the wide-into-narrow direction
+	 * (desktop's 120 columns replayed into a phone's 45) is unreadable.
+	 */
+	clientDims: Map<TerminalSocket, { cols: number; rows: number }>;
+	/**
+	 * Sockets whose client said it is off screen. Absence means visible, so a
+	 * client that never sends the message keeps constraining the size as it
+	 * always has. Hidden clients are excluded from the minimum: a backgrounded
+	 * phone must not hold the PTY narrow for whoever is actually looking.
+	 */
+	hiddenSockets: Set<TerminalSocket>;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -1295,6 +1316,60 @@ function syncPtyFocus(session: TerminalSession) {
 	if (!session.modeTracker.isFocusReportingActive()) return;
 	const aggregate = session.focusedSockets.size > 0;
 	session.pty.write(aggregate ? "\x1b[I" : "\x1b[O");
+}
+
+/**
+ * Smallest box across the clients currently showing this terminal. Null when
+ * no visible client has reported dims — nothing attached, or everything
+ * attached is off screen — in which case the PTY keeps the size it has rather
+ * than being reshaped for an audience of nobody.
+ */
+function effectiveDims(
+	session: TerminalSession,
+): { cols: number; rows: number } | null {
+	let cols = Number.POSITIVE_INFINITY;
+	let rows = Number.POSITIVE_INFINITY;
+	for (const [socket, dims] of session.clientDims) {
+		if (session.hiddenSockets.has(socket)) continue;
+		if (dims.cols < cols) cols = dims.cols;
+		if (dims.rows < rows) rows = dims.rows;
+	}
+	if (!Number.isFinite(cols) || !Number.isFinite(rows)) return null;
+	return { cols, rows };
+}
+
+/**
+ * Push the visible clients' smallest box to the PTY. `force` re-sends dims the
+ * session already holds, which the resize path wants so a same-dims client
+ * resize still reaches the kernel; the visibility and detach paths resize only
+ * when the minimum actually moved.
+ */
+function applyEffectiveDims(
+	session: TerminalSession,
+	options: { force?: boolean } = {},
+) {
+	if (session.exited) return;
+	const next = effectiveDims(session);
+	if (!next) return;
+	const changed = next.cols !== session.cols || next.rows !== session.rows;
+	if (!changed && !options.force) return;
+	session.resizeGeneration += 1;
+	session.pty.resize(next.cols, next.rows);
+	session.modeTracker.resize(next.cols, next.rows);
+	session.cols = next.cols;
+	session.rows = next.rows;
+}
+
+/**
+ * Drop a departing client's size constraint. The PTY grows back to whatever
+ * the remaining viewers can show — closing the phone hands the desktop its
+ * full width back without anyone touching a pane.
+ */
+function releaseSocketDims(session: TerminalSession, ws: TerminalSocket) {
+	const hadDims = session.clientDims.delete(ws);
+	const wasHidden = session.hiddenSockets.delete(ws);
+	// A hidden client was already outside the minimum, so nothing moved.
+	if (hadDims && !wasHidden) applyEffectiveDims(session);
 }
 
 /**
@@ -2670,6 +2745,8 @@ export async function createTerminalSessionInternal({
 		pendingRepaintNudge: null,
 		resizeGeneration: 0,
 		focusedSockets: new Set(),
+		clientDims: new Map(),
+		hiddenSockets: new Set(),
 	};
 	reclaimSession = session;
 	sessions.set(terminalId, session);
@@ -3165,6 +3242,18 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
+					if (message.type === "visible") {
+						if (message.visible) {
+							session.hiddenSockets.delete(ws);
+						} else {
+							session.hiddenSockets.add(ws);
+						}
+						// Going hidden releases this client's size constraint;
+						// coming back re-imposes it.
+						applyEffectiveDims(session);
+						return;
+					}
+
 					if (message.type === "resize") {
 						const cols = normalizeTerminalDimension(
 							message.cols,
@@ -3176,19 +3265,20 @@ export function registerWorkspaceTerminalRoute({
 							MIN_TERMINAL_ROWS,
 							DEFAULT_TERMINAL_ROWS,
 						);
-						session.resizeGeneration += 1;
+						session.clientDims.set(ws, { cols, rows });
 						// A reanchor attach waits for this first client resize:
 						// changed dims deliver the repaint SIGWINCH naturally;
-						// unchanged dims need the forced nudge.
+						// unchanged dims need the forced nudge. What matters is
+						// the size the PTY ends up at, which is the minimum across
+						// visible clients — not the dims this one asked for.
+						const next = effectiveDims(session);
+						const dimsUnchanged =
+							next === null ||
+							(next.cols === session.cols && next.rows === session.rows);
 						const needsForcedNudge =
-							session.pendingRepaintNudge !== null &&
-							cols === session.cols &&
-							rows === session.rows;
+							session.pendingRepaintNudge !== null && dimsUnchanged;
 						clearPendingRepaintNudge(session);
-						session.pty.resize(cols, rows);
-						session.modeTracker.resize(cols, rows);
-						session.cols = cols;
-						session.rows = rows;
+						applyEffectiveDims(session, { force: true });
 						if (needsForcedNudge) nudgeRepaint(session);
 					}
 				},
@@ -3200,6 +3290,7 @@ export function registerWorkspaceTerminalRoute({
 					// A departing focused client may hand focus-out to the program
 					// (unless another attached client still holds focus).
 					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
+					releaseSocketDims(session, ws);
 				},
 
 				onError: (_event, ws) => {
@@ -3207,6 +3298,7 @@ export function registerWorkspaceTerminalRoute({
 					if (!session) return;
 					session.sockets.delete(ws);
 					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
+					releaseSocketDims(session, ws);
 				},
 			};
 		}),

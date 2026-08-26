@@ -2,11 +2,21 @@ import type {
 	CodeViewItem,
 	DiffLineAnnotation,
 	LineAnnotation,
+	FileContents as PierreFileContents,
 } from "@pierre/diffs";
-import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
+import { Editor, type EditorOptions } from "@pierre/diffs/edit";
+import {
+	CodeView,
+	type CodeViewHandle,
+	EditProvider,
+} from "@pierre/diffs/react";
+
 import type { RendererContext } from "@superset/panes";
+import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
-import { useCallback, useMemo, useRef } from "react";
+import { toast } from "@superset/ui/sonner";
+import { workspaceTrpc } from "@superset/workspace-client";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuFileCode } from "react-icons/lu";
 import {
 	createPaneScrollStateKey,
@@ -14,6 +24,7 @@ import {
 	savePaneScrollState,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache";
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
+import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -38,6 +49,7 @@ import { useDiffCodeViewScroll } from "./hooks/useDiffCodeViewScroll";
 import { useDiffCodeViewTheme } from "./hooks/useDiffCodeViewTheme";
 import { useDiffCommentComposer } from "./hooks/useDiffCommentComposer";
 import { useDiffPaneSearch } from "./hooks/useDiffPaneSearch";
+import { getCharacterOffsetAtClientX } from "./utils/getCharacterOffsetAtClientX";
 
 interface CreateNewAgentSessionInput {
 	configId: string;
@@ -52,6 +64,17 @@ interface DiffPaneProps {
 	onCreateNewAgentSession?: (
 		input: CreateNewAgentSessionInput,
 	) => Promise<{ terminalId: string } | null>;
+}
+
+function canEditDiffFile(
+	file: ChangesetFile | undefined,
+): file is ChangesetFile {
+	return (
+		file != null &&
+		!file.isBinary &&
+		file.status !== "deleted" &&
+		(file.source.kind === "staged" || file.source.kind === "unstaged")
+	);
 }
 
 export function DiffPane({
@@ -83,6 +106,24 @@ export function DiffPane({
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const threadAnnotationsByPath = useDiffAnnotationsByPath({ workspaceId });
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
+		id: workspaceId,
+	});
+	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
+	const utils = workspaceTrpc.useUtils();
+	const [editingSet, setEditingSet] = useState<ReadonlySet<string>>(new Set());
+	const [dirtyItemIds, setDirtyItemIds] = useState<ReadonlySet<string>>(
+		new Set(),
+	);
+	const [editorRevisionByItemId, setEditorRevisionByItemId] = useState<
+		ReadonlyMap<string, number>
+	>(new Map());
+	const editedFilesRef = useRef(new Map<string, PierreFileContents>());
+	const pendingEditorFocusRef = useRef<{
+		itemId: string;
+		lineNumber: number;
+		character: number;
+	} | null>(null);
 
 	const collapsedSet = useMemo(
 		() => new Set(data.collapsedFiles ?? []),
@@ -134,10 +175,121 @@ export function DiffPane({
 			workspaceId,
 			files,
 			collapsedSet,
+			editingSet,
+			editorRevisionByItemId,
 			annotationsByPath: threadAnnotationsByPath,
 			extraAnnotationsByItemId: composerAnnotationsByItemId,
 		});
 	fileByItemIdRef.current = fileByItemId;
+
+	const saveEditedItem = useCallback(
+		async (itemId: string): Promise<boolean> => {
+			const editedFile = editedFilesRef.current.get(itemId);
+			const file = fileByItemId.get(itemId);
+			const worktreePath = workspaceQuery.data?.worktreePath;
+			if (!editedFile) return true;
+			if (!file || !worktreePath) {
+				toast.error("Couldn't save edits", {
+					description: "The workspace is not ready yet. Try again.",
+				});
+				return false;
+			}
+			try {
+				const result = await writeFile.mutateAsync({
+					workspaceId,
+					absolutePath: toAbsoluteWorkspacePath(worktreePath, file.path),
+					content: editedFile.contents,
+					encoding: "utf-8",
+				});
+				if (!result.ok) {
+					toast.error("Couldn't save edits", {
+						description:
+							result.reason === "conflict"
+								? "The file changed on disk. Review it before saving again."
+								: "The file could not be written.",
+					});
+					return false;
+				}
+				setDirtyItemIds((current) => {
+					const next = new Set(current);
+					next.delete(itemId);
+					return next;
+				});
+				void utils.git.getStatus.invalidate({ workspaceId });
+				void utils.git.getDiff.invalidate({ workspaceId });
+				void utils.git.getDiffBulk.invalidate({ workspaceId });
+				return true;
+			} catch (error) {
+				toast.error("Couldn't save edits", {
+					description: error instanceof Error ? error.message : String(error),
+				});
+				return false;
+			}
+		},
+		[
+			fileByItemId,
+			workspaceQuery.data?.worktreePath,
+			writeFile,
+			workspaceId,
+			utils,
+		],
+	);
+
+	const exitEditing = useCallback((itemId: string) => {
+		editedFilesRef.current.delete(itemId);
+		setDirtyItemIds((current) => {
+			const next = new Set(current);
+			next.delete(itemId);
+			return next;
+		});
+		setEditingSet(new Set());
+	}, []);
+
+	const discardEditing = useCallback(
+		(itemId: string) => {
+			// Pierre retains editor documents by item id. Rotate the item's version
+			// so reopening starts from the diff contents instead of the discarded
+			// in-memory document.
+			setEditorRevisionByItemId((current) => {
+				const next = new Map(current);
+				next.set(itemId, (next.get(itemId) ?? 0) + 1);
+				return next;
+			});
+			exitEditing(itemId);
+		},
+		[exitEditing],
+	);
+
+	const requestExitEditing = useCallback(
+		(itemId: string) => {
+			if (!dirtyItemIds.has(itemId)) {
+				discardEditing(itemId);
+				return;
+			}
+			const file = fileByItemId.get(itemId);
+			alert({
+				title: `Do you want to save the changes you made to ${file?.path.split("/").pop() ?? "this file"}?`,
+				description: "Your changes will be lost if you don't save them.",
+				actions: [
+					{
+						label: "Save",
+						onClick: () => {
+							void saveEditedItem(itemId).then((saved) => {
+								if (saved) exitEditing(itemId);
+							});
+						},
+					},
+					{
+						label: "Don't Save",
+						variant: "secondary",
+						onClick: () => discardEditing(itemId),
+					},
+					{ label: "Cancel", variant: "ghost", onClick: () => {} },
+				],
+			});
+		},
+		[dirtyItemIds, discardEditing, exitEditing, fileByItemId, saveEditedItem],
+	);
 
 	const search = useDiffPaneSearch({
 		containerRef: searchContainerRef,
@@ -187,8 +339,64 @@ export function DiffPane({
 			enableGutterUtility: true,
 			onGutterUtilityClick,
 			onLineSelectionEnd,
+			onLineClick: (
+				line: {
+					annotationSide?: string;
+					event: PointerEvent;
+					lineElement: HTMLElement;
+					lineNumber: number;
+					numberColumn: boolean;
+				},
+				itemContext: { item: CodeViewItem<DiffAnnotationMetadata> },
+			) => {
+				if (
+					line.numberColumn ||
+					(line.annotationSide != null &&
+						line.annotationSide !== "additions") ||
+					editingSet.size > 0
+				)
+					return;
+				const file = fileByItemId.get(itemContext.item.id);
+				if (!canEditDiffFile(file)) return;
+				pendingEditorFocusRef.current = {
+					itemId: itemContext.item.id,
+					lineNumber: line.lineNumber,
+					character: getCharacterOffsetAtClientX(
+						line.lineElement,
+						line.event.clientX,
+					),
+				};
+				setEditingSet(new Set([getChangesetFileKey(file)]));
+			},
+			onLineEnter: (
+				line: {
+					annotationSide?: string;
+					lineElement: HTMLElement;
+					numberColumn: boolean;
+				},
+				itemContext: { item: CodeViewItem<DiffAnnotationMetadata> },
+			) => {
+				const file = fileByItemId.get(itemContext.item.id);
+				if (
+					!line.numberColumn &&
+					(line.annotationSide == null ||
+						line.annotationSide === "additions") &&
+					canEditDiffFile(file)
+				) {
+					line.lineElement.style.cursor = "text";
+				}
+			},
+			onLineLeave: (line: { lineElement: HTMLElement }) => {
+				line.lineElement.style.removeProperty("cursor");
+			},
 		}),
-		[options, onGutterUtilityClick, onLineSelectionEnd],
+		[
+			options,
+			onGutterUtilityClick,
+			onLineSelectionEnd,
+			editingSet,
+			fileByItemId,
+		],
 	);
 
 	const renderHeaderPrefix = useCallback(
@@ -212,6 +420,7 @@ export function DiffPane({
 			const file = fileByItemId.get(item.id);
 			if (!file) return null;
 			const changeKey = getChangesetFileKey(file);
+			const isEditing = editingSet.has(changeKey);
 			return (
 				<DiffHeaderMetadata
 					file={file}
@@ -221,6 +430,15 @@ export function DiffPane({
 					onSetViewed={setViewed}
 					onOpenFile={onOpenFile}
 					onOpenInExternalEditor={openInExternalEditor}
+					isEditing={isEditing}
+					isDirty={dirtyItemIds.has(item.id)}
+					isSaving={writeFile.isPending}
+					onSaveEditing={
+						isEditing ? () => void saveEditedItem(item.id) : undefined
+					}
+					onCancelEditing={
+						isEditing ? () => requestExitEditing(item.id) : undefined
+					}
 				/>
 			);
 		},
@@ -232,7 +450,64 @@ export function DiffPane({
 			setViewed,
 			onOpenFile,
 			openInExternalEditor,
+			editingSet,
+			dirtyItemIds,
+			writeFile.isPending,
+			saveEditedItem,
+			requestExitEditing,
 		],
+	);
+
+	const createEditor = useCallback(
+		(options: EditorOptions<DiffAnnotationMetadata>) =>
+			new Editor<DiffAnnotationMetadata>(options),
+		[],
+	);
+	const handleItemEditChange = useCallback(
+		(
+			item: CodeViewItem<DiffAnnotationMetadata>,
+			editedFile: PierreFileContents,
+		) => {
+			editedFilesRef.current.set(item.id, editedFile);
+			setDirtyItemIds((current) => new Set(current).add(item.id));
+		},
+		[],
+	);
+
+	// The activating click happens before Pierre mounts its editor. Restore that
+	// click's line intent as soon as the controlled item enters edit mode.
+	useEffect(() => {
+		const pending = pendingEditorFocusRef.current;
+		if (!pending || editingSet.size === 0) return;
+		const frame = requestAnimationFrame(() => {
+			const editor = codeViewRef.current?.getEditor(pending.itemId);
+			if (!(editor instanceof Editor)) return;
+			pendingEditorFocusRef.current = null;
+			editor.focus({
+				lineNumber: pending.lineNumber,
+				character: pending.character,
+			});
+		});
+		return () => cancelAnimationFrame(frame);
+	}, [editingSet]);
+
+	const activeEditingItemId = items.find((item) => item.edit)?.id;
+	const handleEditorKeyDownCapture = useCallback(
+		(event: React.KeyboardEvent<HTMLDivElement>) => {
+			if (!activeEditingItemId) return;
+			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				event.stopPropagation();
+				void saveEditedItem(activeEditingItemId);
+				return;
+			}
+			if (event.key === "Escape") {
+				event.preventDefault();
+				event.stopPropagation();
+				requestExitEditing(activeEditingItemId);
+			}
+		},
+		[activeEditingItemId, requestExitEditing, saveEditedItem],
 	);
 
 	const renderAnnotation = useCallback(
@@ -327,7 +602,11 @@ export function DiffPane({
 					count={currentSection.count}
 				/>
 			) : null}
-			<div ref={searchContainerRef} className="relative min-h-0 w-full flex-1">
+			<div
+				ref={searchContainerRef}
+				className="relative min-h-0 w-full flex-1"
+				onKeyDownCapture={handleEditorKeyDownCapture}
+			>
 				<MarkdownSearch
 					isOpen={search.isSearchOpen}
 					query={search.query}
@@ -340,17 +619,20 @@ export function DiffPane({
 					onFindPrevious={search.findPrevious}
 					onClose={search.closeSearch}
 				/>
-				<CodeView<DiffAnnotationMetadata>
-					ref={codeViewRef}
-					className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
-					style={style}
-					items={items}
-					options={codeViewOptions}
-					onScroll={handleScroll}
-					renderHeaderPrefix={renderHeaderPrefix}
-					renderHeaderMetadata={renderHeaderMetadata}
-					renderAnnotation={renderAnnotation}
-				/>
+				<EditProvider<DiffAnnotationMetadata> createEditor={createEditor}>
+					<CodeView<DiffAnnotationMetadata>
+						ref={codeViewRef}
+						className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
+						style={style}
+						items={items}
+						options={codeViewOptions}
+						onScroll={handleScroll}
+						renderHeaderPrefix={renderHeaderPrefix}
+						renderHeaderMetadata={renderHeaderMetadata}
+						renderAnnotation={renderAnnotation}
+						onItemEditChange={handleItemEditChange}
+					/>
+				</EditProvider>
 			</div>
 		</div>
 	);

@@ -1,112 +1,72 @@
 ---
 name: browser
-description: "Drive web pages with one of two engines: a workspace's in-app browser panes via the Superset CLI (list, open, navigate, screenshot, read console, eval, raw Chrome DevTools Protocol — the default), or Browser Use 3.0 for a system browser or standalone automation the panes cannot reach. Use when asked to open or navigate a browser, screenshot or read a running web app, click or type through a web flow, fill a form, or verify UI. Default to the in-app pane; use Browser Use only when the panes can't reach the target, and ask before installing it."
+description: Open, navigate, screenshot, read, click, and type in web pages from an agent. Use when the user asks to open a URL, preview or verify a running web app, check a page's console, fill a form, click through a web flow, or automate anything in a browser, including "open localhost:3000", "screenshot the page", "what does the console say", "click the submit button". Drives the in-app browser pane of a Superset workspace by default and Browser Use for browsers the panes cannot reach.
+argument-hint: URL or what to do in the browser
+allowed-tools: Bash(superset:*) Bash(curl:*)
 ---
 
 # Superset Browser Control
 
-Two engines drive browser work. The **default** is the browser panes inside a
-Superset workspace, driven with the `superset browser` commands — every
-operation runs in the pane the user can see, against the pane's real,
-logged-in session. When the panes cannot reach the target, **Browser Use 3.0**
-drives a standalone browser instead.
+Drive web pages through the browser panes inside a Superset workspace with the
+`superset browser` commands. Every operation runs in the pane the user can see,
+against the pane's real, logged-in session. A raw Chrome DevTools Protocol (CDP)
+endpoint covers anything the high-level verbs don't.
 
-## Choose an engine
+## Choose a surface
 
-Before either engine: if a plain HTTP request or an API can answer (a public
-page, docs, a JSON endpoint), use `curl` or your fetch tool and skip the
-browser entirely.
+- If a plain HTTP request or an API can answer (a public page, docs, a JSON
+  endpoint), use `curl` or your fetch tool and skip the browser.
+- Default to the in-app pane whenever the page is, or can be, open in a
+  workspace pane: previewing a dev server, verifying UI the user is watching,
+  clicking through a flow in the app.
+- Use Browser Use only when the panes cannot reach the target: a Chrome window
+  outside Superset, a host with no desktop app attached (pane commands error
+  clearly there), or work that needs an isolated or cloud browser. Read
+  `references/browser-use.md` before using it; it covers install consent,
+  attaching, and cleanup.
 
-- **In-app browser pane (default).** The page is (or can be) open in a
-  Superset workspace pane: previewing a dev server, verifying UI the user is
-  watching, clicking through a flow in the app. Use this unless it cannot
-  reach the target.
-- **Browser Use 3.0.** Standalone automation the panes cannot reach: a real
-  Chrome/Chromium window outside Superset, a host with no desktop app attached
-  (pane commands error clearly there), or work that needs an isolated or cloud
-  browser. Only use it if it's already installed or the user authorizes
-  installing it — ask first, never install silently. Never attach it to the
-  user's signed-in browser profile without explicit consent.
+Browser Use can also drive a pane, and for three kinds of pane task it's the
+nicer tool: an open-ended goal to run end to end ("get through this signup"), a
+long multi-step flow on a shifting UI, or a recorded walkthrough. If one of
+those fits and Browser Use isn't installed, offer it once ("I can hand this to
+Browser Use, which drives multi-step flows more cleanly, but it's a one-minute
+install. Want that, or should I drive the pane directly?"), then respect the
+answer for the rest of the session, and hand a pane to Browser Use only after
+the user has said yes (the pane is their signed-in session and its CDP URL
+carries a token). Don't offer it for a screenshot, one `eval`, or a plain read;
+the pane verbs already cover those.
 
-### Offering Browser Use for a pane
-
-Browser Use can also drive an in-app pane (see its engine section), and for some
-pane tasks it's the nicer tool. When one of these fits and Browser Use isn't
-already installed, offer it **once**, low-pressure, then respect the answer — if
-the user declines or doesn't answer, use `superset browser` and don't ask again
-this session. Skip the offer entirely for a single screenshot, one `eval`, or a
-plain read: the default primitive already nails those, so an offer is just noise.
-
-Offer when the pane task is one of:
-
-- **Delegating a goal.** The user wants an open-ended objective run end to end
-  ("book the cheapest flight", "get through this signup") rather than driving it
-  step by step — Browser Use's agent loop plans, acts, and recovers on its own.
-- **Resilient multi-step interaction.** A flow of several clicks/typing/waits,
-  especially on a UI likely to shift, where its accessibility-tree targeting and
-  self-healing beat hand-written CDP.
-- **A recorded run.** The user wants a video or walkthrough of the flow —
-  Browser Use captures a frame-per-action trace and exports it.
-
-Frame it by what it actually gives (smoother, more resilient multi-step
-interaction; autonomy; a recording), not raw speed — for simple ops the default
-path is faster. A workable phrasing: "I can hand this to Browser Use — it drives
-multi-step flows more cleanly / can run this goal autonomously / can record it —
-but it's a ~1-minute one-time install. Want that, or should I just drive the
-pane directly?" Installing still follows the Browser Use preflight below (ask
-first).
-
-## Engine: in-app browser panes (default)
-
-High-level verbs cover the common 90%; a raw Chrome DevTools Protocol (CDP)
-endpoint covers full interaction (mouse, keyboard, scroll, DOM).
-
-### Establish the control surface
+## Establish the control surface
 
 1. Run `superset browser --help` and require `list`, `open`, `navigate`,
    `screenshot`, `eval`, `console`, and `cdp`. If absent, run `superset update`
-   and recheck. Do not substitute unsupported commands. The app-bundled CLI
-   (`~/.superset/bin/superset`) updates only with the desktop app — if it lacks
-   `browser`, updating the app (not the CLI) is the fix; check `type -a superset`
-   for another install before giving up.
+   and recheck. The app-bundled CLI (`~/.superset/bin/superset`) updates only
+   with the desktop app, so if it lacks `browser`, updating the app is the fix;
+   check `type -a superset` for another install before giving up.
 2. Resolve the workspace. Inside a workspace, use `$SUPERSET_WORKSPACE_ID`;
    otherwise `superset workspaces list --local --json` and pick the target.
    Pass `--host <id>` for a remote host.
-3. Browser panes live in the desktop app. A host with no desktop attached
-   (a standalone `superset start`) has no panes and every command errors
-   clearly — surface that rather than retrying, and consider the Browser Use
-   engine if the task still needs a browser there.
+3. Panes live in the desktop app. A host with no desktop attached (a standalone
+   `superset start`) has no panes and every command errors clearly; surface
+   that rather than retrying.
 
-When developing against a dev build of the desktop app in the Superset monorepo,
-drive it with `bun scripts/dev-cli.ts browser …` (from the worktree) instead of
-`superset browser …` — a plain dev CLI authenticates as your API org, not the
-local-first dev host, so it finds no panes. See `docs/agent-tooling.md`.
+## Find or open a pane
 
-### Find or open a pane
-
-Every pane has a stable `paneId`. Discover the panes already open in a
-workspace:
+Every pane has a stable `paneId`, scoped to its workspace: pass the same
+`--workspace` you opened it under or the operation is rejected.
 
 ```bash
 superset browser list --workspace <id> --json
-```
-
-Open a URL and get the resulting `paneId` back. `--target new-tab` opens a
-fresh tab and focuses it; the default `current-tab` reuses the active browser
-pane. Opening requires the workspace to be visible in the desktop app (the
-renderer creates the pane), so if it times out, ask the user to open the
-workspace.
-
-```bash
 superset browser open --workspace <id> --url https://example.com --json
 superset browser open --workspace <id> --url http://localhost:3000 --target new-tab --json
 ```
 
-Hold the `paneId` for every subsequent operation. `paneId` is scoped to its
-workspace: pass the same `--workspace` you opened it under, or the operation is
-rejected.
+`--target new-tab` opens a fresh tab and focuses it; the default `current-tab`
+reuses the active browser pane. Opening needs the workspace visible in the
+desktop app (the renderer creates the pane), so if it times out, ask the user to
+open the workspace.
 
-### Drive with the high-level verbs
+## Drive with the high-level verbs
 
 ```bash
 # Point an existing pane at a new URL
@@ -123,71 +83,51 @@ superset browser eval --workspace <id> --pane <paneId> \
   --code "document.querySelector('h1')?.textContent"
 ```
 
-`eval` is the ergonomic path for reading or nudging the DOM (`.textContent`,
-`.value = …`, `element.click()`, `location.href`); an expression that throws
-comes back as a command error, not a value. `open` and `navigate` accept only
-`http(s)` and `about:` URLs — bare input like `example.com` or `localhost:3000`
-is upgraded, but a `file://`, `chrome://`, `data:`, or other scheme is rejected
-with a clear error instead of silently turning into a web search.
+Screenshot to see state, `eval` to read structured data (`.textContent`,
+`.value = …`, `element.click()`, `location.href`), `console` to check for page
+errors. Prefer these over raw CDP unless you need real input events. An `eval`
+expression that throws comes back as a command error, not a value. `open` and
+`navigate` accept only `http(s)` and `about:` URLs; bare input like
+`localhost:3000` is upgraded, while `file://`, `chrome://`, and `data:` are
+rejected with a clear error.
 
-Take a screenshot to *see* state, `eval` to *read* structured data, and
-`console` to check for page errors. Prefer these over raw CDP unless you need
-real input events.
+## Import logins from another browser
 
-### Import logins from another browser
+`import-login` copies a system browser's cookies into the pane so it's signed in
+to the sites the user already uses. It imports every cookie that profile has on
+disk, not just the one site, and panes share a profile, so say that when
+offering and run it only with the user's go-ahead. Offering it is how most
+users discover it: when a pane hits a login wall for a site the user uses in
+their own browser, suggest importing that login instead of stopping. The user
+always picks the source browser; people run several Chromium browsers (Chrome,
+Edge, Brave, Arc, Dia, Comet) and only they know which holds the session. macOS
+only; it reads the browser's Keychain key (first run prompts them to allow it)
+and never modifies the source browser.
 
-Copy a system browser's cookies into a pane's session so the pane is signed in
-to the same sites the user already uses. This widens access to their accounts,
-so run it **only with the user's go-ahead** — but you *can* proactively **offer**
-it, which is how most users will discover the feature: when a pane hits a login
-wall for a site the user uses in their own browser, suggest importing that login
-(e.g. "want me to bring over your login from Comet?") instead of just stopping.
-They still decide, and you still **never choose the source browser for them**:
-people run several Chromium browsers (Chrome, Edge, Brave, Arc, Dia, Comet), and
-only the user knows which one holds the session they want. macOS only — it reads
-the browser's Keychain key, and the first run prompts them to allow it. It is
-**read-only on the source browser**: it copies the cookie database and never
-modifies, moves, or clears the source's own logins.
+1. List the installed browsers and let the user choose:
+   `superset browser import-login --workspace <id> --pane <paneId>`
+2. Import from their choice, then reload the pane:
+   `superset browser import-login --workspace <id> --pane <paneId> --from Comet`
+   followed by `superset browser navigate …`. `--profile <name>` disambiguates
+   a browser with several profiles; an ambiguous `--from` errors and lists them.
 
-Always follow this order — list, ask, then import:
+Only cookies written to disk can import. Many sites keep auth in session
+cookies that live in browser memory, so have the user quit the source browser
+first to flush its logins. `imported: 0, keyUnavailable: true` means the
+Keychain prompt was denied; ask them to allow it and retry.
 
-1. **List** the installed browsers and **let the user pick one.** Run with no
-   `--from` to enumerate what's detected, present the choices, and ask which to
-   use. Do not default to the first, the busiest, or one you used before.
+## Full interaction over raw CDP
 
-   ```bash
-   superset browser import-login --workspace <id> --pane <paneId>
-   ```
-
-2. **Import** from the browser they chose, then reload the pane to apply it:
-
-   ```bash
-   superset browser import-login --workspace <id> --pane <paneId> --from Comet
-   superset browser navigate --workspace <id> --pane <paneId> --url https://…
-   ```
-
-   `--profile <name>` disambiguates a browser with several profiles; if `--from`
-   matches more than one, the command errors and lists them rather than guessing.
-
-Only cookies the source browser has **written to disk** can import — many sites
-keep auth in *session cookies* that live in browser memory and are deleted on
-quit, so they never persist. **Have the user quit the source browser first** to
-flush its logins to disk. A result of `imported: 0, keyUnavailable: true` means
-the Keychain prompt was denied — ask them to allow it and retry.
-
-### Full interaction over raw CDP
-
-For clicking, typing, scrolling, waiting on selectors, or any browser-use /
-Playwright-class flow, get a raw CDP WebSocket endpoint for the pane:
+For clicking, typing, scrolling, waiting on selectors, or any Playwright-class
+flow, get the pane's CDP WebSocket endpoint:
 
 ```bash
 superset browser cdp --workspace <id> --pane <paneId> --json
 ```
 
-The printed `url` is a WebSocket that speaks CDP directly (`Page`, `Runtime`,
-`DOM`, `Input`, `Network`, …). It embeds an auth token — treat the URL as a
-secret; do not paste it into shared logs. Point any CDP client at it, or drive
-it directly. Minimal pattern (Node 22+ / Bun):
+The printed `url` speaks CDP directly (`Page`, `Runtime`, `DOM`, `Input`,
+`Network`, …). It embeds an auth token, so treat it as a secret and keep it out
+of shared logs. Minimal pattern (Node 22+ / Bun):
 
 ```js
 const ws = new WebSocket(cdpUrl);
@@ -229,137 +169,43 @@ const focused = await send("Runtime.evaluate", {
 if (focused.result.value) await send("Input.insertText", { text: "ada@example.com" });
 ```
 
-Clicking a button that submits a form, makes a purchase, or takes another
-consequential action is a step to confirm with the user first — not something to
-model in an unattended example.
+Gotchas that keep CDP flows reliable:
 
-Conventions that keep CDP flows reliable:
-
-- One CDP session per pane. A second concurrent attach is rejected with
-  WebSocket close code 1013 (Try Again Later) until the first disconnects —
-  close the socket when done, then retry.
+- One CDP session per pane. A second concurrent attach is rejected with close
+  code 1013 until the first disconnects; close the socket when done, then retry.
 - After a click that should focus a field, verify `document.activeElement`
-  before `Input.insertText`, and poll a selector/state check after each action
-  rather than sleeping a fixed time — the guest can repaint slowly when the
+  before `Input.insertText`, and poll a selector or state check after each
+  action rather than sleeping a fixed time; the guest repaints slowly when the
   window is backgrounded.
 - To submit with Enter, the `keyDown` must carry the character:
-  `Input.dispatchKeyEvent` with `{type: "keyDown", key: "Enter", code: "Enter",
-  text: "\r", unmodifiedText: "\r", windowsVirtualKeyCode: 13}` followed by the
-  matching `keyUp`. Without `text: "\r"` the event fires but no char is
-  generated, so forms silently don't submit.
-- `Page.navigate` obeys the same scheme allowlist as the CLI; `file://` and
-  `chrome://` are refused.
-
-## Engine: Browser Use 3.0
-
-[Browser Use](https://docs.browser-use.com/open-source/browser-use-cli) 3.0 is
-a CLI that executes Python against a browser over CDP: helpers are
-pre-imported, and a daemon manages the browser connection. Reach for it only
-per the routing above.
-
-### Preflight
-
-1. Check for an install: `command -v browser-use && browser-use --version`.
-2. If missing, **ask the user before installing anything** (including `uv`
-   itself). With authorization, install it so the bare `browser-use` command
-   below is on `PATH`:
-
-   ```bash
-   uv tool install browser-use
-   browser-use --help
-   ```
-
-   `uvx --from 'browser-use[cli]' browser-use …` also works, but it's an
-   ephemeral run that does **not** put `browser-use` on `PATH` — every call
-   must carry the full `uvx --from 'browser-use[cli]'` prefix. The bare
-   `browser-use …` invocations in the rest of this section assume the
-   `uv tool install` above; prefer it unless you deliberately want one-off runs.
-
-3. Read the engine's own instructions before driving: `browser-use skill`
-   prints the upstream skill text with the current helper reference and
-   workflow. Follow it for the details; this section covers only routing,
-   consent, and cleanup. `browser-use --doctor` diagnoses install, daemon,
-   and browser-connection problems.
-
-### Connect to a browser — consent first
-
-By default the CLI attaches to the user's **running Chrome/Chromium over CDP**
-— their real, signed-in profile — and if Chrome lacks remote debugging it will
-prompt to enable it. Never take that path without the user's explicit consent
-for this task; "use my browser/session" from the user is consent, silence is
-not. Without it, use one of:
-
-- A scratch browser you launch yourself (e.g. Chromium with a throwaway
-  `--user-data-dir` and a debug port), pointed at via the `BU_CDP_URL` or
-  `BU_CDP_WS` environment variables.
-- A Browser Use cloud browser: `browser-use auth login`, then
-  `start_remote_daemon("<name>")` and prefix later calls with
-  `BU_NAME=<name>`. Cloud browsers bill until stopped — ask before starting
-  one, and stop it when done.
-- An in-app pane, if you specifically want Browser Use's harness against a
-  workspace pane: export the pane's own CDP endpoint (the `url` from
-  `superset browser cdp … --json`) as `BU_CDP_WS`, then run `browser-use`.
-  The pane presents itself as a single page target, so Browser Use attaches
-  to it directly. This needs no profile consent (it's the workspace's own
-  pane, not a signed-in system browser) — but for panes the default
-  `superset browser` verbs above are simpler and need no install, so prefer
-  them unless you have a reason to use Browser Use here.
-
-### Drive
-
-Pass Python via heredoc; helpers are pre-imported. First navigation is
-`new_tab(url)`, not `goto_url(url)`:
-
-```bash
-browser-use <<'PY'
-new_tab("http://localhost:3000")
-wait_for_load()
-print(page_info())
-PY
-```
-
-`js(...)` evaluates in the page, `cdp("Domain.method", ...)` speaks raw CDP,
-and `click_at_xy(x, y)` clicks — prefer accessibility-tree targeting as the
-upstream skill text describes. For MCP-capable hosts the same package also
-runs as an MCP server: `uvx --from 'browser-use[cli]' browser-use --mcp`.
-
-### Clean up
-
-Stop any cloud daemon you started (`stop_remote_daemon("<name>")` — it bills
-until stopped). Close tabs you opened in a browser you attached to, and leave
-the user's own tabs, session, and browser settings as you found them. If you
-launched a scratch browser, quit it and delete its throwaway profile.
+  `{type: "keyDown", key: "Enter", code: "Enter", text: "\r", unmodifiedText: "\r", windowsVirtualKeyCode: 13}`
+  then the matching `keyUp`. Without `text: "\r"` no char is generated and
+  forms silently don't submit.
+- `Page.navigate` obeys the same scheme allowlist as the CLI.
 
 ## Verify
 
-Whichever engine, confirm outcomes from the page itself, not from the fact a
-command returned: read back the URL (`location.href`), the DOM (`eval` /
-`js(...)`), or a screenshot after each meaningful step. Check the console for
-page errors before declaring success.
+Confirm outcomes from the page itself, not from the fact a command returned:
+read back `location.href`, the DOM via `eval`, or a screenshot after each
+meaningful step, and check the console for page errors before declaring
+success.
 
 ## Safety
 
-- **Real sessions.** In-app panes share one browser profile, so `eval` and CDP
-  reach whatever the user is logged into in *any* in-app browser pane (GitHub,
-  dashboards, …); Browser Use attached to the user's Chrome reaches everything
-  they're signed into. Never read cookies, tokens, or credentials, exfiltrate
-  session data, or act on authenticated sites beyond the task. When a step
-  would submit a form, make a purchase, or take another consequential action,
-  confirm with the user first. Login walls stay with the user: never enter
-  passwords or MFA yourself — but at a login wall you may **offer to import their
-  login** from their own browser (see "Import logins from another browser")
-  rather than only stopping.
-- **Importing logins.** `import-login` copies real session cookies into the
-  pane's jar — run it only with the user's go-ahead (offering it at a login wall
-  counts), and never chain it into acting on the sites it signs you into beyond
-  what they requested. It never writes to the source browser.
-- **Ask before widening access.** Never install Browser Use (or `uv`), enable
-  Chrome remote debugging, attach to the user's signed-in profile, or start a
-  billed cloud browser without explicit consent. If consent is refused, report
-  what you couldn't do — don't work around it with another mechanism.
-- **Workspace scope.** Pane operations are scoped to the pane's workspace;
-  don't try to reach panes in another workspace.
-- **Leave state clean.** Don't close the user's tabs or clear history unless
-  asked. Navigating away from what they were viewing is itself a change —
-  prefer `--target new-tab` (panes) or a fresh tab (Browser Use) when you need
-  a scratch surface.
+- In-app panes share one browser profile, so `eval` and CDP reach whatever the
+  user is logged into in any pane (GitHub, dashboards, …). Never read cookies,
+  tokens, or credentials, exfiltrate session data, or act on authenticated
+  sites beyond the task.
+- Confirm with the user before a step that submits a form, makes a purchase,
+  or takes another consequential action.
+- Login walls stay with the user: never enter passwords or MFA yourself. At a
+  login wall you may offer `import-login` (above) rather than only stopping.
+- Never install Browser Use, enable Chrome remote debugging, attach to the
+  user's signed-in profile, or start a billed cloud browser without explicit
+  consent. If consent is refused, report what you couldn't do rather than
+  working around it.
+- Pane operations are scoped to the pane's workspace; don't reach panes in
+  another workspace.
+- Leave state clean. Navigating away from what the user was viewing is itself
+  a change, so prefer `--target new-tab` for a scratch surface, and don't close
+  their tabs or clear history unless asked.

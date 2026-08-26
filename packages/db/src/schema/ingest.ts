@@ -1,7 +1,6 @@
 import {
 	index,
 	integer,
-	jsonb,
 	pgSchema,
 	text,
 	timestamp,
@@ -12,6 +11,19 @@ import { integrationProvider } from "./schema";
 
 export const ingestSchema = pgSchema("ingest");
 
+/**
+ * Identity, dedup and processing state for a delivery. Deliberately without
+ * the body: bodies live in ingest.webhook_payloads, which is partitioned by
+ * day so retention is a DROP rather than an UPDATE that leaves 400GB of dead
+ * tuples behind. Keeping this table unpartitioned is what lets the dedup index
+ * stay on (provider, event_id) — a unique index on a partitioned table has to
+ * include the partition key, and adding received_at to it would mean a
+ * redelivery no longer conflicts, silently disabling dedup.
+ *
+ * webhook_payloads is not declared here. It is created by a custom migration
+ * (drizzle has no syntax for PARTITION BY) and only ever written, never read
+ * back by application code, so there is nothing for a schema type to serve.
+ */
 export const webhookEvents = ingestSchema.table(
 	"webhook_events",
 	{
@@ -21,11 +33,6 @@ export const webhookEvents = ingestSchema.table(
 		provider: integrationProvider().notNull(),
 		eventId: text("event_id").notNull(),
 		eventType: text("event_type"),
-
-		// Raw payload, kept only for debugging recent deliveries. Nothing reads it
-		// back; it is nulled once the row ages out so this table stops growing
-		// without bound. NULL means pruned, not "arrived empty".
-		payload: jsonb(),
 
 		// Processing state
 		status: text().notNull().default("pending"), // pending | processed | failed | skipped

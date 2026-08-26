@@ -26,8 +26,15 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 			([paneId]) => tabsState.panes?.[paneId] !== undefined,
 		),
 	);
+	const tabsStateByWindow = Object.fromEntries(
+		Object.entries(data.tabsStateByWindow ?? {}).map(([key, state]) => [
+			key,
+			{ ...defaultAppState.tabsState, ...(state ?? {}) },
+		]),
+	);
 	return {
 		tabsState,
+		tabsStateByWindow,
 		v1AgentSessions,
 		themeState: {
 			...defaultAppState.themeState,
@@ -100,3 +107,21 @@ export const appState = new Proxy({} as AppStateDB, {
 		return value;
 	},
 });
+
+/**
+ * Drop per-window state for windows that will not be restored.
+ *
+ * Called from the same place that writes the restorable window set, so the two
+ * cannot drift: a window whose key is no longer persisted is gone for good, and
+ * keeping its layout would grow app-state.json on every new window forever.
+ */
+export function pruneWindowScopedState(liveKeys: string[]): void {
+	const byWindow = appState.data.tabsStateByWindow;
+	if (!byWindow) return;
+	const live = new Set(liveKeys);
+	const kept = Object.fromEntries(
+		Object.entries(byWindow).filter(([key]) => live.has(key)),
+	);
+	if (Object.keys(kept).length === Object.keys(byWindow).length) return;
+	appState.data.tabsStateByWindow = kept;
+}

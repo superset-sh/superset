@@ -41,7 +41,7 @@ export async function run(opts: RunOptions): Promise<void> {
 	try {
 		await execute(opts, opts.tree, ac.signal);
 	} catch (error) {
-		handleError(error, opts.name);
+		await handleError(error, opts.name, ac.signal);
 	} finally {
 		process.off("SIGINT", onSignal);
 		process.off("SIGTERM", onSignal);
@@ -108,10 +108,17 @@ export function formatError(
 	return { message: String(error) };
 }
 
-function handleError(error: unknown, cliName: string): never {
+async function handleError(
+	error: unknown,
+	cliName: string,
+	signal?: AbortSignal,
+): Promise<never> {
 	const { message, hint } = formatError(error, cliName);
-	process.stderr.write(`Error: ${message}\n`);
-	if (hint) process.stderr.write(`Hint: ${hint}\n`);
+	const text = `Error: ${message}\n${hint ? `Hint: ${hint}\n` : ""}`;
+	// Same drain rule as stdout (see writeStream): exiting before the pipe
+	// reader catches up would drop the message. Best effort; a failed stderr
+	// write must not mask the exit code.
+	await writeStream(process.stderr, text, signal).catch(() => {});
 	process.exit(1);
 }
 
@@ -400,6 +407,42 @@ async function execute(
 			json: isJson,
 			quiet: isQuiet,
 		});
-		if (output) console.log(output);
+		// All command output must leave through writeStream; a bare console.log
+		// here reintroduces truncation for any payload past the pipe buffer.
+		if (output) await writeStream(process.stdout, `${output}\n`, signal);
 	}
+}
+
+/**
+ * console.log queues pipe writes asynchronously; when the process exits while
+ * the reader is slow, Bun drops the still-queued tail, truncating output
+ * beyond ~64KB (seen with `superset tasks list --json | jq` and `$(...)`
+ * capture). Awaiting the write callback keeps the process alive until the
+ * whole payload reaches the pipe.
+ */
+function writeStream(
+	stream: NodeJS.WriteStream,
+	text: string,
+	signal?: AbortSignal,
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const settle = (fn: () => void) => {
+			if (settled) return;
+			settled = true;
+			fn();
+		};
+		stream.write(text, (error) =>
+			settle(() => (error ? reject(error) : resolve())),
+		);
+		// A full pipe whose reader never drains would otherwise wait forever
+		// and swallow SIGINT/SIGTERM (run() replaces their default exit). On
+		// abort, stop waiting and let the exit path proceed; losing the tail
+		// is the right trade once the user asked to stop.
+		if (signal?.aborted) settle(resolve);
+		else
+			signal?.addEventListener("abort", () => settle(resolve), {
+				once: true,
+			});
+	});
 }

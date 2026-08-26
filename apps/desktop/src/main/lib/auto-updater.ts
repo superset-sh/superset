@@ -8,6 +8,7 @@ import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
 import { appState } from "main/lib/app-state";
 import { isEnvironmentUpdateError } from "main/lib/update-error-classification";
+import { redactUpdateError } from "main/lib/update-error-redaction";
 import { gte, prerelease } from "semver";
 import {
 	AUTO_UPDATE_STATUS,
@@ -369,7 +370,7 @@ export function setupAutoUpdater(): void {
 				freeStagingBytes(),
 			)
 		) {
-			Sentry.captureException(error);
+			Sentry.captureException(redactUpdateError(error));
 		}
 	});
 

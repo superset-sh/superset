@@ -9,6 +9,7 @@
 			"@superset/attachments-sheet": [
 				"./modules/attachments-sheet/src/index.ts"
 			],
+			"@superset/composer": ["./modules/composer/src/index.tsx"],
 			"@superset/paste-input": ["./modules/paste-input/src/index.tsx"]
 		}
 	},

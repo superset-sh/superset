@@ -265,6 +265,7 @@ export function createMarkdownExtensions({
 			},
 		}).configure({
 			resizable: false,
+			renderWrapper: true,
 			cellMinWidth: 192,
 			HTMLAttributes: {
 				class: "markdown-table my-4 min-w-full border-collapse",

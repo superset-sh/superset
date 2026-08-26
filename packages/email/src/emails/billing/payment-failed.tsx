@@ -2,7 +2,7 @@ import { Heading, Link, Section, Text } from "@react-email/components";
 import { Button, EmailLayout } from "../../components";
 
 interface PaymentFailedEmailProps {
-	ownerName?: string | null;
+	recipientName?: string | null;
 	organizationName: string;
 	planName: string;
 	amount: string;
@@ -11,7 +11,7 @@ interface PaymentFailedEmailProps {
 }
 
 export function PaymentFailedEmail({
-	ownerName = "there",
+	recipientName = "there",
 	organizationName = "Acme Inc",
 	planName = "Pro",
 	amount = "$50.00",
@@ -25,7 +25,7 @@ export function PaymentFailedEmail({
 			</Heading>
 
 			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
-				Hi {ownerName ?? "there"},
+				Hi {recipientName ?? "there"},
 			</Text>
 
 			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">

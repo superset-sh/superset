@@ -33,6 +33,7 @@ describe("pullRequestsSearchFromFilters", () => {
 				authorFilter: null,
 				reviewFilter: null,
 				includeClosed: false,
+				mergedOnly: false,
 			}),
 		).toEqual({});
 	});
@@ -45,6 +46,7 @@ describe("pullRequestsSearchFromFilters", () => {
 				authorFilter: "octocat",
 				reviewFilter: "changes-requested",
 				includeClosed: true,
+				mergedOnly: false,
 			}),
 		).toEqual({
 			search: "remote host",
@@ -53,6 +55,19 @@ describe("pullRequestsSearchFromFilters", () => {
 			review: "changes-requested",
 			state: "all",
 		});
+	});
+
+	test("mergedOnly wins over includeClosed in the serialized state", () => {
+		expect(
+			pullRequestsSearchFromFilters({
+				search: "",
+				projectFilters: [],
+				authorFilter: null,
+				reviewFilter: null,
+				includeClosed: true,
+				mergedOnly: true,
+			}),
+		).toEqual({ state: "merged" });
 	});
 });
 
@@ -78,18 +93,21 @@ describe("migratePullRequestsFilterState", () => {
 				authorFilter: "octocat author:someone-else",
 				reviewFilter: "review:approved",
 				includeClosed: "true",
+				mergedOnly: "true",
 			}),
 		).toMatchObject({
 			projectFilters: ["project-1"],
 			authorFilter: null,
 			reviewFilter: null,
 			includeClosed: false,
+			mergedOnly: false,
 		});
 		expect(migratePullRequestsFilterState(null)).toMatchObject({
 			projectFilters: [],
 			authorFilter: null,
 			reviewFilter: null,
 			includeClosed: false,
+			mergedOnly: false,
 		});
 	});
 });

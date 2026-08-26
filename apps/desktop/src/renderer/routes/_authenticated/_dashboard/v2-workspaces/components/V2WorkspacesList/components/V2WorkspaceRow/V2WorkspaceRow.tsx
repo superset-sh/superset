@@ -1,16 +1,13 @@
-import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { CgLaptop } from "react-icons/cg";
-import { LuGitBranch, LuSquareTerminal, LuTrash2 } from "react-icons/lu";
-import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
+import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
+import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
-import { V2WorkspaceProjectIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceProjectIcon";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { workspaceActivityAt } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
+import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
-import { WorkspaceAgentIcon } from "./components/WorkspaceAgentIcon";
-import { WorkspacePrPill } from "./components/WorkspacePrPill";
 import { WorkspaceStateGlyph } from "./components/WorkspaceStateGlyph";
 
 interface V2WorkspaceRowProps {
@@ -29,6 +26,13 @@ export function V2WorkspaceRow({
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
 	const isMainWorkspace = workspace.type === "main";
+	// Drives the name's hover-reveal for keyboard users: the row, not the
+	// name span, is what's actually tabbable.
+	const {
+		isFocusVisible: isFocused,
+		onFocus: handleRowFocus,
+		onBlur: handleRowBlur,
+	} = useFocusVisible();
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
 		? "you"
@@ -44,6 +48,22 @@ export function V2WorkspaceRow({
 		workspace.lastAgentEventAt
 			? `Last agent activity ${new Date(workspace.lastAgentEventAt).toLocaleString()}`
 			: null,
+	]
+		.filter(Boolean)
+		.join("\n");
+
+	// PR, branch, and project no longer get their own persistent slot in the
+	// row — the list was trying to be a table and reads noisy for it. They're
+	// still one hover away instead of gone outright.
+	const rowTitle = [
+		workspace.pr
+			? `PR #${workspace.pr.prNumber} (${workspace.pr.state})`
+			: null,
+		workspace.type !== "session" &&
+		workspace.branch.toLowerCase() !== workspace.name.toLowerCase()
+			? `Branch: ${workspace.branch}`
+			: null,
+		`Project: ${workspace.projectName ?? "none (session)"}`,
 	]
 		.filter(Boolean)
 		.join("\n");
@@ -67,8 +87,11 @@ export function V2WorkspaceRow({
 							actions.open();
 						}
 					}}
+					onFocus={handleRowFocus}
+					onBlur={handleRowBlur}
+					title={rowTitle}
 					className={cn(
-						"group/row flex h-9 cursor-pointer items-center gap-2 border-b border-border/40 px-6 text-sm outline-none transition-colors",
+						"flex cursor-pointer items-center gap-3 border-b border-border/40 px-6 py-3 text-sm outline-none transition-colors",
 						"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 						isCurrentRoute
 							? "bg-muted hover:bg-muted focus-visible:bg-muted"
@@ -80,189 +103,72 @@ export function V2WorkspaceRow({
 					{isMainWorkspace ? (
 						<Tooltip delayDuration={300}>
 							<TooltipTrigger asChild>
-								<CgLaptop
-									className="size-3.5 shrink-0 text-muted-foreground"
-									aria-label="Main workspace"
-								/>
+								{/* The wrapping span (not the icon itself — react-icons
+								    treats a `title` prop as an SVG <title> child, not an
+								    HTML attribute, so it can't block inheritance) carries
+								    an empty title to stop it from inheriting the row's
+								    title (PR/branch/project); without it, hovering this
+								    icon fires both the native tooltip and this Radix one
+								    at once. */}
+								<span title="">
+									<CgLaptop
+										className="size-3.5 shrink-0 text-muted-foreground"
+										aria-label="Main workspace"
+									/>
+								</span>
 							</TooltipTrigger>
 							<TooltipContent side="top">Main workspace</TooltipContent>
 						</Tooltip>
 					) : null}
 
-					<span
+					<WorkspaceNameMarquee
+						name={workspace.name}
+						forceActive={isFocused}
 						className={cn(
-							"min-w-0 truncate font-medium",
+							"min-w-0 flex-1 font-medium",
 							// Done states recede so live work owns the contrast.
 							workspace.archivedAt != null || workspace.pr?.state === "merged"
 								? "text-muted-foreground"
 								: "text-foreground",
 						)}
-						title={workspace.name}
-					>
-						{workspace.name}
-					</span>
-
-					{/* Automation runs share a name; the run stamp is the "AS-11"
-					    that tells ten identical rows apart (Linear's muted ID). */}
-					{workspace.type === "session" ? (
-						<span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/70">
-							{workspace.createdAt.toLocaleDateString(undefined, {
-								month: "short",
-								day: "numeric",
-							})}
-							{" · "}
-							{workspace.createdAt.toLocaleTimeString(undefined, {
-								hour: "2-digit",
-								minute: "2-digit",
-							})}
-						</span>
-					) : null}
+					/>
 
 					{workspace.pr ? (
-						<WorkspacePrPill pr={workspace.pr} branch={workspace.branch} />
+						<a
+							href={workspace.pr.url}
+							target="_blank"
+							rel="noreferrer"
+							onClick={(event) => event.stopPropagation()}
+							title=""
+							aria-label={`Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`}
+							className="shrink-0"
+						>
+							<PRIcon state={workspace.pr.state} className="size-3.5" />
+						</a>
 					) : null}
 
-					<div className="ml-auto flex shrink-0 items-center gap-3">
-						{/* Space is always reserved so metadata never shifts when the
-						    actions fade in on hover. */}
-						<span className="flex w-14 items-center justify-end gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/row:opacity-100">
-							{workspace.isInSidebar ? (
-								<Button
-									size="icon"
-									variant="ghost"
-									onClick={(event) => {
-										event.stopPropagation();
-										actions.removeFromSidebar();
-									}}
-									disabled={isCurrentRoute}
-									aria-label="Unpin from sidebar"
-									title={
-										isCurrentRoute
-											? "Can't unpin the current workspace"
-											: "Unpin from sidebar"
-									}
-									className="size-6 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
-								>
-									<RiPushpinFill className="size-3.5" />
-								</Button>
-							) : (
-								<Button
-									size="icon"
-									variant="ghost"
-									onClick={(event) => {
-										event.stopPropagation();
-										actions.addToSidebar();
-									}}
-									aria-label="Pin to sidebar"
-									title="Pin to sidebar"
-									className="size-6 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
-								>
-									<RiPushpinLine className="size-3.5" />
-								</Button>
-							)}
-							{!isMainWorkspace ? (
-								<Button
-									size="icon"
-									variant="ghost"
-									onClick={(event) => {
-										event.stopPropagation();
-										actions.openDeleteDialog();
-									}}
-									aria-label="Delete workspace"
-									title="Delete workspace"
-									className="size-6 text-muted-foreground hover:bg-transparent hover:text-destructive dark:hover:bg-transparent"
-								>
-									<LuTrash2 className="size-3.5" />
-								</Button>
-							) : null}
-						</span>
-
-						{workspace.agentIds.length > 0 ? (
-							<span className="flex items-center gap-1">
-								{workspace.agentIds.slice(0, 3).map((agentId) => (
-									<WorkspaceAgentIcon key={agentId} agentId={agentId} />
-								))}
+					{workspace.diffStats &&
+					(workspace.diffStats.additions > 0 ||
+						workspace.diffStats.deletions > 0) ? (
+						<span
+							className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] tabular-nums leading-none"
+							title={`${workspace.diffStats.fileCount} changed ${workspace.diffStats.fileCount === 1 ? "file" : "files"}`}
+						>
+							<span className="text-emerald-600/80 dark:text-emerald-400/70">
+								+{formatCount(workspace.diffStats.additions)}
 							</span>
-						) : null}
-
-						{/* Fixed-width slots keep the metadata columns vertically
-						    aligned across rows without table markup. */}
-						<span
-							className="flex w-24 items-center justify-end gap-1.5 font-mono text-[11px] tabular-nums leading-none"
-							title={
-								workspace.diffStats
-									? `${workspace.diffStats.fileCount} changed ${workspace.diffStats.fileCount === 1 ? "file" : "files"}`
-									: undefined
-							}
-						>
-							{workspace.diffStats &&
-							(workspace.diffStats.additions > 0 ||
-								workspace.diffStats.deletions > 0) ? (
-								<>
-									<span className="text-emerald-600/80 dark:text-emerald-400/70">
-										+{formatCount(workspace.diffStats.additions)}
-									</span>
-									<span className="text-red-600/80 dark:text-red-400/70">
-										−{formatCount(workspace.diffStats.deletions)}
-									</span>
-								</>
-							) : null}
+							<span className="text-red-600/80 dark:text-red-400/70">
+								−{formatCount(workspace.diffStats.deletions)}
+							</span>
 						</span>
+					) : null}
 
-						{/* Branch equal to the display name (main workspaces) or a
-						    session's default checkout says nothing — leave the slot
-						    empty but keep alignment. */}
-						<span
-							className="hidden w-48 items-center gap-1.5 text-xs text-muted-foreground md:flex"
-							title={workspace.branch}
-						>
-							{workspace.type !== "session" &&
-							workspace.branch.toLowerCase() !==
-								workspace.name.toLowerCase() ? (
-								<>
-									<LuGitBranch className="size-3 shrink-0" />
-									<span className="min-w-0 truncate font-mono text-[11px]">
-										{workspace.branch}
-									</span>
-								</>
-							) : null}
-						</span>
-
-						{/* Icon-only below lg so the project is identifiable at every
-						    width; the name joins it when there's room. */}
-						<span
-							className="flex w-4 items-center gap-1.5 lg:w-36"
-							title={workspace.projectName ?? "Session (no project)"}
-						>
-							{workspace.projectName ? (
-								<>
-									<V2WorkspaceProjectIcon
-										projectName={workspace.projectName}
-										iconUrl={workspace.projectIconUrl}
-										size="sm"
-										className="size-4 text-[8px]"
-									/>
-									<span className="hidden min-w-0 truncate text-xs text-muted-foreground lg:block">
-										{workspace.projectName}
-									</span>
-								</>
-							) : (
-								<>
-									<LuSquareTerminal className="size-3.5 shrink-0 text-muted-foreground/70" />
-									<span className="hidden min-w-0 truncate text-xs text-muted-foreground/70 lg:block">
-										Session
-									</span>
-								</>
-							)}
-						</span>
-
-						<span
-							className="w-14 whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground"
-							title={timeTitle}
-						>
-							{timeLabel}
-						</span>
-					</div>
+					<span
+						className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted-foreground"
+						title={timeTitle}
+					>
+						{timeLabel}
+					</span>
 				</div>
 			)}
 		</V2WorkspaceContextMenu>

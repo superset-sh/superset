@@ -7,6 +7,3 @@ export const ATTENTION_COLORS: Record<TerminalAttention, string> = {
 	working: "#f59e0b",
 	review: "#22c55e",
 };
-
-/** Row tint for the session currently attached in the workspace screen. */
-export const ROW_TINT = "#27272a";

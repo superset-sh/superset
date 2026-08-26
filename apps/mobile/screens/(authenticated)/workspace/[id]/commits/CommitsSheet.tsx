@@ -1,11 +1,12 @@
 import { useQueries } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight, GitCommitVertical } from "lucide-react-native";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FlatList, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { posthog } from "@/lib/posthog";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
 import { useWorkspaceCommits } from "../hooks/useWorkspaceCommits";
 import { compactTime } from "../utils/compactTime";
@@ -21,6 +22,10 @@ export function CommitsSheet() {
 
 	const { commits, hostUrl } = useWorkspaceCommits(workspaceId);
 	const { baseBranch } = useWorkspaceChangeset(workspaceId);
+
+	useEffect(() => {
+		posthog.capture("commits_viewed", { workspace_id: workspaceId });
+	}, [workspaceId]);
 
 	const statTargets = useMemo(
 		() => (hostUrl ? commits.slice(0, MAX_STAT_QUERIES) : []),

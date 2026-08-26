@@ -21,8 +21,6 @@ import { SortableWorkspaceItem } from "../SortableWorkspaceItem";
 interface DashboardSidebarSessionsSectionProps {
 	sessionWorkspaces: DashboardSidebarWorkspace[];
 	isCollapsed?: boolean;
-	/** The workspaces-list collapse toggle hides rows; the header stays. */
-	rowsHidden?: boolean;
 	workspaceShortcutLabels?: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 }
@@ -40,7 +38,6 @@ interface DashboardSidebarSessionsSectionProps {
 export function DashboardSidebarSessionsSection({
 	sessionWorkspaces,
 	isCollapsed = false,
-	rowsHidden = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 }: DashboardSidebarSessionsSectionProps) {
@@ -55,7 +52,6 @@ export function DashboardSidebarSessionsSection({
 	// zone renders regardless of the section collapse.
 	const dropZoneEligible =
 		!isCollapsed &&
-		!rowsHidden &&
 		sessionItems.length === 0 &&
 		activeWorkspaceHome === SESSIONS_CONTAINER;
 
@@ -78,7 +74,7 @@ export function DashboardSidebarSessionsSection({
 	}
 
 	return (
-		<div className="pb-1">
+		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader label="Sessions" section="sessions">
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>
@@ -98,7 +94,7 @@ export function DashboardSidebarSessionsSection({
 					<TooltipContent side="bottom">New session</TooltipContent>
 				</Tooltip>
 			</DashboardSidebarSectionHeader>
-			{!rowsHidden && !isSectionCollapsed && (
+			{!isSectionCollapsed && (
 				<SortableContext
 					items={sessionItems}
 					strategy={verticalListSortingStrategy}

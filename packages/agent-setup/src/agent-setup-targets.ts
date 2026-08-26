@@ -19,6 +19,7 @@ export const AGENT_SETUP_TARGETS = [
 	{ id: "codex", managedBinary: true },
 	{ id: "droid", managedBinary: true },
 	{ id: "opencode", managedBinary: true },
+	{ id: "omp" },
 	{ id: "pi" },
 	{ id: "cursor-agent" },
 	{ id: "gemini", managedBinary: true },

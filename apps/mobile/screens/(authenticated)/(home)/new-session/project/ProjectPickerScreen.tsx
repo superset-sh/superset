@@ -1,11 +1,12 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Cloud } from "lucide-react-native";
 import { useMemo } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
+import { posthog } from "@/lib/posthog";
 import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/components/ProjectAvatar";
 import {
 	type NewChatTarget,
@@ -20,6 +21,7 @@ import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/
  */
 export function ProjectPickerScreen() {
 	const router = useRouter();
+	const routeParams = useLocalSearchParams<{ selectedKey?: string }>();
 	const theme = useTheme();
 	const { targets, defaultTarget } = useNewChatTargets();
 	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
@@ -28,9 +30,10 @@ export function ProjectPickerScreen() {
 	);
 
 	const selectedKey =
-		targets.find((target) => target.key === targetKey)?.key ??
-		defaultTarget?.key ??
-		null;
+		routeParams.selectedKey ||
+		(targets.find((target) => target.key === targetKey)?.key ??
+			defaultTarget?.key ??
+			null);
 
 	const sections = useMemo(() => {
 		const cloud = targets.filter((target) => target.kind === "cloud");
@@ -49,7 +52,12 @@ export function ProjectPickerScreen() {
 	}, [targets]);
 
 	const select = (key: string) => {
+		const picked = targets.find((target) => target.key === key);
 		setTargetKey(key);
+		posthog.capture("new_session_project_selected", {
+			project_id: picked?.projectId ?? null,
+			target_kind: picked?.kind ?? null,
+		});
 		router.back();
 	};
 
@@ -58,6 +66,7 @@ export function ProjectPickerScreen() {
 			key={target.key}
 			onPress={() => select(target.key)}
 			className="flex-row items-center gap-2.5 py-2.5"
+			ph-label="new-session-project-row"
 		>
 			<ProjectAvatar
 				name={target.projectName}

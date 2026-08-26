@@ -238,3 +238,45 @@
 .blog-code-block .hidden.dark\:block {
 	display: block;
 }
+
+@theme {
+	--animate-belt-march: belt-march 900ms linear infinite;
+	--animate-rail-extend: rail-extend 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+	--animate-station-pulse: station-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes belt-march {
+	from {
+		background-position-x: 0;
+	}
+	to {
+		background-position-x: 17px;
+	}
+}
+
+@keyframes rail-extend {
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
+}
+
+@keyframes station-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.55;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.animate-belt-march,
+	.animate-rail-extend,
+	.animate-station-pulse {
+		animation: none;
+	}
+}

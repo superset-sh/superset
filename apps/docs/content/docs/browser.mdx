@@ -33,6 +33,15 @@ URLs you visit are saved locally and appear as autocomplete suggestions. To clea
 
 Open the DevTools pane alongside any browser tab to inspect and debug the page running in the browser.
 
+## Design Mode
+
+Click **Design** in the browser toolbar to arm an element picker inside the page. Click any element and a prompt card opens under it: describe the change, pick an agent, and send. The agent receives the element's DOM, computed styles, React component metadata, and a cropped screenshot along with your note, in an existing agent terminal or a fresh session.
+
+<video src="/videos/design-mode.mp4" controls muted playsInline className="w-full rounded-xl ring-1 ring-white/10 my-4" />
+
+- Press **esc** to pick a different element; **esc** again (or the banner's ✕) exits design mode
+- Works on any page the pane can load, including your local dev server
+
 ## Ports Integration
 
 When Superset detects a port in use (e.g. `localhost:3000`), clicking its external link icon opens it in an in-app browser tab instead of the system browser.

@@ -8,6 +8,26 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
+		"./page-schema": {
+			"types": "./src/router/page/schema.ts",
+			"default": "./src/router/page/schema.ts"
+		},
+		"./leaderboard-queries": {
+			"types": "./src/router/leaderboard/queries.ts",
+			"default": "./src/router/leaderboard/queries.ts"
+		},
+		"./leaderboard-schema": {
+			"types": "./src/router/leaderboard/schema.ts",
+			"default": "./src/router/leaderboard/schema.ts"
+		},
+		"./leaderboard-periods": {
+			"types": "./src/router/leaderboard/periods.ts",
+			"default": "./src/router/leaderboard/periods.ts"
+		},
+		"./leaderboard-types": {
+			"types": "./src/router/leaderboard/types.ts",
+			"default": "./src/router/leaderboard/types.ts"
+		},
 		"./integrations/*": {
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
@@ -27,11 +47,16 @@
 		"./insight-registry": {
 			"types": "./src/router/analytics/insight-registry.ts",
 			"default": "./src/router/analytics/insight-registry.ts"
+		},
+		"./business-metrics": {
+			"types": "./src/router/analytics/business.ts",
+			"default": "./src/router/analytics/business.ts"
 		}
 	},
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",

@@ -44,16 +44,21 @@ its hook entries into these files while preserving user-defined entries:
 | `~/.claude/settings.json` | Claude Code hook registration merge |
 | `~/.codex/hooks.json` | Codex hook registration merge (`SessionStart`, `UserPromptSubmit`, `Stop`) |
 | `~/.factory/settings.json` | Factory Droid hook registration (`UserPromptSubmit`, `Notification`, `PostToolUse`, `Stop`) |
+| `~/.omp/agent/extensions/superset-hooks.ts` (or `$OMP_CODING_AGENT_DIR/extensions/superset-hooks.ts`) | Oh My Pi lifecycle extension (`session_start`, `agent_start`, `before_agent_start`, `tool_execution_end`, `agent_end`, `session_end`, `session_shutdown`) |
+| `~/.pi/agent/extensions/superset-hooks.ts` | Pi lifecycle extension (`session_start`, `before_agent_start`, `agent_end`, `session_end`) |
 
 For Codex specifically, Superset now relies on native `~/.codex/hooks.json`
 registration for durable prompt/tool lifecycle events. The wrapper in
-`~/.superset[-{workspace}]/bin/codex` enables those hooks and keeps the
-session-log watcher as a best-effort compatibility bridge for Start and
-permission events on older Codex releases. It does not override the legacy
-`notify` callback because that callback cannot distinguish main-agent and
-subagent completions. On startup, Superset rewrites only its own managed entries in
-`~/.codex/hooks.json` to point at the current environment's `notify.sh`, while
-preserving any user-defined Codex hooks.
+`~/.superset[-{workspace}]/bin/codex` enables those hooks — appending
+`--dangerously-bypass-hook-trust` when the launch command doesn't already pass
+it, because Codex silently skips untrusted `hooks.json` entries and Superset
+would otherwise lose the Stop signal — and keeps the session-log watcher as a
+best-effort compatibility bridge for Start and permission events on older
+Codex releases. It does not override the legacy `notify` callback because that
+callback cannot distinguish main-agent and subagent completions. On startup,
+Superset rewrites only its own managed entries in `~/.codex/hooks.json` to
+point at the current environment's `notify.sh`, while preserving any
+user-defined Codex hooks.
 
 ### `zsh/` and `bash/` - Shell Integration
 

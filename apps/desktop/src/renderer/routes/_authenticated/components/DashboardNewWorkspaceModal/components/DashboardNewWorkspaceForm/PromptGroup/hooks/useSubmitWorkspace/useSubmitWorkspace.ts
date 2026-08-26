@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { authClient } from "renderer/lib/auth-client";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
@@ -24,6 +24,7 @@ export function useSubmitWorkspace(
 	selectedAgent: WorkspaceCreateAgent,
 	selectedModel: string | null,
 	selectedEffort: string | null,
+	selectedMode: string | null,
 	uploadAttachments: UseUploadAttachmentsApi,
 	promptContext: NewWorkspacePromptContextApi,
 ) {
@@ -32,10 +33,9 @@ export function useSubmitWorkspace(
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
+	const activeOrganizationId = useActiveOrganizationId();
 	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
 	const utils = cloudTrpc.useUtils();
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const isSession = draft.isSession;
 
@@ -158,6 +158,7 @@ export function useSubmitWorkspace(
 						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 						model: selectedModel ?? undefined,
 						effort: selectedEffort ?? undefined,
+						mode: selectedMode ?? undefined,
 					},
 				]
 			: undefined;
@@ -254,6 +255,7 @@ export function useSubmitWorkspace(
 		selectedAgent,
 		selectedModel,
 		selectedEffort,
+		selectedMode,
 		submit,
 		uploadAttachments,
 		utils,

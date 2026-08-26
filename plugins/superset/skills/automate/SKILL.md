@@ -1,7 +1,8 @@
 ---
 name: automate
-description: Turn a recurring chore into a Superset automation — drafts the agent prompt, confirms schedule and target, creates it with the CLI, and reviews the first run together. Use when the user wants a scheduled or recurring agent, a daily/weekly job, or to automate a repeating task with Superset.
+description: Turn a recurring chore into a Superset automation. Drafts the agent prompt, confirms schedule and target, creates it with the CLI, and reviews the first run together. Use when the user wants a scheduled or recurring agent, a daily or weekly job, or says things like "every morning do X", "automate this", "set up a cron agent", "run this on a schedule".
 argument-hint: describe the recurring task
+allowed-tools: Bash(superset:*)
 ---
 
 # Superset Automate
@@ -10,16 +11,16 @@ Turn "I keep doing X every morning" into an automation that does X on a schedule
 
 ## 1. Understand the chore
 
-Pin down: the outcome, the cadence, the inputs it reads, and what "done" looks like. Then draft the automation prompt — write it as instructions for an agent with zero context, and if the task has rules that will evolve (triage criteria, formats), put them in a document the automation reads at runtime so they can be edited without touching the prompt.
+Pin down: the outcome, the cadence, the inputs it reads, and what "done" looks like. Then draft the automation prompt as instructions for an agent with zero context. If the task has rules that will evolve (triage criteria, formats), put them in a document the automation reads at runtime so they can be edited without touching the prompt.
 
 ## 2. Pick the target
 
-- `superset projects list` — a project target creates a fresh workspace per run (most tasks)
-- `superset workspaces list` — a workspace target reuses the same workspace every run (stateful tasks)
+- `superset projects list`: a project target creates a fresh workspace per run (most tasks)
+- `superset workspaces list`: a workspace target reuses the same workspace every run (stateful tasks)
 
 ## 3. Confirm before creating
 
-Show the user (use the ask_user tool if available): the name, the schedule as an RRULE, the agent, and the target — plus the exact command you will run. Never create without explicit confirmation.
+Show the user (use the ask_user tool if available): the name, the schedule as an RRULE, the agent, the target, and the exact command you will run. Never create without explicit confirmation.
 
 ## 4. Create and shake down
 

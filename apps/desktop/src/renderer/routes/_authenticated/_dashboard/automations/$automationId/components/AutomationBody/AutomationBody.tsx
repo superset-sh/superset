@@ -90,12 +90,15 @@ export function AutomationBody({
 	const { localHostId } = useWorkspaceHostOptions();
 	const hostId = automation.targetHostId ?? localHostId ?? null;
 	const hostUrl = useHostUrl(hostId);
-	const { agents: hostAgents } = useV2AgentChoices(hostUrl);
-	// Only warn once the host's terminal configs have loaded — the list always
-	// contains the built-in Superset chat entry, so length 1 means "not loaded
-	// yet / host unreachable", not "agent missing".
+	const { agents: hostAgents, isFetched: hostAgentsFetched } =
+		useV2AgentChoices(hostUrl);
+	// Only warn once the host's terminal configs have loaded — the Superset
+	// chat entry is flag-gated, so list length alone can't tell "not loaded
+	// yet / host unreachable" apart from "agent missing".
 	const agentMissing =
-		hostAgents.length > 1 && !matchAgentChoice(hostAgents, automation.agent);
+		hostAgentsFetched &&
+		hostAgents.length > 0 &&
+		!matchAgentChoice(hostAgents, automation.agent);
 
 	return (
 		<div className="flex-1 overflow-y-auto px-8 py-8">

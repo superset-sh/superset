@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { authClient } from "renderer/lib/auth-client";
 import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -45,12 +44,15 @@ export interface UseHostProjectsResult {
  */
 export function useHostProjects(): UseHostProjectsResult {
 	const queryClient = useQueryClient();
-	const { activeHostUrl, machineId } = useLocalHostService();
+	const { activeHostUrl, machineId, activeOrganizationId } =
+		useLocalHostService();
 	const relayUrl = useRelayUrl();
-	const { data: session } = authClient.useSession();
+	// Per-window org, not the shared session — otherwise every window lists the
+	// projects of whichever org the session holds, so a second window on a
+	// different org shows the first org's projects (or none at all).
 	const fallbackOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+		: (activeOrganizationId ?? null);
 
 	const { hosts, settled: knownHostsSettled } = useKnownHosts();
 

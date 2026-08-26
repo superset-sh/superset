@@ -1264,3 +1264,130 @@ describe("missing-worktree degraded state", () => {
 		}
 	});
 });
+
+describe("PullRequestRuntimeManager workspace PR history", () => {
+	// Serves one open PR per branch through both the per-head query and the
+	// repo-wide sweep, with empty detail endpoints.
+	function historyExecGh(prsByBranch: Map<string, number>) {
+		return async (args: string[]) => {
+			if (args.includes("graphql")) {
+				return {
+					data: { repository: { pullRequest: { mergeQueueEntry: null } } },
+				};
+			}
+			const path = args.find(
+				(arg) => typeof arg === "string" && arg.startsWith("repos/"),
+			);
+			if (path?.endsWith("/reviews")) return [];
+			if (path?.endsWith("/check-runs")) return { check_runs: [] };
+			if (path?.endsWith("/statuses")) return [];
+			const head = args.find(
+				(arg) => typeof arg === "string" && arg.startsWith("head="),
+			);
+			if (head) {
+				const branch = head.slice(`head=${REPO.owner}:`.length);
+				const prNumber = prsByBranch.get(branch);
+				return prNumber
+					? [
+							makePrNode({
+								number: prNumber,
+								headRef: branch,
+								headSha: `sha-${branch}`,
+							}),
+						]
+					: [];
+			}
+			if (path === `repos/${REPO.owner}/${REPO.name}/pulls`) {
+				return [...prsByBranch.entries()].map(([branch, prNumber]) =>
+					makePrNode({
+						number: prNumber,
+						headRef: branch,
+						headSha: `sha-${branch}`,
+					}),
+				);
+			}
+			throw new Error(`unexpected gh call: ${args.join(" ")}`);
+		};
+	}
+
+	test("history accumulates across branch moves; unlink hides the pointer, never the history", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "branch-a",
+			headSha: "sha-branch-a",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "branch-a",
+		});
+		const prsByBranch = new Map([["branch-a", 101]]);
+		const manager = createManager(db, { execGh: historyExecGh(prsByBranch) });
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+		const first = await manager.getPullRequestHistoryByWorkspaces(["ws"]);
+		expect(first[0]?.pullRequests.map((pr) => pr.number)).toEqual([101]);
+		expect(first[0]?.pullRequests[0]?.isCurrent).toBe(true);
+
+		// The workspace moves on: new branch, new PR. The pointer follows;
+		// the history keeps both.
+		db.update(workspaces)
+			.set({
+				branch: "branch-b",
+				headSha: "sha-branch-b",
+				upstreamBranch: "branch-b",
+			})
+			.where(eq(workspaces.id, "ws"))
+			.run();
+		prsByBranch.set("branch-b", 102);
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+
+		const both = await manager.getPullRequestHistoryByWorkspaces(["ws"]);
+		expect(both[0]?.pullRequests.map((pr) => pr.number)).toEqual([102, 101]);
+		expect(both[0]?.pullRequests.map((pr) => pr.isCurrent)).toEqual([
+			true,
+			false,
+		]);
+		const current = await manager.getPullRequestsByWorkspaces(["ws"]);
+		expect(current[0]?.pullRequest?.number).toBe(102);
+
+		// Remove PR Link: the sidebar loses the pointer; history keeps 102.
+		manager.unlinkWorkspacePullRequest("ws");
+		const afterUnlink = await manager.getPullRequestsByWorkspaces(["ws"]);
+		expect(afterUnlink[0]?.pullRequest).toBeNull();
+		const history = await manager.getPullRequestHistoryByWorkspaces(["ws"]);
+		expect(history[0]?.pullRequests.map((pr) => pr.number)).toEqual([102, 101]);
+		expect(history[0]?.pullRequests.every((pr) => pr.isCurrent === false)).toBe(
+			true,
+		);
+	});
+
+	test("relinking the same PR after flip-flopping branches stays deduped", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "branch-a",
+			headSha: "sha-branch-a",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "branch-a",
+		});
+		const prsByBranch = new Map([["branch-a", 101]]);
+		const manager = createManager(db, { execGh: historyExecGh(prsByBranch) });
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+
+		const history = await manager.getPullRequestHistoryByWorkspaces(["ws"]);
+		expect(history[0]?.pullRequests.map((pr) => pr.number)).toEqual([101]);
+	});
+});

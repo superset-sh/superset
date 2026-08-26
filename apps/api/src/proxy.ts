@@ -1,3 +1,4 @@
+import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -16,6 +17,7 @@ function getAllowedOrigins(deploymentOrigin: string) {
 	return [
 		env.NEXT_PUBLIC_WEB_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
+		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_DESKTOP_URL,
 		...getTrustedVercelPreviewOrigins(deploymentOrigin),
 		...desktopDevOrigins,
@@ -28,8 +30,9 @@ function getCorsHeaders(origin: string | null, deploymentOrigin: string) {
 	return {
 		"Access-Control-Allow-Origin": isAllowed ? origin : "",
 		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-		"Access-Control-Allow-Headers":
-			"Content-Type, Authorization, x-trpc-source, trpc-accept, x-superset-client",
+		// The desktop sends ORGANIZATION_HEADER per window; without it in the
+		// preflight allow list every scoped request dies before reaching tRPC.
+		"Access-Control-Allow-Headers": `Content-Type, Authorization, x-trpc-source, trpc-accept, x-superset-client, ${ORGANIZATION_HEADER}`,
 		"Access-Control-Expose-Headers": "ETag",
 		"Access-Control-Allow-Credentials": "true",
 	};

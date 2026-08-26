@@ -23,6 +23,8 @@
 		"tertiaryActive": "#dccea7",
 		"destructive": "#a82e2e",
 		"destructiveForeground": "#f5efdc",
+		"warning": "#7b6c05",
+		"warningForeground": "#ffffff",
 		"border": "#c8b896",
 		"input": "#ede5cc",
 		"ring": "#8b3a1a",
@@ -66,5 +68,10 @@
 		"brightMagenta": "#785588",
 		"brightCyan": "#7a9694",
 		"brightWhite": "#fcf6e3"
+	},
+	"editor": {
+		"syntax": {
+			"comment": "#6b5d3c"
+		}
 	}
 }

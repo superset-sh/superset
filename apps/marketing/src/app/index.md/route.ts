@@ -3,6 +3,7 @@ import { FAQ_ITEMS } from "@/app/components/FAQSection/constants";
 import {
 	buildCompanyFactsSection,
 	buildDeveloperResourcesSection,
+	buildFrontmatter,
 	buildWhenToUseSection,
 	MARKDOWN_HEADERS,
 	PRODUCT_SUMMARY,
@@ -21,6 +22,11 @@ export async function GET() {
 	];
 
 	const lines: string[] = [
+		...buildFrontmatter({
+			title: `${COMPANY.NAME}: Run 100+ parallel coding agents on your machine`,
+			description: PRODUCT_SUMMARY,
+			canonical: `${baseUrl}/`,
+		}),
 		`# ${COMPANY.NAME}: Run 100+ parallel coding agents on your machine`,
 		"",
 		PRODUCT_SUMMARY,

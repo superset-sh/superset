@@ -10,7 +10,10 @@ import { chatRouter } from "./router/chat";
 import { cloudWorkspaceRouter } from "./router/cloud-workspace";
 import { hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
+import { leaderboardRouter } from "./router/leaderboard";
 import { organizationRouter } from "./router/organization";
+import { pageRouter } from "./router/page";
+import { pageCommentRouter } from "./router/page-comment";
 import { supportRouter } from "./router/support/support";
 import { taskRouter } from "./router/task";
 import { teamRouter } from "./router/team";
@@ -31,7 +34,10 @@ export const appRouter = createTRPCRouter({
 	cloudWorkspace: cloudWorkspaceRouter,
 	host: hostRouter,
 	integration: integrationRouter,
+	leaderboard: leaderboardRouter,
 	organization: organizationRouter,
+	page: pageRouter,
+	pageComment: pageCommentRouter,
 	support: supportRouter,
 	task: taskRouter,
 	team: teamRouter,

@@ -15,7 +15,7 @@ export function CTASection() {
 			<section className="relative py-24 sm:py-32">
 				<div className="max-w-7xl mx-auto px-6 sm:px-8 flex flex-col items-center text-center">
 					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground mb-8">
-						Try Superset now.
+						Bring your agents together.
 					</h2>
 					<div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
 						<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
@@ -30,8 +30,7 @@ export function CTASection() {
 						</button>
 					</div>
 					<p className="mt-10 mb-4 text-sm text-muted-foreground">
-						Or install the CLI: paste the agent tab into Claude Code and it
-						installs itself.
+						Or ask your coding agent to install the Superset CLI.
 					</p>
 					<InstallCommand />
 				</div>

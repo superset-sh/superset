@@ -9,6 +9,7 @@ export const agentLaunchSchema = z
 		attachmentIds: z.array(z.string().uuid()).optional(),
 		model: z.string().optional(),
 		effort: z.string().optional(),
+		mode: z.string().optional(),
 	})
 	.refine(
 		(value) =>
@@ -36,6 +37,7 @@ export async function dispatchSugarAgents(
 					attachmentIds: entry.attachmentIds,
 					model: entry.model,
 					effort: entry.effort,
+					mode: entry.mode,
 				});
 				return { ok: true as const, ...result };
 			} catch (err) {

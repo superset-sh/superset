@@ -30,6 +30,12 @@ export default ({ config }: ConfigContext) => ({
 		usesAppleSignIn: true,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
+			// Dictation is native now (`modules/composer`), so no config plugin
+			// contributes this any more — `expo-speech-recognition` used to, and
+			// went with `GlassComposer`. Without it `SFSpeechRecognizer`'s
+			// authorization request terminates the app.
+			NSSpeechRecognitionUsageDescription:
+				"Superset uses speech recognition to turn your voice into text.",
 		},
 	},
 	android: {
@@ -68,15 +74,23 @@ export default ({ config }: ConfigContext) => ({
 			},
 		],
 		"expo-document-picker",
+		// The composer is built on Liquid Glass, which silently no-ops before
+		// iOS 26 — an iOS 26 floor means one visual language instead of a glass
+		// path plus a solid fallback. See plans/20260821-native-composer.md.
 		[
-			"expo-speech-recognition",
+			"expo-build-properties",
 			{
-				microphonePermission:
-					"Superset uses the microphone so you can dictate chat messages.",
-				speechRecognitionPermission:
-					"Superset uses speech recognition to turn your voice into text.",
+				ios: { deploymentTarget: "26.0" },
 			},
 		],
+		// SDK 57 no longer autolinks config plugins; every installed plugin has
+		// to be listed or its native setup is silently skipped.
+		"expo-asset",
+		"expo-font",
+		"expo-image",
+		"expo-secure-store",
+		"expo-status-bar",
+		"expo-web-browser",
 	],
 	extra: {
 		router: {},

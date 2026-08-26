@@ -19,6 +19,7 @@ import { githubSearchInputSchema } from "../schemas";
 import {
 	buildSearchQuery,
 	chunkProjectRepos,
+	collectChunkResults,
 	formatRepoList,
 	githubRateLimitError,
 	isGithubNotFoundError,
@@ -45,6 +46,11 @@ interface PullRequestResult {
 	updatedAt: string | null;
 	checks: PullRequestCheck[];
 	checksStatus: ChecksStatus;
+	/** null until enriched — search-listed rows start unknown, direct
+	 *  lookups and the checks-enrichment pass fill these in. */
+	additions: number | null;
+	deletions: number | null;
+	headRefName: string | null;
 }
 
 export interface PullRequestsPage {
@@ -100,10 +106,44 @@ const REVIEW_DECISION_BY_FILTER: Record<
 // GitHub caps Search API results at 1000; paging past that returns 422.
 const GITHUB_SEARCH_RESULT_LIMIT = 1_000;
 
-const searchPullRequestsInputSchema = githubSearchInputSchema.extend({
-	author: githubAuthorSchema.optional(),
-	review: pullRequestReviewFilterSchema.optional(),
-});
+// No combined "needs-review OR reviewed" value: GitHub's search API rejects
+// qualifier-level OR (422 either with or without parens), so a "Reviewing"
+// grouping has to run as two separate queries, not one.
+const viewerRelationshipSchema = z.enum([
+	"needs-review",
+	"reviewed",
+	"authored",
+]);
+type ViewerRelationship = z.infer<typeof viewerRelationshipSchema>;
+
+// Bypasses the free-typed `author`/`review` filters (and their username
+// validation, which would mangle the literal "@me" token) for the grouped
+// "my work" list sections — each maps to one fixed, unambiguous qualifier.
+const VIEWER_RELATIONSHIP_QUALIFIERS: Record<ViewerRelationship, string> = {
+	"needs-review": "user-review-requested:@me",
+	reviewed: "reviewed-by:@me -user-review-requested:@me",
+	authored: "author:@me",
+};
+
+const searchPullRequestsInputSchema = githubSearchInputSchema
+	.extend({
+		author: githubAuthorSchema.optional(),
+		review: pullRequestReviewFilterSchema.optional(),
+		// mergedOnly always wins over includeClosed — see the qualifiers
+		// construction below — so only pass this when includeClosed is true
+		// (or omitted); passing mergedOnly with includeClosed: false is
+		// pointless but not actively wrong.
+		mergedOnly: z.boolean().optional(),
+		// Mutually exclusive with author/review — see VIEWER_RELATIONSHIP_QUALIFIERS.
+		viewerRelationship: viewerRelationshipSchema.optional(),
+	})
+	.refine(
+		(input) => !input.viewerRelationship || (!input.author && !input.review),
+		{
+			message: "viewerRelationship cannot be combined with author or review",
+			path: ["viewerRelationship"],
+		},
+	);
 
 function emptyPullRequestsPage(page: number): PullRequestsPage {
 	return {
@@ -172,10 +212,13 @@ const ghPrViewSchema = z.object({
 	reviewDecision: z.string().nullable().optional(),
 	reviewRequests: z.array(ghReviewRequestSchema).nullable().optional(),
 	latestReviews: z.array(ghLatestReviewSchema).nullable().optional(),
+	additions: z.number().optional(),
+	deletions: z.number().optional(),
+	headRefName: z.string().optional(),
 });
 
 const PR_VIEW_FIELDS =
-	"number,title,url,state,isDraft,author,mergedAt,updatedAt,statusCheckRollup,reviewDecision,reviewRequests,latestReviews";
+	"number,title,url,state,isDraft,author,mergedAt,updatedAt,statusCheckRollup,reviewDecision,reviewRequests,latestReviews,additions,deletions,headRefName";
 
 interface GhDirectLookupReview {
 	decision: string | null;
@@ -217,6 +260,9 @@ async function ghDirectLookup(
 			updatedAt: pr.updatedAt ?? null,
 			checks,
 			checksStatus,
+			additions: pr.additions ?? null,
+			deletions: pr.deletions ?? null,
+			headRefName: pr.headRefName ?? null,
 		},
 		review: {
 			decision: pr.reviewDecision || null,
@@ -288,8 +334,44 @@ async function ghDirectLookupMatchesReviewFilter(
 }
 
 /**
- * Direct-lookup a PR in one repo and apply the author/review filters.
- * Returns null when the PR exists but doesn't match the filters.
+ * Mirrors VIEWER_RELATIONSHIP_QUALIFIERS for a single direct-looked-up PR:
+ * schema validation guarantees this never runs alongside author/review, so
+ * it doesn't need to compose with ghDirectLookupMatchesReviewFilter's result.
+ */
+async function ghDirectLookupMatchesViewerRelationship(
+	execGh: ExecGh,
+	repo: ResolvedGithubRepo,
+	pullRequest: PullRequestResult,
+	review: GhDirectLookupReview,
+	relationship: ViewerRelationship,
+): Promise<boolean> {
+	if (relationship === "authored") {
+		const viewerRaw = await execGh(["api", "user"], {
+			cwd: repo.repoPath ?? undefined,
+		});
+		const viewerLogin = ghViewerSchema.parse(viewerRaw).login.toLowerCase();
+		return pullRequest.authorLogin?.toLowerCase() === viewerLogin;
+	}
+	const viewerRequested = await ghDirectLookupMatchesReviewFilter(
+		execGh,
+		repo,
+		review,
+		"review-requested",
+	);
+	if (relationship === "needs-review") return viewerRequested;
+	const reviewedByViewer = await ghDirectLookupMatchesReviewFilter(
+		execGh,
+		repo,
+		review,
+		"reviewed-by-me",
+	);
+	return reviewedByViewer && !viewerRequested;
+}
+
+/**
+ * Direct-lookup a PR in one repo and apply the active filters. Returns null
+ * when the PR exists but doesn't match — same contract as the search path,
+ * so a bare "#N" lookup can't leak a PR into the wrong tab/grouping.
  */
 async function ghDirectLookupRow(
 	execGh: ExecGh,
@@ -297,12 +379,15 @@ async function ghDirectLookupRow(
 	prNumber: number,
 	author: string | undefined,
 	reviewFilter: PullRequestReviewFilter | undefined,
+	mergedOnly: boolean | undefined,
+	viewerRelationship: ViewerRelationship | undefined,
 ): Promise<PullRequestResult | null> {
 	const { pullRequest, review } = await ghDirectLookup(
 		execGh,
 		target,
 		prNumber,
 	);
+	if (mergedOnly && pullRequest.state !== "merged") return null;
 	if (!matchesAuthor(pullRequest.authorLogin, author)) return null;
 	if (
 		reviewFilter &&
@@ -311,6 +396,18 @@ async function ghDirectLookupRow(
 			target.repo,
 			review,
 			reviewFilter,
+		))
+	) {
+		return null;
+	}
+	if (
+		viewerRelationship &&
+		!(await ghDirectLookupMatchesViewerRelationship(
+			execGh,
+			target.repo,
+			pullRequest,
+			review,
+			viewerRelationship,
 		))
 	) {
 		return null;
@@ -401,8 +498,37 @@ async function octokitDirectLookupMatchesReviewFilter(
 }
 
 /**
+ * Octokit twin of {@link ghDirectLookupMatchesViewerRelationship}.
+ */
+async function octokitDirectLookupMatchesViewerRelationship(
+	octokit: Octokit,
+	repo: ResolvedGithubRepo,
+	pr: OctokitPullRequest,
+	relationship: ViewerRelationship,
+): Promise<boolean> {
+	if (relationship === "authored") {
+		const { data: viewer } = await octokit.users.getAuthenticated();
+		return (pr.user?.login ?? "").toLowerCase() === viewer.login.toLowerCase();
+	}
+	const viewerRequested = await octokitDirectLookupMatchesReviewFilter(
+		octokit,
+		repo,
+		pr,
+		"review-requested",
+	);
+	if (relationship === "needs-review") return viewerRequested;
+	const reviewedByViewer = await octokitDirectLookupMatchesReviewFilter(
+		octokit,
+		repo,
+		pr,
+		"reviewed-by-me",
+	);
+	return reviewedByViewer && !viewerRequested;
+}
+
+/**
  * Octokit twin of {@link ghDirectLookupRow}: direct-lookup one repo, apply
- * author/review filters, enrich checks best-effort. Null = filtered out or
+ * the active filters, enrich checks best-effort. Null = filtered out or
  * PR not found/inaccessible.
  */
 async function octokitDirectLookupRow(
@@ -411,6 +537,8 @@ async function octokitDirectLookupRow(
 	prNumber: number,
 	author: string | undefined,
 	reviewFilter: PullRequestReviewFilter | undefined,
+	mergedOnly: boolean | undefined,
+	viewerRelationship: ViewerRelationship | undefined,
 ): Promise<PullRequestResult | null> {
 	const { repo } = target;
 	const response = await octokit.pulls
@@ -427,6 +555,8 @@ async function octokitDirectLookupRow(
 		});
 	if (!response) return null;
 	const pr = response.data;
+	const state = normalizePullRequestState(pr.state, pr.merged_at);
+	if (mergedOnly && state !== "merged") return null;
 	if (!matchesAuthor(pr.user?.login ?? null, author)) return null;
 	if (
 		reviewFilter &&
@@ -439,7 +569,17 @@ async function octokitDirectLookupRow(
 	) {
 		return null;
 	}
-	const state = normalizePullRequestState(pr.state, pr.merged_at);
+	if (
+		viewerRelationship &&
+		!(await octokitDirectLookupMatchesViewerRelationship(
+			octokit,
+			repo,
+			pr,
+			viewerRelationship,
+		))
+	) {
+		return null;
+	}
 	let checks: PullRequestCheck[] = [];
 	let checksStatus: ChecksStatus = "none";
 	try {
@@ -466,6 +606,9 @@ async function octokitDirectLookupRow(
 		updatedAt: pr.updated_at ?? null,
 		checks,
 		checksStatus,
+		additions: pr.additions ?? null,
+		deletions: pr.deletions ?? null,
+		headRefName: pr.head?.ref ?? null,
 	};
 }
 
@@ -540,6 +683,9 @@ async function ghApiSearchPullRequests(
 					updatedAt: item.updated_at ?? null,
 					checks: [],
 					checksStatus: "none",
+					additions: null,
+					deletions: null,
+					headRefName: null,
 				},
 			];
 		});
@@ -586,6 +732,9 @@ async function octokitSearchPullRequests(
 					updatedAt: item.updated_at ?? null,
 					checks: [],
 					checksStatus: "none",
+					additions: null,
+					deletions: null,
+					headRefName: null,
 				},
 			];
 		});
@@ -601,6 +750,9 @@ const checksGraphqlDataSchema = z.object({
 			z
 				.object({
 					number: z.number(),
+					additions: z.number().optional(),
+					deletions: z.number().optional(),
+					headRefName: z.string().optional(),
 					statusCheckRollup: z
 						.object({
 							contexts: z.object({
@@ -624,16 +776,28 @@ type RunChecksGraphqlQuery = (
 	variables: Record<string, string>,
 ) => Promise<unknown>;
 
+type PullRequestGraphqlDetails = Pick<
+	PullRequestResult,
+	"additions" | "deletions" | "headRefName"
+>;
+
 async function getPullRequestChecksViaGraphql(
 	runQuery: RunChecksGraphqlQuery,
 	repo: { owner: string; name: string },
 	pullRequestNumbers: number[],
-): Promise<Map<number, Pick<PullRequestResult, "checks" | "checksStatus">>> {
+): Promise<
+	Map<
+		number,
+		Pick<PullRequestResult, "checks" | "checksStatus"> &
+			PullRequestGraphqlDetails
+	>
+> {
 	if (pullRequestNumbers.length === 0) return new Map();
 	const contextsByPullRequest = new Map<
 		number,
 		z.infer<typeof pullRequestCheckContextSchema>[]
 	>();
+	const detailsByPullRequest = new Map<number, PullRequestGraphqlDetails>();
 	let cursors = new Map<number, string | null>(
 		pullRequestNumbers.map((number) => [number, null]),
 	);
@@ -648,6 +812,9 @@ async function getPullRequestChecksViaGraphql(
 			.map(
 				([number, cursor]) => `pr${number}:pullRequest(number:${number}) {
 				number
+				additions
+				deletions
+				headRefName
 				statusCheckRollup {
 					contexts(first: 100${cursor ? `, after: $cursor${number}` : ""}) {
 						pageInfo { hasNextPage endCursor }
@@ -702,6 +869,11 @@ async function getPullRequestChecksViaGraphql(
 				) ?? [];
 			const existing = contextsByPullRequest.get(pullRequest.number) ?? [];
 			contextsByPullRequest.set(pullRequest.number, [...existing, ...contexts]);
+			detailsByPullRequest.set(pullRequest.number, {
+				additions: pullRequest.additions ?? null,
+				deletions: pullRequest.deletions ?? null,
+				headRefName: pullRequest.headRefName ?? null,
+			});
 			const pageInfo = pullRequest.statusCheckRollup?.contexts.pageInfo;
 			if (pageInfo?.hasNextPage) {
 				if (!pageInfo.endCursor) {
@@ -724,7 +896,12 @@ async function getPullRequestChecksViaGraphql(
 		pullRequestNumbers.map((pullRequestNumber) => {
 			const contexts = contextsByPullRequest.get(pullRequestNumber) ?? [];
 			const { checks, checksStatus } = normalizePullRequestChecks(contexts);
-			return [pullRequestNumber, { checks, checksStatus }] as const;
+			const details = detailsByPullRequest.get(pullRequestNumber) ?? {
+				additions: null,
+				deletions: null,
+				headRefName: null,
+			};
+			return [pullRequestNumber, { checks, checksStatus, ...details }] as const;
 		}),
 	);
 }
@@ -733,7 +910,7 @@ async function ghGetPullRequestChecks(
 	execGh: ExecGh,
 	repo: ResolvedGithubRepo,
 	pullRequestNumbers: number[],
-): Promise<Map<number, Pick<PullRequestResult, "checks" | "checksStatus">>> {
+): Promise<Map<number, PullRequestChecksInfo>> {
 	return getPullRequestChecksViaGraphql(
 		(query, variables) =>
 			execGh(
@@ -754,7 +931,10 @@ async function ghGetPullRequestChecks(
 	);
 }
 
-type PullRequestChecksInfo = Pick<PullRequestResult, "checks" | "checksStatus">;
+type PullRequestChecksInfo = Pick<
+	PullRequestResult,
+	"checks" | "checksStatus" | "additions" | "deletions" | "headRefName"
+>;
 
 /**
  * Enrich a merged page with checks: one GraphQL batch per repo that has
@@ -840,12 +1020,15 @@ export const searchPullRequests = protectedProcedure
 			normalizedTargets[0]?.normalized.query ?? "",
 			input.author ? `author:${input.author}` : "",
 			input.review ? REVIEW_QUERY_BY_FILTER[input.review] : "",
+			input.viewerRelationship
+				? VIEWER_RELATIONSHIP_QUALIFIERS[input.viewerRelationship]
+				: "",
 		]
 			.filter(Boolean)
 			.join(" ");
 		const qualifiers = [
 			"is:pr",
-			input.includeClosed ? "" : "is:open",
+			input.mergedOnly ? "is:merged" : input.includeClosed ? "" : "is:open",
 			effectiveQuery,
 		]
 			.filter(Boolean)
@@ -863,6 +1046,8 @@ export const searchPullRequests = protectedProcedure
 						lookupNumber,
 						input.author,
 						input.review,
+						input.mergedOnly,
+						input.viewerRelationship,
 					);
 					if (!pullRequest) return emptyPullRequestsPage(page);
 					return {
@@ -882,6 +1067,8 @@ export const searchPullRequests = protectedProcedure
 							lookupNumber,
 							input.author,
 							input.review,
+							input.mergedOnly,
+							input.viewerRelationship,
 						),
 					),
 				);
@@ -954,6 +1141,8 @@ export const searchPullRequests = protectedProcedure
 						lookupNumber,
 						input.author,
 						input.review,
+						input.mergedOnly,
+						input.viewerRelationship,
 					);
 					if (!pullRequest) return emptyPullRequestsPage(page);
 					return {
@@ -971,6 +1160,8 @@ export const searchPullRequests = protectedProcedure
 							lookupNumber,
 							input.author,
 							input.review,
+							input.mergedOnly,
+							input.viewerRelationship,
 						),
 					),
 				);
@@ -991,11 +1182,22 @@ export const searchPullRequests = protectedProcedure
 			}
 
 			const chunks = chunkProjectRepos(projectRepos, qualifiers);
-			const chunkResults = await Promise.all(
-				chunks.map((chunk) =>
-					octokitSearchPullRequests(octokit, chunk, qualifiers, page, limit),
+			// One chunk failing (a repo this token cannot see, a timed-out
+			// request) must not blank the repos that answered — this is the
+			// last resort, so throwing here empties the whole list.
+			const { results: chunkResults, failures } = collectChunkResults(
+				await Promise.allSettled(
+					chunks.map((chunk) =>
+						octokitSearchPullRequests(octokit, chunk, qualifiers, page, limit),
+					),
 				),
 			);
+			if (failures.length > 0) {
+				console.warn(
+					`[workspaceCreation.searchPullRequests] ${failures.length} of ${chunks.length} search chunks failed; returning the rest`,
+					failures,
+				);
+			}
 			const merged = mergeByUpdatedAtDesc(
 				chunkResults.map((result) => result.items),
 			);

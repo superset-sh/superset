@@ -12,17 +12,16 @@ import { TypewriterText } from "./components/TypewriterText";
 
 const HERO_COPY = {
 	segments: [
-		{ text: "Run 100+ Coding Agents " },
+		{ text: "Bring Any Agent. " },
 		{
-			text: "in Parallel.",
+			text: "Orchestrate Them All.",
 			// Plain inline (not inline-block): vertical padding on inline boxes
 			// paints the brackets without affecting line height, so the line
 			// can't jump when this segment mounts mid-animation
 			className: "corner-brackets px-[0.2em] py-[0.06em] whitespace-nowrap",
 		},
 	],
-	subheadline:
-		"Claude Code, Codex, or any CLI agent, each in its own isolated workspace. Spend your time shipping, not waiting.",
+	subheadline: "One workspace for Claude Code, Codex, and any coding agent.",
 };
 
 export function HeroSection() {
@@ -50,6 +49,11 @@ export function HeroSection() {
 						</Link>
 						<div className="space-y-4 sm:space-y-6">
 							<h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] [word-spacing:0.15em] text-foreground relative max-w-6xl mx-auto">
+								{/* Real headline for screen readers and no-JS crawlers; the
+								    typewriter below is purely visual */}
+								<span className="sr-only">
+									{HERO_COPY.segments.map((segment) => segment.text).join("")}
+								</span>
 								{/* Sizer must mirror the visible segments' styling so wrapping matches */}
 								<span className="invisible" aria-hidden="true">
 									{HERO_COPY.segments.map((segment) => (
@@ -58,7 +62,7 @@ export function HeroSection() {
 										</span>
 									))}
 								</span>
-								<span className="absolute inset-0">
+								<span className="absolute inset-0" aria-hidden="true">
 									<TypewriterText
 										segments={HERO_COPY.segments}
 										speed={40}

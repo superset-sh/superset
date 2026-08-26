@@ -1,35 +1,46 @@
+import type { ComposerHandle } from "@superset/composer";
 import { useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { CloudOff, Plus, SquareTerminal } from "lucide-react-native";
+import {
+	CloudOff,
+	Plus,
+	SquareTerminal,
+	TriangleAlert,
+} from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActivityIndicator,
 	Keyboard,
 	LayoutAnimation,
 	Pressable,
-	StyleSheet,
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { getHostWorkspacesQueryKey } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { posthog } from "@/lib/posthog";
 import {
 	getHostTerminalsQueryKey,
 	useHostTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
-import type { GlassComposerHandle } from "@/screens/(authenticated)/components/GlassComposer";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
+import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
+import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
+import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
+import { useUnreadWorkspacesStore } from "@/screens/(authenticated)/stores/unreadWorkspacesStore";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { HeaderNotice } from "../components/HeaderNotice";
 import { PullRequestsButton } from "../components/PullRequestsButton";
+import { ScrollToBottomButton } from "../components/ScrollToBottomButton";
 import {
 	TerminalComposer,
 	type TerminalQuickKey,
@@ -42,18 +53,29 @@ import {
 	TerminalWebView,
 	type TerminalWebViewHandle,
 } from "../components/TerminalWebView";
+import { useHostCompatibility } from "../hooks/useHostCompatibility";
 import { useWorkspacePullRequests } from "../hooks/useWorkspacePullRequest";
 import { orderTerminalRows } from "../utils/orderTerminalRows";
+import { WorkspaceCreateFailedState } from "./components/WorkspaceCreateFailedState";
+import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspacePlaceholder } from "./components/WorkspacePlaceholder";
 
 const NOTICE_MS = 1500;
 
+// No fullScreenGestureEnabled: false here. On iOS 26 the system's back swipe
+// IS the full-screen one, and react-native-screens reads that flag as "no back
+// gesture at all" rather than "edge only" — the old edge recognizer is gone.
 const headerOptions = {
 	headerShown: true,
 	headerBackButtonDisplayMode: "minimal",
 	headerShadowVisible: false,
-	fullScreenGestureEnabled: false,
 } as const;
+
+const PENDING_CREATE_POLL_MS = 2_000;
+/** Worktree add + base fetch on monorepo-scale repos; failed state past this. */
+const PENDING_CREATE_ROW_TIMEOUT_MS = 5 * 60_000;
+/** The row landed but the launched agent never produced a session. */
+const PENDING_CREATE_SESSION_TIMEOUT_MS = 60_000;
 
 const STATE_BANNERS: Partial<Record<TerminalConnectionState, string>> = {
 	connecting: "Connecting…",
@@ -106,22 +128,162 @@ export function WorkspaceScreen() {
 		return rows[0]?.terminalId ?? null;
 	}, [pickedTerminalId, params.tab, rows]);
 
+	// --- pending create (enqueued via `workspaces.createEnqueued`) ---
+	// The settled event only exists on the desktop's event bus, so poll the
+	// creating host until the row and its first session appear.
+	const pendingCreate = usePendingWorkspaceCreatesStore((state) =>
+		id ? state.pendingById[id] : undefined,
+	);
+	const clearPendingCreate = usePendingWorkspaceCreatesStore(
+		(state) => state.clear,
+	);
+	const failPendingCreate = usePendingWorkspaceCreatesStore(
+		(state) => state.fail,
+	);
+	const createWorkspace = useCreateTerminalWorkspace();
+	const isCreating =
+		!!pendingCreate && !pendingCreate.error && rows.length === 0;
+	const workspaceResolved = workspace !== null;
+	const createFailed =
+		!!pendingCreate?.error && !workspaceResolved && rows.length === 0;
+
+	// Poll through the failed state too: a relay timeout can reject a create
+	// the host actually finished, and the row arriving is what heals it.
+	const pollingActive = isCreating || createFailed;
+	useEffect(() => {
+		if (!pollingActive || !pendingCreate) return;
+		const interval = setInterval(() => {
+			void queryClient.invalidateQueries({
+				queryKey: getHostWorkspacesQueryKey(
+					pendingCreate.hostId,
+					pendingCreate.hostUrl,
+				),
+			});
+			void queryClient.invalidateQueries({
+				queryKey: getHostTerminalsQueryKey(pendingCreate.hostId),
+			});
+		}, PENDING_CREATE_POLL_MS);
+		return () => clearInterval(interval);
+	}, [pollingActive, pendingCreate, queryClient]);
+
+	// The launched session arrived — the create is done for this screen.
+	useEffect(() => {
+		if (pendingCreate && !pendingCreate.error && rows.length > 0) {
+			clearPendingCreate(pendingCreate.workspaceId);
+		}
+	}, [pendingCreate, rows.length, clearPendingCreate]);
+
+	// The create "failed" but the workspace actually exists (e.g. a legacy
+	// synchronous create that timed out at the relay while the host finished
+	// anyway) — the real workspace wins over the failed state.
+	useEffect(() => {
+		if (pendingCreate?.error && workspaceResolved) {
+			clearPendingCreate(pendingCreate.workspaceId);
+		}
+	}, [pendingCreate, workspaceResolved, clearPendingCreate]);
+
+	// No row within the backstop: the create died host-side and there is no
+	// event channel to say so. Resolve to the failed state rather than spin.
+	useEffect(() => {
+		if (!pendingCreate || pendingCreate.error || workspaceResolved) return;
+		const workspaceId = pendingCreate.workspaceId;
+		const remaining = Math.max(
+			0,
+			pendingCreate.startedAt + PENDING_CREATE_ROW_TIMEOUT_MS - Date.now(),
+		);
+		const timer = setTimeout(() => {
+			failPendingCreate(
+				workspaceId,
+				"Timed out waiting for the host to create the workspace.",
+			);
+		}, remaining);
+		return () => clearTimeout(timer);
+	}, [pendingCreate, workspaceResolved, failPendingCreate]);
+
+	// Row landed but no session followed (agent failed to launch): fall
+	// through to the regular empty state instead of spinning.
+	useEffect(() => {
+		if (!pendingCreate || pendingCreate.error || !workspaceResolved) return;
+		const workspaceId = pendingCreate.workspaceId;
+		const timer = setTimeout(
+			() => clearPendingCreate(workspaceId),
+			PENDING_CREATE_SESSION_TIMEOUT_MS,
+		);
+		return () => clearTimeout(timer);
+	}, [pendingCreate, workspaceResolved, clearPendingCreate]);
+
+	// Retry mints a fresh id and re-enters Creating via replace, so back
+	// never returns to the dead failed state (desktop's `replace: true`).
+	const retryCreate = useCallback(() => {
+		if (!pendingCreate) return;
+		clearPendingCreate(pendingCreate.workspaceId);
+		createWorkspace.mutate({ ...pendingCreate.input, replace: true });
+	}, [pendingCreate, clearPendingCreate, createWorkspace]);
+
+	const dismissFailedCreate = useCallback(() => {
+		if (pendingCreate) clearPendingCreate(pendingCreate.workspaceId);
+		router.back();
+	}, [pendingCreate, clearPendingCreate, router]);
+
 	const hostUrl = host
 		? hostServiceUrl(host.organizationId, host.machineId)
 		: null;
+	const hostCompatibility = useHostCompatibility(hostUrl);
+
+	useEffect(() => {
+		if (!id) return;
+		posthog.capture("workspace_opened", {
+			workspace_id: id,
+			source: router.canGoBack() ? "list" : "deeplink",
+		});
+	}, [id, router]);
 
 	// The + sheet lands back here via dismissTo with the new session in
-	// ?tab= — adopt it over any manual pick so the fresh tab activates.
+	// ?tab= — adopt it once its row arrives, since the terminals query hasn't
+	// heard of the session when the sheet closes. Otherwise pin whatever ended
+	// up active, including the implicit first row: without the pin, reordering
+	// in the sessions sheet moves a different row into first place and the
+	// terminal you're watching switches out from under you. One effect, so the
+	// adoption outranks the pin — as separate effects the pin re-asserted the
+	// old tab in the same commit the fresh row arrived, and the new session
+	// never activated.
+	const adoptedTabRef = useRef<string | null>(null);
+	// A manual pick while the ?tab= row is still pending consumes the
+	// adoption — the arriving row must not yank the user off their choice.
+	const pickTerminal = useCallback(
+		(terminalId: string) => {
+			adoptedTabRef.current = params.tab ?? null;
+			setPickedTerminalId(terminalId);
+			if (terminalId !== activeTerminalId) {
+				posthog.capture("session_switched", {
+					workspace_id: id ?? null,
+					source: "tab_strip",
+				});
+			}
+		},
+		[params.tab, activeTerminalId, id],
+	);
 	useEffect(() => {
-		if (params.tab) setPickedTerminalId(params.tab);
-	}, [params.tab]);
-
-	// Pin whatever ended up active, including the implicit first row: without
-	// this, reordering in the sessions sheet moves a different row into first
-	// place and the terminal you're watching switches out from under you.
-	useEffect(() => {
+		if (
+			params.tab &&
+			adoptedTabRef.current !== params.tab &&
+			rows.some((row) => row.terminalId === params.tab)
+		) {
+			adoptedTabRef.current = params.tab;
+			setPickedTerminalId(params.tab);
+			return;
+		}
 		if (activeTerminalId) setPickedTerminalId(activeTerminalId);
-	}, [activeTerminalId]);
+	}, [params.tab, rows, activeTerminalId]);
+
+	// Opening the workspace reads it, the way clicking a desktop sidebar row
+	// does — the mark is only there to bring you back here.
+	const clearManualUnread = useUnreadWorkspacesStore(
+		(state) => state.clearManualUnread,
+	);
+	useEffect(() => {
+		if (id) clearManualUnread(id);
+	}, [id, clearManualUnread]);
 
 	// Port of desktop's useClearActivePaneAttention: viewing the tab clears
 	// its `review` state by advancing the seen mark to the binding's last
@@ -131,6 +293,12 @@ export function WorkspaceScreen() {
 	);
 	const requestAppReview = useAppReviewPrompt();
 	const activeRow = rows.find((row) => row.terminalId === activeTerminalId);
+	const slashCommands = useSlashCommands({
+		machineId: host?.machineId ?? null,
+		hostUrl,
+		workspaceId: id ?? null,
+		agent: activeRow?.definitionId ?? activeRow?.agentId ?? null,
+	});
 	useEffect(() => {
 		if (activeRow?.attention !== "review") return;
 		if (activeRow.lastEventAt === null) return;
@@ -180,20 +348,30 @@ export function WorkspaceScreen() {
 	const terminalRef = useRef<TerminalWebViewHandle>(null);
 	const [connectionState, setConnectionState] =
 		useState<TerminalConnectionState>("connecting");
+	// Reported by the composer itself: it draws in an overlay and takes no
+	// layout space here, so `onLayout` on the wrapper below measures only the
+	// pull-requests button.
 	const [composerHeight, setComposerHeight] = useState(0);
+	const [aboveComposerHeight, setAboveComposerHeight] = useState(0);
 	const [keyboardHeight, setKeyboardHeight] = useState(0);
 	const [composerActive, setComposerActive] = useState(false);
-	const composerRef = useRef<GlassComposerHandle>(null);
+	const composerRef = useRef<ComposerHandle>(null);
 	const [select, setSelect] = useState<TerminalSelectState>({
 		active: false,
 		hasSelection: false,
 	});
+	const [atBottom, setAtBottom] = useState(true);
 	// seq gives each notice its own identity: a repeat copy while "Copied" is
 	// still up remounts HeaderNotice, restarting its timer.
 	const [notice, setNotice] = useState<{ text: string; seq: number } | null>(
 		null,
 	);
 	const hideNotice = useCallback(() => setNotice(null), []);
+	const composerActiveRef = useRef(false);
+	composerActiveRef.current = composerActive;
+	const handleTerminalTap = useCallback(() => {
+		if (composerActiveRef.current) composerRef.current?.blur();
+	}, []);
 	const handleCopied = useCallback(
 		() => setNotice((prev) => ({ text: "Copied", seq: (prev?.seq ?? 0) + 1 })),
 		[],
@@ -262,8 +440,20 @@ export function WorkspaceScreen() {
 		[handleSubmit],
 	);
 
+	useEffect(() => {
+		if (connectionState !== "error" && connectionState !== "denied") return;
+		posthog.capture("terminal_connect_failed", {
+			workspace_id: id ?? null,
+			terminal_id: activeTerminalId,
+			category: connectionState,
+		});
+	}, [connectionState, id, activeTerminalId]);
+
 	const banner = STATE_BANNERS[connectionState];
-	const showComposer = activeTerminalId !== null && host !== null;
+	const showComposer =
+		activeTerminalId !== null &&
+		host !== null &&
+		!hostCompatibility.incompatible;
 
 	const attachmentTarget = useMemo(
 		() =>
@@ -272,6 +462,39 @@ export function WorkspaceScreen() {
 				: null,
 		[id, hostUrl, workspace],
 	);
+
+	// Full-body takeover while the enqueued create is unresolved — the
+	// mobile equivalent of desktop's layout gate: same route, no navigation,
+	// and none of the chrome that assumes a workspace exists (tab strip,
+	// composer, sheets). The native header stays so back keeps working.
+	if ((isCreating || createFailed) && pendingCreate) {
+		const { projectName } = pendingCreate.input.target;
+		const subtitle = pendingCreate.input.branchLabel
+			? `${projectName} · ${pendingCreate.input.branchLabel}`
+			: projectName;
+		return (
+			<View className="bg-background flex-1">
+				<Stack.Screen options={{ ...headerOptions, title: "New workspace" }} />
+				{createFailed ? (
+					<WorkspaceCreateFailedState
+						subtitle={subtitle}
+						errorMessage={pendingCreate.error ?? ""}
+						prompt={pendingCreate.input.message.text.trim()}
+						onRetry={retryCreate}
+						onDismiss={dismissFailedCreate}
+					/>
+				) : (
+					<WorkspaceCreatingState
+						subtitle={subtitle}
+						agentLabel={pendingCreate.input.agentLabel}
+						startedAt={pendingCreate.startedAt}
+						workspaceResolved={workspaceResolved}
+						onBackHome={() => router.back()}
+					/>
+				)}
+			</View>
+		);
+	}
 
 	return (
 		<View className="bg-background flex-1">
@@ -318,7 +541,7 @@ export function WorkspaceScreen() {
 				<TerminalTabs
 					rows={rows}
 					activeTerminalId={activeTerminalId}
-					onSelect={setPickedTerminalId}
+					onSelect={pickTerminal}
 					onAdd={openAddMenu}
 					onManage={openSessions}
 					onClose={killTerminal}
@@ -346,10 +569,22 @@ export function WorkspaceScreen() {
 			<View
 				className="flex-1"
 				style={{
-					marginBottom: showComposer ? composerHeight + composerBottom : 0,
+					// The terminal has to clear everything stacked at the bottom or its
+					// own prompt hides behind the composer.
+					marginBottom: showComposer
+						? composerHeight + aboveComposerHeight + composerBottom
+						: aboveComposerHeight + composerBottom,
 				}}
 			>
-				{activeTerminalId && host && id ? (
+				{hostCompatibility.incompatible ? (
+					<WorkspacePlaceholder
+						body={`${host?.name ?? "This host"} is running host service ${hostCompatibility.hostVersion} — this app needs ${hostCompatibility.minVersion} or newer. Update Superset on that machine.`}
+						icon={TriangleAlert}
+						onRefresh={onRefresh}
+						refreshing={refreshing}
+						title="This host needs an update"
+					/>
+				) : activeTerminalId && host && id ? (
 					<>
 						<TerminalWebView
 							ref={terminalRef}
@@ -360,17 +595,43 @@ export function WorkspaceScreen() {
 							onControl={handleControl}
 							onSelectChange={setSelect}
 							onCopied={handleCopied}
+							onScrollChange={setAtBottom}
+							// Tap-to-dismiss without an overlay: a Pressable stacked over
+							// the WebView also ate scroll drags, so the scrollback froze
+							// whenever the keyboard was up. The page reports plain taps
+							// instead, and drags stay with the terminal.
+							onTap={handleTerminalTap}
 						/>
-						{/* Tap-outside-to-dismiss, the terminal's answer to the home
-						    composer's backdrop. Transparent, not a scrim: the point of
-						    typing here is watching the output above. */}
-						{composerActive ? (
-							<Pressable
-								accessibilityLabel="Dismiss keyboard"
-								onPress={() => composerRef.current?.blur()}
-								style={StyleSheet.absoluteFill}
-							/>
-						) : null}
+						{/* The WebView swallows every touch that lands on it, so the back
+						    swipe never starts over the terminal. This strip keeps a
+						    finger's width of the left edge native, which is all UIKit
+						    needs. Dragging further right stays the terminal's — WebKit
+						    still owns those touches, so no drag over output can pop.
+						    A Pressable rather than a plain View because an undrawn View
+						    can be flattened away — leaving the edge to WebKit again. */}
+						<Pressable
+							// Silent to VoiceOver: it is always mounted, and a terminal
+							// tap already dismisses the keyboard.
+							accessible={false}
+							className="absolute bottom-0 left-0 top-0 w-5"
+							onPress={() => composerRef.current?.blur()}
+						/>
+						{/* After the dismiss target so it stays tappable with the
+						    keyboard up, and hidden in select mode: the frozen snapshot
+						    covers the viewport this would move. Always mounted — it
+						    fades itself, which it cannot do if the parent unmounts it. */}
+						<ScrollToBottomButton
+							visible={!atBottom && !select.active}
+							onPress={() => {
+								// The tap lands in SwiftUI, where RN autocapture cannot see
+								// it — this surface only exists if it is captured by hand.
+								posthog.capture("terminal_scrolled_to_bottom", {
+									workspace_id: id ?? null,
+									source: "button",
+								});
+								terminalRef.current?.scrollToBottom();
+							}}
+						/>
 					</>
 				) : cloud && !workspace ? (
 					<CloudWorkspaceProvisioningState cloud={cloud} />
@@ -410,9 +671,14 @@ export function WorkspaceScreen() {
 			{showComposer || pullRequests.length > 0 ? (
 				<View
 					className="absolute inset-x-0"
-					style={{ bottom: composerBottom }}
+					// Sits above the composer's overlay, which owns the space below it —
+					// but the reported height is stale once the composer is gone, and
+					// would leave this floating in the middle of the screen.
+					style={{
+						bottom: composerBottom + (showComposer ? composerHeight : 0),
+					}}
 					onLayout={(event) =>
-						setComposerHeight(event.nativeEvent.layout.height)
+						setAboveComposerHeight(event.nativeEvent.layout.height)
 					}
 				>
 					{pullRequests.length > 0 ? (
@@ -441,9 +707,12 @@ export function WorkspaceScreen() {
 					) : null}
 					{showComposer ? (
 						<TerminalComposer
+							workspaceId={id}
 							allowAttachments={activeRow?.agentId != null}
+							slashCommands={slashCommands}
 							attachmentTarget={attachmentTarget}
 							onActiveChange={setComposerActive}
+							onHeightChange={setComposerHeight}
 							onCopySelection={() => terminalRef.current?.copySelection()}
 							onQuickKey={handleQuickKey}
 							onSubmit={handleSubmit}

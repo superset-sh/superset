@@ -18,7 +18,12 @@ import type {
 	RendererContext,
 } from "../../../../types";
 import { Pane } from "./components/Pane";
-import { PANE_MIN_SIZE_CLASS_NAME } from "./constants";
+import {
+	PANE_MIN_SIZE_CLASS_NAME,
+	RESIZE_HANDLE_BASE_Z_INDEX,
+	RESIZE_HANDLE_CLICK_MAX_MOVEMENT_PX,
+	RESIZE_HANDLE_DOUBLE_CLICK_DELAY_MS,
+} from "./constants";
 
 interface TabProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -53,6 +58,14 @@ function SplitView<TData>({
 	onSplitResizeDragging?: TabProps<TData>["onSplitResizeDragging"];
 }) {
 	const groupRef = useRef<React.ComponentRef<typeof ResizablePanelGroup>>(null);
+	const activeHandlePointerRef = useRef<{
+		pointerId: number;
+		downAt: number;
+		x: number;
+		y: number;
+		moved: boolean;
+	} | null>(null);
+	const lastHandleClickPointerDownAtRef = useRef<number | null>(null);
 	const firstSize = node.splitPercentage ?? 50;
 	const secondSize = 100 - firstSize;
 	const resizeSourceId = `${tab.id}:${path.join(".") || "root"}`;
@@ -62,6 +75,20 @@ function SplitView<TData>({
 			onSplitResizeDragging?.(resizeSourceId, false);
 		};
 	}, [onSplitResizeDragging, resizeSourceId]);
+
+	// `defaultSize` is only read when the group mounts, so a layout change that
+	// comes from the store (equalize, a preset) has to be pushed through the
+	// imperative handle or the panels stay where the user last dragged them.
+	useEffect(() => {
+		const group = groupRef.current;
+		if (!group) return;
+
+		const layout = group.getLayout();
+		if (layout.length !== 2) return;
+		if (Math.abs((layout[0] ?? 0) - firstSize) < 0.01) return;
+
+		group.setLayout([firstSize, secondSize]);
+	}, [firstSize, secondSize]);
 
 	return (
 		<ResizablePanelGroup
@@ -95,13 +122,78 @@ function SplitView<TData>({
 				/>
 			</ResizablePanel>
 			<ResizableHandle
+				// The active pane draws a 2px border on either side of the 1px
+				// divider. Cover that full visual border with the sash hit area.
+				hitAreaSize="large"
+				style={{ zIndex: RESIZE_HANDLE_BASE_Z_INDEX - path.length }}
+				onPointerDownCapture={(event) => {
+					if (event.button !== 0 || !event.isPrimary) return;
+
+					(event.currentTarget as unknown as HTMLElement).setPointerCapture(
+						event.pointerId,
+					);
+					activeHandlePointerRef.current = {
+						pointerId: event.pointerId,
+						downAt: Date.now(),
+						x: event.clientX,
+						y: event.clientY,
+						moved: false,
+					};
+				}}
+				onPointerMoveCapture={(event) => {
+					const activePointer = activeHandlePointerRef.current;
+					if (!activePointer || activePointer.pointerId !== event.pointerId)
+						return;
+
+					if (
+						Math.hypot(
+							event.clientX - activePointer.x,
+							event.clientY - activePointer.y,
+						) > RESIZE_HANDLE_CLICK_MAX_MOVEMENT_PX
+					) {
+						activePointer.moved = true;
+						lastHandleClickPointerDownAtRef.current = null;
+					}
+				}}
+				onPointerUpCapture={(event) => {
+					const activePointer = activeHandlePointerRef.current;
+					activeHandlePointerRef.current = null;
+					if (!activePointer || activePointer.pointerId !== event.pointerId)
+						return;
+
+					const moved =
+						activePointer.moved ||
+						Math.hypot(
+							event.clientX - activePointer.x,
+							event.clientY - activePointer.y,
+						) > RESIZE_HANDLE_CLICK_MAX_MOVEMENT_PX;
+					if (moved) {
+						lastHandleClickPointerDownAtRef.current = null;
+						return;
+					}
+
+					const lastClickAt = lastHandleClickPointerDownAtRef.current;
+					if (
+						lastClickAt === null ||
+						activePointer.downAt - lastClickAt >
+							RESIZE_HANDLE_DOUBLE_CLICK_DELAY_MS
+					) {
+						lastHandleClickPointerDownAtRef.current = activePointer.downAt;
+						return;
+					}
+
+					lastHandleClickPointerDownAtRef.current = null;
+					queueMicrotask(() => {
+						store.getState().equalizeSplit({ tabId: tab.id, path });
+					});
+				}}
+				onPointerCancel={() => {
+					activeHandlePointerRef.current = null;
+					lastHandleClickPointerDownAtRef.current = null;
+				}}
 				onDragging={(isDragging) =>
 					onSplitResizeDragging?.(resizeSourceId, isDragging)
 				}
-				onDoubleClick={(e) => {
-					e.stopPropagation();
-					groupRef.current?.setLayout([50, 50]);
-				}}
 			/>
 			<ResizablePanel
 				className={PANE_MIN_SIZE_CLASS_NAME}
@@ -200,7 +292,9 @@ export function Tab<TData>({
 	}
 
 	return (
-		<div className="flex h-full w-full min-h-0 min-w-0 flex-1 overflow-auto">
+		// isolate contains the resize handles' z-indexes so they never paint
+		// above body-portalled overlays (dialogs, menus).
+		<div className="isolate flex h-full w-full min-h-0 min-w-0 flex-1 overflow-auto">
 			<LayoutNodeView
 				store={store}
 				tab={tab}

@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { authClient } from "renderer/lib/auth-client";
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { CLOUD_HOST_ID } from "../../components/DevicePicker/DevicePicker";
@@ -34,8 +34,7 @@ export function useBranchContext(
 	// create — so its branches come from the GitHub remote instead.
 	const isCloud = hostId === CLOUD_HOST_ID;
 	const hostUrl = useHostUrl(isCloud ? null : hostId);
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const organizationId = useActiveOrganizationId();
 	// Resolve the repo first: branches are read from GitHub by owner/name, not
 	// from a project id, since a cloud workspace has no checkout to enumerate.
 	const cloudRepo = cloudTrpc.cloudWorkspace.repoForProject.useQuery(

@@ -5,6 +5,7 @@ import { Calendar } from "@superset/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
+import { formatRangeLabel } from "@/app/utils/formatRangeLabel";
 
 interface DateRangePickerProps {
 	range: DateRange | undefined;
@@ -19,21 +20,6 @@ const PRESETS: Array<{ label: string; days: number | null }> = [
 	{ label: "Last 3 months", days: 90 },
 	{ label: "Last 6 months", days: 180 },
 ];
-
-function formatDate(date: Date): string {
-	return date.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
-}
-
-function formatRangeLabel(range: DateRange | undefined): string {
-	if (!range?.from) return "All time";
-	return range.to
-		? `${formatDate(range.from)} – ${formatDate(range.to)}`
-		: formatDate(range.from);
-}
 
 export function DateRangePicker({
 	range,
@@ -52,7 +38,7 @@ export function DateRangePicker({
 			<PopoverTrigger asChild>
 				<Button variant="outline" size="sm" className="gap-2 font-mono text-xs">
 					<CalendarIcon className="size-3.5" />
-					{formatRangeLabel(range)}
+					{formatRangeLabel(range, "All time", "MMM d, yyyy")}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-3" align="start">

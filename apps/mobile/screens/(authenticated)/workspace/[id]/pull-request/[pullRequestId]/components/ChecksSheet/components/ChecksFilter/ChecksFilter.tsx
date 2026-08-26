@@ -1,8 +1,8 @@
-import { Host, Picker, Text } from "@expo/ui/swift-ui";
-import { pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
+import { Pressable, ScrollView } from "react-native";
+import { Text } from "@/components/ui/text";
 import type { ChecksFilterValue } from "../../utils/checksFilter";
 
-/** Segmented filter in the sheet's title; a form sheet paints its header over content, so it cannot live in the list. */
+/** The sheet's filter row; segments scroll rather than compress. */
 export function ChecksFilter({
 	value,
 	onChange,
@@ -13,20 +13,37 @@ export function ChecksFilter({
 	options: { value: ChecksFilterValue; label: string; count: number }[];
 }) {
 	return (
-		<Host matchContents style={{ minWidth: 300 }}>
-			<Picker
-				modifiers={[pickerStyle("segmented")]}
-				onSelectionChange={(selection) =>
-					onChange(selection as ChecksFilterValue)
-				}
-				selection={value}
-			>
-				{options.map((option) => (
-					<Text key={option.value} modifiers={[tag(option.value)]}>
-						{`${option.label} ${option.count}`}
-					</Text>
-				))}
-			</Picker>
-		</Host>
+		<ScrollView
+			horizontal
+			showsHorizontalScrollIndicator={false}
+			// pl-1 + the pill's px-3 lands the first tab's text on the same
+			// 16px gutter as the rows below it.
+			contentContainerClassName="flex-row items-center gap-1 pl-1 pr-4"
+		>
+			{options.map((option) => {
+				const isSelected = option.value === value;
+				return (
+					<Pressable
+						accessibilityLabel={`${option.label} ${option.count}`}
+						accessibilityRole="tab"
+						accessibilityState={{ selected: isSelected }}
+						className={`rounded-full px-3 py-1.5 ${isSelected ? "bg-secondary" : ""}`}
+						key={option.value}
+						onPress={() => onChange(option.value)}
+					>
+						<Text
+							className={`text-[15px] ${isSelected ? "text-foreground" : "text-muted-foreground"}`}
+						>
+							{option.label}{" "}
+							<Text
+								className={`text-[15px] ${isSelected ? "text-foreground/50" : "text-muted-foreground/60"}`}
+							>
+								{option.count}
+							</Text>
+						</Text>
+					</Pressable>
+				);
+			})}
+		</ScrollView>
 	);
 }

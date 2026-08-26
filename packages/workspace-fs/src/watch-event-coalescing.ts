@@ -12,7 +12,8 @@ export interface InternalWatchEvent {
 	kind: "create" | "update" | "delete" | "rename" | "overflow";
 	absolutePath: string;
 	oldAbsolutePath?: string;
-	isDirectory: boolean;
+	/** Absent when the watcher could not determine the type — see FsWatchEvent. */
+	isDirectory?: boolean;
 }
 
 function coalesceWatchEvent(
@@ -84,7 +85,7 @@ function getBaseName(absolutePath: string): string {
 interface RenameCandidate {
 	kind: "create" | "delete";
 	absolutePath: string;
-	isDirectory: boolean;
+	isDirectory?: boolean;
 	index: number;
 }
 
@@ -178,7 +179,8 @@ function pairRenameCandidates(
 		remainingCreates.length === 1 &&
 		remainingDelete &&
 		remainingCreate &&
-		remainingDelete.isDirectory === remainingCreate.isDirectory
+		Boolean(remainingDelete.isDirectory) ===
+			Boolean(remainingCreate.isDirectory)
 	) {
 		pairs.push({
 			deleteCandidate: remainingDelete,

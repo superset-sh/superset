@@ -16,6 +16,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHostUrls } from "renderer/hooks/host-service/useHostTargetUrl";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
 interface DeleteProjectSectionProps {
@@ -37,11 +38,14 @@ export function DeleteProjectSection({
 			host.url !== null,
 	);
 	const { data: session } = authClient.useSession();
-	const { data: activeOrg } = authClient.useActiveOrganization();
+	// Membership for this window's org, not the session's active organization —
+	// the session holds one org for every window at once. The member list is
+	// scoped server-side by the organization header this window sends.
+	const { data: members } = cloudTrpc.organization.listMembers.useQuery({
+		includeDeactivated: false,
+	});
 	const currentUserId = session?.user?.id;
-	const currentMember = activeOrg?.members?.find(
-		(m) => m.userId === currentUserId,
-	);
+	const currentMember = members?.find((m) => m.userId === currentUserId);
 	const isOwner = currentMember?.role === "owner";
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);

@@ -344,6 +344,34 @@
       "when": 1787182989255,
       "tag": "0048_burly_vargas",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "6",
+      "when": 1787260502122,
+      "tag": "0049_breezy_caretaker",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1787595622839,
+      "tag": "0050_add_disabled_skills_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "6",
+      "when": 1787696314712,
+      "tag": "0051_add_downloads",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1787733523610,
+      "tag": "0052_add_screenshots",
+      "breakpoints": true
     }
   ]
 }

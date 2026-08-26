@@ -1,4 +1,5 @@
 import { Input } from "@superset/ui/input";
+import { cn } from "@superset/ui/utils";
 import { useRef } from "react";
 import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
 import { useHotkey } from "renderer/hotkeys";
@@ -8,6 +9,7 @@ interface WorkItemsSearchProps {
 	onChange: (value: string) => void;
 	placeholder: string;
 	label: string;
+	className?: string;
 }
 
 export function WorkItemsSearch({
@@ -15,6 +17,7 @@ export function WorkItemsSearch({
 	onChange,
 	placeholder,
 	label,
+	className,
 }: WorkItemsSearchProps) {
 	const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +48,10 @@ export function WorkItemsSearch({
 						inputRef.current?.blur();
 					}
 				}}
-				className="h-8 border-0 bg-muted/50 pl-9 pr-3 text-sm focus-visible:ring-1"
+				className={cn(
+					"h-8 border-0 bg-muted/50 pl-9 pr-3 text-sm focus-visible:ring-1",
+					className,
+				)}
 			/>
 		</div>
 	);

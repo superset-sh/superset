@@ -80,12 +80,12 @@ describe("Tasks and pull requests navigation", () => {
 	});
 
 	test("gives pull requests an independent route and view", () => {
-		const pageSource = readComponent("../../../pull-requests/page.tsx");
+		const layoutSource = readComponent("../../../pull-requests/layout.tsx");
 		const viewSource = readComponent(
 			"../../../pull-requests/components/PullRequestsView/PullRequestsView.tsx",
 		);
 
-		expect(pageSource).toContain("<PullRequestsView");
+		expect(layoutSource).toContain("<PullRequestsView");
 		expect(viewSource).toContain("<PullRequestsTopBar");
 		expect(viewSource).toContain("<PullRequestsContent");
 	});

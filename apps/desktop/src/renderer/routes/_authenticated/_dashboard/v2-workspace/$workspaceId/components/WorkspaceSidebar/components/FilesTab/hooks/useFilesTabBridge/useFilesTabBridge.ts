@@ -10,6 +10,7 @@ import type { TreeBookkeeping } from "../../utils/treeBookkeeping";
 import { purgeDirectory, rekeyDirectory } from "../../utils/treeBookkeeping";
 import {
 	asDirectoryHandle,
+	lookupDirectory,
 	resolveDeleteTreePath,
 	stripTrailingSlash,
 	toAbs,
@@ -484,8 +485,9 @@ export function useFilesTabBridge({
 					if (!loadedDirsRef.current.has(newDir)) {
 						unloadedDirCandidatesRef.current.add(newDir);
 					}
-					const handle = asDirectoryHandle(model.getItem(newKey));
-					if (handle?.isExpanded()) void fetchDir(newDir);
+					if (lookupDirectory(model, newKey)?.isExpanded()) {
+						void fetchDir(newDir);
+					}
 				}
 				return;
 			}

@@ -33,6 +33,8 @@ const COMMAND_SKILLS = ["feedback", "10x", "setup", "doctor"] as const;
 export interface ManagedSkillsOptions {
 	homeDir?: string;
 	templatesDir?: string;
+	/** Skill names to withhold provisioning for (and reap if already provisioned). */
+	disabledSkills?: readonly string[];
 }
 
 /**
@@ -88,17 +90,28 @@ function listFilesRecursive(root: string, relative = ""): string[] {
 
 /**
  * Mirrors src into dest file-by-file (writeFileIfChanged semantics), removing
- * previously-managed files that no longer exist in src.
+ * previously-managed files that no longer exist in src. Files for which
+ * `isExcluded` returns true are treated as absent from src — skipped on the
+ * way in, and reaped on the way out if a prior sync already wrote them.
  */
-async function syncDir(src: string, dest: string): Promise<void> {
-	const sourceFiles = listFilesRecursive(src);
+async function syncDir(
+	src: string,
+	dest: string,
+	isExcluded?: (relativePath: string) => boolean,
+): Promise<void> {
+	const sourceFiles = listFilesRecursive(src).filter(
+		(file) => !isExcluded?.(file),
+	);
 	for (const file of sourceFiles) {
+		const source = path.join(src, file);
 		const target = path.join(dest, file);
 		fs.mkdirSync(path.dirname(target), { recursive: true });
+		// Skills may bundle scripts/; keep them runnable after provisioning.
+		const executable = (fs.statSync(source).mode & 0o111) !== 0;
 		writeFileIfChanged(
 			target,
-			fs.readFileSync(path.join(src, file), "utf-8"),
-			0o644,
+			fs.readFileSync(source, "utf-8"),
+			executable ? 0o755 : 0o644,
 		);
 	}
 	const wanted = new Set(sourceFiles.map((f) => path.join(dest, f)));
@@ -129,6 +142,7 @@ async function syncDir(src: string, dest: string): Promise<void> {
 async function provisionClaudePlugin(
 	bundledPluginDir: string,
 	claudeDir: string,
+	disabledSkills: ReadonlySet<string>,
 ): Promise<void> {
 	const target = path.join(claudeDir, "skills", CLAUDE_PLUGIN_DIR_NAME);
 	const sentinel = path.join(target, MANAGED_SENTINEL_NAME);
@@ -136,7 +150,10 @@ async function provisionClaudePlugin(
 		console.log(`[agent-setup] Skipping user-owned plugin dir at ${target}`);
 		return;
 	}
-	await syncDir(bundledPluginDir, target);
+	await syncDir(bundledPluginDir, target, (relativePath) => {
+		const [dir, skillName] = relativePath.split(path.sep);
+		return dir === "skills" && disabledSkills.has(skillName ?? "");
+	});
 	writeFileIfChanged(sentinel, `${MANAGED_SKILL_MARKER}\n`, 0o644);
 }
 
@@ -155,10 +172,11 @@ function readPluginSkill(
 }
 
 /**
- * Every skill in the bundled plugin ships everywhere automatically — adding a
- * skill to plugins/superset/skills/ requires no code change here. Returns null
- * on enumeration failure: the caller must abort (an empty desired set would
- * make the reaper delete every previously-provisioned skill).
+ * Every skill in the bundled plugin ships everywhere automatically unless the
+ * user disabled it — adding a skill to plugins/superset/skills/ requires no
+ * code change here. Returns null on enumeration failure: the caller must
+ * abort (an empty desired set would make the reaper delete every
+ * previously-provisioned skill).
  */
 function listBundledSkills(bundledPluginDir: string): string[] | null {
 	const skillsDir = path.join(bundledPluginDir, "skills");
@@ -228,6 +246,7 @@ export async function createManagedSkills(
 	const bundledPluginDir = options.templatesDir
 		? path.join(options.templatesDir, "plugin")
 		: getBundledPluginDir();
+	const disabledSkills = new Set(options.disabledSkills ?? []);
 
 	if (!fs.existsSync(path.join(bundledPluginDir, "skills"))) {
 		console.warn(
@@ -248,6 +267,7 @@ export async function createManagedSkills(
 		await provisionClaudePlugin(
 			bundledPluginDir,
 			path.join(homeDir, ".claude"),
+			disabledSkills,
 		);
 	} catch (error) {
 		console.warn("[agent-setup] Failed to provision Claude plugin:", error);
@@ -263,6 +283,7 @@ export async function createManagedSkills(
 
 	const desiredAgentsDirs = new Set<string>();
 	for (const pluginSkill of bundledSkills) {
+		if (disabledSkills.has(pluginSkill)) continue;
 		// Prefixed dir name carries the namespace for agents without plugin
 		// support; frontmatter `name` is rewritten to match because the skill
 		// spec requires name == parent directory.
@@ -299,6 +320,7 @@ export async function createManagedSkills(
 
 	const desiredCommandFiles = new Set<string>();
 	for (const pluginSkill of COMMAND_SKILLS) {
+		if (disabledSkills.has(pluginSkill)) continue;
 		const fileName = `${pluginSkill}.md`;
 		try {
 			const raw = readPluginSkill(bundledPluginDir, pluginSkill);
@@ -354,5 +376,9 @@ export async function provisionManagedClaudePluginAt(
 		);
 		return;
 	}
-	await provisionClaudePlugin(bundledPluginDir, claudeDir);
+	await provisionClaudePlugin(
+		bundledPluginDir,
+		claudeDir,
+		new Set(options.disabledSkills ?? []),
+	);
 }

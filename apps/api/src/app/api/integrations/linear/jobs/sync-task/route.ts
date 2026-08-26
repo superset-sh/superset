@@ -12,7 +12,7 @@ import {
 	getLinearClient,
 	mapPriorityToLinear,
 } from "@superset/trpc/integrations/linear";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 import { z } from "zod";
 import { verifyQstashRequest } from "@/lib/verifyQstash";
 
@@ -155,16 +155,34 @@ async function syncTaskToLinear(
 				return { success: false, error: "Issue not returned" };
 			}
 
+			const externalUpdatedAt = new Date(issue.updatedAt);
 			await db
 				.update(tasks)
 				.set({
 					// Linear derives branchName from identifier + title, so a
 					// title update can change it.
 					branch: issue.branchName || null,
+					externalUpdatedAt,
 					lastSyncedAt: new Date(),
 					syncError: null,
 				})
-				.where(eq(tasks.id, task.id));
+				.where(
+					and(
+						eq(tasks.id, task.id),
+						// The watermark only moves forward. This push goes out
+						// through QStash and can be retried, so its response can
+						// arrive after a webhook that already recorded something
+						// newer — writing ours unconditionally would drag the
+						// watermark back and let the next stale delivery through
+						// the guard that exists to stop it. Skipping costs
+						// nothing: the webhook that overtook us set lastSyncedAt
+						// and cleared syncError on its way past.
+						or(
+							isNull(tasks.externalUpdatedAt),
+							lt(tasks.externalUpdatedAt, externalUpdatedAt),
+						),
+					),
+				);
 
 			return {
 				success: true,
@@ -217,6 +235,7 @@ async function syncTaskToLinear(
 				externalKey: issue.identifier,
 				externalUrl: issue.url,
 				branch: issue.branchName || null,
+				externalUpdatedAt: new Date(issue.updatedAt),
 				lastSyncedAt: new Date(),
 				syncError: null,
 			})

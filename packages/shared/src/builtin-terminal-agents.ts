@@ -124,6 +124,14 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		nonInteractiveCommand: "opencode run --agent plan",
 	}),
 	createBuiltinTerminalAgent({
+		id: "omp",
+		label: "Oh My Pi",
+		description:
+			"Oh My Pi's coding agent for terminal-first coding, session-aware workflows, and task work.",
+		command: "omp",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "pi",
 		label: "Pi",
 		description:
@@ -198,6 +206,49 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"The meta-harness that gives agents cross-repo visibility and memory that survives every session.",
 		command: "polygraph session start",
 		promptCommand: "polygraph session start --",
+	}),
+	createBuiltinTerminalAgent({
+		id: "kiro",
+		label: "Kiro",
+		description:
+			"AWS's spec-driven coding agent for agentic workflows in the terminal.",
+		command: "kiro-cli chat --trust-all-tools",
+		resumeCommand: "kiro-cli chat --trust-all-tools --resume-id",
+		nonInteractiveCommand: "kiro-cli chat --no-interactive",
+	}),
+	createBuiltinTerminalAgent({
+		// Google's Antigravity CLI. The id matches the binary name (`agy`), the
+		// same way every other builtin id is the command users type.
+		id: "agy",
+		label: "Antigravity",
+		description:
+			"Google's Antigravity CLI for reasoning, editing, and running code from the terminal.",
+		command: "agy --mode accept-edits",
+		promptCommand: "agy --mode accept-edits -i",
+		resumeCommand: "agy --mode accept-edits --conversation",
+		nonInteractiveCommand: "agy -p",
+	}),
+	createBuiltinTerminalAgent({
+		id: "fx",
+		label: "fx",
+		description:
+			"Vercel's coding agent for reading, editing, and running code from the terminal.",
+		command: "fx",
+		promptCommand: "fx ask --auto",
+		promptCommandSuffix: "; fx resume last",
+		resumeCommand: "fx resume",
+		nonInteractiveCommand: "fx ask --auto",
+	}),
+	createBuiltinTerminalAgent({
+		id: "hermes",
+		label: "Hermes",
+		description:
+			"Nous Research's autonomous agent for coding, research, and terminal workflows.",
+		command: "hermes chat --yolo",
+		promptCommand: "hermes chat --yolo -q",
+		promptCommandSuffix: "; hermes chat --yolo -c",
+		resumeCommand: "hermes chat --yolo -r",
+		nonInteractiveCommand: "hermes chat -q",
 	}),
 ] as const;
 

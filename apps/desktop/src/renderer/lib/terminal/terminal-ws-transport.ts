@@ -190,6 +190,14 @@ export interface TerminalTransport {
 	 * in-band \x1b[I/\x1b[O reports bypass that aggregation.
 	 */
 	_disposeFocusListeners: (() => void) | null;
+	/**
+	 * Whether this pane is on screen. The host sizes the PTY to the smallest
+	 * visible client, so a parked pane's dims must stop counting — otherwise a
+	 * hidden narrow split would squeeze the terminal the user is looking at.
+	 * Held here rather than read at send time because it has to be re-declared
+	 * on every attach: a reconnecting socket starts out assumed visible.
+	 */
+	_visible: boolean;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -380,6 +388,7 @@ export function createTransport(
 		_lastLivenessTick: 0,
 		_resumeListener: null,
 		_disposeFocusListeners: null,
+		_visible: true,
 	};
 }
 
@@ -574,8 +583,8 @@ export function connect(
 	// Recreate per connect so the coalescer always targets the current terminal;
 	// dispose flushes anything the previous socket left pending.
 	transport._writeCoalescer?.dispose();
-	transport._writeCoalescer = createWriteCoalescer((data) =>
-		terminal.write(data),
+	transport._writeCoalescer = createWriteCoalescer((data, done) =>
+		terminal.write(data, done),
 	);
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
@@ -661,11 +670,12 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into xterm.
 		if (data instanceof ArrayBuffer) {
 			// Queue PTY bytes; the coalescer batches them into one xterm.write per
-			// animation frame. There's no output ACK back to host-service:
-			// back-pressure lives entirely on the host side, which bounds this
-			// socket's send buffer and drops us (we reconnect and catch up by
-			// seq) if we fall hopelessly behind. A slow renderer can never wedge
-			// the shell.
+			// animation frame and holds the next batch until xterm reports the
+			// last one parsed. There's no output ACK back to host-service:
+			// socket-level back-pressure lives entirely on the host side, which
+			// bounds this socket's send buffer and drops us (we reconnect and
+			// catch up by seq) if we fall hopelessly behind. A slow renderer can
+			// never wedge the shell.
 			if (transport._seqCounting && transport.seqAnchor) {
 				transport.seqAnchor.seq += data.byteLength;
 			}
@@ -705,6 +715,7 @@ function attachSocketListeners(
 			transport._seqCounting = false;
 			transport._bytesSinceAttach = false;
 			setConnectionState(transport, "open");
+			sendVisibleState(transport);
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
 		}
@@ -951,6 +962,23 @@ function sendFocusState(transport: TerminalTransport) {
 		document.hasFocus() &&
 		document.activeElement === textarea;
 	socket.send(JSON.stringify({ type: "focus", focused }));
+}
+
+function sendVisibleState(transport: TerminalTransport) {
+	const socket = transport._socket;
+	if (!socket || socket.readyState !== WebSocket.OPEN) return;
+	socket.send(JSON.stringify({ type: "visible", visible: transport._visible }));
+}
+
+/**
+ * Tell the host whether this pane is on screen. Only visible clients constrain
+ * the PTY size, so parking a pane hands its width back to the other clients.
+ */
+export function setVisible(transport: TerminalTransport, visible: boolean) {
+	if (transport._visible === visible) return;
+	transport._visible = visible;
+	if (transport.connectionState !== "open") return;
+	sendVisibleState(transport);
 }
 
 export function sendResize(

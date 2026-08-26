@@ -41,6 +41,8 @@ export interface TerminalRowData {
 	lastEventAt: number | null;
 	/** Agent bound to the terminal via lifecycle hooks; null = plain shell. */
 	agentId: string | null;
+	/** Specific agent definition (a custom config id, or the preset id). */
+	definitionId: string | null;
 	attention: TerminalAttention | null;
 }
 
@@ -159,6 +161,7 @@ export function useHostsTerminals(
 					createdAt: session.createdAt,
 					lastEventAt: binding?.lastEventAt ?? null,
 					agentId: binding?.agentId ?? null,
+					definitionId: binding?.definitionId ?? binding?.agentId ?? null,
 					attention,
 				};
 				const group = terminalsByWorkspace.get(session.workspaceId);

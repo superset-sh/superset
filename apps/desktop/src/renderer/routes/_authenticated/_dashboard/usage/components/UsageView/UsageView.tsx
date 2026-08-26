@@ -14,6 +14,8 @@ import {
 	LuCircleCheck,
 	LuCopy,
 	LuEllipsis,
+	LuEye,
+	LuEyeOff,
 	LuPlus,
 	LuRefreshCw,
 } from "react-icons/lu";
@@ -29,6 +31,7 @@ import type {
 import { useHostUsageQuota } from "../../hooks/useHostUsageQuota";
 import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
 import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
+import { LeaderboardPrompt } from "../LeaderboardPrompt";
 import { UsageHistorySection } from "../UsageHistorySection";
 import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
@@ -98,6 +101,7 @@ function AccountCard({
 	onRemove,
 	isSwitching,
 	selectable,
+	hideEmails,
 }: {
 	account: UsageAccount;
 	onMakeDefault: () => void;
@@ -109,6 +113,8 @@ function AccountCard({
 	 * radio group: the default gets a check + accent border, the rest get a
 	 * selectable circle. */
 	selectable: boolean;
+	/** Replaces account emails so screenshots do not retain identifying pixels. */
+	hideEmails: boolean;
 }) {
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
@@ -140,8 +146,15 @@ function AccountCard({
 							<LuCircle className="size-3.5" />
 						</button>
 					))}
-				<span className="truncate text-xs font-medium">
-					{account.email ?? PROVIDER_LABELS[account.provider]}
+				<span
+					className={cn(
+						"truncate text-xs font-medium transition-[filter]",
+						hideEmails && account.email && "select-none blur-[5px]",
+					)}
+				>
+					{hideEmails && account.email
+						? "Email hidden"
+						: (account.email ?? PROVIDER_LABELS[account.provider])}
 				</span>
 				{account.plan && (
 					<span className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -260,6 +273,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const removeAccount = useRemoveUsageAccount(hostUrl);
 	const isDark = useIsDarkTheme();
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [hideEmails, setHideEmails] = useState(false);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [dialogProvider, setDialogProvider] = useState<Provider>("claude");
 	const [switchTarget, setSwitchTarget] = useState<SwitchSignInTarget | null>(
@@ -308,10 +322,25 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 	return (
 		<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-3 px-6 py-4">
+			<LeaderboardPrompt hostUrl={hostUrl} />
 			<div className="flex items-center gap-2">
 				<span className="ml-auto text-[10px] text-muted-foreground">
 					Official quota · refreshes every 5 min
 				</span>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="h-6 gap-1 px-1.5 text-[10px] text-muted-foreground"
+					aria-pressed={hideEmails}
+					onClick={() => setHideEmails((hidden) => !hidden)}
+				>
+					{hideEmails ? (
+						<LuEye className="size-3" />
+					) : (
+						<LuEyeOff className="size-3" />
+					)}
+					{hideEmails ? "Show emails" : "Hide emails"}
+				</Button>
 				<Button
 					variant="ghost"
 					size="icon"
@@ -378,6 +407,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 											}
 											isSwitching={setDefault.isPending}
 											selectable={providerAccounts.length > 1}
+											hideEmails={hideEmails}
 										/>
 									))}
 								</div>

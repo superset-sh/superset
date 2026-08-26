@@ -1,3 +1,4 @@
+import type { InstalledPlugin } from "@superset/shared/plugins";
 import {
 	index,
 	integer,
@@ -258,6 +259,10 @@ export const settings = sqliteTable("settings", {
 	disabledAgentHooks: text("disabled_agent_hooks", { mode: "json" }).$type<
 		string[]
 	>(),
+	installedPlugins: text("installed_plugins", { mode: "json" }).$type<
+		InstalledPlugin[]
+	>(),
+	disabledSkills: text("disabled_skills", { mode: "json" }).$type<string[]>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
@@ -455,3 +460,63 @@ export const browserHistory = sqliteTable(
 
 export type InsertBrowserHistory = typeof browserHistory.$inferInsert;
 export type SelectBrowserHistory = typeof browserHistory.$inferSelect;
+
+export type DownloadState =
+	| "progressing"
+	| "completed"
+	| "cancelled"
+	| "interrupted";
+
+/**
+ * Downloads table - tracks files downloaded through the in-app browser pane
+ */
+export const downloads = sqliteTable(
+	"downloads",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		url: text("url").notNull(),
+		filename: text("filename").notNull(),
+		savePath: text("save_path").notNull(),
+		mimeType: text("mime_type"),
+		totalBytes: integer("total_bytes"),
+		receivedBytes: integer("received_bytes").notNull().default(0),
+		state: text("state").notNull().$type<DownloadState>(),
+		startedAt: integer("started_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		completedAt: integer("completed_at"),
+	},
+	(table) => [index("downloads_started_at_idx").on(table.startedAt)],
+);
+
+export type InsertDownload = typeof downloads.$inferInsert;
+export type SelectDownload = typeof downloads.$inferSelect;
+
+/**
+ * Screenshots table - tracks page captures taken from the in-app browser
+ * pane's overflow menu. The PNG lives on disk; this row is metadata plus a
+ * small thumbnail so a gallery can render without reading every file.
+ */
+export const screenshots = sqliteTable(
+	"screenshots",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		url: text("url").notNull(),
+		filename: text("filename").notNull(),
+		savePath: text("save_path").notNull(),
+		width: integer("width").notNull(),
+		height: integer("height").notNull(),
+		thumbnail: text("thumbnail").notNull(),
+		capturedAt: integer("captured_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [index("screenshots_captured_at_idx").on(table.capturedAt)],
+);
+
+export type InsertScreenshot = typeof screenshots.$inferInsert;
+export type SelectScreenshot = typeof screenshots.$inferSelect;

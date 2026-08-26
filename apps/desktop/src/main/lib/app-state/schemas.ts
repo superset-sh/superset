@@ -37,7 +37,18 @@ export interface V1PaneAgentSession {
 }
 
 export interface AppState {
+	/**
+	 * The pre-multi-window layout. Retained as the record the first restored
+	 * window inherits (see LEGACY_WINDOW_KEY); new windows never write here.
+	 */
 	tabsState: BaseTabsState;
+	/**
+	 * Tab layout per window, keyed by the window's persisted key. Every window
+	 * is its own renderer writing its whole layout, so a single shared record
+	 * meant the last window to write won and every window restored the same
+	 * (wrong) layout. Pruned to the restorable window set on every persist.
+	 */
+	tabsStateByWindow?: Record<string, BaseTabsState>;
 	themeState: ThemeState;
 	hotkeysState: LegacyHotkeysState;
 	/** v1 pane id → last agent session seen there (see V1PaneAgentSession). */

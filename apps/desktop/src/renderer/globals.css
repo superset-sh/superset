@@ -34,6 +34,8 @@
 	--tertiary-active: #252220;
 	--destructive: #cc4444;
 	--destructive-foreground: #ffcccc;
+	--warning: #e5c07b;
+	--warning-foreground: #000000;
 	--border: #2a2827;
 	--input: #2a2827;
 	--ring: #3a3837;
@@ -80,6 +82,8 @@
 	--tertiary-active: oklch(0.9 0.003 40);
 	--destructive: oklch(0.577 0.245 27.325);
 	--destructive-foreground: oklch(0.985 0 0);
+	--warning: oklch(0.554 0.113 86.265);
+	--warning-foreground: oklch(0.985 0 0);
 	--border: oklch(0.922 0 0);
 	--input: oklch(0.922 0 0);
 	--ring: oklch(0.708 0 0);
@@ -123,6 +127,8 @@
 	--color-tertiary-active: var(--tertiary-active);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
 	--color-border: var(--border);
 	--color-input: var(--input);
 	--color-ring: var(--ring);

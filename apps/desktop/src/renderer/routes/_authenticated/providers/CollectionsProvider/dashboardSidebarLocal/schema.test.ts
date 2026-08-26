@@ -118,6 +118,32 @@ describe("healV2UserPreferences", () => {
 	});
 });
 
+describe("healV2UserPreferences favoritePageIds", () => {
+	it("defaults to an empty list on rows written before the field existed", () => {
+		expect(healV2UserPreferences({}).favoritePageIds).toEqual([]);
+	});
+
+	it("preserves stored ids in order", () => {
+		const healed = healV2UserPreferences({
+			favoritePageIds: ["page-b", "page-a"],
+		});
+		expect(healed.favoritePageIds).toEqual(["page-b", "page-a"]);
+	});
+
+	it("drops non-string and empty entries", () => {
+		const healed = healV2UserPreferences({
+			favoritePageIds: ["page-a", "", null, 7, "page-b"],
+		});
+		expect(healed.favoritePageIds).toEqual(["page-a", "page-b"]);
+	});
+
+	it("recovers from a non-array value", () => {
+		expect(
+			healV2UserPreferences({ favoritePageIds: "page-a" }).favoritePageIds,
+		).toEqual([]);
+	});
+});
+
 describe("healWorkspaceLocalState", () => {
 	const validPaneLayout: PaneLayout = {
 		version: 1,
@@ -349,6 +375,44 @@ describe("workspaceLocalStateSchema projectId nullability", () => {
 		expect(
 			workspaceLocalStateSchema.safeParse({ ...row(null), sidebarState: {} })
 				.success,
+		).toBe(false);
+	});
+});
+
+describe("workspace sidebar activeTab retirement", () => {
+	const stored = {
+		workspaceId: "11111111-1111-1111-1111-111111111111",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		paneLayout: { version: 1, tabs: [], activeTabId: null },
+		sidebarState: {
+			projectId: "22222222-2222-2222-2222-222222222222",
+			activeTab: "pages",
+		},
+	};
+
+	it("prunes a row persisted on the retired pages tab back to changes", () => {
+		expect(healWorkspaceLocalState(stored).sidebarState.activeTab).toBe(
+			"changes",
+		);
+	});
+
+	it("leaves a surviving tab untouched", () => {
+		const healed = healWorkspaceLocalState({
+			...stored,
+			sidebarState: { ...stored.sidebarState, activeTab: "review" },
+		});
+		expect(healed.sidebarState.activeTab).toBe("review");
+	});
+
+	it("rejects the retired value at the schema edge", () => {
+		expect(
+			workspaceLocalStateSchema.safeParse({
+				...stored,
+				sidebarState: {
+					projectId: stored.sidebarState.projectId,
+					activeTab: "pages",
+				},
+			}).success,
 		).toBe(false);
 	});
 });

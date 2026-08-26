@@ -1,7 +1,7 @@
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { useRouter } from "expo-router";
 import { FolderGit2, Plus } from "lucide-react-native";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
@@ -64,12 +64,16 @@ export function WorkspaceRow({
 		workspace.worktreeExists !== false &&
 		(cloudStatus === undefined || cloudStatus === "ready");
 	const {
-		isDeleting,
 		renameWorkspace,
 		deleteWorkspace,
 		copyId,
 		shareWorkspace,
-	} = useWorkspaceRowActions(workspace, cache, cloudStatus);
+		isUnread,
+		toggleUnread,
+	} = useWorkspaceRowActions(workspace, cache, sessions, cloudStatus);
+	// A manual mark reads as `review` — desktop's rollup ranks it lowest, so
+	// any live status the sessions are reporting keeps the slot.
+	const rowAttention = attention ?? (isUnread ? "review" : null);
 
 	return (
 		<WorkspaceRowMenu
@@ -83,6 +87,8 @@ export function WorkspaceRow({
 					? workspace.type !== "main"
 					: cloudStatus !== "provisioning"
 			}
+			isUnread={isUnread}
+			onToggleUnread={toggleUnread}
 			onRename={() => void renameWorkspace()}
 			onDelete={deleteWorkspace}
 			onCopyId={copyId}
@@ -94,22 +100,16 @@ export function WorkspaceRow({
 				className={cn(
 					"flex-row items-center gap-3 rounded-xl py-2 pl-10 pr-3",
 					targeted ? "bg-foreground/5" : "bg-background",
-					isDeleting && "opacity-40",
 				)}
-				disabled={isDeleting}
 				onPress={() =>
 					router.push(`/(authenticated)/workspace/${workspace.id}`)
 				}
+				ph-label="workspace-row"
 			>
 				{/* Desktop WorkspaceIcon semantics: working replaces the icon with
 				    the braille spinner; other statuses overlay a corner ping on the
-				    base icon (PR state when one exists, else the workspace mark).
-				    A delete in flight takes the slot over everything else. */}
-				{isDeleting ? (
-					<View className="size-6 items-center justify-center">
-						<ActivityIndicator size="small" color={theme.mutedForeground} />
-					</View>
-				) : attention === "working" || cloudStatus === "provisioning" ? (
+				    base icon (PR state when one exists, else the workspace mark). */}
+				{rowAttention === "working" || cloudStatus === "provisioning" ? (
 					<View className="size-6 items-center justify-center">
 						<AsciiSpinner />
 					</View>
@@ -118,6 +118,7 @@ export function WorkspaceRow({
 						{prIcon && pullRequest ? (
 							<Button
 								accessibilityLabel={`Pull request #${pullRequest.prNumber}`}
+								ph-label="workspace-row-pull-request"
 								variant="ghost"
 								size="icon"
 								className="size-6"
@@ -141,15 +142,15 @@ export function WorkspaceRow({
 								strokeWidth={1.75}
 							/>
 						)}
-						{attention === "permission" ? (
+						{rowAttention === "permission" ? (
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#eab308" size={7} />
 							</View>
-						) : attention === "failed" || cloudStatus === "failed" ? (
+						) : rowAttention === "failed" || cloudStatus === "failed" ? (
 							<View className="absolute -right-0.5 -top-0.5">
 								<PingDot color="#ef4444" size={7} />
 							</View>
-						) : attention === "review" ? (
+						) : rowAttention === "review" ? (
 							<View className="bg-green-500 absolute -right-0.5 -top-0.5 size-2 rounded-full" />
 						) : null}
 					</View>
@@ -210,9 +211,10 @@ export function WorkspaceRow({
 				) : null}
 				<Button
 					accessibilityLabel={`New agent in ${workspace.name}`}
+					ph-label="workspace-row-new-agent"
 					variant="ghost"
 					size="icon"
-					disabled={!canChat || isDeleting}
+					disabled={!canChat}
 					onPress={() =>
 						setTarget({
 							workspaceId: workspace.id,

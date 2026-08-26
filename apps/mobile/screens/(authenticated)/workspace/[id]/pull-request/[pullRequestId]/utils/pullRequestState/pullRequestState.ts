@@ -84,9 +84,19 @@ export type ActionId =
 	| "ask-fix-checks"
 	| "ask-address-comments";
 
+/** Actions that hand the work to an agent rather than calling GitHub. */
+export type AgentActionId = Extract<ActionId, `ask-${string}`>;
+
+/** Everything the host performs against GitHub directly, minus merge's own confirm flow. */
+export type PlainActionId = Exclude<ActionId, AgentActionId | "merge">;
+
+export function isAgentAction(action: ActionId): action is AgentActionId {
+	return action.startsWith("ask-");
+}
+
 export function actionEmphasis(action: ActionId): "merge" | "agent" | "plain" {
 	if (action === "merge") return "merge";
-	return action.startsWith("ask-") ? "agent" : "plain";
+	return isAgentAction(action) ? "agent" : "plain";
 }
 
 const MERGE_REFUSED: PullRequestState[] = [

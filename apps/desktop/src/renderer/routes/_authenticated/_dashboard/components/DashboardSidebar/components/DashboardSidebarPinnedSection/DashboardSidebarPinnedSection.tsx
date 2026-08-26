@@ -2,7 +2,6 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { cn } from "@superset/ui/utils";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import {
 	dropZoneId,
@@ -67,7 +66,7 @@ export function DashboardSidebarPinnedSection({
 	if (pinnedItems.length === 0 && !isDraggingWorkspace) return null;
 
 	return (
-		<div className={cn("mt-1 first:mt-0", !isSectionCollapsed && "pb-3")}>
+		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader label="Pinned" section="pinned" />
 			{!isSectionCollapsed && (
 				<SortableContext

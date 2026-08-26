@@ -83,9 +83,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 }
 
 export function WallOfLoveSection() {
-	const leftColumn = TESTIMONIALS.filter((_, i) => i % 3 === 0);
-	const middleColumn = TESTIMONIALS.filter((_, i) => i % 3 === 1);
-	const rightColumn = TESTIMONIALS.filter((_, i) => i % 3 === 2);
+	const [showAll, setShowAll] = useState(false);
 
 	return (
 		<section className="relative py-24 sm:py-32">
@@ -96,31 +94,26 @@ export function WallOfLoveSection() {
 					</h2>
 				</div>
 
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-					<div className="flex flex-col gap-4">
-						{leftColumn.map((testimonial) => (
-							<div key={testimonial.id}>
-								<TestimonialCard testimonial={testimonial} />
-							</div>
-						))}
-					</div>
-
-					<div className="flex flex-col gap-4">
-						{middleColumn.map((testimonial) => (
-							<div key={testimonial.id}>
-								<TestimonialCard testimonial={testimonial} />
-							</div>
-						))}
-					</div>
-
-					<div className="flex flex-col gap-4 md:col-span-2 lg:col-span-1">
-						{rightColumn.map((testimonial) => (
-							<div key={testimonial.id}>
-								<TestimonialCard testimonial={testimonial} />
-							</div>
-						))}
-					</div>
+				<div className="columns-1 gap-4 md:columns-2 lg:columns-3">
+					{TESTIMONIALS.map((testimonial, index) => (
+						<div
+							key={testimonial.id}
+							className={`mb-4 break-inside-avoid ${!showAll && index >= 5 ? "hidden md:block" : ""}`}
+						>
+							<TestimonialCard testimonial={testimonial} />
+						</div>
+					))}
 				</div>
+
+				{!showAll && (
+					<button
+						type="button"
+						onClick={() => setShowAll(true)}
+						className="mt-2 w-full border border-border bg-card px-4 py-3 text-sm font-medium text-foreground transition-colors hover:border-muted-foreground/50 md:hidden"
+					>
+						Show all {TESTIMONIALS.length}
+					</button>
+				)}
 			</div>
 		</section>
 	);

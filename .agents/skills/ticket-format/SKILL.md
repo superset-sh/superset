@@ -1,6 +1,6 @@
 ---
 name: ticket-format
-description: Use when creating, drafting, or grooming a Linear or Superset ticket in this repo. Defines the canonical three-section structure.
+description: Canonical three-section structure for Linear and Superset tickets in this repo. Use when creating, drafting, or grooming a ticket.
 ---
 
 # Ticket Format
@@ -16,9 +16,9 @@ Where the ticket came from. Omit section if none.
 | Slack #feedback | @alice | [thread](…) | 2026-05-10 |
 
 ## Implementation notes
-Agent-groomed. Leave empty if you don't have codebase context — a later grooming pass will fill it in. When you do fill it in, use these sub-headings and skip what doesn't apply:
+Agent-groomed. Leave empty if you don't have codebase context; a later grooming pass will fill it in. When you do fill it in, use these sub-headings and skip what doesn't apply:
 
-- `### Files` — `path:line` + why relevant
-- `### Approach` — one paragraph
-- `### Related code` — similar patterns in the repo
-- `### Gotchas` — constraints, prior incidents
+- `### Files`: `path:line` + why relevant
+- `### Approach`: one paragraph
+- `### Related code`: similar patterns in the repo
+- `### Gotchas`: constraints, prior incidents

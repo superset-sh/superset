@@ -1,7 +1,6 @@
 "use client";
 
 import { authClient } from "@superset/auth/client";
-import type { RouterOutputs } from "@superset/trpc";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -43,8 +42,17 @@ import {
 import { env } from "@/env";
 import { useTRPC } from "@/trpc/react";
 
+/** Everything the footer renders. The session already carries all of it, so
+ *  the dashboard layout no longer blocks its shell on a `user.me` round trip
+ *  to the api deployment just to fill in a name and an avatar. */
+export interface SidebarUser {
+	name: string;
+	email: string;
+	image?: string | null;
+}
+
 export interface NavUserProps {
-	user: NonNullable<RouterOutputs["user"]["me"]>;
+	user: SidebarUser;
 }
 
 export function NavUser({ user }: NavUserProps) {

@@ -1,18 +1,35 @@
+import {
+	Composer,
+	type ComposerHandle,
+	type ComposerQuickKey,
+	type ComposerSlashCommand,
+} from "@superset/composer";
+import type { SlashCommand } from "@superset/shared/slash-commands";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import {
-	GlassComposer,
-	type GlassComposerHandle,
-} from "@/screens/(authenticated)/components/GlassComposer";
-import { QuickKeysRow } from "./components/QuickKeysRow";
-import type { TerminalQuickKey } from "./constants";
+import { posthog } from "@/lib/posthog";
+import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
+import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
+import { usePasteAttachments } from "@/screens/(authenticated)/hooks/usePasteAttachments";
+import { workspaceDraftKey } from "@/screens/(authenticated)/stores/composerDraftsStore";
+import { QUICK_KEYS, type TerminalQuickKey } from "./constants";
 import {
 	type TerminalAttachmentTarget,
 	useWriteTerminalAttachments,
 } from "./hooks/useWriteTerminalAttachments";
 
+/** Copy Selection replaces the whole strip while a selection is live. */
+const COPY_SELECTION_KEY = "copy-selection";
+
 interface TerminalComposerProps {
+	/**
+	 * Scopes the draft. One draft per workspace rather than per terminal: an
+	 * agent per workspace is the common shape, and starting to type before
+	 * noticing you are on the wrong terminal is far more common than wanting the
+	 * two sessions to hold different drafts.
+	 */
+	workspaceId: string;
 	placeholder?: string;
 	/** Submit the current draft to the PTY. Rejects if it never got there. */
 	onSubmit: (text: string) => Promise<void>;
@@ -25,54 +42,93 @@ interface TerminalComposerProps {
 	 * .superset/attachments/IMG_0006.HEIC"), so it doesn't get the + button.
 	 */
 	allowAttachments: boolean;
+	/**
+	 * What the active agent can run behind `/` — the host's answer for this
+	 * workspace + agent. Empty for plain shells and old hosts, which is also
+	 * how the panel stays hidden there.
+	 */
+	slashCommands: SlashCommand[];
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
-	/** Terminal select mode: swaps the quick keys for Copy Selection / close. */
+	/** How much room the composer takes above the safe area, so the terminal can
+	 *  inset for an overlay it cannot measure. */
+	onHeightChange?: (height: number) => void;
+	/** Terminal select mode: swaps the quick keys for Copy Selection. */
 	selectActive: boolean;
 	selectHasSelection: boolean;
 	onCopySelection: () => void;
 }
 
 /**
- * Terminal input: the shared glass composer with the terminal's own chrome —
- * quick keys (esc/tab/arrows) floating above the pill, and a submit that
- * frames the draft for a live PTY. The project/branch/agent pickers are the
- * home composer's alone; the + button, mic and send are shared.
+ * Terminal input: the native composer with the terminal's own chrome.
+ *
+ * Two differences from the home surface, both of them props rather than
+ * children. The backdrop is `passthrough`, so the transcript stays scrollable
+ * while the keyboard is up — the home screen dims and takes the outside tap
+ * instead. And the quick keys ride above the card *inside* the composer's own
+ * view tree; they are described here as data and drawn there.
  */
 export const TerminalComposer = forwardRef<
-	GlassComposerHandle,
+	ComposerHandle,
 	TerminalComposerProps
 >(function TerminalComposer(
 	{
+		workspaceId,
 		placeholder = "Type a message...",
 		onSubmit,
 		onQuickKey,
 		attachmentTarget,
 		allowAttachments,
+		slashCommands,
 		onActiveChange,
+		onHeightChange,
 		selectActive,
 		selectHasSelection,
 		onCopySelection,
 	},
 	ref,
 ) {
-	const composerRef = useRef<GlassComposerHandle>(null);
+	const composerRef = useRef<ComposerHandle>(null);
 	// The screen owns the tap-to-dismiss target over the terminal, so it needs
-	// the composer's blur: Keyboard.dismiss() alone can't lower the keyboard,
-	// the SwiftUI field sits outside RN's responder chain.
+	// the composer's blur: `Keyboard.dismiss()` alone cannot lower the keyboard,
+	// the SwiftUI field sits outside React Native's responder chain.
 	useImperativeHandle(ref, () => ({
 		focus: () => composerRef.current?.focus(),
 		blur: () => composerRef.current?.blur(),
 		clear: () => composerRef.current?.clear(),
+		appendDraft: (text: string) => composerRef.current?.appendDraft(text),
 	}));
-	const writeAttachments = useWriteTerminalAttachments();
 
+	const draftKey = workspaceDraftKey(workspaceId);
+	const draft = useComposerDraft(draftKey);
+	const openAttachmentsSheet = useAttachmentsSheet(draftKey);
+	const addPasted = usePasteAttachments(draftKey);
+
+	// What was typed here last time, pinned at mount: a starting value handed to
+	// the composer as it is set up, never a binding.
+	const [initialDraft] = useState(() => draft.readText());
+	const wasExpanded = useRef(false);
+	const writeAttachments = useWriteTerminalAttachments();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const submit = async ({ text, attachments }: PromptInputMessage) => {
+	const quickKeys: ComposerQuickKey[] = selectActive
+		? selectHasSelection
+			? [{ id: COPY_SELECTION_KEY, label: "Copy Selection" }]
+			: []
+		: QUICK_KEYS.map((key) => ({
+				id: key.id,
+				label: key.label,
+				symbol: key.symbol,
+			}));
+
+	const submit = async ({ text, attachments: files }: PromptInputMessage) => {
 		let body = text;
-		if (attachments.length > 0) {
+		// The tray is shared across tabs, so files attached in an agent session
+		// are still there after switching to a plain shell — which would execute
+		// the paths rather than read them. `allowAttachments` has to gate the
+		// submit, not just the `+` button.
+		if (allowAttachments && files.length > 0) {
 			if (!attachmentTarget) {
 				Alert.alert("Attachments need an online host");
 				return;
@@ -81,7 +137,7 @@ export const TerminalComposer = forwardRef<
 			// worktree-relative paths appended to the message. The hook alerts on
 			// its own failures.
 			const paths = await writeAttachments
-				.mutateAsync({ target: attachmentTarget, attachments })
+				.mutateAsync({ target: attachmentTarget, attachments: files })
 				.catch(() => null);
 			if (!paths) return;
 			body = text ? `${text}\n\n${paths.join("\n")}` : paths.join("\n");
@@ -89,7 +145,21 @@ export const TerminalComposer = forwardRef<
 		setIsSubmitting(true);
 		try {
 			await onSubmit(body);
+			posthog.capture("terminal_rich_input_submitted", {
+				workspace_id: workspaceId,
+				message_length: text.trim().length,
+				line_count: text.split("\n").length,
+				has_attachments: allowAttachments && files.length > 0,
+				attachment_count: allowAttachments ? files.length : 0,
+			});
+			// Clear what actually went out, and only that. The text always did.
+			// The tray only did if this session could carry it — a plain shell
+			// submits without attachments, and the draft belongs to the workspace
+			// rather than to one terminal, so clearing here would delete an image
+			// attached in an agent session that this send never sent.
 			composerRef.current?.clear();
+			if (allowAttachments) draft.clear();
+			else draft.setText("");
 		} catch (cause) {
 			Alert.alert(
 				"Could not send",
@@ -101,28 +171,71 @@ export const TerminalComposer = forwardRef<
 	};
 
 	return (
-		<View className="px-3 pb-2">
-			<GlassComposer
+		<View>
+			<Composer
 				ref={composerRef}
-				above={
-					<QuickKeysRow
-						onKey={onQuickKey}
-						select={
-							selectActive
-								? {
-										hasSelection: selectHasSelection,
-										onCopy: onCopySelection,
-									}
-								: null
-						}
-					/>
-				}
-				isSending={writeAttachments.isPending || isSubmitting}
-				showAttachments={allowAttachments}
-				textInputAutocapitalization="never"
-				onActiveChange={onActiveChange}
-				onSubmit={submit}
 				placeholder={placeholder}
+				initialDraft={initialDraft}
+				// The transcript stays live behind the composer: reading the scrollback
+				// while typing the next command is the whole point of this screen.
+				backdrop="passthrough"
+				autocapitalization="never"
+				showAttachments={allowAttachments}
+				quickKeys={quickKeys}
+				slashCommands={slashCommands.map(
+					(command): ComposerSlashCommand => ({
+						id: `${command.trigger}${command.name}`,
+						name: command.name,
+						descriptionText: command.description || undefined,
+						trigger: command.trigger,
+						argumentHint: command.argumentHint || undefined,
+						isBuiltin: command.kind === "builtin" || undefined,
+						aliases: command.aliases.length > 0 ? command.aliases : undefined,
+					}),
+				)}
+				isSending={writeAttachments.isPending || isSubmitting}
+				// Hidden in a plain shell rather than shown and silently dropped: the
+				// draft is the workspace's, so a tray filled in an agent session is
+				// still there after switching, and submit will not send it.
+				attachments={
+					allowAttachments
+						? draft.attachments.map((item) => ({
+								id: item.id,
+								uri: item.uri ?? "",
+								kind:
+									item.type === "image"
+										? ("image" as const)
+										: ("file" as const),
+								name: item.name,
+							}))
+						: []
+				}
+				onSubmit={(text) => submit({ text, attachments: draft.attachments })}
+				onDraftChange={draft.setText}
+				onRemoveAttachment={(id) => draft.remove(id)}
+				onHeightChange={onHeightChange}
+				onExpandedChange={(expanded) => {
+					wasExpanded.current = expanded;
+					onActiveChange?.(expanded);
+				}}
+				onPaste={addPasted}
+				onAttachmentsPress={() => {
+					const restore = wasExpanded.current;
+					openAttachmentsSheet({
+						onClosed: () => {
+							if (restore) composerRef.current?.focus();
+						},
+					});
+				}}
+				onQuickKeyPress={(id) => {
+					if (id === COPY_SELECTION_KEY) {
+						onCopySelection();
+						return;
+					}
+					const key = QUICK_KEYS.find((candidate) => candidate.id === id);
+					if (key) onQuickKey(key);
+				}}
+				onDictationError={(message: string) => Alert.alert(message)}
 			/>
 		</View>
 	);

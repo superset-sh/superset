@@ -16,11 +16,23 @@ export function createApplicationMenu() {
 	const closeAccelerator = "CmdOrCtrl+Shift+Q";
 	const showHotkeysAccelerator = "CmdOrCtrl+/";
 	const openSettingsAccelerator = "CmdOrCtrl+,";
+	// macOS/VS Code convention for New Window. On Windows/Linux Ctrl+Shift+N is
+	// already New Workspace, so use Ctrl+Alt+N there.
+	const newWindowAccelerator =
+		process.platform === "darwin" ? "Cmd+Shift+N" : "Ctrl+Alt+N";
 
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
 			label: "File",
 			submenu: [
+				{
+					label: "New Window",
+					accelerator: newWindowAccelerator,
+					click: () => {
+						menuEmitter.emit("new-window");
+					},
+				},
+				{ type: "separator" },
 				{
 					label: "Open Repo...",
 					accelerator: "CmdOrCtrl+O",
@@ -90,6 +102,10 @@ export function createApplicationMenu() {
 		},
 		{
 			label: "Window",
+			// macOS appends the list of open windows to a windowMenu-role menu,
+			// which is how you switch between platform windows. Without the role
+			// the list never appears, so multi-window has no switcher.
+			role: process.platform === "darwin" ? "windowMenu" : undefined,
 			submenu: [
 				{ role: "minimize" },
 				{ role: "zoom" },

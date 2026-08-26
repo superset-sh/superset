@@ -4,6 +4,13 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "../../env";
+import {
+	claimMetricCache,
+	clearMetricCache,
+	isMetricCacheAvailable,
+	readMetricCache,
+	writeMetricCache,
+} from "../../lib/metric-cache";
 import { adminProcedure } from "../../trpc";
 
 // Business metrics for the admin company dashboard. Dollar figures come from
@@ -130,13 +137,22 @@ function parseMrrCsv(csv: string): MrrPoint[] {
 }
 
 // Sigma data refreshes ~daily and the query takes ~30-60s, so results are
-// cached in-process for 12h. Requests never block on a running query: the
-// first caller kicks off a run and gets { available: false } immediately;
-// later calls (the tile re-polls) check the same pending run until it lands.
-const MRR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+// cached for 12h. Requests never block on a running query: the first caller
+// kicks off a run and gets { available: false } immediately; later calls (the
+// tile re-polls, or the refresh job) check the same pending run until it lands.
+//
+// Cache and pending-run handle both live in Redis. In-process they were per
+// instance, so a poll rarely found the run its predecessor started and kicked
+// off a fresh one instead — the tile sat on "computing" indefinitely while
+// burning a Sigma run per dashboard load.
+const MRR_CACHE_KEY = "mrr";
+const MRR_PENDING_KEY = "mrr:pending";
+const MRR_CACHE_TTL_SECONDS = 12 * 60 * 60;
+/** A run that has not landed by now is never landing; let the next caller retry. */
+const MRR_PENDING_TTL_SECONDS = 10 * 60;
+/** Held between claiming the right to start a run and having its id. */
+const MRR_CLAIMING = "claiming";
 const MRR_COMPUTING_REASON = "computing";
-let mrrCache: { fetchedAt: number; result: MrrResult } | null = null;
-let mrrPendingRunId: string | null = null;
 
 async function createMrrRun(): Promise<MrrResult | { runId: string }> {
 	const createResponse = await fetch(
@@ -179,32 +195,99 @@ async function collectMrrRun(runId: string): Promise<MrrResult | null> {
 	return { available: true, dataLoadTime: new Date().toISOString(), points };
 }
 
-async function fetchLatestSigmaMrr(): Promise<MrrResult> {
+/**
+ * Advance the MRR query by one step: serve the cache, else collect the run in
+ * flight, else start one. Never blocks on Stripe finishing — callers that want
+ * a landed result call this until it stops saying "computing".
+ */
+async function advanceSigmaMrr({
+	ignoreCache = false,
+}: {
+	ignoreCache?: boolean;
+} = {}): Promise<MrrResult> {
 	if (!env.STRIPE_SECRET_KEY) {
 		return { available: false, reason: "STRIPE_SECRET_KEY not configured" };
 	}
-	if (
-		mrrCache &&
-		Date.now() - mrrCache.fetchedAt < MRR_CACHE_TTL_MS &&
-		mrrCache.result.available
-	) {
-		return mrrCache.result;
+	// Without the shared cache there is nowhere to keep the pending run, so
+	// every poll would start another Sigma query and none would ever be
+	// collected. Say so rather than burning runs.
+	if (!isMetricCacheAvailable()) {
+		return { available: false, reason: "metric cache not configured" };
 	}
 
-	if (mrrPendingRunId) {
-		const finished = await collectMrrRun(mrrPendingRunId);
+	if (!ignoreCache) {
+		const cached = await readMetricCache<MrrResult>(MRR_CACHE_KEY);
+		if (cached?.available) return cached;
+	}
+
+	const pending = await readMetricCache<string>(MRR_PENDING_KEY);
+	if (pending && pending !== MRR_CLAIMING) {
+		const finished = await collectMrrRun(pending);
 		if (!finished) {
 			return { available: false, reason: MRR_COMPUTING_REASON };
 		}
-		mrrPendingRunId = null;
-		mrrCache = { fetchedAt: Date.now(), result: finished };
+		await writeMetricCache(MRR_CACHE_KEY, finished, MRR_CACHE_TTL_SECONDS);
+		await clearMetricCache(MRR_PENDING_KEY);
 		return finished;
+	}
+	if (pending === MRR_CLAIMING) {
+		return { available: false, reason: MRR_COMPUTING_REASON };
+	}
+
+	// Whoever claims the key owns starting the run; everyone else waits for it
+	// rather than paying Stripe for a duplicate.
+	const claimed = await claimMetricCache(
+		MRR_PENDING_KEY,
+		MRR_CLAIMING,
+		MRR_PENDING_TTL_SECONDS,
+	);
+	if (!claimed) {
+		return { available: false, reason: MRR_COMPUTING_REASON };
 	}
 
 	const kicked = await createMrrRun();
-	if (!("runId" in kicked)) return kicked;
-	mrrPendingRunId = kicked.runId;
+	if (!("runId" in kicked)) {
+		await clearMetricCache(MRR_PENDING_KEY);
+		return kicked;
+	}
+	await writeMetricCache(
+		MRR_PENDING_KEY,
+		kicked.runId,
+		MRR_PENDING_TTL_SECONDS,
+	);
 	return { available: false, reason: MRR_COMPUTING_REASON };
+}
+
+/**
+ * Drive the query to completion. Used by the refresh job, which has the time
+ * budget to wait and exists so the tile only ever reads a landed result.
+ */
+export async function refreshSigmaMrr({
+	timeBudgetMs = 120_000,
+	pollIntervalMs = 5_000,
+}: {
+	timeBudgetMs?: number;
+	pollIntervalMs?: number;
+} = {}): Promise<MrrResult> {
+	const startedAt = Date.now();
+	// Ignore the cache on the first step only. Otherwise a scheduled refresh
+	// that runs more often than the entry expires would read its own previous
+	// result and never actually refresh. Subsequent steps must consult the
+	// cache, since that is where the finished run lands.
+	let last = await advanceSigmaMrr({ ignoreCache: true });
+	while (
+		!last.available &&
+		last.reason === MRR_COMPUTING_REASON &&
+		Date.now() - startedAt < timeBudgetMs
+	) {
+		await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+		last = await advanceSigmaMrr();
+	}
+	return last;
+}
+
+async function fetchLatestSigmaMrr(): Promise<MrrResult> {
+	return advanceSigmaMrr();
 }
 
 interface MercuryAccount {
@@ -256,9 +339,11 @@ type CashFlowResult =
 	  }
 	| { available: false; reason: string };
 
-const CASH_FLOW_CACHE_TTL_MS = 60 * 60 * 1000;
+// Same reasoning as the MRR cache above: shared in Redis so one instance's
+// Mercury round trip serves every other instance's dashboard load.
+const CASH_FLOW_CACHE_KEY = "cash-flow";
+const CASH_FLOW_CACHE_TTL_SECONDS = 60 * 60;
 const TOP_VENDOR_COUNT = 8;
-let cashFlowCache: { fetchedAt: number; result: CashFlowResult } | null = null;
 
 // Cash includes the Treasury balance (where the raise is parked). Treasury
 // sweeps are internal and excluded everywhere; treasury dividends are not in
@@ -268,13 +353,8 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 	if (!env.MERCURY_API_TOKEN) {
 		return { available: false, reason: "MERCURY_API_TOKEN not configured" };
 	}
-	if (
-		cashFlowCache &&
-		Date.now() - cashFlowCache.fetchedAt < CASH_FLOW_CACHE_TTL_MS &&
-		cashFlowCache.result.available
-	) {
-		return cashFlowCache.result;
-	}
+	const cached = await readMetricCache<CashFlowResult>(CASH_FLOW_CACHE_KEY);
+	if (cached?.available) return cached;
 
 	const mercuryHeaders = {
 		Authorization: `Bearer ${env.MERCURY_API_TOKEN}`,
@@ -463,7 +543,11 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 				? Math.round((totalCashUsd / avgMonthlyNetBurnUsd) * 10) / 10
 				: null,
 	};
-	cashFlowCache = { fetchedAt: Date.now(), result };
+	await writeMetricCache(
+		CASH_FLOW_CACHE_KEY,
+		result,
+		CASH_FLOW_CACHE_TTL_SECONDS,
+	);
 	return result;
 }
 

@@ -1,3 +1,4 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -8,10 +9,19 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useRef } from "react";
 import { GoGitPullRequest } from "react-icons/go";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
-import { LuClock, LuGauge, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
+import {
+	LuClock,
+	LuFileText,
+	LuGauge,
+	LuLayers,
+	LuPlus,
+	LuPuzzle,
+	LuSearch,
+} from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -22,6 +32,7 @@ import { useFrameStackStore } from "renderer/commandPalette";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { SidebarKbdHint } from "renderer/components/SidebarKbdHint";
 import { ZoomStable } from "renderer/components/ZoomStable";
+import { env } from "renderer/env.renderer";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -126,6 +137,14 @@ export function DashboardSidebarHeader({
 	});
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
 	const isUsageOpen = !!matchRoute({ to: "/usage", fuzzy: true });
+	const isPluginsOpen = !!matchRoute({ to: "/plugins", fuzzy: true });
+	const isPagesOpen = !!matchRoute({ to: "/pages", fuzzy: true });
+	// `?? false`: the hook returns undefined until PostHog flags resolve.
+	// Dev builds bypass the flag — the local dev account isn't in the
+	// @superset.sh release condition.
+	const isPluginsEnabled =
+		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
+		env.NODE_ENV === "development";
 	const { myFailedCount } = useFailedAutomations();
 
 	const {
@@ -143,6 +162,7 @@ export function DashboardSidebarHeader({
 		authorFilter: lastPullRequestsAuthorFilter,
 		reviewFilter: lastPullRequestsReviewFilter,
 		includeClosed: lastPullRequestsIncludeClosed,
+		mergedOnly: lastPullRequestsMergedOnly,
 	} = usePullRequestsFilterStore();
 
 	const handleWorkspacesClick = () => {
@@ -176,18 +196,27 @@ export function DashboardSidebarHeader({
 		navigate({ to: usageSectionPath(getUsageLastSection()) });
 	};
 
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
+
+	const handlePagesClick = () => {
+		navigate({ to: "/pages" });
+	};
+
+	const handlePluginsClick = () => {
+		navigate({ to: "/plugins" });
+	};
+
 	const handlePullRequestsClick = () => {
-		gateFeature(GATED_FEATURES.TASKS, () => {
-			navigate({
-				to: "/pull-requests",
-				search: pullRequestsSearchFromFilters({
-					search: lastPullRequestsSearch,
-					projectFilters: lastPullRequestsProjectFilters,
-					authorFilter: lastPullRequestsAuthorFilter,
-					reviewFilter: lastPullRequestsReviewFilter,
-					includeClosed: lastPullRequestsIncludeClosed,
-				}),
-			});
+		navigate({
+			to: "/pull-requests",
+			search: pullRequestsSearchFromFilters({
+				search: lastPullRequestsSearch,
+				projectFilters: lastPullRequestsProjectFilters,
+				authorFilter: lastPullRequestsAuthorFilter,
+				reviewFilter: lastPullRequestsReviewFilter,
+				includeClosed: lastPullRequestsIncludeClosed,
+				mergedOnly: lastPullRequestsMergedOnly,
+			}),
 		});
 	};
 
@@ -356,6 +385,50 @@ export function DashboardSidebarHeader({
 						<TooltipContent side="right">Usage</TooltipContent>
 					</Tooltip>
 
+					{isPagesEnabled && (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handlePagesClick}
+									aria-label="Pages"
+									aria-current={isPagesOpen ? "page" : undefined}
+									className={cn(
+										"flex size-7 items-center justify-center rounded-md transition-colors",
+										isPagesOpen
+											? "bg-fill-selected text-muted-foreground"
+											: "text-muted-foreground hover:bg-fill-hover",
+									)}
+								>
+									<LuFileText className="size-3.5" strokeWidth={1.5} />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Pages</TooltipContent>
+						</Tooltip>
+					)}
+
+					{isPluginsEnabled && (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handlePluginsClick}
+									aria-label="Plugins"
+									aria-current={isPluginsOpen ? "page" : undefined}
+									className={cn(
+										"flex size-7 items-center justify-center rounded-md transition-colors",
+										isPluginsOpen
+											? "bg-fill-selected text-muted-foreground"
+											: "text-muted-foreground hover:bg-fill-hover",
+									)}
+								>
+									<LuPuzzle className="size-3.5" strokeWidth={1.5} />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Plugins</TooltipContent>
+						</Tooltip>
+					)}
+
 					<DropdownMenu>
 						<Tooltip delayDuration={700}>
 							<TooltipTrigger asChild>
@@ -438,7 +511,7 @@ export function DashboardSidebarHeader({
 			<button
 				type="button"
 				onClick={() => openModal(activeProjectId)}
-				className="group flex w-full items-center gap-2 rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover px-1 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
+				className="group flex h-7 w-full items-center gap-2 rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover px-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
 			>
 				<div className="flex size-5 shrink-0 items-center justify-center rounded bg-fill-selected">
 					<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
@@ -453,10 +526,10 @@ export function DashboardSidebarHeader({
 				type="button"
 				onPointerDown={handleSearchPointerDown}
 				onClick={handleSearchClick}
-				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+				className="group flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 			>
 				<LuSearch
-					className="size-3.5 shrink-0 text-muted-foreground"
+					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
 				<span className="flex-1 text-left">Search</span>
@@ -469,14 +542,14 @@ export function DashboardSidebarHeader({
 				type="button"
 				onClick={handleWorkspacesClick}
 				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
 					isWorkspacesListOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 				)}
 			>
 				<LuLayers
-					className="size-3.5 shrink-0 text-muted-foreground"
+					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
 				<span className="flex-1 text-left">Workspaces</span>
@@ -486,14 +559,14 @@ export function DashboardSidebarHeader({
 				type="button"
 				onClick={handleAutomationsClick}
 				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
 					isAutomationsOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 				)}
 			>
 				<LuClock
-					className="size-3.5 shrink-0 text-muted-foreground"
+					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
 				<span className="flex-1 text-left">Automations</span>
@@ -513,13 +586,13 @@ export function DashboardSidebarHeader({
 				aria-label="Tasks"
 				aria-current={isTasksOpen ? "page" : undefined}
 				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
 					isTasksOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 				)}
 			>
-				<HiOutlineClipboardDocumentList className="size-3.5 shrink-0 text-muted-foreground" />
+				<HiOutlineClipboardDocumentList className="size-4 shrink-0 text-muted-foreground" />
 				<span className="flex-1 text-left">Tasks</span>
 			</button>
 
@@ -529,13 +602,13 @@ export function DashboardSidebarHeader({
 				aria-label="Pull requests"
 				aria-current={isPullRequestsOpen ? "page" : undefined}
 				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
 					isPullRequestsOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 				)}
 			>
-				<GoGitPullRequest className="size-3.5 shrink-0 text-muted-foreground" />
+				<GoGitPullRequest className="size-4 shrink-0 text-muted-foreground" />
 				<span className="flex-1 text-left">Pull requests</span>
 			</button>
 
@@ -545,18 +618,60 @@ export function DashboardSidebarHeader({
 				aria-label="Usage"
 				aria-current={isUsageOpen ? "page" : undefined}
 				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
 					isUsageOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 				)}
 			>
 				<LuGauge
-					className="size-3.5 shrink-0 text-muted-foreground"
+					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
 				<span className="flex-1 text-left">Usage</span>
 			</button>
+
+			{isPagesEnabled && (
+				<button
+					type="button"
+					onClick={handlePagesClick}
+					aria-label="Pages"
+					aria-current={isPagesOpen ? "page" : undefined}
+					className={cn(
+						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						isPagesOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<LuFileText
+						className="size-4 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">Pages</span>
+				</button>
+			)}
+
+			{isPluginsEnabled && (
+				<button
+					type="button"
+					onClick={handlePluginsClick}
+					aria-label="Plugins"
+					aria-current={isPluginsOpen ? "page" : undefined}
+					className={cn(
+						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						isPluginsOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<LuPuzzle
+						className="size-4 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">Plugins</span>
+				</button>
+			)}
 		</div>
 	);
 }

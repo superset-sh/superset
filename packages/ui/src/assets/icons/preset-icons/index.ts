@@ -1,4 +1,5 @@
 import ampIcon from "./amp.svg";
+import antigravityIcon from "./antigravity.svg";
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
@@ -7,11 +8,16 @@ import copilotWhiteIcon from "./copilot-white.svg";
 import cursorAgentIcon from "./cursor.svg";
 import droidIcon from "./droid.svg";
 import droidWhiteIcon from "./droid-white.svg";
+import fxIcon from "./fx.svg";
+import fxWhiteIcon from "./fx-white.svg";
 import geminiIcon from "./gemini.svg";
 import grokIcon from "./grok.svg";
 import grokWhiteIcon from "./grok-white.svg";
+import hermesIcon from "./hermes.svg";
+import hermesWhiteIcon from "./hermes-white.svg";
 import kimiIcon from "./kimi.svg";
 import kimiWhiteIcon from "./kimi-white.svg";
+import kiroIcon from "./kiro.svg";
 import mastracodeIcon from "./mastracode.svg";
 import mastracodeWhiteIcon from "./mastracode-white.svg";
 import opencodeIcon from "./opencode.svg";
@@ -30,12 +36,18 @@ export interface PresetIconSet {
 
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	amp: { light: ampIcon, dark: ampIcon },
+	// Keyed by agent id: the Antigravity CLI binary is `agy`.
+	agy: { light: antigravityIcon, dark: antigravityIcon },
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
+	fx: { light: fxIcon, dark: fxWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	grok: { light: grokIcon, dark: grokWhiteIcon },
+	hermes: { light: hermesIcon, dark: hermesWhiteIcon },
 	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
+	kiro: { light: kiroIcon, dark: kiroIcon },
+	omp: { light: piIcon, dark: piWhiteIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
@@ -68,6 +80,7 @@ export function getPresetIcon(
 
 export {
 	ampIcon,
+	antigravityIcon,
 	claudeIcon,
 	codexIcon,
 	codexWhiteIcon,
@@ -76,11 +89,16 @@ export {
 	cursorAgentIcon,
 	droidIcon,
 	droidWhiteIcon,
+	fxIcon,
+	fxWhiteIcon,
 	geminiIcon,
 	grokIcon,
 	grokWhiteIcon,
+	hermesIcon,
+	hermesWhiteIcon,
 	kimiIcon,
 	kimiWhiteIcon,
+	kiroIcon,
 	mastracodeIcon,
 	mastracodeWhiteIcon,
 	opencodeIcon,

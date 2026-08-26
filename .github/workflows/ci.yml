@@ -35,6 +35,8 @@ jobs:
   vale:
     name: Vale prose lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -45,9 +47,14 @@ jobs:
           echo "db947f89f2292e6a0381a61de155f6a5f5cb4cb460ca178ea412ef605559cefd  /tmp/vale.tar.gz" | sha256sum -c -
           sudo tar -xzf /tmp/vale.tar.gz -C /usr/local/bin vale
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
       - name: Lint marketing content
         working-directory: apps/marketing
-        run: vale --config=vale.ini content
+        run: bun run lint:prose
 
   version-sync:
     name: Version Sync

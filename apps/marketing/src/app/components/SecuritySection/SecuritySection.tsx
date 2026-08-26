@@ -27,9 +27,9 @@ const SECURITY_FEATURES: {
 	},
 	{
 		icon: <HiOutlineSignal className="w-5 h-5 text-foreground/70" />,
-		title: "Local Control",
+		title: "Your Agents, Your Accounts",
 		description:
-			"Superset runs on your machine and lets you choose which agents and external services to connect.",
+			"Use your existing agent subscriptions and API keys. Superset never proxies model calls or locks your workflow to one provider.",
 	},
 ];
 

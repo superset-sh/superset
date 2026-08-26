@@ -1,0 +1,110 @@
+import { PageCommentsView } from "@superset/ui/page-comments";
+import { TRPCClientError } from "@trpc/client";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { cache } from "react";
+import { api } from "../../../trpc/server";
+import { PageCommentsShell } from "./components/PageCommentsShell";
+import { PageHeaderBar } from "./components/PageHeaderBar";
+import { WrongOrganization } from "./components/WrongOrganization";
+import { getPageContent } from "./utils/getPageContent";
+import { getPagesAccess } from "./utils/getPagesAccess";
+import { isForbidden, isNotFound } from "./utils/trpcErrors";
+
+interface PageProps {
+	params: Promise<{ slug: string }>;
+}
+
+// `api()` caches the client, not the result — this cache is what keeps
+// generateMetadata and the component to a single pull.
+const pullPage = cache(async (slug: string) => {
+	const trpc = await api();
+	return trpc.page.pull.query({ slug });
+});
+
+const pullVersions = cache(async (slug: string) => {
+	const trpc = await api();
+	return trpc.page.versions.query({ slug });
+});
+
+const pullAccess = cache(async (slug: string) => {
+	const trpc = await api();
+	return trpc.page.access.query({ slug });
+});
+
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
+	const { slug } = await params;
+	const { hasPagesAccess } = await getPagesAccess();
+	if (!hasPagesAccess) return { title: "Page" };
+	try {
+		const page = await pullPage(slug);
+		return { title: page.title, description: page.description ?? undefined };
+	} catch {
+		return { title: "Page" };
+	}
+}
+
+export default async function PublishedPage({ params }: PageProps) {
+	const { slug } = await params;
+
+	const { hasPagesAccess, session } = await getPagesAccess();
+	if (!hasPagesAccess) notFound();
+
+	let page: Awaited<ReturnType<typeof pullPage>>;
+	try {
+		page = await pullPage(slug);
+	} catch (error) {
+		if (isNotFound(error)) notFound();
+		if (isForbidden(error) && error instanceof TRPCClientError) {
+			return <WrongOrganization message={error.message} />;
+		}
+		throw error;
+	}
+
+	const [html, versions, access] = await Promise.all([
+		getPageContent({
+			downloadUrl: page.downloadUrl,
+			slug,
+			version: page.version,
+		}),
+		pullVersions(slug),
+		pullAccess(slug),
+	]);
+
+	return (
+		<PageCommentsShell
+			pageId={page.id}
+			version={page.version}
+			user={{
+				id: session?.user.id ?? "",
+				name: session?.user.name ?? "You",
+				image: session?.user.image ?? null,
+			}}
+		>
+			<div className="flex h-dvh flex-col bg-background">
+				<PageHeaderBar
+					page={{
+						id: page.id,
+						title: page.title,
+						url: page.url,
+						visibility: page.visibility === "just_me" ? "just_me" : "org",
+						createdByUserId: page.createdByUserId,
+						owner: access.owner,
+						updatedAt: page.updatedAt,
+						sharedVersion: page.sharedVersion,
+						latestVersion: page.latestVersion,
+						servedVersion: page.servedVersion,
+					}}
+					versions={versions}
+					currentUserId={session?.user.id}
+				/>
+
+				<main className="min-h-0 flex-1">
+					<PageCommentsView html={html} title={page.title} />
+				</main>
+			</div>
+		</PageCommentsShell>
+	);
+}

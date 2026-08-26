@@ -7,6 +7,7 @@ import { sql } from "drizzle-orm";
 import {
 	index,
 	integer,
+	primaryKey,
 	sqliteTable,
 	text,
 	uniqueIndex,
@@ -263,5 +264,30 @@ export const workspaces = sqliteTable(
 		uniqueIndex("workspaces_one_main_per_project")
 			.on(table.projectId)
 			.where(sql`type = 'main'`),
+	],
+);
+
+/**
+ * Every pull request a workspace has ever been linked to, append-only.
+ * `workspaces.pullRequestId` stays the single "currently linked" pointer the
+ * sidebar shows (and Remove PR Link clears); this table is the memory that
+ * survives the pointer moving on — a workspace that opens a PR per branch
+ * accumulates one row each. Unlinking hides a PR from the sidebar, never
+ * from here.
+ */
+export const workspacePullRequests = sqliteTable(
+	"workspace_pull_requests",
+	{
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		pullRequestId: text("pull_request_id")
+			.notNull()
+			.references(() => pullRequests.id, { onDelete: "cascade" }),
+		linkedAt: integer("linked_at").notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.workspaceId, table.pullRequestId] }),
+		index("workspace_pull_requests_workspace_idx").on(table.workspaceId),
 	],
 );

@@ -14,7 +14,7 @@ interface Step {
 // Mirrors the v1 init step order in shared/types/workspace-init.ts so the
 // labels feel real — v2 workspaces.create runs the same git work server-side
 // without streaming progress events, so timings here are estimates.
-const STEPS: readonly Step[] = [
+const WORKTREE_STEPS: readonly Step[] = [
 	{ id: "preparing", label: "Preparing", doneAt: 1 },
 	{ id: "syncing", label: "Syncing with remote", doneAt: 4 },
 	{ id: "verifying", label: "Verifying base branch", doneAt: 5 },
@@ -24,9 +24,17 @@ const STEPS: readonly Step[] = [
 	{ id: "finalizing", label: "Finalizing setup", doneAt: 23 },
 ] as const;
 
-const TOTAL_SECONDS = STEPS[STEPS.length - 1].doneAt;
+// A session has no worktree work — just a folder + git init — so it skips
+// the remote-sync/worktree steps entirely rather than showing steps that
+// never happen.
+const SESSION_STEPS: readonly Step[] = [
+	{ id: "preparing", label: "Preparing", doneAt: 1 },
+	{ id: "initializing", label: "Initializing session", doneAt: 3 },
+	{ id: "finalizing", label: "Finalizing setup", doneAt: 5 },
+] as const;
+
 // Cap synthetic progress so the bar never claims completion before the real
-// workspaces.create mutation resolves.
+// mutation resolves.
 const PROGRESS_CAP = 0.94;
 // Past the typical budget — offer a window reload as an escape hatch in
 // case the renderer state has drifted from the real workspace row.
@@ -36,16 +44,20 @@ interface WorkspaceCreatingStateProps {
 	name?: string;
 	branch?: string;
 	startedAt?: number;
+	isSession?: boolean;
 }
 
 export function WorkspaceCreatingState({
 	name,
 	branch,
 	startedAt,
+	isSession = false,
 }: WorkspaceCreatingStateProps) {
+	const steps = isSession ? SESSION_STEPS : WORKTREE_STEPS;
+	const totalSeconds = steps[steps.length - 1].doneAt;
 	const elapsed = useElapsedSeconds(startedAt);
-	const activeIndex = getActiveIndex(elapsed);
-	const progress = Math.min(elapsed / TOTAL_SECONDS, PROGRESS_CAP);
+	const activeIndex = getActiveIndex(elapsed, steps);
+	const progress = Math.min(elapsed / totalSeconds, PROGRESS_CAP);
 	const stuck = elapsed >= STUCK_AFTER_SECONDS;
 
 	return (
@@ -59,7 +71,7 @@ export function WorkspaceCreatingState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						Creating workspace
+						{isSession ? "Creating session" : "Creating workspace"}
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name || "Untitled workspace"}
@@ -80,7 +92,7 @@ export function WorkspaceCreatingState({
 				)}
 
 				<ul className="flex w-full flex-col gap-2">
-					{STEPS.map((step, i) => {
+					{steps.map((step, i) => {
 						const state: StepState =
 							i < activeIndex
 								? "done"
@@ -103,15 +115,16 @@ export function WorkspaceCreatingState({
 						<span className="font-mono tabular-nums">
 							{formatElapsed(elapsed)}
 						</span>
-						<span>~{TOTAL_SECONDS}s typical</span>
+						<span>~{totalSeconds}s typical</span>
 					</div>
 				</div>
 
 				{stuck && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
-							This is taking longer than usual. The workspace may already be
-							ready — reloading can pick it up.
+							This is taking longer than usual. The{" "}
+							{isSession ? "session" : "workspace"} may already be ready —
+							reloading can pick it up.
 						</p>
 						<Button
 							size="sm"
@@ -174,12 +187,12 @@ function StepIcon({ state }: { state: StepState }) {
 	);
 }
 
-function getActiveIndex(elapsed: number): number {
-	for (let i = 0; i < STEPS.length; i++) {
-		if (elapsed < STEPS[i].doneAt) return i;
+function getActiveIndex(elapsed: number, steps: readonly Step[]): number {
+	for (let i = 0; i < steps.length; i++) {
+		if (elapsed < steps[i].doneAt) return i;
 	}
 	// Past the synthetic budget — keep the last step active until real completion.
-	return STEPS.length - 1;
+	return steps.length - 1;
 }
 
 function formatElapsed(seconds: number): string {

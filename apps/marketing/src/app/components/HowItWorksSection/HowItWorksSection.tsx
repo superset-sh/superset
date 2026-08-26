@@ -18,9 +18,9 @@ export function HowItWorksSection() {
 						How it works
 					</span>
 					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
-						Ship your whole backlog,
+						The best agent will change.
 						<br />
-						not one prompt at a time.
+						Your workflow shouldn&apos;t.
 					</h2>
 				</m.div>
 

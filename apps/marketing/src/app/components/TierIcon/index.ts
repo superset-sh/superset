@@ -1,0 +1,1 @@
+export { TierIcon } from "./TierIcon";

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Setup"
+  short_description: "Make a repo Superset-ready with .superset/config.json lifecycle scripts"
+  default_prompt: "Use $superset-setup to make this repository Superset-ready and verify a workspace boots clean."

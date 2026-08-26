@@ -23,6 +23,8 @@ const uiColorsSchema = z
 		tertiaryActive: z.string().optional(),
 		destructive: z.string().optional(),
 		destructiveForeground: z.string().optional(),
+		warning: z.string().optional(),
+		warningForeground: z.string().optional(),
 		border: z.string().optional(),
 		input: z.string().optional(),
 		ring: z.string().optional(),

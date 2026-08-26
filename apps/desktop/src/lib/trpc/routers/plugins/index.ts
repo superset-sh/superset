@@ -1,0 +1,112 @@
+import { readExternallyConfiguredMcpServers } from "@superset/agent-setup";
+import { TRPCError } from "@trpc/server";
+import {
+	getBundledSkillContent,
+	getBundledSkillIcons,
+	getBundledSkillPath,
+	getDisabledSkills,
+	getInstalledPlugins,
+	installPlugin,
+	setPluginEnabled,
+	setSkillEnabled,
+	uninstallPlugin,
+	writeBundledSkillContent,
+} from "main/lib/plugin-installs";
+import { z } from "zod";
+import { publicProcedure, router } from "../..";
+
+/**
+ * Install state for the Plugins page. The catalog itself is static data the
+ * renderer imports from @superset/shared/plugins; this router only owns the
+ * installed set and the materialization side effects (main/lib/plugin-installs).
+ */
+export const createPluginsRouter = () => {
+	return router({
+		listInstalled: publicProcedure.query(() => {
+			return getInstalledPlugins();
+		}),
+
+		/**
+		 * MCP server names the user configured directly in their agent configs
+		 * (outside Superset). The catalog marks matching plugins "already set
+		 * up" instead of offering Install — we never manage those entries.
+		 */
+		listExternalServers: publicProcedure.query(() => {
+			return readExternallyConfiguredMcpServers();
+		}),
+
+		/** Per-skill icon data URIs shipped inside skill folders (icon.svg|png). */
+		listSkillIcons: publicProcedure.query(() => {
+			return getBundledSkillIcons();
+		}),
+
+		/** SKILL.md body and absolute path of a bundled managed skill, for the preview modal. */
+		getSkillContent: publicProcedure
+			.input(z.object({ name: z.string().min(1) }))
+			.query(({ input }) => {
+				return {
+					content: getBundledSkillContent(input.name),
+					path: getBundledSkillPath(input.name),
+				};
+			}),
+
+		/** Names of bundled managed skills the user disabled. */
+		getDisabledSkills: publicProcedure.query(() => {
+			return getDisabledSkills();
+		}),
+
+		setSkillEnabled: publicProcedure
+			.input(z.object({ name: z.string().min(1), enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				const disabled = setSkillEnabled(input.name, input.enabled);
+				if (disabled === null) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Unknown skill: ${input.name}`,
+					});
+				}
+				return { disabled };
+			}),
+
+		/** Overwrites a bundled skill's SKILL.md, from the in-app editor. */
+		writeSkillContent: publicProcedure
+			.input(z.object({ name: z.string().min(1), content: z.string() }))
+			.mutation(({ input }) => {
+				try {
+					writeBundledSkillContent(input.name, input.content);
+				} catch (error) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message:
+							error instanceof Error ? error.message : "Failed to save skill",
+					});
+				}
+				return { ok: true };
+			}),
+
+		install: publicProcedure
+			.input(z.object({ name: z.string().min(1) }))
+			.mutation(({ input }) => {
+				const installed = installPlugin(input.name);
+				if (installed === null) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Unknown plugin: ${input.name}`,
+					});
+				}
+				return { installed };
+			}),
+
+		uninstall: publicProcedure
+			.input(z.object({ name: z.string().min(1) }))
+			.mutation(({ input }) => {
+				return { installed: uninstallPlugin(input.name) };
+			}),
+
+		setEnabled: publicProcedure
+			.input(z.object({ name: z.string().min(1), enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				return { installed: setPluginEnabled(input.name, input.enabled) };
+			}),
+	});
+};

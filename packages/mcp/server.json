@@ -1,0 +1,19 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+	"name": "io.github.superset-sh/superset",
+	"title": "Superset",
+	"description": "Run parallel coding agents: Git-worktree workspaces, agent sessions, automations, tasks.",
+	"repository": {
+		"url": "https://github.com/superset-sh/superset",
+		"source": "github",
+		"subfolder": "packages/mcp"
+	},
+	"version": "0.1.0",
+	"websiteUrl": "https://superset.sh/mcp-install",
+	"remotes": [
+		{
+			"type": "streamable-http",
+			"url": "https://api.superset.sh/mcp"
+		}
+	]
+}

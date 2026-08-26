@@ -29,6 +29,7 @@ interface PaneComponentProps<TData> {
 	pane: PaneType<TData>;
 	isActive: boolean;
 	registry: PaneRegistry<TData>;
+	// null only for a solo pane (the layout root)
 	parentDirection?: "horizontal" | "vertical" | null;
 	paneActions?:
 		| PaneActionConfig<TData>[]
@@ -245,8 +246,6 @@ export function Pane<TData>({
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior) */}
 			<div
 				ref={setRefs}
-				// parentDirection is null only for a solo pane (layout root), which
-				// needs no focus outline.
 				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden border-2 transition-colors duration-150 ${
 					isActive && parentDirection !== null
 						? "border-primary/15"

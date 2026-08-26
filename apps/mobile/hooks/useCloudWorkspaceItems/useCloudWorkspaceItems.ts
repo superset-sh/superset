@@ -149,22 +149,9 @@ export function useCloudWorkspaceItems(): CloudWorkspaceItemsValue {
 					},
 				);
 			},
-			removeWorkspace: (hostId, workspaceId) => {
-				const key = keyFor(hostId);
-				if (!key) return;
-				queryClient.setQueryData<HostWorkspaceRow[] | undefined>(key, (rows) =>
-					rows?.filter((row) => row.id !== workspaceId),
-				);
-			},
 			invalidateHost: (hostId) => {
 				const key = keyFor(hostId);
 				if (key) void queryClient.invalidateQueries({ queryKey: key });
-			},
-			refetchHost: async (hostId) => {
-				const key = keyFor(hostId);
-				if (!key) return undefined;
-				await queryClient.refetchQueries({ queryKey: key });
-				return queryClient.getQueryData<HostWorkspaceRow[]>(key);
 			},
 		};
 	}, [queryClient]);

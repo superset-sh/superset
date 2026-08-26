@@ -6,6 +6,16 @@ import {
 	summarizePullRequestChecks,
 } from "../pull-request-checks";
 
+// Capy's checks list states each row's outcome as a word next to the
+// external-link icon, not just an icon color — matches that.
+const CHECK_STATUS_LABELS: Record<PullRequestCheck["status"], string> = {
+	success: "Passed",
+	failure: "Failed",
+	pending: "Running",
+	skipped: "Skipped",
+	cancelled: "Cancelled",
+};
+
 interface PullRequestChecksSectionProps {
 	checks: PullRequestCheck[];
 }
@@ -33,9 +43,9 @@ export function PullRequestChecksSection({
 				</h2>
 				<span className="text-xs text-muted-foreground">{summaryLabel}</span>
 			</div>
-			<div className="overflow-hidden rounded-lg border border-border/70 bg-muted/15">
+			<div>
 				{checks.length === 0 ? (
-					<div className="flex items-center gap-2 px-3 py-3 text-xs text-muted-foreground">
+					<div className="flex items-center gap-2 py-3 text-xs text-muted-foreground">
 						<LuCircleMinus className="size-3.5" />
 						No checks reported for the latest commit.
 					</div>
@@ -55,13 +65,16 @@ export function PullRequestChecksSection({
 								<span className="min-w-0 flex-1 truncate text-xs">
 									{check.name}
 								</span>
+								<span className="shrink-0 text-xs text-muted-foreground">
+									{CHECK_STATUS_LABELS[check.status]}
+								</span>
 								{check.url && (
 									<LuArrowUpRight className="size-3.5 shrink-0 text-muted-foreground" />
 								)}
 							</>
 						);
 						const rowClassName =
-							"flex min-w-0 items-center gap-2 border-b border-border/50 px-3 py-2.5 last:border-b-0 hover:bg-accent/40";
+							"flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 -mx-2 hover:bg-fill-hover";
 						return check.url ? (
 							<a
 								key={`${check.name}-${index}`}

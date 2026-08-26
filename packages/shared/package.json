@@ -16,6 +16,14 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./format-scaled": {
+			"types": "./src/format-scaled.ts",
+			"default": "./src/format-scaled.ts"
+		},
+		"./format-tokens": {
+			"types": "./src/format-tokens.ts",
+			"default": "./src/format-tokens.ts"
+		},
 		"./git-hook-tolerance": {
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
@@ -24,9 +32,17 @@
 			"types": "./src/integrations.ts",
 			"default": "./src/integrations.ts"
 		},
+		"./plugins": {
+			"types": "./src/plugins/index.ts",
+			"default": "./src/plugins/index.ts"
+		},
 		"./sentry": {
 			"types": "./src/sentry.ts",
 			"default": "./src/sentry.ts"
+		},
+		"./slash-commands": {
+			"types": "./src/slash-commands.ts",
+			"default": "./src/slash-commands.ts"
 		},
 		"./terminal-wheel-handler": {
 			"types": "./src/terminal-wheel-handler/index.ts",
@@ -143,6 +159,14 @@
 		"./agent-permissions-migration": {
 			"types": "./src/agent-permissions-migration.ts",
 			"default": "./src/agent-permissions-migration.ts"
+		},
+		"./page-content-types": {
+			"types": "./src/page-content-types.ts",
+			"default": "./src/page-content-types.ts"
+		},
+		"./page-slug": {
+			"types": "./src/page-slug.ts",
+			"default": "./src/page-slug.ts"
 		},
 		"./task-slug": {
 			"types": "./src/task-slug.ts",

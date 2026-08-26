@@ -5,7 +5,12 @@
 // welcome cards use), rounded corners, shadow, optional feature highlight.
 // Fully local: no network, no upload (safe for shots with internal data).
 //
-// Usage:  bun beautify-screenshot.ts <in.png> <out.png> [tilt|flat] [x,y,w,h] [flags]
+// Usage:  bun beautify-screenshot.ts <in.png> <out.png> [card|flat|tilt] [x,y,w,h] [flags]
+//   card               the changelog default (Linear-style): flat product card
+//                      with a hairline border on a near-black backdrop, no
+//                      dither, no perspective. Pair with --bleed for heroes.
+//   flat / tilt        the older dithered-backdrop looks; tilt is retired for
+//                      heroes (Kiet, 2026-08-23: no slanted heroes).
 //   x,y,w,h            optional crop rectangle in source pixels — zoom into the
 //                      feature instead of framing the whole window.
 //
@@ -27,6 +32,9 @@
 //                      the frame — points the reader at the feature.
 //   --hl-dim <n>       how much to dim outside the highlight, 0-1 (default
 //                      0.42; use ~0.2 when the dimmed area must stay readable)
+//   --bleed            (card only) anchor the card near the top and let it run
+//                      off the bottom edge under a fade, the way Linear frames
+//                      a tall surface; the crop should be taller than 16:10
 //
 // Needs:  Google Chrome (or set CHROME=/path/to/chrome). Compress the output
 //         afterwards, e.g. `pngquant --quality=58-84 out.png`.
@@ -45,10 +53,12 @@ for (let i = 0; i < args.length; i++) {
 		positional.push(a);
 	}
 }
-const [inPath, outPathArg, style = "tilt", cropArg] = positional;
+const [inPath, outPathArg, style = "card", cropArg] = positional;
+const isCard = style === "card";
+const bleed = isCard && flags.has("bleed");
 if (!inPath || !outPathArg) {
 	console.error(
-		"usage: bun beautify-screenshot.ts <in.png> <out.png> [tilt|flat] [x,y,w,h] [--bg preset] [--seed n] [--highlight x,y,w,h]",
+		"usage: bun beautify-screenshot.ts <in.png> <out.png> [card|flat|tilt] [x,y,w,h] [--bleed] [--bg preset] [--seed n] [--highlight x,y,w,h]",
 	);
 	process.exit(2);
 }
@@ -59,8 +69,8 @@ const CHROME =
 const SCALE = 2;
 // Bigger frame + tighter canvas = the UI reads larger, less dead background.
 const CANVAS_W = 1600;
-const CANVAS_H = style === "tilt" ? 1040 : 980;
-const FRAME_FRAC = style === "tilt" ? 0.86 : 0.92;
+const CANVAS_H = isCard ? 925 : style === "tilt" ? 1040 : 980;
+const FRAME_FRAC = isCard ? 0.84 : style === "tilt" ? 0.86 : 0.92;
 const tilt =
 	style === "tilt"
 		? "perspective(2600px) rotateY(-8deg) rotateX(3deg) rotateZ(-0.6deg)"
@@ -89,7 +99,7 @@ if (bgName === "random") {
 	const names = Object.keys(PRESETS);
 	bgName = names[Math.floor(rand() * names.length)];
 }
-const usePlain = bgName === "plain";
+const usePlain = bgName === "plain" || isCard;
 if (!usePlain && !PRESETS[bgName]) {
 	console.error(
 		`unknown --bg "${bgName}" — use ${Object.keys(PRESETS).join("|")}|plain|random`,
@@ -147,7 +157,9 @@ if (cropArg) {
 // crops float as a bordered card on the backdrop instead of overflowing the
 // canvas and getting cut off top/bottom.
 const frameW = Math.round(
-	Math.min(CANVAS_W * FRAME_FRAC, CANVAS_H * FRAME_FRAC * aspect),
+	bleed
+		? CANVAS_W * FRAME_FRAC
+		: Math.min(CANVAS_W * FRAME_FRAC, CANVAS_H * FRAME_FRAC * aspect),
 );
 
 // Optional highlight: accent ring + dim outside, in source-pixel coordinates.
@@ -246,6 +258,24 @@ const html = `<!doctype html><html><head><meta charset="utf8"><style>
                 0 80px 160px -40px rgba(0,0,0,.65),
                 0 0 0 1px rgba(255,255,255,.06) inset;
   }
+  /* card: Linear-style flat product card. Near-black stage with a faint top
+     glow, hairline border, quiet shadow. --bleed pins it high and fades the
+     bottom edge into the backdrop. */
+  body.card .stage { background:#0a0a0b; align-items:${bleed ? "flex-start" : "center"}; }
+  body.card .glow, body.card .tint, body.card .vignette, body.card #dither { display:none; }
+  body.card .sheen { position:absolute; inset:0; background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(255,255,255,.045), transparent 70%); }
+  body.card .frame {
+    margin-top:${bleed ? Math.round(CANVAS_H * 0.09) : 0}px;
+    border-radius:14px; background:#111113;
+    border:1px solid rgba(255,255,255,.09);
+    box-shadow: 0 1px 0 rgba(255,255,255,.04) inset,
+                0 24px 60px -24px rgba(0,0,0,.8),
+                0 0 0 1px rgba(0,0,0,.6);
+  }
+  body.card .fade { position:absolute; left:0; right:0; bottom:0; height:${Math.round(CANVAS_H * 0.32)}px;
+    display:${bleed ? "block" : "none"};
+    background:linear-gradient(to bottom, rgba(10,10,11,0), rgba(10,10,11,.92) 70%, #0a0a0b); }
   .frame img, .frame .shot { display:block; width:100%; height:auto; }
   /* highlight ring: dim everything outside via a huge spread shadow (clipped
      by the frame's overflow:hidden), accent ring + soft glow on the region */
@@ -256,14 +286,16 @@ const html = `<!doctype html><html><head><meta charset="utf8"><style>
                 0 0 22px 2px ${accent}66,
                 inset 0 0 14px ${accent}22;
   }
-</style></head><body>
+</style></head><body class="${isCard ? "card" : ""}">
   <div class="stage">
+    <div class="sheen"></div>
     <div id="dither"></div>
     <div class="tint"></div>
     <div class="vignette"></div>
     <div class="glow g1"></div><div class="glow g2"></div>
     <div class="glow g3"></div><div class="glow g4"></div>
     <div class="frame">${shot}${highlight}</div>
+    <div class="fade"></div>
   </div>
   ${shaderScript}
 </body></html>`;
@@ -305,5 +337,7 @@ if (proc.exitCode !== 0) {
 console.log(
 	"wrote",
 	outPath,
-	`(bg=${usePlain ? "plain" : bgName}, seed=${seed})`,
+	isCard
+		? `(card${bleed ? ", bleed" : ""})`
+		: `(bg=${usePlain ? "plain" : bgName}, seed=${seed})`,
 );

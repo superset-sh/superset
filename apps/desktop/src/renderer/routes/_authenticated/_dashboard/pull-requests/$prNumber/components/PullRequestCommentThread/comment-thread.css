@@ -1,0 +1,231 @@
+.pr-diff-comment {
+	display: block;
+	/* Full-bleed within the visible code column, flush with the diff pane's
+	 * edges. The bubble is slotted into a shrink-to-fit flex item
+	 * ([data-annotation-content]), so a plain 100% resolves against an
+	 * indefinite width and lets wide content overflow the pane — cqi queries
+	 * the [data-line-annotation] cell instead (made a container in
+	 * useDiffCodeViewTheme's unsafeCSS). */
+	width: 100%;
+	max-width: 100cqi;
+	min-width: 0;
+	box-sizing: border-box;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+	/* The renderer sets user-select: none on body — bubble text needs to
+	 * opt back in so reviewers can copy snippets out of the comment. */
+	user-select: text;
+	-webkit-user-select: text;
+	cursor: text;
+}
+
+.pr-diff-comment a,
+.pr-diff-comment button {
+	cursor: pointer;
+}
+
+.pr-diff-comment * {
+	min-width: 0;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.pr-diff-comment-body {
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--foreground);
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+/* Reset every descendant's margin so we control vertical rhythm
+   ourselves — fixes huge gaps between paragraphs/list items where
+   loose-list <li><p>…</p></li> kept default 1em browser margins. */
+.pr-diff-comment-body p,
+.pr-diff-comment-body ul,
+.pr-diff-comment-body ol,
+.pr-diff-comment-body pre,
+.pr-diff-comment-body blockquote,
+.pr-diff-comment-body h1,
+.pr-diff-comment-body h2,
+.pr-diff-comment-body h3,
+.pr-diff-comment-body h4,
+.pr-diff-comment-body h5,
+.pr-diff-comment-body h6,
+.pr-diff-comment-body details,
+.pr-diff-comment-body table,
+.pr-diff-comment-body hr {
+	margin: 0;
+}
+
+.pr-diff-comment-body > * + * {
+	margin-top: 0.15rem;
+}
+
+.pr-diff-comment-body li > p + p {
+	margin-top: 0.1rem;
+}
+
+.pr-diff-comment-body a {
+	color: var(--primary);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.pr-diff-comment-body a:hover {
+	text-decoration: none;
+}
+
+.pr-diff-comment-body strong {
+	font-weight: 600;
+}
+
+.pr-diff-comment-body em {
+	font-style: italic;
+}
+
+.pr-diff-comment-body code {
+	font-family:
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
+	font-size: 0.9em;
+	padding: 0.1em 0.35em;
+	border-radius: 4px;
+	background: var(--muted);
+	color: var(--foreground);
+}
+
+.pr-diff-comment-body pre {
+	font-family:
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
+	font-size: 12px;
+	padding: 0.5rem 0.6rem;
+	border-radius: 6px;
+	background: var(--muted);
+	color: var(--foreground);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: break-word;
+}
+
+.pr-diff-comment-body pre code {
+	padding: 0;
+	background: transparent;
+	font-size: inherit;
+}
+
+.pr-diff-comment-body ul,
+.pr-diff-comment-body ol {
+	padding-left: 1.25rem;
+}
+
+.pr-diff-comment-body ul {
+	list-style: disc;
+}
+
+.pr-diff-comment-body ol {
+	list-style: decimal;
+}
+
+.pr-diff-comment-body li + li {
+	margin-top: 0.15rem;
+}
+
+.pr-diff-comment-body blockquote {
+	margin: 0;
+	padding-left: 0.75rem;
+	border-left: 2px solid var(--border);
+	color: var(--muted-foreground);
+}
+
+.pr-diff-comment-body h1,
+.pr-diff-comment-body h2,
+.pr-diff-comment-body h3,
+.pr-diff-comment-body h4,
+.pr-diff-comment-body h5,
+.pr-diff-comment-body h6 {
+	font-weight: 600;
+	line-height: 1.3;
+	font-size: 13px;
+}
+
+.pr-diff-comment-body h1 {
+	font-size: 15px;
+}
+
+.pr-diff-comment-body h2 {
+	font-size: 14px;
+}
+
+.pr-diff-comment-body img,
+.pr-diff-comment-body .comment-md-img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 4px;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.pr-diff-comment-body details {
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 0.4rem 0.6rem;
+	background: var(--muted);
+}
+
+.pr-diff-comment-body details[open] {
+	padding-bottom: 0.6rem;
+}
+
+.pr-diff-comment-body summary {
+	cursor: pointer;
+	font-weight: 500;
+	color: var(--muted-foreground);
+	list-style: none;
+}
+
+.pr-diff-comment-body summary::-webkit-details-marker {
+	display: none;
+}
+
+.pr-diff-comment-body summary::before {
+	content: "▸";
+	display: inline-block;
+	margin-right: 0.4rem;
+	font-size: 0.75em;
+	transition: transform 0.15s;
+}
+
+.pr-diff-comment-body details[open] > summary::before {
+	transform: rotate(90deg);
+}
+
+.pr-diff-comment-body details > *:not(summary) {
+	margin-top: 0.3rem;
+}
+
+.pr-diff-comment-body table {
+	border-collapse: collapse;
+	display: block;
+	overflow-x: auto;
+	font-size: 12px;
+}
+
+.pr-diff-comment-body th,
+.pr-diff-comment-body td {
+	border: 1px solid var(--border);
+	padding: 0.25rem 0.5rem;
+	text-align: left;
+}
+
+.pr-diff-comment-body th {
+	background: var(--muted);
+	font-weight: 600;
+}
+
+.pr-diff-comment-body hr {
+	border: 0;
+	border-top: 1px solid var(--border);
+	margin: 0.5rem 0;
+}

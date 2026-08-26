@@ -54,8 +54,12 @@ function seedBundledPlugin(): void {
 	writeFileSync(path.join(agentsExtra, "openai.yaml"), "model: test\n");
 }
 
-async function run(): Promise<void> {
-	await createManagedSkills({ homeDir: HOME_DIR, templatesDir: TEMPLATES_DIR });
+async function run(disabledSkills?: readonly string[]): Promise<void> {
+	await createManagedSkills({
+		homeDir: HOME_DIR,
+		templatesDir: TEMPLATES_DIR,
+		disabledSkills,
+	});
 }
 
 beforeEach(() => {
@@ -235,5 +239,26 @@ describe("createManagedSkills", () => {
 		expect(existsSync(path.join(claudePlugin, "skills", "feedback"))).toBe(
 			true,
 		);
+	});
+
+	it("withholds a disabled skill from every surface and reaps it if already provisioned", async () => {
+		await run();
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(true);
+
+		await run(["feedback"]);
+
+		expect(existsSync(path.join(agentsSkills, "superset-feedback"))).toBe(
+			false,
+		);
+		expect(existsSync(path.join(commandsDir, "feedback.md"))).toBe(false);
+		expect(existsSync(path.join(claudePlugin, "skills", "feedback"))).toBe(
+			false,
+		);
+		// Untouched skills stay provisioned.
+		expect(existsSync(path.join(agentsSkills, "superset-10x"))).toBe(true);
+		expect(readFileSync(path.join(commandsDir, "10x.md"), "utf-8")).toContain(
+			MANAGED_SKILL_MARKER,
+		);
+		expect(existsSync(path.join(claudePlugin, "skills", "10x"))).toBe(true);
 	});
 });

@@ -57,6 +57,18 @@ export function createGitEnvResolver(provider: GitCredentialProvider) {
 			...initialCredentials.env,
 			...credentials.env,
 			GIT_OPTIONAL_LOCKS: "0",
+			// Git translates its diagnostics, and the classifier that keeps
+			// environmental failures off the 500 path recognises git's own
+			// English wording (trpc/router/git/utils/classify-git-error.ts). Pin
+			// the locale so every machine produces the wording those patterns
+			// were written against, instead of growing a per-language table.
+			// LC_ALL rather than LC_MESSAGES: POSIX resolves LC_ALL first, so a
+			// user's own LC_ALL would outrank an LC_MESSAGES we set here, and
+			// gettext ignores LANGUAGE — which outranks both — only when the
+			// resolved locale is exactly "C". It costs nothing in the output we
+			// parse: git reports paths as bytes and quotes them by
+			// core.quotePath, not by locale.
+			LC_ALL: "C",
 		};
 	};
 }

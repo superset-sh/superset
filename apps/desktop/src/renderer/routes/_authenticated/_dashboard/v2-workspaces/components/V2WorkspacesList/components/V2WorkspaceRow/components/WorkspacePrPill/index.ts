@@ -1,1 +1,0 @@
-export { WorkspacePrPill } from "./WorkspacePrPill";

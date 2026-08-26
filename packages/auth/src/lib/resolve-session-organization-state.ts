@@ -64,8 +64,9 @@ export async function resolveSessionOrganizationState(
 		userId?: string | null;
 		session?: SessionOrganizationContext | null;
 	},
-	deps: ResolveSessionOrganizationDeps = defaultResolveSessionOrganizationDeps,
+	overrides: Partial<ResolveSessionOrganizationDeps> = {},
 ) {
+	const deps = { ...defaultResolveSessionOrganizationDeps, ...overrides };
 	const previousActiveOrganizationId = session?.activeOrganizationId ?? null;
 	let activeOrganizationId = previousActiveOrganizationId;
 	if (!userId) {

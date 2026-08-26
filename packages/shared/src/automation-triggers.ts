@@ -509,15 +509,9 @@ const REQUIREMENTS: Partial<
 export function describeTriggerProblems(
 	triggers: DraftTrigger[],
 ): TriggerProblem[] {
+	// An empty set is legal: an automation starts untitled with no triggers
+	// and simply never fires until one is added.
 	const problems: TriggerProblem[] = [];
-
-	if (triggers.length === 0) {
-		problems.push({
-			index: -1,
-			field: "triggers",
-			message: "Add at least one trigger.",
-		});
-	}
 
 	triggers.forEach((trigger, index) => {
 		const config = trigger.config;
@@ -562,7 +556,5 @@ export function summarizeTriggerProblems(
 	problems: TriggerProblem[],
 ): string | null {
 	if (problems.length === 0) return null;
-	const missingTriggers = problems.find((p) => p.field === "triggers");
-	if (missingTriggers) return missingTriggers.message;
 	return "Some triggers need additional configuration";
 }

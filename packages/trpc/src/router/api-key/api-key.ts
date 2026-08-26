@@ -5,11 +5,12 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure } from "../../trpc";
-import { requireActiveOrgMembership } from "../utils/active-org";
 
 export const apiKeyRouter = {
+	// API keys mint a session as their creator, so they are personal
+	// credentials: list and revoke are scoped to the session user, never
+	// the organization.
 	list: protectedProcedure.query(async ({ ctx }) => {
-		const organizationId = await requireActiveOrgMembership(ctx);
 		return db
 			.select({
 				id: apikeys.id,
@@ -19,7 +20,7 @@ export const apiKeyRouter = {
 				lastRequest: apikeys.lastRequest,
 			})
 			.from(apikeys)
-			.where(eq(apikeys.organizationId, organizationId))
+			.where(eq(apikeys.referenceId, ctx.session.user.id))
 			.orderBy(desc(apikeys.createdAt));
 	}),
 
@@ -43,5 +44,14 @@ export const apiKeyRouter = {
 			});
 
 			return { key: result.key };
+		}),
+
+	revoke: protectedProcedure
+		.input(z.object({ id: z.uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			await ctx.auth.api.deleteApiKey({
+				headers: ctx.headers,
+				body: { keyId: input.id },
+			});
 		}),
 };

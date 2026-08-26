@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.license        = 'MIT'
   s.author         = 'Superset'
   s.homepage       = 'https://superset.sh'
-  s.platforms      = { :ios => '16.0' }
+  s.platforms      = { :ios => '26.0' }
   s.swift_version  = '5.9'
   s.source         = { git: 'https://github.com/nicksupersetsh/superset.git' }
   s.static_framework = true

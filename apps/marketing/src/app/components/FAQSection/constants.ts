@@ -26,7 +26,7 @@ export const FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Which AI coding agents are supported?",
 		answer:
-			"Superset works with any CLI-based coding agent including Claude Code, OpenCode, OpenAI Codex, and more. If it runs in a terminal, it runs in Superset.",
+			"Superset works with any CLI-based coding agent, including Claude Code, OpenCode, OpenAI Codex, and more. Choose a different agent for every task without changing your workspace or review flow.",
 	},
 	{
 		question: "How does the parallel agent system work?",
@@ -60,6 +60,6 @@ export const FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Is Superset just a wrapper around Claude Code?",
 		answer:
-			"No. The agents stay the agents; Superset is the orchestration layer around them: an isolated Git worktree per task, sessions that survive restarts, diff review, and scheduled runs. It's the difference between one session in a terminal tab and a fleet with a manager.",
+			"No. Your agents stay independent; Superset is the orchestration layer around them. Each task gets an isolated Git worktree, persistent sessions, diff review, and scheduled runs without tying the workflow to one provider.",
 	},
 ];

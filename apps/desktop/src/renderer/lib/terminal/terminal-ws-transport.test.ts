@@ -143,7 +143,12 @@ function createMockTerminal(
 		emitData(data: string) {
 			onDataListener?.(data);
 		},
-		write() {},
+		// xterm invokes the completion callback once the batch has parsed; the
+		// coalescer holds the next batch until it does, so a double that never
+		// calls back would model a permanently stalled parser.
+		write(_data: string | Uint8Array, callback?: () => void) {
+			callback?.();
+		},
 		writeln() {},
 	} as unknown as XTerm & { emitData(data: string): void };
 }
@@ -216,12 +221,15 @@ describe("PTY output write coalescing", () => {
 		const terminal = createMockTerminal();
 		const writes: string[] = [];
 		const events: string[] = [];
-		(terminal as unknown as { write: (d: Uint8Array) => void }).write = (
-			data: Uint8Array,
-		) => {
+		(
+			terminal as unknown as {
+				write: (d: Uint8Array, cb?: () => void) => void;
+			}
+		).write = (data: Uint8Array, callback?: () => void) => {
 			const text = new TextDecoder().decode(data);
 			writes.push(text);
 			events.push(`write:${text}`);
+			callback?.();
 		};
 		(terminal as unknown as { writeln: (s: string) => void }).writeln = (
 			line: string,
@@ -414,10 +422,17 @@ describe("terminal-ws-transport", () => {
 
 		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 		expect(transport.connectionState).toBe("open");
-		expect(sentMessages()).toEqual([{ type: "resize", cols: 101, rows: 27 }]);
+		// Visibility leads the dims: the host sizes the PTY to the smallest
+		// visible client, so it must know whether this pane counts before the
+		// dims it would count with.
+		expect(sentMessages()).toEqual([
+			{ type: "visible", visible: true },
+			{ type: "resize", cols: 101, rows: 27 },
+		]);
 
 		terminal.emitData("b");
 		expect(sentMessages()).toEqual([
+			{ type: "visible", visible: true },
 			{ type: "resize", cols: 101, rows: 27 },
 			{ type: "input", data: "b" },
 		]);

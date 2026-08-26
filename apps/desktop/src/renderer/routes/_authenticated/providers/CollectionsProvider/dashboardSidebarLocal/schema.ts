@@ -119,6 +119,12 @@ export const workspaceRunTerminalStateSchema = z.object({
 	stopRequestedAt: z.number().optional(),
 });
 
+export const WORKSPACE_SIDEBAR_TABS = ["changes", "files", "review"] as const;
+
+const WORKSPACE_SIDEBAR_TAB_SCHEMA = z.enum(WORKSPACE_SIDEBAR_TABS);
+
+export type WorkspaceSidebarTab = (typeof WORKSPACE_SIDEBAR_TABS)[number];
+
 export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
 	createdAt: persistedDateSchema,
@@ -133,7 +139,7 @@ export const workspaceLocalStateSchema = z.object({
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
 		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
-		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
+		activeTab: WORKSPACE_SIDEBAR_TAB_SCHEMA.default("changes"),
 		isHidden: z.boolean().default(false),
 		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
 		// section; null = not pinned. Ordering is pinnedAt ascending.
@@ -391,12 +397,15 @@ export const v2UserPreferencesSchema = z.object({
 	// live on the row's pinnedToBar like user presets. Pruned against
 	// KNOWN_BUILTIN_PRESET_IDS at heal time so retired ids can't persist.
 	hiddenBuiltinPresetIds: z.array(z.string()).default([]),
+	favoritePageIds: z.array(z.string()).default([]),
 });
 
 // The fixed set of built-in preset ids. Consumers derive their id constants
 // from this list (compile-checked via `satisfies`) so the heal-time pruning
 // below can never drop an id that is still in use.
 export const KNOWN_BUILTIN_PRESET_IDS = ["superset-cli"] as const;
+
+export const MAX_FAVORITE_PAGE_IDS = 200;
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
 
@@ -416,6 +425,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	deleteLocalBranch: false,
 	showPresetsBar: true,
 	hiddenBuiltinPresetIds: [],
+	favoritePageIds: [],
 };
 
 /**
@@ -451,6 +461,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,
+			activeTab: WORKSPACE_SIDEBAR_TAB_SCHEMA.catch("changes").parse(
+				sidebar.activeTab,
+			),
 		} as WorkspaceLocalStateRow["sidebarState"],
 	} as WorkspaceLocalStateRow;
 }
@@ -503,6 +516,9 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		).filter((id) =>
 			(KNOWN_BUILTIN_PRESET_IDS as readonly string[]).includes(id),
 		),
+		favoritePageIds: (Array.isArray(r.favoritePageIds) ? r.favoritePageIds : [])
+			.filter((id): id is string => typeof id === "string" && id.length > 0)
+			.slice(-MAX_FAVORITE_PAGE_IDS),
 	};
 }
 

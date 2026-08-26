@@ -568,6 +568,40 @@ describe("workspaceCleanup.destroy cleanup ordering", () => {
 		);
 	});
 
+	test("worktree-removal timeout carries its phase into the reported error", async () => {
+		// The Sentry event for HOST-SERVICE-17 / -47 is this TRPCError, and its
+		// message is the pool's timeout text verbatim — so a phase named there
+		// is a phase named in the report. Without this link the label would
+		// stop at the pool and never reach anyone triaging.
+		const poolTimeout = new WorkerTaskError(
+			'[host-worker] Task "git/removeWorktree" timed out after 120000ms in phase "worktree-remove"',
+		);
+		const ctx = makeCtx({
+			workspace: {
+				id: "ws-1",
+				projectId: "p-1",
+				worktreePath: "/branch/wt",
+				branch: "feature",
+			},
+			project: { id: "p-1", repoPath: "/repo" },
+			removeWorktree: () => Promise.reject(poolTimeout),
+		});
+		const caller = workspaceCleanupRouter.createCaller(ctx);
+
+		const error = await caller
+			.destroy({ workspaceId: "ws-1", deleteBranch: false, force: true })
+			.then(() => null)
+			.catch((err: Error) => err);
+
+		// Built from the pool error rather than restated, so the two halves
+		// cannot drift; the pool's exact wording is pinned by the phase tests
+		// in src/workers/host-worker-pool.test.ts.
+		expect(error?.message).toBe(
+			`Failed to verify worktree removal at /branch/wt: ${poolTimeout.message}`,
+		);
+		expect(error?.message).toContain('in phase "worktree-remove"');
+	});
+
 	test("preflight pool timeout fails closed instead of skipping the dirty check", async () => {
 		const ctx = makeCtx({
 			workspace: {

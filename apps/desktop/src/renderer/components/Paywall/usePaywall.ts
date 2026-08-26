@@ -1,3 +1,4 @@
+import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId";
 import {
 	isPaidPlanTier,
 	resolveCurrentPlan,
@@ -14,6 +15,11 @@ export function usePaywall() {
 
 	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 	const isReady = activePlan !== undefined;
+	// Read at the top level, not inside gateFeature: hooks may not be called
+	// from a callback, and the paywall must be attributed to the org THIS
+	// window is showing.
+	const organizationId = useActiveOrganizationId();
+
 	const userPlan = resolveCurrentPlan({
 		subscriptionPlan: activePlan?.plan,
 		sessionPlan,
@@ -66,7 +72,7 @@ export function usePaywall() {
 				return;
 			}
 			paywall(feature, {
-				organizationId: session?.session?.activeOrganizationId,
+				organizationId,
 				userPlan: plan,
 				...context,
 			});

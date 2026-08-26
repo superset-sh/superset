@@ -50,7 +50,7 @@ export function TopBarPortsDropdown({
 						<button
 							type="button"
 							aria-label={`Ports — ${totalPortCount} live`}
-							className="flex items-center gap-1.5 rounded px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-fill-hover hover:text-foreground data-[state=open]:bg-fill-hover data-[state=open]:text-foreground"
+							className="flex items-center gap-1.5 rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-fill-hover hover:text-foreground data-[state=open]:bg-fill-hover data-[state=open]:text-foreground"
 						>
 							<LuRadioTower className="size-3.5" strokeWidth={STROKE_WIDTH} />
 							<span className="font-medium tabular-nums">{totalPortCount}</span>
@@ -66,7 +66,14 @@ export function TopBarPortsDropdown({
 					</p>
 				</TooltipContent>
 			</Tooltip>
-			<PopoverContent align={align} sideOffset={6} className="w-72 p-0">
+			<PopoverContent align={align} sideOffset={6} className="w-80 p-0">
+				<div className="flex items-center gap-1.5 border-border border-b px-3 py-2">
+					<LuRadioTower
+						className="size-3 text-muted-foreground"
+						strokeWidth={STROKE_WIDTH}
+					/>
+					<span className="font-medium text-foreground text-xs">Ports</span>
+				</div>
 				<div className="max-h-80 overflow-y-auto p-1">
 					{workspacePortGroups.map((group) => (
 						<TopBarPortsGroup

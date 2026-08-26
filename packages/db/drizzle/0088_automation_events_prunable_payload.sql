@@ -1,0 +1,2 @@
+ALTER TABLE "automation_events" ALTER COLUMN "payload" DROP NOT NULL;--> statement-breakpoint
+CREATE INDEX "automation_events_prunable_idx" ON "automation_events" USING btree ("received_at") WHERE "automation_events"."payload" IS NOT NULL;

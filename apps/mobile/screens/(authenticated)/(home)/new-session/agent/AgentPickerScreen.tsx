@@ -1,14 +1,20 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useQuery } from "@tanstack/react-query";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
-import { Image, Pressable, ScrollView } from "react-native";
+import { useMemo } from "react";
+import { Image, Pressable, ScrollView, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
+import { useHostsPresence } from "@/hooks/useHostsPresence";
+import { useOrgHostsQuery } from "@/hooks/useOrgHosts";
 import { useTheme } from "@/hooks/useTheme";
 import { agentIconSource } from "@/lib/agent-icons";
-import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { useNewChatTargets } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
+import { hostServiceUrl } from "@/lib/host-service/client";
+import { posthog } from "@/lib/posthog";
+import { CLOUD_TARGET_ID } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useNewChatTargets";
 import { useNewSessionPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newSessionPreferencesStore";
+import { useHostAgentConfigs } from "@/screens/(authenticated)/hooks/useHostAgentConfigs";
 
 export function AgentMark({
 	agentId,
@@ -39,24 +45,57 @@ export function AgentPickerScreen() {
 	const theme = useTheme();
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const setAgentId = useNewSessionPreferencesStore((state) => state.setAgentId);
-	const targetKey = useNewSessionPreferencesStore((state) => state.targetKey);
-	const { targets, defaultTarget } = useNewChatTargets();
-	const selectedTarget =
-		targets.find((target) => target.key === targetKey) ?? defaultTarget;
+	const { machineId } = useLocalSearchParams<{ machineId?: string }>();
 
-	const configsQuery = useQuery({
-		queryKey: ["host-agent-configs", selectedTarget?.machineId ?? null],
-		enabled: selectedTarget !== null,
-		staleTime: 60_000,
-		networkMode: "always" as const,
-		queryFn: async () => {
-			if (!selectedTarget) return [];
-			return getHostServiceClientByUrl(
-				selectedTarget.hostUrl,
-			).settings.agentConfigs.list.query();
-		},
+	const hostsQuery = useOrgHostsQuery();
+	const host =
+		machineId && machineId !== CLOUD_TARGET_ID
+			? (hostsQuery.data?.find((entry) => entry.machineId === machineId) ??
+				null)
+			: null;
+	const presenceTargets = useMemo(() => (host ? [host] : []), [host]);
+	const presence = useHostsPresence(presenceTargets);
+	const isOnline = host
+		? (presence?.get(host.machineId) ?? host.isOnline)
+		: false;
+
+	const configsQuery = useHostAgentConfigs({
+		machineId: host?.machineId ?? null,
+		hostUrl:
+			host && isOnline
+				? hostServiceUrl(host.organizationId, host.machineId)
+				: null,
 	});
 	const configs = configsQuery.data ?? [];
+
+	let notice: string | null = null;
+	let isLoading = false;
+	let retry: (() => void) | null = null;
+	if (!machineId) {
+		notice = "No project selected";
+	} else if (machineId === CLOUD_TARGET_ID) {
+		notice = "Cloud workspaces don't run an agent yet";
+	} else if (!host) {
+		if (hostsQuery.isPending) {
+			isLoading = true;
+		} else if (hostsQuery.isError) {
+			notice = "Could not load your machines";
+			retry = () => void hostsQuery.refetch();
+		} else {
+			notice = "That machine is no longer available";
+		}
+	} else if (!isOnline) {
+		notice = `${host.name} is offline`;
+	} else if (configs.length === 0) {
+		if (configsQuery.isError) {
+			notice = `Could not load agents from ${host.name}`;
+			retry = () => void configsQuery.refetch();
+		} else if (configsQuery.isPending) {
+			isLoading = true;
+		} else {
+			notice = `No agents configured on ${host.name}`;
+		}
+	}
 
 	return (
 		<ScrollView
@@ -66,48 +105,65 @@ export function AgentPickerScreen() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
 			</Stack.Toolbar>
-			{configs.length === 0 ? (
-				<Text
-					className="py-6 text-center text-sm"
-					style={{ color: theme.mutedForeground }}
-				>
-					{selectedTarget ? "Loading agents…" : "No projects on an online host"}
-				</Text>
+			{isLoading ? (
+				<View className="items-center py-8">
+					<Spinner />
+				</View>
 			) : null}
-			{configs.map((config) => {
-				// Persist the presetId, not the row id: config ids are per-host
-				// UUIDs, presetIds resolve on any host (agents.run accepts both).
-				const isSelected = config.presetId === agentId;
-				return (
-					<Pressable
-						key={config.id}
-						onPress={() => {
-							setAgentId(config.presetId);
-							router.back();
-						}}
-						className="flex-row items-center gap-2.5 py-2.5"
+			{notice ? (
+				<View className="items-center gap-3 py-6">
+					<Text
+						className="text-center text-sm"
+						style={{ color: theme.mutedForeground }}
 					>
-						<AgentMark
-							agentId={config.iconId ?? config.presetId}
-							size={18}
-							color={theme.mutedForeground}
-						/>
-						<Text
-							className="flex-1 text-sm font-medium"
-							style={{ color: theme.foreground }}
+						{notice}
+					</Text>
+					{retry ? (
+						<Button size="sm" variant="secondary" onPress={retry}>
+							<Text>Try again</Text>
+						</Button>
+					) : null}
+				</View>
+			) : null}
+			{notice === null &&
+				configs.map((config) => {
+					// Persist the presetId, not the row id: config ids are per-host
+					// UUIDs, presetIds resolve on any host (agents.run accepts both).
+					const isSelected = config.presetId === agentId;
+					return (
+						<Pressable
+							key={config.id}
+							onPress={() => {
+								setAgentId(config.presetId);
+								posthog.capture("new_session_agent_selected", {
+									agent: config.presetId,
+								});
+								router.back();
+							}}
+							className="flex-row items-center gap-2.5 py-2.5"
+							ph-label="new-session-agent-row"
 						>
-							{config.label}
-						</Text>
-						{isSelected ? (
-							<Ionicons
-								name="checkmark-circle"
+							<AgentMark
+								agentId={config.iconId ?? config.presetId}
 								size={18}
-								color={theme.primary}
+								color={theme.mutedForeground}
 							/>
-						) : null}
-					</Pressable>
-				);
-			})}
+							<Text
+								className="flex-1 text-sm font-medium"
+								style={{ color: theme.foreground }}
+							>
+								{config.label}
+							</Text>
+							{isSelected ? (
+								<Ionicons
+									name="checkmark-circle"
+									size={18}
+									color={theme.primary}
+								/>
+							) : null}
+						</Pressable>
+					);
+				})}
 		</ScrollView>
 	);
 }

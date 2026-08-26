@@ -9,7 +9,13 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
+import {
+	Circle,
+	FileText,
+	GitCompareArrows,
+	Globe,
+	MessageSquare,
+} from "lucide-react";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import {
@@ -43,6 +49,7 @@ import type {
 	CommentPaneData,
 	DevtoolsPaneData,
 	FilePaneData,
+	PagePaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
@@ -57,10 +64,14 @@ import { DiffPane } from "./components/DiffPane";
 import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneHeaderExtras";
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
+import { PagePane } from "./components/PagePane";
+import { PagePaneHeaderExtras } from "./components/PagePaneHeaderExtras";
+import { PagePaneTitle } from "./components/PagePaneTitle";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
+import { pagePaneLabel } from "./utils/pagePaneLabel";
 
 function getFileName(filePath: string): string {
 	return getBaseName(filePath);
@@ -121,6 +132,7 @@ export function usePaneRegistry({
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
+	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
 	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
@@ -375,6 +387,7 @@ export function usePaneRegistry({
 					const { terminalId } = ctx.pane.data as TerminalPaneData;
 					return (
 						<TerminalPaneHeaderExtras
+							workspaceId={workspaceId}
 							terminalId={terminalId}
 							terminalInstanceId={ctx.pane.id}
 						/>
@@ -574,6 +587,41 @@ export function usePaneRegistry({
 						d.key === "close-pane" ? { ...d, label: "Close Comment" } : d,
 					),
 			},
+			...(isPagesEnabled
+				? {
+						page: {
+							getIcon: () => <FileText className="size-3.5" />,
+							getTitle: (pane) => pagePaneLabel(pane.data as PagePaneData),
+							renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+								<PagePaneTitle
+									data={ctx.pane.data as PagePaneData}
+									paneId={ctx.pane.id}
+									onClose={() => ctx.actions.close()}
+								/>
+							),
+							renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => (
+								<PagePaneHeaderExtras
+									data={ctx.pane.data as PagePaneData}
+									paneId={ctx.pane.id}
+									workspaceId={workspaceId}
+								/>
+							),
+							renderPane: (ctx: RendererContext<PaneViewerData>) => (
+								<PagePane
+									data={ctx.pane.data as PagePaneData}
+									paneId={ctx.pane.id}
+									onDataChange={(data) =>
+										ctx.actions.updateData(data as PaneViewerData)
+									}
+								/>
+							),
+							contextMenuActions: (_ctx, defaults) =>
+								defaults.map((d) =>
+									d.key === "close-pane" ? { ...d, label: "Close Page" } : d,
+								),
+						},
+					}
+				: {}),
 			devtools: {
 				getTitle: () => "DevTools",
 				renderPane: (ctx: RendererContext<PaneViewerData>) => {
@@ -589,6 +637,7 @@ export function usePaneRegistry({
 		[
 			workspaceId,
 			isChatV3Enabled,
+			isPagesEnabled,
 			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,

@@ -17,6 +17,10 @@ import type { IconType } from "react-icons";
 import { SiArc } from "react-icons/si";
 import { TbWorld } from "react-icons/tb";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	BROWSER_IMPORT_BANNER_ID,
+	useBrowserImportBannerDismissalsStore,
+} from "renderer/stores/browser-import-banner-dismissals";
 
 interface ImportSource {
 	id: string;
@@ -54,6 +58,12 @@ export function ImportHistoryDialog({
 	// Logins (cookies) currently only decryptable on macOS.
 	const [importLogins, setImportLogins] = useState(isMac);
 	const [isImporting, setIsImporting] = useState(false);
+	// This dialog is opened from three places (the pane's banner, its
+	// overflow menu, and Settings > Browser) — dismissing the banner here, on
+	// an actual successful import, is the one place that covers all of them.
+	const dismissImportBanner = useBrowserImportBannerDismissalsStore(
+		(s) => s.dismiss,
+	);
 
 	const loadSources = useCallback(() => {
 		setLoadState({ status: "loading" });
@@ -86,12 +96,19 @@ export function ImportHistoryDialog({
 		if (!selectedId) return;
 		setIsImporting(true);
 		const messages: string[] = [];
+		// True only once a mutation both resolves and actually wrote a record —
+		// a zero-result run (empty source) or a skipped one (Keychain denied)
+		// must not count, or the banner dismisses for good after finding
+		// nothing. Kept true if a later branch fails, so a failure in the
+		// second mutation doesn't hide that the first already wrote real data.
+		let importedSomething = false;
 		try {
 			if (importHistory) {
 				const result =
 					await electronTrpcClient.browserHistory.importFromSource.mutate({
 						sourceId: selectedId,
 					});
+				importedSomething ||= result.imported > 0;
 				messages.push(
 					result.imported === 0
 						? "no history"
@@ -107,8 +124,11 @@ export function ImportHistoryDialog({
 						{ sourceId: selectedId },
 					);
 				if (result.keyUnavailable) {
+					// Nothing was actually written — Keychain denied access — so this
+					// must not count toward importedSomething below.
 					messages.push("logins skipped (Keychain access denied)");
 				} else {
+					importedSomething ||= result.imported > 0;
 					messages.push(
 						result.imported === 0
 							? "no logins"
@@ -119,9 +139,21 @@ export function ImportHistoryDialog({
 				}
 			}
 
-			toast.success(`Imported ${messages.join(" and ")}`);
+			if (importedSomething) {
+				toast.success(`Imported ${messages.join(" and ")}`);
+				dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
+			} else {
+				toast.error("Could not import from browser", {
+					description: messages.join(" and ") || undefined,
+				});
+			}
 			onOpenChange(false);
 		} catch (error: unknown) {
+			// A failure here means one of the two imports above threw — if the
+			// other already succeeded, real data was written, so the banner's
+			// job is done even though the dialog is reporting an error and
+			// staying open for the user to see the failure/retry.
+			if (importedSomething) dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
 			toast.error("Could not import from browser", {
 				description: error instanceof Error ? error.message : undefined,
 			});
@@ -137,7 +169,17 @@ export function ImportHistoryDialog({
 		(importHistory || importLogins);
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				// The X button, Escape, and outside-click all funnel through here —
+				// block all three while importing, matching the footer buttons
+				// (which already disable during import) so a close attempt can't
+				// race the in-flight mutations to a "did I actually cancel?" state.
+				if (isImporting) return;
+				onOpenChange(next);
+			}}
+		>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Import settings from another browser</DialogTitle>

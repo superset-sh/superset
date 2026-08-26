@@ -1,1 +1,0 @@
-export { StarNagCard } from "./StarNagCard";

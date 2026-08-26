@@ -1,1 +1,0 @@
-export { PrStateBadge } from "./PrStateBadge";
