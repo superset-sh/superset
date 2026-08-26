@@ -1551,11 +1551,15 @@ export async function probeDaemonHelloWithRetry(
 	options: {
 		perAttemptTimeoutMs?: number;
 		/**
-		 * End the retry loop as soon as an attempt fails without ever
-		 * connecting. The default keeps retrying through refused connects
-		 * because the handoff path needs it (brief predecessor-exit →
-		 * successor-bind gap); the adoption-escalation path sets this so a
-		 * daemon that dies mid-probe costs one attempt, not the whole budget.
+		 * End the retry loop as soon as an attempt is DEFINITIVELY refused —
+		 * ECONNREFUSED/ENOENT prove no listener holds the path. The default
+		 * keeps retrying through refused connects because the handoff path
+		 * needs it (brief predecessor-exit → successor-bind gap); the
+		 * adoption-escalation path sets this so a daemon that dies mid-probe
+		 * costs one attempt, not the whole budget. An attempt that times out
+		 * with the connect still pending is NOT treated as no-listener: a
+		 * flooded daemon whose accept backlog is full hangs connects, and it
+		 * is exactly the live daemon the escalation exists to protect.
 		 */
 		stopWhenNoListener?: boolean;
 	} = {},
@@ -1565,12 +1569,10 @@ export async function probeDaemonHelloWithRetry(
 	while (Date.now() < deadline) {
 		const remaining = deadline - Date.now();
 		const perAttempt = Math.min(remaining, perAttemptCap);
-		let connected = false;
-		const probe = await probeDaemonHello(socketPath, perAttempt, () => {
-			connected = true;
-		});
+		const outcome: ProbeAttemptOutcome = {};
+		const probe = await probeDaemonHello(socketPath, perAttempt, outcome);
 		if (probe !== null) return probe;
-		if (options.stopWhenNoListener && !connected) return null;
+		if (options.stopWhenNoListener && outcome.noListener) return null;
 		await new Promise((r) => setTimeout(r, 50));
 	}
 	return null;
@@ -1647,12 +1649,22 @@ export async function probeDaemonVersion(
 	return (await probeDaemonHello(socketPath, timeoutMs))?.daemonVersion ?? null;
 }
 
+/**
+ * How a failed probe attempt failed, for the retry wrapper's stop decision.
+ * `connected` = the connect succeeded (a silent listener holds the path).
+ * `noListener` = the connect was definitively refused (ECONNREFUSED/ENOENT).
+ * Neither set = indeterminate — most notably a timeout with the connect still
+ * pending, which is how a flooded listener with a full accept backlog looks.
+ */
+interface ProbeAttemptOutcome {
+	connected?: boolean;
+	noListener?: boolean;
+}
+
 function probeDaemonHello(
 	socketPath: string,
 	timeoutMs: number,
-	/** Fired when the connect succeeds, even if the hello never comes back —
-	 * lets the retry wrapper tell a silent listener from no listener. */
-	onConnect?: () => void,
+	outcome?: ProbeAttemptOutcome,
 ): Promise<DaemonProbeResult | null> {
 	return new Promise<DaemonProbeResult | null>((resolve) => {
 		const sock = net.createConnection({ path: socketPath });
@@ -1679,11 +1691,20 @@ function probeDaemonHello(
 
 		const timer = setTimeout(() => cleanup(null), timeoutMs);
 
-		sock.once("error", () => cleanup(null));
+		sock.once("error", (err: NodeJS.ErrnoException) => {
+			if (
+				outcome &&
+				!outcome.connected &&
+				(err.code === "ECONNREFUSED" || err.code === "ENOENT")
+			) {
+				outcome.noListener = true;
+			}
+			cleanup(null);
+		});
 		sock.once("close", () => cleanup(null));
 
 		sock.once("connect", () => {
-			onConnect?.();
+			if (outcome) outcome.connected = true;
 			try {
 				sock.write(
 					encodeFrame({
