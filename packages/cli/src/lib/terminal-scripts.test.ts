@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { readSettingsRow, writeSettings } from "./settings";
+import { readSettingsRow } from "./settings";
+import { writeSettings } from "./settings/local-settings";
 import {
 	createLocalSettingsDb,
 	withTempSupersetHome,
@@ -14,19 +15,16 @@ beforeEach(() => {
 
 describe("createTerminalScript", () => {
 	test("appends a legacy-compatible terminal preset", () => {
-		const script = createTerminalScript(
-			{
-				organizationId: "org-a",
-				name: " Dev server ",
-				commands: [" bun run dev ", " bun run worker "],
-				projectIds: ["project-a", "project-a", "project-b"],
-				executionMode: "split-pane",
-			},
-			() => "script-id",
-		);
+		const script = createTerminalScript({
+			organizationId: "org-a",
+			name: " Dev server ",
+			commands: [" bun run dev ", " bun run worker "],
+			projectIds: ["project-a", "project-a", "project-b"],
+			executionMode: "split-pane",
+		});
 
 		expect(script).toEqual({
-			id: "script-id",
+			id: script.id,
 			name: "Dev server",
 			description: undefined,
 			cwd: "",
@@ -53,20 +51,16 @@ describe("createTerminalScript", () => {
 			],
 		});
 
-		createTerminalScript(
-			{
-				organizationId: "org-a",
-				name: "New",
-				commands: ["echo new"],
-				pinnedToBar: false,
-			},
-			() => "new",
-		);
+		createTerminalScript({
+			organizationId: "org-a",
+			name: "New",
+			commands: ["echo new"],
+			pinnedToBar: false,
+		});
 
-		expect(readSettingsRow()?.terminalPresets?.map(({ id }) => id)).toEqual([
-			"existing",
-			"new",
-		]);
+		expect(readSettingsRow()?.terminalPresets?.map(({ name }) => name)).toEqual(
+			["Existing", "New"],
+		);
 		expect(readSettingsRow()?.terminalPresets?.[1]?.pinnedToBar).toBe(false);
 	});
 });

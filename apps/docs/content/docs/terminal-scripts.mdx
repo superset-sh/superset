@@ -77,6 +77,11 @@ Use **Import agent** in Terminal settings to create a terminal script linked to
 an agent configuration. The script uses the agent's current command and icon;
 edit the underlying launch command in **Settings → Agents**.
 
+The bundled Claude and Codex configurations default to their most permissive
+bypass flags (for example `claude --dangerously-skip-permissions`). Review the
+launch command in **Settings → Agents** if you want a stricter permission mode
+before importing.
+
 ## Scripts Bar
 
 The Scripts bar appears above terminal tabs and shows visible terminal scripts
@@ -102,7 +107,9 @@ A terminal script can participate in three workspace actions:
 
 These are explicit per-script controls. Launching a script directly from the
 bar, menu, or keyboard shortcut always works regardless of its workspace-action
-settings.
+settings. On v1 desktop builds, the global auto-apply settings (such as
+`autoApplyDefaultPreset`, visible in `superset settings list`) also gate
+auto-run behavior.
 
 If more than one Run source matches a workspace, Superset uses the first
 project-targeted terminal script marked **Use as workspace run**, then the

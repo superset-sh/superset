@@ -19,7 +19,6 @@ export {
 	readSettingsRow,
 	updateSettingsAtomically,
 	writeSetting,
-	writeSettings,
 } from "./local-settings";
 export {
 	getAppStatePath,

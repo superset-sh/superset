@@ -111,7 +111,10 @@ export function updateSettingsAtomically<Result>(
 			const row = db.select().from(settings).get();
 			const { patch, result } = updater(row);
 			db.insert(settings)
-				.values({ id: 1, ...patch })
+				// Target the row that was read: legacy DBs can hold a non-1 row id
+				// (see readSettingsRow), and upserting id 1 there would split
+				// settings across two rows.
+				.values({ id: row?.id ?? 1, ...patch })
 				.onConflictDoUpdate({ target: settings.id, set: patch })
 				.run();
 			return result;

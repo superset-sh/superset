@@ -1,5 +1,5 @@
 import { boolean, CLIError, string } from "@superset/cli-framework";
-import { EXECUTION_MODES, type ExecutionMode } from "@superset/local-db";
+import { EXECUTION_MODES } from "@superset/local-db";
 import { command } from "../../../lib/command";
 import { readConfig, resolveOrganizationId } from "../../../lib/config";
 import { notifyDesktopSettingsChanged } from "../../../lib/settings/notify";
@@ -21,9 +21,9 @@ export default command({
 		project: string()
 			.variadic()
 			.desc("Limit to a project UUID; repeat for multiple projects"),
-		executionMode: string().desc(
-			"How multiple commands open: new-tab, split-pane, new-tab-split-pane, or sequential",
-		),
+		executionMode: string()
+			.enum(...EXECUTION_MODES)
+			.desc("How multiple commands open"),
 		hidden: boolean().desc("Create without showing it in the Scripts bar"),
 		workspaceRun: boolean().desc("Use as the project's Run action"),
 	},
@@ -32,17 +32,6 @@ export default command({
 		const organizationId = resolveOrganizationId(readConfig());
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
-		}
-		const name = options.name.trim();
-		const commands = options.command.map((value) => value.trim());
-		if (!name) {
-			throw new CLIError("Script name cannot be empty", "Pass --name <name>.");
-		}
-		if (commands.some((value) => !value)) {
-			throw new CLIError(
-				"Script commands cannot be empty",
-				"Pass one or more non-empty --command values.",
-			);
 		}
 		const invalidProjectId = options.project?.find(
 			(projectId) => !UUID_PATTERN.test(projectId),
@@ -54,24 +43,16 @@ export default command({
 			);
 		}
 
-		const executionMode = options.executionMode ?? "new-tab";
-		if (!EXECUTION_MODES.includes(executionMode as ExecutionMode)) {
-			throw new CLIError(
-				`Unknown execution mode: ${executionMode}`,
-				`Choose one of: ${EXECUTION_MODES.join(", ")}.`,
-			);
-		}
-
 		const script = createTerminalScript({
 			organizationId,
-			name,
+			name: options.name,
 			description: options.description,
 			cwd: options.cwd,
-			commands,
+			commands: options.command,
 			projectIds: options.project,
 			pinnedToBar: !options.hidden,
 			useAsWorkspaceRun: options.workspaceRun,
-			executionMode: executionMode as ExecutionMode,
+			executionMode: options.executionMode ?? "new-tab",
 		});
 		const refreshed = await notifyDesktopSettingsChanged();
 		const {

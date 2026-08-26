@@ -60,4 +60,16 @@ describe("local settings store", () => {
 		expect(result).toBe(40);
 		expect(readSettingsRow()?.notificationVolume).toBe(42);
 	});
+
+	test("atomic updates target a legacy row with a non-1 id", () => {
+		createLocalSettingsDb(home.dir, 7);
+		updateSettingsAtomically(() => ({
+			patch: { notificationVolume: 55 },
+			result: undefined,
+		}));
+		const row = readSettingsRow();
+		expect(row?.id).toBe(7);
+		expect(row?.notificationVolume).toBe(55);
+		expect(row?.confirmOnQuit).toBe(true);
+	});
 });

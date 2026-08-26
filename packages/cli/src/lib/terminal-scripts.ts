@@ -1,3 +1,4 @@
+import { CLIError } from "@superset/cli-framework";
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { updateSettingsAtomically } from "./settings";
 
@@ -20,14 +21,24 @@ export interface CreateTerminalScriptInput {
  */
 export function createTerminalScript(
 	input: CreateTerminalScriptInput,
-	createId: () => string = () => crypto.randomUUID(),
 ): TerminalPreset {
+	const name = input.name.trim();
+	if (!name) {
+		throw new CLIError("Script name cannot be empty", "Pass --name <name>.");
+	}
+	const commands = input.commands.map((command) => command.trim());
+	if (commands.length === 0 || commands.some((command) => !command)) {
+		throw new CLIError(
+			"Script commands cannot be empty",
+			"Pass one or more non-empty --command values.",
+		);
+	}
 	const script: TerminalPreset = {
-		id: createId(),
-		name: input.name.trim(),
+		id: crypto.randomUUID(),
+		name,
 		description: input.description?.trim() || undefined,
 		cwd: input.cwd?.trim() ?? "",
-		commands: input.commands.map((command) => command.trim()),
+		commands,
 		projectIds:
 			input.projectIds && input.projectIds.length > 0
 				? [...new Set(input.projectIds)]

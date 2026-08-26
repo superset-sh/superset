@@ -78,13 +78,6 @@ describe("scripts add", () => {
 		expect(readSettingsRow()).toBeUndefined();
 	});
 
-	test("rejects invalid execution modes before writing", async () => {
-		await expect(invoke({ executionMode: "sideways" })).rejects.toThrow(
-			/Unknown execution mode/,
-		);
-		expect(readSettingsRow()).toBeUndefined();
-	});
-
 	test("requires an active organization", async () => {
 		activeOrganizationId = undefined;
 		await expect(invoke()).rejects.toThrow(/No active organization/);

@@ -1,22 +1,22 @@
-import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { buildV2TerminalPresetRow } from "renderer/lib/v1-migration";
+import { getNextTabOrder } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useCollections } from "../../../../providers/CollectionsProvider";
 
 /**
  * One-shot import of terminal scripts authored by `superset scripts add`. The
  * CLI can only write the legacy local.db store, so it leaves rows flagged for
  * this organization; we copy them into the v2 collection and then clear the
- * flags so a script deleted in v2 is never re-imported.
+ * flags so a script deleted in v2 is never re-imported. A script whose insert
+ * fails is NOT acknowledged: its marker survives, and the next refetch of the
+ * pending query (focus, /settings-changed nudge) retries it.
  */
 export function useCliTerminalScriptImport(
 	organizationId: string | null,
 ): void {
 	const collections = useCollections();
 	const trpcUtils = electronTrpc.useUtils();
-	// Each pending id is handled once per mount: the inserts below change
-	// v2Presets and re-run the effect before the pending query invalidates.
-	const handledIds = useRef(new Set<string>());
 	const pendingQuery =
 		electronTrpc.settings.getPendingCliTerminalScripts.useQuery(
 			{ organizationId: organizationId ?? "" },
@@ -31,64 +31,50 @@ export function useCliTerminalScriptImport(
 						})
 					: undefined,
 		});
-	const { data: v2Presets = [], isReady: presetsReady } = useLiveQuery(
-		(query) => query.from({ presets: collections.v2TerminalPresets }),
-		[collections],
-	);
 
 	useEffect(() => {
-		const pendingScripts = (pendingQuery.data ?? []).filter(
-			(script) => !handledIds.current.has(script.id),
-		);
-		if (!organizationId || !presetsReady || pendingScripts.length === 0) return;
+		const pendingScripts = pendingQuery.data ?? [];
+		if (!organizationId || pendingScripts.length === 0) return;
 
-		let nextTabOrder =
-			v2Presets.reduce((max, script) => Math.max(max, script.tabOrder), -1) + 1;
-		const existingIds = new Set(v2Presets.map((script) => script.id));
+		// Non-reactive snapshot: localStorage collections hydrate at
+		// construction, and reading `.state` imperatively keeps this
+		// app-lifetime hook from subscribing to every preset change just to
+		// serve a rare one-shot import.
+		const v2Presets = [...collections.v2TerminalPresets.state.values()];
+		const existingIds = new Set(v2Presets.map((preset) => preset.id));
+		let tabOrder = getNextTabOrder(v2Presets);
+		const importedIds: string[] = [];
 		for (const script of pendingScripts) {
-			handledIds.current.add(script.id);
-			if (existingIds.has(script.id)) continue;
+			if (existingIds.has(script.id)) {
+				importedIds.push(script.id);
+				continue;
+			}
 			try {
-				collections.v2TerminalPresets.insert({
-					id: script.id,
-					name: script.name,
-					description: script.description,
-					cwd: script.cwd,
-					commands: script.commands,
-					projectIds: script.projectIds ?? null,
-					pinnedToBar: script.pinnedToBar,
-					useAsWorkspaceRun: script.useAsWorkspaceRun,
-					applyOnWorkspaceCreated: script.applyOnWorkspaceCreated,
-					applyOnNewTab: script.applyOnNewTab,
-					executionMode: script.executionMode ?? "new-tab",
-					tabOrder: nextTabOrder++,
-					createdAt: new Date(),
-				});
+				collections.v2TerminalPresets.insert(
+					// No agent resolution: the user's explicit command must not be
+					// swapped for a live agent launch command.
+					buildV2TerminalPresetRow(
+						script,
+						tabOrder++,
+						{ v2Name: script.name, linkedAgentId: undefined },
+						{ id: script.id, useAsWorkspaceRun: script.useAsWorkspaceRun },
+					),
+				);
+				importedIds.push(script.id);
 			} catch (error) {
-				// The row stays in the legacy store either way; skip it rather
-				// than let one malformed script take down the layout.
 				console.error(
-					`[useCliTerminalScriptImport] Skipping script ${script.id}:`,
+					`[useCliTerminalScriptImport] Import failed for ${script.id}:`,
 					error,
 				);
 			}
 		}
 
-		const ids = pendingScripts.map((script) => script.id);
-		acknowledge(
-			{ organizationId, ids },
-			{
-				onError: () => {
-					for (const id of ids) handledIds.current.delete(id);
-				},
-			},
-		);
+		if (importedIds.length > 0)
+			acknowledge({ organizationId, ids: importedIds });
 	}, [
 		acknowledge,
 		collections.v2TerminalPresets,
 		organizationId,
 		pendingQuery.data,
-		presetsReady,
-		v2Presets,
 	]);
 }
