@@ -26,7 +26,7 @@ export function SettingsSidebar() {
 		: null;
 
 	return (
-		<div className="w-56 flex flex-col py-3 overflow-hidden bg-sidebar">
+		<div className="w-56 flex flex-col py-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
 			{/* Back button */}
 			<Link
 				to={originRoute}
@@ -69,7 +69,7 @@ export function SettingsSidebar() {
 					href={COMPANY.DOCS_URL}
 					target="_blank"
 					rel="noopener noreferrer"
-					className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground transition-colors"
+					className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-fill-hover hover:text-foreground transition-colors"
 				>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
 					<span>Documentation</span>
