@@ -27,13 +27,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import {
-	LuCheck,
-	LuChevronDown,
-	LuChevronRight,
-	LuGitBranch,
-	LuPencil,
-} from "react-icons/lu";
+import { LuCheck, LuChevronRight, LuGitBranch, LuPencil } from "react-icons/lu";
 import { VscChevronDown, VscGitMerge } from "react-icons/vsc";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -131,7 +125,6 @@ function PullRequestDetailPage() {
 	);
 	const [activeTab, setActiveTab] = useState<DetailTab>("summary");
 	const [mergeComment, setMergeComment] = useState("");
-	const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(false);
 	const { copyToClipboard: copyBranch, copied: branchCopied } =
 		useCopyToClipboard();
 
@@ -640,46 +633,27 @@ function PullRequestDetailPage() {
 				className={cn("min-h-0 flex-1", activeTab !== "summary" && "hidden")}
 			>
 				<ScrollArea className="h-full">
-					<div className="grid w-full gap-8 px-4 py-6 @md:px-6 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:py-8">
-						<article className="group/description flex min-w-0 flex-col gap-1">
-							<div className="flex items-center gap-1">
-								<button
-									type="button"
-									onClick={() =>
-										setIsDescriptionCollapsed((collapsed) => !collapsed)
-									}
-									className="-ml-2 flex w-fit items-center gap-1.5 rounded px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
-								>
-									Description
-									<LuChevronDown
-										className={cn(
-											"size-3.5 shrink-0 transition-transform",
-											isDescriptionCollapsed && "-rotate-90",
-										)}
-									/>
-								</button>
-								<span className="min-w-0 flex-1" />
-								<a
-									href={data.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									aria-label="Edit description"
-									className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-fill-hover hover:text-foreground focus-visible:opacity-100 group-hover/description:opacity-100"
-								>
-									<LuPencil className="size-3.5" />
-								</a>
-							</div>
-							{!isDescriptionCollapsed &&
-								(data.body.trim() ? (
-									<MarkdownRenderer content={data.body} />
-								) : (
-									<p className="text-sm italic text-muted-foreground">
-										No description provided.
-									</p>
-								))}
+					<div className="grid w-full gap-8 px-4 pt-3 pb-6 @md:px-6 @md:pt-4 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:pb-8">
+						<article className="group/description relative min-w-0">
+							<a
+								href={data.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								aria-label="Edit description"
+								className="absolute right-0 top-0 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-fill-hover hover:text-foreground focus-visible:opacity-100 group-hover/description:opacity-100"
+							>
+								<LuPencil className="size-3.5" />
+							</a>
+							{data.body.trim() ? (
+								<MarkdownRenderer content={data.body} />
+							) : (
+								<p className="text-sm italic text-muted-foreground">
+									No description provided.
+								</p>
+							)}
 						</article>
 
-						<aside className="min-w-0 @4xl:sticky @4xl:top-6 @4xl:self-start">
+						<aside className="min-w-0 @4xl:sticky @4xl:top-4 @4xl:self-start">
 							<PullRequestChecksSection checks={data.checks} />
 						</aside>
 					</div>
