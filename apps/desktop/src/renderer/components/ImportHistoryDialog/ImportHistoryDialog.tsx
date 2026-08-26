@@ -96,12 +96,17 @@ export function ImportHistoryDialog({
 		if (!selectedId) return;
 		setIsImporting(true);
 		const messages: string[] = [];
+		// Set as soon as either mutation resolves, so a failure in the second
+		// one (e.g. cookie import) doesn't hide that the first already wrote
+		// real data — the banner should stop nagging either way.
+		let importedSomething = false;
 		try {
 			if (importHistory) {
 				const result =
 					await electronTrpcClient.browserHistory.importFromSource.mutate({
 						sourceId: selectedId,
 					});
+				importedSomething = true;
 				messages.push(
 					result.imported === 0
 						? "no history"
@@ -116,6 +121,7 @@ export function ImportHistoryDialog({
 					await electronTrpcClient.browserHistory.importCookiesFromSource.mutate(
 						{ sourceId: selectedId },
 					);
+				importedSomething = true;
 				if (result.keyUnavailable) {
 					messages.push("logins skipped (Keychain access denied)");
 				} else {
@@ -133,6 +139,11 @@ export function ImportHistoryDialog({
 			dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
 			onOpenChange(false);
 		} catch (error: unknown) {
+			// A failure here means one of the two imports above threw — if the
+			// other already succeeded, real data was written, so the banner's
+			// job is done even though the dialog is reporting an error and
+			// staying open for the user to see the failure/retry.
+			if (importedSomething) dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
 			toast.error("Could not import from browser", {
 				description: error instanceof Error ? error.message : undefined,
 			});
@@ -148,7 +159,17 @@ export function ImportHistoryDialog({
 		(importHistory || importLogins);
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
+		<Dialog
+			open={open}
+			onOpenChange={(next) => {
+				// The X button, Escape, and outside-click all funnel through here —
+				// block all three while importing, matching the footer buttons
+				// (which already disable during import) so a close attempt can't
+				// race the in-flight mutations to a "did I actually cancel?" state.
+				if (isImporting) return;
+				onOpenChange(next);
+			}}
+		>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Import settings from another browser</DialogTitle>
