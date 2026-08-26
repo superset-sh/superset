@@ -16,6 +16,7 @@ import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { DeleteHostSection } from "./components/DeleteHostSection";
 import { HostHeader } from "./components/HostHeader";
+import { HostReadinessBanner } from "./components/HostReadinessBanner";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
 import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
@@ -49,6 +50,10 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 		[hosts, hostId],
 	);
 	const presence = useHostsPresence(hosts);
+	// Null presence means the relay couldn't answer (v1 tail, probe failed), so
+	// the fallback is a database column nothing sweeps — "online" there is a
+	// last-written value, not an observation.
+	const presenceKnown = presence !== null && host !== undefined;
 	const hostIsOnline = host
 		? (presence?.get(host.machineId) ?? host.isOnline)
 		: false;
@@ -156,6 +161,14 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				isOnline={hostIsOnline}
 				machineId={host.machineId}
 				canRename={isOwner}
+			/>
+
+			<HostReadinessBanner
+				hostUrl={hostUrl}
+				hostName={host.name}
+				isOnline={hostIsOnline}
+				presenceKnown={presenceKnown}
+				isRemoteTarget={isRemoteTarget}
 			/>
 
 			<div className="space-y-10">

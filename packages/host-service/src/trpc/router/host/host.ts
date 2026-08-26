@@ -4,6 +4,7 @@ import hostServicePackageJson from "@superset/host-service/package.json" with {
 };
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
+import { probeGhCli } from "../../../runtime/github";
 import type { ApiClient } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { rethrowCloudUnreachable } from "./cloud-api-error";
@@ -52,6 +53,13 @@ async function getOrganization(
 }
 
 export const hostRouter = router({
+	/**
+	 * Whether this machine can authenticate against GitHub at all. The clone
+	 * preflight answers the same question per repository; a host's own page
+	 * needs it before any repository is in play.
+	 */
+	githubCli: protectedProcedure.query(() => probeGhCli()),
+
 	info: protectedProcedure.query(async ({ ctx }) => {
 		const organization = await getOrganization(ctx.api, ctx.organizationId);
 
