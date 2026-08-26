@@ -3,6 +3,7 @@ import {
 	BellIcon,
 	BookmarkIcon,
 	BuildingIcon,
+	ChartBarIcon,
 	CpuIcon,
 	CreditCardIcon,
 	FileTextIcon,
@@ -110,6 +111,13 @@ const TABS: SettingsTab[] = [
 		title: "Ringtones",
 		path: "/settings/ringtones",
 		icon: BellIcon,
+	},
+	{
+		id: "usage",
+		title: "Usage",
+		path: "/settings/usage",
+		icon: ChartBarIcon,
+		keywords: ["tokens", "cost", "quota", "cpu", "memory", "resources"],
 	},
 	{
 		id: "billing",
