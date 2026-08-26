@@ -136,7 +136,8 @@ export function DashboardSidebarHeader({
 		fuzzy: true,
 	});
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
-	const isUsageOpen = !!matchRoute({ to: "/settings/usage", fuzzy: true });
+	// Usage now lives under /settings, a sibling route tree that unmounts this
+	// component entirely when active — so it can never show as "open" here.
 	const isPluginsOpen = !!matchRoute({ to: "/plugins", fuzzy: true });
 	const isPagesOpen = !!matchRoute({ to: "/pages", fuzzy: true });
 	// `?? false`: the hook returns undefined until PostHog flags resolve.
@@ -371,13 +372,7 @@ export function DashboardSidebarHeader({
 								type="button"
 								onClick={handleUsageClick}
 								aria-label="Usage"
-								aria-current={isUsageOpen ? "page" : undefined}
-								className={cn(
-									"flex size-7 items-center justify-center rounded-md transition-colors",
-									isUsageOpen
-										? "bg-fill-selected text-muted-foreground"
-										: "text-muted-foreground hover:bg-fill-hover",
-								)}
+								className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover"
 							>
 								<LuGauge className="size-3.5" strokeWidth={1.5} />
 							</button>
@@ -616,13 +611,7 @@ export function DashboardSidebarHeader({
 				type="button"
 				onClick={handleUsageClick}
 				aria-label="Usage"
-				aria-current={isUsageOpen ? "page" : undefined}
-				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
-					isUsageOpen
-						? "bg-fill-selected text-foreground"
-						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
-				)}
+				className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 			>
 				<LuGauge
 					className="size-4 shrink-0 text-muted-foreground"
