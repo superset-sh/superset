@@ -15,7 +15,12 @@ export {
 	readHostGitSettings,
 	writeHostGitSetting,
 } from "./host-settings";
-export { readSettingsRow, writeSetting } from "./local-settings";
+export {
+	readSettingsRow,
+	updateSettingsAtomically,
+	writeSetting,
+	writeSettings,
+} from "./local-settings";
 export {
 	getAppStatePath,
 	getLocalDbPath,
