@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { apikeys } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure } from "../../trpc";
@@ -49,21 +49,9 @@ export const apiKeyRouter = {
 	revoke: protectedProcedure
 		.input(z.object({ id: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const deleted = await db
-				.delete(apikeys)
-				.where(
-					and(
-						eq(apikeys.id, input.id),
-						eq(apikeys.referenceId, ctx.session.user.id),
-					),
-				)
-				.returning({ id: apikeys.id });
-
-			if (deleted.length === 0) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "API key not found",
-				});
-			}
+			await ctx.auth.api.deleteApiKey({
+				headers: ctx.headers,
+				body: { keyId: input.id },
+			});
 		}),
 };
