@@ -26,7 +26,7 @@ export function SettingsSidebar() {
 		: null;
 
 	return (
-		<div className="w-56 flex flex-col py-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
+		<div className="w-56 flex flex-col pt-1 pb-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
 			{/* Back button */}
 			<Link
 				to={originRoute}
