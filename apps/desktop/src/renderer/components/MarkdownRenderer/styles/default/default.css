@@ -6,7 +6,9 @@
 
 .default-markdown article {
 	width: 100%;
+	max-width: 56rem;
 	margin: 0 auto;
+	overflow-wrap: break-word;
 }
 
 /* Headings carry their own margin-top for spacing between blocks, but that
@@ -23,6 +25,8 @@
 	margin-top: 0;
 	margin-bottom: 1rem;
 	letter-spacing: -0.025em;
+	padding-bottom: 0.3rem;
+	border-bottom: 1px solid var(--border);
 }
 
 .default-markdown h2 {
@@ -31,6 +35,8 @@
 	line-height: 1.3;
 	margin-top: 2rem;
 	margin-bottom: 0.75rem;
+	padding-bottom: 0.3rem;
+	border-bottom: 1px solid var(--border);
 }
 
 .default-markdown h3 {

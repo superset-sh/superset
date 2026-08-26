@@ -276,11 +276,11 @@ function PullRequestDetailPage() {
 				    both hidden until they have real functionality wired up. */}
 			</div>
 
-			<div className="flex items-start justify-between gap-3 px-4 pb-3">
+			<div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3">
 				{isLoading ? (
 					<Skeleton className="h-6 w-72 max-w-full" />
 				) : (
-					<h1 className="min-w-0 select-text truncate text-xl font-semibold leading-tight">
+					<h1 className="min-w-[12rem] flex-1 select-text truncate text-xl font-semibold leading-tight">
 						{data?.title ??
 							(itemNumber === null ? "Pull request" : `#${itemNumber}`)}
 					</h1>
@@ -437,49 +437,53 @@ function PullRequestDetailPage() {
 							{data.author}
 						</span>
 					)}
-					<span aria-hidden>·</span>
-					<span className="shrink-0 font-mono tabular-nums">
-						#{data.number}
+					<span className="inline-flex shrink-0 items-center gap-2">
+						<span aria-hidden>·</span>
+						<span className="font-mono tabular-nums">#{data.number}</span>
 					</span>
-					<span aria-hidden>·</span>
-					<Tooltip delayDuration={1000}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={() => {
-									copyBranch(data.branch)
-										.then(() => {
-											toast.success("Branch copied", {
-												description: data.branch,
-												icon: (
-													<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
-														<LuCheck
-															className="size-2.5 text-white"
-															strokeWidth={3}
-														/>
-													</span>
-												),
+					<span className="inline-flex min-w-0 shrink items-center gap-2">
+						<span aria-hidden>·</span>
+						<Tooltip delayDuration={1000}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() => {
+										copyBranch(data.branch)
+											.then(() => {
+												toast.success("Branch copied", {
+													description: data.branch,
+													icon: (
+														<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
+															<LuCheck
+																className="size-2.5 text-white"
+																strokeWidth={3}
+															/>
+														</span>
+													),
+												});
+											})
+											.catch(() => {
+												toast.error("Couldn't copy branch name");
 											});
-										})
-										.catch(() => {
-											toast.error("Couldn't copy branch name");
-										});
-								}}
-								className="flex min-w-0 shrink items-center gap-1 font-mono text-muted-foreground hover:text-foreground"
-							>
-								<LuGitBranch className="size-3 shrink-0" />
-								<span className="truncate hover:underline">{data.branch}</span>
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom">
-							{branchCopied ? "Copied" : "Click to copy"}
-						</TooltipContent>
-					</Tooltip>
+									}}
+									className="flex min-w-0 shrink items-center gap-1 font-mono text-muted-foreground hover:text-foreground"
+								>
+									<LuGitBranch className="size-3 shrink-0" />
+									<span className="truncate hover:underline">
+										{data.branch}
+									</span>
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom">
+								{branchCopied ? "Copied" : "Click to copy"}
+							</TooltipContent>
+						</Tooltip>
+					</span>
 					{createdAtLabel !== null && (
-						<>
+						<span className="inline-flex shrink-0 items-center gap-2">
 							<span aria-hidden>·</span>
-							<span className="shrink-0">{createdAtLabel}</span>
-						</>
+							<span>{createdAtLabel}</span>
+						</span>
 					)}
 				</div>
 			)}
