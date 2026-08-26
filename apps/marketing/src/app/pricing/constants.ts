@@ -67,7 +67,7 @@ export const PRICING_TIERS: PricingTier[] = [
 		features: [
 			"Everything in Free",
 			"Unlimited users",
-			"Remote workspaces",
+			"Remote access",
 			"Linear integration",
 			"Slack integration",
 			"Mobile (coming soon)",
@@ -137,7 +137,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 			{ label: "Desktop app", values: [true, true, true] },
 			{ label: "Local workspaces", values: [true, true, true] },
 			{
-				label: "Remote workspaces",
+				label: "Remote access",
 				values: [null, true, true],
 				badge: { label: "Beta", variant: "default" },
 			},

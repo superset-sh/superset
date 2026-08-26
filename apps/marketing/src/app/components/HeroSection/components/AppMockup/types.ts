@@ -1,7 +1,7 @@
 export type ActiveDemo =
 	| "Orchestrate Parallel Agents"
 	| "Automate Tasks"
-	| "Remote Workspaces"
+	| "Remote Access"
 	| "See Changes";
 
 export type WorkspaceStatus = "permission" | "working" | "review";

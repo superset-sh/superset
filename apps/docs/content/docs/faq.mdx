@@ -23,7 +23,7 @@ That's a different company (joinsuperset.com). This Superset is a desktop app fo
 GitHub and Google sign-ins create **separate accounts**, even with the same email. Sign out and back in with the provider you originally used. Also check which organization you're in: updates can land you in a different org, and its workspaces live separately.
 
 **I paid for Pro but can't find the features.**
-Pro features (remote workspaces, automations, and more) live in the current v2 interface. If your app looks like the older UI, enable it under **Settings → Experimental**.
+Pro features (remote access, automations, and more) live in the current v2 interface. If your app looks like the older UI, enable it under **Settings → Experimental**.
 
 **How do I cancel or get a refund?**
 Email [support@superset.sh](mailto:support@superset.sh). Refunds are handled promptly.
@@ -68,9 +68,9 @@ Yes. Terminals are backed by a background daemon, so running processes and scrol
 ## Remote and Automations
 
 **Why does my host show offline when the machine is up?**
-"Online" means connected to the Superset relay, not "the process is running." Remote access via relay is **off by default**; enable it under **Settings → Security** (or run `superset start --daemon` on CLI hosts). See [Remote Workspaces](/remote-workspaces). The local CLI works regardless of relay state.
+"Online" means connected to the Superset relay, not "the process is running." Remote access via relay is **off by default**; enable it under **Settings → Security** (or run `superset start --daemon` on CLI hosts). See [Remote Access](/remote-access). The local CLI works regardless of relay state.
 
-**Can I open a remote workspace's ports on my Mac?**
+**Can I open a remote host's ports on my Mac?**
 Not yet; the ports panel shows ports on the host machine. Workaround: `ssh -L 3000:localhost:3000 user@host` or a tailnet.
 
 **Why did my automation run fail while my machine was asleep?**
@@ -79,7 +79,7 @@ Runs fail when the target device isn't relay-connected at fire time. Use **Retry
 ## Privacy
 
 **Does my code leave my machine?**
-No. Superset is local-first: repos, worktrees, terminal output, and agent sessions stay on your machine. Cloud sync covers account and organization metadata only. Remote workspace traffic is routed through the relay only when you explicitly enable it.
+No. Superset is local-first: repos, worktrees, terminal output, and agent sessions stay on your machine. Cloud sync covers account and organization metadata only. Remote access traffic is routed through the relay only when you explicitly enable it.
 
 **Does it modify git config?**
 No. Superset uses standard git commands.
