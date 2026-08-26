@@ -13,8 +13,13 @@
 
 /* Headings carry their own margin-top for spacing between blocks, but that
  * still applies to the very first block too, stacking on top of the
- * article's own padding for a much bigger gap than intended. */
-.default-markdown article > *:first-child {
+ * article's own padding for a much bigger gap than intended. Two levels
+ * deep: react-markdown (MarkdownRenderer) puts the first block directly
+ * under <article>, but TipTapMarkdownRenderer wraps its editor content in
+ * its own root div (EditorContent's ProseMirror mount point) between
+ * <article> and the first real block — both share this stylesheet. */
+.default-markdown article > *:first-child,
+.default-markdown article > *:first-child > *:first-child {
 	margin-top: 0;
 }
 
