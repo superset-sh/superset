@@ -28,11 +28,11 @@ import { cn } from "@superset/ui/utils";
 import { Plus, Wrench } from "lucide-react";
 import { useMemo } from "react";
 import { LuGripVertical } from "react-icons/lu";
+import { AgentIcon } from "renderer/components/AgentIcon";
 import {
 	SettingsListSidebar,
 	settingsListItemClass,
 } from "../../../../../components/SettingsListSidebar";
-import { AgentIcon } from "../AgentIcon";
 
 interface AgentsSettingsSidebarProps {
 	configs: HostAgentConfig[];

@@ -18,6 +18,7 @@ import {
 	LuFileText,
 	LuGauge,
 	LuLayers,
+	LuNotebookPen,
 	LuPlus,
 	LuPuzzle,
 	LuSearch,
@@ -139,11 +140,15 @@ export function DashboardSidebarHeader({
 	const isUsageOpen = !!matchRoute({ to: "/usage", fuzzy: true });
 	const isPluginsOpen = !!matchRoute({ to: "/plugins", fuzzy: true });
 	const isPagesOpen = !!matchRoute({ to: "/pages", fuzzy: true });
+	const isMemoryOpen = !!matchRoute({ to: "/memory", fuzzy: true });
 	// `?? false`: the hook returns undefined until PostHog flags resolve.
 	// Dev builds bypass the flag — the local dev account isn't in the
 	// @superset.sh release condition.
 	const isPluginsEnabled =
 		(useFeatureFlagEnabled(FEATURE_FLAGS.PLUGINS) ?? false) ||
+		env.NODE_ENV === "development";
+	const isMemoryEnabled =
+		(useFeatureFlagEnabled(FEATURE_FLAGS.MEMORY) ?? false) ||
 		env.NODE_ENV === "development";
 	const { myFailedCount } = useFailedAutomations();
 
@@ -204,6 +209,10 @@ export function DashboardSidebarHeader({
 
 	const handlePluginsClick = () => {
 		navigate({ to: "/plugins" });
+	};
+
+	const handleMemoryClick = () => {
+		navigate({ to: "/memory" });
 	};
 
 	const handlePullRequestsClick = () => {
@@ -384,6 +393,28 @@ export function DashboardSidebarHeader({
 						</TooltipTrigger>
 						<TooltipContent side="right">Usage</TooltipContent>
 					</Tooltip>
+
+					{isMemoryEnabled && (
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleMemoryClick}
+									aria-label="Memory"
+									aria-current={isMemoryOpen ? "page" : undefined}
+									className={cn(
+										"flex size-7 items-center justify-center rounded-md transition-colors",
+										isMemoryOpen
+											? "bg-fill-selected text-muted-foreground"
+											: "text-muted-foreground hover:bg-fill-hover",
+									)}
+								>
+									<LuNotebookPen className="size-3.5" strokeWidth={1.5} />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Memory</TooltipContent>
+						</Tooltip>
+					)}
 
 					{isPagesEnabled && (
 						<Tooltip delayDuration={300}>
@@ -630,6 +661,27 @@ export function DashboardSidebarHeader({
 				/>
 				<span className="flex-1 text-left">Usage</span>
 			</button>
+
+			{isMemoryEnabled && (
+				<button
+					type="button"
+					onClick={handleMemoryClick}
+					aria-label="Memory"
+					aria-current={isMemoryOpen ? "page" : undefined}
+					className={cn(
+						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						isMemoryOpen
+							? "bg-fill-selected text-foreground"
+							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+					)}
+				>
+					<LuNotebookPen
+						className="size-4 shrink-0 text-muted-foreground"
+						strokeWidth={1.5}
+					/>
+					<span className="flex-1 text-left">Memory</span>
+				</button>
+			)}
 
 			{isPagesEnabled && (
 				<button

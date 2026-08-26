@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import { TipTapMarkdownRenderer } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer";
+import { splitFrontMatter } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/splitFrontMatter";
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
 import { useMarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/hooks/useMarkdownSearch";
 import type { ViewProps } from "../../types";
-import { splitFrontMatter } from "./splitFrontMatter";
 
 // Beyond this size the per-keystroke merge in preserveSourceFormatting gets
 // expensive; fall back to a read-only preview and leave editing to CodeView.

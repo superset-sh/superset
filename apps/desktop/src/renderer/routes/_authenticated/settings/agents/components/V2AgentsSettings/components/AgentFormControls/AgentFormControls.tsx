@@ -2,7 +2,7 @@ import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { cn } from "@superset/ui/utils";
-import { AgentIcon } from "../AgentIcon";
+import { AgentIcon } from "renderer/components/AgentIcon";
 
 /**
  * Shared layout primitives and composites for the agent settings forms, used by

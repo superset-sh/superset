@@ -210,6 +210,13 @@ export const FEATURE_FLAGS = {
 	 */
 	PLUGINS: "plugins",
 	PAGES: "pages",
+	/**
+	 * Shows the Memory tab in the v2 dashboard sidebar (per-agent global
+	 * memory-file editor). Dev builds bypass the flag like Plugins; the flag
+	 * controls visibility, not capability — the host-service agentMemory
+	 * router is always mounted.
+	 */
+	MEMORY: "memory",
 } as const;
 
 /**

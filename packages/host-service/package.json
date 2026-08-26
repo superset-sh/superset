@@ -40,6 +40,10 @@
 			"types": "./src/trpc/router/settings/index.ts",
 			"default": "./src/trpc/router/settings/index.ts"
 		},
+		"./agent-memory": {
+			"types": "./src/trpc/router/agent-memory/index.ts",
+			"default": "./src/trpc/router/agent-memory/index.ts"
+		},
 		"./attachments": {
 			"types": "./src/trpc/router/attachments/index.ts",
 			"default": "./src/trpc/router/attachments/index.ts"

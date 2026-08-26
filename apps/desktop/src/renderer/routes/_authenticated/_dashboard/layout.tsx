@@ -79,6 +79,7 @@ function DashboardLayout() {
 		matchRoute({ to: "/usage", fuzzy: true }) !== false ||
 		matchRoute({ to: "/plugins", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pages", fuzzy: true }) !== false ||
+		matchRoute({ to: "/memory", fuzzy: true }) !== false ||
 		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;
 	const versionMismatch =
 		(isV2CloudEnabled && onV1WorkspaceRoute) ||

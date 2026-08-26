@@ -10,8 +10,8 @@ import { cn } from "@superset/ui/utils";
 import { Check, ChevronDown, ImagePlus } from "lucide-react";
 import { useState } from "react";
 import { isDataImageUri } from "renderer/assets/app-icons/preset-icons";
+import { AgentIcon } from "renderer/components/AgentIcon";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { AgentIcon } from "../AgentIcon";
 import { AGENT_ICON_OPTIONS } from "./agent-icon-options";
 import { resizeImageDataUrl } from "./resize-image";
 

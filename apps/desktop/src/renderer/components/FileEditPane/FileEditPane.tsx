@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { useCallback, useState } from "react";
+import { splitFrontMatter } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/splitFrontMatter";
 import { ErrorState } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/ErrorState";
 import { FileViewToggle } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/FileViewToggle";
 import { LoadingState } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/LoadingState";
@@ -9,7 +10,6 @@ import {
 	orderForToggle,
 	resolveActivePaneView,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry";
-import { splitFrontMatter } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/registry/views/MarkdownPreviewView/splitFrontMatter";
 import type { SharedFileDocument } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/fileDocumentStore";
 import type { FilePaneData } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 
