@@ -30,6 +30,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"account",
 	"appearance",
 	"ringtones",
+	"usage",
 	"keyboard",
 	"behavior",
 	"git",
@@ -53,6 +54,7 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/teams")) return "teams";
 	if (pathname.includes("/settings/appearance")) return "appearance";
 	if (pathname.includes("/settings/ringtones")) return "ringtones";
+	if (pathname.includes("/settings/usage")) return "usage";
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
 	if (pathname.includes("/settings/behavior")) return "behavior";
 	if (pathname.includes("/settings/git")) return "git";
@@ -79,6 +81,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/appearance";
 		case "ringtones":
 			return "/settings/ringtones";
+		case "usage":
+			return "/settings/usage";
 		case "keyboard":
 			return "/settings/keyboard";
 		case "behavior":
@@ -162,10 +166,11 @@ function SettingsLayout() {
 		[navigate, location.pathname, originRoute],
 	);
 
-	const usesInnerSidebar =
+	const usesFullWidthContent =
 		location.pathname.startsWith("/settings/projects") ||
 		location.pathname.startsWith("/settings/hosts") ||
-		location.pathname.startsWith("/settings/agents");
+		location.pathname.startsWith("/settings/agents") ||
+		location.pathname.startsWith("/settings/usage");
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
@@ -188,7 +193,7 @@ function SettingsLayout() {
 							onClear={() => setSearchQuery("")}
 						/>
 					)}
-					{usesInnerSidebar ? (
+					{usesFullWidthContent ? (
 						<Outlet />
 					) : (
 						<div className="mx-auto max-w-4xl">

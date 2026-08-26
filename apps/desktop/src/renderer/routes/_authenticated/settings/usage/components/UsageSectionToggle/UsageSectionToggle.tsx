@@ -13,19 +13,19 @@ function pillClass(isActive: boolean) {
 /** Pill toggle between the Usage sections (workspaces-header style). */
 export function UsageSectionToggle() {
 	const matchRoute = useMatchRoute();
-	const onResources = matchRoute({ to: "/usage/resources" }) !== false;
+	const onResources = matchRoute({ to: "/settings/usage/resources" }) !== false;
 
 	return (
 		<nav aria-label="Usage sections" className="flex items-center gap-2">
 			<Link
-				to="/usage"
+				to="/settings/usage"
 				className={pillClass(!onResources)}
 				aria-current={onResources ? undefined : "page"}
 			>
 				Token usage
 			</Link>
 			<Link
-				to="/usage/resources"
+				to="/settings/usage/resources"
 				className={pillClass(onResources)}
 				aria-current={onResources ? "page" : undefined}
 			>

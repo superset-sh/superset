@@ -23,6 +23,8 @@ export function setUsageLastSection(section: UsageSection): void {
 
 export function usageSectionPath(
 	section: UsageSection,
-): "/usage" | "/usage/resources" {
-	return section === "resources" ? "/usage/resources" : "/usage";
+): "/settings/usage" | "/settings/usage/resources" {
+	return section === "resources"
+		? "/settings/usage/resources"
+		: "/settings/usage";
 }

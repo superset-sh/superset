@@ -4,7 +4,7 @@ import { UsageWorkspacesPage } from "../components/UsageWorkspacesPage";
 import { useRecordUsageSection } from "../hooks/useRecordUsageSection";
 
 export const Route = createFileRoute(
-	"/_authenticated/_dashboard/usage/workspaces/",
+	"/_authenticated/settings/usage/workspaces/",
 )({
 	component: WorkspacesUsagePage,
 });

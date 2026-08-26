@@ -41,7 +41,7 @@ function CommandPaletteTrigger() {
 	const openResources = () => {
 		setOpen(false);
 		reset();
-		void navigate({ to: "/usage/resources" });
+		void navigate({ to: "/settings/usage/resources" });
 	};
 
 	// Keeps CHECK_RESOURCES on the renderer's own hotkey binding (rather than a

@@ -3,7 +3,7 @@ import { UsageResourcesPage } from "../components/UsageResourcesPage";
 import { useRecordUsageSection } from "../hooks/useRecordUsageSection";
 
 export const Route = createFileRoute(
-	"/_authenticated/_dashboard/usage/resources/",
+	"/_authenticated/settings/usage/resources/",
 )({
 	component: ResourcesPage,
 });

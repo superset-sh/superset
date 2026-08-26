@@ -3,7 +3,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { UsageView } from "./components/UsageView";
 import { useRecordUsageSection } from "./hooks/useRecordUsageSection";
 
-export const Route = createFileRoute("/_authenticated/_dashboard/usage/")({
+export const Route = createFileRoute("/_authenticated/settings/usage/")({
 	component: UsagePage,
 });
 

@@ -20,7 +20,7 @@ export function UsageProjectBars({ history }: { history: UsageHistory }) {
 				<span className="font-medium">Workspace</span>
 				<span className="flex items-baseline gap-2">
 					<Link
-						to="/usage/workspaces"
+						to="/settings/usage/workspaces"
 						className="rounded px-1 text-[10px] transition-colors hover:bg-muted hover:text-foreground"
 					>
 						All {history.projects.length} →

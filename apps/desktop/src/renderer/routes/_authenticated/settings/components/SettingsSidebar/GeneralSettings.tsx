@@ -5,6 +5,7 @@ import {
 	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
+	HiOutlineChartBar,
 	HiOutlineCommandLine,
 	HiOutlineComputerDesktop,
 	HiOutlineCpuChip,
@@ -37,6 +38,7 @@ type SettingsRoute =
 	| "/settings/teams"
 	| "/settings/appearance"
 	| "/settings/ringtones"
+	| "/settings/usage"
 	| "/settings/keyboard"
 	| "/settings/behavior"
 	| "/settings/browser"
@@ -88,6 +90,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "ringtones",
 				label: "Notifications",
 				icon: <HiOutlineBell className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/usage",
+				section: "usage",
+				label: "Usage",
+				icon: <HiOutlineChartBar className="h-4 w-4" />,
 			},
 		],
 	},
@@ -242,7 +250,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 
 				return (
 					<div key={group.label} className={cn(groupIndex > 0 && "mt-4")}>
-						<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
+						<h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.075em] px-3 mb-1">
 							{group.label}
 						</h2>
 						<nav className="flex flex-col">
@@ -258,10 +266,10 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 										key={section.id}
 										to={section.id}
 										className={cn(
-											"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
+											"flex h-7 items-center gap-2 px-3 text-[13px] rounded-md transition-colors text-left",
 											isActive
-												? "bg-accent text-accent-foreground"
-												: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+												? "bg-fill-selected"
+												: "text-muted-foreground hover:bg-fill-hover",
 										)}
 									>
 										{section.icon}

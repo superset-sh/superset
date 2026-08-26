@@ -126,7 +126,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 		<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-3 px-6 py-4">
 			<div className="flex flex-wrap items-center gap-2">
 				<Link
-					to="/usage"
+					to="/settings/usage"
 					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />

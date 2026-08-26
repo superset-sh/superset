@@ -28,7 +28,7 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 						className="cursor-pointer transition-colors hover:bg-muted/60"
 						onClick={() =>
 							navigate({
-								to: "/usage/model/$modelKey",
+								to: "/settings/usage/model/$modelKey",
 								params: { modelKey: `${row.provider}|${row.model}` },
 							})
 						}

@@ -54,7 +54,7 @@ export function WorkspaceUsageRow({
 	);
 	return drillable ? (
 		<Link
-			to="/usage/workspace/$workspaceName"
+			to="/settings/usage/workspace/$workspaceName"
 			params={{ workspaceName: row.project }}
 			className="flex flex-col gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-muted/60"
 		>

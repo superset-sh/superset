@@ -106,7 +106,7 @@ export function UsageDrilldownPage({
 		<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-3 px-6 py-4">
 			<div className="flex flex-wrap items-center gap-2">
 				<Link
-					to="/usage"
+					to="/settings/usage"
 					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
@@ -242,12 +242,12 @@ export function UsageDrilldownPage({
 							const linkTarget =
 								kind === "workspace"
 									? {
-											to: "/usage/model/$modelKey" as const,
+											to: "/settings/usage/model/$modelKey" as const,
 											params: { modelKey: row.label },
 										}
 									: history.projectDetails[row.label]
 										? {
-												to: "/usage/workspace/$workspaceName" as const,
+												to: "/settings/usage/workspace/$workspaceName" as const,
 												params: { workspaceName: row.label },
 											}
 										: null;

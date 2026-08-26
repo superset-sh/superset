@@ -23,5 +23,5 @@ export const checkResourcesCommand: Command = {
 		"activity",
 		"processes",
 	],
-	run: (context) => context.navigate("/usage/resources"),
+	run: (context) => context.navigate("/settings/usage/resources"),
 };
