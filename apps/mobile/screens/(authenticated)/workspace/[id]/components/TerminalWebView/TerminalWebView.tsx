@@ -176,8 +176,35 @@ export const TerminalWebView = forwardRef<
 		[host.machineId, host.organizationId, terminalId, workspaceId],
 	);
 
-	// Read by the `ready` handshake, which must not re-run on every change.
-	const visibleRef = useRef(true);
+	// The host runs the PTY at the smallest box across the clients that are
+	// actually showing the terminal, so this screen has to say when it stops
+	// being one of them — a phone left attached in a pocket would otherwise hold
+	// every desktop pane at phone width. Neither unmount nor socket state can
+	// stand in for it: expo-router keeps a pushed-over screen mounted and its
+	// socket alive, so screen focus and app foreground are both required.
+	const [screenFocused, setScreenFocused] = useState(true);
+	useFocusEffect(
+		useCallback(() => {
+			setScreenFocused(true);
+			return () => setScreenFocused(false);
+		}, []),
+	);
+
+	const [appActive, setAppActive] = useState(
+		() => AppState.currentState === "active",
+	);
+	useEffect(() => {
+		const subscription = AppState.addEventListener("change", (state) => {
+			setAppActive(state === "active");
+			if (state === "active") postToPage({ type: "resume" });
+		});
+		return () => subscription.remove();
+	}, [postToPage]);
+
+	// Seeded from the values above rather than a bare `true`, so the `ready`
+	// handshake reports the truth even if it somehow beats the effect below.
+	// Held in a ref so the handshake doesn't re-run on every change.
+	const visibleRef = useRef(screenFocused && appActive);
 
 	const handleMessage = useCallback(
 		(event: WebViewMessageEvent) => {
@@ -233,31 +260,6 @@ export const TerminalWebView = forwardRef<
 		},
 		[buildDialUrl, postToPage],
 	);
-
-	// The host runs the PTY at the smallest box across the clients that are
-	// actually showing the terminal, so this screen has to say when it stops
-	// being one of them — a phone left attached in a pocket would otherwise hold
-	// every desktop pane at phone width. Neither unmount nor socket state can
-	// stand in for it: expo-router keeps a pushed-over screen mounted and its
-	// socket alive, so screen focus and app foreground are both required.
-	const [screenFocused, setScreenFocused] = useState(true);
-	useFocusEffect(
-		useCallback(() => {
-			setScreenFocused(true);
-			return () => setScreenFocused(false);
-		}, []),
-	);
-
-	const [appActive, setAppActive] = useState(
-		() => AppState.currentState === "active",
-	);
-	useEffect(() => {
-		const subscription = AppState.addEventListener("change", (state) => {
-			setAppActive(state === "active");
-			if (state === "active") postToPage({ type: "resume" });
-		});
-		return () => subscription.remove();
-	}, [postToPage]);
 
 	useEffect(() => {
 		const visible = screenFocused && appActive;
