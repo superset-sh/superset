@@ -923,6 +923,12 @@ export function park(transport: TerminalTransport) {
 		transport._socket = null;
 		socket.close();
 	}
+	// The skipped close handler is also what consumes these per-connection
+	// flags. Left latched from an attached session, a post-remount connection
+	// that dies before attaching would read the stale `_connAttached` and skip
+	// the failed-attempt accounting, delaying the outage diagnosis by a dial.
+	transport._connAttached = false;
+	transport._connHadRetryableError = false;
 	transport._onDataDisposable?.dispose();
 	transport._onDataDisposable = null;
 	transport._writeCoalescer?.dispose();

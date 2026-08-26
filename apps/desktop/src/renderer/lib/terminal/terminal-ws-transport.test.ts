@@ -728,6 +728,23 @@ describe("terminal-ws-transport", () => {
 		expect(transport.connectionState).toBe("open");
 	});
 
+	test("a failed connection after park is counted toward the diagnosis", () => {
+		const { transport, terminal } = connectAttached();
+		park(transport);
+
+		// Remount: fresh socket. Every post-park connection that dies before
+		// attaching must count as a failed attempt — a stale _connAttached
+		// carried over from the parked (attached) session would skip the first
+		// one and delay the outage diagnosis by a dial.
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const redial = FakeRelaySocket.instances.at(-1);
+		if (!redial) throw new Error("expected relay socket instance");
+		redial.open();
+		redial.drop(1006, "host went away before attach");
+
+		expect(transport._attachRetry.consecutiveFailures).toBe(1);
+	});
+
 	test("ignores late events from a socket detached during teardown", () => {
 		const { transport, socket } = connectAttached();
 
