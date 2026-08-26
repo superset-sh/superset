@@ -32,6 +32,7 @@ import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
+import { menuEmitter } from "./lib/menu-events";
 import { PAGE_SCHEME, pageProtocolHandler } from "./lib/pageContent";
 import {
 	initTanstackDbPersistence,
@@ -356,11 +357,18 @@ if (!gotTheLock) {
 } else {
 	// Windows/Linux: protocol URL arrives as argv on the second instance
 	app.on("second-instance", async (_event, argv) => {
-		focusMainWindow();
 		const url = findDeepLinkInArgv(argv);
 		if (url) {
+			focusMainWindow();
 			await processDeepLink(url);
+			return;
 		}
+		// A plain relaunch with no deep link is the OS asking for a window: the
+		// shell's "New Window" (GNOME top-bar/dock app menus) and a second click
+		// on the launcher both re-run the executable, and the single-instance
+		// lock lands them here. Focusing alone made those clicks a silent no-op.
+		console.log("[main] Second instance launched; opening a new window");
+		menuEmitter.emit("new-window");
 	});
 
 	(async () => {
