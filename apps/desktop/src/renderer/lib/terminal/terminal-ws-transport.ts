@@ -899,6 +899,40 @@ function attachSocketListeners(
 }
 
 /**
+ * Park the transport while its pane is hidden: close the socket and stop the
+ * liveness/reconnect machinery, keeping everything needed to resume — stream
+ * position (seqAnchor), replay flags, title, logs, session-ended state.
+ *
+ * A parked pane must cost nothing. Before this, every parked terminal kept a
+ * live socket that (a) received and parsed the full output stream of hidden
+ * agents, and (b) on any endpoint failure re-dialed forever on capped backoff.
+ * N parked panes retrying together feed Chromium's per-renderer WebSocket
+ * handshake throttle, which then delays every NEW handshake by seconds — the
+ * visible pane's reconnect (typing dead until re-attach) and create-on-attach
+ * terminal opens (SUPER-2043).
+ *
+ * The next connect() dials fresh; a seq-aware host replays exactly the missed
+ * bytes (or reanchors past the 2 MB ring), so parking loses nothing.
+ */
+export function park(transport: TerminalTransport) {
+	teardownLiveness(transport);
+	const socket = transport._socket;
+	if (socket) {
+		// Null before close() so the close listener's stale-socket guard drops
+		// the event — a park must not count as a failed attempt or push a log.
+		transport._socket = null;
+		socket.close();
+	}
+	transport._onDataDisposable?.dispose();
+	transport._onDataDisposable = null;
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = null;
+	if (transport.connectionState !== "disconnected") {
+		setConnectionState(transport, "disconnected");
+	}
+}
+
+/**
  * Manually re-dial after the transport stopped trying (access denied, fatal
  * server error, PTY exit) or to force an immediate reconnect. Clears the
  * terminated flag and resets the attempt budget.

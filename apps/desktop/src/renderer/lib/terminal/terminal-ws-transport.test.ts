@@ -117,7 +117,7 @@ mock.module("@superset/workspace-client/relay-socket", () => ({
 		new FakeRelaySocket(options),
 }));
 
-const { connect, createTransport, disconnect, reconnect } = await import(
+const { connect, createTransport, disconnect, park, reconnect } = await import(
 	"./terminal-ws-transport"
 );
 
@@ -165,6 +165,13 @@ function connectAttached(url = "ws://host/terminal/t1") {
 	return { transport, terminal, socket };
 }
 
+// The park tests feed binary frames into the write coalescer outside the
+// coalescing describe's rAF harness; bun's test runtime has no
+// requestAnimationFrame, so give it an inert one (those tests never fire a
+// frame — pending bytes are flushed by park's coalescer dispose).
+const originalRaf = globalThis.requestAnimationFrame;
+const originalCancelRaf = globalThis.cancelAnimationFrame;
+
 beforeEach(() => {
 	FakeRelaySocket.instances = [];
 	if (win && typeof win.addEventListener !== "function") {
@@ -173,6 +180,10 @@ beforeEach(() => {
 	if (win && typeof win.removeEventListener !== "function") {
 		win.removeEventListener = () => {};
 	}
+	if (typeof globalThis.requestAnimationFrame !== "function") {
+		globalThis.requestAnimationFrame = () => 0;
+		globalThis.cancelAnimationFrame = () => {};
+	}
 });
 
 afterEach(() => {
@@ -180,6 +191,8 @@ afterEach(() => {
 		win.addEventListener = originalAddEventListener;
 		win.removeEventListener = originalRemoveEventListener;
 	}
+	globalThis.requestAnimationFrame = originalRaf;
+	globalThis.cancelAnimationFrame = originalCancelRaf;
 	setSystemTime();
 	jest.useRealTimers();
 });
@@ -645,6 +658,74 @@ describe("terminal-ws-transport", () => {
 		socket.open();
 		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 		expect(transport.sessionEnded).toBe(false);
+	});
+
+	test("park closes the socket silently, keeping title and stream position", () => {
+		const { transport, socket } = connectAttached();
+		socket.message(JSON.stringify({ type: "title", title: "agent" }));
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 40, mode: "exact" }),
+		);
+		const bytes = new TextEncoder().encode("hello");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(true);
+		expect(transport.connectionState).toBe("disconnected");
+		// A park is not a failure: no reconnect logs, no diagnosis, no counted
+		// attempt — and the resume state survives for the next connect().
+		expect(transport.logs).toHaveLength(0);
+		expect(transport.lastDiagnosis).toBeNull();
+		expect(transport.title).toBe("agent");
+		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 45 });
+	});
+
+	test("park stops the liveness watchdog and ignores late socket events", () => {
+		jest.useFakeTimers();
+		setSystemTime(new Date("2026-01-01T00:00:00Z"));
+		const { transport, socket } = connectAttached();
+
+		park(transport);
+
+		// Sleep/wake after a park must not resurrect the closed socket.
+		setSystemTime(new Date("2026-01-01T00:02:00Z"));
+		jest.advanceTimersByTime(120_000);
+		expect(socket.reconnectCount).toBe(0);
+
+		// A trailing close/message from the closed socket is dropped.
+		socket.drop(1006, "late");
+		socket.message(JSON.stringify({ type: "title", title: "late" }));
+		expect(transport.connectionState).toBe("disconnected");
+		expect(transport.logs).toHaveLength(0);
+	});
+
+	test("connect() after park dials a fresh socket anchored at the parked position", () => {
+		const { transport, terminal, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+		const bytes = new TextEncoder().encode("abc");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+		park(transport);
+		expect(FakeRelaySocket.instances).toHaveLength(1);
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+
+		// The parked socket is gone for good; the remount dials a new one whose
+		// URL asks the host for exactly the bytes missed while parked.
+		expect(FakeRelaySocket.instances).toHaveLength(2);
+		const redial = FakeRelaySocket.instances.at(-1);
+		if (!redial) throw new Error("expected relay socket instance");
+		const buildUrl = redial.options.buildUrl as () => string;
+		expect(buildUrl()).toContain("seq=e1%3A13");
+		redial.open();
+		redial.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(transport.connectionState).toBe("open");
 	});
 
 	test("ignores late events from a socket detached during teardown", () => {
