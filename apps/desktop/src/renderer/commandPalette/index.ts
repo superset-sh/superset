@@ -1,7 +1,5 @@
-export {
-	CheckResourcesHotkeyMount,
-	CommandPaletteHost,
-} from "./CommandPaletteHost";
+export { CheckResourcesHotkeyMount } from "./CheckResourcesHotkeyMount";
+export { CommandPaletteHost } from "./CommandPaletteHost";
 export { useCommandContext } from "./core/ContextProvider";
 export { executeCommand } from "./core/execute";
 export { useFrameStackStore } from "./core/frames";
