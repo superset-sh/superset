@@ -9,6 +9,7 @@ import {
 	useRef,
 } from "react";
 import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import { LuContainer } from "react-icons/lu";
 import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useFocusVisible } from "renderer/hooks/useFocusVisible";
@@ -121,7 +122,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			}
 		}, [isActive]);
 
-		const creationStatusText = isPending ? "Creating…" : null;
+		// Sandbox provisioning outlives the create mutation (container ensure is
+		// fire-and-forget), so it shows both during and after the pending state.
+		const creationStatusText =
+			workspace.sandboxStatus === "provisioning"
+				? "Initializing sandbox…"
+				: isPending
+					? "Creating…"
+					: null;
 		const isMainWorkspace = workspace.type === "main";
 		// No hover action button on the local main workspace: a stray click on the
 		// minus would remove the project's anchor row. Removal stays available via
@@ -297,19 +305,34 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)}
 							/>
 						) : (
-							<>
+							<span className="flex min-w-0 items-center gap-1">
 								<WorkspaceNameMarquee
 									name={name || branch}
 									forceActive={isFocused}
 									className={cn(
-										"text-[13px] leading-tight transition-colors",
+										"min-w-0 flex-1 text-[13px] leading-tight transition-colors",
 										isActive || isSelected
 											? "text-foreground"
 											: "text-foreground/80",
 									)}
 								/>
 								{isSelected && <span className="sr-only">, selected</span>}
-							</>
+								{workspace.sandboxed && (
+									<Tooltip delayDuration={300}>
+										<TooltipTrigger asChild>
+											<span className="shrink-0 text-muted-foreground">
+												<LuContainer
+													className="size-3"
+													aria-label="Sandboxed workspace"
+												/>
+											</span>
+										</TooltipTrigger>
+										<TooltipContent side="right" sideOffset={8}>
+											Sandboxed — terminals run in a Docker container
+										</TooltipContent>
+									</Tooltip>
+								)}
+							</span>
 						)}
 
 						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">

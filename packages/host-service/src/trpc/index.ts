@@ -11,6 +11,7 @@ import {
 	type ProjectNotSetupCause,
 	type TeardownFailureCause,
 } from "./error-types";
+import { checkSandboxTokenAccess } from "./sandbox-token-acl";
 
 export interface RouterMeta {
 	/**
@@ -105,15 +106,35 @@ export const router = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = baseProcedure;
 
-export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
-	if (!ctx.isAuthenticated) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "Invalid or missing authentication token.",
-		});
-	}
-	return next({ ctx });
-});
+export const protectedProcedure = baseProcedure.use(
+	async ({ ctx, next, path, getRawInput }) => {
+		if (!ctx.isAuthenticated) {
+			throw new TRPCError({
+				code: "UNAUTHORIZED",
+				message: "Invalid or missing authentication token.",
+			});
+		}
+		// A sandbox CLI token is a narrower principal than the host PSK: it may
+		// only act on its own workspace, per the default-deny ACL. This closes
+		// the escape where the in-container token drove the whole host API
+		// (host RCE, credential theft, cross-workspace ops — CWE-862).
+		if (ctx.sandboxWorkspaceId) {
+			const decision = await checkSandboxTokenAccess({
+				path,
+				rawInput: await getRawInput(),
+				tokenWorkspaceId: ctx.sandboxWorkspaceId,
+				db: ctx.db,
+			});
+			if (!decision.allowed) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: `Sandbox token not authorized for ${path}: ${decision.reason}`,
+				});
+			}
+		}
+		return next({ ctx });
+	},
+);
 
 /**
  * For procedures that only make sense on a machine someone owns.

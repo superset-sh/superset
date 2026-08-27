@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import {
+	mergeSandboxConfigs,
+	type SandboxConfig,
+	validateSandboxConfig,
+} from "./sandbox-config.ts";
 
 const PROJECT_SUPERSET_DIR_NAME = ".superset";
 const CONFIG_FILE_NAME = "config.json";
@@ -13,6 +18,7 @@ export interface SetupConfig {
 	teardown?: string[];
 	run?: string[];
 	cwd?: string;
+	sandbox?: SandboxConfig;
 }
 
 interface LocalScriptMerge {
@@ -24,6 +30,7 @@ interface LocalSetupConfig {
 	setup?: string[] | LocalScriptMerge;
 	teardown?: string[] | LocalScriptMerge;
 	run?: string[] | LocalScriptMerge;
+	sandbox?: SandboxConfig;
 }
 
 const SCRIPT_KEYS = ["setup", "teardown", "run"] as const;
@@ -50,12 +57,18 @@ function readJson<T>(filePath: string): T | null {
 function validateSetupConfig(
 	parsed: unknown,
 	source: string,
+	options: { machineLocal: boolean },
 ): SetupConfig | null {
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 		return null;
 	}
 	const obj = parsed as Record<string, unknown>;
 	const result: SetupConfig = {};
+	if (obj.sandbox !== undefined) {
+		const sandbox = validateSandboxConfig(obj.sandbox, source, options);
+		if (sandbox === null) return null;
+		result.sandbox = sandbox;
+	}
 	if (obj.cwd !== undefined) {
 		if (typeof obj.cwd !== "string" || obj.cwd.trim().length === 0) {
 			console.error(
@@ -79,10 +92,13 @@ function validateSetupConfig(
 	return result;
 }
 
-function readSetupConfigAt(filePath: string): SetupConfig | null {
+function readSetupConfigAt(
+	filePath: string,
+	options: { machineLocal: boolean },
+): SetupConfig | null {
 	const parsed = readJson<unknown>(filePath);
 	if (parsed === null) return null;
-	return validateSetupConfig(parsed, filePath);
+	return validateSetupConfig(parsed, filePath, options);
 }
 
 function readLocalConfigAt(filePath: string): LocalSetupConfig | null {
@@ -93,6 +109,14 @@ function readLocalConfigAt(filePath: string): LocalSetupConfig | null {
 	}
 	const obj = parsed as Record<string, unknown>;
 	const result: LocalSetupConfig = {};
+	if (obj.sandbox !== undefined) {
+		// config.local.json is gitignored — machine-local by definition.
+		const sandbox = validateSandboxConfig(obj.sandbox, filePath, {
+			machineLocal: true,
+		});
+		if (sandbox === null) return null;
+		result.sandbox = sandbox;
+	}
 	for (const key of SCRIPT_KEYS) {
 		const value = obj[key];
 		if (value === undefined) continue;
@@ -139,6 +163,7 @@ function mergeBaseConfigs(
 		teardown: override.teardown ?? base.teardown,
 		run: override.run ?? base.run,
 		cwd: override.cwd ?? base.cwd,
+		sandbox: mergeSandboxConfigs(base.sandbox, override.sandbox),
 	};
 }
 
@@ -157,6 +182,9 @@ function applyLocalOverlay(
 			const after = localValue.after ?? [];
 			result[key] = [...before, ...(base[key] ?? []), ...after];
 		}
+	}
+	if (local.sandbox !== undefined) {
+		result.sandbox = mergeSandboxConfigs(base.sandbox, local.sandbox);
 	}
 	return result;
 }
@@ -212,9 +240,15 @@ export function loadSetupConfig(args: {
 	/** Override $HOME for tests. Defaults to `os.homedir()`. */
 	homeDir?: string;
 }): SetupConfig | null {
-	const projectConfig = readSetupConfigAt(getProjectConfigPath(args.repoPath));
+	// Repo-shipped sources: a cloned repo controls these, so sandbox
+	// mounts/env are not honored from them (see validateSandboxConfig).
+	const projectConfig = readSetupConfigAt(getProjectConfigPath(args.repoPath), {
+		machineLocal: false,
+	});
 	const worktreeConfig = args.worktreePath
-		? readSetupConfigAt(getProjectConfigPath(args.worktreePath))
+		? readSetupConfigAt(getProjectConfigPath(args.worktreePath), {
+				machineLocal: false,
+			})
 		: null;
 
 	let userConfig: SetupConfig | null = null;
@@ -223,7 +257,7 @@ export function loadSetupConfig(args: {
 		projectId: args.projectId,
 		homeDir: args.homeDir ?? homedir(),
 	})) {
-		userConfig = readSetupConfigAt(overridePath);
+		userConfig = readSetupConfigAt(overridePath, { machineLocal: true });
 		if (userConfig) break;
 	}
 

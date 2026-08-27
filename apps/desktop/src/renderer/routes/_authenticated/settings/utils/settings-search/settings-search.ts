@@ -47,6 +47,9 @@ export const SETTING_ITEM_ID = {
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
 	GIT_WORKTREE_LOCATION: "git-worktree-location",
 
+	SANDBOXES_DEFAULT: "sandboxes-default",
+	SANDBOXES_PROVIDER: "sandboxes-provider",
+
 	AGENTS_ENABLED: "agents-enabled",
 	AGENTS_COMMANDS: "agents-commands",
 	AGENTS_TASK_PROMPTS: "agents-task-prompts",
@@ -189,6 +192,9 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
 	[SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH]: "v1",
 	[SETTING_ITEM_ID.GIT_WORKTREE_LOCATION]: "shared",
+
+	[SETTING_ITEM_ID.SANDBOXES_DEFAULT]: "shared",
+	[SETTING_ITEM_ID.SANDBOXES_PROVIDER]: "shared",
 
 	[SETTING_ITEM_ID.AGENTS_ENABLED]: "shared",
 	[SETTING_ITEM_ID.AGENTS_COMMANDS]: "shared",
@@ -766,6 +772,37 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"username",
 			"feat",
 			"custom",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.SANDBOXES_DEFAULT,
+		section: "sandboxes",
+		title: "Sandbox new workspaces",
+		description:
+			"Run every new workspace's terminals and agents inside an isolated sandbox by default",
+		keywords: [
+			"sandbox",
+			"docker",
+			"container",
+			"isolation",
+			"security",
+			"workspace",
+			"worktree",
+			"default",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.SANDBOXES_PROVIDER,
+		section: "sandboxes",
+		title: "Sandbox provider",
+		description: "Which sandbox backend new workspaces use",
+		keywords: [
+			"sandbox",
+			"provider",
+			"docker",
+			"container",
+			"runtime",
+			"backend",
 		],
 	},
 	{

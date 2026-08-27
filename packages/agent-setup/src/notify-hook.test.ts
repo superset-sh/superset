@@ -104,7 +104,7 @@ function writeHookManifest(home: string, orgId: string, endpoint: string) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v9");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v10");
 	});
 
 	it("ignores hooks fired inside a subagent (agent_id present)", () => {

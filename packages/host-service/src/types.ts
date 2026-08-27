@@ -30,7 +30,16 @@ export interface HostServiceContext {
 	terminalAgentStore: TerminalAgentStore;
 	organizationId: string;
 	isAuthenticated: boolean;
+	/**
+	 * Set when the request authenticated with a per-workspace sandbox CLI
+	 * token (not the host PSK) — the id of that workspace. A narrower
+	 * principal than the PSK: protectedProcedure restricts it to own-workspace
+	 * operations via the sandbox-token ACL. Undefined for PSK/desktop callers.
+	 */
+	sandboxWorkspaceId?: string;
 	clientMachineId?: string;
+	/** x-superset-hook-token header, verified for sandboxed workspaces. */
+	agentHookHeaderToken?: string;
 	/** Present only when a desktop app spawned this host (has browser panes). */
 	browserBridge?: BrowserBridgeConfig;
 }

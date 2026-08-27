@@ -22,7 +22,7 @@ import {
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
-import { LuBrain, LuGitBranch, LuKeyboard } from "react-icons/lu";
+import { LuBrain, LuContainer, LuGitBranch, LuKeyboard } from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
@@ -44,6 +44,7 @@ type SettingsRoute =
 	| "/settings/behavior"
 	| "/settings/browser"
 	| "/settings/git"
+	| "/settings/sandboxes"
 	| "/settings/agents"
 	| "/settings/terminal"
 	| "/settings/links"
@@ -123,6 +124,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "git",
 				label: "Git & Worktrees",
 				icon: <LuGitBranch className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/sandboxes",
+				section: "sandboxes",
+				label: "Sandboxes",
+				icon: <LuContainer className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/agents",

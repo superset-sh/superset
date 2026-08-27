@@ -49,6 +49,9 @@ export interface SidebarWorkspaceInput {
 	tabOrder: number;
 	sectionId: string | null;
 	pinnedAt: number | null;
+	/** True when the workspace's terminals run inside a sandbox container. */
+	sandboxed?: boolean;
+	sandboxStatus?: "provisioning" | "ready" | "error";
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
 
@@ -104,6 +107,8 @@ function decorateSidebarWorkspace(
 		updatedAt: workspace.updatedAt,
 		taskId: workspace.taskId,
 		isPinned: workspace.pinnedAt != null,
+		sandboxed: workspace.sandboxed,
+		sandboxStatus: workspace.sandboxStatus,
 		pendingTransaction: workspace.pendingTransaction,
 	};
 }

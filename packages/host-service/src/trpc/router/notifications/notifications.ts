@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
+import { verifyHookToken } from "../../../runtime/sandbox/sandbox-tokens";
 import type { HostServiceContext } from "../../../types";
 import { publicProcedure, router } from "../../index";
 
@@ -100,6 +101,18 @@ export const notificationsRouter = router({
 			})
 			.sync();
 		if (!terminalSession?.originWorkspaceId) {
+			return { success: true, ignored: true as const };
+		}
+
+		// Sandboxed workspaces carry a per-workspace token; a present-but-
+		// wrong token is a spoof attempt and is dropped. Token-less requests
+		// pass (host workspaces, pre-update notify scripts).
+		if (
+			!verifyHookToken(
+				terminalSession.originWorkspaceId,
+				ctx.agentHookHeaderToken,
+			)
+		) {
 			return { success: true, ignored: true as const };
 		}
 

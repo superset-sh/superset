@@ -25,7 +25,7 @@ let mockedHomeDir = path.join(TEST_ROOT, "home");
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v9",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v10",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},

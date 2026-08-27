@@ -1083,6 +1083,10 @@
         "typescript": "6.0.3",
       },
     },
+    "packages/sandbox-image": {
+      "name": "@superset/sandbox-image",
+      "version": "0.0.0",
+    },
     "packages/sdk": {
       "name": "@superset/sdk",
       "version": "0.0.1-alpha.12",
@@ -3049,6 +3053,8 @@
     "@superset/relay": ["@superset/relay@workspace:apps/relay"],
 
     "@superset/relay2": ["@superset/relay2@workspace:apps/relay2"],
+
+    "@superset/sandbox-image": ["@superset/sandbox-image@workspace:packages/sandbox-image"],
 
     "@superset/sdk": ["@superset/sdk@workspace:packages/sdk"],
 

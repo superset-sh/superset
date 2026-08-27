@@ -16,6 +16,10 @@
 			"types": "./src/paths.ts",
 			"default": "./src/paths.ts"
 		},
+		"./agent-home-paths": {
+			"types": "./src/agent-home-paths.ts",
+			"default": "./src/agent-home-paths.ts"
+		},
 		"./config": {
 			"types": "./src/config.ts",
 			"default": "./src/config.ts"

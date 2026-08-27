@@ -7,6 +7,9 @@ import { z } from "zod";
 import { pullRequests } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
+import { destroyWorkspaceSandbox } from "../../../runtime/sandbox/container-manager";
+import { exportSandboxRefs } from "../../../runtime/sandbox/git-sync";
+import { evictWorkspaceRuntime } from "../../../runtime/sandbox/registry";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -414,6 +417,49 @@ async function runDestroyPhases(
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
+	}
+
+	// 3a½. Sandbox container + host-side sandbox state. After terminal
+	// disposal (the PTYs are docker-exec children of the container) and
+	// before worktree removal (the container bind-mounts the worktree). A
+	// failure never blocks the delete — the startup reconcile sweeps
+	// orphaned containers once docker is back.
+	if (local?.sandboxEnabled) {
+		// Sandbox-local commits live only in the isolated git dir; export
+		// them into the main repo as refs/sandbox/<id>/* first, and keep the
+		// git dir on disk if the export fails so they're never destroyed.
+		// Preserve the git dir unless commits are provably safe in the main
+		// repo. With no project there's nowhere to export to, so keep state
+		// on disk rather than destroy the only copy of sandbox-local commits.
+		let sandboxExportFailed = !project;
+		if (project) {
+			try {
+				await exportSandboxRefs({
+					repoPath: project.repoPath,
+					workspaceId: input.workspaceId,
+				});
+				sandboxExportFailed = false;
+			} catch (err) {
+				sandboxExportFailed = true;
+				const message = err instanceof Error ? err.message : String(err);
+				warnings.push(
+					`Failed to export sandbox commits (sandbox git state kept on disk): ${message}`,
+				);
+			}
+		} else {
+			warnings.push(
+				"Workspace has no project; sandbox git state kept on disk to avoid losing unexported commits.",
+			);
+		}
+		try {
+			await destroyWorkspaceSandbox(input.workspaceId, {
+				preserveState: sandboxExportFailed,
+			});
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(`Failed to remove sandbox container: ${message}`);
+		}
+		evictWorkspaceRuntime(input.workspaceId);
 	}
 
 	// 3b. Worktree. Double-force unlocks the rare locked-worktree case and

@@ -131,6 +131,14 @@ if [ -n "$SUPERSET_TERMINAL_ID" ]; then
     HOOK_CANDIDATE_URLS="$HOOK_CANDIDATE_URLS $MANIFEST_ENDPOINT/trpc/notifications.hook"
   done
 
+  # Sandboxed workspaces inject a per-workspace token; host-service rejects
+  # present-but-wrong tokens and tolerates absence (older scripts).
+  if [ -n "$SUPERSET_AGENT_HOOK_TOKEN" ]; then
+    set -- -H "x-superset-hook-token: $SUPERSET_AGENT_HOOK_TOKEN"
+  else
+    set --
+  fi
+
   HOOK_DELIVERED_2XX="0"
   SEEN_HOOK_URLS=""
   for HOOK_URL in $HOOK_CANDIDATE_URLS; do
@@ -140,6 +148,7 @@ if [ -n "$SUPERSET_TERMINAL_ID" ]; then
     RESPONSE=$(curl -sX POST "$HOOK_URL" \
       --connect-timeout 2 --max-time 5 \
       -H "Content-Type: application/json" \
+      "$@" \
       -d "$PAYLOAD" \
       -w "|%{http_code}" 2>/dev/null)
     STATUS_CODE="${RESPONSE##*|}"

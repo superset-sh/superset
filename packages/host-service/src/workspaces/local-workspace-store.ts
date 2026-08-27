@@ -8,6 +8,7 @@ import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
+import { getSandboxProvisioningState } from "../runtime/sandbox/container-manager";
 import type { ApiClient } from "../types";
 
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
@@ -91,6 +92,10 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
+		sandboxed: row.sandboxEnabled,
+		sandboxStatus: row.sandboxEnabled
+			? getSandboxProvisioningState(row.id)
+			: undefined,
 	};
 }
 
@@ -132,6 +137,8 @@ export interface InsertLocalWorkspaceValues {
 	type?: "main" | "worktree" | "session";
 	taskId?: string | null;
 	createdByUserId?: string | null;
+	/** Sticky sandbox decision resolved from config at create time. */
+	sandboxEnabled?: boolean;
 }
 
 /**
@@ -155,6 +162,7 @@ export function insertLocalWorkspace(
 			type: values.type ?? "worktree",
 			taskId: values.taskId ?? null,
 			createdByUserId: values.createdByUserId ?? null,
+			sandboxEnabled: values.sandboxEnabled ?? false,
 			createdAt: now,
 			updatedAt: now,
 		})
@@ -281,6 +289,19 @@ export function unarchiveLocalWorkspace(
 	}
 	const row = getLocalWorkspace(ctx.db, id);
 	if (row) emitWorkspaceChanged(ctx.eventBus, "created", row);
+}
+
+/**
+ * Re-broadcast a workspace's current snapshot as an "updated" event — used
+ * when derived snapshot state (e.g. sandbox provisioning) changes without a
+ * row write.
+ */
+export function notifyWorkspaceUpdated(
+	ctx: { db: HostDb; eventBus: EventBus },
+	workspaceId: string,
+): void {
+	const row = getLocalWorkspace(ctx.db, workspaceId);
+	if (row) emitWorkspaceChanged(ctx.eventBus, "updated", row);
 }
 
 function emitWorkspaceChanged(

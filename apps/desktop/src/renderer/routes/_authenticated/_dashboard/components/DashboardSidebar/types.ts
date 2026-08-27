@@ -45,6 +45,9 @@ export interface DashboardSidebarWorkspace {
 	updatedAt: Date;
 	taskId: string | null;
 	isPinned: boolean;
+	/** True when the workspace's terminals run inside a sandbox container. */
+	sandboxed?: boolean;
+	sandboxStatus?: "provisioning" | "ready" | "error";
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
 

@@ -124,6 +124,13 @@ export const hostSettings = sqliteTable("host_settings", {
 	// inject (CLAUDE_CONFIG_DIR / CODEX_HOME). Null = the system default login.
 	defaultClaudeConfigDir: text("default_claude_config_dir"),
 	defaultCodexHome: text("default_codex_home"),
+	// Host-wide default for NEW workspaces: run their terminals in a sandbox.
+	// A project's explicit `sandbox.enabled` config always wins over this.
+	sandboxNewWorkspaces: integer("sandbox_new_workspaces", { mode: "boolean" }),
+	// Which sandbox backend the default uses. Only "docker" exists today; the
+	// column keeps the settings dropdown forward-compatible with future
+	// lightweight OS-level sandboxes.
+	sandboxProvider: text("sandbox_provider").$type<"docker">(),
 });
 
 export const pullRequests = sqliteTable(
@@ -251,6 +258,17 @@ export const workspaces = sqliteTable(
 		archivedAt: integer("archived_at"),
 		// "merged" when the linked PR was merged at destroy time.
 		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
+		// Sticky sandbox decision snapshotted at create time from the resolved
+		// sandbox config — later config flips don't silently re-home a live
+		// workspace's terminals. Pre-existing rows stay unsandboxed.
+		sandboxEnabled: integer("sandbox_enabled", { mode: "boolean" })
+			.notNull()
+			.default(false),
+		// Image digest the workspace's container was created from; drives
+		// "image updated — rebuild sandbox?" prompts.
+		sandboxImageDigest: text("sandbox_image_digest"),
+		// JSON {containerPort: hostPort} published at container create.
+		sandboxPortMapJson: text("sandbox_port_map_json").notNull().default("{}"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

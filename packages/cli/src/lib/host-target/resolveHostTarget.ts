@@ -7,6 +7,7 @@ import SuperJSON from "superjson";
 import type { ApiClient } from "../api-client";
 import { isProcessAlive, readManifest } from "../host/manifest";
 import { getRelayUrl } from "../host/relay-url";
+import { getEnvHostEndpoint } from "./env-endpoint";
 
 export type HostServiceClient = ReturnType<
 	typeof createTRPCClient<HostServiceRouter>
@@ -52,6 +53,33 @@ export async function resolveHostTarget(
 ): Promise<ResolvedHostTarget> {
 	const localHostId = getHostId();
 	const targetHostId = options.requestedHostId;
+
+	// Sandbox containers: the injected endpoint IS the workspace's own host;
+	// manifest discovery (127.0.0.1 endpoint + PID liveness) cannot cross the
+	// container boundary, so it is skipped entirely.
+	const envEndpoint = getEnvHostEndpoint();
+	if (envEndpoint) {
+		return {
+			kind: "local",
+			hostId: localHostId,
+			client: createTRPCClient<HostServiceRouter>({
+				links: [
+					httpBatchLink({
+						url: `${envEndpoint.endpoint}/trpc`,
+						transformer: SuperJSON,
+						headers: {
+							Authorization: `Bearer ${envEndpoint.authToken}`,
+							"x-superset-client-machine-id": localHostId,
+						},
+					}),
+				],
+			}),
+			ws: {
+				baseWsUrl: envEndpoint.endpoint.replace(/^http/, "ws"),
+				token: envEndpoint.authToken,
+			},
+		};
+	}
 
 	if (targetHostId === localHostId) {
 		const manifest = readManifest(options.organizationId);

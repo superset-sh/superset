@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { basename, isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
-import { resolveSupersetHomeDir } from "@superset/agent-setup/paths";
 import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
 	buildFishPromptCommandString,
@@ -30,9 +29,10 @@ import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
+import { getWorkspaceRuntime } from "../runtime/sandbox/registry.ts";
+import type { PtyLaunchSpec } from "../runtime/sandbox/workspace-runtime.ts";
 import { sweepAgentBindingsAfterDaemonLoss } from "../terminal-agents/daemon-loss-sweep.ts";
 import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts";
-import { resolveDefaultAccountTerminalEnv } from "../trpc/router/usage/default-account.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -42,14 +42,6 @@ import {
 	getDaemonClient,
 	onDaemonDisconnect,
 } from "./daemon-client-singleton.ts";
-import {
-	buildV2TerminalEnv,
-	getShellLaunchArgs,
-	getTerminalBaseEnv,
-	resolveLaunchShell,
-	shellLaunchExpectsReadyMarker,
-	waitForTerminalBaseEnv,
-} from "./env.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
 	getShellReadyMarkerEvidence,
@@ -157,17 +149,6 @@ export function parseThemeType(
 	value: string | null | undefined,
 ): "dark" | "light" | undefined {
 	return value === "dark" || value === "light" ? value : undefined;
-}
-
-/**
- * Build the host-service tRPC URL for the v2 agent hook. The agent shell
- * script POSTs to this; host-service fans out on the event bus so the
- * renderer (web or electron) can play the finish sound.
- */
-function getHostAgentHookUrl(): string {
-	const port = process.env.HOST_SERVICE_PORT || process.env.PORT;
-	if (!port) return "";
-	return `http://127.0.0.1:${port}/trpc/notifications.hook`;
 }
 
 type TerminalClientMessage =
@@ -525,6 +506,13 @@ interface TerminalSession {
 	 * have no `source`).
 	 */
 	launchShellName: string;
+
+	/**
+	 * Where to stage launch scripts (long initial commands, fish transport).
+	 * Set for sandbox runtimes to a bind-mounted host dir readable at the same
+	 * path inside the container; undefined → host tmpdir().
+	 */
+	stagingDir?: string;
 
 	/**
 	 * Side-channel UTF-8 decoder. portManager.checkOutputForHint takes a
@@ -1652,10 +1640,10 @@ function stageInitialCommandScript(
 ): { typedLine: string; scriptPath: string } | null {
 	const safeId = session.terminalId.replace(/[^\w-]/g, "_").slice(0, 60);
 	const scriptPath = join(
-		tmpdir(),
+		session.stagingDir ?? tmpdir(),
 		`superset-launch-${safeId}-${randomBytes(4).toString("hex")}.sh`,
 	);
-	// tmpdir paths never contain quotes, so this quoting is identical in
+	// staging-dir paths never contain quotes, so this quoting is identical in
 	// POSIX shells and fish.
 	const quotedPath = `'${scriptPath.replaceAll("'", "'\\''")}'`;
 	const sourceKeyword = session.launchShellName === "fish" ? "source" : ".";
@@ -1980,7 +1968,7 @@ function stageFishPromptTransport(
 ): { commandText: string; promptPath: string } | null {
 	const safeId = session.terminalId.replace(/[^\w-]/g, "_").slice(0, 60);
 	const promptPath = join(
-		tmpdir(),
+		session.stagingDir ?? tmpdir(),
 		`superset-launch-prompt-${safeId}-${randomBytes(4).toString("hex")}.txt`,
 	);
 	try {
@@ -2525,40 +2513,30 @@ export async function createTerminalSessionInternal({
 		DEFAULT_TERMINAL_ROWS,
 	);
 
-	// Use the preserved shell snapshot — never live process.env. Resolution
-	// runs in the background at startup so the server can listen immediately;
-	// wait for it here before the first PTY needs the snapshot.
-	await waitForTerminalBaseEnv();
-	const baseEnv = getTerminalBaseEnv();
-	// Fallback matters for hosts not spawned by the desktop (CLI/systemd):
-	// without it the wrapper paths, hook guard env, and shell bootstrap all
-	// silently disable (#6254).
-	const supersetHomeDir = resolveSupersetHomeDir();
-	const shell = resolveLaunchShell(baseEnv);
-	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
-	const ptyEnv = {
-		...buildV2TerminalEnv({
-			baseEnv,
-			shell,
-			supersetHomeDir,
-			organizationId: process.env.ORGANIZATION_ID || "",
-			themeType,
-			cwd,
+	// The workspace runtime decides where the PTY's process tree lives (host
+	// shell, or the workspace's sandbox container) and builds the launch spec.
+	const runtime = getWorkspaceRuntime(db, workspaceId);
+	let launch: PtyLaunchSpec;
+	try {
+		await runtime.prepare();
+		launch = await runtime.buildPtyLaunch({
 			terminalId,
 			workspaceId,
 			workspacePath: workspace.worktreePath,
 			rootPath,
-			supersetEnv:
-				process.env.NODE_ENV === "development" ? "development" : "production",
-			agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
-			agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
-			hostAgentHookUrl: getHostAgentHookUrl(),
-		}),
-		// Usage-tab default account: provider CLIs typed or preset-launched in
-		// this terminal run on the selected login. Baked at spawn as the fast
-		// path; the agent wrappers re-resolve later switches at launch time.
-		...resolveDefaultAccountTerminalEnv(db),
-	};
+			cwd,
+			themeType,
+			db,
+		});
+	} catch (error) {
+		// Sandbox provisioning failures (docker down, image pull failed) are
+		// user-actionable terminal-create errors, not 500s.
+		return {
+			kind: "TERMINAL_START_FAILED",
+			error:
+				error instanceof Error ? error.message : "Failed to start terminal",
+		};
+	}
 
 	let daemon: DaemonClient;
 	try {
@@ -2600,12 +2578,12 @@ export async function createTerminalSessionInternal({
 		} else {
 			try {
 				openResult = await daemon.open(terminalId, {
-					shell,
-					argv: shellArgs,
-					cwd,
+					shell: launch.shell,
+					argv: launch.argv,
+					cwd: launch.cwd,
 					cols,
 					rows,
-					env: ptyEnv,
+					env: launch.env,
 				});
 			} catch (err) {
 				// After host-service restart the daemon may already own this
@@ -2672,8 +2650,7 @@ export async function createTerminalSessionInternal({
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
 	// marker has already flown by and we don't want to gate writes on it.
-	const shellSupportsReady =
-		!isAdopted && shellLaunchExpectsReadyMarker({ shell, supersetHomeDir });
+	const shellSupportsReady = !isAdopted && launch.expectsReadyMarker;
 
 	let shellReadyResolve: (() => void) | null = null;
 	const shellReadyPromise = shellSupportsReady
@@ -2733,7 +2710,8 @@ export async function createTerminalSessionInternal({
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
-		launchShellName: basename(shell),
+		launchShellName: basename(launch.shell),
+		stagingDir: launch.stagingDir,
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker,
 		adoptionReplaySettled: Promise.resolve(),

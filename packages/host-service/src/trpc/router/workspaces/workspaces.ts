@@ -10,6 +10,9 @@ import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
+import { syncSandboxCommits } from "../../../runtime/sandbox/git-sync";
+import { resolveSandboxEnabledForNewWorkspace } from "../../../runtime/sandbox/registry";
+import { bootstrapWorkspaceSandbox } from "../../../runtime/sandbox/sandbox-bootstrap";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
@@ -480,6 +483,13 @@ async function registerLocalWorkspace(args: {
 	worktreePath: string;
 	taskId: string | undefined;
 	rollbackWorktree: () => Promise<void>;
+	/**
+	 * Skip the eager sandbox bootstrap here — the caller will trigger it after
+	 * a possible AI branch rename, so the isolated git dir is initialized with
+	 * the FINAL branch (bootstrapping before the rename strands commits under
+	 * the old ref, which syncSandbox then can't find).
+	 */
+	deferSandboxBootstrap?: boolean;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
 
@@ -492,6 +502,11 @@ async function registerLocalWorkspace(args: {
 			branch: args.branch,
 			name: args.name,
 			taskId: args.taskId ?? null,
+			sandboxEnabled: resolveSandboxEnabledForNewWorkspace(
+				ctx.db,
+				args.projectId,
+				args.worktreePath,
+			),
 		});
 	} catch (err) {
 		await args.rollbackWorktree();
@@ -499,6 +514,17 @@ async function registerLocalWorkspace(args: {
 			code: "INTERNAL_SERVER_ERROR",
 			message: `Failed to persist workspace locally: ${err instanceof Error ? err.message : String(err)}`,
 		});
+	}
+
+	// Provision the sandbox container now (fire-and-forget) rather than on
+	// first terminal — creation shows "Initializing sandbox…" and the first
+	// PTY joins the in-flight ensure instead of paying the cold start. Skipped
+	// when the caller defers past a pending branch rename (see the param doc).
+	if (localRow.sandboxEnabled && !args.deferSandboxBootstrap) {
+		bootstrapWorkspaceSandbox(
+			{ db: ctx.db, eventBus: ctx.eventBus },
+			localRow.id,
+		);
 	}
 
 	void ctx.api.v2Workspace.trackCreated
@@ -1054,6 +1080,7 @@ export const workspacesRouter = router({
 									});
 							}
 
+							aiCanRenameBranch = !typedBranch;
 							workspaceRow = await registerLocalWorkspace({
 								ctx,
 								id: input.id,
@@ -1063,8 +1090,12 @@ export const workspacesRouter = router({
 								worktreePath,
 								taskId: input.taskId,
 								rollbackWorktree,
+								// A branch rename may still be applied below; bootstrap
+								// the sandbox only after it so the isolated git dir gets
+								// the final branch name.
+								deferSandboxBootstrap:
+									aiCanRenameBranch && aiNamesPromise != null,
 							});
-							aiCanRenameBranch = !typedBranch;
 						}
 					}
 				}
@@ -1104,6 +1135,25 @@ export const workspacesRouter = router({
 					} catch (err) {
 						console.warn("[workspaces.create] AI rename failed", err);
 					}
+				}
+			}
+
+			// Deferred until after the possible rename above (matches the
+			// deferSandboxBootstrap condition passed to registerLocalWorkspace):
+			// the workspace row now carries the final branch, so the isolated
+			// git dir bootstraps on the right ref. No-op if not sandboxed.
+			if (
+				workspaceRow &&
+				!alreadyExists &&
+				aiCanRenameBranch &&
+				aiNamesPromise != null
+			) {
+				const finalRow = getLocalWorkspace(ctx.db, workspaceRow.id);
+				if (finalRow?.sandboxEnabled) {
+					bootstrapWorkspaceSandbox(
+						{ db: ctx.db, eventBus: ctx.eventBus },
+						workspaceRow.id,
+					);
 				}
 			}
 
@@ -1323,6 +1373,50 @@ export const workspacesRouter = router({
 				console.warn("[workspaces.aiRename] failed", err);
 			});
 			return { success: true as const };
+		}),
+
+	/**
+	 * Import sandbox-local git history: export the workspace's isolated git
+	 * dir into the main repo as refs/sandbox/<id>/* and fast-forward the
+	 * workspace branch when host history hasn't diverged.
+	 */
+	syncSandbox: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const local = getLocalWorkspace(ctx.db, input.workspaceId);
+			if (!local) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Workspace not found: ${input.workspaceId}`,
+				});
+			}
+			if (!local.sandboxEnabled) {
+				return { status: "no-sandbox-history" as const };
+			}
+			const project = local.projectId
+				? ctx.db.query.projects
+						.findFirst({ where: eq(projects.id, local.projectId) })
+						.sync()
+				: undefined;
+			if (!project) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Local project not found for workspace",
+				});
+			}
+			try {
+				return await syncSandboxCommits({
+					repoPath: project.repoPath,
+					worktreePath: local.worktreePath,
+					workspaceId: local.id,
+					branch: local.branch,
+				});
+			} catch (err) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to sync sandbox commits: ${err instanceof Error ? err.message : String(err)}`,
+				});
+			}
 		}),
 
 	generateBranchName: protectedProcedure

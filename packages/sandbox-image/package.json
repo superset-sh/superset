@@ -1,0 +1,9 @@
+{
+	"name": "@superset/sandbox-image",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Default Docker image for Superset sandboxed workspaces",
+	"scripts": {
+		"build:image": "docker build -t superset-sandbox:dev ."
+	}
+}
