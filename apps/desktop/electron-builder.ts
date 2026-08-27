@@ -154,8 +154,9 @@ const config: Configuration = {
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 		// GNOME's app menus only show their heuristic "New Window" item
 		// intermittently for running apps; an explicit desktop action (the
-		// Chrome/VS Code approach) is always shown. A plain relaunch hits the
-		// single-instance lock, which opens a new window.
+		// Chrome/VS Code approach) is always shown. The action relaunches with
+		// --new-window, which the second-instance handler answers by opening a
+		// window; a plain relaunch focuses the running app.
 		desktop: {
 			// electron-builder appends [Desktop Action] groups but never writes
 			// the Actions= key that exposes them, so declare it explicitly —
