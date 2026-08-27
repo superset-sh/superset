@@ -25,45 +25,18 @@ import {
 import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
+import { GhAuthDialog } from "renderer/routes/_authenticated/components/GhAuthDialog";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
-import { GhAuthDialog } from "../components/GhAuthDialog";
+import {
+	type CloneError,
+	classifyCloneError,
+} from "renderer/utils/classifyCloneError";
 
 export const Route = createFileRoute("/_authenticated/onboarding/project/")({
 	component: OnboardingProjectPage,
 });
-
-interface CloneError {
-	message: string;
-	needsGhAuth: boolean;
-}
-
-const GH_AUTH_FAILURE_PATTERNS = [
-	"Repository not found",
-	"Authentication failed",
-	"could not read Username",
-];
-
-function toCloneError(err: unknown): CloneError {
-	const message =
-		err instanceof Error ? err.message : "Failed to clone repository";
-	if (message.includes("Permission denied (publickey)")) {
-		return {
-			message:
-				"SSH authentication failed — sign in to GitHub CLI and use the HTTPS URL instead.",
-			needsGhAuth: true,
-		};
-	}
-	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => message.includes(pattern))) {
-		return {
-			message:
-				"Couldn't access this repository — if it's private, sign in to GitHub CLI first.",
-			needsGhAuth: true,
-		};
-	}
-	return { message, needsGhAuth: false };
-}
 
 function OnboardingProjectPage() {
 	const navigate = useNavigate();
@@ -175,7 +148,7 @@ function OnboardingProjectPage() {
 						mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
 					});
 				} catch (err) {
-					setCloneError(toCloneError(err));
+					setCloneError(classifyCloneError(err));
 					return;
 				}
 				finalizeSetup(activeHostUrl, created);
@@ -188,7 +161,7 @@ function OnboardingProjectPage() {
 						parentDir: cloneTargetDir,
 					});
 				} catch (err) {
-					setCloneError(toCloneError(err));
+					setCloneError(classifyCloneError(err));
 					return;
 				}
 				if (projectId) await finish(projectId);

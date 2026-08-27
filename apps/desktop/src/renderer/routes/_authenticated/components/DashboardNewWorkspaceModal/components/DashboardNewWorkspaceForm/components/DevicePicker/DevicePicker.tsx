@@ -10,6 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect } from "react";
 import {
@@ -17,9 +18,11 @@ import {
 	HiChevronUpDown,
 	HiOutlineCloud,
 	HiOutlineComputerDesktop,
+	HiOutlinePlus,
 	HiOutlineServer,
 } from "react-icons/hi2";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
 import { FormPickerTrigger } from "../../PromptGroup/components/FormPickerTrigger";
 import {
 	useWorkspaceHostOptions,
@@ -93,6 +96,7 @@ export function DevicePicker({
 	disabled,
 }: DevicePickerProps) {
 	const { machineId } = useLocalHostService();
+	const navigate = useNavigate();
 	const cloudEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
 	const { currentDeviceName, localHostIsOnline, otherHosts } =
 		useWorkspaceHostOptions();
@@ -180,6 +184,18 @@ export function DevicePicker({
 						</DropdownMenuSub>
 					</>
 				)}
+				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					onSelect={() => {
+						// The picker can live inside the new-workspace modal; close it
+						// before navigating so settings isn't rendered underneath.
+						useNewWorkspaceModalStore.getState().closeModal();
+						void navigate({ to: "/settings/hosts/new" });
+					}}
+				>
+					<HiOutlinePlus className="size-4" />
+					<span className="flex-1">Add another device…</span>
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

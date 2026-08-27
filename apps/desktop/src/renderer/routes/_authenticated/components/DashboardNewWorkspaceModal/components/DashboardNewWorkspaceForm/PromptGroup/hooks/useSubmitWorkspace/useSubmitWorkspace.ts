@@ -27,6 +27,12 @@ export function useSubmitWorkspace(
 	selectedMode: string | null,
 	uploadAttachments: UseUploadAttachmentsApi,
 	promptContext: NewWorkspacePromptContextApi,
+	/** Clone the project onto the host before creating (project not set up there). */
+	setupFirst?: {
+		repoCloneUrl: string;
+		projectName?: string;
+		parentDir: string;
+	} | null,
 ) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -206,7 +212,11 @@ export function useSubmitWorkspace(
 		}
 
 		closeAndResetDraft();
-		const { completed } = submit({ hostId, snapshot });
+		const { completed } = submit({
+			hostId,
+			snapshot,
+			setupFirst: !isSession && setupFirst ? setupFirst : undefined,
+		});
 		void navigate({
 			to: "/v2-workspace/$workspaceId",
 			params: { workspaceId },
@@ -256,6 +266,7 @@ export function useSubmitWorkspace(
 		selectedModel,
 		selectedEffort,
 		selectedMode,
+		setupFirst,
 		submit,
 		uploadAttachments,
 		utils,

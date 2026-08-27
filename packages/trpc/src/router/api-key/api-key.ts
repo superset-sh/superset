@@ -43,7 +43,7 @@ export const apiKeyRouter = {
 				},
 			});
 
-			return { key: result.key };
+			return { id: result.id, key: result.key };
 		}),
 
 	revoke: protectedProcedure

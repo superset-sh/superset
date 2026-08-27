@@ -1,9 +1,20 @@
 import { execFile } from "node:child_process";
 import { unlink } from "node:fs/promises";
 import type { GitCredentialProvider } from "../../../runtime/git/types";
+import { getStrictShellEnvironment } from "../../../terminal/clean-shell-env";
 import { writeTempAskpass } from "../askpass";
 
 const TOKEN_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Daemon-launched host-services (launchd, systemd, `superset start`) run with
+// a launcher env whose PATH has no Homebrew — `gh` and git credential helpers
+// silently resolve to nothing and clones die with "terminal prompts disabled".
+// Resolve the user's login-shell env like every other gh call site does.
+async function loginShellEnv(): Promise<Record<string, string>> {
+	return getStrictShellEnvironment().catch(
+		() => process.env as Record<string, string>,
+	);
+}
 
 export class LocalGitCredentialProvider implements GitCredentialProvider {
 	private envResolver: () => Promise<Record<string, string>>;
@@ -15,8 +26,7 @@ export class LocalGitCredentialProvider implements GitCredentialProvider {
 	private cachedAskpass: { token: string; path: string } | null = null;
 
 	constructor(
-		envResolver: () => Promise<Record<string, string>> = async () =>
-			process.env as Record<string, string>,
+		envResolver: () => Promise<Record<string, string>> = loginShellEnv,
 	) {
 		this.envResolver = envResolver;
 	}

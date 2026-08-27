@@ -1,4 +1,5 @@
 import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -13,6 +14,7 @@ import {
 } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { hostProjectListQueryKey } from "renderer/react-query/projects/useHostProjectIds";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type {
 	WorkspacesCreateAnyInput,
@@ -22,6 +24,7 @@ import type {
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useStarNagStore } from "renderer/stores/star-nag";
+import { classifyCloneError } from "renderer/utils/classifyCloneError";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
 
@@ -31,6 +34,16 @@ export interface SubmitArgs {
 	hostId: string;
 	/** `projectId: null` routes to `workspaces.createSession`. */
 	snapshot: WorkspacesCreateAnyInput;
+	/**
+	 * Creation subsumes setup: when the project isn't set up on the target
+	 * host yet, clone it there first, then create the workspace — one motion
+	 * from the composer instead of a settings detour.
+	 */
+	setupFirst?: {
+		repoCloneUrl: string;
+		projectName?: string;
+		parentDir: string;
+	};
 }
 
 export type SubmitOutcome =
@@ -242,6 +255,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	);
 	const { data: waitForSetupBeforeAgent } =
 		electronTrpc.settings.getWaitForSetupBeforeAgent.useQuery();
+	const queryClient = useQueryClient();
 
 	const submit = useCallback(
 		(args: SubmitArgs): SubmitHandle => {
@@ -360,6 +374,31 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 						throw error;
 					}
 				}
+				if (args.setupFirst) {
+					try {
+						await client.project.setup.mutate({
+							projectId: snapshot.projectId,
+							// Coordinates from the host fan-out: local-first projects
+							// created on another host have no cloud row for the target
+							// host to read.
+							origin: {
+								repoCloneUrl: args.setupFirst.repoCloneUrl,
+								name: args.setupFirst.projectName,
+							},
+							mode: {
+								kind: "clone",
+								parentDir: args.setupFirst.parentDir,
+							},
+						});
+					} catch (error) {
+						throw new Error(classifyCloneError(error).message);
+					}
+					// The host now has the project; composers keyed on this list
+					// should stop offering to clone it.
+					void queryClient.invalidateQueries({
+						queryKey: hostProjectListQueryKey(hostUrl),
+					});
+				}
 				let waitForSetup = waitForSetupBeforeAgent;
 				if (waitForSetup === undefined && snapshot.agents?.length) {
 					waitForSetup =
@@ -445,6 +484,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			hostService,
 			trackWorkspaceTransaction,
 			waitForSetupBeforeAgent,
+			queryClient,
 		],
 	);
 
