@@ -186,7 +186,7 @@ export const actionsProvider: CommandProvider = {
 				title: "New window",
 				section: "actions",
 				icon: AppWindowIcon,
-				keywords: ["window", "open", "multi"],
+				keywords: ["open", "multi"],
 				run: async () => {
 					try {
 						await electronTrpcClient.window.openNew.mutate();

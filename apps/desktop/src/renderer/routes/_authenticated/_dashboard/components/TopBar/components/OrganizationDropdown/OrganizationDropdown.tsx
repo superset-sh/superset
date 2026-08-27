@@ -43,9 +43,8 @@ export function OrganizationDropdown({
 	const navigate = useNavigate();
 	const [submitPromptOpen, setSubmitPromptOpen] = useState(false);
 	const openNewWindow = electronTrpc.window.openNew.useMutation({
-		onError: (error) => {
-			toast.error(`Failed to open new window: ${error.message}`);
-		},
+		onError: (error) =>
+			toast.error(`Failed to open new window: ${error.message}`),
 	});
 
 	// Per-window active org (from CollectionsProvider), not the shared session —
