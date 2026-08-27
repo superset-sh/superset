@@ -166,9 +166,12 @@ const config: Configuration = {
 			desktopActions: {
 				"new-window": {
 					Name: "New Window",
-					// Must mirror the generated main Exec (AppImage default when
-					// linux.executableArgs is unset); update both together.
-					Exec: "AppRun --no-sandbox",
+					// Args must stay in sync with linux.executableArgs (the
+					// AppImage default is --no-sandbox when unset); %U is
+					// intentionally omitted. --new-window is what the
+					// second-instance handler keys on to open a window instead
+					// of focusing the running app.
+					Exec: "AppRun --no-sandbox --new-window",
 				},
 			},
 		},
