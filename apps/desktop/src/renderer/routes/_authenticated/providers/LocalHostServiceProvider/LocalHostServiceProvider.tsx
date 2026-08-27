@@ -191,16 +191,13 @@ export function LocalHostServiceProvider({
 	// Fires on the null → connection edge after a restart (during downtime
 	// getConnection reports null, and react-query's structural sharing keeps an
 	// unchanged connection referentially stable). The event bus for this URL is
-	// on its own backoff and its last dial may have lost the race against this
-	// very update and been auth-rejected — without a nudge the workspace sits
-	// under "Host unreachable" for seconds after the service is back.
+	// on its own backoff and its next scheduled dial is seconds out — without a
+	// nudge the workspace sits under "Host unreachable" after the service is
+	// back. The secret is already in place: the context memo below stores it
+	// during the same render, before any effect runs.
 	useEffect(() => {
 		if (!activeConnection?.port) return;
-		const hostUrl = `http://127.0.0.1:${activeConnection.port}`;
-		if (activeConnection.secret) {
-			setHostServiceSecret(hostUrl, activeConnection.secret);
-		}
-		reconnectEventBusIfDown(hostUrl);
+		reconnectEventBusIfDown(`http://127.0.0.1:${activeConnection.port}`);
 	}, [activeConnection]);
 
 	const waitForHostReady = useCallback(

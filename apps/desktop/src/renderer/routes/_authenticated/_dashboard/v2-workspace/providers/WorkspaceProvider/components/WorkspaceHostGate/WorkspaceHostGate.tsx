@@ -6,6 +6,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { StateScreenShell } from "../../../../components/StateScreenShell";
 import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceHostUnreachableState";
 import { useHostReachability } from "../../../../hooks/useHostReachability";
+import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
 
 const HOST_LIST_STALE_MS = 30_000;
 
@@ -66,7 +67,7 @@ export function WorkspaceHostGate({
 							hostName={hostName}
 							detail={
 								isLocalRestartInFlight
-									? "The local host service is restarting. It should be back in a few seconds."
+									? LOCAL_HOST_SERVICE_DETAIL.starting
 									: detail
 							}
 							isReconnecting={isReconnecting || isLocalRestartInFlight}

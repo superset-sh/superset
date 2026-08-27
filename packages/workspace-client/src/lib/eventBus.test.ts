@@ -140,6 +140,9 @@ describe("eventBus", () => {
 		const port = host.server.port;
 		const bus = getEventBus(host.hostUrl, () => "tok");
 		cleanups.push(bus.on("git:changed", "*", () => {}));
+		// stop() is idempotent, so registering it up front keeps a mid-test
+		// failure from leaking the server into later tests.
+		cleanups.push(() => host.server.stop(true));
 		await waitFor(() => host.clientCount() === 1);
 
 		host.server.stop(true);

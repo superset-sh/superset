@@ -1,10 +1,10 @@
 import { toast } from "@superset/ui/sonner";
-import { useEffect } from "react";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { StateScreenShell } from "../../../../components/StateScreenShell";
 import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceHostUnreachableState";
+import { LOCAL_HOST_SERVICE_DETAIL } from "../../utils/localHostServiceDetail";
 
 /**
  * The workspace lives on this device but the local host service has no port
@@ -13,31 +13,9 @@ import { WorkspaceHostUnreachableState } from "../../../../components/WorkspaceH
  */
 const LOCAL_HOST_GRACE_MS = 10_000;
 
-const DETAIL_BY_STATUS = {
-	starting:
-		"The local host service is still starting up. It should be ready in a few seconds.",
-	stopped:
-		"The local host service isn't running, so nothing on this device can serve the workspace. Restarting it reattaches your terminals and files — nothing on disk is lost.",
-	// The process is up but its port hasn't reached us yet: getProcessStatus
-	// polls every second, the connection every five. Never advise a restart
-	// here — the service is healthy and this clears itself.
-	running: "The local host service just came up. Reconnecting to it now.",
-	unknown:
-		"The local host service isn't responding. Restarting it usually clears this; if it keeps happening, restart Superset.",
-} as const;
-
 export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 	const { hostServiceStatus, activeOrganizationId } = useLocalHostService();
 	const showState = useDelayElapsed(true, LOCAL_HOST_GRACE_MS);
-	const utils = electronTrpc.useUtils();
-
-	// The process reports running before the 5s connection poll hands us its
-	// port. Ask for the port now rather than leaving this screen up over a
-	// host service that is already serving.
-	useEffect(() => {
-		if (hostServiceStatus !== "running") return;
-		void utils.hostServiceCoordinator.getConnection.invalidate();
-	}, [hostServiceStatus, utils]);
 
 	const restart = electronTrpc.hostServiceCoordinator.restart.useMutation({
 		onError: (error) => {
@@ -62,7 +40,7 @@ export function WorkspaceLocalHostPendingState({ hostId }: { hostId: string }) {
 			<WorkspaceHostUnreachableState
 				hostId={hostId}
 				hostName="This device"
-				detail={DETAIL_BY_STATUS[hostServiceStatus]}
+				detail={LOCAL_HOST_SERVICE_DETAIL[hostServiceStatus]}
 				isReconnecting={isStarting}
 				retryLabel="Restart host service"
 				retryBusyLabel="Starting…"
