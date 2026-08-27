@@ -929,6 +929,17 @@ export function park(transport: TerminalTransport) {
 	// the failed-attempt accounting, delaying the outage diagnosis by a dial.
 	transport._connAttached = false;
 	transport._connHadRetryableError = false;
+	// Mirror the close handler's anchor hygiene too: bytes without a `synced`
+	// came from a pre-seq host (or landed before this attach's sync) and
+	// advanced the xterm without advancing the anchor — a stale anchor kept
+	// across the park would let a later exact catch-up re-deliver painted
+	// bytes. Anchored-and-counted state survives untouched.
+	if (transport._bytesSinceAttach && !transport._seqCounting) {
+		transport.seqAnchor = null;
+	}
+	transport._seqCounting = false;
+	transport._bytesSinceAttach = false;
+
 	transport._onDataDisposable?.dispose();
 	transport._onDataDisposable = null;
 	transport._writeCoalescer?.dispose();

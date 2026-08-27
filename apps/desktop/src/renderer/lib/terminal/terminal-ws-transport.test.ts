@@ -728,6 +728,23 @@ describe("terminal-ws-transport", () => {
 		expect(transport.connectionState).toBe("open");
 	});
 
+	test("park drops an anchor poisoned by uncounted bytes, keeps a counted one", () => {
+		// Pre-seq host (or bytes before this attach's `synced`): the xterm
+		// advanced but the anchor didn't. Parking must apply the same anchor
+		// hygiene the bypassed close handler would have — otherwise the next
+		// dial's exact catch-up re-delivers bytes already painted.
+		const { transport, socket } = connectAttached();
+		transport.seqAnchor = { epoch: "old", seq: 5 };
+		const bytes = new TextEncoder().encode("uncounted");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(transport.seqAnchor).toBeNull();
+	});
+
 	test("a failed connection after park is counted toward the diagnosis", () => {
 		const { transport, terminal } = connectAttached();
 		park(transport);
