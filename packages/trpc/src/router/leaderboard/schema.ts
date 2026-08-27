@@ -3,10 +3,12 @@ import { isDayKey, LEADERBOARD_PERIODS } from "./periods";
 
 const dayKey = z.string().refine(isDayKey, "Expected a real YYYY-MM-DD date");
 
-// Per field, per (day, provider, model, host) row. Generous next to real usage,
-// but low enough that a full payload cannot overflow the bigint rollup on
-// leaderboard_participants.
-export const MAX_TOKENS_PER_ROW_FIELD = 50_000_000_000;
+// Per field, per (day, provider, model, host) row. Cache reads dominate the
+// count and scale with session concurrency, so one model on one day of heavily
+// parallel work clears 100B. The rollup on leaderboard_participants is read
+// back as a JS number, so the ceiling that matters is 2^53: this leaves room
+// for ~9k rows at the cap.
+export const MAX_TOKENS_PER_ROW_FIELD = 1_000_000_000_000;
 
 const tokenCount = z.number().int().min(0).max(MAX_TOKENS_PER_ROW_FIELD);
 
@@ -30,8 +32,9 @@ export const joinSchema = z.object({
 	visibility: visibilitySchema.default("public"),
 });
 
-// Same reasoning as the token cap, against the numeric(14,6) usd rollup.
-export const MAX_USD_PER_ROW = 10_000;
+// Same reasoning as the token cap. Two orders of magnitude under the
+// numeric(14,6) column the per-row value lands in.
+export const MAX_USD_PER_ROW = 1_000_000;
 
 export const publishDaySchema = z.object({
 	day: dayKey,
