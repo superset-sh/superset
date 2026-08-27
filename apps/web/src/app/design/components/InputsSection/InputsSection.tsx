@@ -1,16 +1,29 @@
 "use client";
 
+import { Button } from "@superset/ui/button";
 import { Calendar } from "@superset/ui/calendar";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Field,
+	FieldContent,
 	FieldDescription,
 	FieldError,
 	FieldGroup,
 	FieldLabel,
 	FieldLegend,
+	FieldSeparator,
 	FieldSet,
+	FieldTitle,
 } from "@superset/ui/field";
+import {
+	Form,
+	FormControl,
+	FormDescription,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@superset/ui/form";
 import { Input } from "@superset/ui/input";
 import {
 	InputGroup,
@@ -42,12 +55,21 @@ import { Switch } from "@superset/ui/switch";
 import { Textarea } from "@superset/ui/textarea";
 import { SearchIcon, SendIcon } from "lucide-react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
 
+interface WorkspaceFormValues {
+	name: string;
+}
+
 export function InputsSection() {
 	const [date, setDate] = useState<Date | undefined>(new Date(2026, 6, 24));
+	const form = useForm<WorkspaceFormValues>({
+		defaultValues: { name: "" },
+		mode: "onSubmit",
+	});
 
 	return (
 		<ShowcaseSection
@@ -183,8 +205,57 @@ export function InputsSection() {
 							<Input id="dsg-ws-branch" aria-invalid defaultValue="main " />
 							<FieldError>Branch names cannot end with a space.</FieldError>
 						</Field>
+						<FieldSeparator>Advanced</FieldSeparator>
+						<Field orientation="horizontal">
+							<FieldContent>
+								<FieldTitle>Delete on merge</FieldTitle>
+								<FieldDescription>
+									Removes the worktree once the PR merges.
+								</FieldDescription>
+							</FieldContent>
+							<Switch id="dsg-ws-delete-on-merge" />
+						</Field>
 					</FieldGroup>
 				</FieldSet>
+			</ComponentCard>
+
+			<ComponentCard
+				title="Form"
+				importPath="@superset/ui/form"
+				description="react-hook-form bindings — FormField wires validation state into FormMessage"
+			>
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(() => {})}
+						className="w-full max-w-72 space-y-3"
+					>
+						<FormField
+							control={form.control}
+							name="name"
+							rules={{ required: "Workspace name is required." }}
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Workspace name</FormLabel>
+									<FormControl>
+										<Input placeholder="component-showcase" {...field} />
+									</FormControl>
+									<FormDescription>
+										Shown in the sidebar and task list.
+									</FormDescription>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<Button
+							type="submit"
+							size="sm"
+							variant="outline"
+							onClick={() => form.trigger("name")}
+						>
+							Validate
+						</Button>
+					</form>
+				</Form>
 			</ComponentCard>
 
 			<ComponentCard title="Calendar" importPath="@superset/ui/calendar" span>

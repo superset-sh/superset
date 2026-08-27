@@ -1,0 +1,1 @@
+export { IconsSection } from "./IconsSection";

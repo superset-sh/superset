@@ -241,6 +241,7 @@ export function PromptInputProvider({
 	const storeFiles = useSyncExternalStore(
 		attachmentsStore?.subscribe ?? emptyAttachmentsSubscribe,
 		attachmentsStore?.get ?? getEmptyAttachments,
+		attachmentsStore?.get ?? getEmptyAttachments,
 	);
 	const attachmentFiles = attachmentsStore ? storeFiles : localFiles;
 	const setAttachmentFiles = useCallback(

@@ -4,6 +4,7 @@ import Link from "next/link";
 const PAGES = [
 	{ key: "primitives", href: "/design", label: "Primitives" },
 	{ key: "superset", href: "/design/superset", label: "Superset components" },
+	{ key: "audit", href: "/design/audit", label: "Audit" },
 ] as const;
 
 interface DesignPageHeaderProps {

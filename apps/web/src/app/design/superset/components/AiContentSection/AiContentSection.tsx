@@ -16,9 +16,14 @@ import {
 import { CodeBlock } from "@superset/ui/ai-elements/code-block";
 import {
 	Context,
+	ContextCacheUsage,
 	ContextContent,
 	ContextContentBody,
+	ContextContentFooter,
 	ContextContentHeader,
+	ContextInputUsage,
+	ContextOutputUsage,
+	ContextReasoningUsage,
 	ContextTrigger,
 } from "@superset/ui/ai-elements/context";
 import {
@@ -26,6 +31,15 @@ import {
 	InlineCitationCard,
 	InlineCitationCardBody,
 	InlineCitationCardTrigger,
+	InlineCitationCarousel,
+	InlineCitationCarouselContent,
+	InlineCitationCarouselHeader,
+	InlineCitationCarouselIndex,
+	InlineCitationCarouselItem,
+	InlineCitationCarouselNext,
+	InlineCitationCarouselPrev,
+	InlineCitationQuote,
+	InlineCitationSource,
 	InlineCitationText,
 } from "@superset/ui/ai-elements/inline-citation";
 import {
@@ -44,38 +58,6 @@ const EXAMPLE_CODE = `export function Workspace({ branch }: WorkspaceProps) {
 	const session = useAgentSession(branch);
 	return <Terminal session={session} />;
 }`;
-
-const NOT_DEMOED = [
-	"bash-tool",
-	"canvas",
-	"clickable-file-path",
-	"confirmation",
-	"connection",
-	"controls",
-	"edge",
-	"exploring-group",
-	"file-diff-tool",
-	"image",
-	"model-selector",
-	"node",
-	"open-in-chat",
-	"panel",
-	"prompt-input",
-	"queue",
-	"read-file-tool",
-	"show-code",
-	"text-selection-popover",
-	"thinking-toggle",
-	"tool",
-	"tool-call",
-	"tool-call-row",
-	"tool-interrupted",
-	"toolbar",
-	"user-question-tool",
-	"web-fetch-tool",
-	"web-preview",
-	"web-search-tool",
-];
 
 export function AiContentSection() {
 	return (
@@ -117,6 +99,7 @@ export function AiContentSection() {
 			<ComponentCard
 				title="Inline Citation"
 				importPath="@superset/ui/ai-elements/inline-citation"
+				description="Hover the badge to page through cited sources"
 			>
 				<p className="max-w-sm text-sm text-muted-foreground">
 					<InlineCitation>
@@ -125,16 +108,55 @@ export function AiContentSection() {
 						</InlineCitationText>
 						<InlineCitationCard>
 							<InlineCitationCardTrigger
-								sources={["https://www.radix-ui.com/primitives"]}
+								sources={[
+									"https://www.radix-ui.com/primitives/docs/components/tooltip",
+									"https://floating-ui.com/docs/tutorial",
+									"https://docs.superset.sh/design/tooltips",
+								]}
 							/>
 							<InlineCitationCardBody>
-								<div className="p-3 text-sm">
-									<p className="font-medium">Radix Primitives</p>
-									<p className="mt-1 text-muted-foreground">
-										Popper-based positioning places and rotates arrow elements
-										automatically.
-									</p>
-								</div>
+								<InlineCitationCarousel>
+									<InlineCitationCarouselHeader>
+										<InlineCitationCarouselPrev />
+										<InlineCitationCarouselIndex />
+										<InlineCitationCarouselNext />
+									</InlineCitationCarouselHeader>
+									<InlineCitationCarouselContent>
+										<InlineCitationCarouselItem>
+											<InlineCitationSource
+												title="Radix Primitives — Tooltip"
+												url="https://www.radix-ui.com/primitives/docs/components/tooltip"
+												description="Popper-based positioning places and rotates arrow elements automatically per side."
+											/>
+											<InlineCitationQuote>
+												The arrow&apos;s rotation is derived from the resolved
+												placement, not the requested one.
+											</InlineCitationQuote>
+										</InlineCitationCarouselItem>
+										<InlineCitationCarouselItem>
+											<InlineCitationSource
+												title="Floating UI — Tutorial"
+												url="https://floating-ui.com/docs/tutorial"
+												description="The flip and shift middleware settle on a side before the arrow is placed on the floating element."
+											/>
+											<InlineCitationQuote>
+												Arrow placement happens after collision detection
+												resolves the final placement.
+											</InlineCitationQuote>
+										</InlineCitationCarouselItem>
+										<InlineCitationCarouselItem>
+											<InlineCitationSource
+												title="Superset Design — Tooltip tokens"
+												url="https://docs.superset.sh/design/tooltips"
+												description="Internal notes on matching Radix's rotated-square arrow to our border tokens."
+											/>
+											<InlineCitationQuote>
+												Two edges of the rotated square always face outward, so
+												only those two edges take the border.
+											</InlineCitationQuote>
+										</InlineCitationCarouselItem>
+									</InlineCitationCarouselContent>
+								</InlineCitationCarousel>
 							</InlineCitationCardBody>
 						</InlineCitationCard>
 					</InlineCitation>{" "}
@@ -147,15 +169,37 @@ export function AiContentSection() {
 				importPath="@superset/ui/ai-elements/context"
 				description="Token budget indicator — hover the percentage"
 			>
-				<Context usedTokens={87_400} maxTokens={200_000}>
+				<Context
+					usedTokens={87_400}
+					maxTokens={200_000}
+					modelId="anthropic/claude-sonnet-4-5"
+					usage={{
+						inputTokens: 62_000,
+						inputTokenDetails: {
+							noCacheTokens: 57_000,
+							cacheReadTokens: 5_000,
+							cacheWriteTokens: 0,
+						},
+						outputTokens: 18_400,
+						outputTokenDetails: {
+							textTokens: 16_400,
+							reasoningTokens: 2_000,
+						},
+						totalTokens: 87_400,
+						reasoningTokens: 2_000,
+						cachedInputTokens: 5_000,
+					}}
+				>
 					<ContextTrigger />
 					<ContextContent>
 						<ContextContentHeader />
-						<ContextContentBody>
-							<p className="text-xs text-muted-foreground">
-								87.4K of 200K tokens used in this session.
-							</p>
+						<ContextContentBody className="space-y-1.5">
+							<ContextInputUsage />
+							<ContextOutputUsage />
+							<ContextCacheUsage />
+							<ContextReasoningUsage />
 						</ContextContentBody>
+						<ContextContentFooter />
 					</ContextContent>
 				</Context>
 			</ComponentCard>
@@ -196,25 +240,6 @@ export function AiContentSection() {
 						<br />+ {`<TooltipContent side="bottom">`}
 					</div>
 				</Artifact>
-			</ComponentCard>
-
-			<ComponentCard
-				title="Not demoed here"
-				importPath="@superset/ui/ai-elements/*"
-				copyable={false}
-				description="Need live chat/tool-call state (ToolUIPart, streams) or an app shell"
-				span
-			>
-				<div className="flex flex-wrap gap-1.5">
-					{NOT_DEMOED.map((module) => (
-						<code
-							key={module}
-							className="rounded-md border bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
-						>
-							{module}
-						</code>
-					))}
-				</div>
 			</ComponentCard>
 		</ShowcaseSection>
 	);

@@ -10,9 +10,49 @@ import {
 } from "@superset/ui/resizable";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Separator } from "@superset/ui/separator";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupAction,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarHeader,
+	SidebarInput,
+	SidebarInset,
+	SidebarMenu,
+	SidebarMenuAction,
+	SidebarMenuBadge,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarMenuSubButton,
+	SidebarMenuSubItem,
+	SidebarProvider,
+	SidebarSeparator,
+	SidebarTrigger,
+	useSidebar,
+} from "@superset/ui/sidebar";
+import {
+	FolderGitIcon,
+	PlusIcon,
+	SearchIcon,
+	SettingsIcon,
+	SquareTerminalIcon,
+} from "lucide-react";
 
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
+
+function SidebarStateDebug() {
+	const { state } = useSidebar();
+	return (
+		<span className="px-2 font-mono text-[10px] text-muted-foreground">
+			useSidebar().state: {state}
+		</span>
+	);
+}
 
 const LOG_LINES = Array.from(
 	{ length: 24 },
@@ -91,6 +131,81 @@ export function LayoutSection() {
 						apps/web/src/app/design/components/LayoutSection/LayoutSection.tsx
 					</OverflowFadeText>
 				</div>
+			</ComponentCard>
+
+			<ComponentCard
+				title="Sidebar"
+				importPath="@superset/ui/sidebar"
+				description="Full app sidebar system — collapsible=&quot;none&quot; here to fit the card. Unused in apps/desktop today (WorkspaceSidebar is bespoke — see /design/audit)."
+				span
+				bleed
+			>
+				<SidebarProvider className="min-h-80 items-stretch">
+					<Sidebar collapsible="none" className="border-r border-border">
+						<SidebarHeader>
+							<div className="flex items-center justify-between px-2">
+								<span className="text-xs font-medium text-sidebar-foreground">
+									component-showcase
+								</span>
+								<SidebarTrigger />
+							</div>
+							<SidebarInput placeholder="Search…" />
+						</SidebarHeader>
+						<SidebarContent>
+							<SidebarGroup>
+								<SidebarGroupLabel>Workspace</SidebarGroupLabel>
+								<SidebarGroupAction title="Add">
+									<PlusIcon />
+								</SidebarGroupAction>
+								<SidebarGroupContent>
+									<SidebarMenu>
+										<SidebarMenuItem>
+											<SidebarMenuButton isActive>
+												<FolderGitIcon />
+												<span>Files</span>
+											</SidebarMenuButton>
+											<SidebarMenuAction showOnHover>
+												<SearchIcon />
+											</SidebarMenuAction>
+											<SidebarMenuBadge>3</SidebarMenuBadge>
+											<SidebarMenuSub>
+												<SidebarMenuSubItem>
+													<SidebarMenuSubButton isActive>
+														index.ts
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+												<SidebarMenuSubItem>
+													<SidebarMenuSubButton>utils.ts</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+											</SidebarMenuSub>
+										</SidebarMenuItem>
+										<SidebarMenuItem>
+											<SidebarMenuButton>
+												<SquareTerminalIcon />
+												<span>Terminal</span>
+											</SidebarMenuButton>
+										</SidebarMenuItem>
+									</SidebarMenu>
+								</SidebarGroupContent>
+							</SidebarGroup>
+							<SidebarSeparator />
+						</SidebarContent>
+						<SidebarFooter>
+							<SidebarMenu>
+								<SidebarMenuItem>
+									<SidebarMenuButton>
+										<SettingsIcon />
+										<span>Settings</span>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</SidebarMenu>
+							<SidebarStateDebug />
+						</SidebarFooter>
+					</Sidebar>
+					<SidebarInset className="flex items-center justify-center text-xs text-muted-foreground">
+						main content — SidebarInset
+					</SidebarInset>
+				</SidebarProvider>
 			</ComponentCard>
 
 			<ComponentCard

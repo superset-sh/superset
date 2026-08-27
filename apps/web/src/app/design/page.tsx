@@ -4,6 +4,7 @@ import { ActionsSection } from "./components/ActionsSection";
 import { DataSection } from "./components/DataSection";
 import { DesignPageHeader } from "./components/DesignPageHeader";
 import { FeedbackSection } from "./components/FeedbackSection";
+import { IconsSection } from "./components/IconsSection";
 import { InputsSection } from "./components/InputsSection";
 import { LayoutSection } from "./components/LayoutSection";
 import { MenusSection } from "./components/MenusSection";
@@ -25,6 +26,7 @@ const NAV_ITEMS: ShowcaseNavItem[] = [
 	{ id: "navigation", index: "06", title: "Navigation" },
 	{ id: "data", index: "07", title: "Data display" },
 	{ id: "layout", index: "08", title: "Layout" },
+	{ id: "icons", index: "09", title: "Icons" },
 ];
 
 export default function DesignPage() {
@@ -54,6 +56,7 @@ export default function DesignPage() {
 					<NavigationSection />
 					<DataSection />
 					<LayoutSection />
+					<IconsSection />
 				</main>
 			</div>
 		</div>

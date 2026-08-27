@@ -19,11 +19,21 @@ import {
 	CarouselPrevious,
 } from "@superset/ui/carousel";
 import {
+	type ChartConfig,
+	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@superset/ui/chart";
+import {
 	Item,
 	ItemActions,
 	ItemContent,
 	ItemDescription,
+	ItemFooter,
 	ItemGroup,
+	ItemHeader,
 	ItemMedia,
 	ItemSeparator,
 	ItemTitle,
@@ -35,11 +45,13 @@ import {
 	TableBody,
 	TableCaption,
 	TableCell,
+	TableFooter,
 	TableHead,
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
 import { FolderGitIcon, MoreHorizontalIcon } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts";
 
 import { ComponentCard } from "../ComponentCard";
 import { ShowcaseSection } from "../ShowcaseSection";
@@ -49,6 +61,19 @@ const SESSIONS = [
 	{ workspace: "fix-auth-redirect", agent: "Codex", status: "Idle" },
 	{ workspace: "bump-deps", agent: "Claude", status: "Done" },
 ];
+
+const RUN_DATA = [
+	{ day: "Mon", completed: 12, failed: 1 },
+	{ day: "Tue", completed: 18, failed: 2 },
+	{ day: "Wed", completed: 9, failed: 0 },
+	{ day: "Thu", completed: 22, failed: 3 },
+	{ day: "Fri", completed: 15, failed: 1 },
+];
+
+const RUN_CHART_CONFIG = {
+	completed: { label: "Completed", color: "var(--chart-1)" },
+	failed: { label: "Failed", color: "var(--chart-5)" },
+} satisfies ChartConfig;
 
 export function DataSection() {
 	return (
@@ -140,7 +165,51 @@ export function DataSection() {
 							<ItemDescription>Idle · branch pushed</ItemDescription>
 						</ItemContent>
 					</Item>
+					<ItemSeparator />
+					<Item>
+						<ItemHeader>
+							<ItemTitle>bump-deps</ItemTitle>
+							<Badge variant="secondary">Done</Badge>
+						</ItemHeader>
+						<ItemMedia variant="icon">
+							<FolderGitIcon />
+						</ItemMedia>
+						<ItemContent>
+							<ItemDescription>Claude · merged to main</ItemDescription>
+						</ItemContent>
+						<ItemFooter>
+							<span className="text-muted-foreground text-xs">
+								Updated 2h ago
+							</span>
+							<Button variant="ghost" size="icon-sm" aria-label="More">
+								<MoreHorizontalIcon />
+							</Button>
+						</ItemFooter>
+					</Item>
 				</ItemGroup>
+			</ComponentCard>
+
+			<ComponentCard
+				title="Chart"
+				importPath="@superset/ui/chart"
+				description="Recharts container + tooltip themed via --chart-1…5 tokens"
+				span
+			>
+				<ChartContainer config={RUN_CHART_CONFIG} className="h-48 w-full">
+					<BarChart data={RUN_DATA}>
+						<CartesianGrid vertical={false} />
+						<XAxis
+							dataKey="day"
+							tickLine={false}
+							axisLine={false}
+							tickMargin={8}
+						/>
+						<ChartTooltip content={<ChartTooltipContent />} />
+						<ChartLegend content={<ChartLegendContent />} />
+						<Bar dataKey="completed" fill="var(--color-completed)" radius={4} />
+						<Bar dataKey="failed" fill="var(--color-failed)" radius={4} />
+					</BarChart>
+				</ChartContainer>
 			</ComponentCard>
 
 			<ComponentCard title="Table" importPath="@superset/ui/table" span bleed>
@@ -172,6 +241,12 @@ export function DataSection() {
 							</TableRow>
 						))}
 					</TableBody>
+					<TableFooter>
+						<TableRow>
+							<TableCell colSpan={2}>Total sessions</TableCell>
+							<TableCell className="text-right">{SESSIONS.length}</TableCell>
+						</TableRow>
+					</TableFooter>
 				</Table>
 			</ComponentCard>
 

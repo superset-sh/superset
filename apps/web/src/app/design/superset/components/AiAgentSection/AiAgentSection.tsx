@@ -4,6 +4,7 @@ import {
 	ChainOfThought,
 	ChainOfThoughtContent,
 	ChainOfThoughtHeader,
+	ChainOfThoughtImage,
 	ChainOfThoughtSearchResult,
 	ChainOfThoughtSearchResults,
 	ChainOfThoughtStep,
@@ -72,7 +73,13 @@ export function AiAgentSection() {
 							icon={WrenchIcon}
 							label="Baking the chip style into tooltip.tsx"
 							status="active"
-						/>
+						>
+							<ChainOfThoughtImage caption="Before / after the chip style change">
+								<div className="flex h-24 w-full items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground">
+									screenshot
+								</div>
+							</ChainOfThoughtImage>
+						</ChainOfThoughtStep>
 					</ChainOfThoughtContent>
 				</ChainOfThought>
 			</ComponentCard>

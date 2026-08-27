@@ -3,28 +3,180 @@
 import { Alerter, alert } from "@superset/ui/atoms/Alert";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
+import type { ChatHistorySidebarMessage } from "@superset/ui/chat-history-sidebar";
+import { ChatHistorySidebar } from "@superset/ui/chat-history-sidebar";
 import { MeshGradient } from "@superset/ui/mesh-gradient";
+import {
+	CommentModeToggle,
+	CommentProvider,
+	type CommentStore,
+	type CommentThread,
+	PageCommentsView,
+	type PageVisibility,
+	PageVisibilityMenu,
+} from "@superset/ui/page-comments";
+import { Pixel404 } from "@superset/ui/pixel-404";
 import { SidebarCard } from "@superset/ui/sidebar-card";
 import { toast } from "@superset/ui/sonner";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
+import { useState } from "react";
 
 import { ComponentCard } from "../../../components/ComponentCard";
 import { ShowcaseSection } from "../../../components/ShowcaseSection";
 
-const REFERENCED_ONLY = [
+const CHAT_HISTORY_MESSAGES: ChatHistorySidebarMessage[] = [
 	{
-		path: "@superset/ui/form",
-		note: "react-hook-form bindings (FormField, FormItem, FormMessage…)",
+		id: "u1",
+		role: "user",
+		preview: "Can you enrich the leads spreadsheet with company data from Exa?",
 	},
 	{
-		path: "@superset/ui/chart",
-		note: "Recharts container + tooltip themed via --chart-1…5 tokens",
+		id: "a1",
+		role: "assistant",
+		preview:
+			"Sure — I'll read the sheet, look up each domain through the Exa API, and write the enriched columns back.",
 	},
 	{
-		path: "@superset/ui/sidebar",
-		note: "Full app sidebar system (SidebarProvider, SidebarMenu…)",
+		id: "u2",
+		role: "user",
+		preview: "How many rows are in the sheet total?",
+	},
+	{
+		id: "a2",
+		role: "assistant",
+		preview:
+			"The live tab has 665 data rows. 512 have a website domain we can enrich against.",
+	},
+	{
+		id: "u3",
+		role: "user",
+		preview: "Run the whole list but skip anything already enriched",
+	},
+	{
+		id: "a3",
+		role: "assistant",
+		preview:
+			"Running now with a 4-way concurrency limit and checkpointing every 25 rows.",
 	},
 ];
+
+const DEMO_HTML = `<!doctype html><html><body style="font-family:system-ui;padding:24px;margin:0;">
+<h1 style="margin:0 0 8px">Q3 rollout notes</h1>
+<p>Ship the onboarding flow behind a flag, then expand to 100% once activation holds for a week.</p>
+</body></html>`;
+
+function usePageCommentsDemoStore(): CommentStore {
+	const [threads, setThreads] = useState<CommentThread[]>([
+		{
+			id: "t1",
+			anchor: { path: "body > h1", tag: "H1", text: "Q3 rollout notes" },
+			resolved: false,
+			comments: [
+				{
+					id: "c1",
+					authorName: "Avi Peltz",
+					authorImage: null,
+					body: "Should this say Q4 now that the date slipped?",
+					createdAt: Date.now() - 1000 * 60 * 40,
+				},
+			],
+		},
+	]);
+
+	return {
+		threads,
+		isLoading: false,
+		createThread: async ({ anchor, body }) => {
+			setThreads((prev) => [
+				...prev,
+				{
+					id: `t${prev.length + 1}`,
+					anchor,
+					resolved: false,
+					comments: [
+						{
+							id: `c${prev.length + 1}`,
+							authorName: "You",
+							authorImage: null,
+							body,
+							createdAt: Date.now(),
+						},
+					],
+				},
+			]);
+		},
+		addReply: async (threadId, body) => {
+			setThreads((prev) =>
+				prev.map((t) =>
+					t.id === threadId
+						? {
+								...t,
+								comments: [
+									...t.comments,
+									{
+										id: `${threadId}-${t.comments.length + 1}`,
+										authorName: "You",
+										authorImage: null,
+										body,
+										createdAt: Date.now(),
+									},
+								],
+							}
+						: t,
+				),
+			);
+		},
+		editComment: async (threadId, commentId, body) => {
+			setThreads((prev) =>
+				prev.map((t) =>
+					t.id === threadId
+						? {
+								...t,
+								comments: t.comments.map((c) =>
+									c.id === commentId ? { ...c, body } : c,
+								),
+							}
+						: t,
+				),
+			);
+		},
+		setResolved: async (threadId, resolved) => {
+			setThreads((prev) =>
+				prev.map((t) => (t.id === threadId ? { ...t, resolved } : t)),
+			);
+		},
+		deleteThread: async (threadId) => {
+			setThreads((prev) => prev.filter((t) => t.id !== threadId));
+		},
+	};
+}
+
+function PageCommentsDemo() {
+	const store = usePageCommentsDemoStore();
+	const [visibility, setVisibility] = useState<PageVisibility>("just_me");
+
+	return (
+		<CommentProvider
+			user={{ id: "you", name: "You", image: null }}
+			store={store}
+		>
+			<div className="flex w-full flex-col gap-2">
+				<div className="flex items-center gap-2">
+					<CommentModeToggle />
+					<PageVisibilityMenu
+						visibility={visibility}
+						createdByUserId="you"
+						currentUserId="you"
+						onChange={async (v) => setVisibility(v)}
+					/>
+				</div>
+				<div className="h-56 w-full overflow-hidden rounded-md border">
+					<PageCommentsView html={DEMO_HTML} title="Q3 rollout notes" />
+				</div>
+			</div>
+		</CommentProvider>
+	);
+}
 
 export function SupersetSection() {
 	return (
@@ -134,25 +286,30 @@ export function SupersetSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Referenced, not demoed"
-				importPath="@superset/ui/*"
-				copyable={false}
-				description="Need app-level wiring (form state, chart data, app shell)"
+				title="Chat History Sidebar"
+				importPath="@superset/ui/chat-history-sidebar"
+				description="Hover a dot to preview the exchange. ChatHistorySidebarScroller wraps this with @shadcn/react/message-scroller for scroll-linked active state — same rendered UI."
+				bleed
+			>
+				<div className="relative h-56 w-full">
+					<ChatHistorySidebar messages={CHAT_HISTORY_MESSAGES} />
+				</div>
+			</ComponentCard>
+
+			<ComponentCard
+				title="404 (pixel art)"
+				importPath="@superset/ui/pixel-404"
+			>
+				<Pixel404 className="max-w-56 text-muted-foreground" />
+			</ComponentCard>
+
+			<ComponentCard
+				title="Page Comments"
+				importPath="@superset/ui/page-comments"
+				description="CommentModeToggle + PageVisibilityMenu + PageCommentsView over an in-memory CommentStore mock"
 				span
 			>
-				<div className="w-full space-y-2">
-					{REFERENCED_ONLY.map((entry) => (
-						<div
-							key={entry.path}
-							className="flex flex-col gap-0.5 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-						>
-							<code className="font-mono text-xs">{entry.path}</code>
-							<span className="text-xs text-muted-foreground">
-								{entry.note}
-							</span>
-						</div>
-					))}
-				</div>
+				<PageCommentsDemo />
 			</ComponentCard>
 		</ShowcaseSection>
 	);

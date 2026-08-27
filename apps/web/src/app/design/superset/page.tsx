@@ -3,9 +3,12 @@ import type { Metadata } from "next";
 import { DesignPageHeader } from "../components/DesignPageHeader";
 import { ShowcaseNav, type ShowcaseNavItem } from "../components/ShowcaseNav";
 import { AiAgentSection } from "./components/AiAgentSection";
+import { AiCanvasSection } from "./components/AiCanvasSection";
 import { AiChatSection } from "./components/AiChatSection";
 import { AiContentSection } from "./components/AiContentSection";
+import { AiConversationExtrasSection } from "./components/AiConversationExtrasSection";
 import { AiStatusSection } from "./components/AiStatusSection";
+import { AiToolCallsSection } from "./components/AiToolCallsSection";
 import { SharedComponentsSection } from "./components/SharedComponentsSection";
 import { SupersetSection } from "./components/SupersetSection";
 
@@ -21,7 +24,14 @@ const NAV_ITEMS: ShowcaseNavItem[] = [
 	{ id: "ai-chat", index: "03", title: "AI · Conversation" },
 	{ id: "ai-agent", index: "04", title: "AI · Agent activity" },
 	{ id: "ai-content", index: "05", title: "AI · Content" },
-	{ id: "shared", index: "06", title: "Shared app components" },
+	{ id: "ai-tool-calls", index: "06", title: "AI · Tool calls" },
+	{ id: "ai-canvas", index: "07", title: "AI · Canvas" },
+	{
+		id: "ai-conversation-extras",
+		index: "08",
+		title: "AI · Conversation extras",
+	},
+	{ id: "shared", index: "09", title: "Shared app components" },
 ];
 
 export default function DesignSupersetPage() {
@@ -48,6 +58,9 @@ export default function DesignSupersetPage() {
 					<AiChatSection />
 					<AiAgentSection />
 					<AiContentSection />
+					<AiToolCallsSection />
+					<AiCanvasSection />
+					<AiConversationExtrasSection />
 					<SharedComponentsSection />
 				</main>
 			</div>
