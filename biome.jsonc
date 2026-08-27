@@ -14,6 +14,8 @@
 			"!**/*.template.ts",
 			"!**/plans",
 			"!**/*.generated.ts",
+			// Lingui catalogs: .po plus compiled messages.ts (lingui compile output).
+			"!packages/i18n/locales",
 			"!apps/mobile/uniwind-types.d.ts",
 			"!packages/sdk/src",
 			// Vendored Vale style packages (synced by `vale sync`); don't reformat.

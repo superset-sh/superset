@@ -21,6 +21,7 @@
 		"@expo/ui": "57.0.12",
 		"@expo/vector-icons": "15.1.1",
 		"@legendapp/list": "3.0.3",
+		"@lingui/react": "6.6.0",
 		"@posthog/react-native-plugin": "2.4.0",
 		"@react-native-async-storage/async-storage": "2.2.0",
 		"@react-native-masked-view/masked-view": "0.3.2",
@@ -56,6 +57,7 @@
 		"@shopify/flash-list": "2.3.2",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@tanstack/react-query": "5.101.1",
@@ -126,6 +128,7 @@
 	},
 	"devDependencies": {
 		"@babel/preset-typescript": "7.29.7",
+		"@lingui/babel-plugin-lingui-macro": "6.6.0",
 		"@storybook/addon-ondevice-actions": "10.4.2",
 		"@storybook/addon-ondevice-controls": "10.4.2",
 		"@storybook/react-native": "10.4.2",

@@ -1,0 +1,10 @@
+{
+	"extends": "@superset/typescript/base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"lib": ["ES2022", "DOM"],
+		"types": []
+	},
+	"include": ["src", "locales", "lingui.config.ts"],
+	"exclude": ["node_modules"]
+}

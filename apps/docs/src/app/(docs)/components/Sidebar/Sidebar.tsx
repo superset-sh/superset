@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { useSearchContext } from "fumadocs-ui/contexts/search";
 import { Search } from "lucide-react";
@@ -24,7 +25,9 @@ export default function Sidebar() {
 						onClick={() => setOpenSearch(true)}
 					>
 						<Search className="size-3.5 shrink-0 opacity-70" />
-						<span className="grow truncate text-left">Search docs...</span>
+						<span className="grow truncate text-left">
+							<Trans id="docs.sidebar.searchPlaceholder">Search docs...</Trans>
+						</span>
 						<kbd className="text-[11px] font-medium text-muted-foreground">
 							⌘K
 						</kbd>

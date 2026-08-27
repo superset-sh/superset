@@ -1,3 +1,4 @@
+import { I18nProvider } from "@superset/i18n/react";
 import { Alerter } from "@superset/ui/atoms/Alert";
 import type { ReactNode } from "react";
 import { DesktopNoticesGate } from "renderer/components/DesktopNotices";
@@ -16,11 +17,13 @@ export function RootLayout({ children }: { children: ReactNode }) {
 				<PostHogUserIdentifier />
 				<PostHogSurfaceTagger />
 				<TelemetrySync />
-				<AuthProvider>
-					<DesktopNoticesGate>{children}</DesktopNoticesGate>
-					<ThemedToaster />
-					<Alerter />
-				</AuthProvider>
+				<I18nProvider>
+					<AuthProvider>
+						<DesktopNoticesGate>{children}</DesktopNoticesGate>
+						<ThemedToaster />
+						<Alerter />
+					</AuthProvider>
+				</I18nProvider>
 			</ElectronTRPCProvider>
 		</PostHogProvider>
 	);

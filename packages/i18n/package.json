@@ -1,0 +1,44 @@
+{
+	"name": "@superset/i18n",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		},
+		"./react": {
+			"types": "./src/react.tsx",
+			"default": "./src/react.tsx"
+		},
+		"./locales": {
+			"types": "./src/locales.ts",
+			"default": "./src/locales.ts"
+		},
+		"./messages/*": {
+			"types": "./locales/*/messages.ts",
+			"default": "./locales/*/messages.ts"
+		}
+	},
+	"scripts": {
+		"extract": "lingui extract",
+		"compile": "lingui compile --strict",
+		"check": "lingui extract --clean && lingui compile --strict && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
+		"pretypecheck": "lingui extract --clean && lingui compile --strict",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"clean": "git clean -xdf .cache .turbo node_modules"
+	},
+	"dependencies": {
+		"@lingui/core": "6.6.0",
+		"@lingui/react": "6.6.0"
+	},
+	"devDependencies": {
+		"@lingui/cli": "6.6.0",
+		"@lingui/format-po": "6.6.0",
+		"@superset/typescript": "workspace:*",
+		"@types/react": "19.2.14",
+		"react": "19.2.3",
+		"typescript": "6.0.3"
+	}
+}

@@ -6,6 +6,7 @@ import {
 	writeSharedDisabledAgentIds,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
+import { initI18n, resolveLocale } from "@superset/i18n";
 import { settings } from "@superset/local-db";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
@@ -367,6 +368,9 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
+		// First-load language inference from OS preferences; a persisted user
+		// setting takes precedence once it exists (plans/20260826-i18n-strategy.md).
+		initI18n(resolveLocale(app.getPreferredSystemLanguages()));
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();

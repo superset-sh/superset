@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { authClient } from "@superset/auth/client";
 import {
 	ACCOUNT_DELETION_GRACE_DAYS,
@@ -46,7 +47,11 @@ export default function AccountPendingDeletionPage() {
 		<div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6">
 			<AlertTriangle className="size-12 text-destructive" />
 			<div className="max-w-md text-center">
-				<h1 className="text-lg font-medium">Account pending deletion</h1>
+				<h1 className="text-lg font-medium">
+					<Trans id="account.pendingDeletion.title">
+						Account pending deletion
+					</Trans>
+				</h1>
 				<p className="text-sm text-muted-foreground">
 					Your account is deactivated and will be permanently deleted
 					{daysRemaining !== null && daysRemaining > 0
@@ -82,7 +87,7 @@ export default function AccountPendingDeletionPage() {
 						}
 					}}
 				>
-					Sign out
+					<Trans id="account.pendingDeletion.signOut">Sign out</Trans>
 				</Button>
 			</div>
 		</div>

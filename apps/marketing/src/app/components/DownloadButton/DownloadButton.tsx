@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { useRouter } from "next/navigation";
 import {
 	HiMiniArrowDownTray,
@@ -52,7 +53,7 @@ export function DownloadButton({
 				className={buttonClasses}
 				onClick={goToInterstitial}
 			>
-				Email me a link
+				<Trans id="marketing.download.emailLink">Email me a link</Trans>
 				<HiMiniEnvelope className="size-4" />
 			</button>
 		);
@@ -65,8 +66,12 @@ export function DownloadButton({
 				className={buttonClasses}
 				onClick={goToInterstitial}
 			>
-				<span className="hidden sm:inline">Download for macOS</span>
-				<span className="sm:hidden">Download</span>
+				<span className="hidden sm:inline">
+					<Trans id="marketing.download.forMac">Download for macOS</Trans>
+				</span>
+				<span className="sm:hidden">
+					<Trans id="marketing.download.short">Download</Trans>
+				</span>
 				{downloadIcon}
 			</button>
 		);
