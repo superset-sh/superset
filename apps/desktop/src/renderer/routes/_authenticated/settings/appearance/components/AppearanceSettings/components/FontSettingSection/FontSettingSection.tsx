@@ -622,7 +622,9 @@ export function FontSettingSection({
 				</div>
 				<div className="grid gap-5">
 					{showEditor && (
-						<div>
+						// min-w-0: grid items default to min-width auto, so the preview's
+						// nowrap footer would otherwise widen the item past its track.
+						<div className="min-w-0">
 							<div className="mb-2 flex items-center justify-between gap-3">
 								<Button
 									variant="ghost"
@@ -658,7 +660,7 @@ export function FontSettingSection({
 					)}
 
 					{showTerminal && (
-						<div>
+						<div className="min-w-0">
 							<div className="mb-2 flex items-center justify-between gap-3">
 								<Button
 									variant="ghost"
