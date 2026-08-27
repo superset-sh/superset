@@ -745,6 +745,27 @@ describe("terminal-ws-transport", () => {
 		expect(transport.seqAnchor).toBeNull();
 	});
 
+	test("park keeps a counted anchor when the connection closed before the park", () => {
+		// Counted connection ends (close consumed its per-connection flags),
+		// THEN the pane parks while the socket is between dials. The anchor is
+		// valid — dropping it would downgrade the next attach to seq=none and
+		// lose the replay of everything produced while parked.
+		const { transport, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+		const bytes = new TextEncoder().encode("counted");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+		socket.drop(1006, "host restart");
+		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 17 });
+
+		park(transport);
+
+		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 17 });
+	});
+
 	test("a failed connection after park is counted toward the diagnosis", () => {
 		const { transport, terminal } = connectAttached();
 		park(transport);

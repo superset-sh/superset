@@ -820,6 +820,10 @@ function attachSocketListeners(
 		// Otherwise the anchor keeps its last-counted position and the next
 		// attach's `synced` re-arms counting.
 		transport._seqCounting = false;
+		// Consumed: the flag describes the connection that just ended. Leaving
+		// it set would make a later park() misread the ended connection's
+		// counted bytes as uncounted and drop a valid anchor.
+		transport._bytesSinceAttach = false;
 		setConnectionState(transport, "closed");
 		// Per-connection outcome flags; consumed once per close.
 		const connAttached = transport._connAttached;
