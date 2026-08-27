@@ -30,7 +30,7 @@ export const FEATURES: Feature[] = [
 			"Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready.",
 	},
 	{
-		tag: "Remote Workspaces",
+		tag: "Remote Access",
 		title: "Run workspaces anywhere",
 		description:
 			"Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are.",

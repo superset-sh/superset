@@ -135,7 +135,7 @@ export function V2WorkspaceRunButton({
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<Settings className="mr-2 size-4" />
 						{definition?.source === "terminal-preset"
-							? "Edit Run Preset"
+							? "Edit Run Script"
 							: "Configure"}
 					</DropdownMenuItem>
 				</DropdownMenuContent>

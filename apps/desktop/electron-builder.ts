@@ -152,6 +152,30 @@ const config: Configuration = {
 		synopsis: pkg.description,
 		target: ["AppImage"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
+		// GNOME's app menus only show their heuristic "New Window" item
+		// intermittently for running apps; an explicit desktop action (the
+		// Chrome/VS Code approach) is always shown. The action relaunches with
+		// --new-window, which the second-instance handler answers by opening a
+		// window; a plain relaunch focuses the running app.
+		desktop: {
+			// electron-builder appends [Desktop Action] groups but never writes
+			// the Actions= key that exposes them, so declare it explicitly —
+			// launchers ignore action groups not listed under Actions.
+			entry: {
+				Actions: "new-window;",
+			},
+			desktopActions: {
+				"new-window": {
+					Name: "New Window",
+					// Args must stay in sync with linux.executableArgs (the
+					// AppImage default is --no-sandbox when unset); %U is
+					// intentionally omitted. --new-window is what the
+					// second-instance handler keys on to open a window instead
+					// of focusing the running app.
+					Exec: "AppRun --no-sandbox --new-window",
+				},
+			},
+		},
 	},
 
 	// Windows

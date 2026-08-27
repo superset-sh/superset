@@ -91,7 +91,7 @@ export function createApplicationMenu() {
 				{ role: "zoomOut" },
 				{ type: "separator" },
 				{
-					label: "Toggle Presets Bar",
+					label: "Toggle Scripts Bar",
 					click: () => {
 						menuEmitter.emit("toggle-presets-bar");
 					},

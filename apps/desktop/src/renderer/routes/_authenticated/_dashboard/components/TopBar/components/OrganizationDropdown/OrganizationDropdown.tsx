@@ -11,6 +11,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FiUsers } from "react-icons/fi";
@@ -20,11 +21,13 @@ import {
 	HiOutlineArrowRightOnRectangle,
 	HiOutlineArrowsRightLeft,
 	HiOutlinePlus,
+	HiOutlineWindow,
 } from "react-icons/hi2";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HelpSubMenu } from "./components/HelpSubMenu";
 import { SubmitPromptDialog } from "./components/SubmitPromptDialog";
@@ -39,6 +42,10 @@ export function OrganizationDropdown({
 	const signOut = useSignOut();
 	const navigate = useNavigate();
 	const [submitPromptOpen, setSubmitPromptOpen] = useState(false);
+	const openNewWindow = electronTrpc.window.openNew.useMutation({
+		onError: (error) =>
+			toast.error(`Failed to open new window: ${error.message}`),
+	});
 
 	// Per-window active org (from CollectionsProvider), not the shared session —
 	// so the checkmark reflects what THIS window is showing.
@@ -184,6 +191,11 @@ export function OrganizationDropdown({
 							</DropdownMenuSubContent>
 						</DropdownMenuSub>
 					)}
+
+					<DropdownMenuItem onSelect={() => openNewWindow.mutate()}>
+						<HiOutlineWindow className="h-4 w-4" />
+						<span>New window</span>
+					</DropdownMenuItem>
 
 					<HelpSubMenu onSubmitPrompt={() => setSubmitPromptOpen(true)} />
 

@@ -94,6 +94,10 @@ export async function initAppState(): Promise<void> {
 	console.log(`App state initialized at: ${APP_STATE_PATH}`);
 }
 
+export function isAppStateInitialized(): boolean {
+	return _appState !== null;
+}
+
 export const appState = new Proxy({} as AppStateDB, {
 	get(_target, prop) {
 		if (!_appState) {

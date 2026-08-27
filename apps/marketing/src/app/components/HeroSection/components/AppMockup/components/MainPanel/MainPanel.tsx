@@ -21,7 +21,7 @@ interface MainPanelProps {
 
 export function MainPanel({ activeDemo }: MainPanelProps) {
 	const isAutomate = activeDemo === "Automate Tasks";
-	const isRemote = activeDemo === "Remote Workspaces";
+	const isRemote = activeDemo === "Remote Access";
 	const isDefault = !isAutomate && !isRemote;
 
 	return (
@@ -181,7 +181,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 					</div>
 				</m.div>
 
-				{/* Remote Workspaces: same workspace model, on a box that isn't yours */}
+				{/* Remote Access: same workspace model, on a box that isn't yours */}
 				<m.div
 					className="absolute inset-0 p-5 font-mono text-[11px] leading-relaxed"
 					initial={{ opacity: 0 }}

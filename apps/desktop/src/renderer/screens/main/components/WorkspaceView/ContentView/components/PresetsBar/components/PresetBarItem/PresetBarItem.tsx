@@ -132,7 +132,7 @@ export function PresetBarItem({
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>
-					Edit preset
+					Edit script
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

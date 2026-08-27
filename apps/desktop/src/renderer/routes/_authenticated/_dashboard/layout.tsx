@@ -76,7 +76,6 @@ function DashboardLayout() {
 		matchRoute({ to: "/automations", fuzzy: true }) !== false ||
 		matchRoute({ to: "/tasks", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
-		matchRoute({ to: "/usage", fuzzy: true }) !== false ||
 		matchRoute({ to: "/plugins", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pages", fuzzy: true }) !== false ||
 		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;

@@ -192,6 +192,48 @@ describe("HostServiceCoordinator preferred ports", () => {
 	});
 });
 
+interface StableSecretInternals {
+	getOrCreateSecret(organizationId: string): string;
+}
+
+describe("HostServiceCoordinator stable secret", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let internals: StableSecretInternals;
+
+	beforeEach(() => {
+		resetMocks();
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+		internals = coordinator as unknown as StableSecretInternals;
+	});
+
+	afterEach(() => {
+		coordinator.stopAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("hands respawns the same secret clients already hold", () => {
+		const first = internals.getOrCreateSecret("org-1");
+
+		expect(internals.getOrCreateSecret("org-1")).toBe(first);
+		expect(internals.getOrCreateSecret("org-2")).not.toBe(first);
+	});
+
+	test("seeds the secret from a surviving manifest, then keeps it", () => {
+		manifestStore.current = baseManifest(1234);
+
+		expect(internals.getOrCreateSecret("org-1")).toBe("manifest-secret");
+
+		// Sticky once seeded: losing the manifest (crash cleanup) must not
+		// rotate the credential out from under connected clients.
+		manifestStore.current = null;
+		expect(internals.getOrCreateSecret("org-1")).toBe("manifest-secret");
+	});
+});
+
 interface ReconcileInternals {
 	instances: Map<
 		string,

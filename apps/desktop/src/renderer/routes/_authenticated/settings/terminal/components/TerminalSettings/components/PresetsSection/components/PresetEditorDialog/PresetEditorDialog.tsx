@@ -5,6 +5,7 @@ import { Button } from "@superset/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
@@ -309,7 +310,7 @@ export function PresetEditorDialog({
 
 	const handleBrowseDirectory = async () => {
 		const result = await selectDirectory.mutateAsync({
-			title: "Select preset directory",
+			title: "Select terminal script directory",
 			defaultPath: browseDefaultPath,
 		});
 		if (!result.canceled && result.path) {
@@ -348,8 +349,8 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					This directory does not exist. The preset will fall back to the
-					workspace root.
+					This directory does not exist. The terminal script will fall back to
+					the workspace root.
 				</AlertDescription>
 			</Alert>
 		) : trimmedCwd &&
@@ -371,8 +372,12 @@ export function PresetEditorDialog({
 					<>
 						<DialogHeader>
 							<DialogTitle>
-								{(linkedAgent?.label ?? preset.name).trim() || "Edit preset"}
+								{(linkedAgent?.label ?? preset.name).trim() || "Edit script"}
 							</DialogTitle>
+							<DialogDescription className="sr-only">
+								Configure commands, availability, and launch behavior for this
+								terminal script.
+							</DialogDescription>
 						</DialogHeader>
 
 						<div className="space-y-3">
@@ -448,7 +453,7 @@ export function PresetEditorDialog({
 									<DialogRow
 										label="Description"
 										htmlFor="preset-description"
-										hint="Optional context shown in the presets list."
+										hint="Optional context shown in the terminal scripts list."
 									>
 										<Input
 											id="preset-description"
@@ -463,7 +468,7 @@ export function PresetEditorDialog({
 
 									<DialogRow
 										label="Commands"
-										hint="One command per row. Add multiple to launch a grouped preset."
+										hint="One command per row. Add multiple to launch a grouped terminal script."
 										stacked
 									>
 										<CommandsEditor
@@ -478,7 +483,7 @@ export function PresetEditorDialog({
 
 							<DialogRow
 								label="Applies to"
-								hint="Where this preset is available."
+								hint="Where this terminal script is available."
 							>
 								<ProjectTargetingField
 									projectIds={preset.projectIds}
@@ -560,7 +565,7 @@ export function PresetEditorDialog({
 							<DialogRow
 								label="Use as workspace run"
 								htmlFor="preset-workspace-run"
-								hint="Makes the Run button launch this preset for matching projects."
+								hint="Makes the Run button launch this terminal script for matching projects."
 							>
 								<div className="flex justify-end">
 									<Switch
@@ -574,7 +579,7 @@ export function PresetEditorDialog({
 							<DialogRow
 								label="Auto-run on workspace creation"
 								htmlFor="preset-workspace-autostart"
-								hint="Launch this preset when a new workspace is created."
+								hint="Launch this terminal script when a new workspace is created."
 							>
 								<div className="flex justify-end">
 									<Switch
@@ -590,7 +595,7 @@ export function PresetEditorDialog({
 							<DialogRow
 								label="Auto-run on new tab"
 								htmlFor="preset-tab-autostart"
-								hint="Launch this preset whenever a new terminal tab opens."
+								hint="Launch this terminal script whenever a new terminal tab opens."
 							>
 								<div className="flex justify-end">
 									<Switch
@@ -613,7 +618,7 @@ export function PresetEditorDialog({
 								className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 							>
 								<Trash2 className="size-4" />
-								Delete preset
+								Delete script
 							</Button>
 							<Button
 								type="button"

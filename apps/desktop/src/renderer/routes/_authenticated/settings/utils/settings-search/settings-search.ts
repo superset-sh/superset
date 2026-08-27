@@ -30,6 +30,9 @@ export const SETTING_ITEM_ID = {
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
+	USAGE_TOKENS: "usage-tokens",
+	USAGE_RESOURCES: "usage-resources",
+
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
@@ -166,6 +169,9 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
+
+	[SETTING_ITEM_ID.USAGE_TOKENS]: "shared",
+	[SETTING_ITEM_ID.USAGE_RESOURCES]: "shared",
 
 	[SETTING_ITEM_ID.KEYBOARD_SHORTCUTS]: "shared",
 
@@ -653,6 +659,44 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.USAGE_TOKENS,
+		section: "usage",
+		title: "Token usage",
+		description: "Track per-account token usage, quotas, and model spend",
+		keywords: [
+			"usage",
+			"tokens",
+			"token",
+			"cost",
+			"spend",
+			"quota",
+			"limit",
+			"plan",
+			"model",
+			"models",
+			"claude",
+			"account",
+			"history",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.USAGE_RESOURCES,
+		section: "usage",
+		title: "Machine resources",
+		description: "Monitor live CPU and memory usage on this machine",
+		keywords: [
+			"usage",
+			"resources",
+			"cpu",
+			"memory",
+			"ram",
+			"processor",
+			"machine",
+			"performance",
+			"monitor",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.KEYBOARD_SHORTCUTS,
 		section: "keyboard",
 		title: "Keyboard Shortcuts",
@@ -917,12 +961,14 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
-		title: "Terminal Presets",
-		description: "Manage your terminal presets",
+		title: "Terminal Scripts",
+		description: "Manage reusable commands that launch in terminals",
 		keywords: [
 			"terminal",
 			"preset",
 			"presets",
+			"scripts",
+			"terminal scripts",
 			"commands",
 			"agent",
 			"launch",
@@ -937,7 +983,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
 		section: "terminal",
 		title: "Quick Add Templates",
-		description: "Pre-configured terminal presets",
+		description: "Pre-configured terminal scripts",
 		keywords: [
 			"terminal",
 			"quick",
@@ -1372,8 +1418,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.PROJECT_SCRIPTS,
 		section: "project",
-		title: "Scripts",
-		description: "Setup, teardown, and run scripts for workspaces",
+		title: "Project Lifecycle Scripts",
+		description: "Setup, teardown, and run lifecycle scripts for workspaces",
 		keywords: [
 			"project",
 			"scripts",

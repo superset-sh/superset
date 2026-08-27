@@ -171,6 +171,7 @@ export class HostServiceCoordinator extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
 	private pendingStarts = new Map<string, PendingStart>();
 	private lastKnownPorts = new Map<string, number>();
+	private stableSecrets = new Map<string, string>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
@@ -291,6 +292,26 @@ export class HostServiceCoordinator extends EventEmitter {
 	private rememberPort(organizationId: string, port: number): void {
 		if (!isValidPort(port)) return;
 		this.lastKnownPorts.set(organizationId, port);
+	}
+
+	/**
+	 * One PSK per org for the coordinator's lifetime, seeded from a surviving
+	 * manifest when there is one. Respawns and restarts must reuse it: every
+	 * live client (renderer windows, the CLI, peer app instances) caches this
+	 * secret against the host URL, and rotating it per spawn strands them all
+	 * on auth-rejected redials until their next connection poll — which showed
+	 * up as multi-second "Host unreachable" screens after a restarted service
+	 * was already serving. Stability gives up nothing: the current secret
+	 * already sits on disk in the manifest for adoption, so per-spawn rotation
+	 * never narrowed its exposure.
+	 */
+	private getOrCreateSecret(organizationId: string): string {
+		const existing =
+			this.stableSecrets.get(organizationId) ??
+			readManifest(organizationId)?.authToken;
+		const secret = existing ?? randomBytes(32).toString("hex");
+		this.stableSecrets.set(organizationId, secret);
+		return secret;
 	}
 
 	stop(organizationId: string): void {
@@ -674,6 +695,9 @@ export class HostServiceCoordinator extends EventEmitter {
 			owned: false,
 		});
 		this.rememberPort(organizationId, port);
+		// A later respawn must keep honoring credentials clients cached against
+		// the adopted instance.
+		this.stableSecrets.set(organizationId, manifest.authToken);
 		this.emitStatus(organizationId, "running", previous?.status ?? null);
 
 		log.info(
@@ -694,7 +718,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const port = await findFreePort(preferredPorts);
 		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 		this.rememberPort(organizationId, port);
-		const secret = randomBytes(32).toString("hex");
+		const secret = this.getOrCreateSecret(organizationId);
 
 		const instance: HostServiceProcess = {
 			pid: 0,

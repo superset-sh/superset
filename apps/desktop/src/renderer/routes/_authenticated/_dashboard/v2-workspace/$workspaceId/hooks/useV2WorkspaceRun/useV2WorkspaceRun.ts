@@ -162,7 +162,7 @@ export function useV2WorkspaceRun({
 		if (!definition || !command) {
 			toast.error("No workspace run command configured", {
 				description:
-					"Add a run script in Project Settings or mark a preset as the workspace run.",
+					"Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run.",
 			});
 			return;
 		}

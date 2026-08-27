@@ -112,7 +112,7 @@ export function ExperimentalSettings({
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Bring v1 projects, workspaces, and terminal presets over to v2. Each item is imported individually and can be retried."
+									text="Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
 									query={searchQuery}
 								/>
 							</p>

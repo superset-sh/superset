@@ -28,6 +28,7 @@ function createRecordingProvider(): GitCredentialProvider & {
 			return { env: {} };
 		},
 		getToken: async () => null,
+		credentialRemedy: () => "no credentials",
 	};
 }
 
@@ -93,6 +94,7 @@ describe("createGitEnvResolver", () => {
 				return { env };
 			},
 			getToken: async () => null,
+			credentialRemedy: () => "no credentials",
 		};
 
 		const env = await createGitEnvResolver(provider)(repo);

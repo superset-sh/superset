@@ -5,6 +5,7 @@ import { m } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Soc2Badge } from "../Soc2Badge";
 import { SocialLinks } from "../SocialLinks";
 
 function SupersetLogo() {
@@ -89,6 +90,14 @@ export function Footer() {
 							<SupersetLogo />
 						</Link>
 						<SocialLinks className="-ml-2" />
+						<a
+							href={COMPANY.TRUST_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="w-max text-muted-foreground transition-colors hover:text-foreground"
+						>
+							<Soc2Badge size={80} />
+						</a>
 						<p className="text-sm text-muted-foreground">
 							© {new Date().getFullYear()} Superset Inc.
 						</p>

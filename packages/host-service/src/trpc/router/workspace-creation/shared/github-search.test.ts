@@ -1,10 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import type { TRPCError } from "@trpc/server";
+import type { GitCredentialProvider } from "../../../../runtime/git/types";
 import {
 	buildSearchQuery,
 	chunkProjectRepos,
 	collectChunkResults,
 	GITHUB_SEARCH_QUERY_MAX_LENGTH,
 	githubRateLimitError,
+	githubRequestError,
+	isGithubAuthError,
 	isGithubNotFoundError,
 	isGithubRateLimitError,
 	mergeByUpdatedAtDesc,
@@ -254,6 +258,63 @@ describe("collectChunkResults", () => {
 			Promise.reject(rateLimited()),
 		]);
 		expect(() => collectChunkResults(settled)).toThrow("rate limit exceeded");
+	});
+});
+
+describe("auth error detection", () => {
+	test("matches Octokit 401s and gh bad-credentials text", () => {
+		expect(
+			isGithubAuthError(
+				Object.assign(
+					new Error("Bad credentials - https://docs.github.com/rest"),
+					{ status: 401 },
+				),
+			),
+		).toBe(true);
+		expect(
+			isGithubAuthError(
+				Object.assign(new Error("Command failed: gh api search/issues"), {
+					stderr: "gh: Bad credentials (HTTP 401)",
+				}),
+			),
+		).toBe(true);
+		expect(isGithubAuthError(new Error("HTTP 401: Unauthorized"))).toBe(true);
+		expect(isGithubAuthError(new Error("Validation Failed"))).toBe(false);
+		expect(
+			isGithubAuthError(
+				Object.assign(new Error("rate limit exceeded"), { status: 403 }),
+			),
+		).toBe(false);
+	});
+});
+
+describe("githubRequestError", () => {
+	const credentials: GitCredentialProvider = {
+		getCredentials: async () => ({ env: {} }),
+		getToken: async () => null,
+		credentialRemedy: () => "REMEDY",
+	};
+
+	test("a 401 carries the provider's remedy", () => {
+		const error = githubRequestError(
+			Object.assign(new Error("Bad credentials"), { status: 401 }),
+			credentials,
+		) as TRPCError;
+		expect(error.code).toBe("UNAUTHORIZED");
+		expect(error.message).toBe("REMEDY");
+	});
+
+	test("a rate limit stays a rate limit", () => {
+		const error = githubRequestError(
+			Object.assign(new Error("API rate limit exceeded"), { status: 403 }),
+			credentials,
+		) as TRPCError;
+		expect(error.code).toBe("TOO_MANY_REQUESTS");
+	});
+
+	test("anything else passes through untouched", () => {
+		const original = new Error("Validation Failed");
+		expect(githubRequestError(original, credentials)).toBe(original);
 	});
 });
 

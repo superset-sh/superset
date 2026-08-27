@@ -237,6 +237,20 @@ export async function getStrictShellEnvironment(): Promise<
 	return { ...cache };
 }
 
+/**
+ * Env for spawning the user's own tools (`git`, `gh`) — their login shell's,
+ * so the app resolves the same binaries and auth the terminal does. Falls
+ * back to this process's env with the macOS PATH repaired: a GUI-launched
+ * app inherits launchd's bare PATH, which has no Homebrew.
+ */
+export async function getToolEnvironment(): Promise<Record<string, string>> {
+	return getStrictShellEnvironment().catch(() => {
+		const env = { ...process.env } as Record<string, string>;
+		augmentPathForMacOS(env);
+		return env;
+	});
+}
+
 export function clearStrictShellEnvCache(): void {
 	cache = null;
 	cacheTime = 0;

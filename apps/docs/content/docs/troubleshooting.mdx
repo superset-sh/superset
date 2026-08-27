@@ -30,7 +30,7 @@ Superset terminals differ from Terminal.app in a few specific ways:
 
 Workspaces only copy git-tracked files, so `node_modules`, `.env`, and build artifacts don't come along.
 
-**Fix:** add [setup scripts](/setup-teardown-scripts) to `.superset/config.json`:
+**Fix:** add [project lifecycle setup commands](/setup-teardown-scripts) to `.superset/config.json`:
 
 ```json
 {
@@ -58,11 +58,11 @@ Superset detects installed agents automatically, but each agent can be enabled o
 
 **Fix:** check **Settings → Agents**: confirm the agent is **Enabled** and its command is correct. **Reset to Defaults** restores the shipped configuration.
 
-## Remote Workspace Won't Connect
+## Remote Host Won't Connect
 
 The host machine must be online and registered with the relay.
 
-**Fix:** on the host, confirm the toggle in **Settings → Security** is on (desktop) or that `superset start --daemon` is running (CLI). See [Remote Workspaces](/remote-workspaces).
+**Fix:** on the host, confirm the toggle in **Settings → Security** is on (desktop) or that `superset start --daemon` is running (CLI). See [Remote Access](/remote-access).
 
 ## Automation Run Failed While the Device Was Offline
 

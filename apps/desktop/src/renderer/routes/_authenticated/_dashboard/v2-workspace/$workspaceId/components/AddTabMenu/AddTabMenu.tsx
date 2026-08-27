@@ -46,7 +46,7 @@ export function AddTabMenu({
 				onCheckedChange={(checked) => onToggleShowPresetsBar(checked === true)}
 				onSelect={(event) => event.preventDefault()}
 			>
-				Show Preset Bar
+				Show Scripts Bar
 			</DropdownMenuCheckboxItem>
 		</>
 	);
