@@ -12,6 +12,10 @@
 			"types": "./src/react.tsx",
 			"default": "./src/react.tsx"
 		},
+		"./format": {
+			"types": "./src/format/index.ts",
+			"default": "./src/format/index.ts"
+		},
 		"./locales": {
 			"types": "./src/locales.ts",
 			"default": "./src/locales.ts"

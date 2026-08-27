@@ -1,19 +1,15 @@
+import {
+	formatDate as formatLocaleDate,
+	formatPrice,
+} from "@superset/i18n/format";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
-import { format } from "date-fns";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-function formatAmount(amount: number, currency: string) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: currency.toUpperCase(),
-	}).format(amount / 100);
-}
-
 function formatDate(timestamp: number) {
-	return format(new Date(timestamp * 1000), "MMM d, yyyy");
+	return formatLocaleDate(new Date(timestamp * 1000));
 }
 
 const UNPAID_LABEL: Record<string, string> = {
@@ -50,7 +46,7 @@ export function RecentInvoices() {
 									invoice.isUnpaid && "font-medium",
 								)}
 							>
-								{formatAmount(
+								{formatPrice(
 									invoice.isUnpaid ? invoice.amountDue : invoice.amountPaid,
 									invoice.currency,
 								)}

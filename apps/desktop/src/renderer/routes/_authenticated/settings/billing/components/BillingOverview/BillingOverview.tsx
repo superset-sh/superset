@@ -1,3 +1,4 @@
+import { formatPrice } from "@superset/i18n/format";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -77,10 +78,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		});
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const amountDue = outstandingInvoice
-		? new Intl.NumberFormat("en-US", {
-				style: "currency",
-				currency: outstandingInvoice.currency.toUpperCase(),
-			}).format(outstandingInvoice.amountDue / 100)
+		? formatPrice(outstandingInvoice.amountDue, outstandingInvoice.currency)
 		: null;
 
 	const showOverview = isItemVisible(

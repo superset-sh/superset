@@ -1,11 +1,13 @@
+import { formatCurrency } from "@superset/i18n/format";
+
 export { formatTokens } from "@superset/shared/format-tokens";
 
 /** "$19,211", "$46.20", "$0.85" — whole dollars once past $100. */
 export function formatUsd(usd: number): string {
 	if (usd >= 100) {
-		return `$${Math.round(usd).toLocaleString("en-US")}`;
+		return formatCurrency(usd, "USD", { maximumFractionDigits: 0 });
 	}
-	return `$${usd.toFixed(2)}`;
+	return formatCurrency(usd);
 }
 
 /** "Aug 12" from a `YYYY-MM-DD` bucket key. */

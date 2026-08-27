@@ -1,3 +1,4 @@
+import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -108,7 +109,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	}, [team?.id]);
 
 	const formatDate = (date: Date) =>
-		date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+		formatLocaleDate(date, { month: "short", day: "numeric" });
 
 	const trimmedName = nameValue.trim();
 	const trimmedSlug = slugValue.trim();
