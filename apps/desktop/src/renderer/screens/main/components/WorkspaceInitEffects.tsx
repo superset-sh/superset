@@ -210,9 +210,10 @@ export function WorkspaceInitEffects() {
 								error,
 							);
 							toast.error("Failed to create terminal", {
-								description:
-									errorMessage(error) ||
+								description: errorMessage(
+									error,
 									"Terminal setup failed. Please try again.",
+								),
 							});
 							onComplete();
 						},
@@ -270,9 +271,10 @@ export function WorkspaceInitEffects() {
 								error,
 							);
 							toast.error("Failed to create terminal", {
-								description:
-									errorMessage(error) ||
+								description: errorMessage(
+									error,
 									"Terminal setup failed. Please try again.",
+								),
 								action: {
 									label: "Open Terminal",
 									onClick: () => {

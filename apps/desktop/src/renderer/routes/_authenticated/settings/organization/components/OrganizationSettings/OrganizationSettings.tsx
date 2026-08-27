@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import {
 	canRemoveMember,
@@ -249,7 +250,7 @@ export function OrganizationSettings({
 			{
 				loading: "Deleting organization...",
 				success: "Organization deleted",
-				error: (err) => err.message || "Failed to delete organization",
+				error: (err) => errorMessage(err, "Failed to delete organization"),
 			},
 		);
 	}

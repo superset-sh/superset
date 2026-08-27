@@ -87,13 +87,13 @@ export function MemberActions({
 			toast.promise(leaveOrganization(), {
 				loading: "Leaving organization...",
 				success: "Left organization",
-				error: (err) => err.message || "Failed to leave organization",
+				error: (err) => errorMessage(err, "Failed to leave organization"),
 			});
 		} else {
 			toast.promise(removeMember(), {
 				loading: "Removing member...",
 				success: "Member removed",
-				error: (err) => err.message || "Failed to remove member",
+				error: (err) => errorMessage(err, "Failed to remove member"),
 			});
 		}
 	}
