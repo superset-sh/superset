@@ -25,7 +25,15 @@ export function WorkspaceHostGate({
 	const hostUrl = useWorkspaceHostUrl();
 	const { isUnreachable, isReconnecting, detail, retry } =
 		useHostReachability(hostUrl);
-	const { machineId } = useLocalHostService();
+	const { machineId, hostServiceStatus } = useLocalHostService();
+
+	// A local host that dropped because the coordinator is mid-restart is not
+	// "unreachable, go restart it from the tray" — that advises the user to do
+	// what is already happening. Only "starting" is overridden: a service the
+	// coordinator believes is running yet stays unreachable is a real wedge,
+	// and for that the default advice stands.
+	const isLocalRestartInFlight =
+		workspace.hostId === machineId && hostServiceStatus === "starting";
 	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined, {
 		staleTime: HOST_LIST_STALE_MS,
 	});
@@ -56,8 +64,12 @@ export function WorkspaceHostGate({
 						<WorkspaceHostUnreachableState
 							hostId={workspace.hostId}
 							hostName={hostName}
-							detail={detail}
-							isReconnecting={isReconnecting}
+							detail={
+								isLocalRestartInFlight
+									? "The local host service is restarting. It should be back in a few seconds."
+									: detail
+							}
+							isReconnecting={isReconnecting || isLocalRestartInFlight}
 							onRetry={retry}
 						/>
 					</StateScreenShell>

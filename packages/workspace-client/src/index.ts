@@ -11,6 +11,7 @@ export {
 	type PortChangedPayload,
 	type ProjectChangedPayload,
 	type ProjectSnapshotPayload,
+	reconnectEventBusIfDown,
 	type TerminalLifecyclePayload,
 	type WorkspaceChangedPayload,
 	type WorkspaceCreateSettledPayload,
