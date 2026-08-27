@@ -19,6 +19,8 @@ import {
 	LuUser,
 } from "react-icons/lu";
 
+import { env } from "@/env";
+
 interface Organization {
 	id: string;
 	name: string;
@@ -83,14 +85,21 @@ export function ConsentForm({
 
 		try {
 			if (accept) {
-				const { error: setActiveError } =
-					await authClient.organization.setActive({
-						organizationId: selectedOrgId,
-					});
-				if (setActiveError) {
-					throw new Error(
-						setActiveError.message ?? "Failed to set organization",
-					);
+				// Deliberately not authClient: here the API answers set-active with a
+				// redirect back to this page, and better-auth's client navigates on
+				// it, cancelling the consent call below before the CLI ever gets its
+				// code (#6609).
+				const response = await fetch(
+					`${env.NEXT_PUBLIC_API_URL}/api/auth/organization/set-active`,
+					{
+						method: "POST",
+						credentials: "include",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ organizationId: selectedOrgId }),
+					},
+				);
+				if (!response.ok) {
+					throw new Error("Failed to set organization");
 				}
 			}
 
