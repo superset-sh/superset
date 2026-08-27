@@ -12,11 +12,24 @@ export interface I18nErrorCause {
 	i18nParams?: Record<string, string | number>;
 }
 
+function isValidParams(
+	params: unknown,
+): params is Record<string, string | number> | undefined {
+	if (params === undefined) return true;
+	if (typeof params !== "object" || params === null || Array.isArray(params)) {
+		return false;
+	}
+	return Object.values(params).every(
+		(value) => typeof value === "string" || typeof value === "number",
+	);
+}
+
 export function isI18nErrorCause(cause: unknown): cause is I18nErrorCause {
 	return (
 		typeof cause === "object" &&
 		cause !== null &&
-		typeof (cause as { i18nKey?: unknown }).i18nKey === "string"
+		typeof (cause as { i18nKey?: unknown }).i18nKey === "string" &&
+		isValidParams((cause as { i18nParams?: unknown }).i18nParams)
 	);
 }
 

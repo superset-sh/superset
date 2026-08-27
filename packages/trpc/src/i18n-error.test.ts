@@ -35,6 +35,16 @@ describe("i18n error contract", () => {
 		});
 	});
 
+	test("malformed i18nParams are rejected, not forwarded to clients", () => {
+		for (const i18nParams of ["not-a-record", ["a"], { nested: {} }, 5]) {
+			const shape = formatError({
+				shape: { message: "x", code: -32600, data: {} },
+				error: { cause: { i18nKey: "serverError.x", i18nParams } },
+			});
+			expect(shape.data).toMatchObject({ i18nKey: null, i18nParams: null });
+		}
+	});
+
 	test("plain errors format with null i18n fields", () => {
 		const shape = formatError({
 			shape: { message: "boom", code: -32603, data: {} },
