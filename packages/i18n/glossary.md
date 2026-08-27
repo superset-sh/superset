@@ -1,9 +1,10 @@
 # Translation glossary
 
 Input for translators, reviewers, and the translation CI prompt. Policy
-(Kiet, 2026-08-27): **product vocabulary translates**. "Workspace", "agent",
-"pane", "task", "automation", and the rest are rendered in each locale's
-natural term, not kept as English islands.
+(Kiet, 2026-08-27): **product vocabulary translates — except the word
+"Superset" itself, which is never translated or transliterated in any
+locale.** "Workspace", "agent", "pane", "task", "automation", and the rest
+are rendered in each locale's natural term, not kept as English islands.
 
 ## Never translated
 
