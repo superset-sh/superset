@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isI18nErrorCause, userError } from "./i18n-error";
-import { formatError } from "./trpc";
+import { formatError, isI18nErrorCause, userError } from "./i18n-error";
 
 // Round trip: userError() → errorFormatter → the client-visible shape.data.
 // TRPCError.cause is NOT serialized by tRPC, so this is the contract that

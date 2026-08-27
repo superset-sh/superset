@@ -5,12 +5,11 @@ import { COMPANY, ORGANIZATION_HEADER } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
-import { ZodError } from "zod";
-import { isI18nErrorCause } from "./i18n-error";
+import { formatError } from "./i18n-error";
 import { posthog } from "./lib/analytics";
 
 export type { I18nErrorCause } from "./i18n-error";
-export { isI18nErrorCause, userError } from "./i18n-error";
+export { formatError, isI18nErrorCause, userError } from "./i18n-error";
 
 export interface ApiClientInfo {
 	product: "desktop" | "mobile" | "cli";
@@ -66,28 +65,6 @@ export const createTRPCContext = (
 	client: parseClientHeader(opts.headers),
 	agentCaller: opts.agentCaller ?? null,
 });
-
-// Exported for the round-trip test: TRPCError.cause is never serialized to
-// clients, so user-facing i18n fields must be copied into shape.data here or
-// errorMessage() on the client silently falls back to English.
-export function formatError<TShape extends { data: object }>({
-	shape,
-	error,
-}: {
-	shape: TShape;
-	error: { cause?: unknown };
-}) {
-	const i18nCause = isI18nErrorCause(error.cause) ? error.cause : null;
-	return {
-		...shape,
-		data: {
-			...shape.data,
-			zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
-			i18nKey: i18nCause?.i18nKey ?? null,
-			i18nParams: i18nCause?.i18nParams ?? null,
-		},
-	};
-}
 
 const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,

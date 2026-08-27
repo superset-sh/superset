@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import { ZodError } from "zod";
 
 // User-facing tRPC errors carry a machine-readable key so clients can render
 // them in the user's language. The English `message` stays populated as the
@@ -31,6 +32,30 @@ export function isI18nErrorCause(cause: unknown): cause is I18nErrorCause {
 		typeof (cause as { i18nKey?: unknown }).i18nKey === "string" &&
 		isValidParams((cause as { i18nParams?: unknown }).i18nParams)
 	);
+}
+
+// The router's errorFormatter. Lives here (not trpc.ts) so tests can import
+// it without pulling trpc.ts's module graph, which opens a DB connection at
+// import time. TRPCError.cause is never serialized to clients, so user-facing
+// i18n fields must be copied into shape.data here or errorMessage() on the
+// client silently falls back to English.
+export function formatError<TShape extends { data: object }>({
+	shape,
+	error,
+}: {
+	shape: TShape;
+	error: { cause?: unknown };
+}) {
+	const i18nCause = isI18nErrorCause(error.cause) ? error.cause : null;
+	return {
+		...shape,
+		data: {
+			...shape.data,
+			zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+			i18nKey: i18nCause?.i18nKey ?? null,
+			i18nParams: i18nCause?.i18nParams ?? null,
+		},
+	};
 }
 
 export function userError(opts: {
