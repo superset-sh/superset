@@ -63,11 +63,11 @@ export function BuiltinPresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
-					Run preset
+					Run script
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onHide(preset.id)}>
-					Remove preset
+					Remove script
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

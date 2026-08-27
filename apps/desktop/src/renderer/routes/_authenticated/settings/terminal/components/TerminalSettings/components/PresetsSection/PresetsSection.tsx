@@ -484,11 +484,11 @@ export function PresetsSection({
 			<div className="flex items-center justify-between">
 				<div className="space-y-0.5">
 					<Label className="text-sm font-medium">
-						<HighlightText text="Terminal Presets" query={searchQuery} />
+						<HighlightText text="Terminal Scripts" query={searchQuery} />
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						Presets let you quickly launch terminals with pre-configured
-						commands.
+						Reusable commands that launch in terminals. Project setup, run, and
+						teardown commands are configured as lifecycle scripts.
 					</p>
 				</div>
 				{showPresets && (
@@ -499,7 +499,7 @@ export function PresetsSection({
 						onClick={() => handleAddRow()}
 					>
 						<HiOutlinePlus className="h-4 w-4" />
-						Add Preset
+						Add Script
 					</Button>
 				)}
 			</div>
@@ -527,7 +527,7 @@ export function PresetsSection({
 						onToggleVisibility={handleToggleVisibility}
 					/>
 					<p className="text-xs text-muted-foreground">
-						Click a preset row to edit details.
+						Click a terminal script to edit its details.
 					</p>
 				</>
 			)}

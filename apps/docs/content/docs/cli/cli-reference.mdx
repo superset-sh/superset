@@ -32,6 +32,43 @@ These flags are accepted by every command:
 
 ## Commands
 
+### scripts
+
+Reusable terminal launches. These are called terminal scripts in the app;
+setup, run, and teardown entries in `.superset/config.json` are project
+lifecycle scripts. The legacy `presets` command name remains an alias.
+
+<Command
+	name="superset scripts add"
+	options={[
+		{ flag: "--name <name>", required: true, description: "Display name." },
+		{ flag: "--command <command...>", required: true, description: "Shell command. Repeat to launch multiple commands." },
+		{ flag: "--description <text>", description: "Optional description." },
+		{ flag: "--cwd <path>", description: "Workspace-relative working directory." },
+		{ flag: "--project <uuid...>", description: "Limit availability to one or more projects." },
+		{ flag: "--execution-mode <mode>", description: "new-tab, split-pane, new-tab-split-pane, or sequential." },
+		{ flag: "--hidden", description: "Do not show the script in the Scripts bar." },
+		{ flag: "--workspace-run", description: "Use the script for the matching project's Run action." },
+	]}
+>
+Add a terminal script to the desktop app on this machine. The desktop app must
+have been launched once so its local database exists, and the CLI must have an
+active organization so the script is imported into the correct v2 profile.
+
+```bash
+superset scripts add --name dev --command "bun run dev"
+superset presets add --name services \
+  --command "docker compose up" --command "bun run dev" \
+  --execution-mode split-pane
+```
+
+<CommandReturns>
+The created terminal script, including its generated ID.
+</CommandReturns>
+</Command>
+
+---
+
 ### auth
 
 Authentication and session inspection.

@@ -117,7 +117,7 @@ mock.module("@superset/workspace-client/relay-socket", () => ({
 		new FakeRelaySocket(options),
 }));
 
-const { connect, createTransport, disconnect, reconnect } = await import(
+const { connect, createTransport, disconnect, park, reconnect } = await import(
 	"./terminal-ws-transport"
 );
 
@@ -165,6 +165,13 @@ function connectAttached(url = "ws://host/terminal/t1") {
 	return { transport, terminal, socket };
 }
 
+// The park tests feed binary frames into the write coalescer outside the
+// coalescing describe's rAF harness; bun's test runtime has no
+// requestAnimationFrame, so give it an inert one (those tests never fire a
+// frame — pending bytes are flushed by park's coalescer dispose).
+const originalRaf = globalThis.requestAnimationFrame;
+const originalCancelRaf = globalThis.cancelAnimationFrame;
+
 beforeEach(() => {
 	FakeRelaySocket.instances = [];
 	if (win && typeof win.addEventListener !== "function") {
@@ -173,6 +180,10 @@ beforeEach(() => {
 	if (win && typeof win.removeEventListener !== "function") {
 		win.removeEventListener = () => {};
 	}
+	if (typeof globalThis.requestAnimationFrame !== "function") {
+		globalThis.requestAnimationFrame = () => 0;
+		globalThis.cancelAnimationFrame = () => {};
+	}
 });
 
 afterEach(() => {
@@ -180,6 +191,8 @@ afterEach(() => {
 		win.addEventListener = originalAddEventListener;
 		win.removeEventListener = originalRemoveEventListener;
 	}
+	globalThis.requestAnimationFrame = originalRaf;
+	globalThis.cancelAnimationFrame = originalCancelRaf;
 	setSystemTime();
 	jest.useRealTimers();
 });
@@ -645,6 +658,176 @@ describe("terminal-ws-transport", () => {
 		socket.open();
 		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 		expect(transport.sessionEnded).toBe(false);
+	});
+
+	test("park closes the socket silently, keeping title and stream position", () => {
+		const { transport, socket } = connectAttached();
+		socket.message(JSON.stringify({ type: "title", title: "agent" }));
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 40, mode: "exact" }),
+		);
+		const bytes = new TextEncoder().encode("hello");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(true);
+		expect(transport.connectionState).toBe("disconnected");
+		// A park is not a failure: no reconnect logs, no diagnosis, no counted
+		// attempt — and the resume state survives for the next connect().
+		expect(transport.logs).toHaveLength(0);
+		expect(transport.lastDiagnosis).toBeNull();
+		expect(transport.title).toBe("agent");
+		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 45 });
+	});
+
+	test("park stops the liveness watchdog and ignores late socket events", () => {
+		jest.useFakeTimers();
+		setSystemTime(new Date("2026-01-01T00:00:00Z"));
+		const { transport, socket } = connectAttached();
+
+		park(transport);
+
+		// Sleep/wake after a park must not resurrect the closed socket.
+		setSystemTime(new Date("2026-01-01T00:02:00Z"));
+		jest.advanceTimersByTime(120_000);
+		expect(socket.reconnectCount).toBe(0);
+
+		// A trailing close/message from the closed socket is dropped.
+		socket.drop(1006, "late");
+		socket.message(JSON.stringify({ type: "title", title: "late" }));
+		expect(transport.connectionState).toBe("disconnected");
+		expect(transport.logs).toHaveLength(0);
+	});
+
+	test("connect() after park dials a fresh socket anchored at the parked position", () => {
+		const { transport, terminal, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+		const bytes = new TextEncoder().encode("abc");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+		park(transport);
+		expect(FakeRelaySocket.instances).toHaveLength(1);
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+
+		// The parked socket is gone for good; the remount dials a new one whose
+		// URL asks the host for exactly the bytes missed while parked.
+		expect(FakeRelaySocket.instances).toHaveLength(2);
+		const redial = FakeRelaySocket.instances.at(-1);
+		if (!redial) throw new Error("expected relay socket instance");
+		const buildUrl = redial.options.buildUrl as () => string;
+		expect(buildUrl()).toContain("seq=e1%3A13");
+		redial.open();
+		redial.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(transport.connectionState).toBe("open");
+	});
+
+	test("park refuses to disconnect a pre-seq host", () => {
+		// A pre-seq host ignores `?seq=` and `replay=0` suppresses its legacy
+		// FIFO replay, so a closed socket means the parked gap is silently
+		// lost. Such transports keep the legacy always-connected behavior.
+		const { transport, socket } = connectAttached();
+		const bytes = new TextEncoder().encode("pre-seq output");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(false);
+		expect(transport.connectionState).toBe("open");
+	});
+
+	test("park drops an anchor poisoned by uncounted bytes on a seq-aware host", () => {
+		// A seq-aware transport (synced seen on an earlier connection) parked
+		// between a reattach and its `synced`: the current connection's bytes
+		// advanced the xterm without advancing the anchor. Parking must apply
+		// the same anchor hygiene the bypassed close handler would have —
+		// otherwise the next dial's exact catch-up re-delivers painted bytes.
+		const { transport, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+		socket.drop(1006, "host restart");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		const bytes = new TextEncoder().encode("uncounted");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(true);
+		expect(transport.seqAnchor).toBeNull();
+	});
+
+	test("park keeps a counted anchor when the connection closed before the park", () => {
+		// Counted connection ends (close consumed its per-connection flags),
+		// THEN the pane parks while the socket is between dials. The anchor is
+		// valid — dropping it would downgrade the next attach to seq=none and
+		// lose the replay of everything produced while parked.
+		const { transport, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+		const bytes = new TextEncoder().encode("counted");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+		socket.drop(1006, "host restart");
+		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 17 });
+
+		park(transport);
+
+		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 17 });
+	});
+
+	test("an endpoint re-point resets seq capability so a legacy host is not parked", () => {
+		// Seq capability belongs to the endpoint. After re-pointing (e.g. the
+		// local host-service restarted on a new port running an older build),
+		// a latched _seqEverSynced from the old endpoint would let park()
+		// close a socket the legacy host cannot replay a gap for.
+		const { transport, terminal, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+
+		connect(transport, terminal, "ws://host2/terminal/t1");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		const bytes = new TextEncoder().encode("legacy output, no synced");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(false);
+		expect(transport.connectionState).toBe("open");
+	});
+
+	test("a failed connection after park is counted toward the diagnosis", () => {
+		const { transport, terminal } = connectAttached();
+		park(transport);
+
+		// Remount: fresh socket. Every post-park connection that dies before
+		// attaching must count as a failed attempt — a stale _connAttached
+		// carried over from the parked (attached) session would skip the first
+		// one and delay the outage diagnosis by a dial.
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const redial = FakeRelaySocket.instances.at(-1);
+		if (!redial) throw new Error("expected relay socket instance");
+		redial.open();
+		redial.drop(1006, "host went away before attach");
+
+		expect(transport._attachRetry.consecutiveFailures).toBe(1);
 	});
 
 	test("ignores late events from a socket detached during teardown", () => {

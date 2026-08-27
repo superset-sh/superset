@@ -7,6 +7,7 @@ export type SettingsSection =
 	| "teams"
 	| "appearance"
 	| "ringtones"
+	| "usage"
 	| "keyboard"
 	| "behavior"
 	| "browser"

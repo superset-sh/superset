@@ -245,7 +245,7 @@ export function V2PresetsBar({
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Manage Presets</TooltipContent>
+					<TooltipContent side="bottom">Manage Terminal Scripts</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {
@@ -325,7 +325,7 @@ export function V2PresetsBar({
 						}
 						onSelect={(event) => event.preventDefault()}
 					>
-						Show Preset Bar
+						Show Scripts Bar
 					</DropdownMenuCheckboxItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
@@ -333,7 +333,7 @@ export function V2PresetsBar({
 						onClick={() => navigate({ to: "/settings/terminal" })}
 					>
 						<Settings className="size-4" />
-						<span>Manage Presets</span>
+						<span>Manage Terminal Scripts</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

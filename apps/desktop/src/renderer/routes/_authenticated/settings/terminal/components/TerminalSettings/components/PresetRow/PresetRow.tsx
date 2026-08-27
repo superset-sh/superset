@@ -142,7 +142,7 @@ export function PresetRow({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">
-						{preset.name.trim() || "Untitled preset"}
+						{preset.name.trim() || "Untitled script"}
 					</span>
 					{isWorkspaceCreation && (
 						<Badge

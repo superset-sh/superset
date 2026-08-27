@@ -5,7 +5,7 @@ type LegacyPresetsSearch = {
 	presetId?: string;
 };
 
-// Presets have been merged into Terminal settings
+// Legacy URL retained for old links; terminal scripts live in Terminal settings.
 export const Route = createFileRoute("/_authenticated/settings/presets/")({
 	validateSearch: (search: Record<string, unknown>): LegacyPresetsSearch => ({
 		editPresetId:

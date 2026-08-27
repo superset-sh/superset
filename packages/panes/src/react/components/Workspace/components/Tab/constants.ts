@@ -11,5 +11,7 @@ export const RESIZE_HANDLE_CLICK_MAX_MOVEMENT_PX = 4;
 
 // At a T-junction, a nested perpendicular handle can overlap its ancestor's
 // hit area. Shallower handles stay above deeper ones so the border under the
-// pointer does not change identity after that border is dragged.
+// pointer does not change identity after that border is dragged. The pane
+// tree root isolates, so these values only order elements within the tree —
+// they never lift a handle above portalled overlays like dialogs.
 export const RESIZE_HANDLE_BASE_Z_INDEX = 100;
