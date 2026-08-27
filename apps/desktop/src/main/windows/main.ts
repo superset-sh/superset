@@ -34,6 +34,7 @@ import {
 	getWorkspaceName,
 } from "../lib/notifications/utils";
 import { recordV1TerminalExit } from "../lib/notifications/v1-agent-sessions";
+import { isAppQuitting } from "../lib/quit-state";
 import {
 	getAllWindows,
 	getFocusedOrLastWindow,
@@ -275,13 +276,6 @@ function stopSharedServices(): void {
 // ---------------------------------------------------------------------------
 // Multi-window restore
 // ---------------------------------------------------------------------------
-
-// Set during app quit so per-window close handlers don't shrink the persisted
-// set as windows close one-by-one — the full set is snapshotted in before-quit.
-let appQuitting = false;
-export function markAppQuitting(): void {
-	appQuitting = true;
-}
 
 function snapshotWindowState(window: BrowserWindow): WindowState {
 	const isMaximized = window.isMaximized();
@@ -578,7 +572,7 @@ export async function createPlatformWindow({
 		// A user closing one window (app keeps running) updates the restore set.
 		// During app quit we skip this — before-quit snapshots the full set so
 		// closing windows one-by-one doesn't shrink it.
-		if (!appQuitting) {
+		if (!isAppQuitting()) {
 			persistOpenWindows();
 		}
 

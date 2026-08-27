@@ -22,6 +22,9 @@ const dmgBackgroundPath = join(
 	pkg.resources,
 	"build/installer/background.tiff",
 );
+// Also the AppImage default when unset; declared so the desktop action's Exec
+// below is composed from the same args instead of drifting.
+const linuxExecutableArgs = ["--no-sandbox"];
 
 const config: Configuration = {
 	appId: "com.superset.desktop",
@@ -152,6 +155,7 @@ const config: Configuration = {
 		synopsis: pkg.description,
 		target: ["AppImage"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
+		executableArgs: linuxExecutableArgs,
 		// GNOME's app menus only show their heuristic "New Window" item
 		// intermittently for running apps; an explicit desktop action (the
 		// Chrome/VS Code approach) is always shown. The action relaunches with
@@ -167,12 +171,10 @@ const config: Configuration = {
 			desktopActions: {
 				"new-window": {
 					Name: "New Window",
-					// Args must stay in sync with linux.executableArgs (the
-					// AppImage default is --no-sandbox when unset); %U is
-					// intentionally omitted. --new-window is what the
+					// %U is intentionally omitted. --new-window is what the
 					// second-instance handler keys on to open a window instead
 					// of focusing the running app.
-					Exec: "AppRun --no-sandbox --new-window",
+					Exec: ["AppRun", ...linuxExecutableArgs, "--new-window"].join(" "),
 				},
 			},
 		},

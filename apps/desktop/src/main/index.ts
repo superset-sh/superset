@@ -43,6 +43,7 @@ import {
 import { syncInstalledPluginMcpServers } from "./lib/plugin-installs";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
 import { runQuitCleanup } from "./lib/quit-sequence";
+import { isAppQuitting, markAppQuitting } from "./lib/quit-state";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
@@ -58,7 +59,6 @@ import { sweepNetworkLogs } from "./network-logger-sweep";
 import {
 	createPlatformWindow,
 	initAppServices,
-	markAppQuitting,
 	persistOpenWindows,
 	restoreWindows,
 } from "./windows/main";
@@ -185,7 +185,6 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
-let isQuitting = false;
 let skipQuitConfirmation = false;
 let forceFullCleanup = false;
 
@@ -220,7 +219,7 @@ function getConfirmOnQuitSetting(): boolean {
 }
 
 app.on("before-quit", async (event) => {
-	if (isQuitting) return;
+	if (isAppQuitting()) return;
 
 	const isDev = process.env.NODE_ENV === "development";
 	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
@@ -244,7 +243,6 @@ app.on("before-quit", async (event) => {
 		}
 	}
 
-	isQuitting = true;
 	// Snapshot all open windows (bounds + org) before they close, so relaunch
 	// restores them. markAppQuitting() stops per-window close handlers from
 	// shrinking the set as windows close one-by-one.
@@ -278,12 +276,12 @@ async function teardownTerminalHost(): Promise<void> {
 }
 
 process.on("uncaughtException", (error) => {
-	if (isQuitting) return;
+	if (isAppQuitting()) return;
 	console.error("[main] Uncaught exception:", error);
 });
 
 process.on("unhandledRejection", (reason) => {
-	if (isQuitting) return;
+	if (isAppQuitting()) return;
 	console.error("[main] Unhandled rejection:", reason);
 });
 
@@ -361,7 +359,7 @@ if (!gotTheLock) {
 	app.on("second-instance", async (_event, argv) => {
 		// An auto-update restart spawns the replacement while this process
 		// still holds the single-instance lock; don't build windows mid-quit.
-		if (isQuitting) return;
+		if (isAppQuitting()) return;
 		const url = findDeepLinkInArgv(argv);
 		if (url) {
 			// processDeepLink focuses the window on every one of its paths.
