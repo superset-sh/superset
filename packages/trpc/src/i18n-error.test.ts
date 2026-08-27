@@ -1,0 +1,45 @@
+import { describe, expect, test } from "bun:test";
+import { isI18nErrorCause, userError } from "./i18n-error";
+import { formatError } from "./trpc";
+
+// Round trip: userError() → errorFormatter → the client-visible shape.data.
+// TRPCError.cause is NOT serialized by tRPC, so this is the contract that
+// keeps errorMessage() on the client working.
+describe("i18n error contract", () => {
+	test("userError attaches a typed cause", () => {
+		const err = userError({
+			code: "BAD_REQUEST",
+			message: "This slug is already taken",
+			i18nKey: "serverError.organization.slugTaken",
+		});
+		expect(err.code).toBe("BAD_REQUEST");
+		expect(err.message).toBe("This slug is already taken");
+		expect(isI18nErrorCause(err.cause)).toBe(true);
+	});
+
+	test("formatError copies i18nKey and params into shape.data", () => {
+		const err = userError({
+			code: "NOT_FOUND",
+			message: "Workspace not found",
+			i18nKey: "serverError.workspace.notFound",
+			params: { name: "api" },
+		});
+		const shape = formatError({
+			shape: { message: err.message, code: -32600, data: { httpStatus: 404 } },
+			error: err,
+		});
+		expect(shape.data).toMatchObject({
+			httpStatus: 404,
+			i18nKey: "serverError.workspace.notFound",
+			i18nParams: { name: "api" },
+		});
+	});
+
+	test("plain errors format with null i18n fields", () => {
+		const shape = formatError({
+			shape: { message: "boom", code: -32603, data: {} },
+			error: new Error("boom"),
+		});
+		expect(shape.data).toMatchObject({ i18nKey: null, i18nParams: null });
+	});
+});

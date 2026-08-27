@@ -19,7 +19,12 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
-import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
+import {
+	jwtProcedure,
+	protectedProcedure,
+	publicProcedure,
+	userError,
+} from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { organizationMembersRouter } from "./members";
@@ -293,9 +298,10 @@ export const organizationRouter = {
 				});
 
 			if (!hasValidToken) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Invitation not found",
+					i18nKey: "serverError.organization.invitationNotFound",
 				});
 			}
 
@@ -328,10 +334,11 @@ export const organizationRouter = {
 					where: sql`${organizations.allowedDomains} @> ARRAY[${domain}]::text[]`,
 				});
 				if (domainOrg) {
-					throw new TRPCError({
+					throw userError({
 						code: "FORBIDDEN",
 						message:
 							"Your account is managed by your organization. Contact your admin to create a new organization.",
+						i18nKey: "serverError.organization.managedDomain",
 					});
 				}
 			}
@@ -346,9 +353,10 @@ export const organizationRouter = {
 			});
 
 			if (!organization) {
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create organization",
+					i18nKey: "serverError.organization.createFailed",
 				});
 			}
 
@@ -405,9 +413,10 @@ export const organizationRouter = {
 				});
 
 				if (existingOrg) {
-					throw new TRPCError({
+					throw userError({
 						code: "BAD_REQUEST",
 						message: "This slug is already taken",
+						i18nKey: "serverError.organization.slugTaken",
 					});
 				}
 			}

@@ -54,6 +54,16 @@ msgid "marketing.download.emailLink"
 msgstr "Email me a link"
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.createFailed"
+msgstr "Failed to create organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.invitationNotFound"
+msgstr "Invitation not found"
+
+#. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
 msgid "mobile.settings.logOut.confirm"
 msgstr "Log out"
@@ -99,11 +109,26 @@ msgid "account.pendingDeletion.signOut"
 msgstr "Sign out"
 
 #. js-lingui-explicit-id
+#: src/errors.ts
+msgid "common.unexpectedError"
+msgstr "Something went wrong. Please try again."
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.themeImport.tooLarge"
 msgstr "Theme file too large"
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.slugTaken"
+msgstr "This slug is already taken"
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/account-pending-deletion/page.tsx
 msgid "account.pendingDeletion.bodySoon"
 msgstr "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.managedDomain"
+msgstr "Your account is managed by your organization. Contact your admin to create a new organization."

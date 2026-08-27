@@ -8,9 +8,9 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
-		"./react": {
-			"types": "./src/react.tsx",
-			"default": "./src/react.tsx"
+		"./errors": {
+			"types": "./src/errors.ts",
+			"default": "./src/errors.ts"
 		},
 		"./format": {
 			"types": "./src/format/index.ts",
@@ -23,6 +23,10 @@
 		"./messages/*": {
 			"types": "./locales/*/messages.ts",
 			"default": "./locales/*/messages.ts"
+		},
+		"./react": {
+			"types": "./src/react.tsx",
+			"default": "./src/react.tsx"
 		}
 	},
 	"scripts": {
