@@ -152,6 +152,18 @@ const config: Configuration = {
 		synopsis: pkg.description,
 		target: ["AppImage"],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
+		// GNOME's app menus only show their heuristic "New Window" item
+		// intermittently for running apps; an explicit desktop action (the
+		// Chrome/VS Code approach) is always shown. A plain relaunch hits the
+		// single-instance lock, which opens a new window.
+		desktop: {
+			desktopActions: {
+				"new-window": {
+					Name: "New Window",
+					Exec: "AppRun --no-sandbox",
+				},
+			},
+		},
 	},
 
 	// Windows
