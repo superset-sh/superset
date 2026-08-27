@@ -559,6 +559,15 @@ export function connect(
 		return;
 	}
 
+	// Seq capability is a property of the endpoint, not the transport: a
+	// re-point can land on a different host-service generation, and a
+	// `_seqEverSynced` latched from the old endpoint would let park() close a
+	// socket the new (legacy) host cannot replay. The next `synced` re-latches
+	// it. `_hasReceivedBytes` deliberately stays: it guards a legacy host from
+	// double-painting its whole FIFO into an xterm that already has content.
+	if (transport.currentUrl && stripToken(transport.currentUrl) !== base) {
+		transport._seqEverSynced = false;
+	}
 	transport.currentUrl = wsUrl;
 	transport._localToken = extractToken(wsUrl);
 	transport._terminal = terminal;

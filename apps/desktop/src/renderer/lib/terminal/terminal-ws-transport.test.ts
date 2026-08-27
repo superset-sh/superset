@@ -789,6 +789,30 @@ describe("terminal-ws-transport", () => {
 		expect(transport.seqAnchor).toEqual({ epoch: "e1", seq: 17 });
 	});
 
+	test("an endpoint re-point resets seq capability so a legacy host is not parked", () => {
+		// Seq capability belongs to the endpoint. After re-pointing (e.g. the
+		// local host-service restarted on a new port running an older build),
+		// a latched _seqEverSynced from the old endpoint would let park()
+		// close a socket the legacy host cannot replay a gap for.
+		const { transport, terminal, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+
+		connect(transport, terminal, "ws://host2/terminal/t1");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		const bytes = new TextEncoder().encode("legacy output, no synced");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(false);
+		expect(transport.connectionState).toBe("open");
+	});
+
 	test("a failed connection after park is counted toward the diagnosis", () => {
 		const { transport, terminal } = connectAttached();
 		park(transport);
