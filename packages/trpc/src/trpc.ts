@@ -9,7 +9,7 @@ import { formatError } from "./i18n-error";
 import { posthog } from "./lib/analytics";
 
 export type { I18nErrorCause } from "./i18n-error";
-export { formatError, isI18nErrorCause, userError } from "./i18n-error";
+export { isI18nErrorCause, userError } from "./i18n-error";
 
 export interface ApiClientInfo {
 	product: "desktop" | "mobile" | "cli";
