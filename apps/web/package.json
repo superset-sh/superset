@@ -12,6 +12,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@lingui/core": "6.6.0",
 		"@lingui/react": "6.6.0",
 		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",

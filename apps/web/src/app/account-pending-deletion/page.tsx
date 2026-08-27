@@ -1,6 +1,7 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { authClient } from "@superset/auth/client";
 import {
 	ACCOUNT_DELETION_GRACE_DAYS,
@@ -16,6 +17,7 @@ import { useTRPC } from "@/trpc/react";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default function AccountPendingDeletionPage() {
+	const { t } = useLingui();
 	const trpc = useTRPC();
 	const router = useRouter();
 	const { data: session } = authClient.useSession();
@@ -53,11 +55,20 @@ export default function AccountPendingDeletionPage() {
 					</Trans>
 				</h1>
 				<p className="text-sm text-muted-foreground">
-					Your account is deactivated and will be permanently deleted
 					{daysRemaining !== null && daysRemaining > 0
-						? ` in ${daysRemaining} ${daysRemaining === 1 ? "day" : "days"}`
-						: " soon"}
-					. Reactivate to restore it exactly as you left it.
+						? t({
+								id: "account.pendingDeletion.bodyInDays",
+								message: plural(daysRemaining, {
+									one: "Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.",
+									other:
+										"Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it.",
+								}),
+							})
+						: t({
+								id: "account.pendingDeletion.bodySoon",
+								message:
+									"Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it.",
+							})}
 				</p>
 			</div>
 			{reactivate.error && (
@@ -69,10 +80,22 @@ export default function AccountPendingDeletionPage() {
 					disabled={reactivate.isPending}
 					onClick={() => reactivate.mutate()}
 				>
-					{reactivate.isPending ? "Reactivating…" : "Reactivate my account"}
+					{reactivate.isPending ? (
+						<Trans id="account.pendingDeletion.reactivating">
+							Reactivating…
+						</Trans>
+					) : (
+						<Trans id="account.pendingDeletion.reactivate">
+							Reactivate my account
+						</Trans>
+					)}
 				</Button>
 				<Button variant="outline" size="sm" asChild>
-					<a href={COMPANY.MAIL_TO}>Contact support</a>
+					<a href={COMPANY.MAIL_TO}>
+						<Trans id="account.pendingDeletion.contactSupport">
+							Contact support
+						</Trans>
+					</a>
 				</Button>
 				<Button
 					variant="outline"

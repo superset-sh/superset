@@ -14,6 +14,11 @@ msgstr ""
 "Plural-Forms: \n"
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/account-pending-deletion/page.tsx
+msgid "account.pendingDeletion.bodyInDays"
+msgstr "{daysRemaining, plural, one {Your account is deactivated and will be permanently deleted in # day. Reactivate to restore it exactly as you left it.} other {Your account is deactivated and will be permanently deleted in # days. Reactivate to restore it exactly as you left it.}}"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.themeImport.success"
 msgstr "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
@@ -27,6 +32,11 @@ msgstr "Account pending deletion"
 #: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
 msgid "common.cancel"
 msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/account-pending-deletion/page.tsx
+msgid "account.pendingDeletion.contactSupport"
+msgstr "Contact support"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/components/DownloadButton/DownloadButton.tsx
@@ -69,6 +79,16 @@ msgid "tray.openApp"
 msgstr "Open Superset"
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/account-pending-deletion/page.tsx
+msgid "account.pendingDeletion.reactivate"
+msgstr "Reactivate my account"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/account-pending-deletion/page.tsx
+msgid "account.pendingDeletion.reactivating"
+msgstr "Reactivating…"
+
+#. js-lingui-explicit-id
 #: ../../apps/docs/src/app/(docs)/components/Sidebar/Sidebar.tsx
 msgid "docs.sidebar.searchPlaceholder"
 msgstr "Search docs..."
@@ -82,3 +102,8 @@ msgstr "Sign out"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.themeImport.tooLarge"
 msgstr "Theme file too large"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/account-pending-deletion/page.tsx
+msgid "account.pendingDeletion.bodySoon"
+msgstr "Your account is deactivated and will be permanently deleted soon. Reactivate to restore it exactly as you left it."

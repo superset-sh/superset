@@ -30,6 +30,7 @@
 		"compile": "lingui compile --strict",
 		"check": "lingui extract --clean && lingui compile --strict && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
 		"pretypecheck": "lingui extract --clean && lingui compile --strict",
+		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
 		"clean": "git clean -xdf .cache .turbo node_modules"
 	},
@@ -38,10 +39,12 @@
 		"@lingui/react": "6.6.0"
 	},
 	"devDependencies": {
+		"@ast-grep/napi": "0.41.1",
 		"@lingui/cli": "6.6.0",
 		"@lingui/format-po": "6.6.0",
 		"@superset/typescript": "workspace:*",
 		"@types/react": "19.2.14",
+		"bun-types": "1.3.14",
 		"react": "19.2.3",
 		"typescript": "6.0.3"
 	}

@@ -112,6 +112,18 @@ workspace, what's running, what an agent is doing right now, and cleanup when yo
 `superset <command> --help` covers the rest (tasks, automations, hosts, settings). Pass `--json` for
 parsable output; it's on by default under agent environments.
 
+## Internationalization
+
+User-facing strings use Lingui with explicit IDs — `<Trans id="area.name">Text</Trans>`
+or `useLingui()`'s `t({ id, message })` in React, `i18n._({ id, message })` outside React
+(Electron main). Numbers, currencies, and dates go through `@superset/i18n/format`
+helpers, never `new Intl.*("en-US")` or `toLocale*` with a hardcoded locale. After adding
+or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). Conventions
+and ID scheme: `packages/i18n/README.md`; terms that never translate:
+`packages/i18n/glossary.md`; strategy and phasing: `plans/20260826-i18n-strategy.md`.
+Directories listed in `packages/i18n/test/enforced-dirs.ts` must not contain hardcoded
+JSX text — add a directory there once it is fully converted.
+
 ## Further reading
 
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
