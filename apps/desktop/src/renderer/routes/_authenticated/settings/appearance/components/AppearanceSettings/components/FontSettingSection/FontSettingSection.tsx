@@ -652,7 +652,6 @@ export function FontSettingSection({
 								fontWeight={settings.editorFontWeight ?? 400}
 								ligatures={settings.editorLigatures ?? true}
 								variant="editor"
-								isActive={variant === "editor"}
 								isCustomFont={settings.editorFontFamily !== null}
 							/>
 						</div>
@@ -691,7 +690,6 @@ export function FontSettingSection({
 									settings.terminalLigatures ?? DEFAULT_TERMINAL_LIGATURES
 								}
 								variant="terminal"
-								isActive={variant === "terminal"}
 								isCustomFont={settings.terminalFontFamily !== null}
 								minimumContrast={settings.terminalMinimumContrast}
 								cursorStyle={

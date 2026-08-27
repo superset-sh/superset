@@ -43,7 +43,6 @@ export function FontPreview({
 	fontWeight,
 	ligatures,
 	variant,
-	isActive = false,
 	isCustomFont,
 	minimumContrast = null,
 	cursorStyle = "block",
@@ -56,7 +55,6 @@ export function FontPreview({
 	fontWeight: number;
 	ligatures: boolean;
 	variant: "editor" | "terminal";
-	isActive?: boolean;
 	isCustomFont: boolean;
 	minimumContrast?: number | null;
 	cursorStyle?: "block" | "bar" | "underline";
@@ -82,11 +80,7 @@ export function FontPreview({
 	} satisfies CSSProperties;
 
 	return (
-		<div
-			className={`overflow-hidden rounded-lg border bg-background text-foreground ${
-				isActive ? "border-primary/50" : ""
-			}`}
-		>
+		<div className="overflow-hidden rounded-lg border bg-background text-foreground">
 			<div className="flex h-9 items-center gap-2 border-b bg-muted/50 px-3 text-[11px] text-muted-foreground">
 				{isTerminal ? (
 					<>
@@ -171,9 +165,11 @@ export function FontPreview({
 					</SyntaxHighlighter>
 				</div>
 			)}
-			<div className="flex h-7 items-center border-t bg-muted/30 px-3 text-[10px] text-muted-foreground">
-				<span>{fontFamily}</span>
-				<span className="ml-auto">
+			<div className="flex h-7 items-center gap-3 border-t bg-muted/30 px-3 text-[10px] text-muted-foreground">
+				<span className="min-w-0 truncate" title={fontFamily}>
+					{fontFamily}
+				</span>
+				<span className="ml-auto shrink-0 whitespace-nowrap">
 					{fontWeight} · {ligatures ? "Ligatures on" : "Ligatures off"}
 					{isTerminal && minimumContrast !== null
 						? ` · ${minimumContrast}:1 contrast`
