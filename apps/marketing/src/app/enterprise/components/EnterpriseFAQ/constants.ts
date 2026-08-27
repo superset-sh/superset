@@ -19,6 +19,6 @@ export const ENTERPRISE_FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Is my data secure?",
 		answer:
-			"Superset runs locally on your developers' machines. We don't store your code or AI conversations. Contact us to learn more about our security practices.",
+			"Superset runs locally on your developers' machines. We don't store your code or AI conversations, and Superset has completed a SOC 2 Type II audit with an independent auditor. Request the report and review our security documentation at trust.superset.sh.",
 	},
 ];

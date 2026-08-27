@@ -1,5 +1,6 @@
 "use client";
 
+import { COMPANY } from "@superset/shared/constants";
 import { m } from "framer-motion";
 import type { ReactNode } from "react";
 import {
@@ -7,6 +8,7 @@ import {
 	HiOutlineServerStack,
 	HiOutlineSignal,
 } from "react-icons/hi2";
+import { Soc2Badge } from "../Soc2Badge";
 
 const SECURITY_FEATURES: {
 	icon: ReactNode;
@@ -39,24 +41,35 @@ export function SecuritySection() {
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				{/* Heading */}
 				<m.div
-					className="mb-16 space-y-4"
+					className="mb-16 flex items-start justify-between gap-8"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
 					viewport={{ once: true }}
 					transition={{ duration: 0.5 }}
 				>
-					<span className="text-sm font-mono uppercase tracking-widest text-brand">
-						Security
-					</span>
-					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
-						Private by default.
-						<br />
-						You&apos;re in control.
-					</h2>
-					<p className="text-base sm:text-lg font-light text-muted-foreground max-w-[700px]">
-						Your code stays local by default, with explicit control over
-						connected services.
-					</p>
+					<div className="space-y-4">
+						<span className="text-sm font-mono uppercase tracking-widest text-brand">
+							Security
+						</span>
+						<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
+							Private by default.
+							<br />
+							You&apos;re in control.
+						</h2>
+						<p className="text-base sm:text-lg font-light text-muted-foreground max-w-[700px]">
+							Your code stays local by default, with explicit control over
+							connected services.
+						</p>
+					</div>
+					<a
+						href={COMPANY.TRUST_URL}
+						target="_blank"
+						rel="noopener noreferrer"
+						aria-label="SOC 2 Type II compliant. Request our report."
+						className="hidden sm:block shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+					>
+						<Soc2Badge size={128} />
+					</a>
 				</m.div>
 
 				{/* Features Grid */}

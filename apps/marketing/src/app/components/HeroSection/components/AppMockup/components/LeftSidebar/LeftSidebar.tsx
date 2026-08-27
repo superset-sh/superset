@@ -19,7 +19,7 @@ interface LeftSidebarProps {
 
 export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 	const isOrchestrate = activeDemo === "Orchestrate Parallel Agents";
-	const isRemote = activeDemo === "Remote Workspaces";
+	const isRemote = activeDemo === "Remote Access";
 
 	return (
 		<div className="flex w-[232px] shrink-0 flex-col border-r border-border/60 bg-card text-[11px]">

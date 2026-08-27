@@ -100,8 +100,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 				// this classification.
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
-					message:
-						"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
+					message: providers.credentials.credentialRemedy(
+						"github.com",
+						"missing",
+					),
 					cause: { kind: "NO_GITHUB_TOKEN" },
 				});
 			}

@@ -80,7 +80,12 @@ export async function collectUsageEntries(
 			sessionLabels,
 		);
 	}
-	entries.push(...claudeEntriesByMessage.values());
+	// Appended one at a time — spreading into push() passes every entry as a
+	// call argument, which throws RangeError past V8's argument limit on
+	// machines with a large enough usage history.
+	for (const entry of claudeEntriesByMessage.values()) {
+		entries.push(entry);
+	}
 	for (const file of codexFiles) {
 		await parseCodexLogFile(file, cutoffMs, entries, sessionLabels);
 	}

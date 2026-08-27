@@ -16,7 +16,6 @@ import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuClock,
 	LuFileText,
-	LuGauge,
 	LuLayers,
 	LuPlus,
 	LuPuzzle,
@@ -49,10 +48,6 @@ import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
-import {
-	getUsageLastSection,
-	usageSectionPath,
-} from "renderer/routes/_authenticated/_dashboard/usage/utils/usageLastSection";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
@@ -136,7 +131,6 @@ export function DashboardSidebarHeader({
 		fuzzy: true,
 	});
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
-	const isUsageOpen = !!matchRoute({ to: "/usage", fuzzy: true });
 	const isPluginsOpen = !!matchRoute({ to: "/plugins", fuzzy: true });
 	const isPagesOpen = !!matchRoute({ to: "/pages", fuzzy: true });
 	// `?? false`: the hook returns undefined until PostHog flags resolve.
@@ -188,12 +182,6 @@ export function DashboardSidebarHeader({
 				}),
 			});
 		});
-	};
-
-	const handleUsageClick = () => {
-		// Reopen whichever Usage section (token / machine resources) was
-		// visited last.
-		navigate({ to: usageSectionPath(getUsageLastSection()) });
 	};
 
 	const isPagesEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.PAGES) ?? false;
@@ -363,26 +351,6 @@ export function DashboardSidebarHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">Pull requests</TooltipContent>
-					</Tooltip>
-
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleUsageClick}
-								aria-label="Usage"
-								aria-current={isUsageOpen ? "page" : undefined}
-								className={cn(
-									"flex size-7 items-center justify-center rounded-md transition-colors",
-									isUsageOpen
-										? "bg-fill-selected text-muted-foreground"
-										: "text-muted-foreground hover:bg-fill-hover",
-								)}
-							>
-								<LuGauge className="size-3.5" strokeWidth={1.5} />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="right">Usage</TooltipContent>
 					</Tooltip>
 
 					{isPagesEnabled && (
@@ -610,25 +578,6 @@ export function DashboardSidebarHeader({
 			>
 				<GoGitPullRequest className="size-4 shrink-0 text-muted-foreground" />
 				<span className="flex-1 text-left">Pull requests</span>
-			</button>
-
-			<button
-				type="button"
-				onClick={handleUsageClick}
-				aria-label="Usage"
-				aria-current={isUsageOpen ? "page" : undefined}
-				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
-					isUsageOpen
-						? "bg-fill-selected text-foreground"
-						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
-				)}
-			>
-				<LuGauge
-					className="size-4 shrink-0 text-muted-foreground"
-					strokeWidth={1.5}
-				/>
-				<span className="flex-1 text-left">Usage</span>
 			</button>
 
 			{isPagesEnabled && (

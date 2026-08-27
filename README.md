@@ -127,15 +127,15 @@ Run agent sessions on a schedule: triage issues overnight, draft the weekly chan
 <tr>
 <td width="50%" valign="middle">
 
-### Remote Workspaces
+### Remote Access
 
 Connect another machine and reach its workspaces from anywhere: the desktop app, the CLI, or your phone. Wake offline hosts with a custom command.
 
-[Docs →](https://docs.superset.sh/remote-workspaces)
+[Docs →](https://docs.superset.sh/remote-access)
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/remote-workspaces"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
+  <a href="https://docs.superset.sh/remote-access"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
 </td>
 </tr>
 <tr>

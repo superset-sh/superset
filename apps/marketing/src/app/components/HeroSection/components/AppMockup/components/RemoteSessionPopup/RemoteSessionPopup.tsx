@@ -9,7 +9,7 @@ interface RemoteSessionPopupProps {
 }
 
 export function RemoteSessionPopup({ activeDemo }: RemoteSessionPopupProps) {
-	const isRemote = activeDemo === "Remote Workspaces";
+	const isRemote = activeDemo === "Remote Access";
 
 	return (
 		<m.div

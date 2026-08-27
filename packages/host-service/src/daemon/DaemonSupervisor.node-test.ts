@@ -22,7 +22,7 @@ import {
 	encodeFrame,
 	FrameDecoder,
 } from "@superset/pty-daemon/protocol";
-import { DaemonSupervisor } from "./DaemonSupervisor.ts";
+import { DaemonSupervisor, ptyDaemonSocketPath } from "./DaemonSupervisor.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import {
 	type PtyDaemonManifest,
@@ -1233,3 +1233,90 @@ async function waitForSocket(
 	}
 	return false;
 }
+
+describe("manifest-less adoption of a slow daemon (GH #6822)", () => {
+	// With no manifest, `tryAdopt` falls through to `tryAdoptFromSocket`. If
+	// that concedes, `spawn` runs `Server.listen`, which unlinks the socket
+	// path unconditionally — POSIX keeps the incumbent listener bound to an
+	// unreachable inode, so it survives with every PTY it owns and no way
+	// back. A daemon starved of CPU is exactly the one that misses the probe
+	// budget, so slowness must not be read as death.
+	test("adopts a live daemon that answers hello slower than one attempt", async () => {
+		const orgId = "org-slow-hello";
+		const socketPath = ptyDaemonSocketPath(orgId);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {
+			// no leftover
+		}
+		// Longer than VERSION_PROBE_TIMEOUT_MS (1.5s), so raising only the
+		// total budget cannot rescue it — the per-attempt cap has to rise too.
+		const HELLO_DELAY_MS = 2_500;
+		const placeholder = childProcess.spawn("sleep", ["60"], {
+			stdio: "ignore",
+		});
+		const server = net.createServer((sock) => {
+			const decoder = new FrameDecoder();
+			sock.on("error", () => {});
+			sock.on("data", (chunk: Buffer) => {
+				decoder.push(chunk);
+				for (const { message } of decoder.drain()) {
+					if ((message as { type?: string }).type !== "hello") continue;
+					setTimeout(() => {
+						if (sock.destroyed) return;
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: CURRENT_PROTOCOL_VERSION,
+								daemonVersion: EXPECTED_DAEMON_VERSION,
+								daemonPid: placeholder.pid,
+							}),
+						);
+					}, HELLO_DELAY_MS);
+				}
+			});
+		});
+		await new Promise<void>((resolve) => server.listen(socketPath, resolve));
+
+		try {
+			// Deliberately NO manifest — that is what forces the socket path.
+			assert.equal(
+				fs.existsSync(
+					path.join(ptyDaemonManifestDir(orgId), "pty-daemon-manifest.json"),
+				),
+				false,
+				"test must start with no manifest",
+			);
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const instance = await sup.ensure(orgId);
+
+			assert.equal(
+				instance.pid,
+				placeholder.pid,
+				"must adopt the slow daemon, not spawn over (and orphan) it",
+			);
+			assert.equal(
+				server.listening,
+				true,
+				"incumbent listener must not have been unlinked out from under",
+			);
+			assert.equal(
+				isAlive(placeholder.pid as number),
+				true,
+				"adoption must never kill the incumbent",
+			);
+		} finally {
+			server.close();
+			placeholder.kill("SIGKILL");
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort
+			}
+		}
+	});
+});

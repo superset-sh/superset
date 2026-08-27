@@ -290,7 +290,7 @@ export function useV2PresetExecution({
 				}
 			} catch (err) {
 				console.error("[useV2PresetExecution] Failed to execute preset:", err);
-				toast.error("Failed to run preset", {
+				toast.error("Failed to run terminal script", {
 					description:
 						err instanceof Error
 							? err.message

@@ -1,6 +1,7 @@
 import type { DesktopNotice } from "@superset/shared/desktop-notices";
 import { toast } from "@superset/ui/sonner";
 import {
+	AppWindowIcon,
 	BellIcon,
 	BellOffIcon,
 	CircleCheckIcon,
@@ -31,7 +32,7 @@ import { SYSTEM_THEME_ID, useThemeStore } from "renderer/stores/theme/store";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import type { Command, CommandProvider } from "../../core/types";
 import { ThemeFrame } from "../../ui/ThemeFrame/ThemeFrame";
-import { checkResourcesCommand } from "../resources/commands";
+import { checkResourcesCommand, openUsageCommand } from "../resources/commands";
 
 /** Dev-only fake notices for previewing each surface via the command palette. */
 const PREVIEW_NOTICES = {
@@ -132,6 +133,7 @@ export const actionsProvider: CommandProvider = {
 				run: () =>
 					toggleNotificationSoundsMuted(context.notificationSoundsMuted),
 			},
+			openUsageCommand,
 			checkResourcesCommand,
 			{
 				id: "actions.toggleLeftSidebar",
@@ -177,6 +179,22 @@ export const actionsProvider: CommandProvider = {
 						const message =
 							error instanceof Error ? error.message : String(error);
 						toast.error(`Failed to check for updates: ${message}`);
+					}
+				},
+			},
+			{
+				id: "actions.newWindow",
+				title: "New window",
+				section: "actions",
+				icon: AppWindowIcon,
+				keywords: ["open", "multi"],
+				run: async () => {
+					try {
+						await electronTrpcClient.window.openNew.mutate();
+					} catch (error) {
+						const message =
+							error instanceof Error ? error.message : String(error);
+						toast.error(`Failed to open new window: ${message}`);
 					}
 				},
 			},

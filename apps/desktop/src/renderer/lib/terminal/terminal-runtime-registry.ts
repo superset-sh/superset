@@ -34,6 +34,7 @@ import {
 	createTransport,
 	disposeTransport,
 	getPersistableSeqAnchor,
+	park,
 	reconnect,
 	sendDispose,
 	sendInput,
@@ -360,6 +361,10 @@ class TerminalRuntimeRegistryImpl {
 		if (entry.transport.sessionEnded) {
 			clearPersistedRuntimeState(terminalId);
 		}
+		// Snapshot and anchor are on disk — close the socket. A parked pane no
+		// longer parses hidden output or joins reconnect storms; remount's
+		// connect() re-dials and the host replays from the anchor.
+		park(entry.transport);
 		this.scheduleParkedEviction();
 	}
 

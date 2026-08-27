@@ -1,11 +1,16 @@
 ---
-title: Setup, Teardown & Run Scripts
-description: Automate workspace initialization and dev servers
+title: Project Lifecycle Scripts
+description: Configure setup, teardown, and Run-button commands for a project
 ---
 
 ## Overview
 
 Run commands automatically when creating or deleting workspaces, and define dev server commands that launch via the Run button.
+
+These are **project lifecycle scripts**: project-owned behavior stored in the
+repository or a per-machine override. They are different from
+[terminal scripts](/terminal-scripts), which are reusable launches saved in
+your Superset settings and shown in the Scripts bar.
 
 Create `.superset/config.json` in your project:
 

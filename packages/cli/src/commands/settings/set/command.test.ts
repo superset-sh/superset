@@ -1,29 +1,13 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { settings } from "@superset/local-db/schema";
-import { getTableConfig } from "drizzle-orm/sqlite-core";
+import { beforeEach, describe, expect, test } from "bun:test";
+import {
+	createLocalSettingsDb,
+	withTempSupersetHome,
+} from "../../../lib/settings/test-helpers";
 import { default as getCommand } from "../get/command";
 import { default as resetCommand } from "../reset/command";
 import { default as setCommand } from "../set/command";
 
-let homeDir: string;
-let previousHome: string | undefined;
-
-function createLocalDb() {
-	const { columns } = getTableConfig(settings);
-	const ddl = columns
-		.map(
-			(column) =>
-				`"${column.name}" ${column.getSQLType()}${column.primary ? " PRIMARY KEY" : ""}`,
-		)
-		.join(", ");
-	const sqlite = new Database(join(homeDir, "local.db"));
-	sqlite.exec(`CREATE TABLE settings (${ddl})`);
-	sqlite.close();
-}
+const home = withTempSupersetHome("superset-cli-settings-cmd-");
 
 function invoke(
 	cmd: typeof setCommand | typeof getCommand | typeof resetCommand,
@@ -38,16 +22,7 @@ function invoke(
 }
 
 beforeEach(() => {
-	previousHome = process.env.SUPERSET_HOME_DIR;
-	homeDir = mkdtempSync(join(tmpdir(), "superset-cli-settings-cmd-"));
-	process.env.SUPERSET_HOME_DIR = homeDir;
-	createLocalDb();
-});
-
-afterEach(() => {
-	if (previousHome === undefined) delete process.env.SUPERSET_HOME_DIR;
-	else process.env.SUPERSET_HOME_DIR = previousHome;
-	rmSync(homeDir, { recursive: true, force: true });
+	createLocalSettingsDb(home.dir);
 });
 
 describe("settings set/get/reset", () => {

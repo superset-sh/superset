@@ -16,7 +16,7 @@ export const DEMO_OPTIONS: readonly DemoOption[] = [
 		colors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
 	},
 	{
-		label: "Remote Workspaces",
+		label: "Remote Access",
 		videoPath: "/hero/open-in.mp4",
 		colors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
 	},
