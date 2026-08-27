@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { DesktopNotice } from "@superset/shared/desktop-notices";
 import { toast } from "@superset/ui/sonner";
 import {
@@ -176,8 +177,7 @@ export const actionsProvider: CommandProvider = {
 					try {
 						await electronTrpcClient.autoUpdate.checkInteractive.mutate();
 					} catch (error) {
-						const message =
-							error instanceof Error ? error.message : String(error);
+						const message = errorMessage(error);
 						toast.error(`Failed to check for updates: ${message}`);
 					}
 				},
@@ -192,8 +192,7 @@ export const actionsProvider: CommandProvider = {
 					try {
 						await electronTrpcClient.window.openNew.mutate();
 					} catch (error) {
-						const message =
-							error instanceof Error ? error.message : String(error);
+						const message = errorMessage(error);
 						toast.error(`Failed to open new window: ${message}`);
 					}
 				},

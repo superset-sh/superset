@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
@@ -32,7 +33,7 @@ export function useLeaderboardOptIn() {
 						visibility: "public",
 					});
 				} catch (error) {
-					toast.error(error instanceof Error ? error.message : "Couldn't join");
+					toast.error(errorMessage(error, "Couldn't join"));
 					return false;
 				}
 
@@ -81,7 +82,7 @@ export function useLeaderboardOptIn() {
 			toast.success("Left the leaderboard and deleted your published usage");
 			return true;
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Couldn't leave");
+			toast.error(errorMessage(error, "Couldn't leave"));
 			return false;
 		} finally {
 			setLeaving(false);

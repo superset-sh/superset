@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type {
 	ContextMenuActionConfig,
 	PaneRegistry,
@@ -148,7 +149,7 @@ export function usePaneRegistry({
 			},
 			onError: (error) => {
 				toast.error("Failed to kill terminal session", {
-					description: error.message,
+					description: errorMessage(error),
 				});
 			},
 		});
@@ -212,8 +213,7 @@ export function usePaneRegistry({
 				}
 				return { terminalId };
 			} catch (error) {
-				const description =
-					error instanceof Error ? error.message : "Unknown error";
+				const description = errorMessage(error, "Unknown error");
 				toast.error("Couldn't start agent session", { description });
 				return null;
 			}

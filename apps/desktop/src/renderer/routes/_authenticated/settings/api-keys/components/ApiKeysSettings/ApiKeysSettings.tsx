@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import { COMPANY } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
@@ -75,9 +76,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			await utils.apiKey.list.invalidate();
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
-			toast.error(
-				error instanceof Error ? error.message : "Failed to generate API key",
-			);
+			toast.error(errorMessage(error, "Failed to generate API key"));
 		} finally {
 			setIsGenerating(false);
 		}

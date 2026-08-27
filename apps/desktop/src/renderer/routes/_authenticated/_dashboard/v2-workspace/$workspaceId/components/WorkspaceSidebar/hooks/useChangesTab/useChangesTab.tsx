@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
@@ -136,8 +137,7 @@ export function useChangesTab({
 				{
 					loading: `Renaming branch to ${newName}...`,
 					success: `Branch renamed to ${newName}`,
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to rename branch",
+					error: (err) => errorMessage(err, "Failed to rename branch"),
 				},
 			);
 		},
@@ -162,9 +162,7 @@ export function useChangesTab({
 			]);
 		} catch (error) {
 			console.warn("Failed to refresh changes tab", error);
-			toast.error(
-				error instanceof Error ? error.message : "Failed to refresh changes",
-			);
+			toast.error(errorMessage(error, "Failed to refresh changes"));
 		}
 	}, [utils, workspaceId]);
 

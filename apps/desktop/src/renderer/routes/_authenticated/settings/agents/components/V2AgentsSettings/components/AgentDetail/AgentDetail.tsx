@@ -1,4 +1,5 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
+import { errorMessage } from "@superset/i18n/errors";
 import { AGENT_TYPES } from "@superset/shared/agent-command";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { getPresetById } from "@superset/shared/host-agent-presets";
@@ -71,9 +72,7 @@ export function AgentDetail({
 				void electronUtils.settings.getAgentHooksDisabled.invalidate();
 			},
 			onError: (err) =>
-				toast.error(
-					err instanceof Error ? err.message : "Failed to update hooks",
-				),
+				toast.error(errorMessage(err, "Failed to update hooks")),
 		});
 
 	const [label, setLabel] = useState(config.label);
@@ -130,8 +129,7 @@ export function AgentDetail({
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
 		},
 		onSuccess: (updated) => onChanged(updated),
-		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to save"),
+		onError: (err) => toast.error(errorMessage(err, "Failed to save")),
 	});
 
 	const removeMutation = useMutation({
@@ -148,8 +146,7 @@ export function AgentDetail({
 			).settings.agentConfigs.remove.mutate({ id: config.id });
 		},
 		onSuccess: () => onDeleted(),
-		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to remove"),
+		onError: (err) => toast.error(errorMessage(err, "Failed to remove")),
 	});
 
 	const restoreDefaultMutation = useMutation({
@@ -170,9 +167,7 @@ export function AgentDetail({
 			toast.success(`${updated.label} restored to defaults`);
 		},
 		onError: (err) =>
-			toast.error(
-				err instanceof Error ? err.message : "Failed to restore defaults",
-			),
+			toast.error(errorMessage(err, "Failed to restore defaults")),
 	});
 
 	const handleLabelBlur = () => {

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	getAvailableRoleChanges,
 	getRoleLevel,
@@ -130,9 +131,7 @@ export function MemberActions({
 			await utils.organization.listMembers.invalidate();
 			toast.success(`Role changed to ${ORGANIZATION_ROLES[newRole].name}`);
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to change role",
-			);
+			toast.error(errorMessage(error, "Failed to change role"));
 		} finally {
 			setIsChangingRole(false);
 		}

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -53,7 +54,7 @@ export function SkillPreviewDialog({
 			await electronTrpcClient.external.openFileInEditor.mutate({ path });
 		} catch (error) {
 			toast.error(
-				`Failed to open file: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to open file: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};
@@ -64,7 +65,7 @@ export function SkillPreviewDialog({
 			await electronTrpcClient.external.openInFinder.mutate(path);
 		} catch (error) {
 			toast.error(
-				`Failed to reveal in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to reveal in Finder: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};
@@ -74,7 +75,7 @@ export function SkillPreviewDialog({
 		toast.promise(copyToClipboard(document.content.value), {
 			success: "Markdown copied",
 			error: (err: unknown) =>
-				`Failed to copy markdown: ${err instanceof Error ? err.message : "Unknown error"}`,
+				`Failed to copy markdown: ${errorMessage(err, "Unknown error")}`,
 		});
 	};
 

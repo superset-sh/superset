@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -71,9 +72,7 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 			reset();
 			setIsOpen(false);
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to create team",
-			);
+			toast.error(errorMessage(error, "Failed to create team"));
 		} finally {
 			setIsSubmitting(false);
 		}

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
@@ -134,9 +135,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 			await utils.organization.listTeams.invalidate();
 			toast.success("Saved");
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to save team",
-			);
+			toast.error(errorMessage(error, "Failed to save team"));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -158,9 +157,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 			toast.success(`Deleted "${team?.name ?? "team"}"`);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to delete team",
-			);
+			toast.error(errorMessage(error, "Failed to delete team"));
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -179,9 +176,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 			setOpenDialog(null);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to leave team",
-			);
+			toast.error(errorMessage(error, "Failed to leave team"));
 		} finally {
 			setIsSubmitting(false);
 		}

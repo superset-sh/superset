@@ -10,6 +10,7 @@ import {
 	type CodeViewHandle,
 	EditProvider,
 } from "@pierre/diffs/react";
+import { errorMessage } from "@superset/i18n/errors";
 
 import type { RendererContext } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
@@ -221,7 +222,7 @@ export function DiffPane({
 				return true;
 			} catch (error) {
 				toast.error("Couldn't save edits", {
-					description: error instanceof Error ? error.message : String(error),
+					description: errorMessage(error),
 				});
 				return false;
 			}

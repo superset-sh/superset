@@ -25,6 +25,10 @@ describe("errorMessage", () => {
 		expect(errorMessage(new Error("boom"))).toBe("boom");
 	});
 
+	test("thrown strings pass through", () => {
+		expect(errorMessage("plain string failure")).toBe("plain string failure");
+	});
+
 	test("messageless errors get the generic translated fallback", () => {
 		expect(errorMessage({})).toBe("Something went wrong. Please try again.");
 		expect(errorMessage(null)).toBe("Something went wrong. Please try again.");

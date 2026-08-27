@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { CommentStore } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useMemo } from "react";
@@ -25,7 +26,7 @@ export function usePageCommentStore({
 	const handlers = useMemo(
 		() => ({
 			onSuccess: invalidate,
-			onError: (error: { message: string }) => toast.error(error.message),
+			onError: (error: { message: string }) => toast.error(errorMessage(error)),
 		}),
 		[invalidate],
 	);

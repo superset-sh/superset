@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
 import {
 	AlertDialog,
@@ -76,9 +77,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			await apiTrpcClient.user.deleteAccount.mutate();
 			await signOut();
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to delete account",
-			);
+			toast.error(errorMessage(error, "Failed to delete account"));
 		} finally {
 			setIsDeleting(false);
 		}

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -296,7 +297,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 						},
 					);
 				},
-				onError: (error) => toast.error(error.message),
+				onError: (error) => toast.error(errorMessage(error)),
 			},
 		);
 	};
@@ -437,7 +438,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 								);
 								setRemoveTarget(null);
 							},
-							onError: (error) => toast.error(error.message),
+							onError: (error) => toast.error(errorMessage(error)),
 						},
 					);
 				}}

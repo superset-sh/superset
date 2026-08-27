@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -72,7 +73,7 @@ export function EmptyProjectModal({
 				setParentDir(result.path);
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		}
 	};
 
@@ -121,7 +122,7 @@ export function EmptyProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const raw = err instanceof Error ? err.message : String(err);
+			const raw = errorMessage(err);
 			const isLeakedSql = raw.startsWith("Failed query:");
 			if (isLeakedSql) console.error("[EmptyProjectModal] create failed", err);
 			const message = isLeakedSql

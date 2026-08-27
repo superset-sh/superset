@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -24,7 +25,9 @@ export function useSkillMutations() {
 			);
 		},
 		onError: (error) => {
-			toast.error("Could not update skill", { description: error.message });
+			toast.error("Could not update skill", {
+				description: errorMessage(error),
+			});
 		},
 	});
 

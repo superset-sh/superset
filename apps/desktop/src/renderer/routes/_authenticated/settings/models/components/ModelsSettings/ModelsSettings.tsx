@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { chatServiceTrpc } from "@superset/provider-auth/client";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -144,7 +145,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			toast.success("Anthropic settings updated");
 			return true;
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to save");
+			toast.error(errorMessage(error, "Failed to save"));
 			return false;
 		}
 	};
@@ -181,7 +182,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await refetchAnthropicAuthStatus();
 			toast.success("Anthropic API key updated");
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to save");
+			toast.error(errorMessage(error, "Failed to save"));
 		}
 	};
 
@@ -194,7 +195,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 			await refetchOpenAIAuthStatus();
 			toast.success("OpenAI API key updated");
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to save");
+			toast.error(errorMessage(error, "Failed to save"));
 		}
 	};
 

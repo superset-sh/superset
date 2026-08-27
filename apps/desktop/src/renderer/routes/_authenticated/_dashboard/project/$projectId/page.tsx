@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { sanitizeSegment } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -243,9 +244,7 @@ function ProjectPage() {
 				description: "Setting up in the background...",
 			});
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to create workspace",
-			);
+			toast.error(errorMessage(error, "Failed to create workspace"));
 		}
 	};
 
@@ -274,9 +273,7 @@ function ProjectPage() {
 
 			await handleCreateWorkspace();
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to save setup config",
-			);
+			toast.error(errorMessage(error, "Failed to save setup config"));
 		}
 	};
 

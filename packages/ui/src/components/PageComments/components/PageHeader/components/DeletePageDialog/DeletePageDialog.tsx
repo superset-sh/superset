@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@superset/i18n/errors";
 import { useState } from "react";
 import {
 	AlertDialog,
@@ -36,9 +37,7 @@ export function DeletePageDialog({
 			await onConfirm();
 			onOpenChange(false);
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Could not delete this page",
-			);
+			toast.error(errorMessage(error, "Could not delete this page"));
 		} finally {
 			setBusy(false);
 		}

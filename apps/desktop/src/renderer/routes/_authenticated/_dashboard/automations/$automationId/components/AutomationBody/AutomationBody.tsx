@@ -1,4 +1,5 @@
 import type { SelectAutomationRun } from "@superset/db/schema";
+import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
@@ -60,9 +61,7 @@ export function AutomationBody({
 		// The pickers re-render from the Electric-synced row, so a rejected
 		// update silently snaps back without this.
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to update automation",
-			),
+			toast.error(errorMessage(error, "Failed to update automation")),
 	});
 
 	const setPromptMutation = useMutation({
@@ -77,9 +76,7 @@ export function AutomationBody({
 			});
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to update prompt",
-			),
+			toast.error(errorMessage(error, "Failed to update prompt")),
 	});
 
 	const searchFiles = useProjectFileSearch({

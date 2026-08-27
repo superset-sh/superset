@@ -1,4 +1,5 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
+import { errorMessage } from "@superset/i18n/errors";
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
@@ -266,8 +267,7 @@ export function PresetEditorDialog({
 			void queryClient.invalidateQueries(queryFamily);
 			onLinkedAgentSaved?.(updated);
 		},
-		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to save"),
+		onError: (err) => toast.error(errorMessage(err, "Failed to save")),
 	});
 
 	const handleLinkedCommandBlur = () => {

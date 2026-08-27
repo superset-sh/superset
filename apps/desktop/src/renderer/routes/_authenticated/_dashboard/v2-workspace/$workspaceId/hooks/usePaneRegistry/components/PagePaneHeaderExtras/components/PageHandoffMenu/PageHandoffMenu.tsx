@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -73,7 +74,7 @@ export function PageHandoffMenu({
 				onSuccess: () => toast.success("Sent to agent"),
 				onError: (error) =>
 					toast.error("Could not reach that agent", {
-						description: error.message,
+						description: errorMessage(error),
 					}),
 			},
 		);

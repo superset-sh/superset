@@ -1,5 +1,6 @@
 import { plural } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
@@ -272,8 +273,7 @@ export function ThemeSection() {
 			}
 		} catch (error) {
 			toast.error("Failed to import theme file", {
-				description:
-					error instanceof Error ? error.message : "Unable to read file",
+				description: errorMessage(error, "Unable to read file"),
 			});
 		} finally {
 			setIsImporting(false);

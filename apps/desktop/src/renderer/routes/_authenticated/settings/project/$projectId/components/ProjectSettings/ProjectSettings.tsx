@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
@@ -237,9 +238,7 @@ export function ProjectSettings({
 				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
 			);
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to import worktrees",
-			);
+			toast.error(errorMessage(err, "Failed to import worktrees"));
 		}
 	};
 
@@ -252,8 +251,7 @@ export function ProjectSettings({
 			{
 				loading: "Importing worktree...",
 				success: `Imported ${branch}`,
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to import worktree",
+				error: (err) => errorMessage(err, "Failed to import worktree"),
 			},
 		);
 	};

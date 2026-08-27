@@ -1,4 +1,5 @@
 import type { TaskPriority } from "@superset/db/enums";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -141,9 +142,7 @@ export function CreateTaskDialog({
 				search: nextSearch,
 			});
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to create task",
-			);
+			toast.error(errorMessage(error, "Failed to create task"));
 			setIsCreating(false);
 		}
 	};

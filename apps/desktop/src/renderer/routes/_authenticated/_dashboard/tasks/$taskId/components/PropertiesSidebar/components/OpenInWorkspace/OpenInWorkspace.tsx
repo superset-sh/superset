@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
 import {
@@ -150,9 +151,7 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 				result.wasExisting ? "Opened existing workspace" : "Workspace created",
 			);
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to create workspace",
-			);
+			toast.error(errorMessage(err, "Failed to create workspace"));
 		}
 	};
 

@@ -14,6 +14,7 @@
 // fall through to electron-trpc and fail with "no procedure on path
 // terminal.daemon.*" — there's no such namespace on electron-trpc.
 
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -121,7 +122,9 @@ function V2SessionsSectionInner() {
 			void sessionsQuery.refetch();
 		},
 		onError: (error) => {
-			toast.error("Failed to restart daemon", { description: error.message });
+			toast.error("Failed to restart daemon", {
+				description: errorMessage(error),
+			});
 		},
 	});
 

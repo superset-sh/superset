@@ -20,6 +20,9 @@ export function errorMessage(error: unknown, fallback?: string): string {
 			);
 		}
 	}
+	if (typeof error === "string" && error.length > 0) {
+		return error;
+	}
 	const message = (error as { message?: unknown } | null | undefined)?.message;
 	if (typeof message === "string" && message.length > 0) {
 		return message;

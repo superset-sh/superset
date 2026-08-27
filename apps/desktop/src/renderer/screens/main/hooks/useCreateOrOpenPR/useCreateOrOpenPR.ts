@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -30,7 +31,7 @@ export function useCreateOrOpenPR({
 				onSuccess?.();
 				return;
 			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
+				const message = errorMessage(error);
 				const isBehindUpstreamError = message.includes("behind upstream");
 				if (!isBehindUpstreamError) {
 					toast.error(`Failed: ${message}`);
@@ -54,8 +55,7 @@ export function useCreateOrOpenPR({
 				toast.success("Opening GitHub...");
 				onSuccess?.();
 			} catch (retryError) {
-				const retryMessage =
-					retryError instanceof Error ? retryError.message : String(retryError);
+				const retryMessage = errorMessage(retryError);
 				toast.error(`Failed: ${retryMessage}`);
 			}
 		})();

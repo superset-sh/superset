@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -85,7 +86,9 @@ export function DiffHeaderMetadata({
 			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		onError: (err) => {
-			toast.error("Couldn't discard changes", { description: err.message });
+			toast.error("Couldn't discard changes", {
+				description: errorMessage(err),
+			});
 		},
 	});
 	const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);

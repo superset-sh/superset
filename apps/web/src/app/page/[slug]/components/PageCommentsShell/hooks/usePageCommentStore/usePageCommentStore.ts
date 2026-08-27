@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
 import type { CommentStore, CommentThread } from "@superset/ui/page-comments";
 import { toast } from "@superset/ui/sonner";
@@ -56,7 +57,7 @@ export function usePageCommentStore({
 	const onSettled = useMemo(
 		() => ({
 			onSuccess: invalidate,
-			onError: (error: { message: string }) => toast.error(error.message),
+			onError: (error: { message: string }) => toast.error(errorMessage(error)),
 		}),
 		[invalidate],
 	);

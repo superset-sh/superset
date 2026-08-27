@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -25,7 +26,7 @@ const TERMINAL_GONE_ERROR_MESSAGES = [
 ] as const;
 
 function isTerminalGoneError(error: unknown): boolean {
-	const message = error instanceof Error ? error.message : String(error);
+	const message = errorMessage(error);
 	return TERMINAL_GONE_ERROR_MESSAGES.some((terminalMessage) =>
 		message.includes(terminalMessage),
 	);
@@ -224,7 +225,7 @@ export function useV2WorkspaceRun({
 			}
 		} catch (error) {
 			toast.error("Failed to run workspace command", {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description: errorMessage(error, "Unknown error"),
 			});
 		} finally {
 			isStartingRef.current = false;
@@ -273,7 +274,7 @@ export function useV2WorkspaceRun({
 				delete state.stopRequestedAt;
 			});
 			toast.error("Failed to stop workspace run command", {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description: errorMessage(error, "Unknown error"),
 			});
 		} finally {
 			setIsPending(false);
@@ -314,7 +315,7 @@ export function useV2WorkspaceRun({
 			}
 
 			toast.error("Failed to force stop workspace run command", {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description: errorMessage(error, "Unknown error"),
 			});
 		} finally {
 			setIsPending(false);

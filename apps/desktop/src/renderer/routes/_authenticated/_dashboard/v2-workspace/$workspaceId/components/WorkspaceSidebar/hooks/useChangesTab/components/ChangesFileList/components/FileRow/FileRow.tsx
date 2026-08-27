@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -91,7 +92,9 @@ export const FileRow = memo(function FileRow({
 			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		onError: (err) => {
-			toast.error("Couldn't discard changes", { description: err.message });
+			toast.error("Couldn't discard changes", {
+				description: errorMessage(err),
+			});
 		},
 	});
 	const confirmDiscard = () => {

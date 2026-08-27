@@ -7,6 +7,7 @@ import type {
 import { parsePatchFiles } from "@pierre/diffs";
 import { CodeView, type CodeViewHandle } from "@pierre/diffs/react";
 import { FileTree as PierreFileTree, useFileTree } from "@pierre/trees/react";
+import { errorMessage } from "@superset/i18n/errors";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -518,7 +519,7 @@ export function PullRequestCodeTab({
 		},
 		onError: (mutationError) => {
 			toast.error("Couldn't update thread", {
-				description: mutationError.message,
+				description: errorMessage(mutationError),
 			});
 		},
 	});
@@ -549,7 +550,7 @@ export function PullRequestCodeTab({
 		},
 		onError: (mutationError) => {
 			toast.error("Couldn't post reply", {
-				description: mutationError.message,
+				description: errorMessage(mutationError),
 			});
 		},
 	});
@@ -645,7 +646,7 @@ export function PullRequestCodeTab({
 		},
 		onError: (mutationError) => {
 			toast.error("Couldn't send comment", {
-				description: mutationError.message,
+				description: errorMessage(mutationError),
 			});
 		},
 	});
@@ -693,7 +694,7 @@ export function PullRequestCodeTab({
 		} catch (err) {
 			return {
 				files: [] as ParsedFileDiff[],
-				error: err instanceof Error ? err.message : "Failed to parse diff",
+				error: errorMessage(err, "Failed to parse diff"),
 			};
 		}
 	}, [data?.patch]);

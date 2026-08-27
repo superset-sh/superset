@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -48,15 +49,13 @@ export function WorkspaceSidebarFooter({
 					});
 				} catch (err) {
 					toast.error(`Failed to open ${project.name}`, {
-						description:
-							err instanceof Error ? err.message : "Failed to create workspace",
+						description: errorMessage(err, "Failed to create workspace"),
 					});
 				}
 			}
 		} catch (error) {
 			toast.error("Failed to open project", {
-				description:
-					error instanceof Error ? error.message : "An unknown error occurred",
+				description: errorMessage(error, "An unknown error occurred"),
 			});
 		}
 	};
@@ -66,8 +65,7 @@ export function WorkspaceSidebarFooter({
 			await openMainRepoWorkspace.mutateAsync({ projectId });
 		} catch (err) {
 			toast.error("Failed to open project", {
-				description:
-					err instanceof Error ? err.message : "Failed to create workspace",
+				description: errorMessage(err, "Failed to create workspace"),
 			});
 		}
 	};

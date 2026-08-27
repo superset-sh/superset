@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -255,7 +256,7 @@ export function AddAccountDialog({
 													});
 													onOpenChange(false);
 												},
-												onError: (error) => toast.error(error.message),
+												onError: (error) => toast.error(errorMessage(error)),
 											},
 										);
 									}}

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -160,7 +161,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			await electronTrpcClient.external.openInFinder.mutate(path);
 		} catch (error) {
 			toast.error(
-				`Failed to open in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to open in Finder: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};
@@ -173,7 +174,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			toast.success("Path copied");
 		} catch (error) {
 			toast.error(
-				`Failed to copy path: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to copy path: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};
@@ -206,7 +207,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			});
 		} catch (error) {
 			toast.error(
-				`Failed to clear agent status: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to clear agent status: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};
@@ -227,7 +228,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			});
 		} catch (error) {
 			toast.error(
-				`Failed to remove PR link: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to remove PR link: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};
@@ -242,7 +243,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 			toast.success("Branch name copied");
 		} catch (error) {
 			toast.error(
-				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};

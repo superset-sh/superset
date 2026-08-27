@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -44,7 +45,7 @@ export function useCreateV1Project() {
 				await utils.projects.getRecents.invalidate();
 				return result.project.id;
 			} catch (err) {
-				reportError(err instanceof Error ? err.message : String(err));
+				reportError(errorMessage(err));
 				return null;
 			}
 		},

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	canInvite,
 	ORGANIZATION_ROLES,
@@ -68,9 +69,7 @@ export function InviteMemberDialog({
 			setRole("member");
 			onOpenChange(false);
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to send invitation",
-			);
+			toast.error(errorMessage(error, "Failed to send invitation"));
 		} finally {
 			setIsInviting(false);
 		}

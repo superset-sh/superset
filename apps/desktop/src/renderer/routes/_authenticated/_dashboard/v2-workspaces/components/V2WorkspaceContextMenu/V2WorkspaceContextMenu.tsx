@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -100,7 +101,7 @@ export function V2WorkspaceContextMenu({
 			toast.success("Branch name copied");
 		} catch (error) {
 			toast.error(
-				`Failed to copy branch name: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	}, [copyToClipboard, workspace.branch]);

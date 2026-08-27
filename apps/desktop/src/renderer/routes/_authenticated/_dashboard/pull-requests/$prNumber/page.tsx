@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -165,7 +166,7 @@ function PullRequestDetailPage() {
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
 			toast.error("Couldn't update pull request", {
-				description: mutationError.message,
+				description: errorMessage(mutationError),
 			});
 		},
 	});
@@ -192,7 +193,7 @@ function PullRequestDetailPage() {
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
 			toast.error("Couldn't merge pull request", {
-				description: mutationError.message,
+				description: errorMessage(mutationError),
 			});
 		},
 	});
@@ -554,9 +555,7 @@ function PullRequestDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message={
-						error instanceof Error ? error.message : "Pull request not found."
-					}
+					message={errorMessage(error, "Pull request not found.")}
 					isError
 					onRetry={() => void refetch()}
 				/>

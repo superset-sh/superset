@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useState } from "react";
 import type { LeaderboardPreview } from "renderer/components/LeaderboardJoinDialog";
@@ -45,9 +46,7 @@ export function useLeaderboardJoinPreview(hostUrl: string | null) {
 				providers: providers.length > 0 ? providers : FALLBACK_PROVIDERS,
 			});
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Couldn't read local usage",
-			);
+			toast.error(errorMessage(error, "Couldn't read local usage"));
 		} finally {
 			setIsLoading(false);
 		}
