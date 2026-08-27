@@ -115,7 +115,7 @@ jobs:
       # Message catalogs must match source (extract) and compile with no
       # missing translations (--strict); a dirty diff means someone forgot
       # to run `bun run --cwd packages/i18n check` after changing strings.
-      - name: i18n catalogs
+      - name: Audit i18n catalogs
         run: bun run --cwd packages/i18n check
 
   test:
