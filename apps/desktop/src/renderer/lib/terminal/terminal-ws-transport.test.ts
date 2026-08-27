@@ -728,13 +728,35 @@ describe("terminal-ws-transport", () => {
 		expect(transport.connectionState).toBe("open");
 	});
 
-	test("park drops an anchor poisoned by uncounted bytes, keeps a counted one", () => {
-		// Pre-seq host (or bytes before this attach's `synced`): the xterm
-		// advanced but the anchor didn't. Parking must apply the same anchor
-		// hygiene the bypassed close handler would have — otherwise the next
-		// dial's exact catch-up re-delivers bytes already painted.
+	test("park refuses to disconnect a pre-seq host", () => {
+		// A pre-seq host ignores `?seq=` and `replay=0` suppresses its legacy
+		// FIFO replay, so a closed socket means the parked gap is silently
+		// lost. Such transports keep the legacy always-connected behavior.
 		const { transport, socket } = connectAttached();
-		transport.seqAnchor = { epoch: "old", seq: 5 };
+		const bytes = new TextEncoder().encode("pre-seq output");
+		socket.message(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+		);
+
+		park(transport);
+
+		expect(socket.closed).toBe(false);
+		expect(transport.connectionState).toBe("open");
+	});
+
+	test("park drops an anchor poisoned by uncounted bytes on a seq-aware host", () => {
+		// A seq-aware transport (synced seen on an earlier connection) parked
+		// between a reattach and its `synced`: the current connection's bytes
+		// advanced the xterm without advancing the anchor. Parking must apply
+		// the same anchor hygiene the bypassed close handler would have —
+		// otherwise the next dial's exact catch-up re-delivers painted bytes.
+		const { transport, socket } = connectAttached();
+		socket.message(
+			JSON.stringify({ type: "synced", epoch: "e1", seq: 10, mode: "exact" }),
+		);
+		socket.drop(1006, "host restart");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 		const bytes = new TextEncoder().encode("uncounted");
 		socket.message(
 			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
@@ -742,6 +764,7 @@ describe("terminal-ws-transport", () => {
 
 		park(transport);
 
+		expect(socket.closed).toBe(true);
 		expect(transport.seqAnchor).toBeNull();
 	});
 

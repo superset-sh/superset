@@ -919,6 +919,14 @@ function attachSocketListeners(
  * bytes (or reanchors past the 2 MB ring), so parking loses nothing.
  */
 export function park(transport: TerminalTransport) {
+	// A pre-seq host (bytes delivered, `synced` never seen) cannot replay a
+	// parked gap: it ignores `?seq=` and `replay=0` suppresses its legacy
+	// FIFO replay, so closing this socket would silently drop everything
+	// produced while parked. Keep the legacy always-connected behavior for
+	// those hosts — a local host is always version-matched with the app, so
+	// this only preserves output on version-skewed remote hosts. Also covers
+	// a first-ever connection parked before its `synced` arrived.
+	if (transport._hasReceivedBytes && !transport._seqEverSynced) return;
 	teardownLiveness(transport);
 	const socket = transport._socket;
 	if (socket) {
