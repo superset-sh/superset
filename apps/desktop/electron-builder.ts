@@ -157,9 +157,17 @@ const config: Configuration = {
 		// Chrome/VS Code approach) is always shown. A plain relaunch hits the
 		// single-instance lock, which opens a new window.
 		desktop: {
+			// electron-builder appends [Desktop Action] groups but never writes
+			// the Actions= key that exposes them, so declare it explicitly —
+			// launchers ignore action groups not listed under Actions.
+			entry: {
+				Actions: "new-window;",
+			},
 			desktopActions: {
 				"new-window": {
 					Name: "New Window",
+					// Must mirror the generated main Exec (AppImage default when
+					// linux.executableArgs is unset); update both together.
 					Exec: "AppRun --no-sandbox",
 				},
 			},
