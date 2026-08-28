@@ -18055,6 +18055,11 @@ msgid "mobile.home.hostOffline.title"
 msgstr "{hostName}はオフラインです"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/ProjectSectionHeader/ProjectSectionHeader.tsx
+msgid "mobile.home.newWorkspaceIn"
+msgstr "{name} に新規ワークスペース"
+
+#. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/HomeScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
 msgid "mobile.home.noProject"
@@ -18248,14 +18253,6 @@ msgstr "並べ替え"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.nav.workspace.title"
 msgstr "ワークスペース"
-
-#. js-lingui-explicit-id
-#. placeholder {0}: storeTarget.workspaceName
-#. placeholder {0}: workspace.name
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
-msgid "mobile.newChat.newAgentIn"
-msgstr "{0}で新しいエージェント"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
@@ -19359,6 +19356,11 @@ msgid "mobile.workspaceRow.markAsUnread"
 msgstr "未読にする"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.pin"
+msgstr "ピン留め"
+
+#. js-lingui-explicit-id
 #. placeholder {0}: pullRequest.prNumber
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/pull-requests/PullRequestsSheet.tsx
@@ -19383,6 +19385,11 @@ msgstr "名前の変更に失敗しました"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/hooks/useWorkspaceHeaderActions/useWorkspaceHeaderActions.ts
 msgid "mobile.workspaceRow.renameTitle"
 msgstr "ワークスペースの名前を変更"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.unpin"
+msgstr "ピン留めを解除"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/onboarding/components/OnboardingLanguageRow/OnboardingLanguageRow.tsx

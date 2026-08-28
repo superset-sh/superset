@@ -3,6 +3,8 @@ import { Link } from "expo-router";
 import type { ReactNode } from "react";
 
 export function WorkspaceRowMenu({
+	pinned,
+	onTogglePin,
 	canRename,
 	canDelete,
 	isUnread,
@@ -13,6 +15,8 @@ export function WorkspaceRowMenu({
 	onShare,
 	children,
 }: {
+	pinned: boolean;
+	onTogglePin: () => void;
 	canRename: boolean;
 	canDelete: boolean;
 	isUnread: boolean;
@@ -49,6 +53,14 @@ export function WorkspaceRowMenu({
 								id: "mobile.workspaceRow.markAsUnread",
 								message: "Mark as Unread",
 							})}
+				</Link.MenuAction>
+				<Link.MenuAction
+					icon={pinned ? "pin.slash" : "pin"}
+					onPress={onTogglePin}
+				>
+					{pinned
+						? t({ id: "mobile.workspaceRow.unpin", message: "Unpin" })
+						: t({ id: "mobile.workspaceRow.pin", message: "Pin" })}
 				</Link.MenuAction>
 				{canRename ? (
 					<Link.MenuAction icon="pencil" onPress={onRename}>

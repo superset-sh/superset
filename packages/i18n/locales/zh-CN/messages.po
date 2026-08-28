@@ -18055,6 +18055,11 @@ msgid "mobile.home.hostOffline.title"
 msgstr "{hostName}已离线"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/ProjectSectionHeader/ProjectSectionHeader.tsx
+msgid "mobile.home.newWorkspaceIn"
+msgstr "在 {name} 中新建工作区"
+
+#. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/HomeScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
 msgid "mobile.home.noProject"
@@ -18248,14 +18253,6 @@ msgstr "排序"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.nav.workspace.title"
 msgstr "工作区"
-
-#. js-lingui-explicit-id
-#. placeholder {0}: storeTarget.workspaceName
-#. placeholder {0}: workspace.name
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
-msgid "mobile.newChat.newAgentIn"
-msgstr "在{0}中新建智能体"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
@@ -19359,6 +19356,11 @@ msgid "mobile.workspaceRow.markAsUnread"
 msgstr "标为未读"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.pin"
+msgstr "置顶"
+
+#. js-lingui-explicit-id
 #. placeholder {0}: pullRequest.prNumber
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/pull-requests/PullRequestsSheet.tsx
@@ -19383,6 +19385,11 @@ msgstr "重命名失败"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/hooks/useWorkspaceHeaderActions/useWorkspaceHeaderActions.ts
 msgid "mobile.workspaceRow.renameTitle"
 msgstr "重命名工作区"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.unpin"
+msgstr "取消置顶"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/onboarding/components/OnboardingLanguageRow/OnboardingLanguageRow.tsx

@@ -18055,6 +18055,11 @@ msgid "mobile.home.hostOffline.title"
 msgstr "{hostName} está offline"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/ProjectSectionHeader/ProjectSectionHeader.tsx
+msgid "mobile.home.newWorkspaceIn"
+msgstr "Nova área de trabalho em {name}"
+
+#. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/HomeScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
 msgid "mobile.home.noProject"
@@ -18248,14 +18253,6 @@ msgstr "Ordenar"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.nav.workspace.title"
 msgstr "Área de trabalho"
-
-#. js-lingui-explicit-id
-#. placeholder {0}: storeTarget.workspaceName
-#. placeholder {0}: workspace.name
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
-msgid "mobile.newChat.newAgentIn"
-msgstr "Novo agente em {0}"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
@@ -19360,6 +19357,11 @@ msgid "mobile.workspaceRow.markAsUnread"
 msgstr "Marcar como não lida"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.pin"
+msgstr "Fixar"
+
+#. js-lingui-explicit-id
 #. placeholder {0}: pullRequest.prNumber
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/pull-requests/PullRequestsSheet.tsx
@@ -19384,6 +19386,11 @@ msgstr "Falha ao renomear"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/hooks/useWorkspaceHeaderActions/useWorkspaceHeaderActions.ts
 msgid "mobile.workspaceRow.renameTitle"
 msgstr "Renomear área de trabalho"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.unpin"
+msgstr "Desafixar"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/onboarding/components/OnboardingLanguageRow/OnboardingLanguageRow.tsx

@@ -88,8 +88,6 @@ export function FinishReviewSheet() {
 					{
 						target: {
 							workspaceId: workspace.id,
-							workspaceName: workspace.name,
-							branch: workspace.branch,
 							hostId: workspace.hostId,
 						},
 						message: { text: prompt, attachments: [] },

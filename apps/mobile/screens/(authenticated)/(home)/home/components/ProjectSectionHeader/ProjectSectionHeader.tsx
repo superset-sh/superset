@@ -1,6 +1,9 @@
-import { ChevronDown, ChevronRight } from "lucide-react-native";
+import { useLingui } from "@lingui/react/macro";
+import { ChevronDown, ChevronRight, Plus } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { ProjectAvatar } from "@/screens/(authenticated)/(home)/filter/components/ProjectAvatar";
@@ -13,6 +16,8 @@ interface ProjectSectionHeaderProps {
 	count: number;
 	collapsed: boolean;
 	onToggle: () => void;
+	/** Absent for sections you can't create into (e.g. "No project"). */
+	onNewWorkspace?: () => void;
 }
 
 /**
@@ -28,7 +33,9 @@ export function ProjectSectionHeader({
 	count,
 	collapsed,
 	onToggle,
+	onNewWorkspace,
 }: ProjectSectionHeaderProps) {
+	const { t } = useLingui();
 	const theme = useTheme();
 	const Caret = collapsed ? ChevronRight : ChevronDown;
 	return (
@@ -50,6 +57,25 @@ export function ProjectSectionHeader({
 			<Text className="text-muted-foreground font-mono text-[13px]">
 				{count}
 			</Text>
+			{onNewWorkspace ? (
+				<>
+					<View className="flex-1" />
+					<Button
+						accessibilityLabel={t({
+							id: "mobile.home.newWorkspaceIn",
+							message: `New workspace in ${name}`,
+						})}
+						ph-label="project-header-new-workspace"
+						variant="ghost"
+						size="icon"
+						className="size-6"
+						hitSlop={8}
+						onPress={onNewWorkspace}
+					>
+						<Icon as={Plus} className="text-muted-foreground size-5" />
+					</Button>
+				</>
+			) : null}
 		</Pressable>
 	);
 }

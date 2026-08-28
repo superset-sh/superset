@@ -18055,6 +18055,11 @@ msgid "mobile.home.hostOffline.title"
 msgstr "{hostName}이(가) 오프라인입니다"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/ProjectSectionHeader/ProjectSectionHeader.tsx
+msgid "mobile.home.newWorkspaceIn"
+msgstr "{name}에 새 워크스페이스"
+
+#. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/HomeScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
 msgid "mobile.home.noProject"
@@ -18248,14 +18253,6 @@ msgstr "정렬"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.nav.workspace.title"
 msgstr "워크스페이스"
-
-#. js-lingui-explicit-id
-#. placeholder {0}: storeTarget.workspaceName
-#. placeholder {0}: workspace.name
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
-#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
-msgid "mobile.newChat.newAgentIn"
-msgstr "{0}에서 새 에이전트"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/NewChatWidget/NewChatWidget.tsx
@@ -19360,6 +19357,11 @@ msgid "mobile.workspaceRow.markAsUnread"
 msgstr "읽지 않음으로 표시"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.pin"
+msgstr "고정"
+
+#. js-lingui-explicit-id
 #. placeholder {0}: pullRequest.prNumber
 #: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/WorkspaceRow.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/pull-requests/PullRequestsSheet.tsx
@@ -19384,6 +19386,11 @@ msgstr "이름 변경 실패"
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/hooks/useWorkspaceHeaderActions/useWorkspaceHeaderActions.ts
 msgid "mobile.workspaceRow.renameTitle"
 msgstr "워크스페이스 이름 변경"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/(home)/home/components/WorkspaceRow/components/WorkspaceRowMenu/WorkspaceRowMenu.tsx
+msgid "mobile.workspaceRow.unpin"
+msgstr "고정 해제"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/onboarding/components/OnboardingLanguageRow/OnboardingLanguageRow.tsx

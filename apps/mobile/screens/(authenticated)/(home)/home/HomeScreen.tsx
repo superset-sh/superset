@@ -29,6 +29,8 @@ import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinne
 import { pullRequestStatus } from "@/screens/(authenticated)/workspace/[id]/utils/pullRequest";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
+import { targetKeyFor } from "./components/NewChatWidget/hooks/useNewChatTargets";
+import { useNewSessionPreferencesStore } from "./components/NewChatWidget/stores/newSessionPreferencesStore";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
 import { ScopeBar } from "./components/ScopeBar";
@@ -43,6 +45,7 @@ import {
 	collapsedProjectKey,
 	useCollapsedProjectsStore,
 } from "./stores/collapsedProjectsStore";
+import { useComposerFocusStore } from "./stores/composerFocusStore";
 import {
 	SORT_OPTIONS,
 	useWorkspacesFilterStore,
@@ -103,6 +106,12 @@ export function HomeScreen() {
 	const { height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
 	const queryClient = useQueryClient();
+	const setTargetKey = useNewSessionPreferencesStore(
+		(state) => state.setTargetKey,
+	);
+	const requestComposerFocus = useComposerFocusStore(
+		(state) => state.requestFocus,
+	);
 	const { isLoadingOrganizations, activeOrganization } = useOrganizations();
 
 	const selectedHost = useSelectedHost();
@@ -428,6 +437,7 @@ export function HomeScreen() {
 			}
 			if (item.kind === "projectHeader") {
 				// Only a machine's projects get headers — Cloud is a flat scope.
+				const machineId = selectedHost?.machineId;
 				return (
 					<ProjectSectionHeader
 						name={item.name}
@@ -436,8 +446,19 @@ export function HomeScreen() {
 						collapsed={item.collapsed}
 						onToggle={() => {
 							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-							toggleProject(selectedHost?.machineId ?? "", item.projectId);
+							toggleProject(machineId ?? "", item.projectId);
 						}}
+						onNewWorkspace={
+							// "__none" collects orphans of projects the host no longer
+							// reports — there is nothing to create into.
+							machineId && item.projectId !== "__none"
+								? () => {
+										void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+										setTargetKey(targetKeyFor(item.projectId, machineId));
+										requestComposerFocus();
+									}
+								: undefined
+						}
 					/>
 				);
 			}
@@ -473,6 +494,8 @@ export function HomeScreen() {
 			terminalsByWorkspace,
 			toggleProject,
 			selectedHost,
+			setTargetKey,
+			requestComposerFocus,
 		],
 	);
 
