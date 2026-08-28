@@ -574,12 +574,15 @@ export function TiptapPromptEditor({
 
 			handlePaste: (_view, event) => {
 				const files = getClipboardFiles(event.clipboardData);
-				if (files.length > 0) {
-					event.preventDefault();
-					attachmentsRef.current.add(files);
-					return true;
-				}
-				return false;
+				if (files.length === 0) return false;
+				attachmentsRef.current.add(files);
+				// A clipboard can carry both (an image copied from a page brings
+				// its alt text along). Attaching the files must not cost the user
+				// the text, so leave the paste unhandled and let the editor insert
+				// it; claim the event only when there is nothing else to insert.
+				if (event.clipboardData?.getData("text/plain")) return false;
+				event.preventDefault();
+				return true;
 			},
 		},
 

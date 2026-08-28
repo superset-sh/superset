@@ -361,15 +361,19 @@ export function MarkdownEditor({
 			},
 			handlePaste: (_, event) => {
 				const onPasteFiles = onPasteFilesRef.current;
+				const text = event.clipboardData?.getData("text/plain") ?? "";
 				if (onPasteFiles) {
 					const files = getClipboardFiles(event.clipboardData);
 					if (files.length > 0) {
-						event.preventDefault();
 						onPasteFiles(files);
-						return true;
+						// Mixed payloads (image plus its alt text) keep both: fall
+						// through so the text still lands in the editor.
+						if (!text) {
+							event.preventDefault();
+							return true;
+						}
 					}
 				}
-				const text = event.clipboardData?.getData("text/plain") ?? "";
 				const currentEditor = editorRef.current;
 				if (!currentEditor || !isMarkdownTable(text)) {
 					return false;
