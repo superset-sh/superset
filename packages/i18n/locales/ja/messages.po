@@ -1371,7 +1371,7 @@ msgstr "通知"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/commandPalette/modules/settings/commands.ts
 msgid "commandPalette.settingsTab.security"
-msgstr "リモートワークスペース"
+msgstr "リモートアクセス"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/commandPalette/modules/settings/commands.ts
@@ -2194,13 +2194,13 @@ msgstr "モバイルアプリ"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
-msgid "components.paywall.remoteWorkspaces.description"
+msgid "components.paywall.remoteAccess.description"
 msgstr "Supersetリレー経由でどこからでもこのMacに接続でき、クラウドワークスペースも起動できます。どのクライアントからでも接続できます。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
-msgid "components.paywall.remoteWorkspaces.title"
-msgstr "リモートワークスペース"
+msgid "components.paywall.remoteAccess.title"
+msgstr "リモートアクセス"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
@@ -2595,6 +2595,41 @@ msgid "components.rankTeaser.projectedRank"
 msgstr "{1}人中<0>#{0}</0>になります。"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.latency"
+msgstr "レイテンシ"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.latencyValue"
+msgstr "42ms"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.live"
+msgstr "ライブ"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.remote"
+msgstr "リモート"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.thisMac"
+msgstr "このMac"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.tunnelEstablished"
+msgstr "トンネル確立"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.windowTitle"
+msgstr "リモートアクセス"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
 msgid "components.remotePathPicker.cancel"
 msgstr "キャンセル"
@@ -2623,41 +2658,6 @@ msgstr "更新"
 #: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
 msgid "components.remotePathPicker.title"
 msgstr "フォルダを選択"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.latency"
-msgstr "レイテンシ"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.latencyValue"
-msgstr "42ms"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.live"
-msgstr "ライブ"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.remote"
-msgstr "リモート"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.thisMac"
-msgstr "このMac"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.tunnelEstablished"
-msgstr "トンネル確立"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.windowTitle"
-msgstr "リモートワークスペース"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/MarkdownRenderer/components/SafeImage/SafeImage.tsx
@@ -3346,7 +3346,7 @@ msgstr "このデバイスがSupersetリレーに接続されていないため�
 #. placeholder {0}: remoteHost?.name ?? t({ id: "dashboard.automations.hostOfflineDialog.targetHostFallback", message: "the target host", })
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
 msgid "dashboard.automations.hostOfflineDialog.remoteBody"
-msgstr "<0>{0}</0> がSupersetリレーに接続されていないため、実行はスキップされました。そのデバイスの「設定 > リモートワークスペース」でリレーアクセスが有効になっていることを確認し、もう一度実行してください。"
+msgstr "<0>{0}</0> がSupersetリレーに接続されていないため、実行はスキップされました。そのデバイスの「設定 > リモートアクセス」でリレーアクセスが有効になっていることを確認し、もう一度実行してください。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
@@ -3361,7 +3361,7 @@ msgstr "対象ホストはオフラインです"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/utils/hostOfflineError/hostOfflineError.ts
 msgid "dashboard.automations.hostOfflineHelp"
-msgstr "ホストがSupersetリレーに接続されていません。このデバイスの場合は、設定 > リモートワークスペースで「リモートワークスペースからリレー経由でこのデバイスにアクセスすることを許可」をオンにしてから再試行してください。"
+msgstr "ホストがSupersetリレーに接続されていません。このデバイスの場合は、設定 > リモートアクセスで「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてから再試行してください。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/page.tsx
@@ -17414,7 +17414,7 @@ msgstr "{0}にサインイン"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home-connect-host/HomeConnectHostScreen.tsx
 msgid "mobile.connectHost.step3.body"
-msgstr "設定 → セキュリティ →「リモートワークスペースがリレー経由でこのデバイスにアクセスすることを許可」。"
+msgstr "設定 → リモートアクセス →「リレー経由でこのデバイスへのリモートアクセスを許可」。"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home-connect-host/HomeConnectHostScreen.tsx
@@ -17819,7 +17819,7 @@ msgstr "デバイスはまだありません"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/hosts/HostsSettingsScreen.tsx
 msgid "mobile.hostsSettings.emptyDescription"
-msgstr "Supersetデスクトップアプリで設定 → セキュリティを開き、「リモートワークスペースがリレー経由でこのデバイスにアクセスすることを許可」をオンにしてください。"
+msgstr "Supersetデスクトップアプリで設定 → リモートアクセスを開き、「リレー経由でこのデバイスへのリモートアクセスを許可」をオンにしてください。"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/hosts/HostsSettingsScreen.tsx
@@ -21458,8 +21458,8 @@ msgstr "プロジェクト"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/plans/page.tsx
-msgid "settings.billing.plans.rowRemoteWorkspaces"
-msgstr "リモートワークスペース"
+msgid "settings.billing.plans.rowRemoteAccess"
+msgstr "リモートアクセス"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/plans/page.tsx
@@ -21693,12 +21693,12 @@ msgstr "パスをクリップボードにコピーしました"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
 msgid "settings.components.exposeViaRelay.hint"
-msgstr "オフにすると、リモートワークスペースからこのデバイスのファイルやツールにアクセスできなくなります。ここからリモートサンドボックスへの接続は引き続き可能です。<0>詳細<1/></0>"
+msgstr "オフにすると、このデバイスのファイルやツールに外部からアクセスできなくなります。ここからリモートサンドボックスへの接続は引き続き可能です。<0>詳細<1/></0>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
 msgid "settings.components.exposeViaRelay.label"
-msgstr "リモートワークスペースからリレー経由でこのデバイスへのアクセスを許可"
+msgstr "リレー経由でこのデバイスへのリモートアクセスを許可"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
@@ -21837,8 +21837,8 @@ msgstr "プロジェクト"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/SettingsSidebar/GeneralSettings.tsx
-msgid "settings.components.generalSettings.remoteWorkspaces"
-msgstr "リモートワークスペース"
+msgid "settings.components.generalSettings.remoteAccess"
+msgstr "リモートアクセス"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/SettingsSidebar/GeneralSettings.tsx
@@ -22371,8 +22371,8 @@ msgstr "この組織にホストが見つかりません。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/hosts/$hostId/components/HostSettings/HostSettings.tsx
-msgid "settings.hosts.remoteWorkspacesTitle"
-msgstr "リモートワークスペース"
+msgid "settings.hosts.remoteAccessTitle"
+msgstr "リモートアクセス"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/hosts/$hostId/components/HostSettings/HostSettings.tsx
@@ -24346,12 +24346,12 @@ msgstr "静か"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.subtitle"
-msgstr "リモートワークスペースからローカルマシンへの到達方法を設定"
+msgstr "このマシンに外部からどのように接続できるかを設定"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.title"
-msgstr "リモートワークスペース"
+msgstr "リモートアクセス"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/team/components/InvitationActions/InvitationActions.tsx
@@ -28285,7 +28285,7 @@ msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/design/superset/components/AiAgentSection/AiAgentSection.tsx
 msgid "web.design.aiAgentSection.55CallSitesPassShowarrow"
-msgstr "55か所の呼び出し元がshowArrow={false}を渡しています"
+msgstr "55か所の呼び出し元が{code}を渡しています"
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/design/superset/components/AiAgentSection/AiAgentSection.tsx

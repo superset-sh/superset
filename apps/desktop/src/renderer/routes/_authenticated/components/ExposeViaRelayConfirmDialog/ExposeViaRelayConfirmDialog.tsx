@@ -51,13 +51,13 @@ export function ExposeViaRelayConfirmDialog({
 							</p>
 							{targetEnabled ? (
 								<p>
-									Remote workspaces you grant access to will be able to reach
-									this device through Superset Relay.
+									Devices and workspaces you grant access to will be able to
+									reach this device through Superset Relay.
 								</p>
 							) : (
 								<p>
-									Remote workspaces will no longer be able to reach this device
-									through Superset Relay.
+									Nothing else will be able to reach this device through
+									Superset Relay.
 								</p>
 							)}
 						</div>

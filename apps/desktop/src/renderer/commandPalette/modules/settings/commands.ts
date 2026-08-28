@@ -187,7 +187,7 @@ const TABS: SettingsTab[] = [
 		id: "security",
 		title: msg({
 			id: "commandPalette.settingsTab.security",
-			message: "Remote Workspaces",
+			message: "Remote Access",
 		}),
 		path: "/settings/security",
 		icon: KeyRoundIcon,

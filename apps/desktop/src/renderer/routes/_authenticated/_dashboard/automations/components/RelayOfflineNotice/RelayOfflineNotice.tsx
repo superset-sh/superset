@@ -26,7 +26,7 @@ const ICON = (
 
 /**
  * Automations dispatch from the cloud through the relay, so even the local
- * device is unreachable until relay access is enabled in Settings > Remote Workspaces.
+ * device is unreachable until relay access is enabled in Settings > Remote Access.
  * Renders nothing while connectivity is unknown (row not yet synced).
  */
 export function RelayOfflineNotice({
@@ -57,7 +57,7 @@ export function RelayOfflineNotice({
 					className="ml-auto h-7 shrink-0 border-warning/40 bg-warning/10 px-2.5 text-xs text-warning hover:bg-warning/20"
 					disabled={isPending}
 					onClick={() =>
-						gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () =>
+						gateFeature(GATED_FEATURES.REMOTE_ACCESS, () =>
 							setConfirmOpen(true),
 						)
 					}

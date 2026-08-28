@@ -1371,7 +1371,7 @@ msgstr "Ringtones"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/commandPalette/modules/settings/commands.ts
 msgid "commandPalette.settingsTab.security"
-msgstr "Remote Workspaces"
+msgstr "Remote Access"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/commandPalette/modules/settings/commands.ts
@@ -2194,13 +2194,13 @@ msgstr "Mobile App"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
-msgid "components.paywall.remoteWorkspaces.description"
+msgid "components.paywall.remoteAccess.description"
 msgstr "Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
-msgid "components.paywall.remoteWorkspaces.title"
-msgstr "Remote Workspaces"
+msgid "components.paywall.remoteAccess.title"
+msgstr "Remote Access"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
@@ -2595,6 +2595,41 @@ msgid "components.rankTeaser.projectedRank"
 msgstr "You'd be <0>#{0}</0> of {1}."
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.latency"
+msgstr "Latency"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.latencyValue"
+msgstr "42ms"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.live"
+msgstr "live"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.remote"
+msgstr "Remote"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.thisMac"
+msgstr "This Mac"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.tunnelEstablished"
+msgstr "Tunnel established"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.windowTitle"
+msgstr "Remote Access"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
 msgid "components.remotePathPicker.cancel"
 msgstr "Cancel"
@@ -2623,41 +2658,6 @@ msgstr "Refresh"
 #: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
 msgid "components.remotePathPicker.title"
 msgstr "Choose a folder"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.latency"
-msgstr "Latency"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.latencyValue"
-msgstr "42ms"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.live"
-msgstr "live"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.remote"
-msgstr "Remote"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.thisMac"
-msgstr "This Mac"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.tunnelEstablished"
-msgstr "Tunnel established"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.windowTitle"
-msgstr "Remote Workspaces"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/MarkdownRenderer/components/SafeImage/SafeImage.tsx
@@ -3346,7 +3346,7 @@ msgstr "The run was skipped because this device isn't connected to the Superset 
 #. placeholder {0}: remoteHost?.name ?? t({ id: "dashboard.automations.hostOfflineDialog.targetHostFallback", message: "the target host", })
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
 msgid "dashboard.automations.hostOfflineDialog.remoteBody"
-msgstr "The run was skipped because <0>{0}</0> isn't connected to the Superset relay. Make sure relay access is on in Settings > Remote Workspaces on that device, then run it again."
+msgstr "The run was skipped because <0>{0}</0> isn't connected to the Superset relay. Make sure relay access is on in Settings > Remote Access on that device, then run it again."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
@@ -3361,7 +3361,7 @@ msgstr "Target host is offline"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/utils/hostOfflineError/hostOfflineError.ts
 msgid "dashboard.automations.hostOfflineHelp"
-msgstr "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote workspaces to access this device via relay\" in Settings > Remote Workspaces, then try again."
+msgstr "The host isn't connected to the Superset relay. If it's this device, turn on \"Allow remote access to this device via relay\" in Settings > Remote Access, then try again."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/page.tsx
@@ -17414,7 +17414,7 @@ msgstr "Sign in to {0}"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home-connect-host/HomeConnectHostScreen.tsx
 msgid "mobile.connectHost.step3.body"
-msgstr "Settings → Security → “Allow remote workspaces to access this device via relay”."
+msgstr "Settings → Remote Access → “Allow remote access to this device via relay”."
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home-connect-host/HomeConnectHostScreen.tsx
@@ -17819,7 +17819,7 @@ msgstr "No devices yet"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/hosts/HostsSettingsScreen.tsx
 msgid "mobile.hostsSettings.emptyDescription"
-msgstr "In the Superset desktop app, open Settings → Security and turn on “Allow remote workspaces to access this device via relay”."
+msgstr "In the Superset desktop app, open Settings → Remote Access and turn on “Allow remote access to this device via relay”."
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/hosts/HostsSettingsScreen.tsx
@@ -21459,8 +21459,8 @@ msgstr "Projects"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/plans/page.tsx
-msgid "settings.billing.plans.rowRemoteWorkspaces"
-msgstr "Remote workspaces"
+msgid "settings.billing.plans.rowRemoteAccess"
+msgstr "Remote access"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/plans/page.tsx
@@ -21694,12 +21694,12 @@ msgstr "Path copied to clipboard"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
 msgid "settings.components.exposeViaRelay.hint"
-msgstr "When off, remote workspaces can't access the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
+msgstr "When off, nothing else can reach the files and tools on this device. You can still connect out to remote sandboxes from here. <0>Learn more<1/></0>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
 msgid "settings.components.exposeViaRelay.label"
-msgstr "Allow remote workspaces to access this device via relay"
+msgstr "Allow remote access to this device via relay"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
@@ -21838,8 +21838,8 @@ msgstr "Projects"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/SettingsSidebar/GeneralSettings.tsx
-msgid "settings.components.generalSettings.remoteWorkspaces"
-msgstr "Remote Workspaces"
+msgid "settings.components.generalSettings.remoteAccess"
+msgstr "Remote Access"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/SettingsSidebar/GeneralSettings.tsx
@@ -22372,8 +22372,8 @@ msgstr "Host not found in this organization."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/hosts/$hostId/components/HostSettings/HostSettings.tsx
-msgid "settings.hosts.remoteWorkspacesTitle"
-msgstr "Remote workspaces"
+msgid "settings.hosts.remoteAccessTitle"
+msgstr "Remote access"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/hosts/$hostId/components/HostSettings/HostSettings.tsx
@@ -24347,12 +24347,12 @@ msgstr "Quiet"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.subtitle"
-msgstr "Control how your local machine is reachable from remote workspaces"
+msgstr "Control how your local machine is reachable from elsewhere"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.title"
-msgstr "Remote Workspaces"
+msgstr "Remote Access"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/team/components/InvitationActions/InvitationActions.tsx
@@ -28286,7 +28286,7 @@ msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/design/superset/components/AiAgentSection/AiAgentSection.tsx
 msgid "web.design.aiAgentSection.55CallSitesPassShowarrow"
-msgstr "55 call sites pass showArrow={false}"
+msgstr "55 call sites pass {code}"
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/design/superset/components/AiAgentSection/AiAgentSection.tsx

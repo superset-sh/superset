@@ -285,8 +285,8 @@ const SECTION_GROUPS: SectionGroup[] = [
 				id: "/settings/security",
 				section: "security",
 				label: msg({
-					id: "settings.components.generalSettings.remoteWorkspaces",
-					message: "Remote Workspaces",
+					id: "settings.components.generalSettings.remoteAccess",
+					message: "Remote Access",
 				}),
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
 			},

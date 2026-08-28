@@ -3,7 +3,7 @@ import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-/** Enable relay access with the same mutation + feedback as Settings > Remote Workspaces. */
+/** Enable relay access with the same mutation + feedback as Settings > Remote Access. */
 export function useEnableRelayAccess() {
 	const utils = electronTrpc.useUtils();
 	const setExpose =

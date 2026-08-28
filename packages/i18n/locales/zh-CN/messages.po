@@ -1371,7 +1371,7 @@ msgstr "提示音"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/commandPalette/modules/settings/commands.ts
 msgid "commandPalette.settingsTab.security"
-msgstr "远程工作区"
+msgstr "远程访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/commandPalette/modules/settings/commands.ts
@@ -2194,13 +2194,13 @@ msgstr "移动应用"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
-msgid "components.paywall.remoteWorkspaces.description"
-msgstr "通过Superset中继从任何地方连上这台Mac，或启动云端工作区。可从任意客户端连接。"
+msgid "components.paywall.remoteAccess.description"
+msgstr "通过Superset中继从任何地方连接这台Mac，或启动云工作区。可以从任何客户端连接。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
-msgid "components.paywall.remoteWorkspaces.title"
-msgstr "远程工作区"
+msgid "components.paywall.remoteAccess.title"
+msgstr "远程访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/Paywall/constants.ts
@@ -2595,6 +2595,41 @@ msgid "components.rankTeaser.projectedRank"
 msgstr "你将位列<0>#{0}</0>，共{1}人。"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.latency"
+msgstr "延迟"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.latencyValue"
+msgstr "42ms"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.live"
+msgstr "实时"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.remote"
+msgstr "远程"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.thisMac"
+msgstr "这台Mac"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.tunnelEstablished"
+msgstr "隧道已建立"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteAccessDemo/RemoteAccessDemo.tsx
+msgid "components.remoteAccessDemo.windowTitle"
+msgstr "远程访问"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
 msgid "components.remotePathPicker.cancel"
 msgstr "取消"
@@ -2623,41 +2658,6 @@ msgstr "刷新"
 #: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
 msgid "components.remotePathPicker.title"
 msgstr "选择文件夹"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.latency"
-msgstr "延迟"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.latencyValue"
-msgstr "42ms"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.live"
-msgstr "实时"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.remote"
-msgstr "远程"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.thisMac"
-msgstr "这台Mac"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.tunnelEstablished"
-msgstr "隧道已建立"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.windowTitle"
-msgstr "远程工作区"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/MarkdownRenderer/components/SafeImage/SafeImage.tsx
@@ -3346,7 +3346,7 @@ msgstr "这次运行被跳过了，因为此设备没有连接到Superset中继�
 #. placeholder {0}: remoteHost?.name ?? t({ id: "dashboard.automations.hostOfflineDialog.targetHostFallback", message: "the target host", })
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
 msgid "dashboard.automations.hostOfflineDialog.remoteBody"
-msgstr "这次运行被跳过了，因为<0>{0}</0>没有连接到Superset中继。请确认该设备的“设置>远程工作区”中开启了中继访问，然后重新运行。"
+msgstr "这次运行被跳过了，因为<0>{0}</0>没有连接到Superset中继。请确认该设备的“设置>远程访问”中开启了中继访问，然后重新运行。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
@@ -3361,7 +3361,7 @@ msgstr "目标主机已离线"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/utils/hostOfflineError/hostOfflineError.ts
 msgid "dashboard.automations.hostOfflineHelp"
-msgstr "该主机没有连接到Superset中继。如果就是此设备，请在“设置>远程工作区”中打开“允许远程工作区通过中继访问此设备”，然后重试。"
+msgstr "该主机没有连接到Superset中继。如果就是此设备，请在“设置>远程访问”中打开“允许通过中继远程访问本设备”，然后重试。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/page.tsx
@@ -17414,7 +17414,7 @@ msgstr "登录{0}"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home-connect-host/HomeConnectHostScreen.tsx
 msgid "mobile.connectHost.step3.body"
-msgstr "设置 → 安全 → “允许远程工作区通过中继访问此设备”。"
+msgstr "设置 → 远程访问 → “允许通过中继远程访问本设备”。"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/(home)/home-connect-host/HomeConnectHostScreen.tsx
@@ -17819,7 +17819,7 @@ msgstr "还没有设备"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/hosts/HostsSettingsScreen.tsx
 msgid "mobile.hostsSettings.emptyDescription"
-msgstr "在Superset桌面应用中打开“设置 → 安全”，开启“允许远程工作区通过中继访问此设备”。"
+msgstr "在Superset桌面应用中打开“设置 → 远程访问”，开启“允许通过中继远程访问本设备”。"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/hosts/HostsSettingsScreen.tsx
@@ -21458,8 +21458,8 @@ msgstr "项目"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/plans/page.tsx
-msgid "settings.billing.plans.rowRemoteWorkspaces"
-msgstr "远程工作区"
+msgid "settings.billing.plans.rowRemoteAccess"
+msgstr "远程访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/plans/page.tsx
@@ -21693,12 +21693,12 @@ msgstr "路径已复制到剪贴板"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
 msgid "settings.components.exposeViaRelay.hint"
-msgstr "关闭后，远程工作区无法访问本设备上的文件和工具。你仍可以从这里连接到远程沙箱。<0>了解更多<1/></0>"
+msgstr "关闭后，其他设备无法访问本设备上的文件和工具。你仍可以从这里连接到远程沙箱。<0>了解更多<1/></0>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
 msgid "settings.components.exposeViaRelay.label"
-msgstr "允许远程工作区通过中继访问本设备"
+msgstr "允许通过中继远程访问本设备"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/ExposeViaRelaySection/ExposeViaRelaySection.tsx
@@ -21837,8 +21837,8 @@ msgstr "项目"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/SettingsSidebar/GeneralSettings.tsx
-msgid "settings.components.generalSettings.remoteWorkspaces"
-msgstr "远程工作区"
+msgid "settings.components.generalSettings.remoteAccess"
+msgstr "远程访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/components/SettingsSidebar/GeneralSettings.tsx
@@ -22371,8 +22371,8 @@ msgstr "在此组织中找不到该主机。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/hosts/$hostId/components/HostSettings/HostSettings.tsx
-msgid "settings.hosts.remoteWorkspacesTitle"
-msgstr "远程工作区"
+msgid "settings.hosts.remoteAccessTitle"
+msgstr "远程访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/hosts/$hostId/components/HostSettings/HostSettings.tsx
@@ -24346,12 +24346,12 @@ msgstr "轻"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.subtitle"
-msgstr "控制远程工作区如何访问你的本地机器"
+msgstr "控制这台机器如何从外部访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.title"
-msgstr "远程工作区"
+msgstr "远程访问"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/team/components/InvitationActions/InvitationActions.tsx
@@ -28285,7 +28285,7 @@ msgstr "xs · sm · default · lg · icon-xs → icon-lg"
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/design/superset/components/AiAgentSection/AiAgentSection.tsx
 msgid "web.design.aiAgentSection.55CallSitesPassShowarrow"
-msgstr "55处调用传入showArrow={false}"
+msgstr "55处调用传入{code}"
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/design/superset/components/AiAgentSection/AiAgentSection.tsx

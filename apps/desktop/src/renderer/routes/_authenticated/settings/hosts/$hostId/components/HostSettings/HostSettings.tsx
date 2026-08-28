@@ -186,8 +186,8 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 						<h3 className="text-sm font-medium">
 							<HighlightText
 								text={t({
-									id: "settings.hosts.remoteWorkspacesTitle",
-									message: "Remote workspaces",
+									id: "settings.hosts.remoteAccessTitle",
+									message: "Remote access",
 								})}
 								query={searchQuery}
 							/>

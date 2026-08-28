@@ -59,7 +59,7 @@ export function V2WorkspaceContextMenu({
 			go();
 			return;
 		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, go);
+		gateFeature(GATED_FEATURES.REMOTE_ACCESS, go);
 	}, [gateFeature, navigate, workspace.hostType, workspace.id]);
 
 	const addToSidebar = useCallback(() => {
@@ -69,7 +69,7 @@ export function V2WorkspaceContextMenu({
 			add();
 			return;
 		}
-		gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, add);
+		gateFeature(GATED_FEATURES.REMOTE_ACCESS, add);
 	}, [
 		ensureWorkspaceInSidebar,
 		gateFeature,

@@ -82,7 +82,7 @@ export function ExposeViaRelaySection() {
 
 	const handleChange = (next: boolean) => {
 		if (next) {
-			gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () => openConfirm(true));
+			gateFeature(GATED_FEATURES.REMOTE_ACCESS, () => openConfirm(true));
 		} else {
 			openConfirm(false);
 		}
@@ -99,19 +99,17 @@ export function ExposeViaRelaySection() {
 						<HighlightText
 							text={t({
 								id: "settings.components.exposeViaRelay.label",
-								message:
-									"Allow remote workspaces to access this device via relay",
+								message: "Allow remote access to this device via relay",
 							})}
 							query={searchQuery}
 						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						<Trans id="settings.components.exposeViaRelay.hint">
-							When off, remote workspaces can't access the files and tools on
-							this device. You can still connect out to remote sandboxes from
-							here.{" "}
+							When off, nothing else can reach the files and tools on this
+							device. You can still connect out to remote sandboxes from here.{" "}
 							<a
-								href={`${COMPANY.DOCS_URL}/remote-workspaces`}
+								href={`${COMPANY.DOCS_URL}/remote-access`}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-flex items-center gap-1 text-primary hover:underline"

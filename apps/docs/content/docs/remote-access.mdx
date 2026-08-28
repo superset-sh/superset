@@ -18,9 +18,9 @@ Exposing your primary workstation through the relay means anything reachable by 
 Use the desktop toggle when you genuinely need it on this machine. Otherwise prefer the CLI path on a dedicated host.
 </Callout>
 
-Open the desktop app and go to **Settings → Security**. Flip on **Allow remote workspaces to access this device via relay**.
+Open the desktop app and go to **Settings → Remote Access**. Flip on **Allow remote access to this device via relay**.
 
-![Settings → Security relay toggle](/images/remote-workspaces-security-toggle.png)
+![Settings → Remote Access relay toggle](/images/remote-workspaces-security-toggle.png)
 
 Enabling the toggle restarts the host service, so any running terminals on this device will be interrupted. You'll be asked to type a confirmation phrase before the change applies.
 
@@ -98,7 +98,7 @@ Forwarded traffic passes through the Superset relay, like terminal traffic does.
 
 ## Turning access off
 
-- **Desktop**: flip the toggle in **Settings → Security** back off. The host service restarts and stops accepting relay traffic.
+- **Desktop**: flip the toggle in **Settings → Remote Access** back off. The host service restarts and stops accepting relay traffic.
 - **CLI**: run `superset stop` on the host machine.
 
 In both cases, in-flight terminals and host-backed work on that machine are interrupted.

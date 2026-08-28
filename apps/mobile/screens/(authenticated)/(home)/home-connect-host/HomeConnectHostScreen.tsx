@@ -15,7 +15,7 @@ import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizatio
 import { OrganizationHeaderButton } from "../home/components/OrganizationHeaderButton";
 import { SetupStep } from "./components/SetupStep";
 
-const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-workspaces`;
+const SETUP_DOCS_URL = `${COMPANY.DOCS_URL}/remote-access`;
 
 /**
  * Home for an organization with no device of yours in it. Every list on this
@@ -119,8 +119,8 @@ export function HomeConnectHostScreen() {
 						})}
 					>
 						<Trans id="mobile.connectHost.step3.body">
-							Settings → Security → “Allow remote workspaces to access this
-							device via relay”.
+							Settings → Remote Access → “Allow remote access to this device via
+							relay”.
 						</Trans>
 					</SetupStep>
 				</View>

@@ -48,13 +48,13 @@ export function HostsSettingsScreen() {
 						style={{ color: theme.mutedForeground }}
 					>
 						<Trans id="mobile.hostsSettings.emptyDescription">
-							In the Superset desktop app, open Settings → Security and turn on
-							“Allow remote workspaces to access this device via relay”.
+							In the Superset desktop app, open Settings → Remote Access and
+							turn on “Allow remote access to this device via relay”.
 						</Trans>
 					</Text>
 					<Button
 						variant="secondary"
-						onPress={() => openUrl(`${COMPANY.DOCS_URL}/remote-workspaces`)}
+						onPress={() => openUrl(`${COMPANY.DOCS_URL}/remote-access`)}
 					>
 						<Text>
 							<Trans id="mobile.connectHost.readSetupGuide">

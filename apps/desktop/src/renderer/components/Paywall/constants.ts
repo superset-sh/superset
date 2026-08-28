@@ -12,7 +12,7 @@ import {
 export const GATED_FEATURES = {
 	INVITE_MEMBERS: "invite-members",
 	TASKS: "tasks",
-	REMOTE_WORKSPACES: "remote-workspaces",
+	REMOTE_ACCESS: "remote-access",
 	MOBILE_APP: "mobile-app",
 } as const;
 
@@ -30,13 +30,13 @@ export interface ProFeature {
 
 export const PRO_FEATURES: ProFeature[] = [
 	{
-		id: "remote-workspaces",
+		id: "remote-access",
 		title: msg({
-			id: "components.paywall.remoteWorkspaces.title",
-			message: "Remote Workspaces",
+			id: "components.paywall.remoteAccess.title",
+			message: "Remote Access",
 		}),
 		description: msg({
-			id: "components.paywall.remoteWorkspaces.description",
+			id: "components.paywall.remoteAccess.description",
 			message:
 				"Reach this Mac from anywhere via the Superset relay, or spin up cloud workspaces. Connect from any client.",
 		}),
@@ -111,6 +111,6 @@ export const PRO_FEATURES: ProFeature[] = [
 export const FEATURE_ID_MAP: Record<GatedFeature, string> = {
 	[GATED_FEATURES.INVITE_MEMBERS]: "team-collaboration",
 	[GATED_FEATURES.TASKS]: "tasks",
-	[GATED_FEATURES.REMOTE_WORKSPACES]: "remote-workspaces",
+	[GATED_FEATURES.REMOTE_ACCESS]: "remote-access",
 	[GATED_FEATURES.MOBILE_APP]: "mobile-app",
 };

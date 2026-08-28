@@ -20,11 +20,11 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">
-					<Trans id="settings.security.title">Remote Workspaces</Trans>
+					<Trans id="settings.security.title">Remote Access</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
 					<Trans id="settings.security.subtitle">
-						Control how your local machine is reachable from remote workspaces
+						Control how your local machine is reachable from elsewhere
 					</Trans>
 				</p>
 			</div>

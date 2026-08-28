@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import { HiOutlineComputerDesktop, HiOutlineSignal } from "react-icons/hi2";
 
-export function RemoteWorkspacesDemo() {
+export function RemoteAccessDemo() {
 	return (
 		<div className="w-full h-full flex items-center justify-center">
 			<div className="w-[300px] bg-card/90 backdrop-blur-sm rounded-lg border border-border shadow-2xl overflow-hidden">
@@ -13,8 +13,8 @@ export function RemoteWorkspacesDemo() {
 							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 						</div>
 						<span className="text-xs text-muted-foreground ml-1">
-							<Trans id="components.remoteWorkspacesDemo.windowTitle">
-								Remote Workspaces
+							<Trans id="components.remoteAccessDemo.windowTitle">
+								Remote Access
 							</Trans>
 						</span>
 					</div>
@@ -27,9 +27,7 @@ export function RemoteWorkspacesDemo() {
 								<HiOutlineComputerDesktop className="size-5 text-foreground/80" />
 							</div>
 							<span className="text-[10px] text-muted-foreground">
-								<Trans id="components.remoteWorkspacesDemo.thisMac">
-									This Mac
-								</Trans>
+								<Trans id="components.remoteAccessDemo.thisMac">This Mac</Trans>
 							</span>
 						</div>
 						<div className="flex items-center gap-1">
@@ -42,9 +40,7 @@ export function RemoteWorkspacesDemo() {
 								<HiOutlineComputerDesktop className="size-5 text-foreground/80" />
 							</div>
 							<span className="text-[10px] text-muted-foreground">
-								<Trans id="components.remoteWorkspacesDemo.remote">
-									Remote
-								</Trans>
+								<Trans id="components.remoteAccessDemo.remote">Remote</Trans>
 							</span>
 						</div>
 					</div>
@@ -52,22 +48,20 @@ export function RemoteWorkspacesDemo() {
 					<div className="mt-2 space-y-1.5">
 						<div className="flex items-center justify-between px-2 py-1.5 rounded bg-foreground/5 text-xs">
 							<span className="text-foreground/80">
-								<Trans id="components.remoteWorkspacesDemo.tunnelEstablished">
+								<Trans id="components.remoteAccessDemo.tunnelEstablished">
 									Tunnel established
 								</Trans>
 							</span>
 							<span className="text-emerald-400 text-[10px]">
-								<Trans id="components.remoteWorkspacesDemo.live">live</Trans>
+								<Trans id="components.remoteAccessDemo.live">live</Trans>
 							</span>
 						</div>
 						<div className="flex items-center justify-between px-2 py-1.5 rounded bg-foreground/5 text-xs">
 							<span className="text-foreground/80">
-								<Trans id="components.remoteWorkspacesDemo.latency">
-									Latency
-								</Trans>
+								<Trans id="components.remoteAccessDemo.latency">Latency</Trans>
 							</span>
 							<span className="text-foreground/60 text-[10px]">
-								<Trans id="components.remoteWorkspacesDemo.latencyValue">
+								<Trans id="components.remoteAccessDemo.latencyValue">
 									42ms
 								</Trans>
 							</span>

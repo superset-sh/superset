@@ -216,8 +216,8 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 			},
 			{
 				label: msg({
-					id: "settings.billing.plans.rowRemoteWorkspaces",
-					message: "Remote workspaces",
+					id: "settings.billing.plans.rowRemoteAccess",
+					message: "Remote access",
 				}),
 				values: [null, true, true],
 				badge: {

@@ -26,7 +26,7 @@ interface HostOfflineRunDialogProps {
 /**
  * Shown when "Run now" is skipped because the target host isn't connected to
  * the relay. For the local device it offers enabling relay access in place
- * (same typed confirmation as Settings > Remote Workspaces).
+ * (same typed confirmation as Settings > Remote Access).
  */
 export function HostOfflineRunDialog({
 	hostId,
@@ -81,8 +81,8 @@ export function HostOfflineRunDialog({
 												})}
 										</span>{" "}
 										isn't connected to the Superset relay. Make sure relay
-										access is on in Settings &gt; Remote Workspaces on that
-										device, then run it again.
+										access is on in Settings &gt; Remote Access on that device,
+										then run it again.
 									</Trans>
 								</p>
 							)}
@@ -108,7 +108,7 @@ export function HostOfflineRunDialog({
 						<Button
 							disabled={isPending}
 							onClick={() =>
-								gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () =>
+								gateFeature(GATED_FEATURES.REMOTE_ACCESS, () =>
 									setConfirmOpen(true),
 								)
 							}
