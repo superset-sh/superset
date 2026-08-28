@@ -24704,12 +24704,12 @@ msgstr "命令..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/CopyOnSelectSetting.tsx
 msgid "settings.terminal.copyOnSelect.hint"
-msgstr ""
+msgstr "在终端中选中文本后立即复制到剪贴板，并去除行尾空白"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/CopyOnSelectSetting.tsx
 msgid "settings.terminal.copyOnSelect.label"
-msgstr ""
+msgstr "选中即复制"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/LinkBehaviorSetting.tsx
@@ -34640,7 +34640,7 @@ msgstr "此标签页中仍有进程在运行"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalCopiedIndicator/TerminalCopiedIndicator.tsx
 msgid "workspace.terminal.copiedIndicator"
-msgstr ""
+msgstr "已复制"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalIdCopyMenu/TerminalIdCopyMenu.tsx
