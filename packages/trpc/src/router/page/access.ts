@@ -1,5 +1,5 @@
 import type { SelectPage } from "@superset/db/schema";
-import { userError } from "../../trpc";
+import { userError } from "../../i18n-error";
 
 export function assertPageReadable(page: SelectPage, userId: string): void {
 	if (page.visibility === "just_me" && page.createdByUserId !== userId) {

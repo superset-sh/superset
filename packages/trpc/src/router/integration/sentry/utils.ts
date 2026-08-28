@@ -2,7 +2,7 @@ import type { SentryConfig } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "../../../env";
-import { userError } from "../../../trpc";
+import { userError } from "../../../i18n-error";
 import {
 	markDisconnected,
 	type RefreshedToken,

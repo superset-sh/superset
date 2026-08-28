@@ -1,5 +1,5 @@
+import { userError } from "../../i18n-error";
 import type { TRPCContext } from "../../trpc";
-import { userError } from "../../trpc";
 
 // Split from the router so the unit tests can reach these without importing
 // `@superset/db/client`, which opens a `neon()` connection at module scope and

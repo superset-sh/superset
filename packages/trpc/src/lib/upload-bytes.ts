@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { TRPCError } from "@trpc/server";
-import { userError } from "../trpc";
+import { userError } from "../i18n-error";
 
 const DATA_URL_PREFIX_SLACK = 256;
 

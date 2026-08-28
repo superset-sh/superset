@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
-import { userError } from "../trpc";
+import { userError } from "../i18n-error";
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_SIZE_MB = 4.5;

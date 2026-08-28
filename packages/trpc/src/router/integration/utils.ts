@@ -2,7 +2,7 @@ import {
 	findOrgMembership,
 	findOrgMembershipWithSubscription,
 } from "@superset/db/utils";
-import { userError } from "../../trpc";
+import { userError } from "../../i18n-error";
 
 export async function verifyOrgMembership(
 	userId: string,

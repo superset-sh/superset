@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { chatAttachments } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
-import { userError } from "../../../../trpc";
+import { userError } from "../../../../i18n-error";
 
 const ALLOWED_MEDIA_TYPES = new Set([
 	"image/png",

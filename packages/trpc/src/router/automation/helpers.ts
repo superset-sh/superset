@@ -10,7 +10,7 @@ import {
 } from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { userError } from "../../trpc";
+import { userError } from "../../i18n-error";
 
 const PROMPT_VERSION_BUCKET_SECONDS = 600;
 

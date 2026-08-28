@@ -10,7 +10,7 @@ import { mintPageSlug } from "@superset/shared/page-slug";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
 import { and, desc, eq } from "drizzle-orm";
-import { userError } from "../../trpc";
+import { userError } from "../../i18n-error";
 import { assertPageWritable } from "./access";
 import { pageUrl } from "./page-url";
 import {

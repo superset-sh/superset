@@ -1,7 +1,7 @@
 import type { db } from "@superset/db/client";
 import { cloudWorkspaces } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
-import { userError } from "../../trpc";
+import { userError } from "../../i18n-error";
 
 type Executor = Pick<typeof db, "select">;
 

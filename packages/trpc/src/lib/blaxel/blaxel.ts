@@ -11,7 +11,7 @@
 import { SandboxInstance, settings } from "@blaxel/core";
 import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import { env } from "../../env";
-import { userError } from "../../trpc";
+import { userError } from "../../i18n-error";
 
 /** Short enough that a leaked token is bounded; minted per access. */
 const PREVIEW_TOKEN_TTL_MS = 10 * 60 * 1000;
