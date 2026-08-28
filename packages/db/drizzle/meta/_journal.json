@@ -673,6 +673,13 @@
       "when": 1787876925405,
       "tag": "0095_user_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1787954887157,
+      "tag": "0096_user_last_active_organization",
+      "breakpoints": true
     }
   ]
 }

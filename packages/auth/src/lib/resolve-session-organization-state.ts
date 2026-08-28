@@ -11,6 +11,9 @@ export type SessionOrganizationContext = {
 
 export interface ResolveSessionOrganizationDeps {
 	listMemberships: (userId: string) => Promise<SelectMember[]>;
+	/** Only consulted when the session itself has no usable organization, so
+	 * the common path never pays for it. */
+	getLastActiveOrganization: (userId: string) => Promise<string | null>;
 	updateSessionActiveOrganization: (input: {
 		sessionId: string;
 		previousActiveOrganizationId: string | null;
@@ -25,6 +28,17 @@ const defaultResolveSessionOrganizationDeps: ResolveSessionOrganizationDeps = {
 			where: eq(members.userId, userId),
 			orderBy: desc(members.createdAt),
 		}),
+	getLastActiveOrganization: async (userId) => {
+		const [userRow] = await db
+			.select({
+				lastActiveOrganizationId: authSchema.users.lastActiveOrganizationId,
+			})
+			.from(authSchema.users)
+			.where(eq(authSchema.users.id, userId))
+			.limit(1);
+
+		return userRow?.lastActiveOrganizationId ?? null;
+	},
 	updateSessionActiveOrganization: async ({
 		sessionId,
 		previousActiveOrganizationId,
@@ -79,12 +93,27 @@ export async function resolveSessionOrganizationState(
 
 	const allMemberships = await deps.listMemberships(userId);
 
-	const nextMembership =
-		(previousActiveOrganizationId
-			? allMemberships.find(
-					(item) => item.organizationId === previousActiveOrganizationId,
-				)
-			: undefined) ?? allMemberships[0];
+	// Session first: it is the only thing that knows about an organization this
+	// session was explicitly switched to. Then the user's last switch, so a new
+	// session resumes where the last one left off. The newest membership is the
+	// last resort, for a user who has never switched at all — reaching it for
+	// anyone else is what silently moved people between organizations.
+	let nextMembership = previousActiveOrganizationId
+		? allMemberships.find(
+				(item) => item.organizationId === previousActiveOrganizationId,
+			)
+		: undefined;
+
+	if (!nextMembership) {
+		const lastActiveOrganizationId =
+			await deps.getLastActiveOrganization(userId);
+		nextMembership =
+			(lastActiveOrganizationId
+				? allMemberships.find(
+						(item) => item.organizationId === lastActiveOrganizationId,
+					)
+				: undefined) ?? allMemberships[0];
+	}
 
 	const nextActiveOrganizationId = nextMembership?.organizationId ?? null;
 	if (nextActiveOrganizationId !== previousActiveOrganizationId) {

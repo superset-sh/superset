@@ -54,9 +54,13 @@ describe("resolveSessionOrganizationState", () => {
 	const getSessionActiveOrganization = mock<
 		ResolveSessionOrganizationDeps["getSessionActiveOrganization"]
 	>(async () => null);
+	const getLastActiveOrganization = mock<
+		ResolveSessionOrganizationDeps["getLastActiveOrganization"]
+	>(async () => null);
 
 	const deps: ResolveSessionOrganizationDeps = {
 		listMemberships,
+		getLastActiveOrganization,
 		updateSessionActiveOrganization,
 		getSessionActiveOrganization,
 	};
@@ -65,11 +69,13 @@ describe("resolveSessionOrganizationState", () => {
 		listMemberships.mockReset();
 		updateSessionActiveOrganization.mockReset();
 		getSessionActiveOrganization.mockReset();
+		getLastActiveOrganization.mockReset();
 		updateSessionActiveOrganization.mockImplementation(async () => true);
 		getSessionActiveOrganization.mockImplementation(async () => null);
+		getLastActiveOrganization.mockImplementation(async () => null);
 	});
 
-	it("falls back to the most recent membership when active org is missing", async () => {
+	it("falls back to the most recent membership when the user has never switched", async () => {
 		listMemberships.mockImplementation(async () => [
 			createMember("org-1"),
 			createMember("org-2", {
@@ -93,6 +99,73 @@ describe("resolveSessionOrganizationState", () => {
 			nextActiveOrganizationId: "org-1",
 		});
 		expect(getSessionActiveOrganization).not.toHaveBeenCalled();
+	});
+
+	it("resumes the organization the user last switched to when the session has none", async () => {
+		listMemberships.mockImplementation(async () => [
+			createMember("org-newest"),
+			createMember("org-chosen", {
+				createdAt: new Date("2026-03-20T00:00:00.000Z"),
+			}),
+		]);
+		getLastActiveOrganization.mockImplementation(async () => "org-chosen");
+
+		const result = await resolveSessionOrganizationState(
+			{
+				userId: "user-1",
+				session: { id: "session-1", activeOrganizationId: null },
+			},
+			deps,
+		);
+
+		expect(result.activeOrganizationId).toBe("org-chosen");
+		expect(result.membership?.organizationId).toBe("org-chosen");
+		expect(updateSessionActiveOrganization).toHaveBeenCalledWith({
+			sessionId: "session-1",
+			previousActiveOrganizationId: null,
+			nextActiveOrganizationId: "org-chosen",
+		});
+	});
+
+	it("ignores a last active organization the user is no longer a member of", async () => {
+		listMemberships.mockImplementation(async () => [
+			createMember("org-newest"),
+			createMember("org-older", {
+				createdAt: new Date("2026-03-20T00:00:00.000Z"),
+			}),
+		]);
+		getLastActiveOrganization.mockImplementation(async () => "org-left");
+
+		const result = await resolveSessionOrganizationState(
+			{
+				userId: "user-1",
+				session: { id: "session-1", activeOrganizationId: null },
+			},
+			deps,
+		);
+
+		expect(result.activeOrganizationId).toBe("org-newest");
+	});
+
+	it("keeps the session's own organization without consulting the last active one", async () => {
+		listMemberships.mockImplementation(async () => [
+			createMember("org-newest"),
+			createMember("org-session", {
+				createdAt: new Date("2026-03-20T00:00:00.000Z"),
+			}),
+		]);
+
+		const result = await resolveSessionOrganizationState(
+			{
+				userId: "user-1",
+				session: { id: "session-1", activeOrganizationId: "org-session" },
+			},
+			deps,
+		);
+
+		expect(result.activeOrganizationId).toBe("org-session");
+		expect(getLastActiveOrganization).not.toHaveBeenCalled();
+		expect(updateSessionActiveOrganization).not.toHaveBeenCalled();
 	});
 
 	it("replaces stale active org ids with the most recent valid membership", async () => {
