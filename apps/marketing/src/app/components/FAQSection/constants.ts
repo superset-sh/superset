@@ -2,7 +2,7 @@ import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 
 export interface FAQItem {
-	/** Stable key for React lists and anchor ids — never the translated text. */
+	/** Stable key for React lists and anchor ids, never the translated text. */
 	id: string;
 	question: MessageDescriptor;
 	answer: MessageDescriptor;
