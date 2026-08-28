@@ -262,16 +262,35 @@ export function PromptInputProvider({
 		attachmentsStore?.get ?? getEmptyAttachments,
 	);
 	const attachmentFiles = attachmentsStore ? storeFiles : localFiles;
+	// A synchronous mirror of the list. React defers state updaters to render,
+	// so without this a same-tick `clear(); add(...)` (or two adds in a row)
+	// would budget against a list that no longer reflects what just happened.
+	// The render assignment below re-syncs it from the authoritative state.
+	const attachmentFilesRef =
+		useRef<PromptInputAttachmentItem[]>(attachmentFiles);
+	attachmentFilesRef.current = attachmentFiles;
+	const attachmentCountRef = useRef(0);
+	attachmentCountRef.current = attachmentFiles.length;
+
+	// Every list mutation funnels through here, so this is the one place the
+	// mirror has to be kept honest: add, remove, clear, takeFiles and setFiles
+	// all land their new length before the call returns.
 	const setAttachmentFiles = useCallback(
 		(
 			updater: (
 				prev: PromptInputAttachmentItem[],
 			) => PromptInputAttachmentItem[],
 		) => {
+			const base = attachmentsStore
+				? attachmentsStore.get()
+				: attachmentFilesRef.current;
+			const next = updater(base);
+			attachmentFilesRef.current = next;
+			attachmentCountRef.current = next.length;
 			if (attachmentsStore) {
-				attachmentsStore.set(updater(attachmentsStore.get()));
+				attachmentsStore.set(next);
 			} else {
-				setLocalFiles(updater);
+				setLocalFiles(next);
 			}
 		},
 		[attachmentsStore],
@@ -289,12 +308,6 @@ export function PromptInputProvider({
 		},
 		[],
 	);
-	// Read at call time so `add` stays stable while still seeing the live count.
-	// Re-synced from state on every render, and advanced by `add` itself so two
-	// calls in the same tick do not both budget against the pre-add count.
-	const attachmentCountRef = useRef(0);
-	attachmentCountRef.current = attachmentFiles.length;
-
 	const add = useCallback(
 		(files: File[] | FileList) => {
 			const registration = constraintsRef.current;
@@ -311,11 +324,6 @@ export function PromptInputProvider({
 			if (incoming.length === 0) {
 				return;
 			}
-			// Keep the budget in step within this tick. Validation deliberately
-			// stays outside the updater: it calls onError, and React invokes
-			// updaters twice under StrictMode, which would double every toast.
-			attachmentCountRef.current += incoming.length;
-
 			setAttachmentFiles((prev) =>
 				prev.concat(
 					incoming.map((file) => ({
