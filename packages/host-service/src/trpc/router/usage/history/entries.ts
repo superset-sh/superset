@@ -6,7 +6,7 @@ import { collectCopilotEntries } from "./copilot";
 import { collectCursorEntries } from "./cursor";
 import { collectFxEntries } from "./fx";
 import { collectGrokEntries, grokHomes } from "./grok";
-import { collectLogFiles, dedupeLogFiles } from "./logs";
+import { collectLogFiles, dedupeLogFiles, sortCodexFiles } from "./logs";
 import { collectOpencodeEntries } from "./opencode";
 import type { UsageLogEntry } from "./parse";
 import { parseClaudeLogFile, parseCodexLogFile } from "./parse";
@@ -99,8 +99,17 @@ export async function collectUsageEntries(
 	for (const entry of claudeEntriesByMessage.values()) {
 		entries.push(entry);
 	}
-	for (const file of codexFiles) {
-		await parseCodexLogFile(file, cutoffMs, entries, sessionLabels);
+	// Oldest rollout first, so a turn is kept by the thread that made it
+	// rather than by whichever fork replayed it into its own file.
+	const codexTurnKeys = new Set<string>();
+	for (const file of sortCodexFiles(codexFiles)) {
+		await parseCodexLogFile(
+			file,
+			codexTurnKeys,
+			cutoffMs,
+			entries,
+			sessionLabels,
+		);
 	}
 
 	// The remaining providers are independent of each other and of the two

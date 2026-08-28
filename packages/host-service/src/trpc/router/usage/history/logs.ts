@@ -1,6 +1,6 @@
 import type { Dirent } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 export interface LogFile {
 	path: string;
@@ -60,4 +60,22 @@ export function dedupeLogFiles(files: LogFile[]): LogFile[] {
 		byPath.set(file.path, file);
 	}
 	return [...byPath.values()];
+}
+
+/**
+ * Orders codex rollouts by when the session STARTED, which is the order the
+ * cross-file turn dedupe needs: the earliest file carrying an event is the
+ * one that keeps it. `rollout-<local-start>-<uuid>.jsonl` leads with a
+ * fixed-width timestamp, so comparing names compares start times — mtime
+ * would not, since a long-running parent outlives the fork it spawned.
+ * `localeCompare` would not either; it is locale-sensitive and can treat
+ * punctuation as ignorable.
+ */
+export function sortCodexFiles(files: LogFile[]): LogFile[] {
+	return [...files].sort((a, b) => {
+		const left = basename(a.path);
+		const right = basename(b.path);
+		if (left < right) return -1;
+		return left > right ? 1 : 0;
+	});
 }

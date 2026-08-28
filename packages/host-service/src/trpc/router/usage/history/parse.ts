@@ -9,8 +9,10 @@
  *   `message.id + requestId` — the same message is rewritten into multiple
  *   files on resume/fork/compaction, and naive parsers over-count.
  * - Codex: read `payload.info.last_token_usage` (per-turn delta), never
- *   `total_token_usage` (cumulative). Model/cwd ride on `turn_context`
- *   events and carry forward. `input_tokens` is INCLUSIVE of cached tokens.
+ *   `total_token_usage` (cumulative) — except as dedupe context, since Codex
+ *   replays a thread's whole `token_count` history into every fork and
+ *   subagent rollout. Model/cwd ride on `turn_context` events and carry
+ *   forward. `input_tokens` is INCLUSIVE of cached tokens.
  * - Reasoning tokens are a subset of output — never added on top.
  */
 
@@ -201,6 +203,14 @@ export async function parseClaudeLogFile(
 	});
 }
 
+interface CodexTokenUsage {
+	input_tokens?: number;
+	cached_input_tokens?: number;
+	cache_write_input_tokens?: number;
+	output_tokens?: number;
+	reasoning_output_tokens?: number;
+}
+
 interface CodexLine {
 	type?: string;
 	timestamp?: string;
@@ -210,20 +220,41 @@ interface CodexLine {
 		cwd?: string;
 		message?: string;
 		info?: {
-			last_token_usage?: {
-				input_tokens?: number;
-				cached_input_tokens?: number;
-				cache_write_input_tokens?: number;
-				output_tokens?: number;
-				reasoning_output_tokens?: number;
-			};
+			last_token_usage?: CodexTokenUsage;
+			total_token_usage?: CodexTokenUsage;
 		};
 	};
 }
 
-/** Parses `$CODEX_HOME/sessions/**\/*.jsonl` rollout files. */
+/** Counts are normalised: pre-0.145 rollouts omit `cache_write_input_tokens`
+ * where the replayed copies re-serialise it as 0, and the same call has to
+ * key identically in the thread that made it and in every replay of it. */
+function codexUsageCounts(usage: CodexTokenUsage | undefined): string {
+	return [
+		usage?.input_tokens ?? 0,
+		usage?.cached_input_tokens ?? 0,
+		usage?.cache_write_input_tokens ?? 0,
+		usage?.output_tokens ?? 0,
+		usage?.reasoning_output_tokens ?? 0,
+	].join(",");
+}
+
+/**
+ * Parses `$CODEX_HOME/sessions/**\/*.jsonl` rollout files. `seenTurnKeys` is
+ * shared across all files so the history Codex replays into forks and
+ * subagents is counted once.
+ *
+ * A fork's rollout repeats its parent thread's entire `token_count` history,
+ * re-stamped to the spawn instant, so one API call is recorded once per
+ * descendant file (measured: 126x inflation on a heavily forked day). The
+ * turn's own delta identifies it, paired with the thread's running total so
+ * that two distinct turns of identical cost stay distinct. Callers must visit
+ * files in rollout-chronological order (`sortCodexFiles`), or a replay
+ * outlives the original and drags the usage onto the wrong day.
+ */
 export async function parseCodexLogFile(
 	file: LogFile,
+	seenTurnKeys: Set<string>,
 	cutoffMs: number,
 	out: UsageLogEntry[],
 	sessionLabels?: Map<string, string>,
@@ -231,10 +262,6 @@ export async function parseCodexLogFile(
 	const sessionId = sessionIdForFile(file.path);
 	let currentModel: string | null = null;
 	let currentCwd: string | null = null;
-	// Codex occasionally re-emits the same token_count event back-to-back;
-	// skipping consecutive identical deltas brings summed deltas within ~1%
-	// of the session's own cumulative total_token_usage counter.
-	let previousDeltaSignature: string | null = null;
 
 	await forEachLine(file.path, (line) => {
 		const wantLabel = sessionLabels ? !sessionLabels.has(sessionId) : false;
@@ -274,9 +301,15 @@ export async function parseCodexLogFile(
 		const usage = parsed.payload.info?.last_token_usage;
 		if (!usage) return;
 
-		const signature = JSON.stringify(usage);
-		if (signature === previousDeltaSignature) return;
-		previousDeltaSignature = signature;
+		// Claimed before the cutoff test, not after: a replay is re-stamped to
+		// the spawn instant, so the original it copies is routinely older than
+		// the window and a dedupe that only sees in-window events would let
+		// the copy through as fresh usage.
+		const dedupeKey = `${codexUsageCounts(usage)}|${codexUsageCounts(
+			parsed.payload.info?.total_token_usage,
+		)}`;
+		if (seenTurnKeys.has(dedupeKey)) return;
+		seenTurnKeys.add(dedupeKey);
 
 		const timestampMs = entryTimestamp(parsed.timestamp, file.mtimeMs);
 		if (timestampMs < cutoffMs) return;
