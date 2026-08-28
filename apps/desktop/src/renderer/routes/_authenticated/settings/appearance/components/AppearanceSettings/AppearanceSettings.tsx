@@ -66,9 +66,16 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			</div>
 
 			<SectionList>
-				{showThemeSection && <ThemeSection key="theme" />}
-				{showLanguage && <LanguageSection key="language" />}
-				{showMarkdown && <MarkdownStyleSection key="markdown" />}
+				{(showThemeSection || showLanguage || showMarkdown) && (
+					<div
+						key="appearance-card"
+						className="rounded-lg border border-border overflow-hidden divide-y divide-border"
+					>
+						{showThemeSection && <ThemeSection />}
+						{showLanguage && <LanguageSection />}
+						{showMarkdown && <MarkdownStyleSection />}
+					</div>
+				)}
 				{(showEditorFont || showTerminalFont) && (
 					<FontSettingSection
 						key="typography"

@@ -39,38 +39,36 @@ export function LanguageSection() {
 	});
 
 	return (
-		<div className="rounded-lg border border-border overflow-hidden">
-			<div className="flex items-center justify-between gap-6 p-4">
-				<div className="min-w-0 flex-1">
-					<div className="text-sm font-medium">
-						<HighlightText text="Language" query={searchQuery} />
-					</div>
-					<div className="text-xs text-muted-foreground">
-						<HighlightText
-							text="App display language. Auto follows your system language."
-							query={searchQuery}
-						/>
-					</div>
+		<div className="flex items-center justify-between gap-6 p-4">
+			<div className="min-w-0 flex-1">
+				<div className="text-sm font-medium">
+					<HighlightText text="Language" query={searchQuery} />
 				</div>
-				<Select
-					value={language ?? AUTO}
-					onValueChange={(value) =>
-						setLanguage.mutate({ language: value === AUTO ? null : value })
-					}
-				>
-					<SelectTrigger size="sm" className="w-auto min-w-44 px-2">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value={AUTO}>Auto (system)</SelectItem>
-						{SUPPORTED_LOCALES.map((locale) => (
-							<SelectItem key={locale} value={locale}>
-								{LOCALE_LABELS[locale]}
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
+				<div className="text-xs text-muted-foreground">
+					<HighlightText
+						text="App display language. Auto follows your system language."
+						query={searchQuery}
+					/>
+				</div>
 			</div>
+			<Select
+				value={language ?? AUTO}
+				onValueChange={(value) =>
+					setLanguage.mutate({ language: value === AUTO ? null : value })
+				}
+			>
+				<SelectTrigger size="sm" className="w-auto min-w-44 px-2">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value={AUTO}>Auto (system)</SelectItem>
+					{SUPPORTED_LOCALES.map((locale) => (
+						<SelectItem key={locale} value={locale}>
+							{LOCALE_LABELS[locale]}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
 		</div>
 	);
 }
