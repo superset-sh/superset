@@ -4,6 +4,7 @@ import {
 	type ConnectionState,
 	terminalRuntimeRegistry,
 } from "renderer/lib/terminal/terminal-runtime-registry";
+import { copiedIndicatorStore } from "./copiedIndicatorStore";
 import { installCopyOnSelect } from "./copyOnSelect";
 
 interface UseCopyOnSelectOptions {
@@ -32,6 +33,8 @@ export function useCopyOnSelect({
 			terminalInstanceId,
 		);
 		if (!terminal) return;
-		return installCopyOnSelect(terminal);
+		return installCopyOnSelect(terminal, () =>
+			copiedIndicatorStore.notify(terminalInstanceId),
+		);
 	}, [terminalId, terminalInstanceId, connectionState, copyOnSelect]);
 }

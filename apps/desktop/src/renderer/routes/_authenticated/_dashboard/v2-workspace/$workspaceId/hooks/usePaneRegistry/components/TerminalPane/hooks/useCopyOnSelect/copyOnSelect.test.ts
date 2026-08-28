@@ -126,6 +126,52 @@ describe("installCopyOnSelect", () => {
 		expect(writeText).toHaveBeenCalledTimes(2);
 	});
 
+	it("reports each copy so the pane can flash its indicator", async () => {
+		const writeText = mock(() => Promise.resolve());
+		restores.push(stubClipboard(writeText), stubFocus(true));
+
+		const onCopied = mock(() => {});
+		let selection = "hello";
+		let fire: (() => void) | undefined;
+		const terminal = {
+			getSelection: () => selection,
+			onSelectionChange: (callback: () => void) => {
+				fire = callback;
+				return { dispose: () => {} };
+			},
+		} as unknown as XTerm;
+
+		installCopyOnSelect(terminal, onCopied);
+		fire?.();
+		await Promise.resolve();
+		expect(onCopied).toHaveBeenCalledTimes(1);
+
+		// A repeat event with the same selection copies nothing, so it must not
+		// re-flash the indicator either.
+		fire?.();
+		await Promise.resolve();
+		expect(onCopied).toHaveBeenCalledTimes(1);
+
+		selection = "hello there";
+		fire?.();
+		await Promise.resolve();
+		expect(onCopied).toHaveBeenCalledTimes(2);
+	});
+
+	it("does not report a copy when the clipboard write is rejected", async () => {
+		const writeText = mock(() => Promise.reject(new Error("denied")));
+		restores.push(stubClipboard(writeText), stubFocus(true));
+
+		const onCopied = mock(() => {});
+		const { terminal, fireSelectionChange } = createTerminalStub("hello");
+		installCopyOnSelect(terminal, onCopied);
+		fireSelectionChange();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(onCopied).not.toHaveBeenCalled();
+	});
+
 	it("disposes the selection listener on cleanup", () => {
 		const writeText = mock(() => Promise.resolve());
 		restores.push(stubClipboard(writeText), stubFocus(true));

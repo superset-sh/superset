@@ -20,7 +20,10 @@ export function trimSelectionForCopy(selection: string): string {
  * while the window is in the background — a reflow on resize, say — so those
  * writes are skipped instead of left to reject.
  */
-export function installCopyOnSelect(terminal: XTerm): () => void {
+export function installCopyOnSelect(
+	terminal: XTerm,
+	onCopied?: () => void,
+): () => void {
 	// xterm fires onSelectionChange for events that leave the selection intact
 	// (a refresh, a re-focus); those must not each hit the clipboard.
 	let lastCopied: string | null = null;
@@ -33,10 +36,14 @@ export function installCopyOnSelect(terminal: XTerm): () => void {
 		if (text === lastCopied) return;
 		lastCopied = text;
 
-		void navigator.clipboard.writeText(text).catch(() => {
-			// A rejected write must not suppress a later attempt at the same text.
-			if (lastCopied === text) lastCopied = null;
-		});
+		void navigator.clipboard.writeText(text).then(
+			() => onCopied?.(),
+			() => {
+				// A rejected write must not suppress a later attempt at the same
+				// text, and must not flash the "copied" indicator.
+				if (lastCopied === text) lastCopied = null;
+			},
+		);
 	});
 
 	return () => subscription.dispose();

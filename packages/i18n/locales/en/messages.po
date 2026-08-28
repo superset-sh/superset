@@ -21967,6 +21967,11 @@ msgid "workspace.tabCloseGuard.processRunningTitle"
 msgstr "A process is still running in this tab"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalCopiedIndicator/TerminalCopiedIndicator.tsx
+msgid "workspace.terminal.copiedIndicator"
+msgstr "Copied"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalIdCopyMenu/TerminalIdCopyMenu.tsx
 msgid "workspace.terminalPane.agentSessionIdMenuLabel"
 msgstr "agent session ID"

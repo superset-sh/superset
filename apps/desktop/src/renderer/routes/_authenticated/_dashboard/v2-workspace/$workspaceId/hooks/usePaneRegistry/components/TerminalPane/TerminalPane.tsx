@@ -47,6 +47,7 @@ import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { isWithinWorkspacePath } from "shared/absolute-paths";
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
+import { TerminalCopiedIndicator } from "./components/TerminalCopiedIndicator";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useCopyOnSelect } from "./hooks/useCopyOnSelect";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
@@ -611,6 +612,7 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
+				<TerminalCopiedIndicator terminalInstanceId={terminalInstanceId} />
 				<TerminalAgentAutoResume
 					key={terminalId}
 					workspaceId={workspaceId}
