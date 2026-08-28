@@ -749,6 +749,7 @@ export function NewWorkspaceScreen({
 						globalDrop
 						maxFiles={5}
 						maxFileSize={10 * 1024 * 1024}
+						onError={(error) => toast.error(error.message)}
 						className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 					>
 						{(draft.linkedPR ||

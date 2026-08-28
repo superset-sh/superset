@@ -35,7 +35,11 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { applyAttachmentConstraints } from "../../lib/attachment-constraints";
+import {
+	type AttachmentConstraintError,
+	type AttachmentConstraints,
+	applyAttachmentConstraints,
+} from "../../lib/attachment-constraints";
 import { getClipboardFiles } from "../../lib/clipboard-files";
 import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
@@ -108,6 +112,19 @@ export type PromptInputControllerProps = {
 	__registerTextarea: (ref: RefObject<HTMLTextAreaElement | null>) => void;
 	/** INTERNAL: Allows TiptapPromptEditor (or similar) to override focus behavior */
 	__registerFocusCallback: (cb: (() => void) | null) => void;
+	/**
+	 * INTERNAL: Lets PromptInput publish its accept/maxFiles/maxFileSize into
+	 * the controller. The constraints are declared on PromptInput but the files
+	 * live here, and consumers commonly call useProviderAttachments() *above*
+	 * PromptInput, so validation has to happen at the store rather than in a
+	 * context PromptInput's subtree alone can see.
+	 */
+	__registerConstraints: (
+		registration: {
+			constraints: AttachmentConstraints;
+			onError?: (error: AttachmentConstraintError) => void;
+		} | null,
+	) => void;
 };
 
 const PromptInputController = createContext<PromptInputControllerProps | null>(
@@ -262,9 +279,33 @@ export function PromptInputProvider({
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const openRef = useRef<() => void>(() => {});
 
+	const constraintsRef = useRef<{
+		constraints: AttachmentConstraints;
+		onError?: (error: AttachmentConstraintError) => void;
+	} | null>(null);
+	const __registerConstraints = useCallback(
+		(registration: typeof constraintsRef.current) => {
+			constraintsRef.current = registration;
+		},
+		[],
+	);
+	// Read at call time so `add` stays stable while still seeing the live count.
+	const attachmentCountRef = useRef(0);
+	attachmentCountRef.current = attachmentFiles.length;
+
 	const add = useCallback(
 		(files: File[] | FileList) => {
-			const incoming = Array.from(files);
+			const registration = constraintsRef.current;
+			// Validated here, not in PromptInput: this is the only point every
+			// caller funnels through, wherever it grabbed the context.
+			const incoming = registration
+				? applyAttachmentConstraints({
+						files,
+						currentCount: attachmentCountRef.current,
+						constraints: registration.constraints,
+						onError: registration.onError,
+					})
+				: Array.from(files);
 			if (incoming.length === 0) {
 				return;
 			}
@@ -390,6 +431,7 @@ export function PromptInputProvider({
 			__registerFileInput,
 			__registerTextarea,
 			__registerFocusCallback,
+			__registerConstraints,
 		}),
 		[
 			textInput,
@@ -399,6 +441,7 @@ export function PromptInputProvider({
 			__registerFileInput,
 			__registerTextarea,
 			__registerFocusCallback,
+			__registerConstraints,
 		],
 	);
 
@@ -652,13 +695,6 @@ export const PromptInput = ({
 	const filesRef = useRef(files);
 	filesRef.current = files;
 
-	// Read at call time: the controller identity is stable but its file list is
-	// not, and addViaProvider must not go stale between renders.
-	const controllerFilesRef = useRef<(FileUIPart & { id: string })[]>([]);
-	controllerFilesRef.current = controller?.attachments.files ?? [];
-	const controllerAddRef = useRef<(files: File[] | FileList) => void>(() => {});
-	controllerAddRef.current = controller?.attachments.add ?? (() => {});
-
 	const openFileDialogLocal = useCallback(() => {
 		inputRef.current?.click();
 	}, []);
@@ -742,22 +778,20 @@ export const PromptInput = ({
 		return takenFiles;
 	}, []);
 
-	// The controller stores the files, but the constraints are declared here, so
-	// the provider path has to be validated on the way in rather than delegated
-	// to raw.
-	const addViaProvider = useCallback(
-		(fileList: File[] | FileList) => {
-			const capped = applyConstraints(
-				fileList,
-				controllerFilesRef.current.length,
-			);
-			if (capped.length === 0) return;
-			controllerAddRef.current(capped);
-		},
-		[applyConstraints],
-	);
+	// Publish this PromptInput's constraints to the controller so the store
+	// enforces them for every caller, including the many that read
+	// useProviderAttachments() above this component.
+	const registerConstraints = controller?.__registerConstraints;
+	useEffect(() => {
+		if (!registerConstraints) return;
+		registerConstraints({
+			constraints: { accept, maxFiles, maxFileSize },
+			onError,
+		});
+		return () => registerConstraints(null);
+	}, [registerConstraints, accept, maxFiles, maxFileSize, onError]);
 
-	const add = usingProvider ? addViaProvider : addLocal;
+	const add = usingProvider ? controller.attachments.add : addLocal;
 	const setFiles = usingProvider
 		? controller.attachments.setFiles
 		: setLocalFiles;
@@ -1005,15 +1039,8 @@ export const PromptInput = ({
 		</>
 	);
 
-	// Either way the subtree gets `ctx`, whose `add` enforces accept/maxFiles/
-	// maxFileSize. Provider mode re-provides ProviderAttachmentsContext because
-	// usePromptInputAttachments prefers it; without this the constraints (and
-	// onError) declared on PromptInput are silently dead whenever a
-	// PromptInputProvider is present. State still lives in the controller.
 	return usingProvider ? (
-		<ProviderAttachmentsContext.Provider value={ctx}>
-			{inner}
-		</ProviderAttachmentsContext.Provider>
+		inner
 	) : (
 		<LocalAttachmentsContext.Provider value={ctx}>
 			{inner}

@@ -499,6 +499,7 @@ export function PromptGroup({
 				multiple
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
+				onError={(error) => toast.error(error.message)}
 				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR || linkedIssues.length > 0 || visibleFiles.length > 0) && (
