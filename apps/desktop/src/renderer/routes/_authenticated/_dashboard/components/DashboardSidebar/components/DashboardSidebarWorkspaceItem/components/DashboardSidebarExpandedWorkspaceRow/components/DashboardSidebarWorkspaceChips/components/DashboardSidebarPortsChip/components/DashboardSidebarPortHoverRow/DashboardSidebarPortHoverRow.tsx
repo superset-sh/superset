@@ -33,7 +33,7 @@ export function DashboardSidebarPortHoverRow({
 				{port.label && (
 					<span className="min-w-0 truncate text-xs">{port.label}</span>
 				)}
-<span
+				<span
 					className="min-w-0 truncate font-mono text-[11px] tabular-nums text-muted-foreground"
 					title={address.title}
 				>
