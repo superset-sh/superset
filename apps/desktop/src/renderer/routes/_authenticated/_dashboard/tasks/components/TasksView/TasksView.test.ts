@@ -66,9 +66,9 @@ describe("Tasks and pull requests navigation", () => {
 	test("keeps GitHub issues as a contextual Tasks source", () => {
 		const source = readComponent("components/TasksTopBar/TasksTopBar.tsx");
 
-		expect(source).toContain('label: "Linear"');
-		expect(source).toContain('label: "GitHub issues"');
-		expect(source).not.toContain('label: "PRs"');
+		expect(source).toContain('message: "Linear"');
+		expect(source).toContain('message: "GitHub issues"');
+		expect(source).not.toContain('"PRs"');
 	});
 
 	test("keeps pull request UI out of TasksView", () => {
