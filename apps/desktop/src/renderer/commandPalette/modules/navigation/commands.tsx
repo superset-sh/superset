@@ -39,6 +39,7 @@ export const navigationProvider: CommandProvider = {
 				title: "Open documentation",
 				section: "navigation",
 				icon: BookOpenIcon,
+				keywords: ["docs", "help"],
 				run: () => {
 					window.open("https://docs.superset.sh", "_blank", "noreferrer");
 				},

@@ -13,10 +13,7 @@ export function CommandItemRow({ command, onSelect }: CommandItemRowProps) {
 	const hasShortcut =
 		Boolean(command.hotkeyId) && display.text && display.text !== "Unassigned";
 	return (
-		<CommandItem
-			value={`${command.id} ${command.title} ${(command.keywords ?? []).join(" ")}`}
-			onSelect={() => onSelect(command)}
-		>
+		<CommandItem value={command.id} onSelect={() => onSelect(command)}>
 			{command.iconUrl ? (
 				<img
 					src={command.iconUrl}

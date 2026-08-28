@@ -19,27 +19,25 @@ export const workspaceProvider: CommandProvider = {
 	provide: (context) => {
 		// Not gated on context.workspace — quick-create should work from any
 		// v2 dashboard view (e.g. the workspaces list), not just an open one.
-		const commands: Command[] = [
-			{
-				id: "workspace.quickCreate",
-				title: "Quick create workspace",
-				section: "workspace",
-				icon: ZapIcon,
-				hotkeyId: "QUICK_CREATE_WORKSPACE",
-				keywords: ["new", "fast"],
-				when: (ctx) => ctx.isV2CloudEnabled,
-				run: (ctx) =>
-					useQuickCreateWorkspaceIntent
-						.getState()
-						.request(ctx.workspace?.projectId ?? null),
-			},
-		];
+		const quickCreate: Command = {
+			id: "workspace.quickCreate",
+			title: "Quick create workspace",
+			section: "workspace",
+			icon: ZapIcon,
+			hotkeyId: "QUICK_CREATE_WORKSPACE",
+			keywords: ["new", "fast"],
+			when: (ctx) => ctx.isV2CloudEnabled,
+			run: (ctx) =>
+				useQuickCreateWorkspaceIntent
+					.getState()
+					.request(ctx.workspace?.projectId ?? null),
+		};
 
-		if (!context.workspace) return commands;
+		if (!context.workspace) return [quickCreate];
 		const workspace = context.workspace;
 		const isMain = workspace.workspaceType === "main";
 
-		commands.push(
+		const commands: Command[] = [
 			{
 				id: "workspace.new",
 				title: "New workspace",
@@ -49,6 +47,7 @@ export const workspaceProvider: CommandProvider = {
 				run: () =>
 					useNewWorkspaceModalStore.getState().openModal(workspace.projectId),
 			},
+			quickCreate,
 			{
 				id: "files.quickOpen",
 				title: "Search files",
@@ -69,7 +68,7 @@ export const workspaceProvider: CommandProvider = {
 				keywords: ["issue", "linear"],
 				renderFrame: () => <LinkTaskFrame workspaceId={workspace.id} />,
 			},
-		);
+		];
 
 		if (workspace.projectId) {
 			commands.push({
@@ -91,7 +90,7 @@ export const workspaceProvider: CommandProvider = {
 		if (!isMain) {
 			commands.push({
 				id: `workspace.delete:${workspace.id}`,
-				title: `Delete ${workspace.name}`,
+				title: "Delete workspace",
 				section: "workspace",
 				icon: Trash2Icon,
 				keywords: ["archive", "remove", "close"],
