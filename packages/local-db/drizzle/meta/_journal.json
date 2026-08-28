@@ -379,6 +379,13 @@
       "when": 1787876925673,
       "tag": "0053_burly_moondragon",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1787935829941,
+      "tag": "0054_add_terminal_copy_on_select_setting",
+      "breakpoints": true
     }
   ]
 }

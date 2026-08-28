@@ -48,6 +48,7 @@ import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { isWithinWorkspacePath } from "shared/absolute-paths";
 import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalRichInput } from "./components/TerminalRichInput";
+import { useCopyOnSelect } from "./hooks/useCopyOnSelect";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
 import { useTerminalAppearance } from "./hooks/useTerminalAppearance";
@@ -465,6 +466,8 @@ export function TerminalPane({
 		workspaceId,
 		connectionState,
 	});
+
+	useCopyOnSelect({ terminalId, terminalInstanceId, connectionState });
 
 	useHotkey(
 		"CLEAR_TERMINAL",

@@ -57,6 +57,7 @@ export const MAX_TERMINAL_PARKED_RUNTIME_CAP =
 // Default user preference values
 export const DEFAULT_CONFIRM_ON_QUIT = true;
 export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "file-viewer" as const;
+export const DEFAULT_TERMINAL_COPY_ON_SELECT = false;
 export const DEFAULT_FILE_OPEN_MODE = "split-pane" as const;
 export const DEFAULT_AUTO_APPLY_DEFAULT_PRESET = true;
 export const DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT = false;

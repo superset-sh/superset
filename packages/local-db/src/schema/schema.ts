@@ -244,6 +244,9 @@ export const settings = sqliteTable("settings", {
 	>(),
 	terminalCursorBlink: integer("terminal_cursor_blink", { mode: "boolean" }),
 	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
+	terminalCopyOnSelect: integer("terminal_copy_on_select", {
+		mode: "boolean",
+	}),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
 	editorLineHeight: real("editor_line_height"),

@@ -190,6 +190,13 @@ export const SETTINGS: SettingDefinition[] = [
 		defaultValue: 12,
 	},
 	{
+		key: "terminalCopyOnSelect",
+		type: "boolean",
+		section: "terminal",
+		description: "Copy selected terminal text to the clipboard right away",
+		defaultValue: false,
+	},
+	{
 		key: "showPresetsBar",
 		type: "boolean",
 		section: "terminal",
