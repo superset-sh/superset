@@ -1,25 +1,26 @@
 /**
  * Minimum host-service version a v2 workspace UI can work with against a
  * **remote** host whose binary we don't control (gates renderer mounting
- * via `useRemoteHostStatus`). For the local host-service we bundle, the
- * desktop coordinator pins to the bundled version exactly (read from
- * `@superset/host-service/package.json`) — this floor does not apply.
+ * via `useRemoteHostStatus`, and mobile's `useHostCompatibility`). For the
+ * local host-service we bundle, the desktop coordinator pins to the bundled
+ * version exactly (read from `@superset/host-service/package.json`) — this
+ * floor does not apply.
  *
- * 0.4.0: terminal launch moved from `terminal.ensureSession` to
- * `terminal.launchSession` plus WebSocket attach params.
- * 0.3.0: host-service registers via cloud `host.ensure` (was
- * `device.ensureV2Host`); v2_hosts/v2_users_hosts/v2_workspaces use
- * machineId text instead of uuid surrogates.
- * 0.2.0: `workspaceCreation.adopt` gained optional `worktreePath`.
+ * The floor lives on the unified product version line (desktop ==
+ * host-service == cli at every release, see `scripts/release/README.md`).
+ * It originally tracked host-service's own pre-release `0.x` line
+ * (0.2.0 → 0.8.0) and was never migrated when host-service joined the
+ * unified line, so for the whole 1.x series `>=0.8.0` accepted every host
+ * and the gate could not reject anything (#6525). A test next to this file
+ * pins the floor to the same major line as the shipped host-service so
+ * that drift stays loud.
  *
- * 0.5.0 — pty-daemon supervision migrated into host-service. New
- * `terminal.daemon` tRPC namespace; older 0.4.x host-services don't
- * expose it.
+ * When a release adds a host-service procedure that clients call
+ * unconditionally, raise this to that release, or the mismatch renders as
+ * silent empty states instead of an explicit "host too old" screen.
  *
- * 0.7.0 — canonical `workspaces.create` flow + `settings.hostAgentConfigs`
- * router (PR1, #3893). Older 0.6.x host-services don't expose either.
- *
- * 0.8.0 — v2 terminal creation moved to `terminal.createSession`; the
- * WebSocket route is attach-only by `terminalId`.
+ * 1.22.0 — `terminal.list` added; every terminal surface (desktop
+ * renderer, CLI, SDK, MCP, mobile) calls it unconditionally. Older hosts
+ * answer NOT_FOUND, which rendered as a blank terminal pane (#6525).
  */
-export const MIN_HOST_SERVICE_VERSION = "0.8.0";
+export const MIN_HOST_SERVICE_VERSION = "1.22.0";
