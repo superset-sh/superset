@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -75,6 +76,7 @@ export function useTasksTable({
 			| ((prev: RowSelectionState) => RowSelectionState),
 	) => void;
 } {
+	const { t } = useLingui();
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
 	const [expanded, setExpanded] = useState<ExpandedState>(true);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -138,7 +140,10 @@ export function useTasksTable({
 		() => [
 			columnHelper.accessor((row) => row.status, {
 				id: "status",
-				header: "Status",
+				header: t({
+					id: "dashboard.tasks.table.headerStatus",
+					message: "Status",
+				}),
 				filterFn: (row, _columnId, filterValue: TabValue) => {
 					const statusType = row.original.status.type;
 					return matchesTaskStatusFilter(statusType, filterValue);
@@ -200,7 +205,10 @@ export function useTasksTable({
 								row.toggleSelected(Boolean(checked))
 							}
 							onClick={(e) => e.stopPropagation()}
-							aria-label="Select task"
+							aria-label={t({
+								id: "dashboard.tasks.table.selectTask",
+								message: "Select task",
+							})}
 							className="cursor-pointer"
 						/>
 					);
@@ -208,7 +216,10 @@ export function useTasksTable({
 			}),
 
 			columnHelper.accessor("priority", {
-				header: "Priority",
+				header: t({
+					id: "dashboard.tasks.table.headerPriority",
+					message: "Priority",
+				}),
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return <PriorityCell info={info} />;
@@ -216,7 +227,10 @@ export function useTasksTable({
 			}),
 
 			columnHelper.accessor("slug", {
-				header: "ID",
+				header: t({
+					id: "dashboard.tasks.table.headerId",
+					message: "ID",
+				}),
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return (
@@ -228,7 +242,10 @@ export function useTasksTable({
 			}),
 
 			columnHelper.accessor("title", {
-				header: "Title",
+				header: t({
+					id: "dashboard.tasks.table.headerTitle",
+					message: "Title",
+				}),
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					const taskWithStatus = info.row.original;
@@ -261,7 +278,10 @@ export function useTasksTable({
 			}),
 
 			columnHelper.accessor("assigneeId", {
-				header: "Assignee",
+				header: t({
+					id: "dashboard.tasks.table.headerAssignee",
+					message: "Assignee",
+				}),
 				filterFn: (row, _columnId, filterValue: string) => {
 					if (filterValue === "unassigned") {
 						return (
@@ -281,7 +301,10 @@ export function useTasksTable({
 			}),
 
 			columnHelper.accessor("createdAt", {
-				header: "Created",
+				header: t({
+					id: "dashboard.tasks.table.headerCreated",
+					message: "Created",
+				}),
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					const date = info.getValue();
@@ -294,7 +317,7 @@ export function useTasksTable({
 				},
 			}),
 		],
-		[],
+		[t],
 	);
 
 	const table = useReactTable({

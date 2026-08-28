@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
 
@@ -51,7 +52,11 @@ export async function GitHubStarCounter() {
 			target="_blank"
 			rel="noopener noreferrer"
 			className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors p-1"
-			aria-label={`${stars} GitHub stars`}
+			aria-label={i18n._({
+				id: "marketing.nav.githubStars",
+				message: "{count} GitHub stars",
+				values: { count: stars },
+			})}
 		>
 			<svg
 				width="16"

@@ -1,6 +1,7 @@
 "use server";
 
 import { EnterpriseInquiryEmail } from "@superset/email/emails/internal/enterprise-inquiry";
+import { i18n } from "@superset/i18n";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
@@ -22,7 +23,13 @@ const enterpriseFormDataSchema = z.object({
 export async function submitEnterpriseInquiry(data: unknown) {
 	const parsedData = enterpriseFormDataSchema.safeParse(data);
 	if (!parsedData.success) {
-		return { success: false, error: "Invalid input detected." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.invalidInput",
+				message: "Invalid input detected.",
+			}),
+		};
 	}
 
 	const { name, role, company, email, phone, message, honeypot } =
@@ -30,12 +37,24 @@ export async function submitEnterpriseInquiry(data: unknown) {
 
 	// Honeypot check - if filled, silently reject (don't leak that we detected a bot)
 	if (honeypot && honeypot.length > 0) {
-		return { success: false, error: "Something went wrong. Please try again." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.generic",
+				message: "Something went wrong. Please try again.",
+			}),
+		};
 	}
 
 	// Validate required fields exist
 	if (!name || !role || !company || !email) {
-		return { success: false, error: "Missing required fields." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.missingFields",
+				message: "Missing required fields.",
+			}),
+		};
 	}
 
 	// Sanitize inputs FIRST to prevent header injection
@@ -53,19 +72,34 @@ export async function submitEnterpriseInquiry(data: unknown) {
 		!sanitizedCompany ||
 		!sanitizedEmail
 	) {
-		return { success: false, error: "Invalid input detected." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.invalidInput",
+				message: "Invalid input detected.",
+			}),
+		};
 	}
 
 	// Validate email format AFTER sanitization
 	if (!validateEmail(sanitizedEmail)) {
-		return { success: false, error: "Invalid email address." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.invalidEmail",
+				message: "Invalid email address.",
+			}),
+		};
 	}
 
 	try {
 		if (!(await checkEmailFormRateLimit(sanitizedEmail))) {
 			return {
 				success: false,
-				error: "Too many messages. Please try again later.",
+				error: i18n._({
+					id: "marketing.form.error.rateLimited",
+					message: "Too many messages. Please try again later.",
+				}),
 			};
 		}
 
@@ -90,13 +124,22 @@ export async function submitEnterpriseInquiry(data: unknown) {
 			console.error("Failed to send enterprise inquiry email:", error);
 			return {
 				success: false,
-				error: "Something went wrong. Please try again.",
+				error: i18n._({
+					id: "marketing.form.error.generic",
+					message: "Something went wrong. Please try again.",
+				}),
 			};
 		}
 
 		return { success: true };
 	} catch (error) {
 		console.error("Failed to send enterprise inquiry email:", error);
-		return { success: false, error: "Something went wrong. Please try again." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.generic",
+				message: "Something went wrong. Please try again.",
+			}),
+		};
 	}
 }

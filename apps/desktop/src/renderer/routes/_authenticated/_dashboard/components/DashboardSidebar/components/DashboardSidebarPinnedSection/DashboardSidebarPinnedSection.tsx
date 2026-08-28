@@ -2,6 +2,7 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useLingui } from "@lingui/react/macro";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import {
 	dropZoneId,
@@ -37,6 +38,7 @@ export function DashboardSidebarPinnedSection({
 	isCollapsed = false,
 	onWorkspaceHover,
 }: DashboardSidebarPinnedSectionProps) {
+	const { t } = useLingui();
 	const { pinnedItems, workspacesById, projectsById, activeType } =
 		useDashboardSidebarDnd();
 	const isDraggingWorkspace = activeType === "workspace";
@@ -67,7 +69,10 @@ export function DashboardSidebarPinnedSection({
 
 	return (
 		<div className="mt-3 pb-1 first:mt-0">
-			<DashboardSidebarSectionHeader label="Pinned" section="pinned" />
+			<DashboardSidebarSectionHeader
+				label={t({ id: "dashboard.sidebar.sectionPinned", message: "Pinned" })}
+				section="pinned"
+			/>
 			{!isSectionCollapsed && (
 				<SortableContext
 					items={pinnedItems}
@@ -101,7 +106,10 @@ export function DashboardSidebarPinnedSection({
 			{pinnedItems.length === 0 && (
 				<SidebarDropZone
 					dropZoneId={dropZoneId(PINNED_CONTAINER)}
-					label="Drop to pin"
+					label={t({
+						id: "dashboard.sidebar.pinnedSection.dropToPin",
+						message: "Drop to pin",
+					})}
 				/>
 			)}
 		</div>

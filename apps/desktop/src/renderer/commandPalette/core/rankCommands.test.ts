@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { initI18n } from "@superset/i18n";
 import { rankCommands, rankSections, scoreCommand } from "./rankCommands";
 import type { Command, CommandSection } from "./types";
+
+// Command titles are message descriptors resolved through i18n at rank time.
+initI18n();
 
 function command(
 	id: string,
@@ -8,7 +12,7 @@ function command(
 	section: Command["section"],
 	keywords?: string[],
 ): Command {
-	return { id, title, section, keywords };
+	return { id, title: { id: `test.${id}`, message: title }, section, keywords };
 }
 
 const DELETE_WORKSPACE = command(
@@ -23,7 +27,7 @@ const DELETE_WORKSPACE = command(
 const SECTIONS: CommandSection[] = [
 	{
 		id: "workspace",
-		label: "Workspace actions",
+		label: { id: "test.section.workspace", message: "Workspace actions" },
 		commands: [
 			command("workspace.new", "New workspace", "workspace"),
 			command("workspace.quickCreate", "Quick create workspace", "workspace", [
@@ -59,7 +63,7 @@ const SECTIONS: CommandSection[] = [
 	},
 	{
 		id: "actions",
-		label: "Actions",
+		label: { id: "test.section.actions", message: "Actions" },
 		commands: [
 			command("actions.toggleTheme", "Toggle theme", "actions", [
 				"dark",
@@ -110,7 +114,7 @@ const SECTIONS: CommandSection[] = [
 	},
 	{
 		id: "navigation",
-		label: "Navigation",
+		label: { id: "test.section.navigation", message: "Navigation" },
 		commands: [
 			command("nav.settings", "Settings", "navigation"),
 			command("nav.recentlyViewed", "Recently Viewed", "navigation", [
@@ -130,7 +134,7 @@ const SECTIONS: CommandSection[] = [
 	},
 	{
 		id: "add-project",
-		label: "Add project",
+		label: { id: "test.section.addProject", message: "Add project" },
 		commands: [
 			command("addProject.createNew", "Create new project", "add-project", [
 				"add project",

@@ -1,3 +1,4 @@
+import { Plural, useLingui } from "@lingui/react/macro";
 import {
 	type NativeStackNavigationProp,
 	Stack,
@@ -39,6 +40,7 @@ import { usePinnedWorkspacesStore } from "@/screens/(authenticated)/stores/pinne
  * aren't in memory to search. The count row says which pool answered.
  */
 export function SearchScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const navigation =
 		useNavigation<NativeStackNavigationProp<Record<string, undefined>>>();
@@ -170,13 +172,19 @@ export function SearchScreen() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
 			<Stack.SearchBar
 				ref={searchBarRef}
-				placeholder="Search workspaces"
+				placeholder={t({
+					id: "mobile.home.searchWorkspaces",
+					message: "Search workspaces",
+				})}
 				placement="stacked"
 				hideWhenScrolling={false}
 				hideNavigationBar={false}
@@ -198,7 +206,21 @@ export function SearchScreen() {
 				ListHeaderComponent={
 					searching ? (
 						<Text className="text-muted-foreground px-4 pb-1 pt-2 font-semibold text-xs">
-							{`${results.length} ${results.length === 1 ? "result" : "results"} ${cloudScope ? "in Cloud" : "on this host"}`}
+							{cloudScope ? (
+								<Plural
+									id="mobile.search.resultsInCloud"
+									value={results.length}
+									one="# result in Cloud"
+									other="# results in Cloud"
+								/>
+							) : (
+								<Plural
+									id="mobile.search.resultsOnHost"
+									value={results.length}
+									one="# result on this host"
+									other="# results on this host"
+								/>
+							)}
 						</Text>
 					) : null
 				}
@@ -239,10 +261,19 @@ export function SearchScreen() {
 					<View className="items-center py-16">
 						<Text className="text-muted-foreground text-sm">
 							{searching
-								? "No workspaces match your search"
+								? t({
+										id: "mobile.search.noMatches",
+										message: "No workspaces match your search",
+									})
 								: cloudScope
-									? "No cloud workspaces yet"
-									: "No workspaces on this host yet"}
+									? t({
+											id: "mobile.home.emptyCloud",
+											message: "No cloud workspaces yet",
+										})
+									: t({
+											id: "mobile.search.emptyHost",
+											message: "No workspaces on this host yet",
+										})}
 						</Text>
 					</View>
 				}

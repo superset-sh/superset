@@ -1,3 +1,4 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -33,6 +34,7 @@ export function ProjectTargetingField({
 	preferredProjectId,
 	onChange,
 }: ProjectTargetingFieldProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const projectOptionsById = useMemo(
 		() => new Map(projects.map((project) => [project.id, project])),
@@ -79,8 +81,20 @@ export function ProjectTargetingField({
 	};
 
 	const segmentedOptions: { value: Scope; label: string }[] = [
-		{ value: "all", label: "All projects" },
-		{ value: "specific", label: "Specific" },
+		{
+			value: "all",
+			label: t({
+				id: "settings.terminal.projectTargeting.allProjects",
+				message: "All projects",
+			}),
+		},
+		{
+			value: "specific",
+			label: t({
+				id: "settings.terminal.projectTargeting.specific",
+				message: "Specific",
+			}),
+		},
 	];
 
 	return (
@@ -122,9 +136,18 @@ export function ProjectTargetingField({
 						</PopoverTrigger>
 						<PopoverContent align="start" className="w-[280px] p-0">
 							<Command>
-								<CommandInput placeholder="Search projects..." />
+								<CommandInput
+									placeholder={t({
+										id: "settings.terminal.projectTargeting.searchPlaceholder",
+										message: "Search projects...",
+									})}
+								/>
 								<CommandList className="max-h-72">
-									<CommandEmpty>No projects found.</CommandEmpty>
+									<CommandEmpty>
+										<Trans id="settings.terminal.projectTargeting.noProjectsFound">
+											No projects found.
+										</Trans>
+									</CommandEmpty>
 									<CommandGroup>
 										{projects.map((project) => {
 											const isSelected =
@@ -161,8 +184,12 @@ export function ProjectTargetingField({
 					</Popover>
 					{selectedProjects.length > 0 ? (
 						<p className="text-xs text-muted-foreground">
-							{selectedProjects.length} project
-							{selectedProjects.length === 1 ? "" : "s"} selected.
+							<Plural
+								id="settings.terminal.projectTargeting.selectedCount"
+								value={selectedProjects.length}
+								one="# project selected."
+								other="# projects selected."
+							/>
 						</p>
 					) : null}
 				</>
@@ -170,7 +197,9 @@ export function ProjectTargetingField({
 
 			{projects.length === 0 ? (
 				<p className="text-xs text-muted-foreground">
-					Import a project to scope presets.
+					<Trans id="settings.terminal.projectTargeting.noProjectsHint">
+						Import a project to scope presets.
+					</Trans>
 				</p>
 			) : null}
 		</div>

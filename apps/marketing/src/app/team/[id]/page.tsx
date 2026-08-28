@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
@@ -199,7 +200,9 @@ export default async function TeamMemberPage({ params }: PageProps) {
 							className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
 						>
 							<ArrowLeft className="h-4 w-4" />
-							Back to About
+							<Trans id="marketing.team.member.backToAbout">
+								Back to About
+							</Trans>
 						</Link>
 					</div>
 				</div>
@@ -218,7 +221,9 @@ export default async function TeamMemberPage({ params }: PageProps) {
 					<section className="relative border-t border-border">
 						<div className="max-w-3xl mx-auto px-6 py-12">
 							<h2 className="text-xl font-medium text-foreground mb-6">
-								Other Team Members
+								<Trans id="marketing.team.member.otherMembers">
+									Other Team Members
+								</Trans>
 							</h2>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 								{otherMembers.map((member) => (
@@ -274,7 +279,9 @@ export default async function TeamMemberPage({ params }: PageProps) {
 							className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
 						>
 							<ArrowLeft className="h-4 w-4" />
-							All team members
+							<Trans id="marketing.team.member.allMembers">
+								All team members
+							</Trans>
 						</Link>
 					</div>
 				</footer>

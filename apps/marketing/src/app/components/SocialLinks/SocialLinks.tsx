@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 
 interface SocialLinksProps {
@@ -7,6 +8,8 @@ interface SocialLinksProps {
 }
 
 export function SocialLinks({ className = "" }: SocialLinksProps) {
+	const { t } = useLingui();
+
 	return (
 		<div className={`flex items-center gap-2 ${className}`}>
 			<a
@@ -14,7 +17,10 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				target="_blank"
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
-				aria-label="Join our Discord"
+				aria-label={t({
+					id: "marketing.social.discord",
+					message: "Join our Discord",
+				})}
 			>
 				<svg
 					width="20"
@@ -32,7 +38,10 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				target="_blank"
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
-				aria-label="Follow us on X/Twitter"
+				aria-label={t({
+					id: "marketing.social.x",
+					message: "Follow us on X/Twitter",
+				})}
 			>
 				<svg
 					width="20"
@@ -50,7 +59,10 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				target="_blank"
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
-				aria-label="Follow us on LinkedIn"
+				aria-label={t({
+					id: "marketing.social.linkedin",
+					message: "Follow us on LinkedIn",
+				})}
 			>
 				<svg
 					width="20"
@@ -68,7 +80,10 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				target="_blank"
 				rel="noopener noreferrer"
 				className="text-muted-foreground hover:text-foreground transition-colors p-1 sm:p-2"
-				aria-label="Subscribe on YouTube"
+				aria-label={t({
+					id: "marketing.social.youtube",
+					message: "Subscribe on YouTube",
+				})}
 			>
 				<svg
 					width="20"

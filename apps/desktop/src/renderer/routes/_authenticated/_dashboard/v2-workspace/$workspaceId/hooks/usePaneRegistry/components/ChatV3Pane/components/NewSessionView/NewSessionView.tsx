@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { UserContent } from "@superset/chat/protocol";
 import { Button } from "@superset/ui/button";
 import type { ReactNode } from "react";
@@ -19,6 +20,7 @@ export function NewSessionView({
 	onSend: (content: UserContent[]) => void;
 	headerLeft?: ReactNode;
 }) {
+	const { t } = useLingui();
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="flex items-center gap-2 border-b border-border px-3 py-2">
@@ -37,9 +39,13 @@ export function NewSessionView({
 				</div>
 			</div>
 			<div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
-				<span className="text-sm font-medium">New chat</span>
+				<span className="text-sm font-medium">
+					<Trans id="workspace.chat.newChat">New chat</Trans>
+				</span>
 				<span className="text-xs text-muted-foreground">
-					Send a message to start a {harness} session
+					<Trans id="workspace.chat.newChatHint">
+						Send a message to start a {harness} session
+					</Trans>
 				</span>
 			</div>
 			<Composer
@@ -49,7 +55,10 @@ export function NewSessionView({
 					return null;
 				}}
 				outbox={[]}
-				placeholder={`Start a ${harness} session`}
+				placeholder={t({
+					id: "workspace.chat.newSessionPlaceholder",
+					message: `Start a ${harness} session`,
+				})}
 			/>
 		</div>
 	);

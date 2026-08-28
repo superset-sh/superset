@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { initI18n } from "@superset/i18n";
 import {
 	getPullRequestReviewFilterLabel,
 	normalizePullRequestReviewFilter,
 } from "./pullRequestReviewFilter";
+
+initI18n();
 
 describe("pullRequestReviewFilter", () => {
 	test("normalizes supported review filters", () => {

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import Image from "next/image";
 
 const STRIP_LOGOS = [
@@ -32,7 +33,11 @@ const STRIP_LOGOS = [
 export function TrustStrip() {
 	return (
 		<div className="flex flex-col items-center gap-6">
-			<p className="text-sm text-muted-foreground">Trusted by builders from</p>
+			<p className="text-sm text-muted-foreground">
+				<Trans id="marketing.pricing.trustStrip.heading">
+					Trusted by builders from
+				</Trans>
+			</p>
 			<div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-70">
 				{STRIP_LOGOS.map((client) => (
 					<Image

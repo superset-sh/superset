@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+
 interface SaveErrorBannerProps {
 	message: string;
 	onRetry?: () => void;
@@ -12,7 +14,7 @@ export function SaveErrorBanner({
 	return (
 		<div className="flex items-center gap-2 border-b border-border bg-destructive/10 px-3 py-1.5 text-xs text-destructive-foreground">
 			<span className="flex-1 truncate select-text cursor-text">
-				Save failed: {message}
+				<Trans id="workspace.filePane.saveFailed">Save failed: {message}</Trans>
 			</span>
 			{onRetry && (
 				<button
@@ -20,7 +22,7 @@ export function SaveErrorBanner({
 					className="underline hover:no-underline"
 					onClick={onRetry}
 				>
-					Retry
+					<Trans id="workspace.filePane.retrySave">Retry</Trans>
 				</button>
 			)}
 			{onDismiss && (
@@ -29,7 +31,7 @@ export function SaveErrorBanner({
 					className="underline hover:no-underline"
 					onClick={onDismiss}
 				>
-					Dismiss
+					<Trans id="workspace.filePane.dismissSaveError">Dismiss</Trans>
 				</button>
 			)}
 		</div>

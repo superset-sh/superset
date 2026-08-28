@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	ContextMenuItem,
 	ContextMenuSeparator,
@@ -35,10 +36,20 @@ export function SectionActionsMenuItems({
 	onSetColor,
 	onDelete,
 }: SectionActionsMenuItemsProps) {
+	const { t } = useLingui();
 	const selectedValue = color ?? PROJECT_COLOR_DEFAULT;
-	const colorOptions = [
-		{ name: "Default", value: PROJECT_COLOR_DEFAULT },
-		...PROJECT_COLORS,
+	const colorOptions: { name: string; value: string }[] = [
+		{
+			name: t({
+				id: "dashboard.sidebar.sectionMenu.defaultColor",
+				message: "Default",
+			}),
+			value: PROJECT_COLOR_DEFAULT,
+		},
+		...PROJECT_COLORS.map((projectColor) => ({
+			name: projectColor.name(),
+			value: projectColor.value,
+		})),
 	];
 	const iconClassName = kind === "context" ? "size-4 mr-2" : "size-4";
 
@@ -114,7 +125,9 @@ export function SectionActionsMenuItems({
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
-			Set group color
+			<Trans id="dashboard.sidebar.sectionMenu.setGroupColor">
+				Set group color
+			</Trans>
 		</>
 	);
 
@@ -125,7 +138,9 @@ export function SectionActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className={iconClassName} />
-						Rename group
+						<Trans id="dashboard.sidebar.sectionMenu.renameGroup">
+							Rename group
+						</Trans>
 					</>
 				),
 			})}
@@ -161,7 +176,9 @@ export function SectionActionsMenuItems({
 									: "size-4 text-destructive"
 							}
 						/>
-						Delete group
+						<Trans id="dashboard.sidebar.sectionMenu.deleteGroup">
+							Delete group
+						</Trans>
 					</>
 				),
 			})}

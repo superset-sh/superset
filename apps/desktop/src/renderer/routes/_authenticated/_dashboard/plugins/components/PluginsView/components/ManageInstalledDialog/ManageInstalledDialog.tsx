@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getPluginByName,
 	type InstalledPlugin,
@@ -31,19 +32,28 @@ export function ManageInstalledDialog({
 	onSetEnabled,
 	onUninstall,
 }: ManageInstalledDialogProps) {
+	const { t } = useLingui();
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Manage plugins</DialogTitle>
+					<DialogTitle>
+						<Trans id="dashboard.plugins.manageDialog.title">
+							Manage plugins
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Disabling keeps a plugin installed but removes its servers from your
-						agents. Changes take effect in new agent sessions.
+						<Trans id="dashboard.plugins.manageDialog.description">
+							Disabling keeps a plugin installed but removes its servers from
+							your agents. Changes take effect in new agent sessions.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				{installed.length === 0 ? (
 					<p className="py-4 text-sm text-muted-foreground">
-						Nothing installed yet.
+						<Trans id="dashboard.plugins.manageDialog.empty">
+							Nothing installed yet.
+						</Trans>
 					</p>
 				) : (
 					<div className="flex flex-col divide-y divide-border/60">
@@ -59,15 +69,25 @@ export function ManageInstalledDialog({
 										</div>
 										<p className="truncate text-xs text-muted-foreground">
 											v{entry.version}
-											{plugin
-												? ` · ${Object.keys(plugin.mcpServers).join(", ")}`
-												: " · no longer in the catalog"}
+											{plugin ? (
+												` · ${Object.keys(plugin.mcpServers).join(", ")}`
+											) : (
+												<>
+													{" · "}
+													<Trans id="dashboard.plugins.manageDialog.notInCatalog">
+														no longer in the catalog
+													</Trans>
+												</>
+											)}
 										</p>
 									</div>
 									<Switch
 										checked={isEnabled}
 										disabled={isBusy}
-										aria-label={`${plugin?.interface.displayName ?? entry.name} enabled`}
+										aria-label={t({
+											id: "dashboard.plugins.manageInstalled.pluginEnabledLabel",
+											message: `${plugin?.interface.displayName ?? entry.name} enabled`,
+										})}
 										onCheckedChange={(checked) =>
 											onSetEnabled(entry.name, checked)
 										}
@@ -77,7 +97,10 @@ export function ManageInstalledDialog({
 										size="icon-xs"
 										className="shrink-0 text-muted-foreground hover:text-destructive"
 										disabled={isBusy}
-										aria-label={`Uninstall ${plugin?.interface.displayName ?? entry.name}`}
+										aria-label={t({
+											id: "dashboard.plugins.manageInstalled.uninstallLabel",
+											message: `Uninstall ${plugin?.interface.displayName ?? entry.name}`,
+										})}
 										onClick={() => onUninstall(entry.name)}
 									>
 										<LuTrash2 className="size-4" />

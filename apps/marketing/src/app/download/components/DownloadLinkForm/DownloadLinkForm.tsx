@@ -1,11 +1,13 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { HiMiniArrowRight, HiMiniCheck } from "react-icons/hi2";
 import { track } from "@/lib/analytics";
 import { sendDownloadLink } from "./actions";
 
 export function DownloadLinkForm() {
+	const { t } = useLingui();
 	const [email, setEmail] = useState("");
 	const [submittedEmail, setSubmittedEmail] = useState("");
 	const [error, setError] = useState("");
@@ -29,7 +31,12 @@ export function DownloadLinkForm() {
 			setSubmittedEmail(email);
 			track("download_link_emailed", { platform: "mobile" });
 		} catch {
-			setError("Something went wrong. Please try again.");
+			setError(
+				t({
+					id: "marketing.download.genericError",
+					message: "Something went wrong. Please try again.",
+				}),
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -40,10 +47,14 @@ export function DownloadLinkForm() {
 			<div className="border-l-2 border-brand pl-4" aria-live="polite">
 				<div className="flex items-center gap-2 text-foreground">
 					<HiMiniCheck className="size-5 text-brand" />
-					<p className="font-medium">Check your inbox</p>
+					<p className="font-medium">
+						<Trans id="marketing.download.checkInbox">Check your inbox</Trans>
+					</p>
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">
-					We sent the download link to {submittedEmail}.
+					<Trans id="marketing.download.linkSentTo">
+						We sent the download link to {submittedEmail}.
+					</Trans>
 				</p>
 			</div>
 		);
@@ -55,7 +66,7 @@ export function DownloadLinkForm() {
 				htmlFor="download-email"
 				className="mb-2 block font-mono text-xs uppercase tracking-wider text-muted-foreground"
 			>
-				Email address
+				<Trans id="marketing.download.emailLabel">Email address</Trans>
 			</label>
 			<div className="flex flex-col gap-2 sm:flex-row sm:gap-0">
 				<input
@@ -75,7 +86,13 @@ export function DownloadLinkForm() {
 					disabled={isSubmitting}
 					className="group flex shrink-0 items-center justify-center gap-2 bg-foreground px-5 py-3 text-sm font-normal text-background transition-colors hover:bg-brand hover:text-white disabled:cursor-wait disabled:opacity-60"
 				>
-					{isSubmitting ? "Sending…" : "Email me the link"}
+					{isSubmitting ? (
+						<Trans id="marketing.download.sending">Sending…</Trans>
+					) : (
+						<Trans id="marketing.download.emailMeTheLink">
+							Email me the link
+						</Trans>
+					)}
 					<HiMiniArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
 				</button>
 			</div>
@@ -90,7 +107,9 @@ export function DownloadLinkForm() {
 			/>
 
 			<p className="mt-3 text-xs text-muted-foreground">
-				We&apos;ll only use this to send your download link.
+				<Trans id="marketing.download.emailDisclaimer">
+					We&apos;ll only use this to send your download link.
+				</Trans>
 			</p>
 			{error ? (
 				<p className="mt-2 text-sm text-red-500" role="alert">

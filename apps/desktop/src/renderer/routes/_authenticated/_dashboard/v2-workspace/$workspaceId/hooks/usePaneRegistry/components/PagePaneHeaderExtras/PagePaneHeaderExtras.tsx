@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	CommentModeButton,
@@ -21,6 +22,7 @@ export function PagePaneHeaderExtras({
 	paneId,
 	workspaceId,
 }: PagePaneHeaderExtrasProps) {
+	const { t } = useLingui();
 	const {
 		page,
 		versions,
@@ -63,8 +65,14 @@ export function PagePaneHeaderExtras({
 						variant="ghost"
 						size="icon"
 						className="size-6 p-0 text-muted-foreground/60 hover:text-muted-foreground"
-						aria-label="Share page"
-						title="Share page"
+						aria-label={t({
+							id: "workspace.pagePane.sharePageAria",
+							message: "Share page",
+						})}
+						title={t({
+							id: "workspace.pagePane.sharePageTitle",
+							message: "Share page",
+						})}
 					>
 						<Share2 className="size-3.5" />
 					</Button>

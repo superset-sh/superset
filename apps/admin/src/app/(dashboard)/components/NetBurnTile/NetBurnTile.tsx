@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -14,16 +15,25 @@ import { useTRPC } from "@/trpc/react";
 import { formatMonth } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
-const chartConfig = {
-	netBurnUsd: { label: "net burn", color: "var(--chart-1)" },
-	stripeInUsd: { label: "Stripe revenue", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
 // Monthly gross operating outflows across all Mercury accounts (treasury
 // sweeps excluded). Net flow lives on the cash card — tranche wires would
 // dwarf burn on this scale. Current month is partial and rendered muted.
 export function NetBurnTile() {
+	const { t } = useLingui();
 	const trpc = useTRPC();
+	const chartConfig = {
+		netBurnUsd: {
+			label: t({ id: "admin.netBurn.seriesNetBurn", message: "net burn" }),
+			color: "var(--chart-1)",
+		},
+		stripeInUsd: {
+			label: t({
+				id: "admin.netBurn.seriesStripeRevenue",
+				message: "Stripe revenue",
+			}),
+			color: "var(--chart-2)",
+		},
+	} satisfies ChartConfig;
 	const query = useQuery(trpc.business.getCashFlow.queryOptions());
 
 	const unavailableReason =
@@ -36,14 +46,26 @@ export function NetBurnTile() {
 
 	return (
 		<InsightTileFrame
-			title="Net burn — monthly (Mercury)"
-			description="Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial"
+			title={t({
+				id: "admin.netBurn.title",
+				message: "Net burn — monthly (Mercury)",
+			})}
+			description={t({
+				id: "admin.netBurn.description",
+				message:
+					"Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial",
+			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={months.length === 0}
 			emptyLabel={
-				unavailableReason ? `Unavailable: ${unavailableReason}` : "No data"
+				unavailableReason
+					? t({
+							id: "admin.tile.unavailableReason",
+							message: `Unavailable: ${unavailableReason}`,
+						})
+					: undefined
 			}
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">

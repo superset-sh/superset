@@ -7,11 +7,12 @@
 		"build": "next build",
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"dev": "dotenv -e ../../.env -- sh -c 'exec next dev --port ${MARKETING_PORT:-3002}'",
-		"lint:prose": "vale --config=vale.ini content src/app/layout.tsx src/components/JsonLd/JsonLd.tsx src/lib/product-facts.ts src/lib/llms.ts src/app/components/Header/constants.ts src/app/components/HeroSection/HeroSection.tsx src/app/components/HowItWorksSection src/app/components/FeaturesSection/constants.ts src/app/components/FAQSection/constants.ts src/app/components/CTASection/CTASection.tsx src/app/components/SecuritySection/SecuritySection.tsx",
+		"lint:prose": "vale --config=vale.ini content src/app/layout.tsx src/components/JsonLd/JsonLd.tsx src/lib/product-facts.ts src/lib/llms.ts src/app/components/Header/constants.tsx src/app/components/HeroSection/HeroSection.tsx src/app/components/HowItWorksSection src/app/components/FeaturesSection/constants.ts src/app/components/FAQSection/constants.ts src/app/components/CTASection/CTASection.tsx src/app/components/SecuritySection/SecuritySection.tsx",
 		"start": "next start",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@lingui/core": "6.6.0",
 		"@lingui/react": "6.6.0",
 		"@paper-design/shaders-react": "0.0.77",
 		"@react-three/drei": "10.7.7",

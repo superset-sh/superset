@@ -1,5 +1,6 @@
 "use client";
 
+import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -117,7 +118,11 @@ function resolveMessage(
 	message: CallbackMessage | undefined,
 	params: URLSearchParams,
 ): string {
-	if (message === undefined) return "Something went wrong.";
+	if (message === undefined)
+		return i18n._({
+			id: "web.integrationCallback.unknownError",
+			message: "Something went wrong.",
+		});
 	if (typeof message === "string") return message;
 	const value = params.get(message.param);
 	return value
@@ -147,12 +152,18 @@ export function IntegrationErrorHandler<P extends Provider>({
 		} else if (warning) {
 			toast.warning(
 				(warnings as Record<string, string> | undefined)?.[warning] ??
-					"Warning occurred.",
+					i18n._({
+						id: "web.integrationCallback.unknownWarning",
+						message: "Warning occurred.",
+					}),
 			);
 		} else if (success) {
 			toast.success(
 				(successes as Record<string, string> | undefined)?.[success] ??
-					"Success!",
+					i18n._({
+						id: "web.integrationCallback.unknownSuccess",
+						message: "Success!",
+					}),
 			);
 		}
 		window.history.replaceState({}, "", `/integrations/${provider}`);

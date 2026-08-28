@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ViewProps } from "../../types";
 
@@ -8,11 +9,13 @@ export function BinaryWarningView({ filePath, onForceView }: ViewProps) {
 		<div className="flex h-full w-full flex-col items-center justify-center gap-3 p-6 text-center">
 			<div className="text-sm font-medium">{name}</div>
 			<div className="max-w-md text-xs text-muted-foreground">
-				This looks like a binary file. Opening it as text may show garbled
-				output or freeze the editor for large files.
+				<Trans id="workspace.filePane.binaryWarning">
+					This looks like a binary file. Opening it as text may show garbled
+					output or freeze the editor for large files.
+				</Trans>
 			</div>
 			<Button variant="outline" size="sm" onClick={() => onForceView("code")}>
-				Open Anyway
+				<Trans id="workspace.filePane.binaryOpenAnyway">Open Anyway</Trans>
 			</Button>
 		</div>
 	);

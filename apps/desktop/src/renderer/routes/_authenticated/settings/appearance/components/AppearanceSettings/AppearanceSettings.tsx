@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
 import {
 	isItemVisible,
@@ -59,9 +60,13 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 	return (
 		<div className="p-6 max-w-5xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Appearance</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.appearance.title">Appearance</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Customize how Superset looks on your device
+					<Trans id="settings.appearance.subtitle">
+						Customize how Superset looks on your device
+					</Trans>
 				</p>
 			</div>
 

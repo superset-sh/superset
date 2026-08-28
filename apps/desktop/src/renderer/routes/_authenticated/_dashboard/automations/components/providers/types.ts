@@ -1,3 +1,4 @@
+import type { MessageDescriptor } from "@lingui/core";
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import type { ReactNode } from "react";
 import type { IconType } from "react-icons";
@@ -17,8 +18,12 @@ export type TriggerProvider<
 > = {
 	/** The discriminant on the trigger config. */
 	kind: Config["kind"];
-	/** How the provider appears in the Add Trigger menu and at the row start. */
-	label: string;
+	/**
+	 * How the provider appears in the Add Trigger menu and at the row start.
+	 * A plain string for brand names (GitHub, Slack, …), which never
+	 * translate; a `msg()` descriptor for translatable phrases (Scheduled).
+	 */
+	label: string | MessageDescriptor;
 	icon: IconType;
 	/**
 	 * The Add Trigger subtree. A single leaf for providers with one trigger
@@ -44,8 +49,8 @@ export type TriggerProvider<
 export type TriggerMenuEntry<
 	Config extends TriggerConfigInput = TriggerConfigInput,
 > =
-	| { label: string; create: () => Config }
-	| { label: string; children: TriggerMenuEntry<Config>[] };
+	| { label: MessageDescriptor; create: () => Config }
+	| { label: MessageDescriptor; children: TriggerMenuEntry<Config>[] };
 
 /**
  * What a sentence renderer is handed. It never touches row state directly:

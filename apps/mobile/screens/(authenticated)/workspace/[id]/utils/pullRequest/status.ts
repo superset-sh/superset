@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import {
 	GitMerge,
 	GitPullRequest,
@@ -16,34 +18,39 @@ export type PullRequestStatus =
 
 export const PULL_REQUEST_STATUS: Record<
 	PullRequestStatus,
-	{ label: string; ink: string; surface: string; icon: LucideIcon }
+	{
+		label: MessageDescriptor;
+		ink: string;
+		surface: string;
+		icon: LucideIcon;
+	}
 > = {
 	draft: {
-		label: "Draft",
+		label: msg({ id: "mobile.pullRequest.status.draft", message: "Draft" }),
 		ink: "text-muted-foreground",
 		surface: "bg-secondary",
 		icon: GitPullRequestDraft,
 	},
 	open: {
-		label: "Open",
+		label: msg({ id: "mobile.pullRequest.status.open", message: "Open" }),
 		ink: "text-emerald-500",
 		surface: "bg-green-500/15",
 		icon: GitPullRequest,
 	},
 	queued: {
-		label: "Queued",
+		label: msg({ id: "mobile.pullRequest.status.queued", message: "Queued" }),
 		ink: "text-amber-500",
 		surface: "bg-amber-500/15",
 		icon: GitPullRequest,
 	},
 	merged: {
-		label: "Merged",
+		label: msg({ id: "mobile.pullRequest.status.merged", message: "Merged" }),
 		ink: "text-purple-500",
 		surface: "bg-violet-500/15",
 		icon: GitMerge,
 	},
 	closed: {
-		label: "Closed",
+		label: msg({ id: "mobile.pullRequest.status.closed", message: "Closed" }),
 		ink: "text-destructive",
 		surface: "bg-red-500/15",
 		icon: GitPullRequestClosed,

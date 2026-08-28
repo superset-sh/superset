@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { prompt } from "@superset/alert-prompt";
 import { useState } from "react";
 import { Text } from "@/components/ui/text";
@@ -10,22 +11,32 @@ export function EmailSignInLink({
 }: {
 	onError: (message: string) => void;
 }) {
+	const { t } = useLingui();
 	const [isLoading, setIsLoading] = useState(false);
 
 	const handlePress = async () => {
 		const email = (
 			await prompt({
-				title: "Sign in with email",
-				message: "Email",
-				confirmText: "Next",
+				title: t({
+					id: "mobile.signIn.email.promptTitle",
+					message: "Sign in with email",
+				}),
+				message: t({ id: "mobile.signIn.email.emailLabel", message: "Email" }),
+				confirmText: t({ id: "mobile.common.next", message: "Next" }),
 			})
 		)?.trim();
 		if (!email) return;
 
 		const password = await prompt({
-			title: "Sign in with email",
-			message: `Password for ${email}`,
-			confirmText: "Sign in",
+			title: t({
+				id: "mobile.signIn.email.promptTitle",
+				message: "Sign in with email",
+			}),
+			message: t({
+				id: "mobile.signIn.email.passwordLabel",
+				message: `Password for ${email}`,
+			}),
+			confirmText: t({ id: "mobile.signIn.email.confirm", message: "Sign in" }),
 		});
 		if (!password) return;
 
@@ -35,7 +46,14 @@ export function EmailSignInLink({
 			if (res.error) throw new Error(res.error.message);
 		} catch (err) {
 			console.error("[sign-in] Email error:", err);
-			onError(err instanceof Error ? err.message : "Something went wrong");
+			onError(
+				err instanceof Error
+					? err.message
+					: t({
+							id: "mobile.common.somethingWentWrong",
+							message: "Something went wrong",
+						}),
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -46,7 +64,7 @@ export function EmailSignInLink({
 			className="text-sm text-muted-foreground underline"
 			onPress={isLoading ? undefined : () => void handlePress()}
 		>
-			Sign in with email
+			<Trans id="mobile.signIn.email.link">Sign in with email</Trans>
 		</Text>
 	);
 }

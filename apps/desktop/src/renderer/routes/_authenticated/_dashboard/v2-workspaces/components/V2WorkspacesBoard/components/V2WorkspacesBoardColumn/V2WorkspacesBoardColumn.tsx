@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
@@ -21,7 +22,7 @@ export function V2WorkspacesBoardColumn({
 			<div className="mb-1 flex items-center gap-2 px-2 py-1.5">
 				<BoardColumnIcon column={column} />
 				<span className="truncate text-sm font-medium">
-					{BOARD_COLUMN_LABELS[column]}
+					{i18n._(BOARD_COLUMN_LABELS[column])}
 				</span>
 				<span className="text-xs tabular-nums text-muted-foreground">
 					{workspaces.length}

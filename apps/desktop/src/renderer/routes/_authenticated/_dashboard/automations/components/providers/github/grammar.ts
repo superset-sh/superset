@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	GithubTriggerEvent,
 	TriggerConfigInput,
@@ -152,50 +154,188 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
  * GitHub event is.
  */
 export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
-	leaf("Draft opened", "draft_opened"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuDraftOpened",
+			message: "Draft opened",
+		}),
+		"draft_opened",
+	),
 	{
-		label: "Pull request…",
+		label: msg({
+			id: "dashboard.automations.providers.github.menuPullRequest",
+			message: "Pull request…",
+		}),
 		children: [
-			leaf("Opened", "pull_request.opened"),
-			leaf("Pushed", "pull_request.pushed"),
-			leaf("Merged", "pull_request.merged"),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuPrOpened",
+					message: "Opened",
+				}),
+				"pull_request.opened",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuPrPushed",
+					message: "Pushed",
+				}),
+				"pull_request.pushed",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuPrMerged",
+					message: "Merged",
+				}),
+				"pull_request.merged",
+			),
 		],
 	},
-	leaf("Comment added", "comment_added"),
-	leaf("New push to branch", "push_to_branch"),
-	leaf("Label change", "label_change"),
-	leaf("Checks completed", "checks_completed"),
-	leaf("Issue comment", "issue_comment"),
-	leaf("PR review comment", "pr_review_comment"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuCommentAdded",
+			message: "Comment added",
+		}),
+		"comment_added",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuPushToBranch",
+			message: "New push to branch",
+		}),
+		"push_to_branch",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuLabelChange",
+			message: "Label change",
+		}),
+		"label_change",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuChecksCompleted",
+			message: "Checks completed",
+		}),
+		"checks_completed",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuIssueComment",
+			message: "Issue comment",
+		}),
+		"issue_comment",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.github.menuPrReviewComment",
+			message: "PR review comment",
+		}),
+		"pr_review_comment",
+	),
 	{
-		label: "PR review submitted…",
+		label: msg({
+			id: "dashboard.automations.providers.github.menuPrReviewSubmitted",
+			message: "PR review submitted…",
+		}),
 		children: [
-			leaf("Approved", "pr_review_submitted.approved"),
-			leaf("Changes requested", "pr_review_submitted.changes_requested"),
-			leaf("Commented", "pr_review_submitted.commented"),
-			leaf("Any review", "pr_review_submitted.any"),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuReviewApproved",
+					message: "Approved",
+				}),
+				"pr_review_submitted.approved",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuReviewChangesRequested",
+					message: "Changes requested",
+				}),
+				"pr_review_submitted.changes_requested",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuReviewCommented",
+					message: "Commented",
+				}),
+				"pr_review_submitted.commented",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuReviewAny",
+					message: "Any review",
+				}),
+				"pr_review_submitted.any",
+			),
 		],
 	},
 	{
-		label: "Review thread…",
+		label: msg({
+			id: "dashboard.automations.providers.github.menuReviewThread",
+			message: "Review thread…",
+		}),
 		children: [
-			leaf("Resolved", "review_thread.resolved"),
-			leaf("Unresolved", "review_thread.unresolved"),
-			leaf("Any thread event", "review_thread.any"),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuThreadResolved",
+					message: "Resolved",
+				}),
+				"review_thread.resolved",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuThreadUnresolved",
+					message: "Unresolved",
+				}),
+				"review_thread.unresolved",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuThreadAny",
+					message: "Any thread event",
+				}),
+				"review_thread.any",
+			),
 		],
 	},
 	{
-		label: "Workflow run completed…",
+		label: msg({
+			id: "dashboard.automations.providers.github.menuWorkflowRun",
+			message: "Workflow run completed…",
+		}),
 		children: [
-			leaf("Success", "workflow_run.success"),
-			leaf("Failure", "workflow_run.failure"),
-			leaf("Cancelled", "workflow_run.cancelled"),
-			leaf("Any conclusion", "workflow_run.any"),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuWorkflowSuccess",
+					message: "Success",
+				}),
+				"workflow_run.success",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuWorkflowFailure",
+					message: "Failure",
+				}),
+				"workflow_run.failure",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuWorkflowCancelled",
+					message: "Cancelled",
+				}),
+				"workflow_run.cancelled",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.github.menuWorkflowAny",
+					message: "Any conclusion",
+				}),
+				"workflow_run.any",
+			),
 		],
 	},
 ];
 
-function leaf(label: string, event: GithubTriggerEvent) {
+function leaf(label: MessageDescriptor, event: GithubTriggerEvent) {
 	return { label, create: () => createGithubConfig(event) };
 }
 

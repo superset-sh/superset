@@ -3,6 +3,7 @@ import {
 	type LegendListProps,
 	type LegendListRef,
 } from "@legendapp/list/react-native";
+import { i18n } from "@superset/i18n";
 import { ArrowDownIcon } from "lucide-react-native";
 import {
 	createContext,
@@ -184,7 +185,10 @@ export const ConversationScrollButton = ({
 			pointerEvents="box-none"
 		>
 			<Button
-				accessibilityLabel="Scroll to bottom"
+				accessibilityLabel={i18n._({
+					id: "mobile.conversation.scrollToBottom",
+					message: "Scroll to bottom",
+				})}
 				className={cn("rounded-full", className)}
 				onPress={scrollToBottom}
 				size="icon"

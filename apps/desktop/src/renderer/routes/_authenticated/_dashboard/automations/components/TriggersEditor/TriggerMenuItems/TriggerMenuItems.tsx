@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import {
 	DropdownMenuItem,
@@ -7,6 +8,7 @@ import {
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
 import type { TriggerMenuEntry, TriggerProvider } from "../../providers";
+import { providerLabelText } from "../triggerMenu";
 
 /**
  * The top level of the Add Trigger menu: one row per provider.
@@ -40,7 +42,7 @@ export function TriggerMenuItems({
 							onSelect={() => onPick(only.create())}
 						>
 							<Icon className="size-3.5 text-current" />
-							{provider.label}
+							{providerLabelText(provider.label)}
 						</DropdownMenuItem>
 					);
 				}
@@ -49,7 +51,7 @@ export function TriggerMenuItems({
 					<DropdownMenuSub key={provider.kind}>
 						<DropdownMenuSubTrigger>
 							<Icon className="size-3.5 text-current" />
-							{provider.label}
+							{providerLabelText(provider.label)}
 						</DropdownMenuSubTrigger>
 						<DropdownMenuPortal>
 							<DropdownMenuSubContent className="max-h-96 overflow-y-auto">
@@ -79,8 +81,10 @@ function MenuEntries({
 		<>
 			{entries.map((entry) =>
 				"children" in entry ? (
-					<DropdownMenuSub key={entry.label}>
-						<DropdownMenuSubTrigger>{entry.label}</DropdownMenuSubTrigger>
+					<DropdownMenuSub key={entry.label.id}>
+						<DropdownMenuSubTrigger>
+							{i18n._(entry.label)}
+						</DropdownMenuSubTrigger>
 						<DropdownMenuPortal>
 							<DropdownMenuSubContent>
 								<MenuEntries entries={entry.children} onPick={onPick} />
@@ -89,10 +93,10 @@ function MenuEntries({
 					</DropdownMenuSub>
 				) : (
 					<DropdownMenuItem
-						key={entry.label}
+						key={entry.label.id}
 						onSelect={() => onPick(entry.create())}
 					>
-						{entry.label}
+						{i18n._(entry.label)}
 					</DropdownMenuItem>
 				),
 			)}

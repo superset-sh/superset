@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -11,6 +12,7 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
  * host `workspaces.create` chaining (v2).
  */
 export function WaitForSetupBeforeAgentSetting() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const { data: waitForSetupBeforeAgent, isLoading } =
@@ -44,13 +46,20 @@ export function WaitForSetupBeforeAgentSetting() {
 					className="text-sm font-medium"
 				>
 					<HighlightText
-						text="Wait for workspace setup before starting agents"
+						text={t({
+							id: "settings.experimental.waitForSetup.label",
+							message: "Wait for workspace setup before starting agents",
+						})}
 						query={searchQuery}
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground">
 					<HighlightText
-						text="Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it"
+						text={t({
+							id: "settings.experimental.waitForSetup.hint",
+							message:
+								"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
+						})}
 						query={searchQuery}
 					/>
 				</p>

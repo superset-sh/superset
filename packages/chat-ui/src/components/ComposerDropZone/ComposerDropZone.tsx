@@ -1,5 +1,6 @@
 "use client";
 
+import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import {
 	createContext,
@@ -36,7 +37,10 @@ export type ComposerDropZoneProps = {
  */
 export function ComposerDropZone({
 	children,
-	label = "Drop files to attach",
+	label = i18n._({
+		id: "chatUi.composerDropZone.label",
+		message: "Drop files to attach",
+	}),
 	className,
 }: ComposerDropZoneProps) {
 	const sinkRef = useRef<((files: FileList) => void) | null>(null);

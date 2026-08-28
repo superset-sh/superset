@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Card, CardContent, CardHeader } from "@superset/ui/card";
 import {
@@ -46,6 +47,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function CreateOrganization() {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const isSignedIn = !!session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -110,21 +112,21 @@ export function CreateOrganization() {
 		if (isCheckingSlug) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-					Checking...
+					<Trans id="auth.createOrganization.slugChecking">Checking...</Trans>
 				</span>
 			);
 		}
 		if (slugAvailable === true) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600">
-					Available
+					<Trans id="auth.createOrganization.slugAvailable">Available</Trans>
 				</span>
 			);
 		}
 		if (slugAvailable === false) {
 			return (
 				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">
-					Taken
+					<Trans id="auth.createOrganization.slugTaken">Taken</Trans>
 				</span>
 			);
 		}
@@ -150,13 +152,21 @@ export function CreateOrganization() {
 				organizationId: organization.id,
 			});
 
-			toast.success("Organization created successfully!");
+			toast.success(
+				t({
+					id: "auth.createOrganization.created",
+					message: "Organization created successfully!",
+				}),
+			);
 			navigate({ to: "/" });
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to create organization",
+					: t({
+							id: "auth.createOrganization.createFailed",
+							message: "Failed to create organization",
+						}),
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -180,20 +190,26 @@ export function CreateOrganization() {
 						onClick={() => navigate({ to: "/" })}
 						type="button"
 					>
-						Cancel
+						<Trans id="auth.createOrganization.cancel">Cancel</Trans>
 					</Button>
 				) : (
 					<Button variant="ghost" onClick={handleSignOut} type="button">
-						Sign Out
+						<Trans id="auth.createOrganization.signOut">Sign Out</Trans>
 					</Button>
 				)}
 			</div>
 
 			<Card className="w-full max-w-md">
 				<CardHeader>
-					<h1 className="text-2xl font-bold">Create Organization</h1>
+					<h1 className="text-2xl font-bold">
+						<Trans id="auth.createOrganization.title">
+							Create Organization
+						</Trans>
+					</h1>
 					<p className="text-sm text-muted-foreground">
-						Set up your organization to get started
+						<Trans id="auth.createOrganization.subtitle">
+							Set up your organization to get started
+						</Trans>
 					</p>
 				</CardHeader>
 				<CardContent>
@@ -205,16 +221,25 @@ export function CreateOrganization() {
 								name="name"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Organization Name</FormLabel>
+										<FormLabel>
+											<Trans id="auth.createOrganization.nameLabel">
+												Organization Name
+											</Trans>
+										</FormLabel>
 										<FormControl>
 											<Input
 												{...field}
-												placeholder="Acme Inc."
+												placeholder={t({
+													id: "auth.createOrganization.namePlaceholder",
+													message: "Acme Inc.",
+												})}
 												disabled={isSubmitting}
 											/>
 										</FormControl>
 										<FormDescription>
-											The name of your organization or team
+											<Trans id="auth.createOrganization.nameDescription">
+												The name of your organization or team
+											</Trans>
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -226,7 +251,9 @@ export function CreateOrganization() {
 								name="slug"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>Slug</FormLabel>
+										<FormLabel>
+											<Trans id="auth.createOrganization.slugLabel">Slug</Trans>
+										</FormLabel>
 										<FormControl>
 											<div className="relative">
 												<Input
@@ -238,8 +265,10 @@ export function CreateOrganization() {
 											</div>
 										</FormControl>
 										<FormDescription>
-											A unique identifier for your organization (auto-generated
-											from name)
+											<Trans id="auth.createOrganization.slugDescription">
+												A unique identifier for your organization
+												(auto-generated from name)
+											</Trans>
 										</FormDescription>
 										<FormMessage />
 									</FormItem>
@@ -253,7 +282,15 @@ export function CreateOrganization() {
 									isSubmitting || isCheckingSlug || slugAvailable === false
 								}
 							>
-								{isSubmitting ? "Creating..." : "Create Organization"}
+								{isSubmitting ? (
+									<Trans id="auth.createOrganization.submitPending">
+										Creating...
+									</Trans>
+								) : (
+									<Trans id="auth.createOrganization.submit">
+										Create Organization
+									</Trans>
+								)}
 							</Button>
 						</form>
 					</Form>

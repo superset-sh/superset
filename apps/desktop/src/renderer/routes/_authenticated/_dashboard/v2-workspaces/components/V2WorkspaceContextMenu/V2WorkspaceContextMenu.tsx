@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
@@ -44,6 +45,7 @@ export function V2WorkspaceContextMenu({
 	isCurrentRoute = false,
 	children,
 }: V2WorkspaceContextMenuProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const { ensureWorkspaceInSidebar, hideWorkspaceInSidebar } =
@@ -98,13 +100,27 @@ export function V2WorkspaceContextMenu({
 	const handleCopyBranchName = useCallback(async () => {
 		try {
 			await copyToClipboard(workspace.branch);
-			toast.success("Branch name copied");
+			toast.success(
+				t({
+					id: "dashboard.workspaces.contextMenu.branchNameCopied",
+					message: "Branch name copied",
+				}),
+			);
 		} catch (error) {
 			toast.error(
-				`Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
+				t({
+					id: "dashboard.workspaces.contextMenu.copyBranchNameFailed",
+					message: `Failed to copy branch name: ${errorMessage(
+						error,
+						t({
+							id: "dashboard.workspaces.contextMenu.unknownError",
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 			);
 		}
-	}, [copyToClipboard, workspace.branch]);
+	}, [copyToClipboard, workspace.branch, t]);
 
 	// Globally-mounted dialog (DeleteWorkspaceMount): archive-first
 	// tombstoning drops this row the moment the destroy starts, which
@@ -129,11 +145,13 @@ export function V2WorkspaceContextMenu({
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuItem onSelect={open}>
 					<LuArrowUpRight className="size-4" />
-					Open
+					<Trans id="dashboard.workspaces.contextMenu.open">Open</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={handleCopyBranchName}>
 					<LuGitBranch className="size-4" />
-					Copy Branch Name
+					<Trans id="dashboard.workspaces.contextMenu.copyBranchName">
+						Copy Branch Name
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				{workspace.isInSidebar ? (
@@ -142,12 +160,16 @@ export function V2WorkspaceContextMenu({
 						disabled={isCurrentRoute}
 					>
 						<RiPushpinLine className="size-4" />
-						Unpin from Sidebar
+						<Trans id="dashboard.workspaces.contextMenu.unpinFromSidebar">
+							Unpin from Sidebar
+						</Trans>
 					</ContextMenuItem>
 				) : (
 					<ContextMenuItem onSelect={addToSidebar}>
 						<RiPushpinFill className="size-4" />
-						Pin to Sidebar
+						<Trans id="dashboard.workspaces.contextMenu.pinToSidebar">
+							Pin to Sidebar
+						</Trans>
 					</ContextMenuItem>
 				)}
 				{!isMainWorkspace ? (
@@ -158,7 +180,7 @@ export function V2WorkspaceContextMenu({
 							className="text-destructive focus:text-destructive"
 						>
 							<LuTrash2 className="size-4 text-destructive" />
-							Delete
+							<Trans id="dashboard.workspaces.contextMenu.delete">Delete</Trans>
 						</ContextMenuItem>
 					</>
 				) : null}

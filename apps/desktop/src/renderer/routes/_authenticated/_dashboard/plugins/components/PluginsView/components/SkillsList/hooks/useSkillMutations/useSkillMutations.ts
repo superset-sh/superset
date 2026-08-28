@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMemo } from "react";
@@ -6,6 +7,7 @@ import { posthog } from "renderer/lib/posthog";
 
 /** Disabled-skill state and its toggle mutation, with shared toasts/analytics/invalidation. */
 export function useSkillMutations() {
+	const { t } = useLingui();
 	const utils = electronTrpc.useUtils();
 	const disabledQuery = electronTrpc.plugins.getDisabledSkills.useQuery();
 	const disabledSkills = useMemo(
@@ -20,14 +22,33 @@ export function useSkillMutations() {
 				skill: variables.name,
 			});
 			toast.success(
-				`${variables.name} ${variables.enabled ? "enabled" : "disabled"}`,
-				{ description: "Takes effect in new agent sessions." },
+				variables.enabled
+					? t({
+							id: "dashboard.plugins.skillMutations.enabled",
+							message: `${variables.name} enabled`,
+						})
+					: t({
+							id: "dashboard.plugins.skillMutations.disabled",
+							message: `${variables.name} disabled`,
+						}),
+				{
+					description: t({
+						id: "dashboard.plugins.skillMutations.takesEffectNewSessions",
+						message: "Takes effect in new agent sessions.",
+					}),
+				},
 			);
 		},
 		onError: (error) => {
-			toast.error("Could not update skill", {
-				description: errorMessage(error),
-			});
+			toast.error(
+				t({
+					id: "dashboard.plugins.skillMutations.updateFailed",
+					message: "Could not update skill",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
 		},
 	});
 

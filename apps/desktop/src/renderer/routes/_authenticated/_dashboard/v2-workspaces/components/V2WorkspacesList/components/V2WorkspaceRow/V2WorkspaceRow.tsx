@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { CgLaptop } from "react-icons/cg";
@@ -25,6 +27,7 @@ export function V2WorkspaceRow({
 	workspace,
 	isCurrentRoute,
 }: V2WorkspaceRowProps) {
+	const { t } = useLingui();
 	const isMainWorkspace = workspace.type === "main";
 	// Drives the name's hover-reveal for keyboard users: the row, not the
 	// name span, is what's actually tabbable.
@@ -35,7 +38,7 @@ export function V2WorkspaceRow({
 	} = useFocusVisible();
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
-		? "you"
+		? t({ id: "dashboard.workspaces.row.creatorYou", message: "you" })
 		: workspace.createdByName;
 
 	// The visible age tracks activity (matches the default sort); creation
@@ -43,10 +46,22 @@ export function V2WorkspaceRow({
 	const timeLabel = getRelativeTime(workspaceActivityAt(workspace), {
 		format: "compact",
 	});
+	const createdAtLabel = workspace.createdAt.toLocaleString();
 	const timeTitle = [
-		`Created ${workspace.createdAt.toLocaleString()}${creatorLabel ? ` by ${creatorLabel}` : ""}`,
+		creatorLabel
+			? t({
+					id: "dashboard.workspaces.row.createdAtBy",
+					message: `Created ${createdAtLabel} by ${creatorLabel}`,
+				})
+			: t({
+					id: "dashboard.workspaces.row.createdAt",
+					message: `Created ${createdAtLabel}`,
+				}),
 		workspace.lastAgentEventAt
-			? `Last agent activity ${new Date(workspace.lastAgentEventAt).toLocaleString()}`
+			? t({
+					id: "dashboard.workspaces.row.lastAgentActivity",
+					message: `Last agent activity ${new Date(workspace.lastAgentEventAt).toLocaleString()}`,
+				})
 			: null,
 	]
 		.filter(Boolean)
@@ -57,13 +72,28 @@ export function V2WorkspaceRow({
 	// still one hover away instead of gone outright.
 	const rowTitle = [
 		workspace.pr
-			? `PR #${workspace.pr.prNumber} (${workspace.pr.state})`
+			? t({
+					id: "dashboard.workspaces.row.prLine",
+					message: `PR #${workspace.pr.prNumber} (${workspace.pr.state})`,
+				})
 			: null,
 		workspace.type !== "session" &&
 		workspace.branch.toLowerCase() !== workspace.name.toLowerCase()
-			? `Branch: ${workspace.branch}`
+			? t({
+					id: "dashboard.workspaces.row.branchLine",
+					message: `Branch: ${workspace.branch}`,
+				})
 			: null,
-		`Project: ${workspace.projectName ?? "none (session)"}`,
+		t({
+			id: "dashboard.workspaces.row.projectLine",
+			message: `Project: ${
+				workspace.projectName ??
+				t({
+					id: "dashboard.workspaces.row.projectNoneSession",
+					message: "none (session)",
+				})
+			}`,
+		}),
 	]
 		.filter(Boolean)
 		.join("\n");
@@ -113,11 +143,18 @@ export function V2WorkspaceRow({
 								<span title="">
 									<CgLaptop
 										className="size-3.5 shrink-0 text-muted-foreground"
-										aria-label="Main workspace"
+										aria-label={t({
+											id: "dashboard.workspaces.row.mainWorkspaceLabel",
+											message: "Main workspace",
+										})}
 									/>
 								</span>
 							</TooltipTrigger>
-							<TooltipContent side="top">Main workspace</TooltipContent>
+							<TooltipContent side="top">
+								<Trans id="dashboard.workspaces.row.mainWorkspace">
+									Main workspace
+								</Trans>
+							</TooltipContent>
 						</Tooltip>
 					) : null}
 
@@ -140,7 +177,10 @@ export function V2WorkspaceRow({
 							rel="noreferrer"
 							onClick={(event) => event.stopPropagation()}
 							title=""
-							aria-label={`Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`}
+							aria-label={t({
+								id: "dashboard.workspaces.row.pullRequestLabel",
+								message: `Pull request #${workspace.pr.prNumber}, ${workspace.pr.state}`,
+							})}
 							className="shrink-0"
 						>
 							<PRIcon state={workspace.pr.state} className="size-3.5" />
@@ -152,7 +192,13 @@ export function V2WorkspaceRow({
 						workspace.diffStats.deletions > 0) ? (
 						<span
 							className="flex shrink-0 items-center gap-1.5 font-mono text-[11px] tabular-nums leading-none"
-							title={`${workspace.diffStats.fileCount} changed ${workspace.diffStats.fileCount === 1 ? "file" : "files"}`}
+							title={t({
+								id: "dashboard.workspaces.row.changedFiles",
+								message: plural(workspace.diffStats.fileCount, {
+									one: "# changed file",
+									other: "# changed files",
+								}),
+							})}
 						>
 							<span className="text-emerald-600/80 dark:text-emerald-400/70">
 								+{formatCount(workspace.diffStats.additions)}

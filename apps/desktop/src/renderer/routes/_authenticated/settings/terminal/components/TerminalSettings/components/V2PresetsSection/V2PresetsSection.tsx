@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
 	type ExecutionMode,
@@ -56,6 +57,7 @@ export function V2PresetsSection({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: V2PresetsSectionProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
@@ -630,12 +632,20 @@ export function V2PresetsSection({
 				<div className="flex items-start justify-between gap-3 p-4">
 					<div className="min-w-0">
 						<h3 className="text-sm font-medium">
-							<HighlightText text="Terminal scripts" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.terminal.v2Presets.label",
+									message: "Terminal scripts",
+								})}
+								query={searchQuery}
+							/>
 						</h3>
 						<p className="text-xs text-muted-foreground mt-0.5">
-							Reusable terminal launches. Click a script to edit or drag to
-							reorder. Project setup, run, and teardown commands are lifecycle
-							scripts.
+							<Trans id="settings.terminal.v2Presets.subtitle">
+								Reusable terminal launches. Click a script to edit or drag to
+								reorder. Project setup, run, and teardown commands are lifecycle
+								scripts.
+							</Trans>
 						</p>
 					</div>
 					<div className="flex shrink-0 items-center gap-2">
@@ -651,7 +661,9 @@ export function V2PresetsSection({
 						{showPresets && (
 							<Button size="sm" onClick={() => handleAddRow()}>
 								<HiOutlinePlus className="size-4" />
-								Add script
+								<Trans id="settings.terminal.v2Presets.addScript">
+									Add script
+								</Trans>
 							</Button>
 						)}
 					</div>

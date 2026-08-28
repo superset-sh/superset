@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { LucideIcon } from "lucide-react-native";
 import {
 	ChevronDownIcon,
@@ -82,7 +84,7 @@ export function ToolCallRow({
 			<View className="ml-2 flex-row items-center gap-1">
 				<Icon as={XCircleIcon} className="size-3 shrink-0 text-red-500" />
 				<Text className="font-medium font-mono text-red-500 text-xs uppercase tracking-wide">
-					Error
+					<Trans id="mobile.tool.error">Error</Trans>
 				</Text>
 			</View>
 		) : null);
@@ -135,7 +137,10 @@ export function ToolCallRow({
 								) : null}
 								{isNotConfigured ? (
 									<View
-										accessibilityLabel="Not configured"
+										accessibilityLabel={i18n._({
+											id: "mobile.tool.notConfigured",
+											message: "Not configured",
+										})}
 										className="shrink-0"
 									>
 										<Icon

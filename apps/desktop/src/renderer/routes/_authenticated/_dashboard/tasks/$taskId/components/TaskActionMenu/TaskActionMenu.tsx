@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -22,6 +23,7 @@ interface TaskActionMenuProps {
 }
 
 export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
+	const { t } = useLingui();
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
@@ -52,7 +54,10 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 					variant="ghost"
 					size="icon"
 					className="h-8 w-8"
-					aria-label="Open task actions"
+					aria-label={t({
+						id: "dashboard.tasks.taskActionMenu.openActions",
+						message: "Open task actions",
+					})}
 				>
 					<HiEllipsisHorizontal className="h-4 w-4" />
 				</Button>
@@ -60,11 +65,17 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 			<DropdownMenuContent align="end" className="w-64">
 				<DropdownMenuItem onSelect={handleCopyId}>
 					<HiOutlineDocumentDuplicate className="size-4" />
-					<span>Copy ID</span>
+					<span>
+						<Trans id="dashboard.tasks.taskActionMenu.copyId">Copy ID</Trans>
+					</span>
 				</DropdownMenuItem>
 				<DropdownMenuItem onSelect={handleCopyTitle}>
 					<HiOutlineDocumentDuplicate className="size-4" />
-					<span>Copy Title</span>
+					<span>
+						<Trans id="dashboard.tasks.taskActionMenu.copyTitle">
+							Copy Title
+						</Trans>
+					</span>
 				</DropdownMenuItem>
 
 				<DropdownMenuSeparator />
@@ -74,7 +85,9 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 					className="text-destructive focus:text-destructive"
 				>
 					<HiOutlineTrash className="text-destructive size-4" />
-					<span>Delete</span>
+					<span>
+						<Trans id="dashboard.tasks.taskActionMenu.delete">Delete</Trans>
+					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

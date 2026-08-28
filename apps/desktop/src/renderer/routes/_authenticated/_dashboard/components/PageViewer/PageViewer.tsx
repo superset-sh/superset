@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { authClient } from "@superset/auth/client";
 import { CommentProvider, PageCommentsView } from "@superset/ui/page-comments";
 import { Spinner } from "@superset/ui/spinner";
@@ -32,6 +33,7 @@ export function PageViewer({
 	onCommentsEnabledChange,
 	onResolved,
 }: PageViewerProps) {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const pull = cloudTrpc.page.pull.useQuery(pageId ? { id: pageId } : { slug });
 	const downloadUrl = pull.data?.downloadUrl;
@@ -102,12 +104,22 @@ export function PageViewer({
 			<PageViewerMessage
 				title={
 					missing
-						? "This page no longer exists"
-						: "This page could not be opened"
+						? t({
+								id: "dashboard.pageViewer.pageMissingTitle",
+								message: "This page no longer exists",
+							})
+						: t({
+								id: "dashboard.pageViewer.pageOpenFailedTitle",
+								message: "This page could not be opened",
+							})
 				}
 				description={
 					missing
-						? "It may have been deleted, or it belongs to another organization."
+						? t({
+								id: "dashboard.pageViewer.pageMissingDescription",
+								message:
+									"It may have been deleted, or it belongs to another organization.",
+							})
 						: (pull.error?.message ?? content.error?.message)
 				}
 			/>
@@ -129,7 +141,9 @@ export function PageViewer({
 			onEnabledChange={onCommentsEnabledChange}
 			user={{
 				id: session?.user.id ?? "",
-				name: session?.user.name ?? "You",
+				name:
+					session?.user.name ??
+					t({ id: "dashboard.pageViewer.youFallback", message: "You" }),
 				image: session?.user.image ?? null,
 			}}
 		>

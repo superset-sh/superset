@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { useWorkspaceHostUrl } from "@superset/workspace-client";
 import type { ReactNode } from "react";
 import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
@@ -23,6 +25,7 @@ export function WorkspaceHostGate({
 	workspace: HostShapedWorkspace;
 	children: ReactNode;
 }) {
+	const { t } = useLingui();
 	const hostUrl = useWorkspaceHostUrl();
 	const { isUnreachable, isReconnecting, detail, retry } =
 		useHostReachability(hostUrl);
@@ -47,7 +50,12 @@ export function WorkspaceHostGate({
 		) ?? null;
 	const hostName =
 		hostRow?.name ??
-		(workspace.hostId === machineId ? "This device" : "Unknown host");
+		(workspace.hostId === machineId
+			? t({ id: "workspace.states.hostGateThisDevice", message: "This device" })
+			: t({
+					id: "workspace.states.hostGateUnknownHost",
+					message: "Unknown host",
+				}));
 
 	// The wrapper renders unconditionally — dropping it when the host is
 	// reachable would move `children` in the tree and remount the whole
@@ -67,7 +75,7 @@ export function WorkspaceHostGate({
 							hostName={hostName}
 							detail={
 								isLocalRestartInFlight
-									? LOCAL_HOST_SERVICE_DETAIL.starting
+									? i18n._(LOCAL_HOST_SERVICE_DETAIL.starting)
 									: detail
 							}
 							isReconnecting={isReconnecting || isLocalRestartInFlight}

@@ -1,3 +1,7 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import { GlobeIcon } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -5,39 +9,133 @@ import { TbCopy } from "react-icons/tb";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { BrowserLoadError } from "shared/tabs-types";
 
-const ERROR_LABELS: Record<number, string> = {
-	[-2]: "Network Changed",
-	[-6]: "Connection Refused",
-	[-7]: "Connection Timed Out",
-	[-21]: "Network Changed",
-	[-100]: "Connection Closed",
-	[-102]: "Connection Refused",
-	[-105]: "Name Not Resolved",
-	[-106]: "Internet Disconnected",
-	[-109]: "Address Unreachable",
-	[-118]: "Connection Timed Out",
-	[-137]: "Name Not Resolved",
-	[-200]: "Certificate Error",
-	[-201]: "Certificate Date Invalid",
-	[-202]: "Certificate Authority Invalid",
+const ERROR_LABELS: Record<number, MessageDescriptor> = {
+	[-2]: msg({
+		id: "workspace.browserPane.errorNetworkChanged",
+		message: "Network Changed",
+	}),
+	[-6]: msg({
+		id: "workspace.browserPane.errorConnectionRefused",
+		message: "Connection Refused",
+	}),
+	[-7]: msg({
+		id: "workspace.browserPane.errorConnectionTimedOut",
+		message: "Connection Timed Out",
+	}),
+	[-21]: msg({
+		id: "workspace.browserPane.errorNetworkChangedIp",
+		message: "Network Changed",
+	}),
+	[-100]: msg({
+		id: "workspace.browserPane.errorConnectionClosed",
+		message: "Connection Closed",
+	}),
+	[-102]: msg({
+		id: "workspace.browserPane.errorConnectionRefusedRemote",
+		message: "Connection Refused",
+	}),
+	[-105]: msg({
+		id: "workspace.browserPane.errorNameNotResolved",
+		message: "Name Not Resolved",
+	}),
+	[-106]: msg({
+		id: "workspace.browserPane.errorInternetDisconnected",
+		message: "Internet Disconnected",
+	}),
+	[-109]: msg({
+		id: "workspace.browserPane.errorAddressUnreachable",
+		message: "Address Unreachable",
+	}),
+	[-118]: msg({
+		id: "workspace.browserPane.errorConnectionTimedOutSlow",
+		message: "Connection Timed Out",
+	}),
+	[-137]: msg({
+		id: "workspace.browserPane.errorNameNotResolvedDns",
+		message: "Name Not Resolved",
+	}),
+	[-200]: msg({
+		id: "workspace.browserPane.errorCertificate",
+		message: "Certificate Error",
+	}),
+	[-201]: msg({
+		id: "workspace.browserPane.errorCertificateDateInvalid",
+		message: "Certificate Date Invalid",
+	}),
+	[-202]: msg({
+		id: "workspace.browserPane.errorCertificateAuthorityInvalid",
+		message: "Certificate Authority Invalid",
+	}),
 };
 
-const FRIENDLY_MESSAGES: Record<number, string> = {
-	[-2]: "The network connection changed",
-	[-6]: "Browser Connection was refused",
-	[-7]: "The connection timed out",
-	[-21]: "The network connection changed",
-	[-100]: "The connection was closed",
-	[-102]: "Browser Connection was refused",
-	[-105]: "The server could not be found",
-	[-106]: "You appear to be offline",
-	[-109]: "The address is unreachable",
-	[-118]: "The connection timed out",
-	[-137]: "The server could not be found",
-	[-200]: "The site's certificate is invalid",
-	[-201]: "The site's certificate has expired",
-	[-202]: "The site's certificate authority is not trusted",
+const FRIENDLY_MESSAGES: Record<number, MessageDescriptor> = {
+	[-2]: msg({
+		id: "workspace.browserPane.friendlyNetworkChanged",
+		message: "The network connection changed",
+	}),
+	[-6]: msg({
+		id: "workspace.browserPane.friendlyConnectionRefused",
+		message: "Browser Connection was refused",
+	}),
+	[-7]: msg({
+		id: "workspace.browserPane.friendlyConnectionTimedOut",
+		message: "The connection timed out",
+	}),
+	[-21]: msg({
+		id: "workspace.browserPane.friendlyNetworkChangedIp",
+		message: "The network connection changed",
+	}),
+	[-100]: msg({
+		id: "workspace.browserPane.friendlyConnectionClosed",
+		message: "The connection was closed",
+	}),
+	[-102]: msg({
+		id: "workspace.browserPane.friendlyConnectionRefusedRemote",
+		message: "Browser Connection was refused",
+	}),
+	[-105]: msg({
+		id: "workspace.browserPane.friendlyNameNotResolved",
+		message: "The server could not be found",
+	}),
+	[-106]: msg({
+		id: "workspace.browserPane.friendlyInternetDisconnected",
+		message: "You appear to be offline",
+	}),
+	[-109]: msg({
+		id: "workspace.browserPane.friendlyAddressUnreachable",
+		message: "The address is unreachable",
+	}),
+	[-118]: msg({
+		id: "workspace.browserPane.friendlyConnectionTimedOutSlow",
+		message: "The connection timed out",
+	}),
+	[-137]: msg({
+		id: "workspace.browserPane.friendlyNameNotResolvedDns",
+		message: "The server could not be found",
+	}),
+	[-200]: msg({
+		id: "workspace.browserPane.friendlyCertificate",
+		message: "The site's certificate is invalid",
+	}),
+	[-201]: msg({
+		id: "workspace.browserPane.friendlyCertificateExpired",
+		message: "The site's certificate has expired",
+	}),
+	[-202]: msg({
+		id: "workspace.browserPane.friendlyCertificateAuthorityInvalid",
+		message: "The site's certificate authority is not trusted",
+	}),
 };
+
+const FALLBACK_LABEL = msg({
+	id: "workspace.browserPane.errorPageLoadFailed",
+	message: "Page Load Failed",
+});
+
+const FALLBACK_FRIENDLY_MESSAGE = msg({
+	id: "workspace.browserPane.friendlyPageLoadFailed",
+	message: "The page could not be loaded",
+});
 
 interface BrowserErrorOverlayProps {
 	error: BrowserLoadError;
@@ -49,9 +147,10 @@ export function BrowserErrorOverlay({
 	onRetry,
 }: BrowserErrorOverlayProps) {
 	const [showDetails, setShowDetails] = useState(false);
-	const label = ERROR_LABELS[error.code] ?? "Page Load Failed";
-	const friendlyMessage =
-		FRIENDLY_MESSAGES[error.code] ?? "The page could not be loaded";
+	const label = i18n._(ERROR_LABELS[error.code] ?? FALLBACK_LABEL);
+	const friendlyMessage = i18n._(
+		FRIENDLY_MESSAGES[error.code] ?? FALLBACK_FRIENDLY_MESSAGE,
+	);
 	const detailsText = `Error Code: ${error.code} URL: ${error.url}`;
 
 	const toggleDetails = useCallback(() => {
@@ -82,7 +181,15 @@ export function BrowserErrorOverlay({
 							onClick={toggleDetails}
 							className="hover:text-muted-foreground/70 transition-colors"
 						>
-							{showDetails ? "Hide Details" : "Show Details"}
+							{showDetails ? (
+								<Trans id="workspace.browserPane.hideErrorDetails">
+									Hide Details
+								</Trans>
+							) : (
+								<Trans id="workspace.browserPane.showErrorDetails">
+									Show Details
+								</Trans>
+							)}
 						</button>
 					</p>
 				</div>
@@ -101,7 +208,9 @@ export function BrowserErrorOverlay({
 					</div>
 				)}
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					Restart Browser
+					<Trans id="workspace.browserPane.restartBrowser">
+						Restart Browser
+					</Trans>
 				</Button>
 			</div>
 		</div>

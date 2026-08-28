@@ -1,6 +1,9 @@
+import { useLingui } from "@lingui/react/macro";
 import { Stack } from "expo-router";
 
 export default function HomeLayout() {
+	const { t } = useLingui();
+
 	return (
 		<Stack
 			screenOptions={{
@@ -13,7 +16,7 @@ export default function HomeLayout() {
 				name="search"
 				options={{
 					presentation: "formSheet",
-					title: "Search",
+					title: t({ id: "mobile.nav.search.title", message: "Search" }),
 					sheetAllowedDetents: [1.0],
 					sheetGrabberVisible: true,
 				}}
@@ -33,7 +36,10 @@ export default function HomeLayout() {
 					presentation: "formSheet",
 					sheetAllowedDetents: [0.5],
 					sheetGrabberVisible: true,
-					title: "Organizations",
+					title: t({
+						id: "mobile.nav.organizations.title",
+						message: "Organizations",
+					}),
 				}}
 			/>
 			<Stack.Screen

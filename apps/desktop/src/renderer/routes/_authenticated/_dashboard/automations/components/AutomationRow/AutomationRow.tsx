@@ -1,4 +1,9 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
+import { i18n } from "@superset/i18n";
+import { formatCompactRelativeTime } from "@superset/i18n/format";
 import {
 	describeSchedule,
 	formatDateTimeInTimezone,
@@ -49,34 +54,75 @@ interface AutomationRowProps {
 // A run's terminal success state is workspace creation — say so.
 const LAST_RUN_META: Record<
 	SelectAutomationRun["status"],
-	{ dot: string; label: string; failed?: boolean }
+	{ dot: string; label: MessageDescriptor; failed?: boolean }
 > = {
-	dispatched: { dot: "bg-emerald-500", label: "created" },
-	dispatching: { dot: "bg-amber-500", label: "creating" },
-	skipped_offline: { dot: "bg-red-500", label: "failed", failed: true },
-	dispatch_failed: { dot: "bg-red-500", label: "failed", failed: true },
+	dispatched: {
+		dot: "bg-emerald-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunCreated",
+			message: "created",
+		}),
+	},
+	dispatching: {
+		dot: "bg-amber-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunCreating",
+			message: "creating",
+		}),
+	},
+	skipped_offline: {
+		dot: "bg-red-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunFailedOffline",
+			message: "failed",
+		}),
+		failed: true,
+	},
+	dispatch_failed: {
+		dot: "bg-red-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunFailed",
+			message: "failed",
+		}),
+		failed: true,
+	},
 	// Neither created a workspace, so neither is `failed` — that flag offers to
 	// open one.
-	debounced: { dot: "bg-slate-400", label: "superseded" },
-	rejected: { dot: "bg-amber-500", label: "blocked" },
+	debounced: {
+		dot: "bg-slate-400",
+		label: msg({
+			id: "dashboard.automations.row.lastRunSuperseded",
+			message: "superseded",
+		}),
+	},
+	rejected: {
+		dot: "bg-amber-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunBlocked",
+			message: "blocked",
+		}),
+	},
 };
 
+// Both directions come from Intl.RelativeTimeFormat: it renders the compact
+// "3d ago" / "in 2h" shape in every locale, so these need no catalog entries
+// beyond the two "right now" cases where a bare unit would read oddly.
 function compactUntil(at: number, now: Date): string {
-	const minutes = Math.floor((at - now.getTime()) / 60_000);
-	if (minutes < 1) return "soon";
-	if (minutes < 60) return `in ${minutes}m`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `in ${hours}h`;
-	return `in ${Math.floor(hours / 24)}d`;
+	if (at - now.getTime() < 60_000) {
+		return i18n._(
+			msg({ id: "dashboard.automations.row.untilSoon", message: "soon" }),
+		);
+	}
+	return formatCompactRelativeTime(at, now);
 }
 
 function compactAgo(at: number, now: Date): string {
-	const minutes = Math.floor((now.getTime() - at) / 60_000);
-	if (minutes < 1) return "just now";
-	if (minutes < 60) return `${minutes}m ago`;
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
-	return `${Math.floor(hours / 24)}d ago`;
+	if (now.getTime() - at < 60_000) {
+		return i18n._(
+			msg({ id: "dashboard.automations.row.agoJustNow", message: "just now" }),
+		);
+	}
+	return formatCompactRelativeTime(at, now);
 }
 
 export function AutomationRow({
@@ -93,14 +139,21 @@ export function AutomationRow({
 	onToggleEnabled,
 	onDelete,
 }: AutomationRowProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	// No rrule but some trigger means the automation is driven by events
 	// rather than a clock; no triggers at all means it never fires.
 	const scheduleLabel = automation.rrule
 		? describeSchedule(automation.rrule)
 		: automation.triggerCount > 0
-			? "Event triggered"
-			: "No triggers";
+			? t({
+					id: "dashboard.automations.row.eventTriggered",
+					message: "Event triggered",
+				})
+			: t({
+					id: "dashboard.automations.row.noTriggers",
+					message: "No triggers",
+				});
 
 	const openDetail = () =>
 		navigate({
@@ -178,7 +231,7 @@ export function AutomationRow({
 								</span>
 							) : isSession ? (
 								<span className="ml-1 shrink-0 text-xs text-muted-foreground">
-									Session
+									<Trans id="dashboard.automations.row.session">Session</Trans>
 								</span>
 							) : null}
 						</span>
@@ -204,16 +257,21 @@ export function AutomationRow({
 						className="text-xs text-muted-foreground"
 						title={
 							automation.enabled && automation.nextRunAt
-								? `Next run ${formatDateTimeInTimezone(
-										new Date(automation.nextRunAt),
-										automation.timezone ?? "UTC",
-									)}`
+								? t({
+										id: "dashboard.automations.row.nextRunTitle",
+										message: `Next run ${formatDateTimeInTimezone(
+											new Date(automation.nextRunAt),
+											automation.timezone ?? "UTC",
+										)}`,
+									})
 								: undefined
 						}
 					>
 						{automation.enabled ? (
 							<span className="truncate">
-								Active
+								<Trans id="dashboard.automations.row.statusActive">
+									Active
+								</Trans>
 								{automation.nextRunAt && (
 									<span className="text-muted-foreground/60">
 										{" · "}
@@ -225,7 +283,7 @@ export function AutomationRow({
 								)}
 							</span>
 						) : (
-							"Paused"
+							<Trans id="dashboard.automations.row.statusPaused">Paused</Trans>
 						)}
 					</TableCell>
 
@@ -245,7 +303,7 @@ export function AutomationRow({
 												lastRunMeta.dot,
 											)}
 										/>
-										{lastRunMeta.label}
+										{i18n._(lastRunMeta.label)}
 										<span
 											className="truncate text-muted-foreground/70"
 											title={new Date(lastRun.at).toLocaleString()}
@@ -270,9 +328,15 @@ export function AutomationRow({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent>
-												{lastRunMeta.failed
-													? "The last run failed. Open its workspace to see why"
-													: "Open the run's workspace"}
+												{lastRunMeta.failed ? (
+													<Trans id="dashboard.automations.row.openFailedRunTooltip">
+														The last run failed. Open its workspace to see why
+													</Trans>
+												) : (
+													<Trans id="dashboard.automations.row.openRunTooltip">
+														Open the run's workspace
+													</Trans>
+												)}
 											</TooltipContent>
 										</Tooltip>
 									);
@@ -284,7 +348,9 @@ export function AutomationRow({
 												<span className="block">{cell}</span>
 											</TooltipTrigger>
 											<TooltipContent>
-												The last run failed. Click the row to see why.
+												<Trans id="dashboard.automations.row.failedRunRowTooltip">
+													The last run failed. Click the row to see why.
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 									);
@@ -309,7 +375,10 @@ export function AutomationRow({
 												e.stopPropagation();
 												onRunNow(automation);
 											}}
-											aria-label={`Run ${automation.name} now`}
+											aria-label={t({
+												id: "dashboard.automations.row.runNowAriaLabel",
+												message: `Run ${automation.name} now`,
+											})}
 											className={cn(
 												"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
 												isRetrying && "opacity-100",
@@ -322,7 +391,11 @@ export function AutomationRow({
 											)}
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent>Run now</TooltipContent>
+									<TooltipContent>
+										<Trans id="dashboard.automations.row.runNowTooltip">
+											Run now
+										</Trans>
+									</TooltipContent>
 								</Tooltip>
 							)}
 							{isOwner && (
@@ -332,7 +405,10 @@ export function AutomationRow({
 											variant="ghost"
 											size="icon-sm"
 											onClick={(e) => e.stopPropagation()}
-											aria-label="Row actions"
+											aria-label={t({
+												id: "dashboard.automations.row.rowActionsAriaLabel",
+												message: "Row actions",
+											})}
 											className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
 										>
 											<LuEllipsis className="size-4" />

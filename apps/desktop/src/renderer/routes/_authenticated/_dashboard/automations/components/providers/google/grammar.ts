@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	GoogleCalendarTriggerEvent,
 	TriggerConfigInput,
@@ -98,39 +100,135 @@ export const GMAIL_SENTENCE: SentencePart<GmailSlot>[] = [
 ];
 
 export const MINUTES_BEFORE_OPTIONS = [
-	{ value: "5", label: "5 minutes" },
-	{ value: "10", label: "10 minutes" },
-	{ value: "15", label: "15 minutes" },
-	{ value: "30", label: "30 minutes" },
-	{ value: "60", label: "1 hour" },
-	{ value: "120", label: "2 hours" },
+	{
+		value: "5",
+		label: msg({
+			id: "dashboard.automations.providers.google.minutes5",
+			message: "5 minutes",
+		}),
+	},
+	{
+		value: "10",
+		label: msg({
+			id: "dashboard.automations.providers.google.minutes10",
+			message: "10 minutes",
+		}),
+	},
+	{
+		value: "15",
+		label: msg({
+			id: "dashboard.automations.providers.google.minutes15",
+			message: "15 minutes",
+		}),
+	},
+	{
+		value: "30",
+		label: msg({
+			id: "dashboard.automations.providers.google.minutes30",
+			message: "30 minutes",
+		}),
+	},
+	{
+		value: "60",
+		label: msg({
+			id: "dashboard.automations.providers.google.hour1",
+			message: "1 hour",
+		}),
+	},
+	{
+		value: "120",
+		label: msg({
+			id: "dashboard.automations.providers.google.hours2",
+			message: "2 hours",
+		}),
+	},
 ] as const;
 
 export const EXTERNAL_ATTENDEE_OPTIONS = [
-	{ value: "any", label: "anyone" },
-	{ value: "external", label: "someone external" },
+	{
+		value: "any",
+		label: msg({
+			id: "dashboard.automations.providers.google.attendeeAnyone",
+			message: "anyone",
+		}),
+	},
+	{
+		value: "external",
+		label: msg({
+			id: "dashboard.automations.providers.google.attendeeExternal",
+			message: "someone external",
+		}),
+	},
 ] as const;
 
 export const ATTACHMENT_OPTIONS = [
-	{ value: "any", label: "with or without attachments" },
-	{ value: "attachment", label: "with an attachment" },
+	{
+		value: "any",
+		label: msg({
+			id: "dashboard.automations.providers.google.attachmentAny",
+			message: "with or without attachments",
+		}),
+	},
+	{
+		value: "attachment",
+		label: msg({
+			id: "dashboard.automations.providers.google.attachmentWith",
+			message: "with an attachment",
+		}),
+	},
 ] as const;
 
 export const CALENDAR_MENU: TriggerMenuEntry<GoogleCalendarConfig>[] = [
-	leaf("Event created", "event.created"),
-	leaf("Event updated", "event.updated"),
-	leaf("Event cancelled", "event.cancelled"),
-	leaf("Event starting soon", "event.starting_soon"),
-	leaf("Event ended", "event.ended"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.google.menuEventCreated",
+			message: "Event created",
+		}),
+		"event.created",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.google.menuEventUpdated",
+			message: "Event updated",
+		}),
+		"event.updated",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.google.menuEventCancelled",
+			message: "Event cancelled",
+		}),
+		"event.cancelled",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.google.menuEventStartingSoon",
+			message: "Event starting soon",
+		}),
+		"event.starting_soon",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.google.menuEventEnded",
+			message: "Event ended",
+		}),
+		"event.ended",
+	),
 ];
 
 // One leaf, so the Add Trigger menu shows the provider row itself; the label
 // only surfaces in search, where "gmail" has to find it.
 export const GMAIL_MENU: TriggerMenuEntry<GmailConfig>[] = [
-	{ label: "Email received in Gmail", create: createGmailConfig },
+	{
+		label: msg({
+			id: "dashboard.automations.providers.google.menuEmailReceived",
+			message: "Email received in Gmail",
+		}),
+		create: createGmailConfig,
+	},
 ];
 
-function leaf(label: string, event: GoogleCalendarTriggerEvent) {
+function leaf(label: MessageDescriptor, event: GoogleCalendarTriggerEvent) {
 	return { label, create: () => createCalendarConfig(event) };
 }
 

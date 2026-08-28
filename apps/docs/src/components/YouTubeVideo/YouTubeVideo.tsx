@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -9,12 +10,11 @@ interface YouTubeVideoProps {
 	thumbnail: string;
 }
 
-export function YouTubeVideo({
-	id,
-	title = "Video",
-	thumbnail,
-}: YouTubeVideoProps) {
+export function YouTubeVideo({ id, title, thumbnail }: YouTubeVideoProps) {
 	const [isPlaying, setIsPlaying] = useState(false);
+	const { t } = useLingui();
+	const label =
+		title ?? t({ id: "docs.youtubeVideo.defaultTitle", message: "Video" });
 
 	if (isPlaying) {
 		return (
@@ -23,7 +23,7 @@ export function YouTubeVideo({
 					<iframe
 						className="absolute inset-0 w-full h-full"
 						src={`https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`}
-						title={title}
+						title={label}
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 						allowFullScreen
 					/>
@@ -38,11 +38,14 @@ export function YouTubeVideo({
 				type="button"
 				onClick={() => setIsPlaying(true)}
 				className="group relative w-full cursor-pointer rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10"
-				aria-label={`Play ${title}`}
+				aria-label={t({
+					id: "docs.youtubeVideo.play",
+					message: `Play ${label}`,
+				})}
 			>
 				<Image
 					src={thumbnail}
-					alt={title}
+					alt={label}
 					width={1200}
 					height={675}
 					className="w-full h-auto"

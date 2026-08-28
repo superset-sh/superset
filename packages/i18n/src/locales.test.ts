@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	DEFAULT_LOCALE,
 	isSupportedLocale,
+	LOCALE_LABELS,
 	resolveLocale,
 	SUPPORTED_LOCALES,
 } from "./locales";
@@ -35,5 +36,27 @@ describe("isSupportedLocale", () => {
 		}
 		expect(isSupportedLocale("en-US")).toBe(false);
 		expect(isSupportedLocale("")).toBe(false);
+	});
+});
+
+describe("multi-locale support", () => {
+	test("every supported locale has a native label", () => {
+		for (const locale of SUPPORTED_LOCALES) {
+			expect(LOCALE_LABELS[locale]).toBeTruthy();
+		}
+	});
+
+	test("matches a regional tag to its supported variant", () => {
+		expect(resolveLocale(["zh-Hans-CN"])).toBe("zh-CN");
+		expect(resolveLocale(["zh"])).toBe("zh-CN");
+		expect(resolveLocale(["ja-JP"])).toBe("ja");
+	});
+
+	test("prefers an earlier preference over a later exact match", () => {
+		expect(resolveLocale(["ja", "en"])).toBe("ja");
+	});
+
+	test("falls back to English for unsupported languages", () => {
+		expect(resolveLocale(["is", "fo"])).toBe("en");
 	});
 });

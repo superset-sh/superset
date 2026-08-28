@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { AGENT_SHARE_SERIES, F4_GATE_SHARE, TODAY_T } from "../../constants";
 
@@ -29,6 +30,7 @@ const toPath = (points: typeof AGENT_SHARE_SERIES) =>
 		.join(" ");
 
 export function ForecastChart() {
+	const { t } = useLingui();
 	const [hovered, setHovered] = useState<number | null>(null);
 
 	const onMove = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -52,11 +54,15 @@ export function ForecastChart() {
 		<figure className="border border-border p-4 md:p-6">
 			<figcaption>
 				<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-					Fig. 2 · Merged changes written by agents, zero human edits
+					<Trans id="marketing.factory.forecastChart.caption">
+						Fig. 2 · Merged changes written by agents, zero human edits
+					</Trans>
 				</span>
 				<span className="block text-xs text-muted-foreground mt-1">
-					Industry median, our estimate. Dashed is forecast. The first F4 teams
-					cross the gate earlier.
+					<Trans id="marketing.factory.forecastChart.subcaption">
+						Industry median, our estimate. Dashed is forecast. The first F4
+						teams cross the gate earlier.
+					</Trans>
 				</span>
 			</figcaption>
 			<div className="relative mt-4">
@@ -64,7 +70,11 @@ export function ForecastChart() {
 					viewBox={`0 0 ${W} ${H}`}
 					className="w-full h-auto touch-none"
 					role="img"
-					aria-label="Line chart: the share of merged changes written by agents with zero human edits rises from about 1 percent in 2024 to an estimated 27 percent today, with a forecast crossing the 50 percent F4 gate during 2027"
+					aria-label={t({
+						id: "marketing.factory.forecastChart.ariaLabel",
+						message:
+							"Line chart: the share of merged changes written by agents with zero human edits rises from about 1 percent in 2024 to an estimated 27 percent today, with a forecast crossing the 50 percent F4 gate during 2027",
+					})}
 					onPointerMove={onMove}
 					onPointerLeave={() => setHovered(null)}
 				>
@@ -122,7 +132,9 @@ export function ForecastChart() {
 						className="fill-foreground/70 font-mono"
 						fontSize={10}
 					>
-						F4 gate · {F4_GATE_SHARE}%
+						<Trans id="marketing.factory.forecastChart.gateLine">
+							F4 gate · {F4_GATE_SHARE}%
+						</Trans>
 					</text>
 
 					{/* Today marker */}
@@ -142,7 +154,7 @@ export function ForecastChart() {
 						className="fill-brand font-mono"
 						fontSize={10}
 					>
-						TODAY
+						<Trans id="marketing.factory.forecastChart.today">TODAY</Trans>
 					</text>
 
 					<path
@@ -182,10 +194,17 @@ export function ForecastChart() {
 							top: `${(Math.max(0, y(hoveredPoint.share) - 34) / H) * 100}%`,
 						}}
 					>
-						<span className="text-muted-foreground">{hoveredPoint.label}</span>{" "}
+						<span className="text-muted-foreground">
+							{t(hoveredPoint.label)}
+						</span>{" "}
 						<span className="text-foreground">{hoveredPoint.share}%</span>
 						{hoveredPoint.forecast && (
-							<span className="text-brand"> · forecast</span>
+							<span className="text-brand">
+								{" · "}
+								<Trans id="marketing.factory.forecastChart.forecastNote">
+									forecast
+								</Trans>
+							</span>
 						)}
 					</div>
 				)}

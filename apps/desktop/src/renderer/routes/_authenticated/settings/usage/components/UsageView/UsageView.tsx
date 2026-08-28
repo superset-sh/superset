@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -84,16 +87,32 @@ function QuotaWindowRow({ window }: { window: UsageQuotaWindow }) {
 
 function creditsLine(account: UsageAccount): string | null {
 	if (account.creditsBalance !== null) {
-		return `$${account.creditsBalance.toFixed(2)} credits`;
+		const balance = account.creditsBalance.toFixed(2);
+		return i18n._(
+			msg({
+				id: "settings.usage.account.creditsBalance",
+				message: `$${balance} credits`,
+			}),
+		);
 	}
 	if (account.extraUsage) {
-		return `extra $${(account.extraUsage.usedCents / 100).toFixed(2)} of $${(account.extraUsage.limitCents / 100).toFixed(2)}`;
+		const used = (account.extraUsage.usedCents / 100).toFixed(2);
+		const limit = (account.extraUsage.limitCents / 100).toFixed(2);
+		return i18n._(
+			msg({
+				id: "settings.usage.account.extraUsage",
+				message: `extra $${used} of $${limit}`,
+			}),
+		);
 	}
 	return null;
 }
 
-const DEFAULT_TITLE =
-	"New agent launches use this account. Relaunch a running agent to switch it.";
+const DEFAULT_TITLE = msg({
+	id: "settings.usage.account.defaultTitle",
+	message:
+		"New agent launches use this account. Relaunch a running agent to switch it.",
+});
 
 function AccountCard({
 	account,
@@ -117,6 +136,7 @@ function AccountCard({
 	/** Replaces account emails so screenshots do not retain identifying pixels. */
 	hideEmails: boolean;
 }) {
+	const { t } = useLingui();
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
@@ -133,7 +153,10 @@ function AccountCard({
 			<div className="flex items-baseline gap-1.5">
 				{selectable &&
 					(account.isDefault ? (
-						<span className="shrink-0 self-center" title={DEFAULT_TITLE}>
+						<span
+							className="shrink-0 self-center"
+							title={i18n._(DEFAULT_TITLE)}
+						>
 							<LuCircleCheck className="size-3.5 text-primary" />
 						</span>
 					) : (
@@ -141,7 +164,11 @@ function AccountCard({
 							type="button"
 							className="shrink-0 self-center text-muted-foreground/50 transition-colors hover:text-primary disabled:pointer-events-none"
 							disabled={isSwitching}
-							title="Make default — launch new terminals and agents on this account."
+							title={t({
+								id: "settings.usage.account.makeDefaultTitle",
+								message:
+									"Make default — launch new terminals and agents on this account.",
+							})}
 							onClick={onMakeDefault}
 						>
 							<LuCircle className="size-3.5" />
@@ -153,9 +180,11 @@ function AccountCard({
 						hideEmails && account.email && "select-none blur-[5px]",
 					)}
 				>
-					{hideEmails && account.email
-						? "Email hidden"
-						: (account.email ?? PROVIDER_LABELS[account.provider])}
+					{hideEmails && account.email ? (
+						<Trans id="settings.usage.account.emailHidden">Email hidden</Trans>
+					) : (
+						(account.email ?? PROVIDER_LABELS[account.provider])
+					)}
 				</span>
 				{account.plan && (
 					<span className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -164,11 +193,19 @@ function AccountCard({
 				)}
 				{account.status !== "ok" && (
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
-						{account.status === "token_expired"
-							? "Sign-in expired"
-							: account.status === "signed_out"
-								? "Signed out"
-								: "Unavailable"}
+						{account.status === "token_expired" ? (
+							<Trans id="settings.usage.account.statusSignInExpired">
+								Sign-in expired
+							</Trans>
+						) : account.status === "signed_out" ? (
+							<Trans id="settings.usage.account.statusSignedOut">
+								Signed out
+							</Trans>
+						) : (
+							<Trans id="settings.usage.account.statusUnavailable">
+								Unavailable
+							</Trans>
+						)}
 					</span>
 				)}
 				<span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
@@ -188,11 +225,13 @@ function AccountCard({
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem onClick={onSwitchSignIn}>
-							Switch sign-in…
+							<Trans id="settings.usage.account.switchSignIn">
+								Switch sign-in…
+							</Trans>
 						</DropdownMenuItem>
 						{onRemove && (
 							<DropdownMenuItem variant="destructive" onClick={onRemove}>
-								Remove…
+								<Trans id="settings.usage.account.remove">Remove…</Trans>
 							</DropdownMenuItem>
 						)}
 					</DropdownMenuContent>
@@ -206,14 +245,24 @@ function AccountCard({
 				</div>
 			) : expiredCommand !== null ? (
 				<div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted-foreground">
-					<span>Sign-in expired — run</span>
+					<span>
+						<Trans id="settings.usage.account.expiredRunPrefix">
+							Sign-in expired — run
+						</Trans>
+					</span>
 					<button
 						type="button"
 						className="inline-flex max-w-full items-center gap-1 rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground transition-colors hover:bg-muted/70"
 						title={expiredCommand}
 						onClick={() =>
 							copyToClipboard(expiredCommand).catch(() =>
-								toast.error("Copy failed", { description: expiredCommand }),
+								toast.error(
+									t({
+										id: "settings.usage.account.copyFailed",
+										message: "Copy failed",
+									}),
+									{ description: expiredCommand },
+								),
 							)
 						}
 					>
@@ -224,11 +273,19 @@ function AccountCard({
 							<LuCopy className="size-2.5 shrink-0" />
 						)}
 					</button>
-					<span>in a terminal on this host.</span>
+					<span>
+						<Trans id="settings.usage.account.expiredRunSuffix">
+							in a terminal on this host.
+						</Trans>
+					</span>
 				</div>
 			) : (
 				<div className="mt-1.5 text-[11px] text-muted-foreground">
-					{account.statusDetail ?? "Usage unavailable."}
+					{account.statusDetail ?? (
+						<Trans id="settings.usage.account.usageUnavailable">
+							Usage unavailable.
+						</Trans>
+					)}
 				</div>
 			)}
 			{/* The radio + accent border already mark the default when the cards
@@ -239,10 +296,12 @@ function AccountCard({
 						!selectable && (
 							<span
 								className="inline-flex items-center gap-1 text-[10px] font-medium text-primary"
-								title={DEFAULT_TITLE}
+								title={i18n._(DEFAULT_TITLE)}
 							>
 								<LuCircleCheck className="size-3" />
-								Default for new agents
+								<Trans id="settings.usage.account.defaultForNewAgents">
+									Default for new agents
+								</Trans>
 							</span>
 						)
 					) : (
@@ -251,10 +310,12 @@ function AccountCard({
 							size="sm"
 							className="h-5 rounded px-1.5 text-[10px]"
 							disabled={isSwitching}
-							title={DEFAULT_TITLE}
+							title={i18n._(DEFAULT_TITLE)}
 							onClick={onMakeDefault}
 						>
-							Make default
+							<Trans id="settings.usage.account.makeDefault">
+								Make default
+							</Trans>
 						</Button>
 					)}
 					{credits && (
@@ -269,6 +330,7 @@ function AccountCard({
 }
 
 export function UsageView({ hostUrl }: { hostUrl: string | null }) {
+	const { t } = useLingui();
 	const quotaQuery = useHostUsageQuota(hostUrl);
 	const setDefault = useSetDefaultUsageAccount(hostUrl);
 	const removeAccount = useRemoveUsageAccount(hostUrl);
@@ -290,10 +352,18 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			{ provider: account.provider, selection: account.selection },
 			{
 				onSuccess: () => {
+					const providerLabel = PROVIDER_LABELS[account.provider];
+					const accountLabel = account.email ?? account.sourceLabel;
 					toast.success(
-						`New ${PROVIDER_LABELS[account.provider]} agents will use ${account.email ?? account.sourceLabel}.`,
+						t({
+							id: "settings.usage.account.madeDefaultToast",
+							message: `New ${providerLabel} agents will use ${accountLabel}.`,
+						}),
 						{
-							description: "Relaunch running agents to switch them.",
+							description: t({
+								id: "settings.usage.account.madeDefaultDescription",
+								message: "Relaunch running agents to switch them.",
+							}),
 						},
 					);
 				},
@@ -326,7 +396,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			<LeaderboardPrompt hostUrl={hostUrl} />
 			<div className="flex items-center gap-2">
 				<span className="ml-auto text-[10px] text-muted-foreground">
-					Official quota · refreshes every 5 min
+					<Trans id="settings.usage.quota.refreshNote">
+						Official quota · refreshes every 5 min
+					</Trans>
 				</span>
 				<Button
 					variant="ghost"
@@ -340,7 +412,11 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					) : (
 						<LuEyeOff className="size-3" />
 					)}
-					{hideEmails ? "Show emails" : "Hide emails"}
+					{hideEmails ? (
+						<Trans id="settings.usage.quota.showEmails">Show emails</Trans>
+					) : (
+						<Trans id="settings.usage.quota.hideEmails">Hide emails</Trans>
+					)}
 				</Button>
 				<Button
 					variant="ghost"
@@ -362,7 +438,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 			{quotaQuery.isPending ? (
 				<div className="py-4 text-center text-xs text-muted-foreground">
-					Reading subscription usage…
+					<Trans id="settings.usage.quota.reading">
+						Reading subscription usage…
+					</Trans>
 				</div>
 			) : (
 				PROVIDERS.map((provider) => {
@@ -385,13 +463,17 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 									onClick={() => openAddAccount(provider)}
 								>
 									<LuPlus className="size-3" />
-									Add account
+									<Trans id="settings.usage.quota.addAccount">
+										Add account
+									</Trans>
 								</Button>
 							</div>
 							{providerAccounts.length === 0 ? (
 								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
-									No {PROVIDER_LABELS[provider]} logins on this host — sign in
-									and usage appears here.
+									<Trans id="settings.usage.quota.noLogins">
+										No {PROVIDER_LABELS[provider]} logins on this host — sign in
+										and usage appears here.
+									</Trans>
 								</div>
 							) : (
 								<div className="grid gap-2 md:grid-cols-2">
@@ -433,8 +515,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 						},
 						{
 							onSuccess: () => {
+								const removedLabel =
+									removeTarget.email ?? removeTarget.sourceLabel;
 								toast.success(
-									`Removed ${removeTarget.email ?? removeTarget.sourceLabel}.`,
+									t({
+										id: "settings.usage.account.removedToast",
+										message: `Removed ${removedLabel}.`,
+									}),
 								);
 								setRemoveTarget(null);
 							},

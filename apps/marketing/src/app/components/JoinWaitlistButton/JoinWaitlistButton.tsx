@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+
 interface JoinWaitlistButtonProps {
 	onClick: () => void;
 	size?: "sm" | "md";
@@ -18,7 +20,7 @@ export function JoinWaitlistButton({
 			onClick={onClick}
 			className={`bg-foreground text-background ${sizeClasses} rounded-[5px] font-medium hover:bg-foreground/90 transition-colors duration-150 ${className}`}
 		>
-			Join waitlist
+			<Trans id="marketing.waitlist.joinButton">Join waitlist</Trans>
 		</button>
 	);
 }

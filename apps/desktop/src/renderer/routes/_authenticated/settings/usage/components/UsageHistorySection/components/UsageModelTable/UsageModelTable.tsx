@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useNavigate } from "@tanstack/react-router";
 import type { UsageHistory } from "../../../../hooks/useHostUsageHistory";
 import { PROVIDER_CHART_CONFIG } from "../../constants";
@@ -15,10 +16,18 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 		<table className="w-full text-[11px]">
 			<thead>
 				<tr className="border-b text-left text-muted-foreground">
-					<th className="py-1 pr-2 font-medium">Model</th>
-					<th className="py-1 pr-2 text-right font-medium">Cost</th>
-					<th className="py-1 pr-2 text-right font-medium">Share</th>
-					<th className="py-1 text-right font-medium">Tokens</th>
+					<th className="py-1 pr-2 font-medium">
+						<Trans id="settings.usage.modelTable.columnModel">Model</Trans>
+					</th>
+					<th className="py-1 pr-2 text-right font-medium">
+						<Trans id="settings.usage.modelTable.columnCost">Cost</Trans>
+					</th>
+					<th className="py-1 pr-2 text-right font-medium">
+						<Trans id="settings.usage.modelTable.columnShare">Share</Trans>
+					</th>
+					<th className="py-1 text-right font-medium">
+						<Trans id="settings.usage.modelTable.columnTokens">Tokens</Trans>
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -59,7 +68,9 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 			</tbody>
 			<tfoot>
 				<tr className="border-t font-medium">
-					<td className="py-1 pr-2">Total</td>
+					<td className="py-1 pr-2">
+						<Trans id="settings.usage.modelTable.total">Total</Trans>
+					</td>
 					<td className="py-1 pr-2 text-right tabular-nums">
 						{history.totals.approximate ? "~" : ""}
 						{formatUsd(totalUsd)}

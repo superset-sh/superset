@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
@@ -20,6 +21,7 @@ interface WebhookSentenceProps {
 
 /** "Webhook triggered" + inbound URL + auth header button. The token is shown once. */
 export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
+	const { t } = useLingui();
 	const { automationId } = useParams({ strict: false });
 	const url = automationId
 		? `${env.NEXT_PUBLIC_API_URL}/api/automations/webhook/${automationId}`
@@ -45,13 +47,33 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			}
 		},
 		onError: (error) =>
-			toast.error(errorMessage(error, "Failed to generate token")),
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.webhookSentence.generateTokenFailedToast",
+						message: "Failed to generate token",
+					}),
+				),
+			),
 	});
 
 	const copyHeader = () =>
 		navigator.clipboard.writeText(`Authorization: Bearer ${token}`).then(
-			() => toast.success("Auth header copied"),
-			() => toast.error("Copy failed"),
+			() =>
+				toast.success(
+					t({
+						id: "dashboard.automations.webhookSentence.headerCopiedToast",
+						message: "Auth header copied",
+					}),
+				),
+			() =>
+				toast.error(
+					t({
+						id: "dashboard.automations.webhookSentence.copyFailedToast",
+						message: "Copy failed",
+					}),
+				),
 		);
 
 	const generate = () => {
@@ -61,12 +83,28 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			return;
 		}
 		alert({
-			title: "Regenerate auth header?",
-			description: `The current token (${secretPrefix}…) stops working immediately.`,
+			title: t({
+				id: "dashboard.automations.webhookSentence.regenerateDialogTitle",
+				message: "Regenerate auth header?",
+			}),
+			description: t({
+				id: "dashboard.automations.webhookSentence.regenerateDialogDescription",
+				message: `The current token (${secretPrefix}…) stops working immediately.`,
+			}),
 			actions: [
-				{ label: "Cancel", variant: "outline", onClick: () => {} },
 				{
-					label: "Regenerate",
+					label: t({
+						id: "dashboard.automations.webhookSentence.regenerateDialogCancel",
+						message: "Cancel",
+					}),
+					variant: "outline",
+					onClick: () => {},
+				},
+				{
+					label: t({
+						id: "dashboard.automations.webhookSentence.regenerateDialogConfirm",
+						message: "Regenerate",
+					}),
 					variant: "destructive",
 					onClick: () => rotate.mutate(triggerId),
 				},
@@ -75,15 +113,26 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 	};
 
 	const headerLabel = token
-		? "Copy auth header"
+		? t({
+				id: "dashboard.automations.webhookSentence.copyAuthHeader",
+				message: "Copy auth header",
+			})
 		: secretPrefix
-			? "Regenerate auth header"
-			: "Generate auth header";
+			? t({
+					id: "dashboard.automations.webhookSentence.regenerateAuthHeader",
+					message: "Regenerate auth header",
+				})
+			: t({
+					id: "dashboard.automations.webhookSentence.generateAuthHeader",
+					message: "Generate auth header",
+				});
 
 	return (
 		<>
 			<span className="text-[13px] text-muted-foreground">
-				Webhook triggered
+				<Trans id="dashboard.automations.webhookSentence.webhookTriggered">
+					Webhook triggered
+				</Trans>
 			</span>
 			<EndpointChip url={url} />
 			<Tooltip>
@@ -97,19 +146,35 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 						>
 							<LuKeyRound className="size-3 shrink-0 opacity-50" />
 							<span className="truncate">
-								{rotate.isPending ? "Generating..." : headerLabel}
+								{rotate.isPending ? (
+									<Trans id="dashboard.automations.webhookSentence.generating">
+										Generating...
+									</Trans>
+								) : (
+									headerLabel
+								)}
 							</span>
 						</button>
 					</span>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{!triggerId
-						? "Save triggers first"
-						: token
-							? "Copies the Authorization header. It is only shown now."
-							: secretPrefix
-								? `Token ${secretPrefix}… is set. Regenerating replaces it.`
-								: "Issues a bearer token for this trigger."}
+					{!triggerId ? (
+						<Trans id="dashboard.automations.webhookSentence.saveTriggersFirst">
+							Save triggers first
+						</Trans>
+					) : token ? (
+						<Trans id="dashboard.automations.webhookSentence.copiesHeaderTooltip">
+							Copies the Authorization header. It is only shown now.
+						</Trans>
+					) : secretPrefix ? (
+						<Trans id="dashboard.automations.webhookSentence.tokenSetTooltip">
+							Token {secretPrefix}… is set. Regenerating replaces it.
+						</Trans>
+					) : (
+						<Trans id="dashboard.automations.webhookSentence.issuesTokenTooltip">
+							Issues a bearer token for this trigger.
+						</Trans>
+					)}
 				</TooltipContent>
 			</Tooltip>
 		</>

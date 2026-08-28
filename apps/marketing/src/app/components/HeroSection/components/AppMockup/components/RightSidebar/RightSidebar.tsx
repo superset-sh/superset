@@ -1,5 +1,6 @@
 "use client";
 
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { m } from "framer-motion";
 import { LuArrowRight, LuGitPullRequest, LuPlay } from "react-icons/lu";
 import { FILE_CHANGES } from "../../constants";
@@ -13,7 +14,14 @@ interface RightSidebarProps {
 const TABS = ["Files", "Changes", "Review"] as const;
 
 export function RightSidebar({ activeDemo }: RightSidebarProps) {
+	const { t } = useLingui();
 	const isDiff = activeDemo === "See Changes";
+
+	const tabLabels: Record<(typeof TABS)[number], string> = {
+		Files: t({ id: "marketing.hero.mockup.tab.files", message: "Files" }),
+		Changes: t({ id: "marketing.hero.mockup.tab.changes", message: "Changes" }),
+		Review: t({ id: "marketing.hero.mockup.tab.review", message: "Review" }),
+	};
 
 	return (
 		<m.div
@@ -28,14 +36,18 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 					className="flex h-6 items-center gap-1.5 rounded-sm px-1.5 text-[11px] text-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/95"
 				>
 					<LuPlay className="size-2.5 fill-current text-muted-foreground/65" />
-					<span>Run</span>
+					<span>
+						<Trans id="marketing.hero.mockup.run">Run</Trans>
+					</span>
 				</button>
 				<button
 					type="button"
 					className="flex h-6 items-center gap-1.5 rounded-sm px-1.5 text-[11px] text-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/95"
 				>
 					<LuGitPullRequest className="size-2.5 text-brand-light/80" />
-					<span>PR</span>
+					<span>
+						<Trans id="marketing.hero.mockup.pr">PR</Trans>
+					</span>
 					<span className="font-mono tabular-nums text-muted-foreground/55">
 						#827
 					</span>
@@ -54,7 +66,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 									: "text-muted-foreground/55 hover:text-foreground/85"
 							}`}
 						>
-							{tab}
+							{tabLabels[tab]}
 						</div>
 					);
 				})}
@@ -65,7 +77,14 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 					<span className="tabular-nums text-emerald-400/85">+393</span>
 					<span className="tabular-nums text-rose-400/75">−42</span>
 					<span className="text-muted-foreground/45">·</span>
-					<span>5 files</span>
+					<span>
+						<Plural
+							id="marketing.hero.mockup.changedFileCount"
+							value={5}
+							one="# file"
+							other="# files"
+						/>
+					</span>
 					<span className="text-muted-foreground/45">·</span>
 					<span className="flex items-center gap-1">
 						<LuArrowRight className="size-2.5" />
@@ -147,13 +166,13 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 							type="button"
 							className="h-7 rounded-sm bg-emerald-500/15 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25"
 						>
-							Approve
+							<Trans id="marketing.hero.mockup.approve">Approve</Trans>
 						</button>
 						<button
 							type="button"
 							className="h-7 rounded-sm px-2.5 text-[11px] font-medium text-muted-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/90"
 						>
-							Comment
+							<Trans id="marketing.hero.mockup.comment">Comment</Trans>
 						</button>
 					</div>
 				</m.div>

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { useEffect, useState } from "react";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -20,6 +21,7 @@ export function NameSection({
 	canRename,
 	onRenamed,
 }: NameSectionProps) {
+	const { t } = useLingui();
 	const [value, setValue] = useState(currentName);
 
 	useEffect(() => {
@@ -63,7 +65,10 @@ export function NameSection({
 					(e.target as HTMLInputElement).blur();
 				}
 			}}
-			placeholder="Project name"
+			placeholder={t({
+				id: "settings.project.namePlaceholder",
+				message: "Project name",
+			})}
 			className="w-96"
 		/>
 	);

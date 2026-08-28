@@ -4,6 +4,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useLingui } from "@lingui/react/macro";
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -124,6 +125,7 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
+	const { t } = useLingui();
 	const {
 		groups,
 		pinnedWorkspaces,
@@ -356,7 +358,10 @@ export function DashboardSidebar({
 											<TooltipTrigger asChild>
 												<button
 													type="button"
-													aria-label="Settings"
+													aria-label={t({
+														id: "dashboard.sidebar.settingsAriaLabel",
+														message: "Settings",
+													})}
 													onClick={() => navigate({ to: "/settings/account" })}
 													className={cn(
 														"flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
@@ -370,8 +375,14 @@ export function DashboardSidebar({
 											</TooltipTrigger>
 											<TooltipContent side={isCollapsed ? "right" : "top"}>
 												{settingsHotkey !== "Unassigned"
-													? `Settings (${settingsHotkey})`
-													: "Settings"}
+													? t({
+															id: "dashboard.sidebar.settingsTooltipWithHotkey",
+															message: `Settings (${settingsHotkey})`,
+														})
+													: t({
+															id: "dashboard.sidebar.settingsTooltip",
+															message: "Settings",
+														})}
 											</TooltipContent>
 										</Tooltip>
 									</div>

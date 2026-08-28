@@ -1,8 +1,10 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { AnimatePresence, m } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import {
 	type NavLink,
@@ -17,6 +19,7 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
+	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
 	const close = () => setIsOpen(false);
 
@@ -29,7 +32,11 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 				type="button"
 				className="p-2 text-muted-foreground hover:text-foreground transition-colors"
 				onClick={() => setIsOpen((prev) => !prev)}
-				aria-label={isOpen ? "Close menu" : "Open menu"}
+				aria-label={
+					isOpen
+						? t({ id: "marketing.nav.closeMenu", message: "Close menu" })
+						: t({ id: "marketing.nav.openMenu", message: "Open menu" })
+				}
 				aria-expanded={isOpen}
 			>
 				{isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -46,12 +53,14 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 					>
 						<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-6">
 							<MobileSection
-								title="Product"
+								title={<Trans id="marketing.nav.productMenu">Product</Trans>}
 								links={PRODUCT_LINKS}
 								onNavigate={close}
 							/>
 							<MobileSection
-								title="Resources"
+								title={
+									<Trans id="marketing.nav.resourcesMenu">Resources</Trans>
+								}
 								links={RESOURCE_LINKS}
 								onNavigate={close}
 							/>
@@ -73,7 +82,7 @@ function MobileSection({
 	links,
 	onNavigate,
 }: {
-	title?: string;
+	title?: ReactNode;
 	links: NavLink[];
 	onNavigate: () => void;
 }) {

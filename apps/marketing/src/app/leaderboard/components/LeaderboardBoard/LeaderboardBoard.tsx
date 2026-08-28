@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { StatStrip } from "@/app/components/StatStrip";
 import { TierTube } from "@/app/components/TierTube";
@@ -35,6 +36,7 @@ export function LeaderboardBoard({
 	earliest,
 	pixelClassName,
 }: LeaderboardBoardProps) {
+	const { t } = useLingui();
 	const [metric, setMetric] = useState<LeaderboardMetric>("tokens");
 	const [selection, setSelection] = useState<RangeSelection>({ period: "30d" });
 	const [standings, setStandings] = useState(initialStandings);
@@ -98,6 +100,8 @@ export function LeaderboardBoard({
 
 	const range = standings?.range ?? null;
 	const totals = stats?.totals;
+	const shown = standings?.rows.length ?? 0;
+	const total = standings?.total ?? 0;
 
 	return (
 		<div className="space-y-8">
@@ -112,15 +116,36 @@ export function LeaderboardBoard({
 				<StatStrip
 					pixelClassName={pixelClassName}
 					stats={[
-						{ label: "Developers", value: String(totals.participants) },
-						{ label: "Tokens", value: formatTokens(totals.tokens) },
 						{
-							label: "Cost",
-							value: formatUsd(totals.usd),
-							hint: "API-equivalent",
+							label: t({
+								id: "marketing.leaderboard.stats.developers",
+								message: "Developers",
+							}),
+							value: String(totals.participants),
 						},
 						{
-							label: "Cache read",
+							label: t({
+								id: "marketing.leaderboard.stats.tokens",
+								message: "Tokens",
+							}),
+							value: formatTokens(totals.tokens),
+						},
+						{
+							label: t({
+								id: "marketing.leaderboard.stats.cost",
+								message: "Cost",
+							}),
+							value: formatUsd(totals.usd),
+							hint: t({
+								id: "marketing.leaderboard.stats.costHint",
+								message: "API-equivalent",
+							}),
+						},
+						{
+							label: t({
+								id: "marketing.leaderboard.stats.cacheRead",
+								message: "Cache read",
+							}),
 							value: `${
 								totals.tokens > 0
 									? Math.round(
@@ -129,7 +154,10 @@ export function LeaderboardBoard({
 										)
 									: 0
 							}%`,
-							hint: "of all tokens",
+							hint: t({
+								id: "marketing.leaderboard.stats.cacheReadHint",
+								message: "of all tokens",
+							}),
 						},
 					]}
 				/>
@@ -147,7 +175,11 @@ export function LeaderboardBoard({
 					latest={new Date()}
 				/>
 				<span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground/70">
-					{formatDayRange(range)}
+					{range ? (
+						formatDayRange(range)
+					) : (
+						<Trans id="marketing.leaderboard.range.allTime">All time</Trans>
+					)}
 				</span>
 			</div>
 
@@ -158,7 +190,7 @@ export function LeaderboardBoard({
 				pixelClassName={pixelClassName}
 			/>
 
-			{standings && standings.total > standings.rows.length && (
+			{standings && total > shown && (
 				<div className="flex flex-col items-center gap-3">
 					<button
 						type="button"
@@ -166,10 +198,16 @@ export function LeaderboardBoard({
 						disabled={loadingMore}
 						className="px-5 py-2 text-xs font-mono uppercase tracking-wider border border-border rounded-[2px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
 					>
-						{loadingMore ? "Loading…" : "Load more"}
+						{loadingMore ? (
+							<Trans id="marketing.leaderboard.loading">Loading…</Trans>
+						) : (
+							<Trans id="marketing.leaderboard.loadMore">Load more</Trans>
+						)}
 					</button>
 					<span className="font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground/70">
-						{standings.rows.length} of {standings.total}
+						<Trans id="marketing.leaderboard.shownOfTotal">
+							{shown} of {total}
+						</Trans>
 					</span>
 				</div>
 			)}

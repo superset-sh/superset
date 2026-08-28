@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	CodeViewOptions,
@@ -309,6 +310,7 @@ export function PullRequestCodeTab({
 	hostUrl,
 	hostId,
 }: PullRequestCodeTabProps) {
+	const { t } = useLingui();
 	const { options, style } = useDiffCodeViewTheme();
 	// Matches PullRequestRow's diff-stat colors exactly (text-emerald-600 /
 	// [.dark_&]:text-[#34d399], text-red-600 / [.dark_&]:text-[#f87171]) so
@@ -483,11 +485,20 @@ export function PullRequestCodeTab({
 		if (!threadsData?.fetchFailed) return;
 		if (lastWarnedThreadsFetchedAt.current === threadsUpdatedAt) return;
 		lastWarnedThreadsFetchedAt.current = threadsUpdatedAt;
-		toast.error("Couldn't load review comments", {
-			description:
-				"The diff is still up to date — only comments failed to load.",
-		});
-	}, [threadsData?.fetchFailed, threadsUpdatedAt]);
+		toast.error(
+			t({
+				id: "dashboard.pullRequests.codeTab.loadCommentsFailed",
+				message: "Couldn't load review comments",
+			}),
+			{
+				description: t({
+					id: "dashboard.pullRequests.codeTab.loadCommentsFailedHint",
+					message:
+						"The diff is still up to date — only comments failed to load.",
+				}),
+			},
+		);
+	}, [threadsData?.fetchFailed, threadsUpdatedAt, t]);
 	// A single useMutation instance is shared across every thread rendered
 	// in the diff (one component, called once), so `.isPending`/`.variables`
 	// only ever reflect the most recently *started* call — if two threads
@@ -518,9 +529,15 @@ export function PullRequestCodeTab({
 			void queryClient.invalidateQueries({ queryKey: threadsQueryKey });
 		},
 		onError: (mutationError) => {
-			toast.error("Couldn't update thread", {
-				description: errorMessage(mutationError),
-			});
+			toast.error(
+				t({
+					id: "dashboard.pullRequests.codeTab.updateThreadFailed",
+					message: "Couldn't update thread",
+				}),
+				{
+					description: errorMessage(mutationError),
+				},
+			);
 		},
 	});
 	const [pendingReplyCommentIds, setPendingReplyCommentIds] = useState<
@@ -549,9 +566,15 @@ export function PullRequestCodeTab({
 			void queryClient.invalidateQueries({ queryKey: threadsQueryKey });
 		},
 		onError: (mutationError) => {
-			toast.error("Couldn't post reply", {
-				description: errorMessage(mutationError),
-			});
+			toast.error(
+				t({
+					id: "dashboard.pullRequests.codeTab.postReplyFailed",
+					message: "Couldn't post reply",
+				}),
+				{
+					description: errorMessage(mutationError),
+				},
+			);
 		},
 	});
 	const linkedWorkspaceQueryKey = [
@@ -641,13 +664,24 @@ export function PullRequestCodeTab({
 		},
 		onSuccess: () => {
 			void queryClient.invalidateQueries({ queryKey: linkedWorkspaceQueryKey });
-			toast.success("Sent to agent");
+			toast.success(
+				t({
+					id: "dashboard.pullRequests.codeTab.sentToAgent",
+					message: "Sent to agent",
+				}),
+			);
 			closeComposer();
 		},
 		onError: (mutationError) => {
-			toast.error("Couldn't send comment", {
-				description: errorMessage(mutationError),
-			});
+			toast.error(
+				t({
+					id: "dashboard.pullRequests.codeTab.sendCommentFailed",
+					message: "Couldn't send comment",
+				}),
+				{
+					description: errorMessage(mutationError),
+				},
+			);
 		},
 	});
 
@@ -949,7 +983,13 @@ export function PullRequestCodeTab({
 		return (
 			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex flex-1 items-center justify-center">
-					<WorkItemDetailState message="Loading diff…" isLoading />
+					<WorkItemDetailState
+						message={t({
+							id: "dashboard.pullRequests.codeTab.loadingDiff",
+							message: "Loading diff…",
+						})}
+						isLoading
+					/>
 				</div>
 			</div>
 		);
@@ -974,7 +1014,10 @@ export function PullRequestCodeTab({
 			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex flex-1 items-center justify-center">
 					<WorkItemDetailState
-						message={`Couldn't parse this diff: ${patchParseError}`}
+						message={t({
+							id: "dashboard.pullRequests.codeTab.parseDiffFailed",
+							message: `Couldn't parse this diff: ${patchParseError}`,
+						})}
 						isError
 						onRetry={() => void refetch()}
 					/>
@@ -987,7 +1030,9 @@ export function PullRequestCodeTab({
 		return (
 			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
-					No changes to display.
+					<Trans id="dashboard.pullRequests.codeTab.noChanges">
+						No changes to display.
+					</Trans>
 				</div>
 			</div>
 		);
@@ -1032,12 +1077,22 @@ export function PullRequestCodeTab({
 								type="button"
 								onClick={() => setManualTreeCollapsed(!isTreeCollapsed)}
 								aria-label={
-									isTreeCollapsed ? "Show file tree" : "Hide file tree"
+									isTreeCollapsed
+										? t({
+												id: "dashboard.pullRequests.codeTab.showFileTree",
+												message: "Show file tree",
+											})
+										: t({
+												id: "dashboard.pullRequests.codeTab.hideFileTree",
+												message: "Hide file tree",
+											})
 								}
 								className="flex items-center gap-1.5 rounded-md bg-fill-hover px-1.5 py-1 text-muted-foreground transition-colors hover:bg-fill-selected hover:text-foreground"
 							>
 								<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
-								<span className="text-[11px] font-medium">Files</span>
+								<span className="text-[11px] font-medium">
+									<Trans id="dashboard.pullRequests.codeTab.files">Files</Trans>
+								</span>
 								<span className="text-[11px] tabular-nums text-muted-foreground/70">
 									{files.length}
 								</span>
@@ -1054,8 +1109,14 @@ export function PullRequestCodeTab({
 										}
 										aria-label={
 											areAllFilesCollapsed
-												? "Expand all files"
-												: "Collapse all files"
+												? t({
+														id: "dashboard.pullRequests.codeTab.expandAllFiles",
+														message: "Expand all files",
+													})
+												: t({
+														id: "dashboard.pullRequests.codeTab.collapseAllFiles",
+														message: "Collapse all files",
+													})
 										}
 										className="flex items-center justify-center rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
 									>
@@ -1070,9 +1131,15 @@ export function PullRequestCodeTab({
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									{areAllFilesCollapsed
-										? "Expand all files"
-										: "Collapse all files"}
+									{areAllFilesCollapsed ? (
+										<Trans id="dashboard.pullRequests.codeTab.expandAllFiles">
+											Expand all files
+										</Trans>
+									) : (
+										<Trans id="dashboard.pullRequests.codeTab.collapseAllFiles">
+											Collapse all files
+										</Trans>
+									)}
 								</TooltipContent>
 							</Tooltip>
 						</div>
@@ -1085,14 +1152,19 @@ export function PullRequestCodeTab({
 												<button
 													type="button"
 													onClick={goToPrevComment}
-													aria-label="Previous comment"
+													aria-label={t({
+														id: "dashboard.pullRequests.codeTab.previousComment",
+														message: "Previous comment",
+													})}
 													className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 												>
 													<LuChevronUp className="size-3.5" strokeWidth={1.5} />
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="bottom">
-												Previous comment
+												<Trans id="dashboard.pullRequests.codeTab.previousComment">
+													Previous comment
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 										<span className="min-w-[3ch] text-center text-[11px] tabular-nums text-muted-foreground">
@@ -1106,7 +1178,10 @@ export function PullRequestCodeTab({
 												<button
 													type="button"
 													onClick={goToNextComment}
-													aria-label="Next comment"
+													aria-label={t({
+														id: "dashboard.pullRequests.codeTab.nextComment",
+														message: "Next comment",
+													})}
 													className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 												>
 													<LuChevronDown
@@ -1116,7 +1191,9 @@ export function PullRequestCodeTab({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="bottom">
-												Next comment
+												<Trans id="dashboard.pullRequests.codeTab.nextComment">
+													Next comment
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 									</div>
@@ -1128,28 +1205,42 @@ export function PullRequestCodeTab({
 									<button
 										type="button"
 										onClick={() => updateSetting("diffStyle", "unified")}
-										aria-label="Unified view"
+										aria-label={t({
+											id: "dashboard.pullRequests.codeTab.unifiedView",
+											message: "Unified view",
+										})}
 										aria-pressed={diffStyle === "unified"}
 										className={toggleClass(diffStyle === "unified")}
 									>
 										<LuRows2 className="size-3.5" />
 									</button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom">Unified view</TooltipContent>
+								<TooltipContent side="bottom">
+									<Trans id="dashboard.pullRequests.codeTab.unifiedView">
+										Unified view
+									</Trans>
+								</TooltipContent>
 							</Tooltip>
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<button
 										type="button"
 										onClick={() => updateSetting("diffStyle", "split")}
-										aria-label="Split view"
+										aria-label={t({
+											id: "dashboard.pullRequests.codeTab.splitView",
+											message: "Split view",
+										})}
 										aria-pressed={diffStyle === "split"}
 										className={toggleClass(diffStyle === "split")}
 									>
 										<LuColumns2 className="size-3.5" />
 									</button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom">Split view</TooltipContent>
+								<TooltipContent side="bottom">
+									<Trans id="dashboard.pullRequests.codeTab.splitView">
+										Split view
+									</Trans>
+								</TooltipContent>
 							</Tooltip>
 						</div>
 					</div>
@@ -1168,7 +1259,17 @@ export function PullRequestCodeTab({
 										e.stopPropagation();
 										toggleFileCollapsed(item.id);
 									}}
-									aria-label={isCollapsed ? "Expand file" : "Collapse file"}
+									aria-label={
+										isCollapsed
+											? t({
+													id: "dashboard.pullRequests.codeTab.expandFile",
+													message: "Expand file",
+												})
+											: t({
+													id: "dashboard.pullRequests.codeTab.collapseFile",
+													message: "Collapse file",
+												})
+									}
 									className="flex size-4 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
 								>
 									<LuChevronRight
@@ -1213,8 +1314,14 @@ export function PullRequestCodeTab({
 										key={`${metadata.path}:${metadata.startLine}-${metadata.endLine}`}
 										contextLabel={
 											metadata.startLine === metadata.endLine
-												? `Line ${metadata.startLine}`
-												: `Lines ${metadata.startLine}–${metadata.endLine}`
+												? t({
+														id: "dashboard.pullRequests.codeTab.lineContext",
+														message: `Line ${metadata.startLine}`,
+													})
+												: t({
+														id: "dashboard.pullRequests.codeTab.linesContext",
+														message: `Lines ${metadata.startLine}–${metadata.endLine}`,
+													})
 										}
 										hostUrl={hostUrl}
 										linkedWorkspaceId={linkedWorkspaceId}

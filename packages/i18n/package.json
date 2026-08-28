@@ -27,13 +27,17 @@
 		"./react": {
 			"types": "./src/react.tsx",
 			"default": "./src/react.tsx"
+		},
+		"./server": {
+			"types": "./src/server.ts",
+			"default": "./src/server.ts"
 		}
 	},
 	"scripts": {
-		"extract": "lingui extract",
+		"extract": "lingui extract && bun scripts/sort-po-references.ts",
 		"compile": "lingui compile --strict",
-		"check": "lingui extract --clean && lingui compile --strict && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
-		"pretypecheck": "lingui extract --clean && lingui compile --strict",
+		"check": "lingui extract --clean && bun scripts/sort-po-references.ts && lingui compile --strict && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
+		"pretypecheck": "lingui extract --clean && bun scripts/sort-po-references.ts && lingui compile --strict",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
 		"clean": "git clean -xdf .cache .turbo node_modules"

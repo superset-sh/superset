@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { type LucideIcon, XIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { cn } from "../../lib/utils";
@@ -58,7 +59,9 @@ export const ArtifactClose = ({
 		{...props}
 	>
 		{children ?? <XIcon className="size-4" />}
-		<span className="sr-only">Close</span>
+		<span className="sr-only">
+			<Trans id="ui.artifact.close">Close</Trans>
+		</span>
 	</Button>
 );
 

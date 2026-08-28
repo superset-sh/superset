@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -283,7 +284,11 @@ function SlashCommandChip({
 							shouldFilter={false}
 						>
 							<CommandList>
-								<CommandEmpty>No match</CommandEmpty>
+								<CommandEmpty>
+									<Trans id="components.slashCommandNode.noMatch">
+										No match
+									</Trans>
+								</CommandEmpty>
 								<CommandGroup>
 									{filteredOptions.map((opt) => (
 										<CommandItem

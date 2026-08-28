@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { LuX } from "react-icons/lu";
 import { useDashboardSidebarPortKill } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPort } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortsData";
@@ -14,6 +15,7 @@ interface DashboardSidebarPortHoverRowProps {
 export function DashboardSidebarPortHoverRow({
 	port,
 }: DashboardSidebarPortHoverRowProps) {
+	const { t } = useLingui();
 	const { isPending, killPort } = useDashboardSidebarPortKill();
 	const { openPrimary } = usePortOpenActions(port);
 	const forward = usePortForward(port);
@@ -31,7 +33,7 @@ export function DashboardSidebarPortHoverRow({
 				{port.label && (
 					<span className="min-w-0 truncate text-xs">{port.label}</span>
 				)}
-				<span
+<span
 					className="min-w-0 truncate font-mono text-[11px] tabular-nums text-muted-foreground"
 					title={address.title}
 				>
@@ -48,7 +50,10 @@ export function DashboardSidebarPortHoverRow({
 					void killPort(port);
 				}}
 				disabled={isPending}
-				aria-label={`Close port ${port.port}`}
+				aria-label={t({
+					id: "dashboard.sidebar.portHoverRow.closePortAriaLabel",
+					message: `Close port ${port.port}`,
+				})}
 				className="invisible flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring group-focus-within/row:visible group-hover/row:visible"
 			>
 				<LuX className="size-3" strokeWidth={STROKE_WIDTH} />

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useRef } from "react";
 import { TipTapMarkdownRenderer } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer";
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
@@ -49,7 +50,9 @@ export function MarkdownPreviewView({
 			<div ref={containerRef} className="h-full overflow-auto p-4">
 				{frontMatter !== "" && showFrontMatterNote && (
 					<div className="mx-auto mb-2 max-w-3xl select-text text-xs text-muted-foreground">
-						Front matter hidden — switch to the Markdown view to edit it
+						<Trans id="workspace.filePane.frontMatterHidden">
+							Front matter hidden — switch to the Markdown view to edit it
+						</Trans>
 					</div>
 				)}
 				<TipTapMarkdownRenderer

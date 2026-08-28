@@ -1,3 +1,5 @@
+import { Trans, useLingui } from "@lingui/react/macro";
+import { formatRelativeTime } from "@superset/i18n/format";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -7,7 +9,6 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { formatDistanceToNowStrict } from "date-fns";
 import { Globe, Link2, Lock, MoreVertical, Pin, PinOff } from "lucide-react";
 import type { MouseEvent } from "react";
 import { PageThumbnail } from "./components/PageThumbnail";
@@ -35,24 +36,30 @@ export function PageCard({
 	onOpen,
 	onTogglePin,
 }: PageCardProps) {
+	const { t } = useLingui();
 	const isShared = page.visibility === "org";
 	const VisibilityIcon = isShared ? Globe : Lock;
 	const edited = new Date(page.updatedAt).getTime();
 	const created = new Date(page.createdAt).getTime();
 	const wasEdited = edited - created > 60_000;
-	const timestamp = formatDistanceToNowStrict(
-		new Date(wasEdited ? edited : created),
-		{
-			addSuffix: true,
-		},
-	);
+	const timestamp = formatRelativeTime(wasEdited ? edited : created);
 
 	const copyLink = async () => {
 		try {
 			await navigator.clipboard.writeText(page.url);
-			toast.success("Link copied");
+			toast.success(
+				t({
+					id: "dashboard.pages.pageCard.linkCopied",
+					message: "Link copied",
+				}),
+			);
 		} catch {
-			toast.error("Could not copy the link");
+			toast.error(
+				t({
+					id: "dashboard.pages.pageCard.copyLinkFailed",
+					message: "Could not copy the link",
+				}),
+			);
 		}
 	};
 
@@ -70,7 +77,12 @@ export function PageCard({
 						<VisibilityIcon className="size-3 shrink-0" />
 						<span aria-hidden="true">·</span>
 						<span className="truncate">
-							{wasEdited ? "Edited" : "Created"} {timestamp}
+							{wasEdited ? (
+								<Trans id="dashboard.pages.pageCard.edited">Edited</Trans>
+							) : (
+								<Trans id="dashboard.pages.pageCard.created">Created</Trans>
+							)}{" "}
+							{timestamp}
 						</span>
 					</span>
 				</div>
@@ -86,7 +98,10 @@ export function PageCard({
 						type="button"
 						variant="ghost"
 						size="icon-sm"
-						aria-label={`Actions for ${page.title}`}
+						aria-label={t({
+							id: "dashboard.pages.pageCard.actionsFor",
+							message: `Actions for ${page.title}`,
+						})}
 						className={cn(
 							"absolute top-2 right-2 size-7 bg-background/80 backdrop-blur transition-opacity",
 							"opacity-0 focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100",
@@ -102,11 +117,15 @@ export function PageCard({
 						) : (
 							<Pin className="size-4" />
 						)}
-						{isPinned ? "Unpin" : "Pin"}
+						{isPinned ? (
+							<Trans id="dashboard.pages.pageCard.unpin">Unpin</Trans>
+						) : (
+							<Trans id="dashboard.pages.pageCard.pin">Pin</Trans>
+						)}
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => void copyLink()}>
 						<Link2 className="size-4" />
-						Copy link
+						<Trans id="dashboard.pages.pageCard.copyLink">Copy link</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

@@ -5,6 +5,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { Download, ExternalLink } from "lucide-react";
 import { HiCheckCircle } from "react-icons/hi2";
+import { i18n } from "@/lib/i18n-server";
 
 export default async function BillingPage({
 	searchParams,
@@ -18,10 +19,18 @@ export default async function BillingPage({
 		return (
 			<div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
 				<HiCheckCircle className="h-12 w-12 text-green-500" />
-				<h1 className="text-2xl font-semibold">Payment Successful</h1>
+				<h1 className="text-2xl font-semibold">
+					{i18n._({
+						id: "web.billing.successTitle",
+						message: "Payment Successful",
+					})}
+				</h1>
 				<p className="text-muted-foreground">
-					Your subscription has been activated. You can now access all Pro
-					features.
+					{i18n._({
+						id: "web.billing.successBody",
+						message:
+							"Your subscription has been activated. You can now access all Pro features.",
+					})}
 				</p>
 			</div>
 		);
@@ -30,21 +39,32 @@ export default async function BillingPage({
 	return (
 		<div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
 			<div>
-				<h1 className="mb-2 text-2xl font-semibold">Billing</h1>
+				<h1 className="mb-2 text-2xl font-semibold">
+					{i18n._({ id: "web.billing.title", message: "Billing" })}
+				</h1>
 				<p className="text-muted-foreground">
-					Manage your subscription and billing in the desktop app.
+					{i18n._({
+						id: "web.billing.subtitle",
+						message: "Manage your subscription and billing in the desktop app.",
+					})}
 				</p>
 			</div>
 			<div className="flex flex-wrap justify-center gap-3">
 				<Button size="lg" className="gap-2" asChild>
 					<a href={`${PROTOCOL_SCHEMES.PROD}://settings/billing`}>
-						Open in Desktop App
+						{i18n._({
+							id: "web.billing.openInDesktop",
+							message: "Open in Desktop App",
+						})}
 						<ExternalLink className="size-4" />
 					</a>
 				</Button>
 				<Button variant="outline" size="lg" className="gap-2" asChild>
 					<a href={DOWNLOAD_URL_MAC_ARM64}>
-						Download for Mac
+						{i18n._({
+							id: "web.billing.downloadForMac",
+							message: "Download for Mac",
+						})}
 						<Download className="size-4" />
 					</a>
 				</Button>

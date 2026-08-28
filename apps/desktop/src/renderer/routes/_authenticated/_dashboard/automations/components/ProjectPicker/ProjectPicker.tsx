@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -33,6 +34,7 @@ export function ProjectPicker({
 	className,
 	disabled,
 }: ProjectPickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -58,15 +60,32 @@ export function ProjectPicker({
 					}
 					label={
 						selectedProject?.name ??
-						(sessionSelected ? "No project" : "Select project")
+						(sessionSelected
+							? t({
+									id: "dashboard.automations.projectPicker.noProjectLabel",
+									message: "No project",
+								})
+							: t({
+									id: "dashboard.automations.projectPicker.selectProjectLabel",
+									message: "Select project",
+								}))
 					}
 				/>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-60 p-0">
 				<Command>
-					<CommandInput placeholder="Search projects..." />
+					<CommandInput
+						placeholder={t({
+							id: "dashboard.automations.projectPicker.searchPlaceholder",
+							message: "Search projects...",
+						})}
+					/>
 					<CommandList>
-						<CommandEmpty>No projects found.</CommandEmpty>
+						<CommandEmpty>
+							<Trans id="dashboard.automations.projectPicker.noProjectsFound">
+								No projects found.
+							</Trans>
+						</CommandEmpty>
 						<CommandGroup>
 							<CommandItem
 								value="No project session"
@@ -76,8 +95,10 @@ export function ProjectPicker({
 								}}
 							>
 								<LuBox className="size-4 shrink-0" />
-								No project
-								<span className="ml-1 text-muted-foreground">session</span>
+								<Trans id="dashboard.automations.projectPicker.noProjectItem">
+									No project
+									<span className="ml-1 text-muted-foreground">session</span>
+								</Trans>
 								{sessionSelected && <HiCheck className="ml-auto size-4" />}
 							</CommandItem>
 							{recentProjects.map((project) => (

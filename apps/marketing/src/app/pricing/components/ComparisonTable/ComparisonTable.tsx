@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { Check, Minus } from "lucide-react";
 import { useState } from "react";
@@ -7,6 +8,7 @@ import {
 	COMPARISON_SECTIONS,
 	type ComparisonRow,
 	PRICING_TIERS,
+	type PricingTier,
 } from "../../constants";
 
 export function ComparisonTable() {
@@ -14,10 +16,12 @@ export function ComparisonTable() {
 		<div className="flex flex-col gap-8">
 			<div className="flex flex-col gap-3 text-center">
 				<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-					Compare plans
+					<Trans id="marketing.pricing.comparison.eyebrow">Compare plans</Trans>
 				</span>
 				<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground">
-					All features, side by side
+					<Trans id="marketing.pricing.comparison.title">
+						All features, side by side
+					</Trans>
 				</h2>
 			</div>
 
@@ -28,22 +32,26 @@ export function ComparisonTable() {
 }
 
 function DesktopTable() {
+	const { t } = useLingui();
+
 	return (
 		<div className="hidden md:block">
 			<table className="w-full table-fixed border-separate border-spacing-0">
 				<thead>
 					<tr>
 						<th className="sticky top-16 z-10 w-2/5 border-b border-border bg-background py-4 pr-4 text-left text-sm font-medium text-muted-foreground">
-							Features
+							<Trans id="marketing.pricing.comparison.featuresColumn">
+								Features
+							</Trans>
 						</th>
 						{PRICING_TIERS.map((tier) => (
 							<th
 								key={tier.id}
 								className="sticky top-16 z-10 w-1/5 border-b border-border bg-background py-4 px-4 text-left text-sm font-medium text-foreground"
 							>
-								{tier.name}
+								{t(tier.name)}
 								<span className="ml-2 font-normal text-xs text-muted-foreground">
-									{tierPriceLabel(tier)}
+									<TierPriceLabel tier={tier} />
 								</span>
 							</th>
 						))}
@@ -51,9 +59,9 @@ function DesktopTable() {
 				</thead>
 				<tbody>
 					{COMPARISON_SECTIONS.map((section) => (
-						<DesktopSectionGroup key={section.title} title={section.title}>
+						<DesktopSectionGroup key={section.id} title={t(section.title)}>
 							{section.rows.map((row) => (
-								<DesktopRow key={row.label} row={row} />
+								<DesktopRow key={row.id} row={row} />
 							))}
 						</DesktopSectionGroup>
 					))}
@@ -63,14 +71,19 @@ function DesktopTable() {
 	);
 }
 
-function tierPriceLabel(tier: (typeof PRICING_TIERS)[number]): string {
+function TierPriceLabel({ tier }: { tier: PricingTier }) {
 	if (tier.price.kind === "fixed") {
-		return tier.price.display;
+		return <>{tier.price.display}</>;
 	}
 	if (tier.price.kind === "variable") {
-		return `from ${tier.price.yearly.display}/user/mo`;
+		const price = tier.price.yearly.display;
+		return (
+			<Trans id="marketing.pricing.comparison.fromPerUserMonth">
+				from {price}/user/mo
+			</Trans>
+		);
 	}
-	return "Custom";
+	return <Trans id="marketing.pricing.comparison.customPrice">Custom</Trans>;
 }
 
 function DesktopSectionGroup({
@@ -96,17 +109,19 @@ function DesktopSectionGroup({
 }
 
 function DesktopRow({ row }: { row: ComparisonRow }) {
+	const { t } = useLingui();
+
 	return (
 		<tr>
 			<td className="border-b border-border/60 py-4 pr-4 text-sm text-foreground">
 				<div className="flex items-center gap-2">
-					<span>{row.label}</span>
+					<span>{t(row.label)}</span>
 					{row.badge && <RowBadge badge={row.badge} />}
 				</div>
 			</td>
 			{row.values.map((value, index) => (
 				<td
-					key={`${row.label}-${index}`}
+					key={`${row.id}-${index}`}
 					className="border-b border-border/60 px-4 py-4 text-sm text-foreground"
 				>
 					<Cell value={value} />
@@ -117,6 +132,7 @@ function DesktopRow({ row }: { row: ComparisonRow }) {
 }
 
 function MobileTable() {
+	const { t } = useLingui();
 	const [selectedIndex, setSelectedIndex] = useState(1);
 	const selectedTier = PRICING_TIERS[selectedIndex];
 	if (!selectedTier) return null;
@@ -137,25 +153,25 @@ function MobileTable() {
 								: "text-muted-foreground hover:text-foreground",
 						)}
 					>
-						{tier.name}
+						{t(tier.name)}
 					</button>
 				))}
 			</div>
 
 			<div className="flex flex-col gap-6">
 				{COMPARISON_SECTIONS.map((section) => (
-					<section key={section.title} className="flex flex-col">
+					<section key={section.id} className="flex flex-col">
 						<p className="mb-1 rounded-md bg-accent/20 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-							{section.title}
+							{t(section.title)}
 						</p>
 						<ul>
 							{section.rows.map((row) => (
 								<li
-									key={row.label}
+									key={row.id}
 									className="flex items-center justify-between gap-3 border-b border-border/60 py-3 last:border-b-0"
 								>
 									<div className="flex items-center gap-2 text-sm text-foreground">
-										<span>{row.label}</span>
+										<span>{t(row.label)}</span>
 										{row.badge && <RowBadge badge={row.badge} />}
 									</div>
 									<div className="shrink-0 text-sm text-foreground">
@@ -172,21 +188,35 @@ function MobileTable() {
 }
 
 function Cell({ value }: { value: ComparisonRow["values"][number] }) {
+	const { t } = useLingui();
+
 	if (value === true) {
-		return <Check className="size-4 text-foreground" aria-label="Included" />;
+		return (
+			<Check
+				className="size-4 text-foreground"
+				aria-label={t({
+					id: "marketing.pricing.comparison.included",
+					message: "Included",
+				})}
+			/>
+		);
 	}
 	if (value === null || value === false) {
 		return (
 			<Minus
 				className="size-4 text-muted-foreground"
-				aria-label="Not included"
+				aria-label={t({
+					id: "marketing.pricing.comparison.notIncluded",
+					message: "Not included",
+				})}
 			/>
 		);
 	}
-	return <span>{value}</span>;
+	return <span>{typeof value === "string" ? value : t(value)}</span>;
 }
 
 function RowBadge({ badge }: { badge: NonNullable<ComparisonRow["badge"]> }) {
+	const { t } = useLingui();
 	const isPrimary = badge.variant === "default";
 	return (
 		<span
@@ -197,7 +227,7 @@ function RowBadge({ badge }: { badge: NonNullable<ComparisonRow["badge"]> }) {
 					: "bg-accent/40 text-muted-foreground",
 			)}
 		>
-			{badge.label}
+			{t(badge.label)}
 		</span>
 	);
 }

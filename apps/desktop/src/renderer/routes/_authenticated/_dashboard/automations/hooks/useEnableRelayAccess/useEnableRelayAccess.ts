@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
@@ -13,9 +15,26 @@ export function useEnableRelayAccess() {
 
 	const enableRelay = () => {
 		toast.promise(setExpose.mutateAsync({ enabled: true }), {
-			loading: "Restarting host services…",
-			success: "Relay access enabled, connecting to the relay…",
-			error: (err: Error) => err.message ?? "Failed to enable relay access",
+			loading: i18n._(
+				msg({
+					id: "dashboard.automations.enableRelay.loadingToast",
+					message: "Restarting host services…",
+				}),
+			),
+			success: i18n._(
+				msg({
+					id: "dashboard.automations.enableRelay.successToast",
+					message: "Relay access enabled, connecting to the relay…",
+				}),
+			),
+			error: (err: Error) =>
+				err.message ??
+				i18n._(
+					msg({
+						id: "dashboard.automations.enableRelay.failedToast",
+						message: "Failed to enable relay access",
+					}),
+				),
 		});
 	};
 

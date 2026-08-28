@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -42,6 +43,7 @@ export function ProjectLocationSection({
 	isRemoteTarget,
 	onChanged,
 }: ProjectLocationSectionProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
 		useDashboardSidebarState();
@@ -53,7 +55,12 @@ export function ProjectLocationSection({
 
 	const pickPath = async (title: string) => {
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.location.hostUnavailablePickToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return null;
 		}
 		try {
@@ -71,11 +78,21 @@ export function ProjectLocationSection({
 
 	const proposeRelocate = async (path: string) => {
 		if (path === currentPath) {
-			toast.info("Project is already at that location");
+			toast.info(
+				t({
+					id: "settings.project.location.alreadyThereToast",
+					message: "Project is already at that location",
+				}),
+			);
 			return;
 		}
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.location.hostUnavailableRelocateToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		setPendingPath(path);
@@ -86,7 +103,12 @@ export function ProjectLocationSection({
 			setChangeBrowseOpen(true);
 			return;
 		}
-		const path = await pickPath("Select new project location");
+		const path = await pickPath(
+			t({
+				id: "settings.project.location.pickDialogTitle",
+				message: "Select new project location",
+			}),
+		);
 		if (!path) return;
 		await proposeRelocate(path);
 	};
@@ -94,7 +116,12 @@ export function ProjectLocationSection({
 	const handleConfirmRelocate = async () => {
 		if (!pendingPath) return;
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.location.hostUnavailableConfirmToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		setIsSubmitting(true);
@@ -104,7 +131,12 @@ export function ProjectLocationSection({
 				projectId,
 				mode: { kind: "import", repoPath: pendingPath, allowRelocate: true },
 			});
-			toast.success(`Project relocated to ${result.repoPath}`);
+			toast.success(
+				t({
+					id: "settings.project.location.relocatedToast",
+					message: `Project relocated to ${result.repoPath}`,
+				}),
+			);
 			if (result.mainWorkspaceId) {
 				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
 			} else {
@@ -135,18 +167,27 @@ export function ProjectLocationSection({
 								className="size-9 shrink-0"
 								onClick={handleChange}
 								disabled={selectDirectory.isPending || isSubmitting}
-								aria-label="Change location"
+								aria-label={t({
+									id: "settings.project.location.changeLocation",
+									message: "Change location",
+								})}
 							>
 								<LuFolderOpen className="size-4" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent>Change location</TooltipContent>
+						<TooltipContent>
+							<Trans id="settings.project.location.changeLocation">
+								Change location
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 				</div>
 			) : (
 				<div className="flex items-center gap-3">
 					<span className="text-sm text-muted-foreground">
-						Not set up on {hostName}
+						<Trans id="settings.project.location.notSetUp">
+							Not set up on {hostName}
+						</Trans>
 					</span>
 					<Button
 						type="button"
@@ -155,7 +196,9 @@ export function ProjectLocationSection({
 						onClick={() => setSetupOpen(true)}
 						disabled={!hostUrl}
 					>
-						Set up project…
+						<Trans id="settings.project.location.setUpProject">
+							Set up project…
+						</Trans>
 					</Button>
 				</div>
 			)}
@@ -178,9 +221,18 @@ export function ProjectLocationSection({
 				hostUrl={hostUrl}
 				hostName={hostName}
 				initialPath={currentPath ?? undefined}
-				title="Change project location"
-				description={`Pick the new project folder on ${hostName}.`}
-				confirmLabel="Use this folder"
+				title={t({
+					id: "settings.project.location.browseTitle",
+					message: "Change project location",
+				})}
+				description={t({
+					id: "settings.project.location.browseDescription",
+					message: `Pick the new project folder on ${hostName}.`,
+				})}
+				confirmLabel={t({
+					id: "settings.project.location.browseConfirmLabel",
+					message: "Use this folder",
+				})}
 				onPick={(path) => {
 					void proposeRelocate(path);
 				}}
@@ -194,27 +246,41 @@ export function ProjectLocationSection({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Relocate project?</AlertDialogTitle>
+						<AlertDialogTitle>
+							<Trans id="settings.project.location.relocateTitle">
+								Relocate project?
+							</Trans>
+						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="space-y-3 text-sm select-text cursor-text">
 								<div>
-									<div className="text-muted-foreground text-xs">From</div>
+									<div className="text-muted-foreground text-xs">
+										<Trans id="settings.project.location.relocateFrom">
+											From
+										</Trans>
+									</div>
 									<div className="font-mono break-all">{currentPath}</div>
 								</div>
 								<div>
-									<div className="text-muted-foreground text-xs">To</div>
+									<div className="text-muted-foreground text-xs">
+										<Trans id="settings.project.location.relocateTo">To</Trans>
+									</div>
 									<div className="font-mono break-all">{pendingPath}</div>
 								</div>
 								<p className="text-muted-foreground">
-									Existing worktrees under the old path will be orphaned. You
-									can re-import them from the worktrees flow.
+									<Trans id="settings.project.location.relocateWarning">
+										Existing worktrees under the old path will be orphaned. You
+										can re-import them from the worktrees flow.
+									</Trans>
 								</p>
 							</div>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={isSubmitting}>
-							Cancel
+							<Trans id="settings.project.location.relocateCancel">
+								Cancel
+							</Trans>
 						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={(e) => {
@@ -223,7 +289,13 @@ export function ProjectLocationSection({
 							}}
 							disabled={isSubmitting}
 						>
-							{isSubmitting ? "Relocating…" : "Relocate"}
+							{isSubmitting ? (
+								<Trans id="settings.project.location.relocating">
+									Relocating…
+								</Trans>
+							) : (
+								<Trans id="settings.project.location.relocate">Relocate</Trans>
+							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

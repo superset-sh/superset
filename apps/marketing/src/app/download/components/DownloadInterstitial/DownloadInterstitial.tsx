@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	DOWNLOAD_URL_MAC_ARM64,
 	DOWNLOAD_URL_MAC_X64,
@@ -63,11 +64,15 @@ export function DownloadInterstitial() {
 								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
 								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
 							>
-								Get Superset on your Mac
+								<Trans id="marketing.download.mobileTitle">
+									Get Superset on your Mac
+								</Trans>
 							</h1>
 							<p className="text-sm text-muted-foreground sm:text-base">
-								Superset is a desktop app. Enter your email and we&apos;ll send
-								you a download link to open on your Mac.
+								<Trans id="marketing.download.mobileBody">
+									Superset is a desktop app. Enter your email and we&apos;ll
+									send you a download link to open on your Mac.
+								</Trans>
 							</p>
 							<DownloadLinkForm />
 						</>
@@ -77,11 +82,15 @@ export function DownloadInterstitial() {
 								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
 								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
 							>
-								Superset is Mac-only for now
+								<Trans id="marketing.download.waitlistTitle">
+									Superset is Mac-only for now
+								</Trans>
 							</h1>
 							<p className="text-sm text-muted-foreground sm:text-base">
-								We're bringing Superset to Windows &amp; Linux. Drop your email
-								and we'll let you know the moment it's ready.
+								<Trans id="marketing.download.waitlistBody">
+									We're bringing Superset to Windows &amp; Linux. Drop your
+									email and we'll let you know the moment it's ready.
+								</Trans>
 							</p>
 							<div className="max-w-sm">
 								<WaitlistForm />
@@ -93,19 +102,25 @@ export function DownloadInterstitial() {
 								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
 								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
 							>
-								You're about to get Superset
+								<Trans id="marketing.download.autoTitle">
+									You're about to get Superset
+								</Trans>
 							</h1>
 							<p className="text-sm text-muted-foreground sm:text-base">
-								Your download will start automatically. If it didn't start, you
-								can{" "}
-								<a
-									href={macUrlFor(platform)}
-									onClick={() => track("download_manual_clicked", { platform })}
-									className="text-foreground underline underline-offset-4"
-								>
-									download now
-								</a>
-								.
+								<Trans id="marketing.download.autoBody">
+									Your download will start automatically. If it didn't start,
+									you can{" "}
+									<a
+										href={macUrlFor(platform)}
+										onClick={() =>
+											track("download_manual_clicked", { platform })
+										}
+										className="text-foreground underline underline-offset-4"
+									>
+										download now
+									</a>
+									.
+								</Trans>
 							</p>
 						</>
 					)}

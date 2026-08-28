@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewOptions,
 	DiffLineAnnotation,
@@ -86,6 +87,7 @@ export function useDiffCommentComposer({
 	getFile,
 	onCreateNewAgentSession,
 }: UseDiffCommentComposerArgs): UseDiffCommentComposerResult {
+	const { t } = useLingui();
 	const [composer, setComposer] = useState<ComposerState | null>(null);
 	const composerRef = useRef(composer);
 	composerRef.current = composer;
@@ -167,7 +169,12 @@ export function useDiffCommentComposer({
 
 			if (input.target.kind === "new") {
 				if (!onCreateNewAgentSession) {
-					toast.error("Couldn't start a new agent session");
+					toast.error(
+						t({
+							id: "workspace.diffPane.newAgentSessionFailedToast",
+							message: "Couldn't start a new agent session",
+						}),
+					);
 					return;
 				}
 				// Host bakes the prompt into the launch command (argv/stdin per
@@ -200,6 +207,7 @@ export function useDiffCommentComposer({
 			sendToTerminalAgent,
 			clearIfStillCurrent,
 			onCreateNewAgentSession,
+			t,
 		],
 	);
 

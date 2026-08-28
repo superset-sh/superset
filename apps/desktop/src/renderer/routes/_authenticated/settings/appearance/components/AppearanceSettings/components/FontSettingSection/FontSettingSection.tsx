@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -134,11 +135,13 @@ export function FontSettingSection({
 		<section aria-labelledby="typography-title">
 			<div className="mb-3">
 				<h3 id="typography-title" className="text-sm font-medium mb-1">
-					Typography
+					<Trans id="settings.appearance.typography.title">Typography</Trans>
 				</h3>
 				<p className="text-xs text-muted-foreground">
-					Each surface has its own typography. Changes appear immediately in the
-					live previews.
+					<Trans id="settings.appearance.typography.subtitle">
+						Each surface has its own typography. Changes appear immediately in
+						the live previews.
+					</Trans>
 				</p>
 			</div>
 

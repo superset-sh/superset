@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+
 /**
  * A template is a partial automation + presentation metadata. Selecting a
  * template creates the automation with its name/prompt/agent/rrule and opens
@@ -7,9 +10,9 @@ export interface AutomationTemplate {
 	id: string;
 	// --- presentation ---
 	emoji: string;
-	description: string;
+	description: MessageDescriptor;
 	// --- automation defaults ---
-	name: string;
+	name: MessageDescriptor;
 	prompt: string;
 	agentType?: string;
 	rrule?: string;
@@ -30,9 +33,15 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 	{
 		id: "onboard-fix-ci",
 		emoji: "🔧",
-		description:
-			"Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR.",
-		name: "Fix CI failures",
+		description: msg({
+			id: "dashboard.automations.templates.fixCi.description",
+			message:
+				"Each morning at 8am, look at yesterday's failed CI runs, diagnose the most common failure, and open a fix PR.",
+		}),
+		name: msg({
+			id: "dashboard.automations.templates.fixCi.name",
+			message: "Fix CI failures",
+		}),
 		prompt:
 			"Look at yesterday's failed CI runs on the default branch. Diagnose the most common failure, fix the root cause, run the affected checks locally, and open a PR with the fix. If nothing failed, say so and stop.",
 		rrule: DAILY_8AM,
@@ -40,9 +49,15 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 	{
 		id: "onboard-triage-issues",
 		emoji: "🏷️",
-		description:
-			"Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review.",
-		name: "Triage new issues",
+		description: msg({
+			id: "dashboard.automations.templates.triageIssues.description",
+			message:
+				"Every weekday at 9am, read new GitHub issues, apply labels, and draft a first reply for my review.",
+		}),
+		name: msg({
+			id: "dashboard.automations.templates.triageIssues.name",
+			message: "Triage new issues",
+		}),
 		prompt:
 			"Read GitHub issues opened since the last run. For each: apply appropriate labels, check for duplicates, and draft (do not post) a first reply for my review. Summarize what needs my attention most.",
 		rrule: WEEKDAYS_9AM,
@@ -50,9 +65,15 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 	{
 		id: "onboard-docs-fresh",
 		emoji: "📚",
-		description:
-			"Every Wednesday at 9am, review this week's merged PRs and update any docs they made stale.",
-		name: "Keep docs fresh",
+		description: msg({
+			id: "dashboard.automations.templates.docsFresh.description",
+			message:
+				"Every Wednesday at 9am, review this week's merged PRs and update any docs they made stale.",
+		}),
+		name: msg({
+			id: "dashboard.automations.templates.docsFresh.name",
+			message: "Keep docs fresh",
+		}),
 		prompt:
 			"Review this week's merged PRs. Find documentation that they made stale or incomplete, update it, and open a PR. Skip trivial changes; focus on user-facing behavior.",
 		rrule: WEEKLY_WEDNESDAY_9AM,
@@ -60,9 +81,15 @@ export const ONBOARDING_SUGGESTIONS: AutomationTemplate[] = [
 	{
 		id: "onboard-release-notes",
 		emoji: "🗒️",
-		description:
-			"Every Friday at 4pm, draft release notes from this week's merged PRs.",
-		name: "Weekly release notes",
+		description: msg({
+			id: "dashboard.automations.templates.releaseNotes.description",
+			message:
+				"Every Friday at 4pm, draft release notes from this week's merged PRs.",
+		}),
+		name: msg({
+			id: "dashboard.automations.templates.releaseNotes.name",
+			message: "Weekly release notes",
+		}),
 		prompt:
 			"Draft release notes from this week's merged PRs. Group by feature/fix/internal, write one plain-language line per item, and link each PR. Leave the draft in the workspace for my review.",
 		rrule: WEEKLY_FRIDAY_4PM,

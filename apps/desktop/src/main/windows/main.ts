@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import * as Sentry from "@sentry/electron/main";
+import { i18n } from "@superset/i18n";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
@@ -67,8 +68,15 @@ let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
 // (tracked by the window registry) rather than a single stored reference.
 const getWindow = (): BrowserWindow | null => getFocusedOrLastWindow();
 
+function fallbackWorkspaceName(): string {
+	return i18n._({
+		id: "main.notification.fallbackWorkspace",
+		message: "Workspace",
+	});
+}
+
 function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
-	if (!workspaceId) return "Workspace";
+	if (!workspaceId) return fallbackWorkspaceName();
 	try {
 		const workspace = localDb
 			.select()
@@ -85,7 +93,7 @@ function getWorkspaceNameFromDb(workspaceId: string | undefined): string {
 		return getWorkspaceName({ workspace, worktree });
 	} catch (error) {
 		console.error("[notifications] Failed to get workspace name:", error);
-		return "Workspace";
+		return fallbackWorkspaceName();
 	}
 }
 

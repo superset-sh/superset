@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	buildModelColors,
 	ModelBars,
@@ -18,6 +19,7 @@ export function StatsBody({
 	stats: LeaderboardStats;
 	pixelClassName: string;
 }) {
+	const { t } = useLingui();
 	const { totals, tokenSplit, models } = stats;
 	const colors = buildModelColors([
 		models.byUsers,
@@ -35,36 +37,84 @@ export function StatsBody({
 				pixelClassName={pixelClassName}
 				stats={[
 					{
-						label: "Total spend",
+						label: t({
+							id: "marketing.stats.totalSpend",
+							message: "Total spend",
+						}),
 						value: formatUsd(totals.usd),
-						hint: "API-equivalent",
+						hint: t({
+							id: "marketing.stats.totalSpendHint",
+							message: "API-equivalent",
+						}),
 					},
-					{ label: "Tokens", value: formatTokens(totals.tokens) },
 					{
-						label: "Developers",
+						label: t({ id: "marketing.stats.tokens", message: "Tokens" }),
+						value: formatTokens(totals.tokens),
+					},
+					{
+						label: t({
+							id: "marketing.stats.developers",
+							message: "Developers",
+						}),
 						value: formatCount(totals.participants),
-						hint: "on the board",
+						hint: t({
+							id: "marketing.stats.developersHint",
+							message: "on the board",
+						}),
 					},
 					{
-						label: "Cache read",
+						label: t({
+							id: "marketing.stats.cacheRead",
+							message: "Cache read",
+						}),
 						value: `${cacheShare}%`,
-						hint: "of all tokens",
+						hint: t({
+							id: "marketing.stats.cacheReadHint",
+							message: "of all tokens",
+						}),
 					},
 				]}
 			/>
 
-			<Panel title="Token breakdown">
+			<Panel
+				title={t({
+					id: "marketing.stats.tokenBreakdown",
+					message: "Token breakdown",
+				})}
+			>
 				<TokenSplitBar split={tokenSplit} />
 			</Panel>
 
 			<div className="grid gap-6 md:grid-cols-2">
-				<Panel title="Popular models" meta="by users">
+				<Panel
+					title={t({
+						id: "marketing.stats.popularModels",
+						message: "Popular models",
+					})}
+					meta={t({
+						id: "marketing.stats.popularModelsMeta",
+						message: "by users",
+					})}
+				>
 					<ModelBars rows={toUserRows(models.byUsers)} colors={colors} />
 				</Panel>
-				<Panel title="Top models" meta="by spend">
+				<Panel
+					title={t({ id: "marketing.stats.topModels", message: "Top models" })}
+					meta={t({ id: "marketing.stats.topModelsMeta", message: "by spend" })}
+				>
 					<ModelBars rows={toSpendRows(models.bySpend)} colors={colors} />
 				</Panel>
-				<Panel title="Model volume" meta="by tokens" className="md:col-span-2">
+				<Panel
+					title={t({
+						id: "marketing.stats.modelVolume",
+						message: "Model volume",
+					})}
+					meta={t({
+						id: "marketing.stats.modelVolumeMeta",
+						message: "by tokens",
+					})}
+					className="md:col-span-2"
+				>
 					<ModelBars rows={toTokenRows(models.byTokens)} colors={colors} />
 				</Panel>
 			</div>

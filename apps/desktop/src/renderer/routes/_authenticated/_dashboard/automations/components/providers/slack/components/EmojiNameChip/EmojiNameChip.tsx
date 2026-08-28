@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
@@ -27,6 +29,7 @@ export function EmojiNameChip({
 	disabled?: boolean;
 	className?: string;
 }) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	// The field holds whatever was typed until the popover closes, so a
 	// trailing comma or colon does not vanish under the person's cursor.
@@ -37,7 +40,13 @@ export function EmojiNameChip({
 			? emptyLabel
 			: names.length === 1
 				? emojiLabel(names[0] ?? "")
-				: `${names.length} reactions`;
+				: t({
+						id: "dashboard.automations.emojiNameChip.reactionCount",
+						message: plural(names.length, {
+							one: "# reaction",
+							other: "# reactions",
+						}),
+					});
 
 	return (
 		<Popover

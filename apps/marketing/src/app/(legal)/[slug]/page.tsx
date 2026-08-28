@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
@@ -24,6 +25,8 @@ export default async function LegalPage({ params }: PageProps) {
 		notFound();
 	}
 
+	const lastUpdated = formatDate(page.lastUpdated);
+
 	return (
 		<main className="bg-background pt-24 pb-16 min-h-screen">
 			<article className="max-w-3xl mx-auto px-6 sm:px-8">
@@ -32,7 +35,9 @@ export default async function LegalPage({ params }: PageProps) {
 						{page.title}
 					</h1>
 					<p className="mt-4 text-sm text-muted-foreground">
-						Last updated: {formatDate(page.lastUpdated)}
+						<Trans id="marketing.legal.lastUpdated">
+							Last updated: {lastUpdated}
+						</Trans>
 					</p>
 				</header>
 

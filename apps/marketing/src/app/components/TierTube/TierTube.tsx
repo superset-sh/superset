@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { TIER_NAMES, TIER_RGB } from "@/app/components/TierBadge";
 import { TierIcon } from "@/app/components/TierIcon";
 
@@ -40,13 +41,21 @@ function PaceTooltip({
 		>
 			<div className="border border-border bg-background px-3 py-2 text-center">
 				<div className="font-mono text-[0.55rem] uppercase tracking-[0.14em] text-muted-foreground/70">
-					{reached ? "Reached" : "On this pace"}
+					{reached ? (
+						<Trans id="marketing.tiers.tube.reached">Reached</Trans>
+					) : (
+						<Trans id="marketing.tiers.tube.onThisPace">On this pace</Trans>
+					)}
 				</div>
 				<div
 					className="font-mono text-[0.72rem] mt-1"
 					style={{ color: `rgb(${rgb})` }}
 				>
-					{reached ? "Now" : (forecast ?? "—")}
+					{reached ? (
+						<Trans id="marketing.tiers.tube.now">Now</Trans>
+					) : (
+						(forecast ?? "—")
+					)}
 				</div>
 			</div>
 		</div>
@@ -66,6 +75,7 @@ export function TierTube({
 	subject = "you",
 	pixelClassName = "",
 }: TierTubeProps) {
+	const { t } = useLingui();
 	const activeTier = Math.min(4, Math.max(0, Math.floor(position)));
 	const active = ZONES.find((zone) => zone.tier === activeTier);
 	const travelled = railLeft(position);
@@ -133,12 +143,13 @@ export function TierTube({
 				{ZONES.map(({ tier, rgb }) => {
 					const reached = tier <= activeTier;
 					const isActive = tier === activeTier;
+					const tierName = TIER_NAMES[tier - 1];
 					const value = isFleet
 						? counts
 							? String(counts[tier] ?? 0)
 							: "—"
 						: isActive
-							? "YOU"
+							? t({ id: "marketing.tiers.tube.you", message: "YOU" })
 							: "—";
 					return (
 						<div
@@ -169,11 +180,13 @@ export function TierTube({
 								</span>
 							</div>
 							<div className="font-mono text-[0.65rem] uppercase tracking-[0.12em] text-muted-foreground mt-2">
-								{TIER_NAMES[tier - 1]}
+								{tierName ? t(tierName) : null}
 							</div>
 							{isFleet && counts && isActive && (
 								<div className="text-[0.65rem] text-muted-foreground/70 mt-1">
-									most developers
+									<Trans id="marketing.tiers.tube.mostDevelopers">
+										most developers
+									</Trans>
 								</div>
 							)}
 						</div>

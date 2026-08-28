@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import * as Linking from "expo-linking";
 import { ExternalLinkIcon, GlobeIcon } from "lucide-react-native";
 import { Pressable, View } from "react-native";
@@ -36,7 +37,9 @@ export const WebSearchTool = ({
 			<Loader size={12} />
 		</View>
 	) : isError ? (
-		<Text className="text-destructive text-xs">Failed</Text>
+		<Text className="text-destructive text-xs">
+			<Trans id="mobile.tool.failed">Failed</Trans>
+		</Text>
 	) : null;
 
 	return (

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { SelectUser } from "@superset/db/schema";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import type { ReactNode } from "react";
@@ -33,7 +34,11 @@ export function AssigneeMenuItems({
 				className="flex items-center gap-2"
 			>
 				<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
-				<span className="text-sm">No assignee</span>
+				<span className="text-sm">
+					<Trans id="dashboard.tasks.assigneeMenuItems.noAssignee">
+						No assignee
+					</Trans>
+				</span>
 				{!currentAssigneeId && !hasExternalAssignee && (
 					<span className="ml-auto text-xs text-muted-foreground">✓</span>
 				)}

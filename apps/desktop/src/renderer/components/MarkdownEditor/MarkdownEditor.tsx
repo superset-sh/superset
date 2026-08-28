@@ -1,6 +1,8 @@
 import "../../styles/hljs-github.css";
 import "./markdown-editor.css";
 
+import { useLingui } from "@lingui/react/macro";
+import { getClipboardFiles } from "@superset/ui/lib/clipboard-files";
 import { cn } from "@superset/ui/utils";
 import { Extension } from "@tiptap/core";
 import { Blockquote } from "@tiptap/extension-blockquote";
@@ -182,30 +184,11 @@ function isMarkdownTable(text: string): boolean {
 	return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/.test(lines[1]);
 }
 
-function getClipboardFiles(data: DataTransfer | null): File[] {
-	if (!data) return [];
-
-	const files = Array.from(data.files ?? []);
-	const fileKeys = new Set(files.map((file) => `${file.name}:${file.size}`));
-
-	for (const item of Array.from(data.items ?? [])) {
-		if (item.kind !== "file") continue;
-		const file = item.getAsFile();
-		if (!file) continue;
-		const key = `${file.name}:${file.size}`;
-		if (fileKeys.has(key)) continue;
-		fileKeys.add(key);
-		files.push(file);
-	}
-
-	return files;
-}
-
 export function MarkdownEditor({
 	content,
 	onSave,
 	onChange,
-	placeholder = "Add description...",
+	placeholder,
 	autoFocus = false,
 	className,
 	editorClassName,
@@ -216,6 +199,13 @@ export function MarkdownEditor({
 	features,
 	editable = true,
 }: MarkdownEditorProps) {
+	const { t } = useLingui();
+	const resolvedPlaceholder =
+		placeholder ??
+		t({
+			id: "components.markdownEditor.placeholder",
+			message: "Add description...",
+		});
 	const showSlashCommand = features?.slashCommand ?? true;
 	const showEmoji = features?.emoji ?? true;
 	const showFileMention = features?.fileMention ?? true;
@@ -330,7 +320,7 @@ export function MarkdownEditor({
 			Placeholder.configure({
 				placeholder: ({ node }) => {
 					if (node.type.name === "paragraph") {
-						return placeholder;
+						return resolvedPlaceholder;
 					}
 					return "";
 				},
@@ -379,15 +369,19 @@ export function MarkdownEditor({
 			},
 			handlePaste: (_, event) => {
 				const onPasteFiles = onPasteFilesRef.current;
+				const text = event.clipboardData?.getData("text/plain") ?? "";
 				if (onPasteFiles) {
 					const files = getClipboardFiles(event.clipboardData);
 					if (files.length > 0) {
-						event.preventDefault();
 						onPasteFiles(files);
-						return true;
+						// Mixed payloads (image plus its alt text) keep both: fall
+						// through so the text still lands in the editor.
+						if (!text) {
+							event.preventDefault();
+							return true;
+						}
 					}
 				}
-				const text = event.clipboardData?.getData("text/plain") ?? "";
 				const currentEditor = editorRef.current;
 				if (!currentEditor || !isMarkdownTable(text)) {
 					return false;

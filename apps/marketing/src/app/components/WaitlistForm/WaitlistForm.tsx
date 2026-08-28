@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { useState } from "react";
 import { track } from "@/lib/analytics";
 import { withPosthog } from "@/lib/analytics/lazy";
@@ -37,10 +38,14 @@ export function WaitlistForm({ heading, description }: WaitlistFormProps) {
 		return (
 			<div>
 				<h2 className="mb-2 text-xl font-medium text-foreground">
-					You're on the list!
+					<Trans id="marketing.waitlist.successTitle">
+						You're on the list!
+					</Trans>
 				</h2>
 				<p className="text-sm text-muted-foreground">
-					We'll notify you when Windows &amp; Linux support is ready.
+					<Trans id="marketing.waitlist.successBody">
+						We'll notify you when Windows &amp; Linux support is ready.
+					</Trans>
 				</p>
 			</div>
 		);
@@ -67,7 +72,7 @@ export function WaitlistForm({ heading, description }: WaitlistFormProps) {
 					type="submit"
 					className="w-full rounded-lg bg-foreground py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
 				>
-					Join waitlist
+					<Trans id="marketing.waitlist.joinButton">Join waitlist</Trans>
 				</button>
 			</form>
 		</>

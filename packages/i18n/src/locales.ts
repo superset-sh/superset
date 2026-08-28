@@ -1,8 +1,16 @@
-export const SUPPORTED_LOCALES = ["en"] as const;
+export const SUPPORTED_LOCALES = ["en", "ja", "zh-CN"] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = "en";
+
+// Native-language names. A user stuck in a language they can't read must be
+// able to recognize their own in the picker, so these are never translated.
+export const LOCALE_LABELS: Record<SupportedLocale, string> = {
+	en: "English",
+	ja: "日本語",
+	"zh-CN": "简体中文",
+};
 
 // Locales written right-to-left. Empty until RTL is in scope; kept here so
 // every surface asks the same source instead of hardcoding directionality.
@@ -18,8 +26,17 @@ export function isSupportedLocale(value: string): value is SupportedLocale {
 export function resolveLocale(preferences: readonly string[]): SupportedLocale {
 	for (const tag of preferences) {
 		if (isSupportedLocale(tag)) return tag;
+
+		// Exact tag missed: try the base language, then any supported locale
+		// that shares it. "zh-Hans-CN" and plain "zh" both land on "zh-CN"
+		// rather than falling through to English.
 		const base = tag.split("-")[0];
-		if (base && isSupportedLocale(base)) return base;
+		if (!base) continue;
+		if (isSupportedLocale(base)) return base;
+		const sharesBase = SUPPORTED_LOCALES.find(
+			(supported) => supported.split("-")[0] === base,
+		);
+		if (sharesBase) return sharesBase;
 	}
 	return DEFAULT_LOCALE;
 }

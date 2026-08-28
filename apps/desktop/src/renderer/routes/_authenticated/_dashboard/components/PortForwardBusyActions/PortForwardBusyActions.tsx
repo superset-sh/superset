@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { PortForward } from "shared/types";
@@ -18,9 +19,17 @@ const BUTTON_CLASS =
 export function PortForwardBusyActions({
 	forward,
 }: PortForwardBusyActionsProps) {
+	const { t } = useLingui();
 	const killLocal = electronTrpc.portForwards.killLocalOwner.useMutation({
 		onSuccess: (result) => {
-			if (!result.success) toast.error(result.error ?? "Could not stop it");
+			if (!result.success)
+				toast.error(
+					result.error ??
+						t({
+							id: "dashboard.ports.busy.stopFailed",
+							message: "Could not stop it",
+						}),
+				);
 		},
 	});
 	const retry = electronTrpc.portForwards.retryEphemeral.useMutation();
@@ -40,7 +49,9 @@ export function PortForwardBusyActions({
 					}}
 					className={BUTTON_CLASS}
 				>
-					Stop local {owner.processName}
+					<Trans id="dashboard.ports.busy.stopLocal">
+						Stop local {owner.processName}
+					</Trans>
 				</button>
 			)}
 			<button
@@ -52,7 +63,7 @@ export function PortForwardBusyActions({
 				}}
 				className={BUTTON_CLASS}
 			>
-				Use another port
+				<Trans id="dashboard.ports.busy.useAnotherPort">Use another port</Trans>
 			</button>
 		</span>
 	);

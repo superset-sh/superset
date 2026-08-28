@@ -2,6 +2,7 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { Plural } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -83,8 +84,12 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
 						<span className="font-medium">{projectName}</span>
 						<span className="text-xs text-muted-foreground">
-							{totalWorkspaceCount} workspace
-							{totalWorkspaceCount !== 1 ? "s" : ""}
+							<Plural
+								id="dashboard.sidebar.collapsedProject.workspaceCount"
+								value={totalWorkspaceCount}
+								one="# workspace"
+								other="# workspaces"
+							/>
 						</span>
 					</TooltipContent>
 				</Tooltip>

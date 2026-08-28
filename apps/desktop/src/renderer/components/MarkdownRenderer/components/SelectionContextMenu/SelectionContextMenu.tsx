@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -93,17 +94,21 @@ export function SelectionContextMenu<T extends HTMLElement>({
 			<ContextMenuContent>
 				<ContextMenuItem disabled={!canCopy} onSelect={handleCopy}>
 					<LuCopy className="size-4" />
-					Copy
+					<Trans id="components.selectionContextMenu.copy">Copy</Trans>
 					<ContextMenuShortcut>{`${modifierKeyLabel}C`}</ContextMenuShortcut>
 				</ContextMenuItem>
 				{linkHref && (
 					<ContextMenuItem onSelect={handleCopyLinkAddress}>
-						Copy Link Address
+						<Trans id="components.selectionContextMenu.copyLinkAddress">
+							Copy Link Address
+						</Trans>
 					</ContextMenuItem>
 				)}
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={handleSelectAll}>
-					Select All
+					<Trans id="components.selectionContextMenu.selectAll">
+						Select All
+					</Trans>
 					<ContextMenuShortcut>{`${modifierKeyLabel}A`}</ContextMenuShortcut>
 				</ContextMenuItem>
 			</ContextMenuContent>

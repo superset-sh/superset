@@ -15,12 +15,24 @@ const REPO_ROOT = resolve(import.meta.dir, "../../..");
 // separators ("•", "/"), numbers, and single-letter artifacts.
 const WORD = /[A-Za-z]{2,}/;
 
+// Lingui macro elements whose children/branches are catalog messages.
+const LINGUI_ELEMENTS = ["<Trans", "<Plural", "<Select", "<SelectOrdinal"];
+
 function isInsideTrans(node: import("@ast-grep/napi").SgNode): boolean {
 	let current = node.parent();
 	while (current) {
+		const kind = current.kind();
 		if (
-			current.kind() === "jsx_element" &&
-			current.child(0)?.text().startsWith("<Trans")
+			kind === "jsx_element" &&
+			LINGUI_ELEMENTS.some((tag) => current?.child(0)?.text().startsWith(tag))
+		) {
+			return true;
+		}
+		// Self-closing macro usage holds its branches in JSX props, e.g.
+		// <Plural one={<>…</>} other={<>…</>} />.
+		if (
+			kind === "jsx_self_closing_element" &&
+			LINGUI_ELEMENTS.some((tag) => current?.text().startsWith(tag))
 		) {
 			return true;
 		}

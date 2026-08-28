@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
@@ -54,23 +55,25 @@ export default async function ChangelogPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Changelog
+						<Trans id="marketing.changelog.eyebrow">Changelog</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						What's New
+						<Trans id="marketing.changelog.title">What's New</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						The latest updates, improvements, and new features in Superset.
-						Updated weekly. For detailed release notes, see{" "}
-						<a
-							href="https://github.com/superset-sh/superset/releases"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-						>
-							GitHub Releases
-							<ExternalLink className="h-3 w-3" />
-						</a>
+						<Trans id="marketing.changelog.subtitle">
+							The latest updates, improvements, and new features in Superset.
+							Updated weekly. For detailed release notes, see{" "}
+							<a
+								href="https://github.com/superset-sh/superset/releases"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+							>
+								GitHub Releases
+								<ExternalLink className="h-3 w-3" />
+							</a>
+						</Trans>
 					</p>
 					<a
 						href={`${COMPANY.GITHUB_URL}/releases`}
@@ -79,7 +82,9 @@ export default async function ChangelogPage() {
 						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mt-4"
 					>
 						<FaGithub className="size-4" />
-						View releases on GitHub
+						<Trans id="marketing.changelog.viewReleases">
+							View releases on GitHub
+						</Trans>
 						<span aria-hidden="true">&rarr;</span>
 					</a>
 
@@ -91,7 +96,9 @@ export default async function ChangelogPage() {
 			{/* Entries section */}
 			<div className="relative max-w-3xl mx-auto px-6 py-16">
 				{entries.length === 0 ? (
-					<p className="text-muted-foreground">No updates yet.</p>
+					<p className="text-muted-foreground">
+						<Trans id="marketing.changelog.empty">No updates yet.</Trans>
+					</p>
 				) : (
 					<div className="flex flex-col gap-16">
 						{entries.map((entry) => (

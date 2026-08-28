@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Composer, type ComposerHandle } from "@superset/composer";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -40,6 +41,7 @@ export function NewChatWidget({
 	fixedTarget?: ChatTarget;
 	placeholder?: string;
 }) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const composerRef = useRef<ComposerHandle>(null);
 
@@ -169,7 +171,12 @@ export function NewChatWidget({
 			return;
 		}
 		if (!selectedTarget) {
-			Alert.alert("No project available");
+			Alert.alert(
+				t({
+					id: "mobile.newChat.noProjectAvailable",
+					message: "No project available",
+				}),
+			);
 			return;
 		}
 		if (selectedTarget.kind === "cloud") {
@@ -219,15 +226,23 @@ export function NewChatWidget({
 			? [
 					{
 						id: "clear-target",
-						label: `New agent in ${storeTarget.workspaceName}`,
+						label: t({
+							id: "mobile.newChat.newAgentIn",
+							message: `New agent in ${storeTarget.workspaceName}`,
+						}),
 					},
 				]
 			: [
 					cloudScope
-						? { id: "project", label: "Cloud" }
+						? {
+								id: "project",
+								label: t({ id: "mobile.filter.cloud", message: "Cloud" }),
+							}
 						: {
 								id: "project",
-								label: selectedTarget?.projectName ?? "No project",
+								label:
+									selectedTarget?.projectName ??
+									t({ id: "mobile.home.noProject", message: "No project" }),
 								avatar: true,
 								iconUri: selectedTarget?.projectIconUrl ?? undefined,
 							},
@@ -252,7 +267,13 @@ export function NewChatWidget({
 	return (
 		<Composer
 			ref={composerRef}
-			placeholder={placeholder ?? "Plan, ask, build..."}
+			placeholder={
+				placeholder ??
+				t({
+					id: "mobile.newChat.placeholder",
+					message: "Plan, ask, build...",
+				})
+			}
 			initialDraft={initialDraft}
 			isSending={isSending}
 			onDictationError={(message: string) => Alert.alert(message)}

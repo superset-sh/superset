@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { BsMicrosoftTeams } from "react-icons/bs";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { TextFilterChip } from "../../TriggerSentence/components/TextFilterChip";
@@ -25,8 +27,18 @@ function renderSlot(
 					onChange={(v) => set({ teams: v })}
 					className={mark("teams")}
 					options={options.microsoftTeams?.teams ?? []}
-					emptyLabel="Select teams"
-					anyLabel="Any team"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.selectTeams",
+							message: "Select teams",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.anyTeam",
+							message: "Any team",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -38,8 +50,18 @@ function renderSlot(
 					onChange={(v) => set({ channels: v })}
 					className={mark("channels")}
 					options={options.microsoftTeams?.channels ?? []}
-					emptyLabel="Select channels"
-					anyLabel="Any channel"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.selectChannels",
+							message: "Select channels",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.anyChannel",
+							message: "Any channel",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -51,8 +73,18 @@ function renderSlot(
 					onChange={(v) => set({ actor: v })}
 					className={mark("actor")}
 					options={options.microsoftTeams?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.selectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.anyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -62,8 +94,18 @@ function renderSlot(
 					key={index}
 					value={config.messageFilter}
 					onChange={(v) => set({ messageFilter: v })}
-					emptyLabel="Any message"
-					placeholder="Contains this text..."
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.anyMessage",
+							message: "Any message",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.messageFilterPlaceholder",
+							message: "Contains this text...",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -73,8 +115,18 @@ function renderSlot(
 					key={index}
 					value={config.messageFilter}
 					onChange={(v) => set({ messageFilter: v })}
-					emptyLabel="Any name"
-					placeholder="Name contains..."
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.anyName",
+							message: "Any name",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.microsoftTeams.nameFilterPlaceholder",
+							message: "Name contains...",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);

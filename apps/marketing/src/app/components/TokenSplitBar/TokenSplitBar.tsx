@@ -1,7 +1,11 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatTokens } from "../../utils/formatUsage";
 
 interface Segment {
-	label: string;
+	id: string;
+	label: MessageDescriptor;
 	tokens: number;
 	color: string;
 }
@@ -18,12 +22,35 @@ export function TokenSplitBar({
 		reasoningOutput: number;
 	};
 }) {
+	const { t } = useLingui();
 	const segments: Segment[] = [
-		{ label: "Input", tokens: split.uncachedInput, color: "#d25611" },
-		{ label: "Output", tokens: split.output, color: "#c19a5b" },
-		{ label: "Cache read", tokens: split.cachedInput, color: "#6b8ca3" },
 		{
-			label: "Cache write",
+			id: "input",
+			label: msg({ id: "marketing.models.split.input", message: "Input" }),
+			tokens: split.uncachedInput,
+			color: "#d25611",
+		},
+		{
+			id: "output",
+			label: msg({ id: "marketing.models.split.output", message: "Output" }),
+			tokens: split.output,
+			color: "#c19a5b",
+		},
+		{
+			id: "cacheRead",
+			label: msg({
+				id: "marketing.models.split.cacheRead",
+				message: "Cache read",
+			}),
+			tokens: split.cachedInput,
+			color: "#6b8ca3",
+		},
+		{
+			id: "cacheWrite",
+			label: msg({
+				id: "marketing.models.split.cacheWrite",
+				message: "Cache write",
+			}),
 			tokens: split.cacheWrite5m + split.cacheWrite1h,
 			color: "#7a9e7e",
 		},
@@ -32,7 +59,9 @@ export function TokenSplitBar({
 	const total = segments.reduce((sum, segment) => sum + segment.tokens, 0);
 	if (total === 0) {
 		return (
-			<p className="text-sm text-muted-foreground">No usage in this range.</p>
+			<p className="text-sm text-muted-foreground">
+				<Trans id="marketing.usage.noneInRange">No usage in this range.</Trans>
+			</p>
 		);
 	}
 
@@ -41,9 +70,11 @@ export function TokenSplitBar({
 			{segments.map((segment) => {
 				const percent = (segment.tokens / total) * 100;
 				return (
-					<div key={segment.label}>
+					<div key={segment.id}>
 						<div className="flex items-baseline justify-between gap-4 mb-1.5">
-							<span className="text-sm text-foreground">{segment.label}</span>
+							<span className="text-sm text-foreground">
+								{t(segment.label)}
+							</span>
 							<span className="font-mono text-xs text-muted-foreground">
 								{formatTokens(segment.tokens)} · {percent.toFixed(0)}%
 							</span>

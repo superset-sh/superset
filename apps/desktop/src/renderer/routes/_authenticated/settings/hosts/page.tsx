@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useHostsPresence } from "renderer/hooks/useHostsPresence";
@@ -35,7 +36,7 @@ function HostsIndexPage() {
 		if (isPending) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
-				No hosts yet.
+				<Trans id="settings.hosts.empty">No hosts yet.</Trans>
 			</div>
 		);
 	}

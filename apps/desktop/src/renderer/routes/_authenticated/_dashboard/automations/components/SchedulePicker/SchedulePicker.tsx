@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	describeSchedule,
 	isValidRrule,
@@ -93,7 +95,9 @@ export function SchedulePicker({
 			<PopoverContent className="w-72" align="start" side="top" sideOffset={8}>
 				<div className="flex flex-col gap-3">
 					<span className="text-xs font-medium text-muted-foreground">
-						Schedule
+						<Trans id="dashboard.automations.schedulePicker.schedule">
+							Schedule
+						</Trans>
 					</span>
 
 					<Select
@@ -106,7 +110,7 @@ export function SchedulePicker({
 						<SelectContent>
 							{PRESET_OPTIONS.map((option) => (
 								<SelectItem key={option.value} value={option.value}>
-									{option.label}
+									{i18n._(option.label)}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -123,7 +127,7 @@ export function SchedulePicker({
 							<SelectContent>
 								{DAY_OPTIONS.map((option) => (
 									<SelectItem key={option.value} value={option.value}>
-										{option.label}
+										{i18n._(option.label)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -164,7 +168,9 @@ export function SchedulePicker({
 							/>
 							{customDraft && !customValid && (
 								<span className="select-text cursor-text text-xs text-destructive">
-									Invalid recurrence rule — changes aren't saved
+									<Trans id="dashboard.automations.schedulePicker.invalidRrule">
+										Invalid recurrence rule — changes aren't saved
+									</Trans>
 								</span>
 							)}
 							{customDraft && customValid && (

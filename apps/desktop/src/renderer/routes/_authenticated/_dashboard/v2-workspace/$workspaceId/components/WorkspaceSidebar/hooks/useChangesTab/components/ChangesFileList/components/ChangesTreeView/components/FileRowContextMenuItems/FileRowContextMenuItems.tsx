@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -56,6 +57,7 @@ export function FileRowContextMenuItems({
 	onOpenInEditor,
 	onRequestDiscard,
 }: FileRowContextMenuItemsProps) {
+	const { t } = useLingui();
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
@@ -74,13 +76,15 @@ export function FileRowContextMenuItems({
 				onSelect={() => onSelectFile?.(file.path, false, changeKey)}
 			>
 				<GitCompare />
-				Open Diff
+				<Trans id="workspace.fileRowMenuItems.openDiff">Open Diff</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onSelectFile?.(file.path, true, changeKey)}
 			>
 				<SquarePlus />
-				Open Diff in New Tab
+				<Trans id="workspace.fileRowMenuItems.openDiffNewTab">
+					Open Diff in New Tab
+				</Trans>
 				{diffNewTabTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(diffNewTabTier)}
@@ -92,7 +96,7 @@ export function FileRowContextMenuItems({
 				disabled={!onOpenFile || !absolutePath}
 			>
 				<FileText />
-				Open File
+				<Trans id="workspace.fileRowMenuItems.openFile">Open File</Trans>
 				{fileTier && (
 					<DropdownMenuShortcut>{modifierLabel(fileTier)}</DropdownMenuShortcut>
 				)}
@@ -102,14 +106,18 @@ export function FileRowContextMenuItems({
 				disabled={!onOpenFile || !absolutePath}
 			>
 				<SquarePlus />
-				Open File in New Tab
+				<Trans id="workspace.fileRowMenuItems.openFileNewTab">
+					Open File in New Tab
+				</Trans>
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onOpenInEditor?.(file.path)}
 				disabled={!onOpenInEditor}
 			>
 				<ExternalLink />
-				Open in Editor
+				<Trans id="workspace.fileRowMenuItems.openInEditor">
+					Open in Editor
+				</Trans>
 				{externalTier && (
 					<DropdownMenuShortcut>
 						{modifierLabel(externalTier)}
@@ -134,7 +142,15 @@ export function FileRowContextMenuItems({
 						onSelect={() => onRequestDiscard(file)}
 					>
 						{isDeleteAction ? <Trash2 /> : <Undo2 />}
-						{isDeleteAction ? "Delete" : "Discard changes"}
+						{isDeleteAction
+							? t({
+									id: "workspace.fileRowContextMenuItems.delete",
+									message: "Delete",
+								})
+							: t({
+									id: "workspace.fileRowContextMenuItems.discardChanges",
+									message: "Discard changes",
+								})}
 					</DropdownMenuItem>
 				</>
 			)}

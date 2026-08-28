@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -34,6 +35,7 @@ export function LeaderboardJoinDialog({
 	isJoining,
 	onConfirm,
 }: LeaderboardJoinDialogProps) {
+	const { t } = useLingui();
 	const [handle, setHandle] = useState("");
 	const [edited, setEdited] = useState(false);
 
@@ -48,25 +50,37 @@ export function LeaderboardJoinDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle>Join the leaderboard</DialogTitle>
+					<DialogTitle>
+						<Trans id="components.leaderboardJoinDialog.title">
+							Join the leaderboard
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Publishes your token counts and model names, never repo names, file
-						paths or prompts. You can leave at any time, which deletes
-						everything you've published.
+						<Trans id="components.leaderboardJoinDialog.description">
+							Publishes your token counts and model names, never repo names,
+							file paths or prompts. You can leave at any time, which deletes
+							everything you've published.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
 					{isLoading ? (
 						<p className="text-sm text-muted-foreground">
-							Reading your local usage…
+							<Trans id="components.leaderboardJoinDialog.readingUsage">
+								Reading your local usage…
+							</Trans>
 						</p>
 					) : preview ? (
 						<RankTeaser preview={preview} />
 					) : null}
 
 					<div className="space-y-1.5">
-						<Label htmlFor="leaderboard-handle">Handle</Label>
+						<Label htmlFor="leaderboard-handle">
+							<Trans id="components.leaderboardJoinDialog.handleLabel">
+								Handle
+							</Trans>
+						</Label>
 						<Input
 							id="leaderboard-handle"
 							value={handle}
@@ -74,12 +88,17 @@ export function LeaderboardJoinDialog({
 								setEdited(true);
 								setHandle(event.target.value);
 							}}
-							placeholder="pick a name for the board"
+							placeholder={t({
+								id: "components.leaderboardJoinDialog.handlePlaceholder",
+								message: "pick a name for the board",
+							})}
 							autoComplete="off"
 							spellCheck={false}
 						/>
 						<p className="text-xs text-muted-foreground">
-							Shown publicly alongside your name.
+							<Trans id="components.leaderboardJoinDialog.handleHint">
+								Shown publicly alongside your name.
+							</Trans>
 						</p>
 					</div>
 				</div>
@@ -91,14 +110,20 @@ export function LeaderboardJoinDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isJoining}
 					>
-						Cancel
+						<Trans id="components.leaderboardJoinDialog.cancel">Cancel</Trans>
 					</Button>
 					<Button
 						size="sm"
 						disabled={!valid || isJoining}
 						onClick={() => onConfirm(trimmed)}
 					>
-						{isJoining ? "Joining…" : "Join"}
+						{isJoining ? (
+							<Trans id="components.leaderboardJoinDialog.joining">
+								Joining…
+							</Trans>
+						) : (
+							<Trans id="components.leaderboardJoinDialog.join">Join</Trans>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

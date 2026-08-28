@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { TeardownFailureCause } from "@superset/host-service";
 import {
 	AlertDialog,
@@ -51,7 +52,9 @@ export function TeardownFailedPane({
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">{reason}</AlertDialogTitle>
 					<AlertDialogDescription>
-						Delete anyway will skip the teardown script entirely.
+						<Trans id="dashboard.sidebar.teardownFailed.description">
+							Delete anyway will skip the teardown script entirely.
+						</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				{cleanTail && (
@@ -66,7 +69,7 @@ export function TeardownFailedPane({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans id="dashboard.sidebar.teardownFailed.cancel">Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"
@@ -74,7 +77,9 @@ export function TeardownFailedPane({
 						className="h-7 px-3 text-xs"
 						onClick={onForceDelete}
 					>
-						Delete anyway
+						<Trans id="dashboard.sidebar.teardownFailed.deleteAnyway">
+							Delete anyway
+						</Trans>
 					</Button>
 				</AlertDialogFooter>
 			</AlertDialogContent>

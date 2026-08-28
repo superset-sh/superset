@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { GitPullRequest } from "lucide-react-native";
 import { Pressable } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -18,14 +19,29 @@ export function PullRequestsButton({
 	pullRequests: ColourablePullRequest[];
 	onPress: () => void;
 }) {
+	const { t } = useLingui();
 	const latest = pullRequests[0];
 	if (!latest) return null;
 	const count = pullRequests.length;
-	const label = count === 1 ? "View PR" : `View ${count} PRs`;
+	const label =
+		count === 1
+			? t({ id: "mobile.pullRequests.viewOne", message: "View PR" })
+			: t({
+					id: "mobile.pullRequests.viewMany",
+					message: `View ${count} PRs`,
+				});
 	return (
 		<Pressable
 			accessibilityLabel={
-				count === 1 ? "View pull request" : `View ${count} pull requests`
+				count === 1
+					? t({
+							id: "mobile.pullRequests.viewOneLabel",
+							message: "View pull request",
+						})
+					: t({
+							id: "mobile.pullRequests.viewManyLabel",
+							message: `View ${count} pull requests`,
+						})
 			}
 			accessibilityRole="button"
 			ph-label="pull-requests-button"

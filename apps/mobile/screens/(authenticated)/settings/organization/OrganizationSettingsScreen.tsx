@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useMemo } from "react";
 import { ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
@@ -45,7 +46,7 @@ export function OrganizationSettingsScreen() {
 				className="mb-1 text-sm font-semibold"
 				style={{ color: theme.mutedForeground }}
 			>
-				Members
+				<Trans id="mobile.organizationSettings.members">Members</Trans>
 			</Text>
 			{memberRows.map((row, index) => (
 				<ListRow

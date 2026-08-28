@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -19,6 +20,7 @@ interface TeamSelectorProps {
 }
 
 export function TeamSelector({ organizationId }: TeamSelectorProps) {
+	const { t } = useLingui();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [showSuccess, setShowSuccess] = useState(false);
@@ -42,7 +44,12 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 				setShowSuccess(true);
 			},
 			onError: () => {
-				toast.error("Failed to update team. Please try again.");
+				toast.error(
+					t({
+						id: "web.teamSelector.updateError",
+						message: "Failed to update team. Please try again.",
+					}),
+				);
 			},
 		}),
 	);
@@ -68,7 +75,9 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 	if (teams.length === 0) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				No teams found in your Linear workspace.
+				<Trans id="web.teamSelector.empty">
+					No teams found in your Linear workspace.
+				</Trans>
 			</p>
 		);
 	}
@@ -81,7 +90,12 @@ export function TeamSelector({ organizationId }: TeamSelectorProps) {
 				disabled={updateMutation.isPending}
 			>
 				<SelectTrigger className="w-48">
-					<SelectValue placeholder="Select a team" />
+					<SelectValue
+						placeholder={t({
+							id: "web.teamSelector.placeholder",
+							message: "Select a team",
+						})}
+					/>
 				</SelectTrigger>
 				<SelectContent>
 					{teams.map((team) => (

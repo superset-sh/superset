@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -42,6 +43,7 @@ export function V2ProjectSettings({
 	focusField,
 }: V2ProjectSettingsProps) {
 	const navigate = useNavigate();
+	const { t } = useLingui();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
 		useWorkspaceHostOptions();
@@ -60,7 +62,9 @@ export function V2ProjectSettings({
 		if (localHostId) {
 			options.push({
 				id: localHostId,
-				name: currentDeviceName ?? "This device",
+				name:
+					currentDeviceName ??
+					t({ id: "settings.project.hostThisDevice", message: "This device" }),
 				isLocal: true,
 				isOnline: true,
 			});
@@ -76,13 +80,19 @@ export function V2ProjectSettings({
 		if (targetHostId && !options.some((option) => option.id === targetHostId)) {
 			options.push({
 				id: targetHostId,
-				name: targetHostId === machineId ? "This device" : targetHostId,
+				name:
+					targetHostId === machineId
+						? t({
+								id: "settings.project.hostThisDevice",
+								message: "This device",
+							})
+						: targetHostId,
 				isLocal: targetHostId === machineId,
 				isOnline: targetHostId === machineId,
 			});
 		}
 		return options;
-	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId]);
+	}, [currentDeviceName, localHostId, machineId, otherHosts, t, targetHostId]);
 
 	const selectedHost = useMemo(
 		() => hostOptions.find((option) => option.id === targetHostId) ?? null,
@@ -90,9 +100,13 @@ export function V2ProjectSettings({
 	);
 	const targetHostName = useMemo(() => {
 		if (selectedHost?.name) return selectedHost.name;
-		if (!targetHostId || targetHostId === machineId) return "this device";
+		if (!targetHostId || targetHostId === machineId)
+			return t({
+				id: "settings.project.hostThisDeviceInline",
+				message: "this device",
+			});
 		return targetHostId;
-	}, [machineId, selectedHost, targetHostId]);
+	}, [machineId, selectedHost, t, targetHostId]);
 	const hasMultipleHosts = hostOptions.length > 1;
 	const isRemoteTarget = Boolean(
 		targetHostId && machineId && targetHostId !== machineId,
@@ -134,7 +148,7 @@ export function V2ProjectSettings({
 		if (!isReady) return null;
 		return (
 			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
-				Project not found.
+				<Trans id="settings.project.notFound">Project not found.</Trans>
 			</div>
 		);
 	}
@@ -181,8 +195,16 @@ export function V2ProjectSettings({
 			</header>
 
 			<div className="space-y-10">
-				<SettingsSection title="General">
-					<SettingsRow label="Name" htmlFor="project-name">
+				<SettingsSection
+					title={t({
+						id: "settings.project.sectionGeneral",
+						message: "General",
+					})}
+				>
+					<SettingsRow
+						label={t({ id: "settings.project.nameLabel", message: "Name" })}
+						htmlFor="project-name"
+					>
 						<NameSection
 							projectId={projectId}
 							// The targeted host's own name, not the cross-host merged
@@ -194,12 +216,22 @@ export function V2ProjectSettings({
 							onRenamed={() => refetchHostProject()}
 						/>
 					</SettingsRow>
-					<SettingsRow label="Repository" htmlFor="project-repo">
+					<SettingsRow
+						label={t({
+							id: "settings.project.repositoryLabel",
+							message: "Repository",
+						})}
+						htmlFor="project-repo"
+					>
 						<RepositorySection repoUrl={project.repoUrl} />
 					</SettingsRow>
 					<SettingsRow
-						label="Icon"
-						hint="Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
+						label={t({ id: "settings.project.iconLabel", message: "Icon" })}
+						hint={t({
+							id: "settings.project.iconHint",
+							message:
+								"Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar.",
+						})}
 					>
 						<IconUploadField
 							projectId={projectId}
@@ -216,13 +248,27 @@ export function V2ProjectSettings({
 				</SettingsSection>
 
 				<SettingsSection
-					title="Branches & naming"
-					description="How branches and workspace names are created for this project."
+					title={t({
+						id: "settings.project.sectionBranchesNaming",
+						message: "Branches & naming",
+					})}
+					description={t({
+						id: "settings.project.sectionBranchesNamingDescription",
+						message:
+							"How branches and workspace names are created for this project.",
+					})}
 				>
 					{targetHostUrl && hostProject && (
 						<SettingsRow
-							label="Branch prefix"
-							hint="Namespace new branches for this project. Defaults to the host-wide Git setting."
+							label={t({
+								id: "settings.project.branchPrefixLabel",
+								message: "Branch prefix",
+							})}
+							hint={t({
+								id: "settings.project.branchPrefixHint",
+								message:
+									"Namespace new branches for this project. Defaults to the host-wide Git setting.",
+							})}
 						>
 							<BranchPrefixSection
 								projectId={projectId}
@@ -249,10 +295,22 @@ export function V2ProjectSettings({
 				</SettingsSection>
 
 				<SettingsSection
-					title="Location & checkout"
-					description="Where the repository and new worktrees live on this host."
+					title={t({
+						id: "settings.project.sectionLocationCheckout",
+						message: "Location & checkout",
+					})}
+					description={t({
+						id: "settings.project.sectionLocationCheckoutDescription",
+						message:
+							"Where the repository and new worktrees live on this host.",
+					})}
 				>
-					<SettingsRow label="Location">
+					<SettingsRow
+						label={t({
+							id: "settings.project.locationLabel",
+							message: "Location",
+						})}
+					>
 						<ProjectLocationSection
 							projectId={projectId}
 							projectName={project.name}
@@ -265,8 +323,15 @@ export function V2ProjectSettings({
 						/>
 					</SettingsRow>
 					<SettingsRow
-						label="Worktrees"
-						hint="Base directory for new worktree workspaces on this host."
+						label={t({
+							id: "settings.project.worktreesLabel",
+							message: "Worktrees",
+						})}
+						hint={t({
+							id: "settings.project.worktreesHint",
+							message:
+								"Base directory for new worktree workspaces on this host.",
+						})}
 					>
 						<WorktreeLocationSection
 							projectId={projectId}
@@ -286,12 +351,16 @@ export function V2ProjectSettings({
 									htmlFor="project-sparse-checkout"
 									className="text-sm font-medium"
 								>
-									Sparse checkout
+									<Trans id="settings.project.sparseCheckout">
+										Sparse checkout
+									</Trans>
 								</Label>
 								<p className="mt-0.5 text-xs text-muted-foreground">
-									Folders to check out into new worktrees, one per line,
-									relative to the repo root. Files at the root are always
-									included. Empty checks out everything.
+									<Trans id="settings.project.sparseCheckoutHint">
+										Folders to check out into new worktrees, one per line,
+										relative to the repo root. Files at the root are always
+										included. Empty checks out everything.
+									</Trans>
 								</p>
 							</div>
 							<SparseCheckoutSection
@@ -313,14 +382,26 @@ export function V2ProjectSettings({
 
 				{targetHostUrl && (
 					<SettingsSection
-						title="Project lifecycle scripts"
-						description="Commands run for workspace setup, teardown, and the Run button."
+						title={t({
+							id: "settings.project.sectionLifecycleScripts",
+							message: "Project lifecycle scripts",
+						})}
+						description={t({
+							id: "settings.project.sectionLifecycleScriptsDescription",
+							message:
+								"Commands run for workspace setup, teardown, and the Run button.",
+						})}
 					>
 						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
 					</SettingsSection>
 				)}
 
-				<SettingsSection title="Danger zone">
+				<SettingsSection
+					title={t({
+						id: "settings.project.sectionDangerZone",
+						message: "Danger zone",
+					})}
+				>
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}

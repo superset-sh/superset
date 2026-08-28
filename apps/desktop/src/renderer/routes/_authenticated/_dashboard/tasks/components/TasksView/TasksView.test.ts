@@ -66,9 +66,9 @@ describe("Tasks and pull requests navigation", () => {
 	test("keeps GitHub issues as a contextual Tasks source", () => {
 		const source = readComponent("components/TasksTopBar/TasksTopBar.tsx");
 
-		expect(source).toContain('label: "Linear"');
-		expect(source).toContain('label: "GitHub issues"');
-		expect(source).not.toContain('label: "PRs"');
+		expect(source).toContain('message: "Linear"');
+		expect(source).toContain('message: "GitHub issues"');
+		expect(source).not.toContain('"PRs"');
 	});
 
 	test("keeps pull request UI out of TasksView", () => {
@@ -100,11 +100,18 @@ describe("Tasks and pull requests navigation", () => {
 			),
 		];
 
+		// v2's labels go through Lingui (`message: "Tasks"`); v1 still has the
+		// literal aria-label. Accept either so this keeps asserting the routes
+		// stay separate rather than how their labels are authored.
+		const labelled = (source: string, label: string) =>
+			source.includes(`aria-label="${label}"`) ||
+			source.includes(`message: "${label}"`);
+
 		for (const source of sidebarSources) {
 			expect(source).toContain('to: "/tasks"');
 			expect(source).toContain('to: "/pull-requests"');
-			expect(source).toContain('aria-label="Tasks"');
-			expect(source).toContain('aria-label="Pull requests"');
+			expect(labelled(source, "Tasks")).toBe(true);
+			expect(labelled(source, "Pull requests")).toBe(true);
 			expect(source).not.toContain("Tasks & PRs");
 		}
 	});

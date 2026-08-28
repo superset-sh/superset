@@ -4,6 +4,7 @@ import {
 	type InitialConfigType,
 	LexicalComposer as LexicalRoot,
 } from "@lexical/react/LexicalComposer";
+import { i18n } from "@superset/i18n";
 import { useState } from "react";
 import { ComposerBody } from "./components/ComposerBody";
 import { MentionChipNode } from "./nodes/mentionChipNode";
@@ -25,7 +26,10 @@ export type {
 } from "./types";
 
 export function PromptInput({
-	placeholder = "Do anything",
+	placeholder = i18n._({
+		id: "chatUi.promptInput.placeholder",
+		message: "Do anything",
+	}),
 	mentionProviders,
 	commands,
 	dictation,

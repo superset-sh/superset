@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -13,6 +14,7 @@ const IS_DEV = process.env.NODE_ENV === "development";
 const ERROR_DETAILS_ID = "error-details";
 
 export function ErrorPage({ error, info }: ErrorComponentProps) {
+	const { t } = useLingui();
 	const message =
 		error instanceof Error ? error.message : String(error ?? "Unknown error");
 	const stack = error instanceof Error ? error.stack : undefined;
@@ -44,16 +46,24 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 					</div>
 
 					<div className="flex flex-col items-center gap-2 text-center">
-						<h1 className="text-xl font-semibold">Something went wrong</h1>
+						<h1 className="text-xl font-semibold">
+							<Trans id="app.errorPage.title">Something went wrong</Trans>
+						</h1>
 						<p className="text-sm text-muted-foreground">
-							Superset hit an unexpected error. Reload to try again.
+							<Trans id="app.errorPage.description">
+								Superset hit an unexpected error. Reload to try again.
+							</Trans>
 						</p>
 					</div>
 
 					<div className="flex items-center gap-3">
-						<Button onClick={() => window.location.reload()}>Reload</Button>
+						<Button onClick={() => window.location.reload()}>
+							<Trans id="app.errorPage.reload">Reload</Trans>
+						</Button>
 						<Button variant="outline" asChild>
-							<Link to="/">Go home</Link>
+							<Link to="/">
+								<Trans id="app.errorPage.goHome">Go home</Trans>
+							</Link>
 						</Button>
 					</div>
 
@@ -64,7 +74,11 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 						aria-controls={ERROR_DETAILS_ID}
 						className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 					>
-						{showDetails ? "Hide details" : "Show details"}
+						{showDetails ? (
+							<Trans id="app.errorPage.hideDetails">Hide details</Trans>
+						) : (
+							<Trans id="app.errorPage.showDetails">Show details</Trans>
+						)}
 					</button>
 
 					{showDetails && (
@@ -75,7 +89,10 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 									void copyToClipboard(details).catch(() => {});
 								}}
 								className="absolute top-2 right-2 flex items-center justify-center h-6 w-6 bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
-								aria-label="Copy error details"
+								aria-label={t({
+									id: "app.errorPage.copyDetails",
+									message: "Copy error details",
+								})}
 							>
 								{copied ? (
 									<HiCheck className="w-3.5 h-3.5 text-green-500" />

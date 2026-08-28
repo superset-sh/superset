@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
@@ -19,11 +20,21 @@ interface ReviewFilterProps {
 }
 
 export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const label = getPullRequestReviewFilterLabel(value);
 	const options = [
-		{ value: null, label: "All reviews" },
-		...PULL_REQUEST_REVIEW_FILTERS,
+		{
+			value: null,
+			label: t({
+				id: "dashboard.pullRequests.reviewFilter.allReviews",
+				message: "All reviews",
+			}),
+		},
+		...PULL_REQUEST_REVIEW_FILTERS.map((filter) => ({
+			value: filter.value,
+			label: t(filter.label),
+		})),
 	] as const;
 
 	return (
@@ -33,7 +44,10 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 					variant="ghost"
 					size="sm"
 					title={label}
-					aria-label={`Reviews: ${label}`}
+					aria-label={t({
+						id: "dashboard.pullRequests.reviewFilter.triggerAria",
+						message: `Reviews: ${label}`,
+					})}
 					className="h-8 max-w-52 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineChatBubbleLeftRight className="size-4 shrink-0" />
@@ -44,18 +58,30 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 			<PopoverContent align="start" className="w-80 p-1">
 				<div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
 					<span className="min-w-0 flex-1 text-sm font-medium">
-						Filter by reviews
+						<Trans id="dashboard.pullRequests.reviewFilter.heading">
+							Filter by reviews
+						</Trans>
 					</span>
 					<Button
 						variant="ghost"
 						size="icon-xs"
-						aria-label="Close review filter"
+						aria-label={t({
+							id: "dashboard.pullRequests.reviewFilter.close",
+							message: "Close review filter",
+						})}
 						onClick={() => setOpen(false)}
 					>
 						<HiXMark className="size-4" />
 					</Button>
 				</div>
-				<div role="radiogroup" aria-label="Filter by reviews" className="py-1">
+				<div
+					role="radiogroup"
+					aria-label={t({
+						id: "dashboard.pullRequests.reviewFilter.groupAria",
+						message: "Filter by reviews",
+					})}
+					className="py-1"
+				>
 					{options.map((option) => {
 						const selected = option.value === value;
 						return (

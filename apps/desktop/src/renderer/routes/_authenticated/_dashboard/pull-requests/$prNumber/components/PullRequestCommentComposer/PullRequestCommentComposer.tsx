@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -42,6 +43,7 @@ export function PullRequestCommentComposer({
 	onCancel,
 	onSubmit,
 }: PullRequestCommentComposerProps) {
+	const { t } = useLingui();
 	const bindings = useTerminalAgentBindings(linkedWorkspaceId ?? "", {
 		enabled: linkedWorkspaceId != null,
 	});
@@ -111,7 +113,9 @@ export function PullRequestCommentComposer({
 					{contextLabel}
 				</span>
 				<span className="text-[10px] tracking-tight text-muted-foreground/70">
-					esc to dismiss
+					<Trans id="dashboard.pullRequests.commentComposer.escToDismiss">
+						esc to dismiss
+					</Trans>
 				</span>
 			</div>
 			<div className="px-3 pb-2">
@@ -119,7 +123,10 @@ export function PullRequestCommentComposer({
 					ref={textareaRef}
 					value={comment}
 					onChange={(e) => setComment(e.target.value)}
-					placeholder="Ask the AI…"
+					placeholder={t({
+						id: "dashboard.pullRequests.commentComposer.placeholder",
+						message: "Ask the AI…",
+					})}
 					rows={3}
 					className={cn(
 						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",
@@ -144,7 +151,9 @@ export function PullRequestCommentComposer({
 						disabled={submitting}
 						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
-						Cancel
+						<Trans id="dashboard.pullRequests.commentComposer.cancel">
+							Cancel
+						</Trans>
 					</Button>
 					<Button
 						type="submit"
@@ -153,7 +162,17 @@ export function PullRequestCommentComposer({
 						className="h-7 gap-1.5 px-2.5 text-[11px] font-medium disabled:opacity-40"
 					>
 						{submitting && <LuLoaderCircle className="size-3 animate-spin" />}
-						<span>{submitting ? "Sending…" : "Comment"}</span>
+						<span>
+							{submitting ? (
+								<Trans id="dashboard.pullRequests.commentComposer.sending">
+									Sending…
+								</Trans>
+							) : (
+								<Trans id="dashboard.pullRequests.commentComposer.submit">
+									Comment
+								</Trans>
+							)}
+						</span>
 					</Button>
 				</div>
 			</div>

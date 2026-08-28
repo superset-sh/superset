@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { Button } from "@superset/ui/button";
 import {
@@ -110,11 +111,11 @@ export function V2PresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
-					Run script
+					<Trans id="workspace.presetBarItem.runScript">Run script</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>
-					Edit script
+					<Trans id="workspace.presetBarItem.editScript">Edit script</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

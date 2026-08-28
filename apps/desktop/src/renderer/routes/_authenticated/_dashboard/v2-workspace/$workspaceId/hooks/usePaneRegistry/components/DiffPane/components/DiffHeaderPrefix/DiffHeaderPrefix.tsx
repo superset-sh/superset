@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useCallback, useRef } from "react";
@@ -16,6 +17,7 @@ export function DiffHeaderPrefix({
 	collapsed,
 	onSetCollapsed,
 }: DiffHeaderPrefixProps) {
+	const { t } = useLingui();
 	const prefixRef = useRef<HTMLDivElement>(null);
 	const headerHovered = useDiffHeaderHover(prefixRef);
 	const onToggle = useCallback(
@@ -39,7 +41,17 @@ export function DiffHeaderPrefix({
 					event.stopPropagation();
 					onToggle();
 				}}
-				aria-label={collapsed ? "Expand file" : "Collapse file"}
+				aria-label={
+					collapsed
+						? t({
+								id: "workspace.diffPane.expandFileAria",
+								message: "Expand file",
+							})
+						: t({
+								id: "workspace.diffPane.collapseFileAria",
+								message: "Collapse file",
+							})
+				}
 				className={cn(
 					"absolute -inset-1 flex items-center justify-center rounded text-muted-foreground/60 transition-all duration-100 hover:bg-accent hover:text-muted-foreground",
 					!headerHovered && "pointer-events-none opacity-0",

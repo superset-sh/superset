@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { toast } from "@superset/ui/sonner";
@@ -72,6 +73,7 @@ export function TerminalPane({
 	onOpenFile,
 	onRevealPath,
 }: TerminalPaneProps) {
+	const { t } = useLingui();
 	const filePolicy = useTerminalFilePolicy();
 	const urlPolicy = useTerminalUrlPolicy();
 	const folderPolicy = useTerminalFolderPolicy();
@@ -419,13 +421,19 @@ export function TerminalPane({
 						error instanceof PasteUploadLimitError
 							? error.message
 							: files.length === 1
-								? "Failed to send the file to the remote workspace"
-								: "Failed to send the files to the remote workspace",
+								? t({
+										id: "workspace.terminalPane.pasteUploadFailedSingle",
+										message: "Failed to send the file to the remote workspace",
+									})
+								: t({
+										id: "workspace.terminalPane.pasteUploadFailedMultiple",
+										message: "Failed to send the files to the remote workspace",
+									}),
 					);
 				}
 			})();
 		},
-		[terminalId, terminalInstanceId, workspaceId],
+		[terminalId, terminalInstanceId, workspaceId, t],
 	);
 
 	useEffect(() => {

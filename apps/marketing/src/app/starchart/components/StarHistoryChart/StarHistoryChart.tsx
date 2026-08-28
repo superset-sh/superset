@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -16,17 +17,19 @@ interface StarHistoryChartProps {
 	granularity: "day" | "week";
 }
 
-const chartConfig = {
-	stars: {
-		label: "Stars",
-		color: "var(--chart-1)",
-	},
-} satisfies ChartConfig;
-
 export function StarHistoryChart({
 	points,
 	granularity,
 }: StarHistoryChartProps) {
+	const { t } = useLingui();
+
+	const chartConfig = {
+		stars: {
+			label: t({ id: "marketing.starchart.chart.stars", message: "Stars" }),
+			color: "var(--chart-1)",
+		},
+	} satisfies ChartConfig;
+
 	const data = points.map((point) => ({
 		...point,
 		timestamp: new Date(point.date).getTime(),
@@ -98,7 +101,10 @@ export function StarHistoryChart({
 									year: "numeric",
 								});
 								return granularity === "week"
-									? `Week of ${formatted}`
+									? t({
+											id: "marketing.starchart.chart.weekOf",
+											message: `Week of ${formatted}`,
+										})
 									: formatted;
 							}}
 						/>

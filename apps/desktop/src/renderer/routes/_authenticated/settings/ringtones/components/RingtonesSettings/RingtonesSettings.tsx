@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
@@ -41,6 +42,7 @@ function RingtoneRow({
 	onSelect,
 	onTogglePlay,
 }: RingtoneRowProps) {
+	const { t } = useLingui();
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: div role=button needed so the inner play button can be nested
 		<div
@@ -85,7 +87,15 @@ function RingtoneRow({
 					onTogglePlay();
 				}}
 				aria-label={
-					isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`
+					isPlaying
+						? t({
+								id: "settings.ringtones.stopRingtone",
+								message: `Stop ${ringtone.name}`,
+							})
+						: t({
+								id: "settings.ringtones.playRingtone",
+								message: `Play ${ringtone.name}`,
+							})
 				}
 				className={cn(
 					"h-7 w-7 rounded-full flex items-center justify-center transition-colors border shrink-0",
@@ -109,6 +119,7 @@ interface RingtonesSettingsProps {
 }
 
 export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const showNotification = isItemVisible(
 		SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
@@ -251,9 +262,13 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Notifications</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.ringtones.title">Notifications</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Sounds and ringtone for completed tasks
+					<Trans id="settings.ringtones.subtitle">
+						Sounds and ringtone for completed tasks
+					</Trans>
 				</p>
 			</div>
 
@@ -266,10 +281,14 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								htmlFor="notification-sounds"
 								className="text-sm font-medium"
 							>
-								Notification sounds
+								<Trans id="settings.ringtones.soundsLabel">
+									Notification sounds
+								</Trans>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Play a sound when tasks complete
+								<Trans id="settings.ringtones.soundsHint">
+									Play a sound when tasks complete
+								</Trans>
 							</p>
 						</div>
 						<Switch
@@ -291,13 +310,18 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 							<div>
 								<h3 className="text-sm font-medium mb-1">
 									<HighlightText
-										text="Notification sound"
+										text={t({
+											id: "settings.ringtones.notificationSoundLabel",
+											message: "Notification sound",
+										})}
 										query={searchQuery}
 									/>
 								</h3>
 								<p className="text-xs text-muted-foreground">
-									Pick a sound or add your own. Custom audio supports .mp3,
-									.wav, and .ogg.
+									<Trans id="settings.ringtones.pickSoundHint">
+										Pick a sound or add your own. Custom audio supports .mp3,
+										.wav, and .ogg.
+									</Trans>
 								</p>
 							</div>
 							<Button
@@ -312,7 +336,15 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								) : (
 									<HiPlus className="mr-1.5 h-3.5 w-3.5" />
 								)}
-								{customRingtone ? "Replace custom audio" : "Add custom audio"}
+								{customRingtone ? (
+									<Trans id="settings.ringtones.replaceCustomAudio">
+										Replace custom audio
+									</Trans>
+								) : (
+									<Trans id="settings.ringtones.addCustomAudio">
+										Add custom audio
+									</Trans>
+								)}
 							</Button>
 						</div>
 						<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">

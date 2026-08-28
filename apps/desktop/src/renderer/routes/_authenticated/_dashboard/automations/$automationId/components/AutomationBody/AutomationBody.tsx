@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun } from "@superset/db/schema";
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
@@ -36,6 +37,7 @@ export function AutomationBody({
 	onToggleEnabled: (enabled: boolean) => void;
 	toggleDisabled?: boolean;
 }) {
+	const { t } = useLingui();
 	const [tab, setTab] = useState<DetailTab>("settings");
 	const [name, setName] = useState(automation.name);
 	const [prompt, setPrompt] = useState(automation.prompt);
@@ -56,12 +58,26 @@ export function AutomationBody({
 		// own result — the picker relabels, the toggle flips — but a saved
 		// trigger set looks exactly like the unsaved one it replaced.
 		onSuccess: (_result, patch) => {
-			if (patch.triggers) toast.success("Triggers saved");
+			if (patch.triggers)
+				toast.success(
+					t({
+						id: "dashboard.automations.body.triggersSavedToast",
+						message: "Triggers saved",
+					}),
+				);
 		},
 		// The pickers re-render from the Electric-synced row, so a rejected
 		// update silently snaps back without this.
 		onError: (error) =>
-			toast.error(errorMessage(error, "Failed to update automation")),
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.body.updateFailedToast",
+						message: "Failed to update automation",
+					}),
+				),
+			),
 	});
 
 	const setPromptMutation = useMutation({
@@ -76,7 +92,15 @@ export function AutomationBody({
 			});
 		},
 		onError: (error) =>
-			toast.error(errorMessage(error, "Failed to update prompt")),
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.body.promptUpdateFailedToast",
+						message: "Failed to update prompt",
+					}),
+				),
+			),
 	});
 
 	const searchFiles = useProjectFileSearch({
@@ -111,7 +135,10 @@ export function AutomationBody({
 							updateMutation.mutate({ name: trimmed });
 						}
 					}}
-					placeholder="Automation title"
+					placeholder={t({
+						id: "dashboard.automations.body.titlePlaceholder",
+						message: "Automation title",
+					})}
 					className="mb-3 text-2xl font-semibold"
 				/>
 				<div className="flex items-center gap-2 text-sm">
@@ -120,11 +147,23 @@ export function AutomationBody({
 						onCheckedChange={onToggleEnabled}
 						disabled={readOnly || toggleDisabled}
 						aria-label={
-							automation.enabled ? "Pause automation" : "Resume automation"
+							automation.enabled
+								? t({
+										id: "dashboard.automations.body.pauseAriaLabel",
+										message: "Pause automation",
+									})
+								: t({
+										id: "dashboard.automations.body.resumeAriaLabel",
+										message: "Resume automation",
+									})
 						}
 					/>
 					<span className="text-muted-foreground">
-						{automation.enabled ? "Active" : "Paused"}
+						{automation.enabled ? (
+							<Trans id="dashboard.automations.body.statusActive">Active</Trans>
+						) : (
+							<Trans id="dashboard.automations.body.statusPaused">Paused</Trans>
+						)}
 					</span>
 					{ownerName && (
 						<>
@@ -135,30 +174,49 @@ export function AutomationBody({
 				</div>
 				{readOnly && (
 					<p className="select-text cursor-text mt-2 text-xs text-muted-foreground">
-						Owned by {ownerName ?? "a teammate"} — only they can edit this
-						automation.
+						<Trans id="dashboard.automations.body.ownedByNotice">
+							Owned by{" "}
+							{ownerName ??
+								t({
+									id: "dashboard.automations.body.teammateFallback",
+									message: "a teammate",
+								})}{" "}
+							— only they can edit this automation.
+						</Trans>
 					</p>
 				)}
 
 				<div className="mt-6 mb-6 flex items-center gap-1">
 					{(
 						[
-							{ value: "settings", label: "Settings" },
-							{ value: "runs", label: "Run History" },
+							{
+								value: "settings",
+								label: t({
+									id: "dashboard.automations.body.tabSettings",
+									message: "Settings",
+								}),
+							},
+							{
+								value: "runs",
+								label: t({
+									id: "dashboard.automations.body.tabRunHistory",
+									message: "Run History",
+								}),
+							},
 						] as const
-					).map((t) => (
+					).map((tabOption) => (
 						<button
-							key={t.value}
+							key={tabOption.value}
 							type="button"
-							onClick={() => setTab(t.value)}
+							onClick={() => setTab(tabOption.value)}
 							className={cn(
 								"rounded-md px-3 py-1.5 text-sm transition-colors",
-								tab === t.value
+								tab === tabOption.value
 									? "bg-accent font-medium text-foreground"
 									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
-							{t.label}
+							{tabOption.label}
 						</button>
 					))}
 				</div>
@@ -179,7 +237,9 @@ export function AutomationBody({
 						/>
 
 						<span className="mt-8 mb-2 text-sm text-muted-foreground">
-							Instructions
+							<Trans id="dashboard.automations.body.instructions">
+								Instructions
+							</Trans>
 						</span>
 						<div className="flex flex-col rounded-xl border border-border bg-card/40">
 							<div className="min-h-[240px] px-4 py-3">
@@ -193,7 +253,10 @@ export function AutomationBody({
 											setPromptMutation.mutate(next);
 										}
 									}}
-									placeholder="Add prompt e.g. look for crashes in $sentry"
+									placeholder={t({
+										id: "dashboard.automations.body.promptPlaceholder",
+										message: "Add prompt e.g. look for crashes in $sentry",
+									})}
 									searchFiles={searchFiles}
 								/>
 							</div>
@@ -220,8 +283,10 @@ export function AutomationBody({
 						</div>
 						{agentMissing && (
 							<p className="select-text cursor-text mt-2 text-xs text-amber-600 dark:text-amber-500">
-								This agent no longer exists on the selected device (its agents
-								may have been reset). Runs will fail until you pick a new one.
+								<Trans id="dashboard.automations.body.agentMissingWarning">
+									This agent no longer exists on the selected device (its agents
+									may have been reset). Runs will fail until you pick a new one.
+								</Trans>
 							</p>
 						)}
 					</fieldset>

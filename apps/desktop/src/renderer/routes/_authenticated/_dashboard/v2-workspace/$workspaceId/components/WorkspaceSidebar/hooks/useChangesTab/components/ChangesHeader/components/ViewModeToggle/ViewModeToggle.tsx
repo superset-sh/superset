@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { Folder, ListTree } from "lucide-react";
@@ -13,8 +14,15 @@ interface ViewModeToggleProps {
  * directory hierarchy) views. Shows the mode it will switch to.
  */
 export function ViewModeToggle({ viewMode, onChange }: ViewModeToggleProps) {
+	const { t } = useLingui();
 	const next: ChangesViewMode = viewMode === "folders" ? "tree" : "folders";
-	const label = next === "tree" ? "Tree view" : "Folder view";
+	const label =
+		next === "tree"
+			? t({ id: "workspace.viewModeToggle.treeView", message: "Tree view" })
+			: t({
+					id: "workspace.viewModeToggle.folderView",
+					message: "Folder view",
+				});
 	const Icon = next === "tree" ? ListTree : Folder;
 	return (
 		<Tooltip>

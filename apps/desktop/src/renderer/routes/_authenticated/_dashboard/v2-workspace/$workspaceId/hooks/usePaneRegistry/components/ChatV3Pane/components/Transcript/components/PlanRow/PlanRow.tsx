@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { Plan } from "@superset/chat/protocol";
 import { CheckCircle2, Circle, CircleDotDashed } from "lucide-react";
 
@@ -10,7 +11,9 @@ const ICON_BY_STATUS = {
 export function PlanRow({ item }: { item: Plan }) {
 	return (
 		<div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/30 p-2">
-			<span className="text-xs font-medium text-muted-foreground">Plan</span>
+			<span className="text-xs font-medium text-muted-foreground">
+				<Trans id="workspace.chat.planLabel">Plan</Trans>
+			</span>
 			{item.entries.map((entry, index) => {
 				const Icon = ICON_BY_STATUS[entry.status];
 				return (

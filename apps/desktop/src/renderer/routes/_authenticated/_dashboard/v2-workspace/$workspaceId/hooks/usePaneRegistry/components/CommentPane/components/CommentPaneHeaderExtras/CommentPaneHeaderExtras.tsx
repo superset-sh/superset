@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,6 +14,7 @@ interface CommentPaneHeaderExtrasProps {
 export function CommentPaneHeaderExtras({
 	context,
 }: CommentPaneHeaderExtrasProps) {
+	const { t } = useLingui();
 	const data = context.pane.data as CommentPaneData;
 	const [copied, setCopied] = useState(false);
 	const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,20 +54,30 @@ export function CommentPaneHeaderExtras({
 							href={data.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							aria-label="Open on GitHub"
+							aria-label={t({
+								id: "workspace.commentPane.openOnGitHubAria",
+								message: "Open on GitHub",
+							})}
 							className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 						>
 							<FaGithub className="size-3.5" />
 						</a>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Open on GitHub</TooltipContent>
+					<TooltipContent side="bottom">
+						<Trans id="workspace.commentPane.openOnGitHub">
+							Open on GitHub
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 			)}
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						aria-label="Copy comment"
+						aria-label={t({
+							id: "workspace.commentPane.copyCommentAria",
+							message: "Copy comment",
+						})}
 						onClick={handleCopyAll}
 						className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
@@ -77,7 +89,11 @@ export function CommentPaneHeaderExtras({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{copied ? "Copied" : "Copy comment"}
+					{copied ? (
+						<Trans id="workspace.commentPane.headerCopied">Copied</Trans>
+					) : (
+						<Trans id="workspace.commentPane.copyComment">Copy comment</Trans>
+					)}
 				</TooltipContent>
 			</Tooltip>
 		</>

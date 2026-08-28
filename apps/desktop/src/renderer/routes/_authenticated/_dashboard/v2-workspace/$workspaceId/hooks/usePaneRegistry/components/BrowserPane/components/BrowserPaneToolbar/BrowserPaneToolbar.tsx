@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -88,13 +89,20 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
-							Design
+							<Trans id="workspace.browserPane.designButton">Design</Trans>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						{designMode.phase !== "idle"
-							? "Exit design mode (esc)"
-							: "Design mode — click any element in the page to send it to an agent"}
+						{designMode.phase !== "idle" ? (
+							<Trans id="workspace.browserPane.designTooltipExit">
+								Exit design mode (esc)
+							</Trans>
+						) : (
+							<Trans id="workspace.browserPane.designTooltipEnter">
+								Design mode — click any element in the page to send it to an
+								agent
+							</Trans>
+						)}
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip disableHoverableContent>
@@ -107,7 +115,9 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							<TbDeviceDesktop className="size-3.5" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Open DevTools</TooltipContent>
+					<TooltipContent side="bottom">
+						<Trans id="workspace.browserPane.openDevTools">Open DevTools</Trans>
+					</TooltipContent>
 				</Tooltip>
 				<BrowserOverflowMenu
 					paneId={paneId}

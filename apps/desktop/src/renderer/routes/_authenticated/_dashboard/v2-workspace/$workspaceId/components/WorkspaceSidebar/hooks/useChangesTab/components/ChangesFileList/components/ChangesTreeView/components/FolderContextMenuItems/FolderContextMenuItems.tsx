@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -34,7 +35,9 @@ export function FolderContextMenuItems({
 				disabled={!onOpenInEditor}
 			>
 				<ExternalLink />
-				Open in Editor
+				<Trans id="workspace.folderMenuItems.openInEditor">
+					Open in Editor
+				</Trans>
 			</DropdownMenuItem>
 			{absolutePath && (
 				<>

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -19,6 +20,7 @@ import { HighlightText } from "renderer/routes/_authenticated/settings/component
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function LeaderboardSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { activeHostUrl } = useLocalHostService();
 	const { handle, isLoading, optedIn, join, leave, joining } =
@@ -44,20 +46,26 @@ export function LeaderboardSection() {
 			<div className="flex items-start justify-between gap-6">
 				<div className="space-y-1 flex-1">
 					<Label htmlFor="leaderboard-opt-in" className="text-sm font-medium">
-						<HighlightText text="Public leaderboard" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.account.leaderboard.title",
+								message: "Public leaderboard",
+							})}
+							query={searchQuery}
+						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						{optedIn && handle ? (
-							<>
+							<Trans id="settings.account.leaderboard.publishingAs">
 								Publishing as <span className="text-foreground">{handle}</span>.
 								Token counts and model names only, no repo names, file paths or
 								prompts.
-							</>
+							</Trans>
 						) : (
-							<>
+							<Trans id="settings.account.leaderboard.optInHint">
 								Rank your agent usage against other engineers. Token counts and
 								model names only, no repo names, file paths or prompts.
-							</>
+							</Trans>
 						)}
 					</p>
 				</div>
@@ -87,21 +95,33 @@ export function LeaderboardSection() {
 			<AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Leave the leaderboard?</AlertDialogTitle>
+						<AlertDialogTitle>
+							<Trans id="settings.account.leaderboard.leaveTitle">
+								Leave the leaderboard?
+							</Trans>
+						</AlertDialogTitle>
 						<AlertDialogDescription>
-							Everything you've published is deleted, not hidden. You can rejoin
-							later and it will rebuild from the transcripts still on this
-							machine — only your past ranking is lost.
+							<Trans id="settings.account.leaderboard.leaveDescription">
+								Everything you've published is deleted, not hidden. You can
+								rejoin later and it will rebuild from the transcripts still on
+								this machine — only your past ranking is lost.
+							</Trans>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>
+							<Trans id="settings.account.leaderboard.leaveCancel">
+								Cancel
+							</Trans>
+						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={async () => {
 								if (await leave()) setLeaveOpen(false);
 							}}
 						>
-							Leave and delete
+							<Trans id="settings.account.leaderboard.leaveConfirm">
+								Leave and delete
+							</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

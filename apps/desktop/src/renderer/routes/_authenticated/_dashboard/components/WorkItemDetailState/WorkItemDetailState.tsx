@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { LuRefreshCw } from "react-icons/lu";
@@ -31,7 +32,7 @@ export function WorkItemDetailState({
 			<span className="max-w-prose text-wrap-pretty">{message}</span>
 			{onRetry && (
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					Try again
+					<Trans id="dashboard.workItemDetailState.tryAgain">Try again</Trans>
 				</Button>
 			)}
 		</div>

@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import type { TriggerMenuEntry } from "../types";
 
@@ -33,7 +34,13 @@ export const CIRCLEBACK_SENTENCE: SentencePart[] = [
 ];
 
 export const CIRCLEBACK_MENU: TriggerMenuEntry<CirclebackConfig>[] = [
-	{ label: "Meeting ended", create: createCirclebackConfig },
+	{
+		label: msg({
+			id: "dashboard.automations.providers.circleback.menuMeetingEnded",
+			message: "Meeting ended",
+		}),
+		create: createCirclebackConfig,
+	},
 ];
 
 /** A new trigger: every narrowing wide open. */

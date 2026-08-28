@@ -45,6 +45,7 @@ import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
+import { applyAppLanguage } from "main/lib/language";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_AUTO_APPLY_DEFAULT_PRESET,
@@ -642,6 +643,9 @@ export const createSettingsRouter = () => {
 						set: { language: value },
 					})
 					.run();
+				// The application and tray menus resolve their labels when they are
+				// built, so they need an explicit rebuild on a language change.
+				applyAppLanguage(value);
 			}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {

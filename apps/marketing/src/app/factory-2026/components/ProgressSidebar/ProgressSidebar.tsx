@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	FACTORY_LEVELS,
 	FORECAST_PERIODS,
 	GATE_SCORECARD,
-	PERIOD_IDS,
 	PERIOD_T,
 	TIMELINE_END,
 	TIMELINE_START,
@@ -21,20 +21,12 @@ interface Waypoint {
 	group: boolean;
 }
 
-const WAYPOINTS: Waypoint[] = [
-	{ id: "rubric", label: "The rubric", group: true },
-	...FACTORY_LEVELS.map((level) => ({
-		id: level.id,
-		label: `${level.id} · ${level.name}`,
-		group: false,
-	})),
-	{ id: "forecast", label: "The forecast", group: true },
-	...FORECAST_PERIODS.map((period) => ({
-		id: PERIOD_IDS[period.period] ?? period.period,
-		label: `${period.period} · ${period.title}`,
-		group: false,
-	})),
-	{ id: "scorecard", label: "The scorecard", group: true },
+const WAYPOINT_IDS = [
+	"rubric",
+	...FACTORY_LEVELS.map((level) => level.id),
+	"forecast",
+	...FORECAST_PERIODS.map((period) => period.id),
+	"scorecard",
 ];
 
 const MARKER_T: Record<string, number> = PERIOD_T;
@@ -44,9 +36,50 @@ const NEXT_GATE = GATE_SCORECARD.find(
 );
 
 export function ProgressSidebar() {
+	const { t } = useLingui();
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [progress, setProgress] = useState(0);
 	const ticking = useRef(false);
+
+	const waypoints = useMemo<Waypoint[]>(
+		() => [
+			{
+				id: "rubric",
+				label: t({
+					id: "marketing.factory.rubric.eyebrow",
+					message: "The rubric",
+				}),
+				group: true,
+			},
+			...FACTORY_LEVELS.map((level) => ({
+				id: level.id,
+				label: `${level.id} · ${t(level.name)}`,
+				group: false,
+			})),
+			{
+				id: "forecast",
+				label: t({
+					id: "marketing.factory.forecast.eyebrow",
+					message: "The forecast",
+				}),
+				group: true,
+			},
+			...FORECAST_PERIODS.map((period) => ({
+				id: period.id,
+				label: `${t(period.period)} · ${t(period.title)}`,
+				group: false,
+			})),
+			{
+				id: "scorecard",
+				label: t({
+					id: "marketing.factory.scorecard.eyebrow",
+					message: "The scorecard",
+				}),
+				group: true,
+			},
+		],
+		[t],
+	);
 
 	useEffect(() => {
 		const update = () => {
@@ -57,10 +90,10 @@ export function ProgressSidebar() {
 
 			const cutoff = window.innerHeight * 0.4;
 			let current: string | null = null;
-			for (const waypoint of WAYPOINTS) {
-				const el = document.getElementById(waypoint.id);
+			for (const id of WAYPOINT_IDS) {
+				const el = document.getElementById(id);
 				if (el && el.getBoundingClientRect().top <= cutoff) {
-					current = waypoint.id;
+					current = id;
 				}
 			}
 			setActiveId(current);
@@ -80,13 +113,14 @@ export function ProgressSidebar() {
 		};
 	}, []);
 
-	const active = WAYPOINTS.find((waypoint) => waypoint.id === activeId);
+	const active = waypoints.find((waypoint) => waypoint.id === activeId);
 	const markerT = (activeId && MARKER_T[activeId]) || TODAY_T;
 	const markerLeft =
 		((markerT - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 100;
 	const todayLeft =
 		((TODAY_T - TIMELINE_START) / (TIMELINE_END - TIMELINE_START)) * 100;
 	const inFuture = markerT > TODAY_T + 0.01;
+	const readPercent = Math.round(progress * 100);
 
 	const jumpTo = (id: string) => {
 		const el = document.getElementById(id);
@@ -96,7 +130,10 @@ export function ProgressSidebar() {
 
 	return (
 		<nav
-			aria-label="Prediction progress"
+			aria-label={t({
+				id: "marketing.factory.sidebar.ariaLabel",
+				message: "Prediction progress",
+			})}
 			className="hidden xl:block fixed right-6 top-1/2 -translate-y-1/2 z-40 w-56"
 		>
 			<div className="border border-border bg-background/80 backdrop-blur-sm px-4 py-3">
@@ -105,11 +142,19 @@ export function ProgressSidebar() {
 						Factory 2026
 					</span>
 					<span className="text-[10px] font-mono text-muted-foreground tabular-nums">
-						{Math.round(progress * 100)}% read
+						<Trans id="marketing.factory.sidebar.readPercent">
+							{readPercent}% read
+						</Trans>
 					</span>
 				</div>
 				<p className="text-xs font-mono text-foreground mt-1.5 leading-snug min-h-8">
-					{active ? active.label : "The self-driving software factory"}
+					{active ? (
+						active.label
+					) : (
+						<Trans id="marketing.factory.hero.title">
+							The self-driving software factory
+						</Trans>
+					)}
 				</p>
 
 				{/* Scenario timeline: where the section you are reading sits in time */}
@@ -137,25 +182,25 @@ export function ProgressSidebar() {
 						className="absolute top-[-3px] -translate-x-1/2 text-[9px] font-mono text-brand/80"
 						style={{ left: `${todayLeft}%` }}
 					>
-						now
+						<Trans id="marketing.factory.sidebar.now">now</Trans>
 					</span>
 				</div>
 
 				{/* Gate meters: the prediction's actual progress */}
 				<div className="mt-2 flex flex-col gap-1.5 border-t border-border pt-2.5">
 					<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-						Gates open
+						<Trans id="marketing.factory.hero.gatesOpen">Gates open</Trans>
 					</span>
 					<GateMeter level="F3" />
 					<GateMeter level="F4" />
 					{NEXT_GATE && (
 						<p className="text-[10px] font-mono text-muted-foreground leading-snug mt-0.5">
-							Next:{" "}
+							<Trans id="marketing.factory.sidebar.nextLabel">Next:</Trans>{" "}
 							<GateJumpLink
 								targetId={`gate-${NEXT_GATE.gateId}`}
 								className="text-foreground/80 hover:text-brand transition-colors"
 							>
-								{NEXT_GATE.gate.toLowerCase()} →
+								{t(NEXT_GATE.gate).toLowerCase()} →
 							</GateJumpLink>
 						</p>
 					)}
@@ -173,7 +218,7 @@ export function ProgressSidebar() {
 					}}
 				/>
 				<ul className="flex flex-col gap-1">
-					{WAYPOINTS.map((waypoint) => {
+					{waypoints.map((waypoint) => {
 						const isActive = waypoint.id === activeId;
 						return (
 							<li key={waypoint.id}>

@@ -1,10 +1,12 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { DEFAULT_MCP_INSTALL_TAB, MCP_INSTALL_TABS } from "./constants";
 
 export function McpInstall() {
+	const { t } = useLingui();
 	const [activeTabId, setActiveTabId] = useState(DEFAULT_MCP_INSTALL_TAB.id);
 	const [copied, setCopied] = useState(false);
 	const [copyError, setCopyError] = useState<string | null>(null);
@@ -20,7 +22,12 @@ export function McpInstall() {
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		} catch {
-			setCopyError("Copy failed. Select the text and copy it manually.");
+			setCopyError(
+				t({
+					id: "marketing.mcpInstall.copyFailed",
+					message: "Copy failed. Select the text and copy it manually.",
+				}),
+			);
 		}
 	};
 
@@ -51,7 +58,10 @@ export function McpInstall() {
 					type="button"
 					onClick={handleCopy}
 					className="p-2 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-					aria-label="Copy to clipboard"
+					aria-label={t({
+						id: "marketing.mcpInstall.copyToClipboard",
+						message: "Copy to clipboard",
+					})}
 				>
 					{copied ? (
 						<Check className="size-3.5 text-brand" />

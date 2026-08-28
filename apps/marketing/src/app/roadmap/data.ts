@@ -1,5 +1,8 @@
 // Generated from the internal product roadmap (Notion → .github/prompts/update-roadmap.md).
 // Only items marked Public in Notion appear here; descriptions are the public copy, not internal notes.
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+
 export type RoadmapCategory =
 	| "Agents"
 	| "Desktop"
@@ -11,8 +14,8 @@ export type RoadmapStatus = "now" | "next" | "later" | "shipped";
 
 interface RoadmapItemBase {
 	id: string;
-	title: string;
-	description: string;
+	title: MessageDescriptor;
+	description: MessageDescriptor;
 	category: RoadmapCategory;
 }
 
@@ -41,51 +44,107 @@ export const CATEGORIES: RoadmapCategory[] = [
 	"Integrations",
 ];
 
-export const STATUS_LABELS: Record<RoadmapStatus, string> = {
-	now: "In Progress",
-	next: "Up Next",
-	later: "Exploring",
-	shipped: "Recently Shipped",
+export const CATEGORY_LABELS: Record<RoadmapCategory, MessageDescriptor> = {
+	Agents: msg({ id: "marketing.roadmap.category.agents", message: "Agents" }),
+	Desktop: msg({
+		id: "marketing.roadmap.category.desktop",
+		message: "Desktop",
+	}),
+	Platform: msg({
+		id: "marketing.roadmap.category.platform",
+		message: "Platform",
+	}),
+	Mobile: msg({ id: "marketing.roadmap.category.mobile", message: "Mobile" }),
+	Integrations: msg({
+		id: "marketing.roadmap.category.integrations",
+		message: "Integrations",
+	}),
 };
 
-export const STATUS_DESCRIPTIONS: Record<RoadmapStatus, string> = {
-	now: "Being built right now.",
-	next: "Committed, starting soon.",
-	later: "On our radar. Order and scope may change.",
-	shipped: "Live in the app.",
+export const STATUS_LABELS: Record<RoadmapStatus, MessageDescriptor> = {
+	now: msg({ id: "marketing.roadmap.status.now", message: "In Progress" }),
+	next: msg({ id: "marketing.roadmap.status.next", message: "Up Next" }),
+	later: msg({ id: "marketing.roadmap.status.later", message: "Exploring" }),
+	shipped: msg({
+		id: "marketing.roadmap.status.shipped",
+		message: "Recently Shipped",
+	}),
+};
+
+export const STATUS_DESCRIPTIONS: Record<RoadmapStatus, MessageDescriptor> = {
+	now: msg({
+		id: "marketing.roadmap.statusDescription.now",
+		message: "Being built right now.",
+	}),
+	next: msg({
+		id: "marketing.roadmap.statusDescription.next",
+		message: "Committed, starting soon.",
+	}),
+	later: msg({
+		id: "marketing.roadmap.statusDescription.later",
+		message: "On our radar. Order and scope may change.",
+	}),
+	shipped: msg({
+		id: "marketing.roadmap.statusDescription.shipped",
+		message: "Live in the app.",
+	}),
 };
 
 export const ROADMAP_ITEMS: RoadmapItem[] = [
 	// ── Now ──────────────────────────────────────────
 	{
 		id: "in-app-pr-merge",
-		title: "In-app PR merge",
-		description:
-			"Merge pull requests without leaving Superset, plus a round of chat fixes and polish.",
+		title: msg({
+			id: "marketing.roadmap.item.inAppPrMerge.title",
+			message: "In-app PR merge",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.inAppPrMerge.description",
+			message:
+				"Merge pull requests without leaving Superset, plus a round of chat fixes and polish.",
+		}),
 		category: "Desktop",
 		status: "now",
 	},
 	{
 		id: "mcp-manager",
-		title: "MCP manager",
-		description:
-			"Install, authorize, and scope MCP servers across all your workspaces from one place, with centralized OAuth.",
+		title: msg({
+			id: "marketing.roadmap.item.mcpManager.title",
+			message: "MCP manager",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.mcpManager.description",
+			message:
+				"Install, authorize, and scope MCP servers across all your workspaces from one place, with centralized OAuth.",
+		}),
 		category: "Integrations",
 		status: "now",
 	},
 	{
 		id: "embedded-browser",
-		title: "Embedded browser improvements",
-		description:
-			"A better in-app browser: preview your changes and click any element to send it to the agent as context.",
+		title: msg({
+			id: "marketing.roadmap.item.embeddedBrowser.title",
+			message: "Embedded browser improvements",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.embeddedBrowser.description",
+			message:
+				"A better in-app browser: preview your changes and click any element to send it to the agent as context.",
+		}),
 		category: "Desktop",
 		status: "now",
 	},
 	{
 		id: "onboarding",
-		title: "Smoother onboarding",
-		description:
-			"A faster path from install to your first agent run, with a guided first workspace.",
+		title: msg({
+			id: "marketing.roadmap.item.onboarding.title",
+			message: "Smoother onboarding",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.onboarding.description",
+			message:
+				"A faster path from install to your first agent run, with a guided first workspace.",
+		}),
 		category: "Desktop",
 		status: "now",
 	},
@@ -93,129 +152,225 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	// ── Next ─────────────────────────────────────────
 	{
 		id: "chat-v3",
-		title: "Next-generation chat",
-		description:
-			"A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything.",
+		title: msg({
+			id: "marketing.roadmap.item.chatV3.title",
+			message: "Next-generation chat",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.chatV3.description",
+			message:
+				"A rebuilt chat surface for driving agents: richer tool output, smoother steering, faster everything.",
+		}),
 		category: "Agents",
 		status: "next",
 	},
 	{
 		id: "native-pr-reviews",
-		title: "Native PR reviews",
-		description:
-			"Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly.",
+		title: msg({
+			id: "marketing.roadmap.item.nativePrReviews.title",
+			message: "Native PR reviews",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.nativePrReviews.description",
+			message:
+				"Review pull requests inside Superset: diff pane, agent-assisted review, act on comments directly.",
+		}),
 		category: "Desktop",
 		status: "next",
 	},
 	{
 		id: "improved-diff-viewer",
-		title: "Improved diff viewer",
-		description:
-			"A faster, clearer diff experience for reviewing what your agents changed.",
+		title: msg({
+			id: "marketing.roadmap.item.improvedDiffViewer.title",
+			message: "Improved diff viewer",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.improvedDiffViewer.description",
+			message:
+				"A faster, clearer diff experience for reviewing what your agents changed.",
+		}),
 		category: "Desktop",
 		status: "next",
 	},
 	{
 		id: "chat-background-processes",
-		title: "Background processes in chat",
-		description:
-			"Agents can watch CI checks, tail dev servers, and keep long-running processes alive while they work.",
+		title: msg({
+			id: "marketing.roadmap.item.chatBackgroundProcesses.title",
+			message: "Background processes in chat",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.chatBackgroundProcesses.description",
+			message:
+				"Agents can watch CI checks, tail dev servers, and keep long-running processes alive while they work.",
+		}),
 		category: "Agents",
 		status: "next",
 	},
 	{
 		id: "plugin-marketplace",
-		title: "Plugin marketplace",
-		description:
-			"Browse and install skills, MCP servers, and agent configs shared by the community.",
+		title: msg({
+			id: "marketing.roadmap.item.pluginMarketplace.title",
+			message: "Plugin marketplace",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.pluginMarketplace.description",
+			message:
+				"Browse and install skills, MCP servers, and agent configs shared by the community.",
+		}),
 		category: "Integrations",
 		status: "next",
 	},
 	// ── Later ────────────────────────────────────────
 	{
 		id: "project-wide-search",
-		title: "Project-wide search",
-		description:
-			"Search across file contents and across all your workspaces at once.",
+		title: msg({
+			id: "marketing.roadmap.item.projectWideSearch.title",
+			message: "Project-wide search",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.projectWideSearch.description",
+			message:
+				"Search across file contents and across all your workspaces at once.",
+		}),
 		category: "Desktop",
 		status: "later",
 	},
 	{
 		id: "work-from-tickets",
-		title: "Work from tickets",
-		description:
-			"Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR.",
+		title: msg({
+			id: "marketing.roadmap.item.workFromTickets.title",
+			message: "Work from tickets",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.workFromTickets.description",
+			message:
+				"Start a workspace straight from a Linear ticket. The agent picks it up and reports back with a PR.",
+		}),
 		category: "Integrations",
 		status: "later",
 	},
 	{
 		id: "autonomous-ticket-to-pr",
-		title: "Autonomous ticket-to-PR pipeline",
-		description:
-			"File a ticket, get back a verified, merge-ready PR, with screenshots or a screencast as proof the change works.",
+		title: msg({
+			id: "marketing.roadmap.item.autonomousTicketToPr.title",
+			message: "Autonomous ticket-to-PR pipeline",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.autonomousTicketToPr.description",
+			message:
+				"File a ticket, get back a verified, merge-ready PR, with screenshots or a screencast as proof the change works.",
+		}),
 		category: "Agents",
 		status: "later",
 	},
 	{
 		id: "automations",
-		title: "Automations & event triggers",
-		description:
-			"Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates.",
+		title: msg({
+			id: "marketing.roadmap.item.automations.title",
+			message: "Automations & event triggers",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.automations.description",
+			message:
+				"Scheduled and event-triggered agents (cron, GitHub events, webhooks) with ready-made templates.",
+		}),
 		category: "Agents",
 		status: "later",
 	},
 	{
 		id: "orchestration-chat",
-		title: "Orchestration chat",
-		description:
-			"One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together.",
+		title: msg({
+			id: "marketing.roadmap.item.orchestrationChat.title",
+			message: "Orchestration chat",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.orchestrationChat.description",
+			message:
+				"One chat that plans a task, fans out parallel agents across worktrees, and brings the results back together.",
+		}),
 		category: "Agents",
 		status: "later",
 	},
 	{
 		id: "self-verification",
-		title: "Agent self-verification",
-		description:
-			"Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review.",
+		title: msg({
+			id: "marketing.roadmap.item.selfVerification.title",
+			message: "Agent self-verification",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.selfVerification.description",
+			message:
+				"Agents load their own preview, drive the UI, and attach screenshot proof before marking work ready for review.",
+		}),
 		category: "Agents",
 		status: "later",
 	},
 	{
 		id: "session-snapshots",
-		title: "Session snapshots & revert",
-		description:
-			"Roll back an agent session to any checkpoint, conversation and file changes together.",
+		title: msg({
+			id: "marketing.roadmap.item.sessionSnapshots.title",
+			message: "Session snapshots & revert",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.sessionSnapshots.description",
+			message:
+				"Roll back an agent session to any checkpoint, conversation and file changes together.",
+		}),
 		category: "Desktop",
 		status: "later",
 	},
 	{
 		id: "attention-queue",
-		title: "Attention queue",
-		description:
-			"Always know which agent needs you, with notifications that deep-link straight to the blocked agent.",
+		title: msg({
+			id: "marketing.roadmap.item.attentionQueue.title",
+			message: "Attention queue",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.attentionQueue.description",
+			message:
+				"Always know which agent needs you, with notifications that deep-link straight to the blocked agent.",
+		}),
 		category: "Desktop",
 		status: "later",
 	},
 	{
 		id: "cloud-sandboxes",
-		title: "Cloud sandboxes",
-		description:
-			"Machine-unbound cloud workspaces that spin up in seconds and can be shared with teammates.",
+		title: msg({
+			id: "marketing.roadmap.item.cloudSandboxes.title",
+			message: "Cloud sandboxes",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.cloudSandboxes.description",
+			message:
+				"Machine-unbound cloud workspaces that spin up in seconds and can be shared with teammates.",
+		}),
 		category: "Platform",
 		status: "later",
 	},
 	{
 		id: "sdk-api",
-		title: "SDK & public API",
-		description:
-			"Drive workspaces, agents, and sessions programmatically from scripts, CI, or your own tools.",
+		title: msg({
+			id: "marketing.roadmap.item.sdkApi.title",
+			message: "SDK & public API",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.sdkApi.description",
+			message:
+				"Drive workspaces, agents, and sessions programmatically from scripts, CI, or your own tools.",
+		}),
 		category: "Platform",
 		status: "later",
 	},
 	{
 		id: "ios-app",
-		title: "iOS app",
-		description: "Monitor, steer, and unblock your agents from your phone.",
+		title: msg({
+			id: "marketing.roadmap.item.iosApp.title",
+			message: "iOS app",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.iosApp.description",
+			message: "Monitor, steer, and unblock your agents from your phone.",
+		}),
 		category: "Mobile",
 		status: "later",
 	},
@@ -223,9 +378,15 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	// ── Shipped ──────────────────────────────────────
 	{
 		id: "offline-local-first",
-		title: "Offline / local-first mode",
-		description:
-			"The full core loop (import a repo, run an agent, review the diff) now works signed out and offline.",
+		title: msg({
+			id: "marketing.roadmap.item.offlineLocalFirst.title",
+			message: "Offline / local-first mode",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.offlineLocalFirst.description",
+			message:
+				"The full core loop (import a repo, run an agent, review the diff) now works signed out and offline.",
+		}),
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Aug 2026",
@@ -233,9 +394,15 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	},
 	{
 		id: "workspace-pinning-bulk-actions",
-		title: "Workspace pinning & bulk actions",
-		description:
-			"Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once.",
+		title: msg({
+			id: "marketing.roadmap.item.workspacePinningBulkActions.title",
+			message: "Workspace pinning & bulk actions",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.workspacePinningBulkActions.description",
+			message:
+				"Pin workspaces above your projects, then ⌘-click a batch to move, group, or delete them all at once.",
+		}),
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Aug 2026",
@@ -244,9 +411,15 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	},
 	{
 		id: "sidebar-redesign",
-		title: "Cleaner, denser sidebar",
-		description:
-			"A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything.",
+		title: msg({
+			id: "marketing.roadmap.item.sidebarRedesign.title",
+			message: "Cleaner, denser sidebar",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.sidebarRedesign.description",
+			message:
+				"A full restyle: denser rows, port and agent chips under each workspace, one-click stop for everything.",
+		}),
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Aug 2026",
@@ -255,9 +428,15 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	},
 	{
 		id: "grok-kimi-agents",
-		title: "Grok & Kimi Code agents",
-		description:
-			"Grok and Kimi Code join the lineup alongside Claude Code, Codex, and friends.",
+		title: msg({
+			id: "marketing.roadmap.item.grokKimiAgents.title",
+			message: "Grok & Kimi Code agents",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.grokKimiAgents.description",
+			message:
+				"Grok and Kimi Code join the lineup alongside Claude Code, Codex, and friends.",
+		}),
 		category: "Agents",
 		status: "shipped",
 		shippedDate: "Aug 2026",
@@ -266,18 +445,30 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	},
 	{
 		id: "stability-pass",
-		title: "Stability improvements",
-		description:
-			"A focused burn-down of crashes, hangs, and reconnect failures across the app.",
+		title: msg({
+			id: "marketing.roadmap.item.stabilityPass.title",
+			message: "Stability improvements",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.stabilityPass.description",
+			message:
+				"A focused burn-down of crashes, hangs, and reconnect failures across the app.",
+		}),
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Aug 2026",
 	},
 	{
 		id: "performance-pass",
-		title: "Lighter memory, smoother under load",
-		description:
-			"Lower memory with many terminals open, smoother git in big repos, and less background CPU.",
+		title: msg({
+			id: "marketing.roadmap.item.performancePass.title",
+			message: "Lighter memory, smoother under load",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.performancePass.description",
+			message:
+				"Lower memory with many terminals open, smoother git in big repos, and less background CPU.",
+		}),
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Jul 2026",
@@ -286,9 +477,15 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	},
 	{
 		id: "terminal-rich-input",
-		title: "Rich input for the terminal",
-		description:
-			"Press ⌘I over any terminal and compose in a real editor, with multiline prompts and @file mentions.",
+		title: msg({
+			id: "marketing.roadmap.item.terminalRichInput.title",
+			message: "Rich input for the terminal",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.terminalRichInput.description",
+			message:
+				"Press ⌘I over any terminal and compose in a real editor, with multiline prompts and @file mentions.",
+		}),
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Jul 2026",
@@ -297,9 +494,15 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 	},
 	{
 		id: "custom-terminal-agents",
-		title: "Custom terminal agents",
-		description:
-			"Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command.",
+		title: msg({
+			id: "marketing.roadmap.item.customTerminalAgents.title",
+			message: "Custom terminal agents",
+		}),
+		description: msg({
+			id: "marketing.roadmap.item.customTerminalAgents.description",
+			message:
+				"Register any CLI agent alongside the built-ins, each with its own name, icon, and launch command.",
+		}),
 		category: "Agents",
 		status: "shipped",
 		shippedDate: "Jul 2026",

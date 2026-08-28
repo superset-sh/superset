@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -99,7 +100,11 @@ function V1WorkspaceList({ query }: { query: string }) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No workspaces found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.workspaceList.empty">
+					No workspaces found.
+				</Trans>
+			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => (
@@ -134,6 +139,7 @@ function V1WorkspaceList({ query }: { query: string }) {
 }
 
 function V2WorkspaceList({ query }: { query: string }) {
+	const { t } = useLingui();
 	const { all: workspaces } = useAccessibleV2Workspaces({
 		searchQuery: query,
 	});
@@ -153,7 +159,12 @@ function V2WorkspaceList({ query }: { query: string }) {
 				group.workspaces.push(workspace);
 			} else {
 				grouped.set(workspace.projectId, {
-					projectName: workspace.projectName ?? "Sessions",
+					projectName:
+						workspace.projectName ??
+						t({
+							id: "commandPalette.workspaceList.sessionsGroup",
+							message: "Sessions",
+						}),
 					workspaces: [workspace],
 				});
 			}
@@ -163,7 +174,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 			projectId,
 			...group,
 		}));
-	}, [workspaces]);
+	}, [workspaces, t]);
 
 	const handleSelect = (workspaceId: string) => {
 		void navigateToV2Workspace(workspaceId, navigate);
@@ -172,7 +183,11 @@ function V2WorkspaceList({ query }: { query: string }) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No workspaces found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.workspaceList.emptyV2">
+					No workspaces found.
+				</Trans>
+			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => {

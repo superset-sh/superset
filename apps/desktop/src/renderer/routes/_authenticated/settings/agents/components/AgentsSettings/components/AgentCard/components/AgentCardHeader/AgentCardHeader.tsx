@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { CardDescription, CardHeader, CardTitle } from "@superset/ui/card";
 import { Switch } from "@superset/ui/switch";
@@ -27,6 +28,7 @@ export function AgentCardHeader({
 	onEnabledChange,
 	onToggle,
 }: AgentCardHeaderProps) {
+	const { t } = useLingui();
 	const isDark = useIsDarkTheme();
 	const icon = getPresetIcon(preset.id, isDark);
 	const contentId = `${preset.id}-settings`;
@@ -56,7 +58,11 @@ export function AgentCardHeader({
 					<div className="min-w-0">
 						<CardTitle className="truncate">{preset.label}</CardTitle>
 						<CardDescription className="mt-1">
-							{preset.description ?? "Agent launch configuration"}
+							{preset.description ?? (
+								<Trans id="settings.agents.card.defaultDescription">
+									Agent launch configuration
+								</Trans>
+							)}
 						</CardDescription>
 					</div>
 				</div>
@@ -65,7 +71,10 @@ export function AgentCardHeader({
 						<div className="flex items-center">
 							<Switch
 								id={`${preset.id}-enabled`}
-								aria-label={`Enable ${preset.label}`}
+								aria-label={t({
+									id: "settings.agents.card.enableAriaLabel",
+									message: `Enable ${preset.label}`,
+								})}
 								checked={enabled}
 								disabled={isUpdatingEnabled}
 								onCheckedChange={onEnabledChange}

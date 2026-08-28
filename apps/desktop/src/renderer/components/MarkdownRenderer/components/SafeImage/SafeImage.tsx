@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { LuImageOff } from "react-icons/lu";
 
 /**
@@ -45,14 +46,20 @@ interface SafeImageProps {
  * malicious markdown content.
  */
 export function SafeImage({ src, alt, className }: SafeImageProps) {
+	const { t } = useLingui();
 	if (!isSafeImageSrc(src)) {
 		return (
 			<div
 				className={`inline-flex items-center gap-2 px-3 py-2 rounded-md bg-muted text-muted-foreground text-sm ${className ?? ""}`}
-				title={`Image blocked: ${src ?? "(empty)"}`}
+				title={t({
+					id: "components.safeImage.blockedTitle",
+					message: `Image blocked: ${src ?? "(empty)"}`,
+				})}
 			>
 				<LuImageOff className="w-4 h-4 flex-shrink-0" />
-				<span className="truncate max-w-[300px]">Image blocked</span>
+				<span className="truncate max-w-[300px]">
+					<Trans id="components.safeImage.blocked">Image blocked</Trans>
+				</span>
 			</div>
 		);
 	}

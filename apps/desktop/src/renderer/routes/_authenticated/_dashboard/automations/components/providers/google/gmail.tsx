@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiGmail } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
@@ -28,9 +30,26 @@ function renderSlot(
 					onChange={(v) => set({ from: v })}
 					className={mark("from")}
 					options={[]}
-					emptyLabel="Select senders"
-					anyLabel="Any sender"
-					allowCustom={{ placeholder: "Add address or domain…" }}
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.selectSenders",
+							message: "Select senders",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.anySender",
+							message: "Any sender",
+						}),
+					)}
+					allowCustom={{
+						placeholder: i18n._(
+							msg({
+								id: "dashboard.automations.providers.gmail.fromCustomPlaceholder",
+								message: "Add address or domain…",
+							}),
+						),
+					}}
 					disabled={disabled}
 				/>
 			);
@@ -42,9 +61,26 @@ function renderSlot(
 					// Clearing an optional filter means "any", not "none".
 					onChange={(v) => set({ to: isEmptyScope(v) ? { mode: "any" } : v })}
 					options={[]}
-					emptyLabel="Any recipient"
-					anyLabel="Any recipient"
-					allowCustom={{ placeholder: "Add address or domain…" }}
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.anyRecipientEmpty",
+							message: "Any recipient",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.anyRecipient",
+							message: "Any recipient",
+						}),
+					)}
+					allowCustom={{
+						placeholder: i18n._(
+							msg({
+								id: "dashboard.automations.providers.gmail.toCustomPlaceholder",
+								message: "Add address or domain…",
+							}),
+						),
+					}}
 					disabled={disabled}
 				/>
 			);
@@ -54,8 +90,18 @@ function renderSlot(
 					key={index}
 					value={config.subjectFilter}
 					onChange={(v) => set({ subjectFilter: v })}
-					emptyLabel="anything"
-					placeholder="Subject contains..."
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.subjectAnything",
+							message: "anything",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.subjectFilterPlaceholder",
+							message: "Subject contains...",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -68,8 +114,18 @@ function renderSlot(
 						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={options.google?.labels ?? []}
-					emptyLabel="Any label"
-					anyLabel="Any label"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.anyLabelEmpty",
+							message: "Any label",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.gmail.anyLabel",
+							message: "Any label",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -79,7 +135,10 @@ function renderSlot(
 					key={index}
 					value={config.hasAttachment ? "attachment" : "any"}
 					onChange={(v) => set({ hasAttachment: v === "attachment" })}
-					options={ATTACHMENT_OPTIONS}
+					options={ATTACHMENT_OPTIONS.map((option) => ({
+						value: option.value,
+						label: i18n._(option.label),
+					}))}
 					disabled={disabled}
 				/>
 			);

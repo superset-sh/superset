@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useMemo } from "react";
@@ -42,6 +43,7 @@ export function AgentMark({
  * matches what the host can actually run.
  */
 export function AgentPickerScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
@@ -74,28 +76,49 @@ export function AgentPickerScreen() {
 	let isLoading = false;
 	let retry: (() => void) | null = null;
 	if (!machineId) {
-		notice = "No project selected";
+		notice = t({
+			id: "mobile.agentPicker.noProjectSelected",
+			message: "No project selected",
+		});
 	} else if (machineId === CLOUD_TARGET_ID) {
-		notice = "Cloud workspaces don't run an agent yet";
+		notice = t({
+			id: "mobile.agentPicker.cloudNoAgent",
+			message: "Cloud workspaces don't run an agent yet",
+		});
 	} else if (!host) {
 		if (hostsQuery.isPending) {
 			isLoading = true;
 		} else if (hostsQuery.isError) {
-			notice = "Could not load your machines";
+			notice = t({
+				id: "mobile.agentPicker.machinesLoadFailed",
+				message: "Could not load your machines",
+			});
 			retry = () => void hostsQuery.refetch();
 		} else {
-			notice = "That machine is no longer available";
+			notice = t({
+				id: "mobile.agentPicker.machineUnavailable",
+				message: "That machine is no longer available",
+			});
 		}
 	} else if (!isOnline) {
-		notice = `${host.name} is offline`;
+		notice = t({
+			id: "mobile.agentPicker.hostOffline",
+			message: `${host.name} is offline`,
+		});
 	} else if (configs.length === 0) {
 		if (configsQuery.isError) {
-			notice = `Could not load agents from ${host.name}`;
+			notice = t({
+				id: "mobile.agentPicker.agentsLoadFailed",
+				message: `Could not load agents from ${host.name}`,
+			});
 			retry = () => void configsQuery.refetch();
 		} else if (configsQuery.isPending) {
 			isLoading = true;
 		} else {
-			notice = `No agents configured on ${host.name}`;
+			notice = t({
+				id: "mobile.agentPicker.noAgentsConfigured",
+				message: `No agents configured on ${host.name}`,
+			});
 		}
 	}
 
@@ -126,7 +149,9 @@ export function AgentPickerScreen() {
 					</Text>
 					{retry ? (
 						<Button size="sm" variant="secondary" onPress={retry}>
-							<Text>Try again</Text>
+							<Text>
+								<Trans id="mobile.common.tryAgain">Try again</Trans>
+							</Text>
 						</Button>
 					) : null}
 				</View>

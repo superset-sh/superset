@@ -1,4 +1,5 @@
-import { SUPPORTED_LOCALES, type SupportedLocale } from "@superset/i18n";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { LOCALE_LABELS, SUPPORTED_LOCALES } from "@superset/i18n";
 import {
 	Select,
 	SelectContent,
@@ -14,13 +15,8 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 const AUTO = "auto";
 
-// Native-language labels: a user stuck in the wrong language must be able to
-// recognize their own in this list, so entries are never translated.
-const LOCALE_LABELS: Record<SupportedLocale, string> = {
-	en: "English",
-};
-
 export function LanguageSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const { data: language } = electronTrpc.settings.getLanguage.useQuery();
@@ -38,24 +34,44 @@ export function LanguageSection() {
 						// sync failures need surfacing.
 						if (error.data?.code === "UNAUTHORIZED") return;
 						toast.error(
-							"Language saved on this device, but syncing it to your account failed.",
+							t({
+								id: "settings.appearance.language.syncFailed",
+								message:
+									"Language saved on this device, but syncing it to your account failed.",
+							}),
 						);
 					},
 				},
 			);
 		},
-		onError: () => toast.error("Failed to update language"),
+		onError: () =>
+			toast.error(
+				t({
+					id: "settings.appearance.language.updateFailed",
+					message: "Failed to update language",
+				}),
+			),
 	});
 
 	return (
 		<div className="flex items-center justify-between gap-6 p-4">
 			<div className="min-w-0 flex-1">
 				<div className="text-sm font-medium">
-					<HighlightText text="Language" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.appearance.language.label",
+							message: "Language",
+						})}
+						query={searchQuery}
+					/>
 				</div>
 				<div className="text-xs text-muted-foreground">
 					<HighlightText
-						text="App display language. Auto follows your system language."
+						text={t({
+							id: "settings.appearance.language.hint",
+							message:
+								"App display language. Auto follows your system language.",
+						})}
 						query={searchQuery}
 					/>
 				</div>
@@ -70,7 +86,9 @@ export function LanguageSection() {
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value={AUTO}>Auto (system)</SelectItem>
+					<SelectItem value={AUTO}>
+						<Trans id="settings.appearance.language.auto">Auto (system)</Trans>
+					</SelectItem>
 					{SUPPORTED_LOCALES.map((locale) => (
 						<SelectItem key={locale} value={locale}>
 							{LOCALE_LABELS[locale]}

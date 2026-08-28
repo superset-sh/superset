@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	LinearTriggerEvent,
 	TriggerConfigInput,
@@ -52,17 +54,44 @@ export const LINEAR_SENTENCES: Record<LinearTriggerEvent, SentencePart[]> = {
 
 export const LINEAR_MENU: TriggerMenuEntry<LinearConfig>[] = [
 	{
-		label: "Issue…",
+		label: msg({
+			id: "dashboard.automations.providers.linear.menuIssue",
+			message: "Issue…",
+		}),
 		children: [
-			leaf("Created", "issue.created"),
-			leaf("Status changed", "issue.status_changed"),
-			leaf("Assigned", "issue.assigned"),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.linear.menuIssueCreated",
+					message: "Created",
+				}),
+				"issue.created",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.linear.menuIssueStatusChanged",
+					message: "Status changed",
+				}),
+				"issue.status_changed",
+			),
+			leaf(
+				msg({
+					id: "dashboard.automations.providers.linear.menuIssueAssigned",
+					message: "Assigned",
+				}),
+				"issue.assigned",
+			),
 		],
 	},
-	leaf("Cycle ended", "cycle.ended"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.linear.menuCycleEnded",
+			message: "Cycle ended",
+		}),
+		"cycle.ended",
+	),
 ];
 
-function leaf(label: string, event: LinearTriggerEvent) {
+function leaf(label: MessageDescriptor, event: LinearTriggerEvent) {
 	return { label, create: () => createLinearConfig(event) };
 }
 

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { alert } from "@superset/ui/atoms/Alert";
 import { useCallback, useEffect } from "react";
@@ -16,6 +17,7 @@ interface FilePaneProps {
 }
 
 export function FilePane({ context, workspaceId }: FilePaneProps) {
+	const { t } = useLingui();
 	const data = context.pane.data as FilePaneData;
 	const { filePath } = data;
 
@@ -47,26 +49,35 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 		if (!hasConflict) return;
 		const name = getBaseName(filePath);
 		alert({
-			title: `Do you want to save the changes you made to ${name}?`,
-			description: "Your changes will be lost if you don't save them.",
+			title: t({
+				id: "workspace.filePane.saveChangesTitle",
+				message: `Do you want to save the changes you made to ${name}?`,
+			}),
+			description: t({
+				id: "workspace.filePane.saveChangesBody",
+				message: "Your changes will be lost if you don't save them.",
+			}),
 			actions: [
 				{
-					label: "Save",
+					label: t({ id: "workspace.filePane.save", message: "Save" }),
 					onClick: () => document.resolveConflict("overwrite"),
 				},
 				{
-					label: "Don't Save",
+					label: t({
+						id: "workspace.filePane.dontSave",
+						message: "Don't Save",
+					}),
 					variant: "secondary",
 					onClick: () => document.resolveConflict("reload"),
 				},
 				{
-					label: "Cancel",
+					label: t({ id: "workspace.filePane.cancel", message: "Cancel" }),
 					variant: "ghost",
 					onClick: () => document.resolveConflict("keep"),
 				},
 			],
 		});
-	}, [hasConflict, document, filePath]);
+	}, [hasConflict, document, filePath, t]);
 
 	const handleChangeView = useCallback(
 		(viewId: string) => {

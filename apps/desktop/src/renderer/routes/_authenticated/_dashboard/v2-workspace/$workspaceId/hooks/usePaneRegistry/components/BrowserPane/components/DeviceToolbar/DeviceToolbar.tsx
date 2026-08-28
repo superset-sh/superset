@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -23,6 +24,7 @@ export function DeviceToolbar({
 	onToggleRotate,
 	onClose,
 }: DeviceToolbarProps) {
+	const { t } = useLingui();
 	const device =
 		DEVICE_PRESETS.find((d) => d.id === state.deviceId) ??
 		DEFAULT_DEVICE_PRESET;
@@ -51,7 +53,10 @@ export function DeviceToolbar({
 			<button
 				type="button"
 				onClick={onToggleRotate}
-				aria-label="Rotate device"
+				aria-label={t({
+					id: "workspace.browserPane.rotateDevice",
+					message: "Rotate device",
+				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
 			>
 				<RefreshCwIcon
@@ -62,7 +67,10 @@ export function DeviceToolbar({
 			<button
 				type="button"
 				onClick={onClose}
-				aria-label="Exit device toolbar"
+				aria-label={t({
+					id: "workspace.browserPane.exitDeviceToolbar",
+					message: "Exit device toolbar",
+				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
 			>
 				<XIcon className="size-3.5" />

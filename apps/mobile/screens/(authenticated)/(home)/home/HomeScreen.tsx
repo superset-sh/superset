@@ -1,4 +1,6 @@
 import { LegendList } from "@legendapp/list/react-native";
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
@@ -92,6 +94,7 @@ function homeListItemKey(item: HomeListItem): string {
 }
 
 export function HomeScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
@@ -278,7 +281,7 @@ export function HomeScreen() {
 			items.push({
 				kind: "projectHeader",
 				projectId: "__none",
-				name: "No project",
+				name: t({ id: "mobile.home.noProject", message: "No project" }),
 				count: orphans.length,
 				collapsed: false,
 			});
@@ -298,6 +301,7 @@ export function HomeScreen() {
 		activityTs,
 		collapsed,
 		collapseHydrated,
+		t,
 	]);
 
 	const composerWorkspaces = useMemo(
@@ -472,14 +476,15 @@ export function HomeScreen() {
 		],
 	);
 
+	const sortOption = SORT_OPTIONS.find((option) => option.value === sort);
+	const sortLabel = sortOption ? i18n._(sortOption.label) : "";
+
 	const scopeBar = (
 		<ScopeBar
 			scope={cloudScope ? "cloud" : "host"}
 			hostName={selectedHost?.name ?? null}
 			hostOnline={selectedHost?.isOnline ?? false}
-			sortLabel={
-				SORT_OPTIONS.find((option) => option.value === sort)?.label ?? ""
-			}
+			sortLabel={sortLabel}
 			onPressScope={() => {
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 				router.push("/(authenticated)/(home)/filter/scope");
@@ -511,7 +516,10 @@ export function HomeScreen() {
 				<Stack.Toolbar placement="right">
 					<Stack.Toolbar.Button
 						icon="magnifyingglass"
-						accessibilityLabel="Search workspaces"
+						accessibilityLabel={t({
+							id: "mobile.home.searchWorkspaces",
+							message: "Search workspaces",
+						})}
 						onPress={() => {
 							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 							router.push("/(authenticated)/(home)/search");
@@ -557,8 +565,14 @@ export function HomeScreen() {
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
 									{cloudScope
-										? "No cloud workspaces yet"
-										: "No projects on this host yet"}
+										? t({
+												id: "mobile.home.emptyCloud",
+												message: "No cloud workspaces yet",
+											})
+										: t({
+												id: "mobile.home.emptyHost",
+												message: "No projects on this host yet",
+											})}
 								</Text>
 							</View>
 						) : null

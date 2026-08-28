@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { m, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { type ActiveDemo, AppMockup } from "../AppMockup";
@@ -23,6 +24,7 @@ export function ProductDemo() {
 		"Orchestrate Parallel Agents",
 	);
 	const [hasHeroExpansionRoom, setHasHeroExpansionRoom] = useState(false);
+	const { t } = useLingui();
 
 	useEffect(() => {
 		const mq = window.matchMedia(HERO_EXPANSION_MEDIA_QUERY);
@@ -43,10 +45,10 @@ export function ProductDemo() {
 
 	const options = DEMO_OPTIONS.map((option) => (
 		<SelectorPill
-			key={option.label}
-			label={option.label}
-			active={activeOption === option.label}
-			onSelect={() => setActiveOption(option.label as ActiveDemo)}
+			key={option.id}
+			label={t(option.label)}
+			active={activeOption === option.id}
+			onSelect={() => setActiveOption(option.id)}
 		/>
 	));
 

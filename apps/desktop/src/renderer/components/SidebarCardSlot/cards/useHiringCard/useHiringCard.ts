@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { track } from "renderer/lib/analytics";
@@ -10,6 +11,7 @@ export function useHiringCard({
 }: {
 	surface: "v1" | "v2";
 }): SidebarCardEntry | null {
+	const { t } = useLingui();
 	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.HIRING_BANNER);
 	const dismissed = useHiringBannerStore((s) => s.dismissed);
 	const dismiss = useHiringBannerStore((s) => s.dismiss);
@@ -19,10 +21,22 @@ export function useHiringCard({
 
 	return {
 		id: "hiring",
-		badge: "We're hiring",
-		title: "Like building with Superset?",
-		description: "You're one of our most active users. Come help us build it.",
-		actionLabel: "View open roles",
+		badge: t({
+			id: "components.hiringCard.badge",
+			message: "We're hiring",
+		}),
+		title: t({
+			id: "components.hiringCard.title",
+			message: "Like building with Superset?",
+		}),
+		description: t({
+			id: "components.hiringCard.description",
+			message: "You're one of our most active users. Come help us build it.",
+		}),
+		actionLabel: t({
+			id: "components.hiringCard.actionLabel",
+			message: "View open roles",
+		}),
 		onAction: () => {
 			track("hiring_banner_clicked");
 			openUrlMutation.mutate(COMPANY.CAREERS_URL);

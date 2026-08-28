@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { WorkspaceProps } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
@@ -20,6 +21,7 @@ type OnBeforeCloseTab = NonNullable<
  * tab close). Terminals are checked first, then unsaved files.
  */
 export function useTabCloseGuard(): OnBeforeCloseTab {
+	const { t } = useLingui();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	const utils = workspaceTrpc.useUtils();
@@ -35,15 +37,24 @@ export function useTabCloseGuard(): OnBeforeCloseTab {
 				terminalIds,
 				(id) => probeTerminalRunning(utils, workspaceId, id),
 				{
-					title: "A process is still running in this tab",
-					description: "Closing this tab will end the running process.",
-					confirmLabel: "Close tab",
+					title: t({
+						id: "workspace.tabCloseGuard.processRunningTitle",
+						message: "A process is still running in this tab",
+					}),
+					description: t({
+						id: "workspace.tabCloseGuard.processRunningDescription",
+						message: "Closing this tab will end the running process.",
+					}),
+					confirmLabel: t({
+						id: "workspace.tabCloseGuard.closeTab",
+						message: "Close tab",
+					}),
 				},
 			);
 			if (!allowed) return false;
 
 			return dirtyGuard(tab);
 		},
-		[utils, workspaceId, dirtyGuard],
+		[t, utils, workspaceId, dirtyGuard],
 	);
 }

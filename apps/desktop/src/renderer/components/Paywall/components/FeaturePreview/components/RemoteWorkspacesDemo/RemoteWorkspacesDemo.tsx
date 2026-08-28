@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { HiOutlineComputerDesktop, HiOutlineSignal } from "react-icons/hi2";
 
 export function RemoteWorkspacesDemo() {
@@ -12,7 +13,9 @@ export function RemoteWorkspacesDemo() {
 							<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
 						</div>
 						<span className="text-xs text-muted-foreground ml-1">
-							Remote Workspaces
+							<Trans id="components.remoteWorkspacesDemo.windowTitle">
+								Remote Workspaces
+							</Trans>
 						</span>
 					</div>
 				</div>
@@ -24,7 +27,9 @@ export function RemoteWorkspacesDemo() {
 								<HiOutlineComputerDesktop className="size-5 text-foreground/80" />
 							</div>
 							<span className="text-[10px] text-muted-foreground">
-								This Mac
+								<Trans id="components.remoteWorkspacesDemo.thisMac">
+									This Mac
+								</Trans>
 							</span>
 						</div>
 						<div className="flex items-center gap-1">
@@ -36,18 +41,36 @@ export function RemoteWorkspacesDemo() {
 							<div className="w-10 h-10 rounded-lg bg-foreground/10 flex items-center justify-center">
 								<HiOutlineComputerDesktop className="size-5 text-foreground/80" />
 							</div>
-							<span className="text-[10px] text-muted-foreground">Remote</span>
+							<span className="text-[10px] text-muted-foreground">
+								<Trans id="components.remoteWorkspacesDemo.remote">
+									Remote
+								</Trans>
+							</span>
 						</div>
 					</div>
 
 					<div className="mt-2 space-y-1.5">
 						<div className="flex items-center justify-between px-2 py-1.5 rounded bg-foreground/5 text-xs">
-							<span className="text-foreground/80">Tunnel established</span>
-							<span className="text-emerald-400 text-[10px]">live</span>
+							<span className="text-foreground/80">
+								<Trans id="components.remoteWorkspacesDemo.tunnelEstablished">
+									Tunnel established
+								</Trans>
+							</span>
+							<span className="text-emerald-400 text-[10px]">
+								<Trans id="components.remoteWorkspacesDemo.live">live</Trans>
+							</span>
 						</div>
 						<div className="flex items-center justify-between px-2 py-1.5 rounded bg-foreground/5 text-xs">
-							<span className="text-foreground/80">Latency</span>
-							<span className="text-foreground/60 text-[10px]">42ms</span>
+							<span className="text-foreground/80">
+								<Trans id="components.remoteWorkspacesDemo.latency">
+									Latency
+								</Trans>
+							</span>
+							<span className="text-foreground/60 text-[10px]">
+								<Trans id="components.remoteWorkspacesDemo.latencyValue">
+									42ms
+								</Trans>
+							</span>
 						</div>
 					</div>
 				</div>

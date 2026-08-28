@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
@@ -23,6 +24,7 @@ import { formatDayLabel, formatTokens, formatUsd } from "./utils/formatUsage";
 type Provider = (typeof PROVIDER_ORDER)[number];
 
 export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
+	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
 	const [hiddenProviders, setHiddenProviders] = useState<Set<Provider>>(
@@ -80,12 +82,14 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 		<div className="flex min-h-0 flex-1 flex-col gap-3 border-t pt-3">
 			<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
 				<h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-					Token usage
+					<Trans id="settings.usage.history.title">Token usage</Trans>
 				</h2>
 				{firstDay && lastDay && (
 					<span className="text-[10px] text-muted-foreground">
-						{formatDayLabel(firstDay)} – {formatDayLabel(lastDay)} · API-rate
-						estimate from local session logs
+						<Trans id="settings.usage.history.rangeSummary">
+							{formatDayLabel(firstDay)} – {formatDayLabel(lastDay)} · API-rate
+							estimate from local session logs
+						</Trans>
 					</span>
 				)}
 				<div className="ml-auto flex items-center gap-1.5">
@@ -95,10 +99,10 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 					>
 						<TabsList className="h-6">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
-								Cost
+								<Trans id="settings.usage.history.metricCost">Cost</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="tokens" className="h-4 px-1.5 text-[10px]">
-								Tokens
+								<Trans id="settings.usage.history.metricTokens">Tokens</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -123,9 +127,15 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 
 			{!history ? (
 				<div className="py-6 text-center text-xs text-muted-foreground">
-					{historyQuery.isError
-						? "Couldn't read usage history from this host."
-						: "Scanning transcript logs…"}
+					{historyQuery.isError ? (
+						<Trans id="settings.usage.history.loadError">
+							Couldn't read usage history from this host.
+						</Trans>
+					) : (
+						<Trans id="settings.usage.history.scanning">
+							Scanning transcript logs…
+						</Trans>
+					)}
 				</div>
 			) : (
 				<div
@@ -143,13 +153,21 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 										: formatTokens(history.totals.tokens)}
 								</div>
 								<div className="text-[10px] text-muted-foreground">
-									{metric === "usd"
-										? "* if billed at full API rate"
-										: "input, cache and output tokens"}
+									{metric === "usd" ? (
+										<Trans id="settings.usage.history.fullApiRateNote">
+											* if billed at full API rate
+										</Trans>
+									) : (
+										<Trans id="settings.usage.history.tokenKindsNote">
+											input, cache and output tokens
+										</Trans>
+									)}
 								</div>
 								{metric === "usd" && (
 									<div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-										Cost to you: $0
+										<Trans id="settings.usage.history.costToYouZero">
+											Cost to you: $0
+										</Trans>
 									</div>
 								)}
 							</div>
@@ -183,7 +201,17 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											key={provider}
 											type="button"
 											onClick={() => toggleProvider(provider)}
-											title={hidden ? "Show in chart" : "Hide from chart"}
+											title={
+												hidden
+													? t({
+															id: "settings.usage.history.showInChart",
+															message: "Show in chart",
+														})
+													: t({
+															id: "settings.usage.history.hideFromChart",
+															message: "Hide from chart",
+														})
+											}
 											className={cn(
 												"flex items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:bg-muted/60",
 												hidden && "opacity-40",
@@ -226,7 +254,10 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											type="button"
 											className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
 											onClick={() => setSelectedDay(null)}
-											aria-label="Clear selected day"
+											aria-label={t({
+												id: "settings.usage.history.clearSelectedDay",
+												message: "Clear selected day",
+											})}
 										>
 											<LuX className="size-3" />
 										</button>

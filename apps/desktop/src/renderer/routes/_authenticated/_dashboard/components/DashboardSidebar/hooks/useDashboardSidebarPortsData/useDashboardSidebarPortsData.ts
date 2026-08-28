@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { PortChangedPayload } from "@superset/workspace-client";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
@@ -180,7 +181,10 @@ export function useDashboardSidebarPortsData(enabled = true): {
 				message:
 					query.error instanceof Error
 						? query.error.message
-						: "Unable to load ports",
+						: i18n._({
+								id: "dashboard.sidebar.portsData.unableToLoadPorts",
+								message: "Unable to load ports",
+							}),
 			},
 		];
 	});

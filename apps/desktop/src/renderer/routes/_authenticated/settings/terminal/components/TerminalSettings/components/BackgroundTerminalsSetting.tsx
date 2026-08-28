@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { useEffect, useState } from "react";
@@ -12,6 +13,7 @@ import {
 } from "shared/constants";
 
 export function BackgroundTerminalsSetting() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
@@ -68,15 +70,20 @@ export function BackgroundTerminalsSetting() {
 					className="text-sm font-medium"
 				>
 					<HighlightText
-						text="Background terminal memory"
+						text={t({
+							id: "settings.terminal.backgroundLimit.label",
+							message: "Background terminal memory",
+						})}
 						query={searchQuery}
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground max-w-md leading-relaxed">
-					How many hidden terminals stay fully loaded (
-					{MIN_TERMINAL_PARKED_RUNTIME_CAP}–{MAX_TERMINAL_PARKED_RUNTIME_CAP});
-					older ones keep running but reload their last 1,000 lines when
-					reopened
+					<Trans id="settings.terminal.backgroundLimit.hint">
+						How many hidden terminals stay fully loaded (
+						{MIN_TERMINAL_PARKED_RUNTIME_CAP}–{MAX_TERMINAL_PARKED_RUNTIME_CAP}
+						); older ones keep running but reload their last 1,000 lines when
+						reopened
+					</Trans>
 				</p>
 			</div>
 			<Input

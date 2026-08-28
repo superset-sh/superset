@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiNotion } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
@@ -28,8 +30,18 @@ function renderSlot(
 					onChange={(v) => set({ dataSources: v })}
 					className={mark("dataSources")}
 					options={options.notion?.dataSources ?? []}
-					emptyLabel="Select data sources"
-					anyLabel="Any data source"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.selectDataSources",
+							message: "Select data sources",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.anyDataSource",
+							message: "Any data source",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -43,8 +55,18 @@ function renderSlot(
 						set({ pages: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={[]}
-					emptyLabel="Any page"
-					anyLabel="Any page"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.anyPageEmpty",
+							message: "Any page",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.anyPage",
+							message: "Any page",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -56,8 +78,18 @@ function renderSlot(
 					onChange={(v) => set({ actor: v })}
 					className={mark("actor")}
 					options={options.notion?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.actorSelectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.actorAnyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -69,8 +101,18 @@ function renderSlot(
 					onChange={(v) => set({ mentionedUser: v })}
 					className={mark("mentionedUser")}
 					options={options.notion?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.mentionedSelectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.notion.mentionedAnyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);

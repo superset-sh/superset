@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -12,17 +13,24 @@ type SessionHeaderProps = {
 };
 
 export function SessionHeader({ backHref, session }: SessionHeaderProps) {
+	const { t } = useLingui();
+
 	return (
 		<div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
 			<Button variant="ghost" size="icon-sm" asChild>
-				<Link href={backHref} aria-label="Back">
+				<Link
+					href={backHref}
+					aria-label={t({ id: "web.sessionHeader.back", message: "Back" })}
+				>
 					<ArrowLeft className="size-4" />
 				</Link>
 			</Button>
 			<h1 className="min-w-0 flex-1 truncate text-sm font-medium">
 				{session.title}
 			</h1>
-			<Badge variant="secondary">Preview</Badge>
+			<Badge variant="secondary">
+				<Trans id="web.sessionHeader.previewBadge">Preview</Trans>
+			</Badge>
 		</div>
 	);
 }

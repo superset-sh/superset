@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiLinear } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
@@ -26,8 +28,18 @@ function renderSlot(
 					onChange={(v) => set({ teams: v })}
 					className={mark("teams")}
 					options={options.linear?.teams ?? []}
-					emptyLabel="Select teams"
-					anyLabel="Any team"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.selectTeams",
+							message: "Select teams",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyTeam",
+							message: "Any team",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -43,8 +55,18 @@ function renderSlot(
 						set({ projects: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={options.linear?.projects ?? []}
-					emptyLabel="Any project"
-					anyLabel="Any project"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyProjectEmpty",
+							message: "Any project",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyProject",
+							message: "Any project",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -57,8 +79,18 @@ function renderSlot(
 						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={options.linear?.labels ?? []}
-					emptyLabel="Any label"
-					anyLabel="Any label"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyLabelEmpty",
+							message: "Any label",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyLabel",
+							message: "Any label",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -71,8 +103,18 @@ function renderSlot(
 						set({ toStatus: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={options.linear?.statuses ?? []}
-					emptyLabel="Any status"
-					anyLabel="Any status"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyStatusEmpty",
+							message: "Any status",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyStatus",
+							message: "Any status",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -84,8 +126,18 @@ function renderSlot(
 					onChange={(v) => set({ assignee: v })}
 					className={mark("assignee")}
 					options={options.linear?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.selectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.linear.anyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);

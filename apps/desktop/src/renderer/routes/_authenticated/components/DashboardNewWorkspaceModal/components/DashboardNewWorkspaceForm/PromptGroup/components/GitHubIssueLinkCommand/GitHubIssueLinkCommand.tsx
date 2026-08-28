@@ -1,3 +1,5 @@
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -48,6 +50,7 @@ export function GitHubIssueLinkCommand({
 	projectId,
 	hostId,
 }: GitHubIssueLinkCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
@@ -90,8 +93,13 @@ export function GitHubIssueLinkCommand({
 		}
 		if (lastToastedError.current === msg) return;
 		lastToastedError.current = msg;
-		toast.error(`Couldn't load issues: ${msg}`);
-	}, [error]);
+		toast.error(
+			t({
+				id: "dashboard.newWorkspaceModal.githubIssueLink.loadFailed",
+				message: `Couldn't load issues: ${msg}`,
+			}),
+		);
+	}, [error, t]);
 
 	const searchResults = data?.issues ?? [];
 	const repoMismatch =
@@ -135,7 +143,10 @@ export function GitHubIssueLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search issues..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.githubIssueLink.searchPlaceholder",
+							message: "Search issues...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -149,7 +160,9 @@ export function GitHubIssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans id="dashboard.newWorkspaceModal.githubIssueLink.showClosed">
+								Show closed
+							</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
@@ -157,26 +170,40 @@ export function GitHubIssueLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										"Searching..."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.searching">
+											Searching...
+										</Trans>
 									) : (
-										"Loading..."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.loading">
+											Loading...
+										</Trans>
 									)
 								) : error instanceof Error ? (
 									<span className="select-text cursor-text text-destructive">
 										{error.message}
 									</span>
 								) : repoMismatch ? (
-									`Issue URL must match ${repoMismatch}.`
+									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.repoMismatch">
+										Issue URL must match {repoMismatch}.
+									</Trans>
 								) : debouncedTrimmed ? (
 									showClosed ? (
-										"No issues found."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.noResultsAll">
+											No issues found.
+										</Trans>
 									) : (
-										"No open issues found."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.noResultsOpen">
+											No open issues found.
+										</Trans>
 									)
 								) : showClosed ? (
-									"No issues found."
+									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.emptyAll">
+										No issues found.
+									</Trans>
 								) : (
-									"No open issues found."
+									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.emptyOpen">
+										No open issues found.
+									</Trans>
 								)}
 							</CommandEmpty>
 						)}
@@ -184,10 +211,22 @@ export function GitHubIssueLinkCommand({
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`
+										? t({
+												id: "dashboard.newWorkspaceModal.githubIssueLink.resultCount",
+												message: plural(searchResults.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent issues"
-											: "Open issues"
+											? t({
+													id: "dashboard.newWorkspaceModal.githubIssueLink.recentIssues",
+													message: "Recent issues",
+												})
+											: t({
+													id: "dashboard.newWorkspaceModal.githubIssueLink.openIssues",
+													message: "Open issues",
+												})
 								}
 							>
 								{searchResults.map((issue) => {

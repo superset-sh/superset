@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { ChevronsUpDownIcon } from "lucide-react-native";
 import { createContext, useContext, useMemo } from "react";
 import { View } from "react-native";
@@ -138,7 +139,10 @@ export type PlanTriggerProps = ButtonProps;
 export const PlanTrigger = ({ className, ...props }: PlanTriggerProps) => (
 	<CollapsibleTrigger asChild>
 		<Button
-			accessibilityLabel="Toggle plan"
+			accessibilityLabel={i18n._({
+				id: "mobile.plan.toggle",
+				message: "Toggle plan",
+			})}
 			className={cn("h-8 w-8", className)}
 			size="icon"
 			variant="ghost"

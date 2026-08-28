@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -22,10 +23,6 @@ import { useTRPC } from "@/trpc/react";
 import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 import { type MrrDatum, MrrTooltip } from "./MrrTooltip";
-
-const chartConfig = {
-	mrrUsd: { label: "MRR", color: "var(--chart-1)" },
-} satisfies ChartConfig;
 
 const RANGE_DAYS = { "7d": 7, "35d": 35, "180d": 180 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
@@ -51,7 +48,14 @@ function bucketPoints(all: MrrDatum[], range: RangeKey): MrrDatum[] {
 }
 
 export function MrrTile() {
+	const { t } = useLingui();
 	const trpc = useTRPC();
+	const chartConfig = {
+		mrrUsd: {
+			label: t({ id: "admin.mrr.label", message: "MRR" }),
+			color: "var(--chart-1)",
+		},
+	} satisfies ChartConfig;
 	const [range, setRange] = useState<RangeKey>("7d");
 	const query = useQuery(
 		trpc.business.getMrr.queryOptions(undefined, {
@@ -85,18 +89,28 @@ export function MrrTile() {
 
 	return (
 		<InsightTileFrame
-			title="MRR — daily (Stripe)"
-			description="Stripe's own Sigma MRR report, computed on demand via the Query Run API"
+			title={t({ id: "admin.mrr.title", message: "MRR — daily (Stripe)" })}
+			description={t({
+				id: "admin.mrr.description",
+				message:
+					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
+			})}
 			lastRefresh={query.data?.available ? query.data.dataLoadTime : null}
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={points.length === 0}
 			emptyLabel={
 				unavailableReason === "computing"
-					? "Computing in Stripe — up to a minute on first load"
+					? t({
+							id: "admin.mrr.computing",
+							message: "Computing in Stripe — up to a minute on first load",
+						})
 					: unavailableReason
-						? `Unavailable: ${unavailableReason}`
-						: "No data"
+						? t({
+								id: "admin.tile.unavailableReason",
+								message: `Unavailable: ${unavailableReason}`,
+							})
+						: undefined
 			}
 			headerAction={
 				<Select value={range} onValueChange={(v) => setRange(v as RangeKey)}>
@@ -134,8 +148,10 @@ export function MrrTile() {
 						</div>
 						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
-								${latest.prevUsd.toLocaleString()} previous period (
-								{latest.prevDate})
+								{t({
+									id: "admin.mrr.previousPeriod",
+									message: `$${latest.prevUsd.toLocaleString()} previous period (${latest.prevDate})`,
+								})}
 							</p>
 						) : null}
 					</div>

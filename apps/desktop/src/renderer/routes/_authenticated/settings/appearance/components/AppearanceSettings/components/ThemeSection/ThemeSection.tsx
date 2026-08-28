@@ -1,5 +1,5 @@
 import { plural } from "@lingui/core/macro";
-import { useLingui } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
@@ -99,7 +99,9 @@ function ThemeRow({
 									<ThemeSwatch theme={includeSystem.lightTheme} />
 									<ThemeSwatch theme={includeSystem.darkTheme} />
 								</div>
-								<span className="truncate text-xs">System</span>
+								<span className="truncate text-xs">
+									<Trans id="settings.appearance.theme.system">System</Trans>
+								</span>
 							</div>
 						) : (
 							<div className="flex items-center gap-2 min-w-0">
@@ -118,7 +120,11 @@ function ThemeRow({
 										<ThemeSwatch theme={includeSystem.lightTheme} />
 										<ThemeSwatch theme={includeSystem.darkTheme} />
 									</div>
-									<span className="truncate">System</span>
+									<span className="truncate">
+										<Trans id="settings.appearance.theme.systemOption">
+											System
+										</Trans>
+									</span>
 								</div>
 							</SelectItem>
 							<SelectSeparator />
@@ -165,13 +171,26 @@ export function ThemeSection() {
 	const customLightThemes = lightThemes.filter((t) => t.isCustom);
 	const customDarkThemes = darkThemes.filter((t) => t.isCustom);
 
+	const lightGroupLabel = t({
+		id: "settings.appearance.themeGroup.light",
+		message: "Light",
+	});
+	const darkGroupLabel = t({
+		id: "settings.appearance.themeGroup.dark",
+		message: "Dark",
+	});
+	const customGroupLabel = t({
+		id: "settings.appearance.themeGroup.custom",
+		message: "Custom",
+	});
+
 	const allOptions: ReadonlyArray<{ group: string; themes: Theme[] }> = [
-		{ group: "Light", themes: builtInLightThemes },
-		{ group: "Dark", themes: builtInDarkThemes },
+		{ group: lightGroupLabel, themes: builtInLightThemes },
+		{ group: darkGroupLabel, themes: builtInDarkThemes },
 		...(customThemes.length > 0
 			? [
 					{
-						group: "Custom",
+						group: customGroupLabel,
 						themes: [...customLightThemes, ...customDarkThemes],
 					},
 				]
@@ -180,17 +199,17 @@ export function ThemeSection() {
 	const lightOptions: ReadonlyArray<{ group: string; themes: Theme[] }> =
 		customLightThemes.length > 0
 			? [
-					{ group: "Light", themes: builtInLightThemes },
-					{ group: "Custom", themes: customLightThemes },
+					{ group: lightGroupLabel, themes: builtInLightThemes },
+					{ group: customGroupLabel, themes: customLightThemes },
 				]
-			: [{ group: "Light", themes: builtInLightThemes }];
+			: [{ group: lightGroupLabel, themes: builtInLightThemes }];
 	const darkOptions: ReadonlyArray<{ group: string; themes: Theme[] }> =
 		customDarkThemes.length > 0
 			? [
-					{ group: "Dark", themes: builtInDarkThemes },
-					{ group: "Custom", themes: customDarkThemes },
+					{ group: darkGroupLabel, themes: builtInDarkThemes },
+					{ group: customGroupLabel, themes: customDarkThemes },
 				]
-			: [{ group: "Dark", themes: builtInDarkThemes }];
+			: [{ group: darkGroupLabel, themes: builtInDarkThemes }];
 
 	const systemLightTheme =
 		allThemes.find((t) => t.id === systemLightThemeId) ??
@@ -231,9 +250,15 @@ export function ThemeSection() {
 			const parsed = parseThemeConfigFile(content);
 
 			if (!parsed.ok) {
-				toast.error("Failed to import theme file", {
-					description: parsed.error,
-				});
+				toast.error(
+					t({
+						id: "settings.appearance.themeImport.parseFailed",
+						message: "Failed to import theme file",
+					}),
+					{
+						description: parsed.error,
+					},
+				);
 				return;
 			}
 
@@ -241,12 +266,25 @@ export function ThemeSection() {
 			const totalImported = summary.added + summary.updated;
 
 			if (totalImported === 0) {
-				toast.error("No themes were imported", {
-					description:
-						summary.skipped > 0
-							? "All themes used reserved IDs (built-in or system)."
-							: "The file did not contain any importable themes.",
-				});
+				toast.error(
+					t({
+						id: "settings.appearance.themeImport.noneImported",
+						message: "No themes were imported",
+					}),
+					{
+						description:
+							summary.skipped > 0
+								? t({
+										id: "settings.appearance.themeImport.reservedIds",
+										message:
+											"All themes used reserved IDs (built-in or system).",
+									})
+								: t({
+										id: "settings.appearance.themeImport.nothingImportable",
+										message: "The file did not contain any importable themes.",
+									}),
+					},
+				);
 				return;
 			}
 
@@ -261,20 +299,44 @@ export function ThemeSection() {
 				{
 					description:
 						summary.updated > 0
-							? `${summary.updated} existing theme${summary.updated === 1 ? "" : "s"} updated`
+							? t({
+									id: "settings.appearance.themeImport.updatedCount",
+									message: plural(summary.updated, {
+										one: "# existing theme updated",
+										other: "# existing themes updated",
+									}),
+								})
 							: undefined,
 				},
 			);
 
 			if (parsed.issues.length > 0) {
-				toast.warning("Some themes were skipped", {
-					description: parsed.issues[0],
-				});
+				toast.warning(
+					t({
+						id: "settings.appearance.themeImport.someSkipped",
+						message: "Some themes were skipped",
+					}),
+					{
+						description: parsed.issues[0],
+					},
+				);
 			}
 		} catch (error) {
-			toast.error("Failed to import theme file", {
-				description: errorMessage(error, "Unable to read file"),
-			});
+			toast.error(
+				t({
+					id: "settings.appearance.themeImport.readFailed",
+					message: "Failed to import theme file",
+				}),
+				{
+					description: errorMessage(
+						error,
+						t({
+							id: "settings.appearance.themeImport.unableToRead",
+							message: "Unable to read file",
+						}),
+					),
+				},
+			);
 		} finally {
 			setIsImporting(false);
 		}
@@ -308,9 +370,12 @@ export function ThemeSection() {
 	return (
 		<>
 			<ThemeRow
-				label="Theme"
+				label={t({
+					id: "settings.appearance.theme.label",
+					message: "Theme",
+				})}
 				hint={
-					<>
+					<Trans id="settings.appearance.theme.hint">
 						Pick a theme or follow your system appearance. Browse the{" "}
 						<a
 							href={`${COMPANY.MARKETING_URL}/marketplace/themes`}
@@ -332,7 +397,7 @@ export function ThemeSection() {
 							<HiOutlineArrowTopRightOnSquare className="h-3 w-3" />
 						</a>
 						.
-					</>
+					</Trans>
 				}
 				value={activeThemeId}
 				onValueChange={setTheme}
@@ -346,16 +411,28 @@ export function ThemeSection() {
 			{isSystemMode && (
 				<>
 					<ThemeRow
-						label="Light theme"
-						hint="Used when your system is in light mode."
+						label={t({
+							id: "settings.appearance.theme.lightLabel",
+							message: "Light theme",
+						})}
+						hint={t({
+							id: "settings.appearance.theme.lightHint",
+							message: "Used when your system is in light mode.",
+						})}
 						value={systemLightThemeId}
 						onValueChange={(id) => setSystemThemePreference("light", id)}
 						currentTheme={systemLightTheme}
 						options={lightOptions}
 					/>
 					<ThemeRow
-						label="Dark theme"
-						hint="Used when your system is in dark mode."
+						label={t({
+							id: "settings.appearance.theme.darkLabel",
+							message: "Dark theme",
+						})}
+						hint={t({
+							id: "settings.appearance.theme.darkHint",
+							message: "Used when your system is in dark mode.",
+						})}
 						value={systemDarkThemeId}
 						onValueChange={(id) => setSystemThemePreference("dark", id)}
 						currentTheme={systemDarkTheme}
@@ -366,11 +443,20 @@ export function ThemeSection() {
 			<div className="flex items-center justify-between gap-6 p-4">
 				<div className="min-w-0 flex-1">
 					<div className="text-sm font-medium">
-						<HighlightText text="Custom themes" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.appearance.customThemes.label",
+								message: "Custom themes",
+							})}
+							query={searchQuery}
+						/>
 					</div>
 					<div className="text-xs text-muted-foreground">
 						<HighlightText
-							text="Import a theme file or grab a starter to edit."
+							text={t({
+								id: "settings.appearance.customThemes.hint",
+								message: "Import a theme file or grab a starter to edit.",
+							})}
 							query={searchQuery}
 						/>
 					</div>
@@ -390,7 +476,9 @@ export function ThemeSection() {
 						onClick={handleDownloadBaseTheme}
 					>
 						<HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
-						Download starter
+						<Trans id="settings.appearance.customThemes.downloadStarter">
+							Download starter
+						</Trans>
 					</Button>
 					<Button
 						type="button"
@@ -400,7 +488,13 @@ export function ThemeSection() {
 						disabled={isImporting}
 					>
 						<HiOutlineArrowUpTray className="mr-1.5 h-4 w-4" />
-						{isImporting ? "Importing..." : "Import"}
+						{isImporting ? (
+							<Trans id="settings.appearance.customThemes.importing">
+								Importing...
+							</Trans>
+						) : (
+							<Trans id="settings.appearance.customThemes.import">Import</Trans>
+						)}
 					</Button>
 				</div>
 			</div>

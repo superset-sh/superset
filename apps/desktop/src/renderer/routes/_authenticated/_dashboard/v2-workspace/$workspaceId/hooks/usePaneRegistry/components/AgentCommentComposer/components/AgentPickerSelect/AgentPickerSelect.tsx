@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
 	Select,
@@ -28,6 +29,7 @@ export function AgentPickerSelect({
 	sessions,
 	configs,
 }: AgentPickerSelectProps) {
+	const { t } = useLingui();
 	return (
 		<Select value={value ?? undefined} onValueChange={onValueChange}>
 			<SelectTrigger
@@ -37,13 +39,20 @@ export function AgentPickerSelect({
 					"hover:bg-accent/50",
 				)}
 			>
-				<SelectValue placeholder="Choose agent" />
+				<SelectValue
+					placeholder={t({
+						id: "workspace.agentCommentComposer.chooseAgentPlaceholder",
+						message: "Choose agent",
+					})}
+				/>
 			</SelectTrigger>
 			<SelectContent align="start" className="min-w-60">
 				{sessions.length > 0 ? (
 					<SelectGroup>
 						<SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
-							Active sessions
+							<Trans id="workspace.agentCommentComposer.activeSessions">
+								Active sessions
+							</Trans>
 						</SelectLabel>
 						{sessions.map((session) => (
 							<SelectItem
@@ -60,7 +69,9 @@ export function AgentPickerSelect({
 				{configs.length > 0 ? (
 					<SelectGroup>
 						<SelectLabel className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
-							Start new session
+							<Trans id="workspace.agentCommentComposer.startNewSession">
+								Start new session
+							</Trans>
 						</SelectLabel>
 						{configs.map((config) => (
 							<SelectItem

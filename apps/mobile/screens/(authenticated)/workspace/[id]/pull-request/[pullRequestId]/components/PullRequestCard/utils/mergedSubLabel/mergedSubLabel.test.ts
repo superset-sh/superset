@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { initI18n } from "@superset/i18n";
 import { mergedSubLabel } from "./mergedSubLabel";
+
+initI18n();
 
 // Local-time constructor so the asserted wall-clock time holds in any timezone.
 const mergedAt = new Date(2026, 7, 15, 15, 25);

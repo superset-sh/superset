@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	rruleProblem,
 	timezoneAbbreviation,
@@ -100,17 +102,27 @@ export function ScheduleSentence({
 				<SelectChip
 					value={state.kind}
 					disabled={disabled}
-					options={PRESET_OPTIONS}
+					options={PRESET_OPTIONS.map((option) => ({
+						value: option.value,
+						label: i18n._(option.label),
+					}))}
 					onChange={(value) => update({ kind: value as PresetKind })}
 				/>
 
 				{showsDay && (
 					<>
-						<span className="text-muted-foreground">on</span>
+						<span className="text-muted-foreground">
+							<Trans id="dashboard.automations.scheduleSentence.onDay">
+								on
+							</Trans>
+						</span>
 						<SelectChip
 							value={state.day}
 							disabled={disabled}
-							options={DAY_OPTIONS}
+							options={DAY_OPTIONS.map((option) => ({
+								value: option.value,
+								label: i18n._(option.label),
+							}))}
 							onChange={(value) => update({ day: value as Weekday })}
 						/>
 					</>
@@ -118,7 +130,11 @@ export function ScheduleSentence({
 
 				{showsTime && (
 					<>
-						<span className="text-muted-foreground">at</span>
+						<span className="text-muted-foreground">
+							<Trans id="dashboard.automations.scheduleSentence.atTime">
+								at
+							</Trans>
+						</span>
 						<input
 							type="time"
 							disabled={disabled}
@@ -167,9 +183,15 @@ export function ScheduleSentence({
 					/>
 					{draftEdited && customProblem && (
 						<span className="select-text cursor-text text-xs text-destructive">
-							{customProblem === "exhausted"
-								? "No upcoming runs — changes aren't saved"
-								: "Invalid recurrence rule — changes aren't saved"}
+							{customProblem === "exhausted" ? (
+								<Trans id="dashboard.automations.scheduleSentence.exhaustedRrule">
+									No upcoming runs — changes aren't saved
+								</Trans>
+							) : (
+								<Trans id="dashboard.automations.scheduleSentence.invalidRrule">
+									Invalid recurrence rule — changes aren't saved
+								</Trans>
+							)}
 						</span>
 					)}
 				</div>

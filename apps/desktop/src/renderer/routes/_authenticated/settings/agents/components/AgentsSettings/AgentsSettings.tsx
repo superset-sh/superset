@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -45,16 +46,20 @@ function V1AgentsSettings({ visibleItems }: AgentsSettingsProps) {
 	return (
 		<div className="p-6 max-w-5xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Agents</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.agents.title">Agents</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure which agents appear in launchers and how their launches are
-					built.
+					<Trans id="settings.agents.subtitle">
+						Configure which agents appear in launchers and how their launches
+						are built.
+					</Trans>
 				</p>
 			</div>
 
 			{isLoading ? (
 				<p className="text-sm text-muted-foreground">
-					Loading agent settings...
+					<Trans id="settings.agents.loading">Loading agent settings...</Trans>
 				</p>
 			) : (
 				<div className="space-y-4">

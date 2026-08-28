@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { List, Plus } from "lucide-react-native";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
@@ -30,6 +31,7 @@ export function TerminalTabs({
 	onManage,
 	onClose,
 }: TerminalTabsProps) {
+	const { t } = useLingui();
 	const theme = useTheme();
 	return (
 		<View className="flex-row items-center gap-2 px-3 pb-2.5 pt-1.5">
@@ -47,14 +49,24 @@ export function TerminalTabs({
 							ph-label="terminal-tab"
 							onPress={() => onSelect(row.terminalId)}
 							onLongPress={() =>
-								Alert.alert("Close session", row.title, [
-									{ text: "Cancel", style: "cancel" },
-									{
-										text: "Close",
-										style: "destructive",
-										onPress: () => onClose(row.terminalId),
-									},
-								])
+								Alert.alert(
+									t({
+										id: "mobile.terminalTabs.closeSession",
+										message: "Close session",
+									}),
+									row.title,
+									[
+										{
+											text: t({ id: "common.cancel", message: "Cancel" }),
+											style: "cancel",
+										},
+										{
+											text: t({ id: "mobile.common.close", message: "Close" }),
+											style: "destructive",
+											onPress: () => onClose(row.terminalId),
+										},
+									],
+								)
 							}
 							className={cn(
 								"flex-row items-center gap-1.5 rounded-md px-3 py-1.5",
@@ -92,7 +104,10 @@ export function TerminalTabs({
 			</ScrollView>
 			<Pressable
 				onPress={onManage}
-				accessibilityLabel="Manage sessions"
+				accessibilityLabel={t({
+					id: "mobile.terminalTabs.manageSessions",
+					message: "Manage sessions",
+				})}
 				ph-label="terminal-tabs-manage"
 				className="bg-secondary/40 size-7 items-center justify-center rounded-md active:opacity-60"
 			>
@@ -100,7 +115,10 @@ export function TerminalTabs({
 			</Pressable>
 			<Pressable
 				onPress={onAdd}
-				accessibilityLabel="New session"
+				accessibilityLabel={t({
+					id: "mobile.nav.newSession.title",
+					message: "New session",
+				})}
 				ph-label="terminal-tabs-add"
 				className="bg-secondary/40 size-7 items-center justify-center rounded-md active:opacity-60"
 			>

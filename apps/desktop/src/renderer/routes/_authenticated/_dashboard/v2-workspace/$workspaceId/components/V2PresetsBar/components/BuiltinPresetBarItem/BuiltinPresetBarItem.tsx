@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -63,11 +64,15 @@ export function BuiltinPresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
-					Run script
+					<Trans id="workspace.builtinPresetBarItem.runScript">
+						Run script
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onHide(preset.id)}>
-					Remove script
+					<Trans id="workspace.builtinPresetBarItem.removeScript">
+						Remove script
+					</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

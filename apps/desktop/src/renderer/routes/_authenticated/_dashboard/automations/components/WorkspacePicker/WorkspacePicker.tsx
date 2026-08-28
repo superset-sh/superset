@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Command,
 	CommandGroup,
@@ -37,6 +38,7 @@ export function WorkspacePicker({
 	className,
 	disabled,
 }: WorkspacePickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 
 	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
@@ -75,7 +77,10 @@ export function WorkspacePicker({
 		(selected.hostId !== hostId || selected.projectId !== projectId);
 	const offScopeHostName = offScope
 		? (hostRows.find((h) => h.machineId === selected.hostId)?.name ??
-			"another device")
+			t({
+				id: "dashboard.automations.workspacePicker.anotherDevice",
+				message: "another device",
+			}))
 		: null;
 	// A pinned value we can't resolve yet (live query still hydrating) is loading,
 	// not an empty "New workspace" selection — don't flash the wrong label/warning.
@@ -87,12 +92,24 @@ export function WorkspacePicker({
 	const label = selected
 		? selected.name
 		: resolving
-			? "Loading…"
+			? t({
+					id: "dashboard.automations.workspacePicker.loading",
+					message: "Loading…",
+				})
 			: missing
-				? "Workspace not found"
+				? t({
+						id: "dashboard.automations.workspacePicker.notFoundLabel",
+						message: "Workspace not found",
+					})
 				: projectId === null
-					? "New session"
-					: "New workspace";
+					? t({
+							id: "dashboard.automations.workspacePicker.newSessionLabel",
+							message: "New session",
+						})
+					: t({
+							id: "dashboard.automations.workspacePicker.newWorkspaceLabel",
+							message: "New workspace",
+						});
 
 	return (
 		// Guard the open state, not just the trigger: Radix opens on pointerdown,
@@ -121,7 +138,12 @@ export function WorkspacePicker({
 				className="w-60 p-0"
 			>
 				<Command>
-					<CommandInput placeholder="Search workspaces..." />
+					<CommandInput
+						placeholder={t({
+							id: "dashboard.automations.workspacePicker.searchPlaceholder",
+							message: "Search workspaces...",
+						})}
+					/>
 					<CommandList>
 						<CommandGroup>
 							<CommandItem
@@ -133,7 +155,15 @@ export function WorkspacePicker({
 							>
 								<LuSparkles className="size-4" />
 								<span>
-									{projectId === null ? "New session" : "New workspace"}
+									{projectId === null ? (
+										<Trans id="dashboard.automations.workspacePicker.newSession">
+											New session
+										</Trans>
+									) : (
+										<Trans id="dashboard.automations.workspacePicker.newWorkspace">
+											New workspace
+										</Trans>
+									)}
 								</span>
 								{!selected && !resolving && !missing && (
 									<HiCheck className="ml-auto size-4" />
@@ -147,9 +177,15 @@ export function WorkspacePicker({
 								>
 									<LuTriangleAlert className="size-4" />
 									<span className="flex min-w-0 flex-col select-text cursor-text">
-										<span className="truncate">Workspace not found</span>
+										<span className="truncate">
+											<Trans id="dashboard.automations.workspacePicker.workspaceNotFound">
+												Workspace not found
+											</Trans>
+										</span>
 										<span className="truncate text-[10px] text-amber-500/70">
-											deleted or unavailable — pick another
+											<Trans id="dashboard.automations.workspacePicker.workspaceNotFoundHint">
+												deleted or unavailable — pick another
+											</Trans>
 										</span>
 									</span>
 									<HiCheck className="ml-auto size-4" />
@@ -166,7 +202,9 @@ export function WorkspacePicker({
 									<span className="flex min-w-0 flex-col">
 										<span className="truncate">{selected.name}</span>
 										<span className="truncate text-[10px] text-amber-500/70">
-											on {offScopeHostName} — won't run here
+											<Trans id="dashboard.automations.workspacePicker.offScopeHint">
+												on {offScopeHostName} — won't run here
+											</Trans>
 										</span>
 									</span>
 									<HiCheck className="ml-auto size-4" />

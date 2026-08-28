@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { CircleAlert } from "lucide-react-native";
 import { View } from "react-native";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,9 @@ export function WorkspaceCreateFailedState({
 				<CircleAlert size={18} color="#ef4444" strokeWidth={2} />
 			</View>
 			<Text className="mt-3.5 font-semibold text-[17px]">
-				Couldn't create workspace
+				<Trans id="mobile.workspaceCreate.failedTitle">
+					Couldn't create workspace
+				</Trans>
 			</Text>
 			<Text className="text-muted-foreground mt-1.5 font-mono text-xs">
 				{subtitle}
@@ -40,7 +43,7 @@ export function WorkspaceCreateFailedState({
 			{prompt ? (
 				<View className="bg-secondary/40 border-border mt-3.5 flex-row items-center gap-2 self-stretch rounded-lg border px-3 py-2.5">
 					<Text className="text-muted-foreground/70 font-mono text-[9px] uppercase tracking-widest">
-						Prompt
+						<Trans id="mobile.workspaceCreate.promptLabel">Prompt</Trans>
 					</Text>
 					<Text
 						className="text-muted-foreground flex-1 text-xs"
@@ -52,10 +55,14 @@ export function WorkspaceCreateFailedState({
 			) : null}
 			<View className="mt-6 flex-row gap-2.5">
 				<Button size="sm" onPress={onRetry}>
-					<Text>Try again</Text>
+					<Text>
+						<Trans id="mobile.common.tryAgain">Try again</Trans>
+					</Text>
 				</Button>
 				<Button variant="secondary" size="sm" onPress={onDismiss}>
-					<Text>Back to Home</Text>
+					<Text>
+						<Trans id="mobile.common.backToHome">Back to Home</Trans>
+					</Text>
 				</Button>
 			</View>
 		</View>

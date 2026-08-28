@@ -16,6 +16,7 @@ import { Footer } from "./components/Footer";
 import { GitHubStarCounter } from "./components/GitHubStarCounter";
 import { Header } from "./components/Header";
 import "./globals.css";
+import { initServerI18n } from "./i18n-server";
 import { Providers } from "./providers";
 
 const ibmPlexMono = IBM_Plex_Mono({
@@ -107,6 +108,8 @@ export default function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	initServerI18n();
+
 	return (
 		<html
 			lang="en"

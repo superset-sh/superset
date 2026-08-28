@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -31,6 +32,7 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 	workspaceId,
 	worktreePath,
 }: WorkspaceRunButtonProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const setSettingsSearchQuery = useSetSettingsSearchQuery();
 	const hotkeyText = useHotkeyDisplay("RUN_WORKSPACE_COMMAND").text;
@@ -92,12 +94,25 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 		void forceStopWorkspaceRun();
 	}, [forceStopWorkspaceRun]);
 
-	const buttonLabel = isRunning ? "Stop" : hasRunCommand ? "Run" : "Set Run";
-	const buttonAriaLabel = isRunning
-		? "Stop workspace run command"
+	const buttonLabel = isRunning
+		? t({ id: "dashboard.topBar.runButton.stop", message: "Stop" })
 		: hasRunCommand
-			? "Run workspace command"
-			: "Configure workspace run command";
+			? t({ id: "dashboard.topBar.runButton.run", message: "Run" })
+			: t({ id: "dashboard.topBar.runButton.setRun", message: "Set Run" });
+	const buttonAriaLabel = isRunning
+		? t({
+				id: "dashboard.topBar.runButton.stopAriaLabel",
+				message: "Stop workspace run command",
+			})
+		: hasRunCommand
+			? t({
+					id: "dashboard.topBar.runButton.runAriaLabel",
+					message: "Run workspace command",
+				})
+			: t({
+					id: "dashboard.topBar.runButton.configureAriaLabel",
+					message: "Configure workspace run command",
+				});
 
 	return (
 		<div className="flex items-center no-drag">
@@ -167,16 +182,22 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 								className="text-destructive focus:text-destructive"
 							>
 								<HiMiniXMark className="mr-2 size-4 text-destructive" />
-								Force Stop
+								<Trans id="dashboard.topBar.runButton.forceStop">
+									Force Stop
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>
 					)}
 					<DropdownMenuItem onClick={handleConfigureClick}>
 						<HiMiniCog6Tooth className="mr-2 size-4" />
-						{runDefinition?.source === "terminal-preset"
-							? "Edit Run Script"
-							: "Configure"}
+						{runDefinition?.source === "terminal-preset" ? (
+							<Trans id="dashboard.topBar.runButton.editRunScript">
+								Edit Run Script
+							</Trans>
+						) : (
+							<Trans id="dashboard.topBar.runButton.configure">Configure</Trans>
+						)}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
