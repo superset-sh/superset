@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
@@ -84,7 +85,9 @@ export function ClickablePath({
 					renderAppTrailing={(appId) =>
 						appId === defaultApp ? (
 							<span className="ml-auto text-xs text-muted-foreground">
-								Default
+								<Trans id="settings.components.clickablePath.defaultApp">
+									Default
+								</Trans>
 							</span>
 						) : null
 					}

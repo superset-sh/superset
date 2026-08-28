@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Textarea } from "@superset/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { TRPCClientError } from "@trpc/client";
@@ -249,11 +250,19 @@ export function SparseCheckoutSection({
 				className="font-mono text-sm resize-y min-h-[calc(3lh+1.125rem)]"
 			/>
 			<div className="flex h-4 items-center justify-end text-xs text-muted-foreground">
-				{saveStatus === "saving" && <span>Saving…</span>}
+				{saveStatus === "saving" && (
+					<span>
+						<Trans id="settings.project.sparseCheckoutStatus.saving">
+							Saving…
+						</Trans>
+					</span>
+				)}
 				{saveStatus === "saved" && (
 					<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
 						<HiCheckCircle className="h-3.5 w-3.5" />
-						Saved
+						<Trans id="settings.project.sparseCheckoutStatus.saved">
+							Saved
+						</Trans>
 					</span>
 				)}
 				{saveStatus === "error" && (
@@ -261,14 +270,20 @@ export function SparseCheckoutSection({
 					// otherwise fire one toast per attempt. Selectable per the
 					// renderer's body-level user-select: none.
 					<span className="select-text cursor-text text-destructive">
-						Couldn't save — retrying…
+						<Trans id="settings.project.sparseCheckoutStatus.retrying">
+							Couldn't save — retrying…
+						</Trans>
 					</span>
 				)}
 				{saveStatus === "invalid" && (
 					// Not retried: the server rejected the folders themselves, so
 					// retrying would fail identically forever. Show why instead.
 					<span className="select-text cursor-text text-destructive">
-						{invalidMessage ?? "Couldn't save"}
+						{invalidMessage ?? (
+							<Trans id="settings.project.sparseCheckoutStatus.saveFailed">
+								Couldn't save
+							</Trans>
+						)}
 					</span>
 				)}
 			</div>

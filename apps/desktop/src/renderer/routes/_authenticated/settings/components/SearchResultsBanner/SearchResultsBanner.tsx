@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { HiXMark } from "react-icons/hi2";
 
 interface SearchResultsBannerProps {
@@ -17,15 +18,30 @@ export function SearchResultsBanner({
 		<div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background/95 px-6 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/85">
 			<p className="flex-1 truncate text-xs text-muted-foreground">
 				{hasMatches ? (
-					<>
-						<span className="tabular-nums font-medium text-foreground">
-							{matchCount}
-						</span>
-						{matchCount === 1 ? " result" : " results"} for &ldquo;
-						{query}&rdquo;
-					</>
+					<Plural
+						id="settings.components.searchResultsBanner.matchCount"
+						value={matchCount}
+						one={
+							<>
+								<span className="tabular-nums font-medium text-foreground">
+									#
+								</span>{" "}
+								result for &ldquo;{query}&rdquo;
+							</>
+						}
+						other={
+							<>
+								<span className="tabular-nums font-medium text-foreground">
+									#
+								</span>{" "}
+								results for &ldquo;{query}&rdquo;
+							</>
+						}
+					/>
 				) : (
-					<>No results for &ldquo;{query}&rdquo;</>
+					<Trans id="settings.components.searchResultsBanner.noResults">
+						No results for &ldquo;{query}&rdquo;
+					</Trans>
 				)}
 			</p>
 			<button

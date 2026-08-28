@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	type BranchPrefixMode,
@@ -160,10 +161,14 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<header className="mb-8 flex items-center justify-between gap-4">
 				<div className="min-w-0">
-					<h2 className="text-xl font-semibold">Git &amp; worktrees</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans id="settings.git.v2Title">Git &amp; worktrees</Trans>
+					</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Branch behavior for new workspaces on this device. Projects can
-						override the prefix individually.
+						<Trans id="settings.git.v2Subtitle">
+							Branch behavior for new workspaces on this device. Projects can
+							override the prefix individually.
+						</Trans>
 					</p>
 				</div>
 				{hasMultipleHosts && targetHostId ? (
@@ -186,7 +191,9 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 					label="Branch prefix"
 					hint={
 						<>
-							Group new branches under a folder.{" "}
+							<Trans id="settings.git.v2BranchPrefixHint">
+								Group new branches under a folder.
+							</Trans>{" "}
 							<code className="rounded bg-muted px-1.5 py-0.5 text-foreground">
 								{previewPrefix ? `${previewPrefix}/branch-name` : "branch-name"}
 							</code>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { CardDescription, CardHeader, CardTitle } from "@superset/ui/card";
 import { Switch } from "@superset/ui/switch";
@@ -56,7 +57,11 @@ export function AgentCardHeader({
 					<div className="min-w-0">
 						<CardTitle className="truncate">{preset.label}</CardTitle>
 						<CardDescription className="mt-1">
-							{preset.description ?? "Agent launch configuration"}
+							{preset.description ?? (
+								<Trans id="settings.agents.card.defaultDescription">
+									Agent launch configuration
+								</Trans>
+							)}
 						</CardDescription>
 					</div>
 				</div>

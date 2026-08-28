@@ -15,6 +15,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Trans } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { HostAgentPreset } from "@superset/shared/host-agent-presets";
 import {
@@ -87,13 +88,15 @@ export function AgentsSettingsSidebar({
 					className={settingsListItemClass(false, "gap-2 w-full text-left")}
 				>
 					<Plus className="size-3.5 shrink-0" />
-					<span className="truncate flex-1">Add agent</span>
+					<span className="truncate flex-1">
+						<Trans id="settings.agents.sidebar.addAgent">Add agent</Trans>
+					</span>
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-56">
 				<DropdownMenuItem className="gap-2" onSelect={onCreateCustomAgent}>
 					<Wrench className="size-4 shrink-0 text-muted-foreground" />
-					Custom agent…
+					<Trans id="settings.agents.sidebar.customAgent">Custom agent…</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				{presets.map((preset) => (
@@ -111,7 +114,9 @@ export function AgentsSettingsSidebar({
 					onSelect={() => onResetToDefaults()}
 					disabled={isResetting}
 				>
-					Reset to defaults
+					<Trans id="settings.agents.sidebar.resetToDefaults">
+						Reset to defaults
+					</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

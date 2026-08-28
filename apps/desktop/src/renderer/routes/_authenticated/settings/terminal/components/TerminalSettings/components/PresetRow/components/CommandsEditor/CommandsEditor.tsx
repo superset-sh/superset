@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -113,7 +114,9 @@ export function CommandsEditor({
 				className="mt-1 inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none"
 			>
 				<HiMiniPlus className="h-3.5 w-3.5" />
-				Add command
+				<Trans id="settings.terminal.commandsEditor.addCommand">
+					Add command
+				</Trans>
 			</button>
 		</div>
 	);

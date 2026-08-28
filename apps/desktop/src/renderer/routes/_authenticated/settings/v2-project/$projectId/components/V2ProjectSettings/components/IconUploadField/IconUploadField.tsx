@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -279,7 +280,7 @@ export function IconUploadField({
 				<PopoverContent align="start" className="w-66 space-y-3">
 					<div>
 						<p className="mb-1.5 text-xs font-medium text-muted-foreground">
-							Color
+							<Trans id="settings.project.icon.colorLabel">Color</Trans>
 						</p>
 						<ColorSelector
 							includeDefault
@@ -292,7 +293,7 @@ export function IconUploadField({
 					</div>
 					<div>
 						<p className="mb-1.5 text-xs font-medium text-muted-foreground">
-							Icon
+							<Trans id="settings.project.icon.iconLabel">Icon</Trans>
 						</p>
 						<div className="grid grid-cols-6 gap-1">
 							{GLYPHS.map((glyph) => (
@@ -326,7 +327,9 @@ export function IconUploadField({
 							onClick={handleClickUpload}
 						>
 							<LuUpload className="size-3.5" />
-							Upload image…
+							<Trans id="settings.project.icon.uploadImage">
+								Upload image…
+							</Trans>
 						</Button>
 						{iconUrl && (
 							<Button
@@ -338,7 +341,7 @@ export function IconUploadField({
 									void setIcon(PROJECT_ICON_NONE);
 								}}
 							>
-								Remove icon
+								<Trans id="settings.project.icon.removeIcon">Remove icon</Trans>
 							</Button>
 						)}
 						{(hasCustomIcon || isIconRemoved) && (
@@ -351,7 +354,9 @@ export function IconUploadField({
 									void setIcon(null);
 								}}
 							>
-								Reset to default
+								<Trans id="settings.project.icon.resetToDefault">
+									Reset to default
+								</Trans>
 							</Button>
 						)}
 					</div>

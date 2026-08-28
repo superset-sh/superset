@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	getAvailableRoleChanges,
@@ -170,7 +171,7 @@ export function MemberActions({
 				{availableRoles.length > 0 && (
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger disabled={isChangingRole}>
-							Change role
+							<Trans id="settings.members.changeRole">Change role</Trans>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent>
 							{availableRoles.map((role) => (
@@ -179,7 +180,9 @@ export function MemberActions({
 									onSelect={() => handleRoleSelection(role)}
 									disabled={isChangingRole}
 								>
-									Change to {ORGANIZATION_ROLES[role].name}
+									<Trans id="settings.members.changeToRole">
+										Change to {ORGANIZATION_ROLES[role].name}
+									</Trans>
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuSubContent>
@@ -192,7 +195,11 @@ export function MemberActions({
 						onSelect={handleRemoveClick}
 					>
 						<HiOutlineTrash className="h-4 w-4 text-destructive" />
-						<span>Leave organization...</span>
+						<span>
+							<Trans id="settings.members.leaveOrganization">
+								Leave organization...
+							</Trans>
+						</span>
 					</DropdownMenuItem>
 				) : canRemove ? (
 					<DropdownMenuItem
@@ -200,7 +207,9 @@ export function MemberActions({
 						onSelect={handleRemoveClick}
 					>
 						<HiOutlineTrash className="h-4 w-4 text-destructive" />
-						<span>Remove member</span>
+						<span>
+							<Trans id="settings.members.removeMember">Remove member</Trans>
+						</span>
 					</DropdownMenuItem>
 				) : null}
 			</DropdownMenuContent>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
@@ -112,10 +113,10 @@ export function NewCustomAgentDetail({
 
 				<div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
 					<Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-						Cancel
+						<Trans id="settings.agents.create.cancel">Cancel</Trans>
 					</Button>
 					<Button type="submit" size="sm" disabled={!canCreate}>
-						Add agent
+						<Trans id="settings.agents.create.submit">Add agent</Trans>
 					</Button>
 				</div>
 			</form>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { Link } from "@tanstack/react-router";
 import {
@@ -33,11 +34,15 @@ export function SettingsSidebar() {
 				className="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-1"
 			>
 				<HiArrowLeft className="h-4 w-4" />
-				<span>Back</span>
+				<span>
+					<Trans id="settings.components.settingsSidebar.back">Back</Trans>
+				</span>
 			</Link>
 
 			{/* Settings title */}
-			<h1 className="text-lg font-semibold px-3 mb-4">Settings</h1>
+			<h1 className="text-lg font-semibold px-3 mb-4">
+				<Trans id="settings.components.settingsSidebar.title">Settings</Trans>
+			</h1>
 
 			{/* Search input */}
 			<div className="relative px-3 mb-4">
@@ -72,7 +77,11 @@ export function SettingsSidebar() {
 					className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-fill-hover hover:text-foreground transition-colors"
 				>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
-					<span>Documentation</span>
+					<span>
+						<Trans id="settings.components.settingsSidebar.documentation">
+							Documentation
+						</Trans>
+					</span>
 				</a>
 			</div>
 		</div>

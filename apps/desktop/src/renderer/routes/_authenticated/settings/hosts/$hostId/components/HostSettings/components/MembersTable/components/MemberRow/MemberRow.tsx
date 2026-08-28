@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Select,
@@ -46,8 +47,12 @@ export function MemberRow({
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							<SelectItem value="owner">Owner</SelectItem>
-							<SelectItem value="member">Member</SelectItem>
+							<SelectItem value="owner">
+								<Trans id="settings.hosts.memberRow.roleOwner">Owner</Trans>
+							</SelectItem>
+							<SelectItem value="member">
+								<Trans id="settings.hosts.memberRow.roleMember">Member</Trans>
+							</SelectItem>
 						</SelectContent>
 					</Select>
 				) : (

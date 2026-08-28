@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -124,7 +125,11 @@ export function ProjectTargetingField({
 							<Command>
 								<CommandInput placeholder="Search projects..." />
 								<CommandList className="max-h-72">
-									<CommandEmpty>No projects found.</CommandEmpty>
+									<CommandEmpty>
+										<Trans id="settings.terminal.projectTargeting.noProjectsFound">
+											No projects found.
+										</Trans>
+									</CommandEmpty>
 									<CommandGroup>
 										{projects.map((project) => {
 											const isSelected =
@@ -161,8 +166,12 @@ export function ProjectTargetingField({
 					</Popover>
 					{selectedProjects.length > 0 ? (
 						<p className="text-xs text-muted-foreground">
-							{selectedProjects.length} project
-							{selectedProjects.length === 1 ? "" : "s"} selected.
+							<Plural
+								id="settings.terminal.projectTargeting.selectedCount"
+								value={selectedProjects.length}
+								one="# project selected."
+								other="# projects selected."
+							/>
 						</p>
 					) : null}
 				</>
@@ -170,7 +179,9 @@ export function ProjectTargetingField({
 
 			{projects.length === 0 ? (
 				<p className="text-xs text-muted-foreground">
-					Import a project to scope presets.
+					<Trans id="settings.terminal.projectTargeting.noProjectsHint">
+						Import a project to scope presets.
+					</Trans>
 				</p>
 			) : null}
 		</div>

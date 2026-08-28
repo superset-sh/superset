@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -274,7 +275,9 @@ export function UsageResourcesPage() {
 			<div className="flex items-center gap-2">
 				<span className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground">
 					<span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-					Live · local machine · every 2 s
+					<Trans id="settings.usage.resources.liveNote">
+						Live · local machine · every 2 s
+					</Trans>
 				</span>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -293,12 +296,18 @@ export function UsageResourcesPage() {
 							onValueChange={(value) => setSortOption(value as SortOption)}
 						>
 							<DropdownMenuRadioItem value="memory">
-								Memory
+								<Trans id="settings.usage.resources.sortMemory">Memory</Trans>
 							</DropdownMenuRadioItem>
-							<DropdownMenuRadioItem value="cpu">CPU</DropdownMenuRadioItem>
-							<DropdownMenuRadioItem value="name">Name</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="cpu">
+								<Trans id="settings.usage.resources.sortCpu">CPU</Trans>
+							</DropdownMenuRadioItem>
+							<DropdownMenuRadioItem value="name">
+								<Trans id="settings.usage.resources.sortName">Name</Trans>
+							</DropdownMenuRadioItem>
 							<DropdownMenuRadioItem value="sidebar">
-								Sidebar order
+								<Trans id="settings.usage.resources.sortSidebarOrder">
+									Sidebar order
+								</Trans>
 							</DropdownMenuRadioItem>
 						</DropdownMenuRadioGroup>
 					</DropdownMenuContent>
@@ -317,7 +326,9 @@ export function UsageResourcesPage() {
 
 			{!snapshot ? (
 				<div className="py-4 text-center text-xs text-muted-foreground">
-					Measuring resource usage…
+					<Trans id="settings.usage.resources.measuring">
+						Measuring resource usage…
+					</Trans>
 				</div>
 			) : (
 				<>
@@ -344,11 +355,21 @@ export function UsageResourcesPage() {
 
 					<div className="overflow-hidden rounded-lg border">
 						<div className="flex items-center gap-3 border-b bg-muted/30 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-							<span className="min-w-0 flex-1">Process</span>
-							<span className={CPU_COL}>CPU</span>
-							<span className={MEM_COL}>Memory</span>
+							<span className="min-w-0 flex-1">
+								<Trans id="settings.usage.resources.columnProcess">
+									Process
+								</Trans>
+							</span>
+							<span className={CPU_COL}>
+								<Trans id="settings.usage.resources.columnCpu">CPU</Trans>
+							</span>
+							<span className={MEM_COL}>
+								<Trans id="settings.usage.resources.columnMemory">Memory</Trans>
+							</span>
 							<span className={cn(BAR_COL, "normal-case tracking-normal")}>
-								Memory share
+								<Trans id="settings.usage.resources.columnMemoryShare">
+									Memory share
+								</Trans>
 							</span>
 						</div>
 
@@ -356,7 +377,9 @@ export function UsageResourcesPage() {
 						<div className="flex items-center gap-3 px-3 py-2">
 							<div className="flex min-w-0 flex-1 items-center gap-1.5">
 								<span className="truncate text-[13px] font-medium">
-									Superset app
+									<Trans id="settings.usage.resources.supersetApp">
+										Superset app
+									</Trans>
 								</span>
 								<UsageSeverityBadge
 									severity={getUsageSeverity(snapshot.app, totalUsage)}
@@ -547,7 +570,9 @@ export function UsageResourcesPage() {
 
 						{projectGroups.length === 0 && (
 							<div className="border-t px-3 py-6 text-center text-xs text-muted-foreground">
-								No active terminal sessions
+								<Trans id="settings.usage.resources.noActiveSessions">
+									No active terminal sessions
+								</Trans>
 							</div>
 						)}
 					</div>

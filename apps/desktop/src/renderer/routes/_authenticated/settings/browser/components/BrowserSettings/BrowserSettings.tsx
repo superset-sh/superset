@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -55,9 +56,13 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Browser</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.browser.title">Browser</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure the in-app browser
+					<Trans id="settings.browser.subtitle">
+						Configure the in-app browser
+					</Trans>
 				</p>
 			</div>
 
@@ -69,8 +74,10 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 								<HighlightText text="Browser homepage" query={searchQuery} />
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								The page new in-app browser tabs open to. Leave empty for a
-								blank page.
+								<Trans id="settings.browser.homepageHint">
+									The page new in-app browser tabs open to. Leave empty for a
+									blank page.
+								</Trans>
 							</p>
 						</div>
 						<Input
@@ -98,8 +105,10 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Copy browsing history and logins from Chrome, Brave, Arc, or
-								another Chromium browser into Superset.
+								<Trans id="settings.browser.importHint">
+									Copy browsing history and logins from Chrome, Brave, Arc, or
+									another Chromium browser into Superset.
+								</Trans>
 							</p>
 						</div>
 						<Button
@@ -109,7 +118,7 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 							onClick={() => setIsImportOpen(true)}
 						>
 							<TbDownload className="size-4" />
-							Import…
+							<Trans id="settings.browser.importButton">Import…</Trans>
 						</Button>
 					</div>
 				)}

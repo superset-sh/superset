@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { TerminalLinkBehavior } from "@superset/local-db";
 import { Label } from "@superset/ui/label";
 import {
@@ -46,7 +47,9 @@ export function LinkBehaviorSetting() {
 					<HighlightText text="Terminal file links" query={searchQuery} />
 				</Label>
 				<p className="text-xs text-muted-foreground">
-					Choose how to open file paths when Cmd+clicking in the terminal
+					<Trans id="settings.terminal.linkBehavior.hint">
+						Choose how to open file paths when Cmd+clicking in the terminal
+					</Trans>
 				</p>
 			</div>
 			<Select
@@ -62,8 +65,16 @@ export function LinkBehaviorSetting() {
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value="external-editor">External editor</SelectItem>
-					<SelectItem value="file-viewer">File viewer</SelectItem>
+					<SelectItem value="external-editor">
+						<Trans id="settings.terminal.linkBehavior.externalEditor">
+							External editor
+						</Trans>
+					</SelectItem>
+					<SelectItem value="file-viewer">
+						<Trans id="settings.terminal.linkBehavior.fileViewer">
+							File viewer
+						</Trans>
+					</SelectItem>
 				</SelectContent>
 			</Select>
 		</div>

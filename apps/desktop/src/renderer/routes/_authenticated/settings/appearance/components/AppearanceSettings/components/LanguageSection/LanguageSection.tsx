@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { SUPPORTED_LOCALES, type SupportedLocale } from "@superset/i18n";
 import {
 	Select,
@@ -70,7 +71,9 @@ export function LanguageSection() {
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value={AUTO}>Auto (system)</SelectItem>
+					<SelectItem value={AUTO}>
+						<Trans id="settings.appearance.language.auto">Auto (system)</Trans>
+					</SelectItem>
 					{SUPPORTED_LOCALES.map((locale) => (
 						<SelectItem key={locale} value={locale}>
 							{LOCALE_LABELS[locale]}

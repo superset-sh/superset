@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
@@ -71,9 +72,13 @@ export function ExperimentalSettings({
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Experimental</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.experimental.title">Experimental</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Try early access features and previews.
+					<Trans id="settings.experimental.subtitle">
+						Try early access features and previews.
+					</Trans>
 				</p>
 			</div>
 
@@ -133,7 +138,9 @@ export function ExperimentalSettings({
 							disabled={!isV2CloudEnabled}
 							className="shrink-0"
 						>
-							Open importer
+							<Trans id="settings.experimental.openImporter">
+								Open importer
+							</Trans>
 						</Button>
 					</div>
 				)}

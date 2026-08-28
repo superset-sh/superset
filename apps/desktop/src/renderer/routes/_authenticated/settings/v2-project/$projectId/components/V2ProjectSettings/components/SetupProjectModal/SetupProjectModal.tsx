@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -168,7 +169,12 @@ export function SetupProjectModal({
 	};
 
 	const submit = mode === "clone" ? runClone : runImport;
-	const submitLabel = mode === "clone" ? "Clone" : "Import";
+	const submitLabel =
+		mode === "clone" ? (
+			<Trans id="settings.project.setup.submitClone">Clone</Trans>
+		) : (
+			<Trans id="settings.project.setup.submitImport">Import</Trans>
+		);
 	const cloneDisabled = !repoCloneUrl;
 
 	return (
@@ -176,9 +182,15 @@ export function SetupProjectModal({
 			<Dialog open={open} onOpenChange={handleOpenChange} modal>
 				<DialogContent className="max-w-[480px]">
 					<DialogHeader>
-						<DialogTitle>Set up project on {hostName}</DialogTitle>
+						<DialogTitle>
+							<Trans id="settings.project.setup.title">
+								Set up project on {hostName}
+							</Trans>
+						</DialogTitle>
 						<DialogDescription>
-							Clone the repository, or import an existing folder on the host.
+							<Trans id="settings.project.setup.description">
+								Clone the repository, or import an existing folder on the host.
+							</Trans>
 						</DialogDescription>
 					</DialogHeader>
 
@@ -192,24 +204,32 @@ export function SetupProjectModal({
 								disabled={cloneDisabled}
 								className="flex-1"
 							>
-								Clone
+								<Trans id="settings.project.setup.cloneTab">Clone</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="import" className="flex-1">
-								Import existing
+								<Trans id="settings.project.setup.importTab">
+									Import existing
+								</Trans>
 							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="clone" className="mt-4 space-y-3">
 							{cloneDisabled ? (
 								<p className="text-sm text-muted-foreground">
-									Link a GitHub repository on the project first to enable
-									cloning.
+									<Trans id="settings.project.setup.linkRepoFirst">
+										Link a GitHub repository on the project first to enable
+										cloning.
+									</Trans>
 								</p>
 							) : (
 								<>
 									{repoCloneUrl && (
 										<div className="flex flex-col gap-1">
-											<Label className="text-xs">Repository</Label>
+											<Label className="text-xs">
+												<Trans id="settings.project.setup.repository">
+													Repository
+												</Trans>
+											</Label>
 											<p className="font-mono text-xs text-muted-foreground select-text cursor-text break-all">
 												{repoCloneUrl}
 											</p>
@@ -217,7 +237,15 @@ export function SetupProjectModal({
 									)}
 									<div className="flex flex-col gap-1.5">
 										<Label htmlFor="setup-parent-dir" className="text-xs">
-											Parent directory{isRemoteTarget ? ` on ${hostName}` : ""}
+											{isRemoteTarget ? (
+												<Trans id="settings.project.setup.parentDirOnHost">
+													Parent directory on {hostName}
+												</Trans>
+											) : (
+												<Trans id="settings.project.setup.parentDir">
+													Parent directory
+												</Trans>
+											)}
 										</Label>
 										<div className="flex gap-1.5">
 											<Input
@@ -264,7 +292,15 @@ export function SetupProjectModal({
 						<TabsContent value="import" className="mt-4 space-y-3">
 							<div className="flex flex-col gap-1.5">
 								<Label htmlFor="setup-import-path" className="text-xs">
-									Existing repo path{isRemoteTarget ? ` on ${hostName}` : ""}
+									{isRemoteTarget ? (
+										<Trans id="settings.project.setup.importPathOnHost">
+											Existing repo path on {hostName}
+										</Trans>
+									) : (
+										<Trans id="settings.project.setup.importPath">
+											Existing repo path
+										</Trans>
+									)}
 								</Label>
 								<div className="flex gap-1.5">
 									<Input
@@ -311,7 +347,7 @@ export function SetupProjectModal({
 							onClick={() => handleOpenChange(false)}
 							disabled={working}
 						>
-							Cancel
+							<Trans id="settings.project.setup.cancel">Cancel</Trans>
 						</Button>
 						<Button
 							type="button"

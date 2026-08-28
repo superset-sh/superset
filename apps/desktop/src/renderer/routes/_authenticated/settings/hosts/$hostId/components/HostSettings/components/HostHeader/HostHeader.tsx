@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LuPencil } from "react-icons/lu";
@@ -106,8 +107,12 @@ export function HostHeader({
 				)}
 			</div>
 			<p className="text-sm text-muted-foreground mt-1">
-				{isOnline ? "Online" : "Offline"} ·{" "}
-				<span className="font-mono">{machineId}</span>
+				{isOnline ? (
+					<Trans id="settings.hosts.header.online">Online</Trans>
+				) : (
+					<Trans id="settings.hosts.header.offline">Offline</Trans>
+				)}{" "}
+				· <span className="font-mono">{machineId}</span>
 			</p>
 		</div>
 	);

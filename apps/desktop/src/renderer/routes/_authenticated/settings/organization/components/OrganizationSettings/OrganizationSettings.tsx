@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import {
@@ -95,6 +96,7 @@ function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
 export function OrganizationSettings({
 	visibleItems,
 }: OrganizationSettingsProps) {
+	const { t } = useLingui();
 	const { data: session, refetch: refetchSession } = authClient.useSession();
 	// Per-window org, not the shared session: the session holds one org for
 	// the whole app, so a second window on another org would render this
@@ -281,7 +283,9 @@ export function OrganizationSettings({
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground">
-					No organization selected
+					<Trans id="settings.organization.noneSelected">
+						No organization selected
+					</Trans>
 				</p>
 			</div>
 		);
@@ -310,7 +314,9 @@ export function OrganizationSettings({
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<p className="text-sm text-muted-foreground select-text cursor-text">
-					Organization not found.
+					<Trans id="settings.organization.notFound">
+						Organization not found.
+					</Trans>
 				</p>
 			</div>
 		);
@@ -329,9 +335,13 @@ export function OrganizationSettings({
 		<>
 			<div className="p-6 max-w-4xl w-full">
 				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Organization</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans id="settings.organization.title">Organization</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage your organization's branding and members.
+						<Trans id="settings.organization.subtitle">
+							Manage your organization's branding and members.
+						</Trans>
 					</p>
 				</div>
 
@@ -431,7 +441,15 @@ export function OrganizationSettings({
 													</span>
 												</TooltipTrigger>
 												<TooltipContent>
-													{copied ? "Copied!" : "Copy"}
+													{copied ? (
+														<Trans id="settings.organization.copiedTooltip">
+															Copied!
+														</Trans>
+													) : (
+														<Trans id="settings.organization.copyTooltip">
+															Copy
+														</Trans>
+													)}
 												</TooltipContent>
 											</Tooltip>
 										</button>
@@ -441,7 +459,9 @@ export function OrganizationSettings({
 
 							{!isOwner && (
 								<p className="text-xs text-muted-foreground mt-3">
-									Only organization owners can modify these settings.
+									<Trans id="settings.organization.ownerOnlyNotice">
+										Only organization owners can modify these settings.
+									</Trans>
 								</p>
 							)}
 						</section>
@@ -467,7 +487,9 @@ export function OrganizationSettings({
 											<HighlightText text="Members" query={searchQuery} />
 										</h3>
 										<p className="text-xs text-muted-foreground mt-0.5">
-											Everyone with access to this organization.
+											<Trans id="settings.organization.membersHint">
+												Everyone with access to this organization.
+											</Trans>
 										</p>
 									</div>
 
@@ -487,17 +509,35 @@ export function OrganizationSettings({
 										</div>
 									) : members.length === 0 ? (
 										<div className="text-center py-12 text-sm text-muted-foreground border rounded-lg">
-											No members yet.
+											<Trans id="settings.organization.membersEmpty">
+												No members yet.
+											</Trans>
 										</div>
 									) : (
 										<div className="border rounded-lg overflow-hidden">
 											<Table>
 												<TableHeader>
 													<TableRow>
-														<TableHead>Name</TableHead>
-														<TableHead>Email</TableHead>
-														<TableHead>Role</TableHead>
-														<TableHead>Joined</TableHead>
+														<TableHead>
+															<Trans id="settings.organization.columnName">
+																Name
+															</Trans>
+														</TableHead>
+														<TableHead>
+															<Trans id="settings.organization.columnEmail">
+																Email
+															</Trans>
+														</TableHead>
+														<TableHead>
+															<Trans id="settings.organization.columnRole">
+																Role
+															</Trans>
+														</TableHead>
+														<TableHead>
+															<Trans id="settings.organization.columnJoined">
+																Joined
+															</Trans>
+														</TableHead>
 														<TableHead className="w-[50px]" />
 													</TableRow>
 												</TableHeader>
@@ -523,14 +563,20 @@ export function OrganizationSettings({
 																						: "font-medium"
 																				}
 																			>
-																				{member.name || "Unknown"}
+																				{member.name ||
+																					t({
+																						id: "settings.organization.unknownMemberName",
+																						message: "Unknown",
+																					})}
 																			</span>
 																			{isCurrentUserRow && (
 																				<Badge
 																					variant="secondary"
 																					className="text-[10px] h-4 px-1.5"
 																				>
-																					You
+																					<Trans id="settings.organization.youBadge">
+																						You
+																					</Trans>
 																				</Badge>
 																			)}
 																			{member.deletionRequestedAt && (
@@ -538,7 +584,9 @@ export function OrganizationSettings({
 																					variant="outline"
 																					className="text-[10px] h-4 px-1.5 text-muted-foreground"
 																				>
-																					Deactivated
+																					<Trans id="settings.organization.deactivatedBadge">
+																						Deactivated
+																					</Trans>
 																				</Badge>
 																			)}
 																		</div>
@@ -600,19 +648,39 @@ export function OrganizationSettings({
 								>
 									<AlertDialogTrigger asChild>
 										<Button variant="destructive" disabled={isDeletingOrg}>
-											{isDeletingOrg ? "Deleting…" : "Delete organization"}
+											{isDeletingOrg ? (
+												<Trans id="settings.organization.deletingButton">
+													Deleting…
+												</Trans>
+											) : (
+												<Trans id="settings.organization.deleteButton">
+													Delete organization
+												</Trans>
+											)}
 										</Button>
 									</AlertDialogTrigger>
 									<AlertDialogContent>
 										<AlertDialogHeader>
 											<AlertDialogTitle>
-												Delete {organization.name}?
+												<Trans id="settings.organization.deleteConfirmTitle">
+													Delete {organization.name}?
+												</Trans>
 											</AlertDialogTitle>
 											<AlertDialogDescription>
-												{members.length > 1
-													? `All data will be permanently deleted for all ${members.length} members — this cannot be undone.`
-													: "All of the organization's data will be permanently deleted — this cannot be undone."}{" "}
-												Type the organization name to confirm.
+												{members.length > 1 ? (
+													<Trans id="settings.organization.deleteConfirmDescriptionMulti">
+														All data will be permanently deleted for all{" "}
+														{members.length} members — this cannot be undone.
+													</Trans>
+												) : (
+													<Trans id="settings.organization.deleteConfirmDescriptionSingle">
+														All of the organization's data will be permanently
+														deleted — this cannot be undone.
+													</Trans>
+												)}{" "}
+												<Trans id="settings.organization.deleteConfirmTypeName">
+													Type the organization name to confirm.
+												</Trans>
 											</AlertDialogDescription>
 										</AlertDialogHeader>
 										<Input
@@ -621,13 +689,19 @@ export function OrganizationSettings({
 											placeholder={organization.name}
 										/>
 										<AlertDialogFooter>
-											<AlertDialogCancel>Cancel</AlertDialogCancel>
+											<AlertDialogCancel>
+												<Trans id="settings.organization.deleteCancel">
+													Cancel
+												</Trans>
+											</AlertDialogCancel>
 											<AlertDialogAction
 												variant="destructive"
 												disabled={deleteConfirmValue !== organization.name}
 												onClick={handleDeleteOrganization}
 											>
-												Delete organization
+												<Trans id="settings.organization.deleteConfirmAction">
+													Delete organization
+												</Trans>
 											</AlertDialogAction>
 										</AlertDialogFooter>
 									</AlertDialogContent>

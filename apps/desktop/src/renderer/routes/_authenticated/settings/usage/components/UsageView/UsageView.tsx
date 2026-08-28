@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -153,9 +154,11 @@ function AccountCard({
 						hideEmails && account.email && "select-none blur-[5px]",
 					)}
 				>
-					{hideEmails && account.email
-						? "Email hidden"
-						: (account.email ?? PROVIDER_LABELS[account.provider])}
+					{hideEmails && account.email ? (
+						<Trans id="settings.usage.account.emailHidden">Email hidden</Trans>
+					) : (
+						(account.email ?? PROVIDER_LABELS[account.provider])
+					)}
 				</span>
 				{account.plan && (
 					<span className="rounded bg-muted px-1 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -164,11 +167,19 @@ function AccountCard({
 				)}
 				{account.status !== "ok" && (
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
-						{account.status === "token_expired"
-							? "Sign-in expired"
-							: account.status === "signed_out"
-								? "Signed out"
-								: "Unavailable"}
+						{account.status === "token_expired" ? (
+							<Trans id="settings.usage.account.statusSignInExpired">
+								Sign-in expired
+							</Trans>
+						) : account.status === "signed_out" ? (
+							<Trans id="settings.usage.account.statusSignedOut">
+								Signed out
+							</Trans>
+						) : (
+							<Trans id="settings.usage.account.statusUnavailable">
+								Unavailable
+							</Trans>
+						)}
 					</span>
 				)}
 				<span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
@@ -188,11 +199,13 @@ function AccountCard({
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem onClick={onSwitchSignIn}>
-							Switch sign-in…
+							<Trans id="settings.usage.account.switchSignIn">
+								Switch sign-in…
+							</Trans>
 						</DropdownMenuItem>
 						{onRemove && (
 							<DropdownMenuItem variant="destructive" onClick={onRemove}>
-								Remove…
+								<Trans id="settings.usage.account.remove">Remove…</Trans>
 							</DropdownMenuItem>
 						)}
 					</DropdownMenuContent>
@@ -206,7 +219,11 @@ function AccountCard({
 				</div>
 			) : expiredCommand !== null ? (
 				<div className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1 text-[11px] text-muted-foreground">
-					<span>Sign-in expired — run</span>
+					<span>
+						<Trans id="settings.usage.account.expiredRunPrefix">
+							Sign-in expired — run
+						</Trans>
+					</span>
 					<button
 						type="button"
 						className="inline-flex max-w-full items-center gap-1 rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground transition-colors hover:bg-muted/70"
@@ -224,11 +241,19 @@ function AccountCard({
 							<LuCopy className="size-2.5 shrink-0" />
 						)}
 					</button>
-					<span>in a terminal on this host.</span>
+					<span>
+						<Trans id="settings.usage.account.expiredRunSuffix">
+							in a terminal on this host.
+						</Trans>
+					</span>
 				</div>
 			) : (
 				<div className="mt-1.5 text-[11px] text-muted-foreground">
-					{account.statusDetail ?? "Usage unavailable."}
+					{account.statusDetail ?? (
+						<Trans id="settings.usage.account.usageUnavailable">
+							Usage unavailable.
+						</Trans>
+					)}
 				</div>
 			)}
 			{/* The radio + accent border already mark the default when the cards
@@ -242,7 +267,9 @@ function AccountCard({
 								title={DEFAULT_TITLE}
 							>
 								<LuCircleCheck className="size-3" />
-								Default for new agents
+								<Trans id="settings.usage.account.defaultForNewAgents">
+									Default for new agents
+								</Trans>
 							</span>
 						)
 					) : (
@@ -254,7 +281,9 @@ function AccountCard({
 							title={DEFAULT_TITLE}
 							onClick={onMakeDefault}
 						>
-							Make default
+							<Trans id="settings.usage.account.makeDefault">
+								Make default
+							</Trans>
 						</Button>
 					)}
 					{credits && (
@@ -326,7 +355,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			<LeaderboardPrompt hostUrl={hostUrl} />
 			<div className="flex items-center gap-2">
 				<span className="ml-auto text-[10px] text-muted-foreground">
-					Official quota · refreshes every 5 min
+					<Trans id="settings.usage.quota.refreshNote">
+						Official quota · refreshes every 5 min
+					</Trans>
 				</span>
 				<Button
 					variant="ghost"
@@ -340,7 +371,11 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					) : (
 						<LuEyeOff className="size-3" />
 					)}
-					{hideEmails ? "Show emails" : "Hide emails"}
+					{hideEmails ? (
+						<Trans id="settings.usage.quota.showEmails">Show emails</Trans>
+					) : (
+						<Trans id="settings.usage.quota.hideEmails">Hide emails</Trans>
+					)}
 				</Button>
 				<Button
 					variant="ghost"
@@ -362,7 +397,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 			{quotaQuery.isPending ? (
 				<div className="py-4 text-center text-xs text-muted-foreground">
-					Reading subscription usage…
+					<Trans id="settings.usage.quota.reading">
+						Reading subscription usage…
+					</Trans>
 				</div>
 			) : (
 				PROVIDERS.map((provider) => {
@@ -385,13 +422,17 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 									onClick={() => openAddAccount(provider)}
 								>
 									<LuPlus className="size-3" />
-									Add account
+									<Trans id="settings.usage.quota.addAccount">
+										Add account
+									</Trans>
 								</Button>
 							</div>
 							{providerAccounts.length === 0 ? (
 								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
-									No {PROVIDER_LABELS[provider]} logins on this host — sign in
-									and usage appears here.
+									<Trans id="settings.usage.quota.noLogins">
+										No {PROVIDER_LABELS[provider]} logins on this host — sign in
+										and usage appears here.
+									</Trans>
 								</div>
 							) : (
 								<div className="grid gap-2 md:grid-cols-2">

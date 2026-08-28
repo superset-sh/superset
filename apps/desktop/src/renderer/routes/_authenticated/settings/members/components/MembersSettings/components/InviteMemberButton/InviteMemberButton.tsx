@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	getInvitableRoles,
 	type OrganizationRole,
@@ -48,7 +49,7 @@ export function InviteMemberButton({
 		<>
 			<Button size="sm" onClick={handleClick} className="gap-1.5">
 				<HiOutlinePlus className="h-3.5 w-3.5" />
-				Invite member
+				<Trans id="settings.members.inviteButton">Invite member</Trans>
 			</Button>
 
 			<InviteMemberDialog

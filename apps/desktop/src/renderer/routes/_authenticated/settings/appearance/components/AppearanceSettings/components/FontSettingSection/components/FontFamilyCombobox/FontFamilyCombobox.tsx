@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -111,7 +112,13 @@ export function FontFamilyCombobox({
 						className="truncate"
 						style={{ fontFamily: `"${displayLabel}"` }}
 					>
-						{fontsLoading ? "Loading fonts..." : displayLabel}
+						{fontsLoading ? (
+							<Trans id="settings.appearance.fontCombobox.loadingFonts">
+								Loading fonts...
+							</Trans>
+						) : (
+							displayLabel
+						)}
 					</span>
 					<ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
 				</Button>
@@ -131,10 +138,14 @@ export function FontFamilyCombobox({
 									className="w-full text-center cursor-pointer hover:underline"
 									onClick={() => selectFont(search.trim())}
 								>
-									Use &ldquo;{search.trim()}&rdquo;
+									<Trans id="settings.appearance.fontCombobox.useCustomEmpty">
+										Use &ldquo;{search.trim()}&rdquo;
+									</Trans>
 								</button>
 							) : (
-								"No fonts found."
+								<Trans id="settings.appearance.fontCombobox.noFontsFound">
+									No fonts found.
+								</Trans>
 							)}
 						</CommandEmpty>
 						{allowCustomEntry && !hasExactMatch && search.trim() && (
@@ -144,7 +155,9 @@ export function FontFamilyCombobox({
 									onSelect={() => selectFont(search.trim())}
 								>
 									<span className="truncate flex-1">
-										Use &ldquo;{search.trim()}&rdquo;
+										<Trans id="settings.appearance.fontCombobox.useCustomOption">
+											Use &ldquo;{search.trim()}&rdquo;
+										</Trans>
 									</span>
 								</CommandItem>
 							</CommandGroup>

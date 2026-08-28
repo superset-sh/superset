@@ -14,6 +14,8 @@
 // fall through to electron-trpc and fail with "no procedure on path
 // terminal.daemon.*" — there's no such namespace on electron-trpc.
 
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -52,7 +54,9 @@ export function V2SessionsSection() {
 					<HighlightText text="Terminal daemon" query={searchQuery} />
 				</h3>
 				<p className="text-sm text-muted-foreground">
-					Host service is starting…
+					<Trans id="settings.terminal.v2Sessions.hostStarting">
+						Host service is starting…
+					</Trans>
 				</p>
 			</div>
 		);
@@ -71,6 +75,7 @@ export function V2SessionsSection() {
 }
 
 function V2SessionsSectionInner() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
@@ -160,21 +165,51 @@ function V2SessionsSectionInner() {
 	const versions = updateStatusQuery.data;
 
 	const sessionCountLabel = (() => {
-		if (sessions === null) return "Daemon unavailable";
-		if (aliveCount === 0) return "No sessions running";
-		return `${aliveCount} session${aliveCount === 1 ? "" : "s"} running`;
+		if (sessions === null) {
+			return t({
+				id: "settings.terminal.v2Sessions.daemonUnavailable",
+				message: "Daemon unavailable",
+			});
+		}
+		if (aliveCount === 0) {
+			return t({
+				id: "settings.terminal.v2Sessions.noSessionsRunning",
+				message: "No sessions running",
+			});
+		}
+		return t({
+			id: "settings.terminal.v2Sessions.sessionsRunningCount",
+			message: plural(aliveCount ?? 0, {
+				one: "# session running",
+				other: "# sessions running",
+			}),
+		});
 	})();
 
 	const versionLabel = (() => {
 		if (!versions) return null;
 		if (versions.running === "unknown") {
-			return `bundled ${versions.expected}`;
+			return t({
+				id: "settings.terminal.v2Sessions.bundledVersion",
+				message: `bundled ${versions.expected}`,
+			});
 		}
 		if (updatePending) {
-			return `${versions.running} → ${versions.expected} pending`;
+			return t({
+				id: "settings.terminal.v2Sessions.versionUpdatePending",
+				message: `${versions.running} → ${versions.expected} pending`,
+			});
 		}
 		return versions.running;
 	})();
+
+	const runningCountSuffix =
+		aliveCount && aliveCount > 0
+			? ` ${t({
+					id: "settings.terminal.v2Sessions.runningCountSuffix",
+					message: `(${aliveCount} running)`,
+				})}`
+			: "";
 
 	const isUnavailable = sessions === null;
 	const expandable = sessions !== null && sessions.length > 0;
@@ -210,7 +245,15 @@ function V2SessionsSectionInner() {
 							}
 							onClick={() => updateDaemon.mutate()}
 						>
-							{updateDaemon.isPending ? "Updating…" : "Update daemon"}
+							{updateDaemon.isPending ? (
+								<Trans id="settings.terminal.v2Sessions.updatingDaemon">
+									Updating…
+								</Trans>
+							) : (
+								<Trans id="settings.terminal.v2Sessions.updateDaemonButton">
+									Update daemon
+								</Trans>
+							)}
 						</Button>
 						<Button
 							variant="outline"
@@ -218,7 +261,9 @@ function V2SessionsSectionInner() {
 							disabled={updateDaemon.isPending || restartDaemon.isPending}
 							onClick={() => setConfirmRestartOpen(true)}
 						>
-							Force restart
+							<Trans id="settings.terminal.v2Sessions.forceRestartButton">
+								Force restart
+							</Trans>
 						</Button>
 					</div>
 				</div>
@@ -261,7 +306,9 @@ function V2SessionsSectionInner() {
 					)}
 					{updatePending ? (
 						<span className="rounded bg-foreground/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-foreground/80">
-							Update available
+							<Trans id="settings.terminal.v2Sessions.updateAvailable">
+								Update available
+							</Trans>
 						</span>
 					) : null}
 				</div>
@@ -271,10 +318,26 @@ function V2SessionsSectionInner() {
 						<table className="w-full text-xs">
 							<thead className="sticky top-0 bg-background">
 								<tr className="text-muted-foreground">
-									<th className="px-2 py-2 text-left font-medium">Session</th>
-									<th className="px-2 py-2 text-right font-medium">PID</th>
-									<th className="px-2 py-2 text-right font-medium">Size</th>
-									<th className="px-2 py-2 text-left font-medium">Status</th>
+									<th className="px-2 py-2 text-left font-medium">
+										<Trans id="settings.terminal.v2Sessions.columnSession">
+											Session
+										</Trans>
+									</th>
+									<th className="px-2 py-2 text-right font-medium">
+										<Trans id="settings.terminal.v2Sessions.columnPid">
+											PID
+										</Trans>
+									</th>
+									<th className="px-2 py-2 text-right font-medium">
+										<Trans id="settings.terminal.v2Sessions.columnSize">
+											Size
+										</Trans>
+									</th>
+									<th className="px-2 py-2 text-left font-medium">
+										<Trans id="settings.terminal.v2Sessions.columnStatus">
+											Status
+										</Trans>
+									</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border/40">
@@ -293,7 +356,15 @@ function V2SessionsSectionInner() {
 													s.alive ? "text-foreground" : "text-muted-foreground"
 												}
 											>
-												{s.alive ? "Alive" : "Exited"}
+												{s.alive ? (
+													<Trans id="settings.terminal.v2Sessions.statusAlive">
+														Alive
+													</Trans>
+												) : (
+													<Trans id="settings.terminal.v2Sessions.statusExited">
+														Exited
+													</Trans>
+												)}
 											</span>
 										</td>
 									</tr>
@@ -313,23 +384,26 @@ function V2SessionsSectionInner() {
 				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
-							Update couldn't preserve sessions
+							<Trans id="settings.terminal.v2Sessions.updateFailedTitle">
+								Update couldn't preserve sessions
+							</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="space-y-1.5 text-muted-foreground">
 								<span className="block">
-									The daemon couldn't hand off your live sessions to the new
-									binary. Reason:
+									<Trans id="settings.terminal.v2Sessions.updateFailedBody">
+										The daemon couldn't hand off your live sessions to the new
+										binary. Reason:
+									</Trans>
 								</span>
 								<span className="block rounded bg-muted/40 px-2 py-1.5 font-mono text-[11px] text-foreground">
 									{updateFailureReason ?? ""}
 								</span>
 								<span className="block">
-									Force update will close every terminal session
-									{aliveCount && aliveCount > 0
-										? ` (${aliveCount} running)`
-										: ""}{" "}
-									and start a fresh daemon.
+									<Trans id="settings.terminal.v2Sessions.forceUpdateWarning">
+										Force update will close every terminal session
+										{runningCountSuffix} and start a fresh daemon.
+									</Trans>
 								</span>
 							</div>
 						</AlertDialogDescription>
@@ -340,7 +414,9 @@ function V2SessionsSectionInner() {
 							size="sm"
 							onClick={() => setUpdateFailureReason(null)}
 						>
-							Cancel
+							<Trans id="settings.terminal.v2Sessions.updateFailedCancel">
+								Cancel
+							</Trans>
 						</Button>
 						<Button
 							variant="default"
@@ -351,7 +427,9 @@ function V2SessionsSectionInner() {
 								restartDaemon.mutate();
 							}}
 						>
-							Force update
+							<Trans id="settings.terminal.v2Sessions.forceUpdateConfirm">
+								Force update
+							</Trans>
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -364,27 +442,35 @@ function V2SessionsSectionInner() {
 				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
-							{updatePending
-								? "Force restart and apply update?"
-								: "Restart terminal daemon?"}
+							{updatePending ? (
+								<Trans id="settings.terminal.v2Sessions.forceRestartUpdateTitle">
+									Force restart and apply update?
+								</Trans>
+							) : (
+								<Trans id="settings.terminal.v2Sessions.restartTitle">
+									Restart terminal daemon?
+								</Trans>
+							)}
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="space-y-1.5 text-muted-foreground">
 								<span className="block">
-									This closes every terminal session for your organization
-									{aliveCount && aliveCount > 0
-										? ` (${aliveCount} running)`
-										: ""}{" "}
-									and starts a fresh daemon.
+									<Trans id="settings.terminal.v2Sessions.restartWarning">
+										This closes every terminal session for your organization
+										{runningCountSuffix} and starts a fresh daemon.
+									</Trans>
 								</span>
 								{updatePending && versions ? (
 									<span className="block">
-										Force restart will load{" "}
-										<span className="font-mono">{versions.expected}</span>{" "}
-										(currently running{" "}
-										<span className="font-mono">{versions.running}</span>). To
-										upgrade <em>without</em> closing sessions, click{" "}
-										<span className="font-medium">Update daemon</span> instead.
+										<Trans id="settings.terminal.v2Sessions.forceRestartVersionHint">
+											Force restart will load{" "}
+											<span className="font-mono">{versions.expected}</span>{" "}
+											(currently running{" "}
+											<span className="font-mono">{versions.running}</span>). To
+											upgrade <em>without</em> closing sessions, click{" "}
+											<span className="font-medium">Update daemon</span>{" "}
+											instead.
+										</Trans>
 									</span>
 								) : null}
 							</div>
@@ -396,7 +482,9 @@ function V2SessionsSectionInner() {
 							size="sm"
 							onClick={() => setConfirmRestartOpen(false)}
 						>
-							Cancel
+							<Trans id="settings.terminal.v2Sessions.restartCancel">
+								Cancel
+							</Trans>
 						</Button>
 						<Button
 							variant="default"
@@ -407,7 +495,9 @@ function V2SessionsSectionInner() {
 								restartDaemon.mutate();
 							}}
 						>
-							Restart and close sessions
+							<Trans id="settings.terminal.v2Sessions.restartConfirm">
+								Restart and close sessions
+							</Trans>
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

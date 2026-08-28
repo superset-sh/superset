@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
@@ -18,12 +19,24 @@ interface PermissionsSettingsProps {
 
 function StatusBadge({ granted }: { granted: boolean | undefined }) {
 	if (granted === true) {
-		return <Badge variant="secondary">Granted</Badge>;
+		return (
+			<Badge variant="secondary">
+				<Trans id="settings.permissions.statusGranted">Granted</Trans>
+			</Badge>
+		);
 	}
 	if (granted === false) {
-		return <Badge variant="outline">Not granted</Badge>;
+		return (
+			<Badge variant="outline">
+				<Trans id="settings.permissions.statusNotGranted">Not granted</Trans>
+			</Badge>
+		);
 	}
-	return <Badge variant="outline">Unknown</Badge>;
+	return (
+		<Badge variant="outline">
+			<Trans id="settings.permissions.statusUnknown">Unknown</Trans>
+		</Badge>
+	);
 }
 
 function PermissionRow({
@@ -53,7 +66,7 @@ function PermissionRow({
 				<StatusBadge granted={granted} />
 				<Button variant="outline" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
-					Open settings
+					<Trans id="settings.permissions.openSettings">Open settings</Trans>
 				</Button>
 			</div>
 		</div>
@@ -97,9 +110,13 @@ export function PermissionsSettings({
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Permissions</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.permissions.title">Permissions</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Grant the OS permissions Superset needs.
+					<Trans id="settings.permissions.subtitle">
+						Grant the OS permissions Superset needs.
+					</Trans>
 				</p>
 			</div>
 

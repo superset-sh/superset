@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -33,12 +34,16 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 					<HighlightText text="Star Superset on GitHub" query={searchQuery} />
 				</Label>
 				<p className="text-xs text-muted-foreground">
-					Support the project with a GitHub star
+					<Trans id="settings.behavior.githubStar.hint">
+						Support the project with a GitHub star
+					</Trans>
 				</p>
 			</div>
 			{state === "starred" ? (
 				<span className="text-xs text-muted-foreground">
-					Starred — thank you!
+					<Trans id="settings.behavior.githubStar.starred">
+						Starred — thank you!
+					</Trans>
 				</span>
 			) : state === "unknown" ? (
 				// A disabled shadcn Button has pointer-events-none baked into its
@@ -51,13 +56,17 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 						<span>
 							<Button variant="outline" size="sm" disabled>
 								<Star className="size-3.5" />
-								Star
+								<Trans id="settings.behavior.githubStar.starUnknown">
+									Star
+								</Trans>
 							</Button>
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="left">
-						Couldn't confirm star status — check that the GitHub CLI (`gh`) is
-						installed, signed in, and that you have a network connection
+						<Trans id="settings.behavior.githubStar.unknownTooltip">
+							Couldn't confirm star status — check that the GitHub CLI (`gh`) is
+							installed, signed in, and that you have a network connection
+						</Trans>
 					</TooltipContent>
 				</Tooltip>
 			) : (
@@ -68,7 +77,7 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 					disabled={!canActivateStarAction(state) || isBusy}
 				>
 					<Star className="size-3.5" />
-					Star
+					<Trans id="settings.behavior.githubStar.star">Star</Trans>
 				</Button>
 			)}
 		</div>

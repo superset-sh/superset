@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -60,7 +61,7 @@ export function VolumeDropdown() {
 		<div>
 			<div className="flex items-center justify-between gap-4">
 				<Label htmlFor="notification-volume" className="text-sm font-medium">
-					Volume
+					<Trans id="settings.ringtones.volume">Volume</Trans>
 				</Label>
 				<Select
 					value={volume.toString()}

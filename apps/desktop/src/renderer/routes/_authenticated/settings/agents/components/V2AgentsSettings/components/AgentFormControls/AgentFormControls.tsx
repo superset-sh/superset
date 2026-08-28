@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -93,10 +94,10 @@ export function AgentLaunchFields({
 			<StackedField
 				label="Prompt-only args"
 				hint={
-					<>
+					<Trans id="settings.agents.form.promptArgsHint">
 						Added only when launching with a prompt — e.g. <code>--</code>,{" "}
 						<code>--prompt</code>, <code>-i</code>.
-					</>
+					</Trans>
 				}
 				htmlFor={`${idPrefix}-prompt-args`}
 			>
@@ -113,11 +114,11 @@ export function AgentLaunchFields({
 			<StackedField
 				label="Resume args"
 				hint={
-					<>
+					<Trans id="settings.agents.form.resumeArgsHint">
 						Used to restore a previous session — the session id is appended
 						after these, e.g. <code>--resume</code>. Leave empty if the agent
 						can't resume by id.
-					</>
+					</Trans>
 				}
 				htmlFor={`${idPrefix}-resume-args`}
 			>
@@ -133,9 +134,15 @@ export function AgentLaunchFields({
 
 			<div className="flex items-center justify-between gap-8">
 				<div className="min-w-0 flex-1">
-					<Label className="text-sm font-medium">Prompt transport</Label>
+					<Label className="text-sm font-medium">
+						<Trans id="settings.agents.form.promptTransport">
+							Prompt transport
+						</Trans>
+					</Label>
 					<p className="text-xs text-muted-foreground mt-0.5">
-						How the prompt is delivered to the process.
+						<Trans id="settings.agents.form.promptTransportHint">
+							How the prompt is delivered to the process.
+						</Trans>
 					</p>
 				</div>
 				<PromptTransportToggle

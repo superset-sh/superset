@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { useMemo, useState } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -78,6 +79,7 @@ function V1Body() {
 }
 
 function V2Body() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
@@ -120,6 +122,14 @@ function V2Body() {
 	const isOnline = selectedHost?.isOnline ?? false;
 	const hasMultipleHosts = hostOptions.length > 1;
 
+	const thisDeviceLabel = t({
+		id: "settings.git.worktreeLocation.thisDevice",
+		message: "this device",
+	});
+	const selectedHostLabel = selectedHost?.isLocal
+		? thisDeviceLabel
+		: (selectedHost?.name ?? thisDeviceLabel);
+
 	const settingsQuery = useV2WorktreeLocationSettings(targetHostUrl, {
 		enabled: isOnline,
 	});
@@ -140,11 +150,10 @@ function V2Body() {
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						{hasMultipleHosts ? (
-							`Base directory for new worktrees on ${
-								selectedHost?.isLocal
-									? "this device"
-									: (selectedHost?.name ?? "this device")
-							}`
+							t({
+								id: "settings.git.worktreeLocation.baseDirOnHost",
+								message: `Base directory for new worktrees on ${selectedHostLabel}`,
+							})
 						) : (
 							<HighlightText
 								text="Base directory for new worktrees"
@@ -180,7 +189,9 @@ function V2Body() {
 			/>
 			{hasMultipleHosts && !isOnline ? (
 				<p className="text-xs text-muted-foreground">
-					{selectedHost?.name ?? "This device"} is offline.
+					<Trans id="settings.git.worktreeLocation.hostOffline">
+						{selectedHost?.name ?? "This device"} is offline.
+					</Trans>
 				</p>
 			) : null}
 		</div>

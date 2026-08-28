@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 
@@ -22,14 +23,16 @@ export function UsageSectionToggle() {
 				className={pillClass(!onResources)}
 				aria-current={onResources ? undefined : "page"}
 			>
-				Token usage
+				<Trans id="settings.usage.sectionToggle.tokenUsage">Token usage</Trans>
 			</Link>
 			<Link
 				to="/settings/usage/resources"
 				className={pillClass(onResources)}
 				aria-current={onResources ? "page" : undefined}
 			>
-				Machine resources
+				<Trans id="settings.usage.sectionToggle.machineResources">
+					Machine resources
+				</Trans>
 			</Link>
 		</nav>
 	);

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
@@ -79,17 +80,20 @@ export function ExposeViaRelaySection() {
 						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						When off, remote workspaces can't access the files and tools on this
-						device. You can still connect out to remote sandboxes from here.{" "}
-						<a
-							href={`${COMPANY.DOCS_URL}/remote-workspaces`}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="inline-flex items-center gap-1 text-primary hover:underline"
-						>
-							Learn more
-							<HiArrowTopRightOnSquare className="h-3 w-3" />
-						</a>
+						<Trans id="settings.components.exposeViaRelay.hint">
+							When off, remote workspaces can't access the files and tools on
+							this device. You can still connect out to remote sandboxes from
+							here.{" "}
+							<a
+								href={`${COMPANY.DOCS_URL}/remote-workspaces`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="inline-flex items-center gap-1 text-primary hover:underline"
+							>
+								Learn more
+								<HiArrowTopRightOnSquare className="h-3 w-3" />
+							</a>
+						</Trans>
 					</p>
 				</div>
 				<Switch

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -127,6 +128,7 @@ export function AddAccountDialog({
 	onAccountAdded,
 	switchTarget = null,
 }: AddAccountDialogProps) {
+	const { t } = useLingui();
 	const provider = switchTarget?.provider ?? addProvider;
 	const [name, setName] = useState("work");
 	const [copied, setCopied] = useState(false);
@@ -211,8 +213,14 @@ export function AddAccountDialog({
 
 	const switchDescription = switchTarget
 		? switchTarget.selection === null
-			? `Sign the system-default ${PROVIDER_LABELS[switchTarget.provider]} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected.`
-			: `Sign the ${switchTarget.label} profile into a different account. Other profiles, the system default, and running agents are unaffected.`
+			? t({
+					id: "settings.usage.addAccount.switchDefaultDescription",
+					message: `Sign the system-default ${PROVIDER_LABELS[switchTarget.provider]} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected.`,
+				})
+			: t({
+					id: "settings.usage.addAccount.switchProfileDescription",
+					message: `Sign the ${switchTarget.label} profile into a different account. Other profiles, the system default, and running agents are unaffected.`,
+				})
 		: null;
 
 	return (
@@ -220,13 +228,24 @@ export function AddAccountDialog({
 			<DialogContent className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						{switchTarget
-							? "Switch sign-in"
-							: `Add ${PROVIDER_LABELS[provider]} account`}
+						{switchTarget ? (
+							<Trans id="settings.usage.addAccount.switchTitle">
+								Switch sign-in
+							</Trans>
+						) : (
+							<Trans id="settings.usage.addAccount.addTitle">
+								Add {PROVIDER_LABELS[provider]} account
+							</Trans>
+						)}
 					</DialogTitle>
 					<DialogDescription>
-						{switchDescription ??
-							"Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."}
+						{switchDescription ?? (
+							<Trans id="settings.usage.addAccount.addDescription">
+								Sign in to a second subscription as a separate profile. Your
+								current login is untouched, and the new profile shares your
+								skills, plugins, MCP servers, and settings.
+							</Trans>
+						)}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -234,13 +253,19 @@ export function AddAccountDialog({
 					<div className="flex flex-col gap-3">
 						<div className="rounded-md border bg-card/40 p-3 text-sm">
 							<span className="font-medium">{found.label}</span>{" "}
-							{switchTarget
-								? "is now signed in here."
-								: "is signed in and will show its quota here."}
+							{switchTarget ? (
+								<Trans id="settings.usage.addAccount.switchedSuffix">
+									is now signed in here.
+								</Trans>
+							) : (
+								<Trans id="settings.usage.addAccount.addedSuffix">
+									is signed in and will show its quota here.
+								</Trans>
+							)}
 						</div>
 						<div className="flex justify-end gap-2">
 							<Button variant="ghost" onClick={() => onOpenChange(false)}>
-								Done
+								<Trans id="settings.usage.addAccount.done">Done</Trans>
 							</Button>
 							{!switchTarget && found.selection !== null && (
 								<Button
@@ -261,7 +286,9 @@ export function AddAccountDialog({
 										);
 									}}
 								>
-									Use for new agents
+									<Trans id="settings.usage.addAccount.useForNewAgents">
+										Use for new agents
+									</Trans>
 								</Button>
 							)}
 						</div>
@@ -271,7 +298,9 @@ export function AddAccountDialog({
 						{!switchTarget && (
 							<div className="flex items-center gap-2">
 								<span className="text-xs text-muted-foreground">
-									Profile name
+									<Trans id="settings.usage.addAccount.profileName">
+										Profile name
+									</Trans>
 								</span>
 								<Input
 									value={name}
@@ -284,8 +313,10 @@ export function AddAccountDialog({
 
 						<div className="flex flex-col gap-1">
 							<span className="text-xs text-muted-foreground">
-								Run this in any terminal on this host, then finish the sign-in
-								in your browser:
+								<Trans id="settings.usage.addAccount.runCommandHint">
+									Run this in any terminal on this host, then finish the sign-in
+									in your browser:
+								</Trans>
 							</span>
 							<div className="flex items-start gap-1.5 rounded-md border bg-muted/40 p-2">
 								<code className="flex-1 whitespace-pre-wrap break-all font-mono text-[11px]">
@@ -308,7 +339,10 @@ export function AddAccountDialog({
 
 						<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 							<LuLoaderCircle className="size-3 animate-spin" />
-							Waiting for the sign-in to complete — this updates automatically.
+							<Trans id="settings.usage.addAccount.waitingForSignIn">
+								Waiting for the sign-in to complete — this updates
+								automatically.
+							</Trans>
 						</div>
 					</div>
 				)}

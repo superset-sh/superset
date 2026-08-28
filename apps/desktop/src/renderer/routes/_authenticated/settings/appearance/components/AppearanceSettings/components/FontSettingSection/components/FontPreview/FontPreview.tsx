@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { CSSProperties } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
@@ -85,14 +86,28 @@ export function FontPreview({
 				{isTerminal ? (
 					<>
 						<span className="size-2 rounded-full bg-primary" />
-						<span>Terminal</span>
-						<span className="ml-auto">zsh</span>
+						<span>
+							<Trans id="settings.appearance.fontPreview.terminalTitle">
+								Terminal
+							</Trans>
+						</span>
+						<span className="ml-auto">
+							<Trans id="settings.appearance.fontPreview.shell">zsh</Trans>
+						</span>
 					</>
 				) : (
 					<>
 						<span className="size-2 rounded-full bg-blue-500" />
-						<span>settings.ts</span>
-						<span className="ml-auto">TypeScript</span>
+						<span>
+							<Trans id="settings.appearance.fontPreview.editorFileName">
+								settings.ts
+							</Trans>
+						</span>
+						<span className="ml-auto">
+							<Trans id="settings.appearance.fontPreview.editorLanguage">
+								TypeScript
+							</Trans>
+						</span>
 					</>
 				)}
 			</div>
@@ -127,7 +142,11 @@ export function FontPreview({
 						),
 					)}
 					<div>
-						<span className="text-primary">~/agent $</span>{" "}
+						<span className="text-primary">
+							<Trans id="settings.appearance.fontPreview.prompt">
+								~/agent $
+							</Trans>
+						</span>{" "}
 						<span
 							aria-hidden="true"
 							className={`inline-block bg-current align-text-bottom ${cursorBlink ? "animate-pulse" : ""}`}
@@ -170,10 +189,26 @@ export function FontPreview({
 					{fontFamily}
 				</span>
 				<span className="ml-auto shrink-0 whitespace-nowrap">
-					{fontWeight} · {ligatures ? "Ligatures on" : "Ligatures off"}
-					{isTerminal && minimumContrast !== null
-						? ` · ${minimumContrast}:1 contrast`
-						: ""}
+					{fontWeight} ·{" "}
+					{ligatures ? (
+						<Trans id="settings.appearance.fontPreview.ligaturesOn">
+							Ligatures on
+						</Trans>
+					) : (
+						<Trans id="settings.appearance.fontPreview.ligaturesOff">
+							Ligatures off
+						</Trans>
+					)}
+					{isTerminal && minimumContrast !== null ? (
+						<>
+							{" · "}
+							<Trans id="settings.appearance.fontPreview.contrastSuffix">
+								{minimumContrast}:1 contrast
+							</Trans>
+						</>
+					) : (
+						""
+					)}
 				</span>
 			</div>
 			{isCustomFont && <FontNotFoundBanner fontFamily={fontFamily} />}

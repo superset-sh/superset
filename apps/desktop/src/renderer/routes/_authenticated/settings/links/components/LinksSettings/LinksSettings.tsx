@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import {
 	Select,
@@ -94,10 +95,14 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Links</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.links.title">Links</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Control what each click — plain or with a modifier — does to a file or
-					URL. Each row binds one modifier combination to an action.
+					<Trans id="settings.links.subtitle">
+						Control what each click — plain or with a modifier — does to a file
+						or URL. Each row binds one modifier combination to an action.
+					</Trans>
 				</p>
 			</div>
 
@@ -119,14 +124,16 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 							<HighlightText text="Ports" query={searchQuery} />
 						</h3>
 						<p className="text-xs text-muted-foreground mb-3">
-							Where detected-port badges in the sidebar open when clicked.
+							<Trans id="settings.links.portsHint">
+								Where detected-port badges in the sidebar open when clicked.
+							</Trans>
 						</p>
 						<div className="flex items-center justify-between gap-4">
 							<Label
 								htmlFor="links-port-action"
 								className="text-sm font-medium"
 							>
-								On click
+								<Trans id="settings.links.portsOnClick">On click</Trans>
 							</Label>
 							<Select
 								value={preferences.portOpenAction}

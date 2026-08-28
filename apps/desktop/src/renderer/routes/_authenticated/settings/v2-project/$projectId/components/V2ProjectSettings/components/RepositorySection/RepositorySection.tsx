@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
@@ -42,7 +43,11 @@ export function RepositorySection({ repoUrl }: RepositorySectionProps) {
 							<FaGithub className="size-4" />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent>Open in GitHub</TooltipContent>
+					<TooltipContent>
+						<Trans id="settings.project.repository.openInGitHub">
+							Open in GitHub
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 			)}
 		</div>

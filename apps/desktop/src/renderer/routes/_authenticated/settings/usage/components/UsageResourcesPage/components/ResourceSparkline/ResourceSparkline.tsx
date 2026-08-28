@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ChartContainer,
 	ChartTooltip,
@@ -48,7 +49,9 @@ export function ResourceSparkline({
 			</div>
 			{data.length < 2 ? (
 				<div className="flex h-16 items-center justify-center text-[10px] text-muted-foreground">
-					Collecting…
+					<Trans id="settings.usage.resourceSparkline.collecting">
+						Collecting…
+					</Trans>
 				</div>
 			) : (
 				<ChartContainer

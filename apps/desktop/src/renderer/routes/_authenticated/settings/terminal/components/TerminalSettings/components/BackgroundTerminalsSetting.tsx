@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { useEffect, useState } from "react";
@@ -73,10 +74,12 @@ export function BackgroundTerminalsSetting() {
 					/>
 				</Label>
 				<p className="text-xs text-muted-foreground max-w-md leading-relaxed">
-					How many hidden terminals stay fully loaded (
-					{MIN_TERMINAL_PARKED_RUNTIME_CAP}–{MAX_TERMINAL_PARKED_RUNTIME_CAP});
-					older ones keep running but reload their last 1,000 lines when
-					reopened
+					<Trans id="settings.terminal.backgroundLimit.hint">
+						How many hidden terminals stay fully loaded (
+						{MIN_TERMINAL_PARKED_RUNTIME_CAP}–{MAX_TERMINAL_PARKED_RUNTIME_CAP}
+						); older ones keep running but reload their last 1,000 lines when
+						reopened
+					</Trans>
 				</p>
 			</div>
 			<Input

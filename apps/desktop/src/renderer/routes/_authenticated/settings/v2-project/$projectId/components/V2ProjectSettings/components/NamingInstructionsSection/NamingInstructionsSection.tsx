@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { Textarea } from "@superset/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
@@ -146,11 +147,15 @@ export function NamingInstructionsSection({
 					htmlFor="project-naming-instructions"
 					className="text-sm font-medium"
 				>
-					Naming instructions
+					<Trans id="settings.project.namingInstructions.label">
+						Naming instructions
+					</Trans>
 				</Label>
 				<p className="mt-0.5 text-xs text-muted-foreground">
-					Guides AI-generated workspace and branch names for this project. Empty
-					uses the default naming.
+					<Trans id="settings.project.namingInstructions.hint">
+						Guides AI-generated workspace and branch names for this project.
+						Empty uses the default naming.
+					</Trans>
 				</p>
 			</div>
 			<Textarea
@@ -167,16 +172,24 @@ export function NamingInstructionsSection({
 				className="text-sm resize-y min-h-[calc(3lh+1.125rem)]"
 			/>
 			<div className="flex h-4 items-center justify-end text-xs text-muted-foreground">
-				{saveStatus === "saving" && <span>Saving…</span>}
+				{saveStatus === "saving" && (
+					<span>
+						<Trans id="settings.project.namingInstructions.saving">
+							Saving…
+						</Trans>
+					</span>
+				)}
 				{saveStatus === "saved" && (
 					<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
 						<HiCheckCircle className="h-3.5 w-3.5" />
-						Saved
+						<Trans id="settings.project.namingInstructions.saved">Saved</Trans>
 					</span>
 				)}
 				{saveStatus === "error" && (
 					<span className="select-text cursor-text text-destructive">
-						Couldn't save — edit or click away to retry
+						<Trans id="settings.project.namingInstructions.saveError">
+							Couldn't save — edit or click away to retry
+						</Trans>
 					</span>
 				)}
 			</div>

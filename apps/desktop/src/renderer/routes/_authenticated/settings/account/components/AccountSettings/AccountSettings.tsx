@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
 import {
@@ -134,9 +135,13 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Account</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.account.title">Account</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Manage your account settings
+					<Trans id="settings.account.subtitle">
+						Manage your account settings
+					</Trans>
 				</p>
 			</div>
 
@@ -182,7 +187,9 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 						</>
 					) : (
 						<p className="text-sm text-muted-foreground">
-							Unable to load user info
+							<Trans id="settings.account.loadError">
+								Unable to load user info
+							</Trans>
 						</p>
 					))}
 
@@ -199,7 +206,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 									toast.success("Signed out");
 								}}
 							>
-								Sign out
+								<Trans id="settings.account.signOutButton">Sign out</Trans>
 							</Button>
 						</SettingRow>
 					</div>
@@ -217,25 +224,43 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 							<AlertDialog>
 								<AlertDialogTrigger asChild>
 									<Button variant="destructive" disabled={isDeleting}>
-										{isDeleting ? "Deleting…" : "Delete account"}
+										{isDeleting ? (
+											<Trans id="settings.account.deletingButton">
+												Deleting…
+											</Trans>
+										) : (
+											<Trans id="settings.account.deleteButton">
+												Delete account
+											</Trans>
+										)}
 									</Button>
 								</AlertDialogTrigger>
 								<AlertDialogContent>
 									<AlertDialogHeader>
-										<AlertDialogTitle>Delete account?</AlertDialogTitle>
+										<AlertDialogTitle>
+											<Trans id="settings.account.deleteConfirmTitle">
+												Delete account?
+											</Trans>
+										</AlertDialogTitle>
 										<AlertDialogDescription>
-											All of your data will be permanently deleted after{" "}
-											{ACCOUNT_DELETION_GRACE_DAYS} days — sign back in before
-											then to restore your account.
+											<Trans id="settings.account.deleteConfirmDescription">
+												All of your data will be permanently deleted after{" "}
+												{ACCOUNT_DELETION_GRACE_DAYS} days — sign back in before
+												then to restore your account.
+											</Trans>
 										</AlertDialogDescription>
 									</AlertDialogHeader>
 									<AlertDialogFooter>
-										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogCancel>
+											<Trans id="settings.account.deleteCancel">Cancel</Trans>
+										</AlertDialogCancel>
 										<AlertDialogAction
 											variant="destructive"
 											onClick={handleDeleteAccount}
 										>
-											Delete account
+											<Trans id="settings.account.deleteConfirmAction">
+												Delete account
+											</Trans>
 										</AlertDialogAction>
 									</AlertDialogFooter>
 								</AlertDialogContent>

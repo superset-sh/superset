@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { formatPrice } from "@superset/i18n/format";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
@@ -158,16 +159,20 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Billing</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans id="settings.billing.title">Billing</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						For questions about billing,{" "}
-						<a
-							href="mailto:support@superset.sh"
-							className="text-primary hover:underline"
-						>
-							contact us
-						</a>
-						.
+						<Trans id="settings.billing.subtitle">
+							For questions about billing,{" "}
+							<a
+								href="mailto:support@superset.sh"
+								className="text-primary hover:underline"
+							>
+								contact us
+							</a>
+							.
+						</Trans>
 					</p>
 				</div>
 				<Button variant="ghost" size="sm" asChild>
@@ -189,7 +194,9 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				)}
 				{showOverview && (
 					<div>
-						<h3 className="text-sm font-medium mb-2">Plan</h3>
+						<h3 className="text-sm font-medium mb-2">
+							<Trans id="settings.billing.planSectionTitle">Plan</Trans>
+						</h3>
 						<div className="divide-y divide-border">
 							<CurrentPlanCard
 								currentPlan={plan}

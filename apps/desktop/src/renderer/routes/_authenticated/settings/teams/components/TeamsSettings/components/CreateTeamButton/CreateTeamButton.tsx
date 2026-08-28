@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -80,7 +81,9 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 
 	return (
 		<>
-			<Button onClick={() => setIsOpen(true)}>Create team</Button>
+			<Button onClick={() => setIsOpen(true)}>
+				<Trans id="settings.teams.createButton">Create team</Trans>
+			</Button>
 			<Dialog
 				open={isOpen}
 				onOpenChange={(open) => {
@@ -91,14 +94,22 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 				<DialogContent>
 					<form onSubmit={handleSubmit}>
 						<DialogHeader>
-							<DialogTitle>Create a team</DialogTitle>
+							<DialogTitle>
+								<Trans id="settings.teams.createDialogTitle">
+									Create a team
+								</Trans>
+							</DialogTitle>
 							<DialogDescription>
-								Name and a URL-friendly slug. Both can be changed later.
+								<Trans id="settings.teams.createDialogDescription">
+									Name and a URL-friendly slug. Both can be changed later.
+								</Trans>
 							</DialogDescription>
 						</DialogHeader>
 						<div className="my-4 space-y-4">
 							<div className="space-y-1.5">
-								<Label htmlFor="team-name">Name</Label>
+								<Label htmlFor="team-name">
+									<Trans id="settings.teams.nameLabel">Name</Trans>
+								</Label>
 								<Input
 									id="team-name"
 									value={name}
@@ -109,7 +120,9 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 								/>
 							</div>
 							<div className="space-y-1.5">
-								<Label htmlFor="team-slug">Slug</Label>
+								<Label htmlFor="team-slug">
+									<Trans id="settings.teams.slugLabel">Slug</Trans>
+								</Label>
 								<Input
 									id="team-slug"
 									value={slug}
@@ -126,13 +139,17 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 								onClick={() => setIsOpen(false)}
 								disabled={isSubmitting}
 							>
-								Cancel
+								<Trans id="settings.teams.createCancel">Cancel</Trans>
 							</Button>
 							<Button
 								type="submit"
 								disabled={!name.trim() || !slug.trim() || isSubmitting}
 							>
-								{isSubmitting ? "Creating..." : "Create"}
+								{isSubmitting ? (
+									<Trans id="settings.teams.creatingButton">Creating...</Trans>
+								) : (
+									<Trans id="settings.teams.createConfirm">Create</Trans>
+								)}
 							</Button>
 						</DialogFooter>
 					</form>

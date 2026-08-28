@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
@@ -30,10 +31,17 @@ export function V2WorktreeLocationPicker({
 	onSelect,
 	onReset,
 }: V2WorktreeLocationPickerProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const [remoteBrowseOpen, setRemoteBrowseOpen] = useState(false);
 
-	const displayPath = currentPath ?? fallbackPath ?? "Host unavailable";
+	const displayPath =
+		currentPath ??
+		fallbackPath ??
+		t({
+			id: "settings.components.v2WorktreeLocationPicker.hostUnavailable",
+			message: "Host unavailable",
+		});
 	const isBusy = disabled || selectDirectory.isPending;
 
 	const handleBrowse = async () => {
@@ -76,7 +84,11 @@ export function V2WorktreeLocationPicker({
 							<LuFolderOpen className="size-4" />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent>Change location</TooltipContent>
+					<TooltipContent>
+						<Trans id="settings.components.v2WorktreeLocationPicker.changeLocation">
+							Change location
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 				{currentPath ? (
 					<Tooltip>
@@ -93,7 +105,11 @@ export function V2WorktreeLocationPicker({
 								<LuRotateCcw className="size-4" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent>Reset location</TooltipContent>
+						<TooltipContent>
+							<Trans id="settings.components.v2WorktreeLocationPicker.resetLocation">
+								Reset location
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 				) : null}
 			</div>

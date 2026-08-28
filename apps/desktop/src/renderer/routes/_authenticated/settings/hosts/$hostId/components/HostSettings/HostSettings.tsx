@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -119,7 +120,9 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 		if (hostsPending) return null;
 		return (
 			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
-				Host not found in this organization.
+				<Trans id="settings.hosts.notFound">
+					Host not found in this organization.
+				</Trans>
 			</div>
 		);
 	}
@@ -184,7 +187,9 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 							</h3>
 							{!isOwner && (
 								<p className="text-sm text-muted-foreground mt-0.5">
-									Only owners can change membership.
+									<Trans id="settings.hosts.membersOwnerOnly">
+										Only owners can change membership.
+									</Trans>
 								</p>
 							)}
 						</div>

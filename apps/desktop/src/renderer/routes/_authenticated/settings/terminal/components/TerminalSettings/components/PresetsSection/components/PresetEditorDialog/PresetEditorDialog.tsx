@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { errorMessage } from "@superset/i18n/errors";
 import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
@@ -213,6 +214,7 @@ export function PresetEditorDialog({
 	isWorkspaceCreation,
 	isNewTab,
 }: PresetEditorDialogProps) {
+	const { t } = useLingui();
 	const linkedAgent = useMemo(() => {
 		const presetAgentId = (preset as PresetWithAgent | null)?.agentId;
 		return findLinkedAgent(agents, presetAgentId);
@@ -349,8 +351,10 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					This directory does not exist. The terminal script will fall back to
-					the workspace root.
+					<Trans id="settings.terminal.presetEditor.directoryMissing">
+						This directory does not exist. The terminal script will fall back to
+						the workspace root.
+					</Trans>
 				</AlertDescription>
 			</Alert>
 		) : trimmedCwd &&
@@ -360,7 +364,9 @@ export function PresetEditorDialog({
 			<Alert variant="destructive">
 				<HiExclamationTriangle />
 				<AlertDescription>
-					This path exists, but it is not a directory.
+					<Trans id="settings.terminal.presetEditor.pathNotDirectory">
+						This path exists, but it is not a directory.
+					</Trans>
 				</AlertDescription>
 			</Alert>
 		) : null;
@@ -372,11 +378,17 @@ export function PresetEditorDialog({
 					<>
 						<DialogHeader>
 							<DialogTitle>
-								{(linkedAgent?.label ?? preset.name).trim() || "Edit script"}
+								{(linkedAgent?.label ?? preset.name).trim() ||
+									t({
+										id: "settings.terminal.presetEditor.fallbackTitle",
+										message: "Edit script",
+									})}
 							</DialogTitle>
 							<DialogDescription className="sr-only">
-								Configure commands, availability, and launch behavior for this
-								terminal script.
+								<Trans id="settings.terminal.presetEditor.description">
+									Configure commands, availability, and launch behavior for this
+									terminal script.
+								</Trans>
 							</DialogDescription>
 						</DialogHeader>
 
@@ -392,7 +404,9 @@ export function PresetEditorDialog({
 											}
 											className="text-sm font-medium"
 										>
-											Command
+											<Trans id="settings.terminal.presetEditor.commandLabel">
+												Command
+											</Trans>
 										</Label>
 										<Link
 											to="/settings/agents/$agentId"
@@ -400,7 +414,14 @@ export function PresetEditorDialog({
 											onClick={() => onOpenChange(false)}
 											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 										>
-											Open {linkedAgent?.label ?? "agent settings"}
+											<Trans id="settings.terminal.presetEditor.openLinkedAgent">
+												Open{" "}
+												{linkedAgent?.label ??
+													t({
+														id: "settings.terminal.presetEditor.agentSettingsFallback",
+														message: "agent settings",
+													})}
+											</Trans>
 											<ExternalLink className="size-3" />
 										</Link>
 									</div>
@@ -433,8 +454,10 @@ export function PresetEditorDialog({
 									)}
 									{!linkedAgent && (
 										<p className="text-xs text-muted-foreground">
-											The linked agent is missing or disabled. Showing the
-											snapshot.
+											<Trans id="settings.terminal.presetEditor.linkedAgentMissing">
+												The linked agent is missing or disabled. Showing the
+												snapshot.
+											</Trans>
 										</p>
 									)}
 								</div>
@@ -618,14 +641,16 @@ export function PresetEditorDialog({
 								className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 							>
 								<Trash2 className="size-4" />
-								Delete script
+								<Trans id="settings.terminal.presetEditor.deleteScript">
+									Delete script
+								</Trans>
 							</Button>
 							<Button
 								type="button"
 								size="sm"
 								onClick={() => onOpenChange(false)}
 							>
-								Done
+								<Trans id="settings.terminal.presetEditor.done">Done</Trans>
 							</Button>
 						</DialogFooter>
 					</>

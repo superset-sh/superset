@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
@@ -134,7 +135,7 @@ export function V2ProjectSettings({
 		if (!isReady) return null;
 		return (
 			<div className="p-6 text-sm text-muted-foreground select-text cursor-text">
-				Project not found.
+				<Trans id="settings.project.notFound">Project not found.</Trans>
 			</div>
 		);
 	}
@@ -286,12 +287,16 @@ export function V2ProjectSettings({
 									htmlFor="project-sparse-checkout"
 									className="text-sm font-medium"
 								>
-									Sparse checkout
+									<Trans id="settings.project.sparseCheckout">
+										Sparse checkout
+									</Trans>
 								</Label>
 								<p className="mt-0.5 text-xs text-muted-foreground">
-									Folders to check out into new worktrees, one per line,
-									relative to the repo root. Files at the root are always
-									included. Empty checks out everything.
+									<Trans id="settings.project.sparseCheckoutHint">
+										Folders to check out into new worktrees, one per line,
+										relative to the repo root. Files at the root are always
+										included. Empty checks out everything.
+									</Trans>
 								</p>
 							</div>
 							<SparseCheckoutSection

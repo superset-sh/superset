@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import { Avatar } from "@superset/ui/atoms/Avatar";
@@ -48,6 +49,7 @@ interface TeamMemberRow {
 type OpenDialog = "delete" | "leaveTeam" | null;
 
 export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 	const utils = cloudTrpc.useUtils();
@@ -195,9 +197,11 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4"
 					>
 						<HiArrowLeft className="h-4 w-4" />
-						All teams
+						<Trans id="settings.teams.detail.backToTeams">All teams</Trans>
 					</Link>
-					<h2 className="text-2xl font-semibold">Team settings</h2>
+					<h2 className="text-2xl font-semibold">
+						<Trans id="settings.teams.detail.title">Team settings</Trans>
+					</h2>
 				</div>
 			</div>
 
@@ -207,7 +211,9 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 						<div className="max-w-5xl">
 							<div className="space-y-4 max-w-md">
 								<div className="space-y-1.5">
-									<Label htmlFor="team-name-edit">Name</Label>
+									<Label htmlFor="team-name-edit">
+										<Trans id="settings.teams.detail.nameLabel">Name</Trans>
+									</Label>
 									<Input
 										id="team-name-edit"
 										value={nameValue}
@@ -215,14 +221,18 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 									/>
 								</div>
 								<div className="space-y-1.5">
-									<Label htmlFor="team-slug-edit">Slug</Label>
+									<Label htmlFor="team-slug-edit">
+										<Trans id="settings.teams.detail.slugLabel">Slug</Trans>
+									</Label>
 									<Input
 										id="team-slug-edit"
 										value={slugValue}
 										onChange={(event) => setSlugValue(event.target.value)}
 									/>
 									<p className="text-xs text-muted-foreground">
-										URL-friendly identifier, unique within your organization.
+										<Trans id="settings.teams.detail.slugHint">
+											URL-friendly identifier, unique within your organization.
+										</Trans>
 									</p>
 								</div>
 								<div>
@@ -230,7 +240,13 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 										onClick={handleGeneralSave}
 										disabled={!isDirty || isSubmitting}
 									>
-										{isSubmitting ? "Saving..." : "Save"}
+										{isSubmitting ? (
+											<Trans id="settings.teams.detail.savingButton">
+												Saving...
+											</Trans>
+										) : (
+											<Trans id="settings.teams.detail.saveButton">Save</Trans>
+										)}
 									</Button>
 								</div>
 							</div>
@@ -239,7 +255,11 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 
 					<div className="max-w-5xl space-y-4">
 						<div className="flex items-center justify-between gap-4">
-							<h3 className="text-lg font-semibold">Team members</h3>
+							<h3 className="text-lg font-semibold">
+								<Trans id="settings.teams.detail.membersTitle">
+									Team members
+								</Trans>
+							</h3>
 							{team && (
 								<AddMemberButton
 									teamId={teamId}
@@ -265,16 +285,30 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							</div>
 						) : members.length === 0 ? (
 							<div className="text-center py-12 text-muted-foreground border rounded-lg">
-								No members yet
+								<Trans id="settings.teams.detail.membersEmpty">
+									No members yet
+								</Trans>
 							</div>
 						) : (
 							<div className="border rounded-lg">
 								<Table>
 									<TableHeader>
 										<TableRow>
-											<TableHead>Name</TableHead>
-											<TableHead>Email</TableHead>
-											<TableHead>Joined</TableHead>
+											<TableHead>
+												<Trans id="settings.teams.detail.columnName">
+													Name
+												</Trans>
+											</TableHead>
+											<TableHead>
+												<Trans id="settings.teams.detail.columnEmail">
+													Email
+												</Trans>
+											</TableHead>
+											<TableHead>
+												<Trans id="settings.teams.detail.columnJoined">
+													Joined
+												</Trans>
+											</TableHead>
 										</TableRow>
 									</TableHeader>
 									<TableBody>
@@ -291,14 +325,20 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 															/>
 															<div className="flex items-center gap-2">
 																<span className="font-medium">
-																	{member.name || "Unknown"}
+																	{member.name ||
+																		t({
+																			id: "settings.teams.detail.unknownMemberName",
+																			message: "Unknown",
+																		})}
 																</span>
 																{isCurrentUser && (
 																	<Badge
 																		variant="secondary"
 																		className="text-xs"
 																	>
-																		You
+																		<Trans id="settings.teams.detail.youBadge">
+																			You
+																		</Trans>
 																	</Badge>
 																)}
 															</div>
@@ -321,38 +361,58 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 
 					{team && (
 						<div className="max-w-5xl space-y-4">
-							<h3 className="text-lg font-semibold">Danger zone</h3>
+							<h3 className="text-lg font-semibold">
+								<Trans id="settings.teams.detail.dangerZoneTitle">
+									Danger zone
+								</Trans>
+							</h3>
 							<div className="border rounded-lg divide-y">
 								{currentMember && (
 									<div className="flex items-center justify-between gap-4 p-4">
 										<div className="min-w-0">
-											<p className="text-sm font-medium">Leave team</p>
+											<p className="text-sm font-medium">
+												<Trans id="settings.teams.detail.leaveTitle">
+													Leave team
+												</Trans>
+											</p>
 											<p className="text-xs text-muted-foreground mt-0.5">
-												You'll stop being a member of this team. You can be
-												re-added by another team member.
+												<Trans id="settings.teams.detail.leaveHint">
+													You'll stop being a member of this team. You can be
+													re-added by another team member.
+												</Trans>
 											</p>
 										</div>
 										<Button
 											variant="outline"
 											onClick={() => setOpenDialog("leaveTeam")}
 										>
-											Leave team
+											<Trans id="settings.teams.detail.leaveButton">
+												Leave team
+											</Trans>
 										</Button>
 									</div>
 								)}
 								<div className="flex items-center justify-between gap-4 p-4">
 									<div className="min-w-0">
-										<p className="text-sm font-medium">Delete team</p>
+										<p className="text-sm font-medium">
+											<Trans id="settings.teams.detail.deleteTitle">
+												Delete team
+											</Trans>
+										</p>
 										<p className="text-xs text-muted-foreground mt-0.5">
-											Permanently remove <strong>{team.name}</strong> and all of
-											its members. This can't be undone.
+											<Trans id="settings.teams.detail.deleteHint">
+												Permanently remove <strong>{team.name}</strong> and all
+												of its members. This can't be undone.
+											</Trans>
 										</p>
 									</div>
 									<Button
 										variant="destructive"
 										onClick={() => setOpenDialog("delete")}
 									>
-										Delete team
+										<Trans id="settings.teams.detail.deleteButton">
+											Delete team
+										</Trans>
 									</Button>
 								</div>
 							</div>
@@ -367,10 +427,16 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Delete team</DialogTitle>
+						<DialogTitle>
+							<Trans id="settings.teams.detail.deleteDialogTitle">
+								Delete team
+							</Trans>
+						</DialogTitle>
 						<DialogDescription>
-							This will delete <strong>{team?.name}</strong> and remove all of
-							its members. This can't be undone.
+							<Trans id="settings.teams.detail.deleteDialogDescription">
+								This will delete <strong>{team?.name}</strong> and remove all of
+								its members. This can't be undone.
+							</Trans>
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter className="mt-4">
@@ -380,7 +446,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							onClick={() => setOpenDialog(null)}
 							disabled={isSubmitting}
 						>
-							Cancel
+							<Trans id="settings.teams.detail.deleteCancel">Cancel</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -388,7 +454,15 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							onClick={handleDelete}
 							disabled={isSubmitting}
 						>
-							{isSubmitting ? "Deleting..." : "Delete team"}
+							{isSubmitting ? (
+								<Trans id="settings.teams.detail.deletingButton">
+									Deleting...
+								</Trans>
+							) : (
+								<Trans id="settings.teams.detail.deleteConfirm">
+									Delete team
+								</Trans>
+							)}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -400,10 +474,16 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Leave team</DialogTitle>
+						<DialogTitle>
+							<Trans id="settings.teams.detail.leaveDialogTitle">
+								Leave team
+							</Trans>
+						</DialogTitle>
 						<DialogDescription>
-							You'll stop being a member of this team. You can be re-added by
-							another team member.
+							<Trans id="settings.teams.detail.leaveDialogDescription">
+								You'll stop being a member of this team. You can be re-added by
+								another team member.
+							</Trans>
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter className="mt-4">
@@ -413,7 +493,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							onClick={() => setOpenDialog(null)}
 							disabled={isSubmitting}
 						>
-							Cancel
+							<Trans id="settings.teams.detail.leaveCancel">Cancel</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -421,7 +501,15 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							onClick={handleLeaveTeam}
 							disabled={isSubmitting}
 						>
-							{isSubmitting ? "Leaving..." : "Leave team"}
+							{isSubmitting ? (
+								<Trans id="settings.teams.detail.leavingButton">
+									Leaving...
+								</Trans>
+							) : (
+								<Trans id="settings.teams.detail.leaveConfirm">
+									Leave team
+								</Trans>
+							)}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

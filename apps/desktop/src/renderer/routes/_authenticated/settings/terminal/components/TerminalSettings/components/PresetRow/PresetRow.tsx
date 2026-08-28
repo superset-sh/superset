@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { normalizeExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
@@ -50,6 +51,7 @@ export function PresetRow({
 	onPersistReorder,
 	onToggleVisibility,
 }: PresetRowProps) {
+	const { t } = useLingui();
 	const rowRef = useRef<HTMLDivElement>(null);
 	const dragHandleRef = useRef<HTMLButtonElement>(null);
 
@@ -102,7 +104,11 @@ export function PresetRow({
 	const modeValue = normalizeExecutionMode(preset.executionMode);
 	const modeLabel = getPresetModeLabel(modeValue, commands.length);
 	const firstCommand =
-		commands.find((cmd) => cmd.trim().length > 0)?.trim() ?? "Empty command";
+		commands.find((cmd) => cmd.trim().length > 0)?.trim() ??
+		t({
+			id: "settings.terminal.presetRow.emptyCommand",
+			message: "Empty command",
+		});
 	const commandSummary =
 		commands.length > 1
 			? `${firstCommand}  +${commands.length - 1}`
@@ -142,14 +148,20 @@ export function PresetRow({
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">
-						{preset.name.trim() || "Untitled script"}
+						{preset.name.trim() ||
+							t({
+								id: "settings.terminal.presetRow.untitledScript",
+								message: "Untitled script",
+							})}
 					</span>
 					{isWorkspaceCreation && (
 						<Badge
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							Workspace
+							<Trans id="settings.terminal.presetRow.badgeWorkspace">
+								Workspace
+							</Trans>
 						</Badge>
 					)}
 					{isWorkspaceRun && (
@@ -157,7 +169,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							Run
+							<Trans id="settings.terminal.presetRow.badgeRun">Run</Trans>
 						</Badge>
 					)}
 					{isNewTab && (
@@ -165,7 +177,7 @@ export function PresetRow({
 							variant="secondary"
 							className="text-[10px] h-4 px-1.5 shrink-0"
 						>
-							Tab
+							<Trans id="settings.terminal.presetRow.badgeTab">Tab</Trans>
 						</Badge>
 					)}
 				</div>

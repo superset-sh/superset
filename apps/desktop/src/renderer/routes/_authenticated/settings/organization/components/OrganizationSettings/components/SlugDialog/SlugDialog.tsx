@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -54,6 +55,7 @@ export function SlugDialog({
 	currentSlug,
 	onSuccess,
 }: SlugDialogProps) {
+	const { t } = useLingui();
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 	const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 
@@ -121,13 +123,28 @@ export function SlugDialog({
 
 	function getSlugStatusDisplay(): { text: string; className: string } | null {
 		if (isCheckingSlug) {
-			return { text: "Checking...", className: "text-muted-foreground" };
+			return {
+				text: t({
+					id: "settings.organization.slugChecking",
+					message: "Checking...",
+				}),
+				className: "text-muted-foreground",
+			};
 		}
 		if (slugAvailable === true) {
-			return { text: "Available", className: "text-green-600" };
+			return {
+				text: t({
+					id: "settings.organization.slugAvailable",
+					message: "Available",
+				}),
+				className: "text-green-600",
+			};
 		}
 		if (slugAvailable === false) {
-			return { text: "Taken", className: "text-destructive" };
+			return {
+				text: t({ id: "settings.organization.slugTaken", message: "Taken" }),
+				className: "text-destructive",
+			};
 		}
 		return null;
 	}
@@ -138,10 +155,16 @@ export function SlugDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Change organization slug</DialogTitle>
+					<DialogTitle>
+						<Trans id="settings.organization.slugDialogTitle">
+							Change organization slug
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						This will change your organization's public URL. Make sure to update
-						any bookmarks or shared links.
+						<Trans id="settings.organization.slugDialogDescription">
+							This will change your organization's public URL. Make sure to
+							update any bookmarks or shared links.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<Form {...slugForm}>
@@ -154,7 +177,11 @@ export function SlugDialog({
 							name="slug"
 							render={({ field }) => (
 								<>
-									<FormLabel>Organization slug</FormLabel>
+									<FormLabel>
+										<Trans id="settings.organization.slugLabel">
+											Organization slug
+										</Trans>
+									</FormLabel>
 									<FormControl>
 										<div className="relative">
 											<Input {...field} placeholder="acme-inc" />
@@ -181,7 +208,7 @@ export function SlugDialog({
 									setSlugAvailable(null);
 								}}
 							>
-								Cancel
+								<Trans id="settings.organization.slugCancel">Cancel</Trans>
 							</Button>
 							<Button
 								type="submit"
@@ -191,7 +218,7 @@ export function SlugDialog({
 									slugValue === currentSlug
 								}
 							>
-								Save
+								<Trans id="settings.organization.slugSave">Save</Trans>
 							</Button>
 						</DialogFooter>
 					</form>

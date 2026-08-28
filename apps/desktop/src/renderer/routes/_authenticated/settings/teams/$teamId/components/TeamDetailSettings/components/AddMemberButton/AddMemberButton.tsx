@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -104,7 +105,7 @@ export function AddMemberButton({
 			<PopoverTrigger asChild>
 				<Button size="sm">
 					<HiOutlinePlus className="h-4 w-4 mr-1" />
-					Add member
+					<Trans id="settings.teams.addMember.button">Add member</Trans>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-72 p-0">
@@ -120,7 +121,9 @@ export function AddMemberButton({
 				<div className="max-h-64 overflow-auto p-1">
 					{sortedUsers.length === 0 ? (
 						<div className="text-center py-6 text-xs text-muted-foreground">
-							No matching org members.
+							<Trans id="settings.teams.addMember.emptyState">
+								No matching org members.
+							</Trans>
 						</div>
 					) : (
 						sortedUsers.map((user) => {
@@ -155,7 +158,9 @@ export function AddMemberButton({
 						className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<HiOutlinePaperAirplane className="h-4 w-4" />
-						Invite people...
+						<Trans id="settings.teams.addMember.invitePeople">
+							Invite people...
+						</Trans>
 					</Link>
 				</div>
 			</PopoverContent>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import type { UsageHistory } from "../../hooks/useHostUsageHistory";
 import type { HistoryMetric } from "../UsageHistorySection/constants";
@@ -31,7 +32,7 @@ export function WorkspaceUsageRow({
 					{row.project}
 					{row.kind === "project" && (
 						<span className="text-[9px] uppercase text-muted-foreground">
-							repo
+							<Trans id="settings.usage.workspaceRow.repoBadge">repo</Trans>
 						</span>
 					)}
 				</span>

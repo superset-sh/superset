@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -43,8 +44,14 @@ export function MarkdownStyleSection() {
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>
-					<SelectItem value="default">Default</SelectItem>
-					<SelectItem value="tufte">Tufte</SelectItem>
+					<SelectItem value="default">
+						<Trans id="settings.appearance.markdownStyle.default">
+							Default
+						</Trans>
+					</SelectItem>
+					<SelectItem value="tufte">
+						<Trans id="settings.appearance.markdownStyle.tufte">Tufte</Trans>
+					</SelectItem>
 				</SelectContent>
 			</Select>
 		</div>

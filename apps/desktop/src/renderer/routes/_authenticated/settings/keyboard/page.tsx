@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -81,7 +82,9 @@ function HotkeyRow({
 					)}
 				>
 					{isRecording ? (
-						<span>Press a key…</span>
+						<span>
+							<Trans id="settings.keyboard.pressKey">Press a key…</Trans>
+						</span>
 					) : (
 						<KbdGroup>
 							{keys.map((key) => (
@@ -91,7 +94,7 @@ function HotkeyRow({
 					)}
 				</button>
 				<Button variant="ghost" size="sm" onClick={onReset}>
-					Reset
+					<Trans id="settings.keyboard.reset">Reset</Trans>
 				</Button>
 			</div>
 		</div>
@@ -130,6 +133,7 @@ function getHotkeysByCategory(): Record<
 const hotkeysByCategory = getHotkeysByCategory();
 
 function KeyboardShortcutsPage() {
+	const { t } = useLingui();
 	const settingsSearchQuery = useSettingsSearchQuery();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
@@ -200,6 +204,24 @@ function KeyboardShortcutsPage() {
 
 	const conflictDisplay = useFormatBinding(pendingConflict?.binding ?? null);
 
+	const categoryLabels: Record<HotkeyCategory, string> = {
+		Navigation: t({
+			id: "settings.keyboard.category.navigation",
+			message: "Navigation",
+		}),
+		Workspace: t({
+			id: "settings.keyboard.category.workspace",
+			message: "Workspace",
+		}),
+		Terminal: t({
+			id: "settings.keyboard.category.terminal",
+			message: "Terminal",
+		}),
+		Layout: t({ id: "settings.keyboard.category.layout", message: "Layout" }),
+		Window: t({ id: "settings.keyboard.category.window", message: "Window" }),
+		Help: t({ id: "settings.keyboard.category.help", message: "Help" }),
+	};
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			{/* Header */}
@@ -212,13 +234,15 @@ function KeyboardShortcutsPage() {
 						/>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Customize keyboard shortcuts for your workflow. Press{" "}
-						<KbdGroup>
-							{showHotkeysKeys.map((key) => (
-								<Kbd key={key}>{key}</Kbd>
-							))}
-						</KbdGroup>{" "}
-						to open this page anytime.
+						<Trans id="settings.keyboard.subtitle">
+							Customize keyboard shortcuts for your workflow. Press{" "}
+							<KbdGroup>
+								{showHotkeysKeys.map((key) => (
+									<Kbd key={key}>{key}</Kbd>
+								))}
+							</KbdGroup>{" "}
+							to open this page anytime.
+						</Trans>
 					</p>
 				</div>
 				<Button
@@ -229,7 +253,7 @@ function KeyboardShortcutsPage() {
 						resetAll();
 					}}
 				>
-					Reset all
+					<Trans id="settings.keyboard.resetAll">Reset all</Trans>
 				</Button>
 			</div>
 
@@ -237,13 +261,17 @@ function KeyboardShortcutsPage() {
 			<div className="mb-8 flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="adaptive-layout" className="text-sm font-medium">
-						Adaptive layout mapping
+						<Trans id="settings.keyboard.adaptiveLayout">
+							Adaptive layout mapping
+						</Trans>
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						Match shortcuts to the labels on your keyboard (e.g. ⌘Z always fires
-						on the key labeled "Z" — physical KeyY on QWERTZ). When off,
-						shortcuts are anchored to physical key positions and ignore the
-						current input source.
+						<Trans id="settings.keyboard.adaptiveLayoutHint">
+							Match shortcuts to the labels on your keyboard (e.g. ⌘Z always
+							fires on the key labeled "Z" — physical KeyY on QWERTZ). When off,
+							shortcuts are anchored to physical key positions and ignore the
+							current input source.
+						</Trans>
 					</p>
 				</div>
 				<Switch
@@ -274,7 +302,7 @@ function KeyboardShortcutsPage() {
 					return (
 						<div key={category}>
 							<h3 className="text-sm font-medium text-muted-foreground mb-2">
-								{category}
+								{categoryLabels[category]}
 							</h3>
 							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
 								{hotkeys.map((hotkey) => (
@@ -302,7 +330,9 @@ function KeyboardShortcutsPage() {
 					(cat) => (filteredHotkeysByCategory[cat] ?? []).length === 0,
 				) && (
 					<div className="py-8 text-center text-sm text-muted-foreground">
-						No shortcuts found matching "{searchQuery}"
+						<Trans id="settings.keyboard.noShortcutsFound">
+							No shortcuts found matching "{searchQuery}"
+						</Trans>
 					</div>
 				)}
 			</div>
@@ -315,18 +345,27 @@ function KeyboardShortcutsPage() {
 				<AlertDialogContent className="max-w-[380px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pt-4 pb-2">
 						<AlertDialogTitle className="font-medium">
-							Shortcut already in use
+							<Trans id="settings.keyboard.conflictTitle">
+								Shortcut already in use
+							</Trans>
 						</AlertDialogTitle>
 						<AlertDialogDescription asChild>
 							<div className="text-muted-foreground space-y-1.5">
 								<span className="block">
 									{pendingConflict
-										? `${conflictDisplay.text} is already assigned to "${
-												HOTKEYS[pendingConflict.conflictId].label
-											}".`
+										? t({
+												id: "settings.keyboard.conflictMessage",
+												message: `${conflictDisplay.text} is already assigned to "${
+													HOTKEYS[pendingConflict.conflictId].label
+												}".`,
+											})
 										: ""}
 								</span>
-								<span className="block">Would you like to reassign it?</span>
+								<span className="block">
+									<Trans id="settings.keyboard.conflictQuestion">
+										Would you like to reassign it?
+									</Trans>
+								</span>
 							</div>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
@@ -336,14 +375,14 @@ function KeyboardShortcutsPage() {
 							size="sm"
 							onClick={() => setPendingConflict(null)}
 						>
-							Cancel
+							<Trans id="settings.keyboard.conflictCancel">Cancel</Trans>
 						</Button>
 						<Button
 							variant="secondary"
 							size="sm"
 							onClick={handleConflictReassign}
 						>
-							Reassign
+							<Trans id="settings.keyboard.conflictReassign">Reassign</Trans>
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

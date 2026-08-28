@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ChartConfig } from "@superset/ui/chart";
 import {
 	ChartContainer,
@@ -37,6 +38,7 @@ export function UsageDrilldownPage({
 	kind: DrilldownKind;
 	entityKey: string;
 }) {
+	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
 	const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
@@ -110,7 +112,7 @@ export function UsageDrilldownPage({
 					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
-					Usage
+					<Trans id="settings.usage.drilldown.backToUsage">Usage</Trans>
 				</Link>
 				<span className="text-muted-foreground/60">/</span>
 				<h1 className="flex items-center gap-2 text-base font-semibold tracking-tight">
@@ -121,7 +123,11 @@ export function UsageDrilldownPage({
 					{title}
 				</h1>
 				<span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-					{kind}
+					{kind === "workspace" ? (
+						<Trans id="settings.usage.drilldown.kindWorkspace">workspace</Trans>
+					) : (
+						<Trans id="settings.usage.drilldown.kindModel">model</Trans>
+					)}
 				</span>
 				<div className="ml-auto flex items-center gap-1.5">
 					<Tabs
@@ -130,10 +136,10 @@ export function UsageDrilldownPage({
 					>
 						<TabsList className="h-6">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
-								Cost
+								<Trans id="settings.usage.drilldown.metricCost">Cost</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="tokens" className="h-4 px-1.5 text-[10px]">
-								Tokens
+								<Trans id="settings.usage.drilldown.metricTokens">Tokens</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -158,11 +164,21 @@ export function UsageDrilldownPage({
 
 			{!history ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
-					Loading usage history…
+					<Trans id="settings.usage.drilldown.loading">
+						Loading usage history…
+					</Trans>
 				</div>
 			) : !detail ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
-					No usage recorded for this {kind} in the selected range.
+					{kind === "workspace" ? (
+						<Trans id="settings.usage.drilldown.noUsageWorkspace">
+							No usage recorded for this workspace in the selected range.
+						</Trans>
+					) : (
+						<Trans id="settings.usage.drilldown.noUsageModel">
+							No usage recorded for this model in the selected range.
+						</Trans>
+					)}
 				</div>
 			) : (
 				<>
@@ -173,10 +189,17 @@ export function UsageDrilldownPage({
 								: formatTokens(detail.tokens)}
 						</span>
 						<span className="text-[11px] text-muted-foreground">
-							{Math.round(100 * shareOfTotal)}% of{" "}
-							{metric === "usd" ? "total cost" : "all tokens"} ·{" "}
-							{formatTokens(detail.tokens)} tokens
-							{metric === "usd" && " · * at API list rates"}
+							{metric === "usd" ? (
+								<Trans id="settings.usage.drilldown.shareSummaryCost">
+									{Math.round(100 * shareOfTotal)}% of total cost ·{" "}
+									{formatTokens(detail.tokens)} tokens · * at API list rates
+								</Trans>
+							) : (
+								<Trans id="settings.usage.drilldown.shareSummaryTokens">
+									{Math.round(100 * shareOfTotal)}% of all tokens ·{" "}
+									{formatTokens(detail.tokens)} tokens
+								</Trans>
+							)}
 						</span>
 					</div>
 
@@ -232,9 +255,19 @@ export function UsageDrilldownPage({
 					<div className="flex flex-col gap-1.5">
 						<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 							<span className="font-medium">
-								{kind === "workspace" ? "Models used" : "Workspaces"}
+								{kind === "workspace" ? (
+									<Trans id="settings.usage.drilldown.modelsUsed">
+										Models used
+									</Trans>
+								) : (
+									<Trans id="settings.usage.drilldown.workspaces">
+										Workspaces
+									</Trans>
+								)}
 							</span>
-							<span className="font-medium">Cost</span>
+							<span className="font-medium">
+								<Trans id="settings.usage.drilldown.breakdownCost">Cost</Trans>
+							</span>
 						</div>
 						{detail.breakdown.slice(0, 8).map((row) => {
 							const rowTitle =
@@ -309,9 +342,15 @@ export function UsageDrilldownPage({
 							<div className="flex flex-col gap-1.5">
 								<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
 									<span className="font-medium">
-										Sessions · top {detail.sessions.length} by cost
+										<Trans id="settings.usage.drilldown.topSessions">
+											Sessions · top {detail.sessions.length} by cost
+										</Trans>
 									</span>
-									<span className="font-medium">Cost</span>
+									<span className="font-medium">
+										<Trans id="settings.usage.drilldown.sessionsCost">
+											Cost
+										</Trans>
+									</span>
 								</div>
 								{detail.sessions.map((session) => {
 									const sessionMax = detail.sessions?.[0]?.usd ?? 0;
@@ -335,7 +374,10 @@ export function UsageDrilldownPage({
 													/>
 													<span className="truncate">
 														{session.label ??
-															`Session ${session.id.slice(0, 8)}`}
+															t({
+																id: "settings.usage.drilldown.sessionFallbackLabel",
+																message: `Session ${session.id.slice(0, 8)}`,
+															})}
 													</span>
 													<span className="shrink-0 text-muted-foreground">
 														{new Date(session.lastMs).toLocaleDateString(
@@ -346,7 +388,9 @@ export function UsageDrilldownPage({
 													{copied ? (
 														<span className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-500">
 															<LuCheck className="size-2.5" />
-															ID copied
+															<Trans id="settings.usage.drilldown.idCopied">
+																ID copied
+															</Trans>
 														</span>
 													) : (
 														<LuCopy className="size-2.5 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />

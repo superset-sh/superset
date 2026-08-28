@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -240,6 +241,7 @@ function PlansPage() {
 	// "Change to Annual" that bills a year up front. A manual toggle wins from
 	// then on, and Annual stays the default for free and enterprise, which have
 	// no interval to read.
+	const { t } = useLingui();
 	const [manualIsYearly, setManualIsYearly] = useState<boolean | null>(null);
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
@@ -375,7 +377,11 @@ function PlansPage() {
 
 	const renderComparisonValue = (value: ComparisonValue) => {
 		if (value === null || value === false) {
-			return <span className="sr-only">Not included</span>;
+			return (
+				<span className="sr-only">
+					<Trans id="settings.billing.plans.notIncluded">Not included</Trans>
+				</span>
+			);
 		}
 
 		if (value === true) {
@@ -400,32 +406,36 @@ function PlansPage() {
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing">
 						<HiArrowLeft className="h-4 w-4" />
-						Billing
+						<Trans id="settings.billing.plans.backToBilling">Billing</Trans>
 					</Link>
 				</Button>
 				<div>
-					<h2 className="text-xl font-semibold">Plans</h2>
+					<h2 className="text-xl font-semibold">
+						<Trans id="settings.billing.plans.title">Plans</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						You are on the{" "}
-						<span className="text-foreground font-medium">
-							{currentPlanLabel} plan
-						</span>
-						. If you have any questions or would like further support with your
-						plan,{" "}
-						<button
-							type="button"
-							onClick={() => {
-								track("billing_support_contacted", {
-									source: "billing_plans_inline",
-								});
-								openUrl.mutate("mailto:support@superset.sh");
-							}}
-							className="inline-flex items-center gap-1 text-primary hover:underline"
-						>
-							contact us
-							<HiArrowUpRight className="h-3 w-3" />
-						</button>
-						.
+						<Trans id="settings.billing.plans.subtitle">
+							You are on the{" "}
+							<span className="text-foreground font-medium">
+								{currentPlanLabel} plan
+							</span>
+							. If you have any questions or would like further support with
+							your plan,{" "}
+							<button
+								type="button"
+								onClick={() => {
+									track("billing_support_contacted", {
+										source: "billing_plans_inline",
+									});
+									openUrl.mutate("mailto:support@superset.sh");
+								}}
+								className="inline-flex items-center gap-1 text-primary hover:underline"
+							>
+								contact us
+								<HiArrowUpRight className="h-3 w-3" />
+							</button>
+							.
+						</Trans>
 					</p>
 				</div>
 			</div>
@@ -463,8 +473,14 @@ function PlansPage() {
 										planActions = [
 											{
 												label: isCurrent
-													? "Current plan"
-													: "Included in Enterprise",
+													? t({
+															id: "settings.billing.plans.currentPlanAction",
+															message: "Current plan",
+														})
+													: t({
+															id: "settings.billing.plans.includedInEnterprise",
+															message: "Included in Enterprise",
+														}),
 												action: "current" as const,
 												variant: "secondary" as const,
 											},
@@ -472,7 +488,15 @@ function PlansPage() {
 									} else if (isCurrent && cancelAt) {
 										planActions = [
 											{
-												label: isRestoring ? "Restoring..." : "Restore plan",
+												label: isRestoring
+													? t({
+															id: "settings.billing.plans.restoringAction",
+															message: "Restoring...",
+														})
+													: t({
+															id: "settings.billing.plans.restoreAction",
+															message: "Restore plan",
+														}),
 												action: "restore" as const,
 												variant: "default" as const,
 											},
@@ -487,7 +511,10 @@ function PlansPage() {
 										if (!planResolved || intervalMatches) {
 											planActions = [
 												{
-													label: "Current plan",
+													label: t({
+														id: "settings.billing.plans.currentPlanAction",
+														message: "Current plan",
+													}),
 													action: "current" as const,
 													variant: "secondary" as const,
 												},
@@ -496,10 +523,19 @@ function PlansPage() {
 											planActions = [
 												{
 													label: isUpgrading
-														? "Changing..."
+														? t({
+																id: "settings.billing.plans.changingAction",
+																message: "Changing...",
+															})
 														: isYearly
-															? "Change to Annual"
-															: "Change to Monthly",
+															? t({
+																	id: "settings.billing.plans.changeToAnnual",
+																	message: "Change to Annual",
+																})
+															: t({
+																	id: "settings.billing.plans.changeToMonthly",
+																	message: "Change to Monthly",
+																}),
 													action: "upgrade" as const,
 													variant: "default" as const,
 												},
@@ -508,7 +544,10 @@ function PlansPage() {
 									} else if (isCurrent) {
 										planActions = [
 											{
-												label: "Current plan",
+												label: t({
+													id: "settings.billing.plans.currentPlanAction",
+													message: "Current plan",
+												}),
 												action: "current" as const,
 												variant: "secondary" as const,
 											},
@@ -516,7 +555,10 @@ function PlansPage() {
 									} else if (isDowngrade && cancelAt) {
 										planActions = [
 											{
-												label: `Starts ${cancelAt ? format(new Date(cancelAt), "MMMM d, yyyy") : ""}`,
+												label: t({
+													id: "settings.billing.plans.startsOn",
+													message: `Starts ${cancelAt ? format(new Date(cancelAt), "MMMM d, yyyy") : ""}`,
+												}),
 												action: "current" as const,
 												variant: "outline" as const,
 											},
@@ -525,8 +567,14 @@ function PlansPage() {
 										planActions = [
 											{
 												label: isCanceling
-													? "Downgrading..."
-													: "Downgrade to Free",
+													? t({
+															id: "settings.billing.plans.downgradingAction",
+															message: "Downgrading...",
+														})
+													: t({
+															id: "settings.billing.plans.downgradeToFree",
+															message: "Downgrade to Free",
+														}),
 												action: "downgrade" as const,
 												variant: "outline" as const,
 											},

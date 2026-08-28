@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
@@ -251,9 +252,13 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Notifications</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.ringtones.title">Notifications</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Sounds and ringtone for completed tasks
+					<Trans id="settings.ringtones.subtitle">
+						Sounds and ringtone for completed tasks
+					</Trans>
 				</p>
 			</div>
 
@@ -266,10 +271,14 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								htmlFor="notification-sounds"
 								className="text-sm font-medium"
 							>
-								Notification sounds
+								<Trans id="settings.ringtones.soundsLabel">
+									Notification sounds
+								</Trans>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Play a sound when tasks complete
+								<Trans id="settings.ringtones.soundsHint">
+									Play a sound when tasks complete
+								</Trans>
 							</p>
 						</div>
 						<Switch
@@ -296,8 +305,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 									/>
 								</h3>
 								<p className="text-xs text-muted-foreground">
-									Pick a sound or add your own. Custom audio supports .mp3,
-									.wav, and .ogg.
+									<Trans id="settings.ringtones.pickSoundHint">
+										Pick a sound or add your own. Custom audio supports .mp3,
+										.wav, and .ogg.
+									</Trans>
 								</p>
 							</div>
 							<Button
@@ -312,7 +323,15 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								) : (
 									<HiPlus className="mr-1.5 h-3.5 w-3.5" />
 								)}
-								{customRingtone ? "Replace custom audio" : "Add custom audio"}
+								{customRingtone ? (
+									<Trans id="settings.ringtones.replaceCustomAudio">
+										Replace custom audio
+									</Trans>
+								) : (
+									<Trans id="settings.ringtones.addCustomAudio">
+										Add custom audio
+									</Trans>
+								)}
 							</Button>
 						</div>
 						<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">

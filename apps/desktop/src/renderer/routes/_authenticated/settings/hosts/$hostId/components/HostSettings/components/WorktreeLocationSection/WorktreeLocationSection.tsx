@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -41,7 +42,9 @@ export function WorktreeLocationSection({
 					<HighlightText text="Worktrees" query={searchQuery} />
 				</h3>
 				<p className="mt-0.5 text-sm text-muted-foreground">
-					Default location for new worktree workspaces on this host.
+					<Trans id="settings.hosts.worktrees.hint">
+						Default location for new worktree workspaces on this host.
+					</Trans>
 				</p>
 			</div>
 			<V2WorktreeLocationPicker
@@ -57,7 +60,9 @@ export function WorktreeLocationSection({
 			/>
 			{!canEdit ? (
 				<p className="text-xs text-muted-foreground">
-					Only host owners can change this location.
+					<Trans id="settings.hosts.worktrees.ownerOnly">
+						Only host owners can change this location.
+					</Trans>
 				</p>
 			) : null}
 		</section>

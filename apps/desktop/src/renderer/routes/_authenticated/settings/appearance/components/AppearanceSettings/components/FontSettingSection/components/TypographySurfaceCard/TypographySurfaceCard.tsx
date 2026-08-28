@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -49,7 +50,6 @@ type NumericSettingKey =
 const VARIANT_CONFIG = {
 	editor: {
 		title: "Editor typography",
-		description: "Typography used in V2 editors and diff views.",
 		defaultFamily: DEFAULT_CODE_EDITOR_FONT_FAMILY,
 		defaultSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
 		defaultLineHeight: 1.5,
@@ -70,7 +70,6 @@ const VARIANT_CONFIG = {
 	},
 	terminal: {
 		title: "Terminal typography",
-		description: "Typography and cursor behavior used in V2 terminal panels.",
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 		defaultSize: DEFAULT_TERMINAL_FONT_SIZE,
 		defaultLineHeight: DEFAULT_TERMINAL_LINE_HEIGHT,
@@ -188,19 +187,29 @@ export function TypographySurfaceCard({
 						</h4>
 					</div>
 					<p className="mt-1 text-xs text-muted-foreground">
-						{config.description}
+						{variant === "editor" ? (
+							<Trans id="settings.appearance.typography.editorDescription">
+								Typography used in V2 editors and diff views.
+							</Trans>
+						) : (
+							<Trans id="settings.appearance.typography.terminalDescription">
+								Typography and cursor behavior used in V2 terminal panels.
+							</Trans>
+						)}
 						{variant === "terminal" && (
 							<>
 								{" "}
-								<a
-									href="https://www.nerdfonts.com"
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-primary hover:underline"
-								>
-									Nerd Fonts
-								</a>{" "}
-								are recommended.
+								<Trans id="settings.appearance.typography.nerdFontsRecommended">
+									<a
+										href="https://www.nerdfonts.com"
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-primary hover:underline"
+									>
+										Nerd Fonts
+									</a>{" "}
+									are recommended.
+								</Trans>
 							</>
 						)}
 					</p>
@@ -218,14 +227,26 @@ export function TypographySurfaceCard({
 						}}
 					>
 						<RotateCcw className="size-3.5" />
-						Reset {variant}
+						{variant === "editor" ? (
+							<Trans id="settings.appearance.typography.resetEditor">
+								Reset editor
+							</Trans>
+						) : (
+							<Trans id="settings.appearance.typography.resetTerminal">
+								Reset terminal
+							</Trans>
+						)}
 					</Button>
 				)}
 			</div>
 
 			<div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
 				<div className="space-y-1.5">
-					<Label className="text-xs">Font family</Label>
+					<Label className="text-xs">
+						<Trans id="settings.appearance.typography.fontFamily">
+							Font family
+						</Trans>
+					</Label>
 					<FontFamilyCombobox
 						value={currentFamily}
 						defaultValue={config.defaultFamily}
@@ -238,7 +259,9 @@ export function TypographySurfaceCard({
 				</div>
 				<div className="space-y-1.5">
 					<Label htmlFor={`${variant}-font-size`} className="text-xs">
-						Font size
+						<Trans id="settings.appearance.typography.fontSize">
+							Font size
+						</Trans>
 					</Label>
 					<div className="relative">
 						<Input
@@ -263,7 +286,7 @@ export function TypographySurfaceCard({
 							aria-label={`${config.title} font size`}
 						/>
 						<span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
-							px
+							<Trans id="settings.appearance.typography.pxUnit">px</Trans>
 						</span>
 					</div>
 				</div>
@@ -272,7 +295,9 @@ export function TypographySurfaceCard({
 			<div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
 				<div className="space-y-1.5">
 					<Label htmlFor={`${variant}-line-height`} className="text-xs">
-						Line height
+						<Trans id="settings.appearance.typography.lineHeight">
+							Line height
+						</Trans>
 					</Label>
 					<Input
 						id={`${variant}-line-height`}
@@ -295,7 +320,9 @@ export function TypographySurfaceCard({
 				</div>
 				<div className="space-y-1.5">
 					<Label htmlFor={`${variant}-letter-spacing`} className="text-xs">
-						Letter spacing (px)
+						<Trans id="settings.appearance.typography.letterSpacing">
+							Letter spacing (px)
+						</Trans>
 					</Label>
 					<Input
 						id={`${variant}-letter-spacing`}
@@ -317,7 +344,11 @@ export function TypographySurfaceCard({
 					/>
 				</div>
 				<div className="space-y-1.5">
-					<Label className="text-xs">Font weight</Label>
+					<Label className="text-xs">
+						<Trans id="settings.appearance.typography.fontWeight">
+							Font weight
+						</Trans>
+					</Label>
 					<Select
 						value={String(settings[config.fontWeightKey] ?? 400)}
 						onValueChange={(value) =>
@@ -339,10 +370,14 @@ export function TypographySurfaceCard({
 				<div className="flex items-center justify-between gap-3 min-h-14">
 					<div>
 						<Label htmlFor={`${variant}-ligatures`} className="text-xs">
-							Ligatures
+							<Trans id="settings.appearance.typography.ligatures">
+								Ligatures
+							</Trans>
 						</Label>
 						<p className="text-[11px] text-muted-foreground">
-							Combine sequences such as =&gt; and !==.
+							<Trans id="settings.appearance.typography.ligaturesHint">
+								Combine sequences such as =&gt; and !==.
+							</Trans>
 						</p>
 					</div>
 					<Switch
@@ -360,7 +395,11 @@ export function TypographySurfaceCard({
 				{variant === "terminal" && (
 					<>
 						<div className="space-y-1.5">
-							<Label className="text-xs">Minimum contrast</Label>
+							<Label className="text-xs">
+								<Trans id="settings.appearance.typography.minimumContrast">
+									Minimum contrast
+								</Trans>
+							</Label>
 							<Select
 								value={String(settings.terminalMinimumContrast ?? "default")}
 								onValueChange={(value) =>
@@ -374,15 +413,31 @@ export function TypographySurfaceCard({
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="default">Theme default</SelectItem>
+									<SelectItem value="default">
+										<Trans id="settings.appearance.typography.contrastThemeDefault">
+											Theme default
+										</Trans>
+									</SelectItem>
 									<SelectItem value="3">3:1</SelectItem>
-									<SelectItem value="4.5">4.5:1 (AA)</SelectItem>
-									<SelectItem value="7">7:1 (AAA)</SelectItem>
+									<SelectItem value="4.5">
+										<Trans id="settings.appearance.typography.contrastAA">
+											4.5:1 (AA)
+										</Trans>
+									</SelectItem>
+									<SelectItem value="7">
+										<Trans id="settings.appearance.typography.contrastAAA">
+											7:1 (AAA)
+										</Trans>
+									</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 						<div className="space-y-1.5">
-							<Label className="text-xs">Cursor style</Label>
+							<Label className="text-xs">
+								<Trans id="settings.appearance.typography.cursorStyle">
+									Cursor style
+								</Trans>
+							</Label>
 							<Select
 								value={
 									settings.terminalCursorStyle ?? DEFAULT_TERMINAL_CURSOR_STYLE
@@ -398,19 +453,35 @@ export function TypographySurfaceCard({
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="block">Block</SelectItem>
-									<SelectItem value="bar">Bar</SelectItem>
-									<SelectItem value="underline">Underline</SelectItem>
+									<SelectItem value="block">
+										<Trans id="settings.appearance.typography.cursorBlock">
+											Block
+										</Trans>
+									</SelectItem>
+									<SelectItem value="bar">
+										<Trans id="settings.appearance.typography.cursorBar">
+											Bar
+										</Trans>
+									</SelectItem>
+									<SelectItem value="underline">
+										<Trans id="settings.appearance.typography.cursorUnderline">
+											Underline
+										</Trans>
+									</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 						<div className="flex items-center justify-between gap-3 min-h-14 sm:col-span-2">
 							<div>
 								<Label htmlFor="terminal-cursor-blink" className="text-xs">
-									Cursor blinking
+									<Trans id="settings.appearance.typography.cursorBlink">
+										Cursor blinking
+									</Trans>
 								</Label>
 								<p className="text-[11px] text-muted-foreground">
-									Animate the active terminal cursor.
+									<Trans id="settings.appearance.typography.cursorBlinkHint">
+										Animate the active terminal cursor.
+									</Trans>
 								</p>
 							</div>
 							<Switch
@@ -430,9 +501,16 @@ export function TypographySurfaceCard({
 			{/* min-w-0 wrapper: FontPreview's nowrap footer must not widen the card */}
 			<div className="mt-4 min-w-0">
 				<div className="mb-2 flex items-center justify-between gap-3">
-					<span className="text-xs text-muted-foreground">Live preview</span>
+					<span className="text-xs text-muted-foreground">
+						<Trans id="settings.appearance.typography.livePreview">
+							Live preview
+						</Trans>
+					</span>
 					<span className="text-[10px] tabular-nums text-muted-foreground">
-						{previewSize}px · {Number(previewLineHeight.toFixed(2))} line height
+						<Trans id="settings.appearance.typography.previewMetrics">
+							{previewSize}px · {Number(previewLineHeight.toFixed(2))} line
+							height
+						</Trans>
 					</span>
 				</div>
 				<FontPreview

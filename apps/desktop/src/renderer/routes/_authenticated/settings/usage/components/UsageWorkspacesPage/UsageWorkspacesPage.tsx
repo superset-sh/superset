@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Link } from "@tanstack/react-router";
@@ -130,11 +131,19 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
-					Usage
+					<Trans id="settings.usage.workspacesPage.backToUsage">Usage</Trans>
 				</Link>
 				<span className="text-muted-foreground/60">/</span>
 				<h1 className="text-base font-semibold tracking-tight">
-					{view === "projects" ? "Projects" : "Workspaces"}
+					{view === "projects" ? (
+						<Trans id="settings.usage.workspacesPage.titleProjects">
+							Projects
+						</Trans>
+					) : (
+						<Trans id="settings.usage.workspacesPage.titleWorkspaces">
+							Workspaces
+						</Trans>
+					)}
 				</h1>
 				<div className="ml-auto flex items-center gap-1.5">
 					<Tabs
@@ -143,10 +152,14 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					>
 						<TabsList className="h-6">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
-								Cost
+								<Trans id="settings.usage.workspacesPage.metricCost">
+									Cost
+								</Trans>
 							</TabsTrigger>
 							<TabsTrigger value="tokens" className="h-4 px-1.5 text-[10px]">
-								Tokens
+								<Trans id="settings.usage.workspacesPage.metricTokens">
+									Tokens
+								</Trans>
 							</TabsTrigger>
 						</TabsList>
 					</Tabs>
@@ -179,10 +192,14 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 				>
 					<TabsList className="h-6">
 						<TabsTrigger value="workspaces" className="h-4 px-1.5 text-[10px]">
-							Workspaces
+							<Trans id="settings.usage.workspacesPage.viewWorkspaces">
+								Workspaces
+							</Trans>
 						</TabsTrigger>
 						<TabsTrigger value="projects" className="h-4 px-1.5 text-[10px]">
-							Projects
+							<Trans id="settings.usage.workspacesPage.viewProjects">
+								Projects
+							</Trans>
 						</TabsTrigger>
 					</TabsList>
 				</Tabs>
@@ -218,32 +235,60 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 						onClick={() => setGroupFilter(null)}
 						className="flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
 					>
-						{groupFilter.kind === "project"
-							? `Project: ${groupFilter.name}`
-							: groupLabel(groupFilter)}
+						{groupFilter.kind === "project" ? (
+							<Trans id="settings.usage.workspacesPage.projectFilterChip">
+								Project: {groupFilter.name}
+							</Trans>
+						) : (
+							groupLabel(groupFilter)
+						)}
 						<LuX className="size-2.5" />
 					</button>
 				)}
 				<span className="ml-auto text-[11px] tabular-nums text-muted-foreground">
-					{shownCount} shown · {formatUsd(shownUsd)} ·{" "}
-					{formatTokens(shownTokens)} tokens
+					<Trans id="settings.usage.workspacesPage.shownSummary">
+						{shownCount} shown · {formatUsd(shownUsd)} ·{" "}
+						{formatTokens(shownTokens)} tokens
+					</Trans>
 				</span>
 			</div>
 
 			{!history ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
-					Loading usage history…
+					<Trans id="settings.usage.workspacesPage.loading">
+						Loading usage history…
+					</Trans>
 				</div>
 			) : shownCount === 0 ? (
 				<div className="py-8 text-center text-xs text-muted-foreground">
-					No {view} match.
+					{view === "projects" ? (
+						<Trans id="settings.usage.workspacesPage.noProjectsMatch">
+							No projects match.
+						</Trans>
+					) : (
+						<Trans id="settings.usage.workspacesPage.noWorkspacesMatch">
+							No workspaces match.
+						</Trans>
+					)}
 				</div>
 			) : view === "projects" ? (
 				<div className="flex flex-col gap-1.5">
 					<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
-						<span className="font-medium">Project</span>
 						<span className="font-medium">
-							{metric === "usd" ? "Cost" : "Tokens"}
+							<Trans id="settings.usage.workspacesPage.columnProject">
+								Project
+							</Trans>
+						</span>
+						<span className="font-medium">
+							{metric === "usd" ? (
+								<Trans id="settings.usage.workspacesPage.projectColumnCost">
+									Cost
+								</Trans>
+							) : (
+								<Trans id="settings.usage.workspacesPage.projectColumnTokens">
+									Tokens
+								</Trans>
+							)}
 						</span>
 					</div>
 					{projectGroups.map((group) => (
@@ -265,7 +310,12 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 									{group.name}
 									{group.workspaceCount > 1 && (
 										<span className="text-[9px] text-muted-foreground">
-											{group.workspaceCount} workspaces
+											<Plural
+												id="settings.usage.workspacesPage.workspaceCount"
+												value={group.workspaceCount}
+												one="# workspace"
+												other="# workspaces"
+											/>
 										</span>
 									)}
 								</span>
@@ -290,9 +340,21 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 			) : (
 				<div className="flex flex-col gap-1.5">
 					<div className="flex items-baseline justify-between border-b py-1 text-[11px] text-muted-foreground">
-						<span className="font-medium">Workspace</span>
 						<span className="font-medium">
-							{metric === "usd" ? "Cost" : "Tokens"}
+							<Trans id="settings.usage.workspacesPage.columnWorkspace">
+								Workspace
+							</Trans>
+						</span>
+						<span className="font-medium">
+							{metric === "usd" ? (
+								<Trans id="settings.usage.workspacesPage.workspaceColumnCost">
+									Cost
+								</Trans>
+							) : (
+								<Trans id="settings.usage.workspacesPage.workspaceColumnTokens">
+									Tokens
+								</Trans>
+							)}
 						</span>
 					</div>
 					{workspaceRows.map((row) => (

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -52,9 +53,13 @@ export function AgentIconPicker({
 		}
 	};
 
-	const triggerLabel = uploaded
-		? "Custom image"
-		: (selected?.label ?? "No icon");
+	const triggerLabel = uploaded ? (
+		<Trans id="settings.agents.iconPicker.customImage">Custom image</Trans>
+	) : (
+		(selected?.label ?? (
+			<Trans id="settings.agents.iconPicker.noIcon">No icon</Trans>
+		))
+	);
 
 	return (
 		<DropdownMenu>
@@ -82,13 +87,19 @@ export function AgentIconPicker({
 					}}
 				>
 					<ImagePlus className="size-4 shrink-0 text-muted-foreground" />
-					<span className="flex-1">Upload image…</span>
+					<span className="flex-1">
+						<Trans id="settings.agents.iconPicker.uploadImage">
+							Upload image…
+						</Trans>
+					</span>
 					{uploaded ? <Check className="size-3.5 shrink-0" /> : null}
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem className="gap-2" onSelect={() => onChange(null)}>
 					<AgentIcon iconId={null} presetId="custom" className="size-4" />
-					<span className="flex-1">No icon</span>
+					<span className="flex-1">
+						<Trans id="settings.agents.iconPicker.noIconOption">No icon</Trans>
+					</span>
 					{value === null ? <Check className="size-3.5 shrink-0" /> : null}
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />

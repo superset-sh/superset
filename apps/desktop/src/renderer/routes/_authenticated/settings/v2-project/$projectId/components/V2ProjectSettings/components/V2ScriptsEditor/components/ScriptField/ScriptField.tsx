@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Textarea } from "@superset/ui/textarea";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useRef, useState } from "react";
@@ -81,13 +82,15 @@ export function ScriptField({
 					className="absolute bottom-2 right-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
 				>
 					<HiDocumentArrowUp className="h-3.5 w-3.5" />
-					Import
+					<Trans id="settings.project.scriptField.import">Import</Trans>
 				</button>
 				{isDragOver && (
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-primary/10">
 						<div className="flex items-center gap-2 text-primary text-sm font-medium">
 							<HiDocumentArrowUp className="h-5 w-5" />
-							Drop to import
+							<Trans id="settings.project.scriptField.dropToImport">
+								Drop to import
+							</Trans>
 						</div>
 					</div>
 				)}

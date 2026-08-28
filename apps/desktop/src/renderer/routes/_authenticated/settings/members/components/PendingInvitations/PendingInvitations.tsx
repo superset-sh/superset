@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import type { OrganizationRole } from "@superset/shared/auth";
 import { Badge } from "@superset/ui/badge";
@@ -34,6 +35,7 @@ export function PendingInvitations({
 	organizationId,
 	organizationName,
 }: PendingInvitationsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 
 	const shouldShowSection = isItemVisible(
@@ -111,17 +113,31 @@ export function PendingInvitations({
 			</div>
 			{invitations.length === 0 ? (
 				<div className="text-center py-12 text-muted-foreground border rounded-lg">
-					No pending invitations
+					<Trans id="settings.members.noPendingInvitations">
+						No pending invitations
+					</Trans>
 				</div>
 			) : (
 				<div className="border rounded-lg">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Email</TableHead>
-								<TableHead>Invited By</TableHead>
-								<TableHead>Role</TableHead>
-								<TableHead>Sent</TableHead>
+								<TableHead>
+									<Trans id="settings.members.invitationColumnEmail">
+										Email
+									</Trans>
+								</TableHead>
+								<TableHead>
+									<Trans id="settings.members.invitationColumnInvitedBy">
+										Invited By
+									</Trans>
+								</TableHead>
+								<TableHead>
+									<Trans id="settings.members.invitationColumnRole">Role</Trans>
+								</TableHead>
+								<TableHead>
+									<Trans id="settings.members.invitationColumnSent">Sent</Trans>
+								</TableHead>
 								<TableHead className="w-[50px]" />
 							</TableRow>
 						</TableHeader>
@@ -132,7 +148,11 @@ export function PendingInvitations({
 										{invitation.email}
 									</TableCell>
 									<TableCell className="text-muted-foreground">
-										{invitation.inviter?.name || "Unknown"}
+										{invitation.inviter?.name ||
+											t({
+												id: "settings.members.unknownInviter",
+												message: "Unknown",
+											})}
 									</TableCell>
 									<TableCell>
 										<Badge variant="outline" className="text-xs capitalize">

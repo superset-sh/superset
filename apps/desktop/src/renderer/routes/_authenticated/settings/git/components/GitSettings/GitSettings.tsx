@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
@@ -126,9 +127,13 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Git & worktrees</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="settings.git.title">Git & worktrees</Trans>
+				</h2>
 				<p className="text-sm text-muted-foreground mt-1">
-					Configure git branch and worktree behavior
+					<Trans id="settings.git.subtitle">
+						Configure git branch and worktree behavior
+					</Trans>
 				</p>
 			</div>
 
@@ -168,7 +173,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								<HighlightText text="Branch prefix" query={searchQuery} />
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Group new branches under a folder.{" "}
+								<Trans id="settings.git.branchPrefixHint">
+									Group new branches under a folder.
+								</Trans>{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">
 									{previewPrefix
 										? `${previewPrefix}/branch-name`

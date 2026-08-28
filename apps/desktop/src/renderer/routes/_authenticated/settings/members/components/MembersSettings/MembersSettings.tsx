@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import {
 	canRemoveMember,
@@ -35,6 +36,7 @@ interface MembersSettingsProps {
 }
 
 export function MembersSettings({ visibleItems }: MembersSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	// Per-window org, not the shared session: the session holds one org for
@@ -94,9 +96,13 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 		<div className="flex-1 flex flex-col min-h-0">
 			<div className="p-8">
 				<div className="max-w-5xl">
-					<h2 className="text-2xl font-semibold">Members</h2>
+					<h2 className="text-2xl font-semibold">
+						<Trans id="settings.members.title">Members</Trans>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Invite and manage members, assign roles, and control permissions
+						<Trans id="settings.members.subtitle">
+							Invite and manage members, assign roles, and control permissions
+						</Trans>
 					</p>
 				</div>
 			</div>
@@ -136,17 +142,27 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 								</div>
 							) : members.length === 0 ? (
 								<div className="text-center py-12 text-muted-foreground border rounded-lg">
-									No members yet
+									<Trans id="settings.members.emptyState">No members yet</Trans>
 								</div>
 							) : (
 								<div className="border rounded-lg">
 									<Table>
 										<TableHeader>
 											<TableRow>
-												<TableHead>Name</TableHead>
-												<TableHead>Email</TableHead>
-												<TableHead>Role</TableHead>
-												<TableHead>Joined</TableHead>
+												<TableHead>
+													<Trans id="settings.members.columnName">Name</Trans>
+												</TableHead>
+												<TableHead>
+													<Trans id="settings.members.columnEmail">Email</Trans>
+												</TableHead>
+												<TableHead>
+													<Trans id="settings.members.columnRole">Role</Trans>
+												</TableHead>
+												<TableHead>
+													<Trans id="settings.members.columnJoined">
+														Joined
+													</Trans>
+												</TableHead>
 												<TableHead className="w-[50px]" />
 											</TableRow>
 										</TableHeader>
@@ -172,14 +188,20 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																				: "font-medium"
 																		}
 																	>
-																		{member.name || "Unknown"}
+																		{member.name ||
+																			t({
+																				id: "settings.members.unknownName",
+																				message: "Unknown",
+																			})}
 																	</span>
 																	{isCurrentUserRow && (
 																		<Badge
 																			variant="secondary"
 																			className="text-xs"
 																		>
-																			You
+																			<Trans id="settings.members.youBadge">
+																				You
+																			</Trans>
 																		</Badge>
 																	)}
 																	{member.deletionRequestedAt && (
@@ -187,7 +209,9 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																			variant="outline"
 																			className="text-xs text-muted-foreground"
 																		>
-																			Deactivated
+																			<Trans id="settings.members.deactivatedBadge">
+																				Deactivated
+																			</Trans>
 																		</Badge>
 																	)}
 																</div>

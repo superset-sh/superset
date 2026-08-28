@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	type ExecutionMode,
 	normalizeExecutionMode,
@@ -487,8 +488,10 @@ export function PresetsSection({
 						<HighlightText text="Terminal Scripts" query={searchQuery} />
 					</Label>
 					<p className="text-xs text-muted-foreground">
-						Reusable commands that launch in terminals. Project setup, run, and
-						teardown commands are configured as lifecycle scripts.
+						<Trans id="settings.terminal.presets.subtitle">
+							Reusable commands that launch in terminals. Project setup, run,
+							and teardown commands are configured as lifecycle scripts.
+						</Trans>
 					</p>
 				</div>
 				{showPresets && (
@@ -499,7 +502,7 @@ export function PresetsSection({
 						onClick={() => handleAddRow()}
 					>
 						<HiOutlinePlus className="h-4 w-4" />
-						Add Script
+						<Trans id="settings.terminal.presets.addScript">Add Script</Trans>
 					</Button>
 				)}
 			</div>
@@ -527,7 +530,9 @@ export function PresetsSection({
 						onToggleVisibility={handleToggleVisibility}
 					/>
 					<p className="text-xs text-muted-foreground">
-						Click a terminal script to edit its details.
+						<Trans id="settings.terminal.presets.editHint">
+							Click a terminal script to edit its details.
+						</Trans>
 					</p>
 				</>
 			)}

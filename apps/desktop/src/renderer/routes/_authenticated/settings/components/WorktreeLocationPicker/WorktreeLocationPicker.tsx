@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -41,7 +42,11 @@ export function WorktreeLocationPicker({
 	return (
 		<div className="flex items-center justify-between">
 			<div className="space-y-0.5">
-				<Label className="text-sm font-medium">Directory</Label>
+				<Label className="text-sm font-medium">
+					<Trans id="settings.components.worktreeLocationPicker.directory">
+						Directory
+					</Trans>
+				</Label>
 				<code className="text-xs bg-muted px-1.5 py-0.5 rounded text-foreground block mt-1">
 					{currentPath ?? defaultPathLabel}
 				</code>
@@ -53,7 +58,9 @@ export function WorktreeLocationPicker({
 					onClick={handleBrowse}
 					disabled={disabled || selectDirectory.isPending}
 				>
-					Browse...
+					<Trans id="settings.components.worktreeLocationPicker.browse">
+						Browse...
+					</Trans>
 				</Button>
 				{currentPath && (
 					<Button
@@ -62,7 +69,9 @@ export function WorktreeLocationPicker({
 						onClick={onReset}
 						disabled={disabled}
 					>
-						Reset
+						<Trans id="settings.components.worktreeLocationPicker.reset">
+							Reset
+						</Trans>
 					</Button>
 				)}
 			</div>
