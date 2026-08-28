@@ -233,7 +233,10 @@ export function describeSchedule(
 	const parts = parseRruleParts(rrule);
 	if (!parts) return custom();
 
-	const { locale } = options;
+	// Falls back to the active app locale, not the system default: the sentence
+	// around these values is already translated, so "every Sunday" must not
+	// render its weekday in the OS language.
+	const locale = options.locale ?? i18n.locale;
 	const freq = parts.FREQ;
 	const interval = parseIntOrNull(parts.INTERVAL) ?? 1;
 	const byHour = parseIntOrNull(parts.BYHOUR);
@@ -674,13 +677,15 @@ export function formatDateTimeInTimezone(
 	timezone: string,
 	options: FormatDateTimeInTimezoneOptions = {},
 ): string {
+	// Same reasoning as describeSchedule: follow the app locale, not the OS.
+	const locale = options.locale ?? i18n.locale;
 	try {
-		return new Intl.DateTimeFormat(options.locale, {
+		return new Intl.DateTimeFormat(locale, {
 			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
 			timeZone: timezone,
 		}).format(date);
 	} catch {
-		return new Intl.DateTimeFormat(options.locale, {
+		return new Intl.DateTimeFormat(locale, {
 			...DATE_TIME_IN_TIMEZONE_FORMAT_OPTIONS,
 			timeZone: "UTC",
 		}).format(date);
