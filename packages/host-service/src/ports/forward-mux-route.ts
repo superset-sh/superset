@@ -156,10 +156,10 @@ export function registerForwardMuxRoute({
 					);
 					return;
 				}
-				const owned = getPortsByWorkspace(workspaceId).some(
+				const detected = getPortsByWorkspace(workspaceId).find(
 					(p) => p.port === port,
 				);
-				if (!owned) {
+				if (!detected) {
 					ws.send(
 						asFrame(
 							encodeOpenFail(
@@ -172,7 +172,10 @@ export function registerForwardMuxRoute({
 					return;
 				}
 
-				const socket = net.connect({ host: "127.0.0.1", port });
+				const socket = net.connect({
+					host: connectAddressFor(detected.address),
+					port,
+				});
 				const state: StreamState = {
 					socket,
 					connected: false,
@@ -324,6 +327,24 @@ export function registerForwardMuxRoute({
 			};
 		}),
 	);
+}
+
+// A server bound to the v6 loopback only (Vite 8's default `localhost` bind
+// on some systems) refuses 127.0.0.1; dial the address the scanner actually
+// saw. Wildcard binds accept loopback, so those map to 127.0.0.1.
+function connectAddressFor(address: string): string {
+	const normalized = address.toLowerCase();
+	if (
+		normalized === "" ||
+		normalized === "*" ||
+		normalized === "0.0.0.0" ||
+		normalized === "localhost" ||
+		normalized === "::" ||
+		normalized === "0:0:0:0:0:0:0:0"
+	) {
+		return "127.0.0.1";
+	}
+	return address;
 }
 
 // Node's Buffer is typed over ArrayBufferLike; the ws send signature wants a

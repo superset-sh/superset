@@ -27,10 +27,12 @@ let httpServer: ServerType;
 let httpPort = 0;
 let echoServer: net.Server;
 let echoPort = 0;
+let v6EchoServer: net.Server;
+let v6EchoPort = 0;
 let closedEchoPort = 0;
 const echoSockets = new Set<net.Socket>();
 
-function ownedPort(port: number): DetectedPort {
+function ownedPort(port: number, address = "127.0.0.1"): DetectedPort {
 	return {
 		port,
 		pid: 1,
@@ -38,7 +40,7 @@ function ownedPort(port: number): DetectedPort {
 		terminalId: "t1",
 		workspaceId: WORKSPACE_ID,
 		detectedAt: 0,
-		address: "127.0.0.1",
+		address,
 	};
 }
 
@@ -53,6 +55,15 @@ before(async () => {
 			resolve((echoServer.address() as net.AddressInfo).port);
 		});
 	});
+	// Vite 8's `localhost` bind can resolve to the v6 loopback only; the
+	// route must dial the address the scanner saw, not assume v4.
+	v6EchoServer = net.createServer((socket) => socket.pipe(socket));
+	v6EchoPort = await new Promise<number>((resolve) => {
+		v6EchoServer.listen(0, "::1", () => {
+			resolve((v6EchoServer.address() as net.AddressInfo).port);
+		});
+	});
+
 	// A port the scanner attributes to the workspace but nothing listens on.
 	const probe = net.createServer();
 	closedEchoPort = await new Promise<number>((resolve) => {
@@ -69,7 +80,11 @@ before(async () => {
 		upgradeWebSocket,
 		getPortsByWorkspace: (workspaceId) =>
 			workspaceId === WORKSPACE_ID
-				? [ownedPort(echoPort), ownedPort(closedEchoPort)]
+				? [
+						ownedPort(echoPort),
+						ownedPort(v6EchoPort, "::1"),
+						ownedPort(closedEchoPort),
+					]
 				: [],
 	});
 	httpPort = await new Promise<number>((resolve) => {
@@ -84,6 +99,7 @@ before(async () => {
 after(async () => {
 	for (const s of echoSockets) s.destroy();
 	await new Promise<void>((r) => echoServer.close(() => r()));
+	await new Promise<void>((r) => v6EchoServer.close(() => r()));
 	await new Promise<void>((r) => httpServer.close(() => r()));
 });
 
@@ -191,6 +207,15 @@ test("open on an owned port echoes both directions", async () => {
 	client.send(encodeData(1, Buffer.from("marco")));
 	const echoed = await client.data(1, 5);
 	assert.equal(echoed.toString(), "marco");
+	client.close();
+});
+
+test("a v6-loopback-only server is reachable via its detected address", async () => {
+	const client = await connect();
+	client.send(encodeOpen(20, v6EchoPort));
+	await client.next((f) => f.type === MuxFrameType.opened && f.streamId === 20);
+	client.send(encodeData(20, Buffer.from("polo")));
+	assert.equal((await client.data(20, 4)).toString(), "polo");
 	client.close();
 });
 
