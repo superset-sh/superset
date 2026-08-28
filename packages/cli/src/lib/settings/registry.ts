@@ -1,4 +1,5 @@
 import { CLIError } from "@superset/cli-framework";
+import { SUPPORTED_LOCALES } from "@superset/i18n/locales";
 import type { InsertSettings } from "@superset/local-db/schema";
 import {
 	BRANCH_PREFIX_MODES,
@@ -54,6 +55,8 @@ const EDITOR_APPS = EXTERNAL_APPS.filter(
 
 // The "custom" ringtone is excluded: it requires a file uploaded through the app.
 const RINGTONE_IDS = RINGTONES.map((ringtone) => ringtone.id);
+
+const LANGUAGE_SETTING_VALUES = ["auto", ...SUPPORTED_LOCALES];
 
 const FONT_SIZE = FONT_SIZE_LIMITS;
 const LINE_HEIGHT = LINE_HEIGHT_LIMITS;
@@ -158,6 +161,15 @@ export const SETTINGS: SettingDefinition[] = [
 		integer: true,
 		description: "Notification volume (0-100)",
 		defaultValue: 100,
+	},
+	// Appearance
+	{
+		key: "language",
+		type: "enum",
+		section: "appearance",
+		enumValues: LANGUAGE_SETTING_VALUES,
+		description: "App display language (auto follows the system language)",
+		defaultValue: "auto",
 	},
 	// Terminal
 	{

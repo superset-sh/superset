@@ -23,6 +23,7 @@ export const SETTING_ITEM_ID = {
 	TEAMS_LIST: "teams-list",
 
 	APPEARANCE_THEME: "appearance-theme",
+	APPEARANCE_LANGUAGE: "appearance-language",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
@@ -163,6 +164,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.TEAMS_LIST]: "shared",
 
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_LANGUAGE]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
@@ -531,6 +533,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"rename team",
 			"delete team",
 			"organize",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
+		section: "appearance",
+		title: "Language",
+		description: "App display language",
+		keywords: [
+			"appearance",
+			"language",
+			"locale",
+			"translation",
+			"i18n",
+			"english",
+			"international",
 		],
 	},
 	{

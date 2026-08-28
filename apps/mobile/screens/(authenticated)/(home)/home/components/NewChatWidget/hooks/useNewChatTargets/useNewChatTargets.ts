@@ -3,13 +3,13 @@ import { compareDesc } from "date-fns";
 import { useMemo } from "react";
 import { useCloudProjects } from "@/hooks/useCloudProjects";
 import { toHostProjectItem } from "@/hooks/useHostProjects";
-import { useHostsPresence } from "@/hooks/useHostsPresence";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
-import { useOrgHosts } from "@/hooks/useOrgHosts";
 import {
 	getHostServiceClientByUrl,
 	hostServiceUrl,
 } from "@/lib/host-service/client";
+import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
+import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { useWorkspacesFilterStore } from "../../../../stores/workspacesFilterStore";
 import { useNewSessionPreferencesStore } from "../../stores/newSessionPreferencesStore";
 
@@ -35,17 +35,18 @@ export function targetKeyFor(projectId: string, machineId: string) {
 }
 
 /**
- * Everywhere a new chat workspace can be created: all (project, online host)
- * pairs from fanning out `project.list` to every online host, plus a cloud
- * target per API-listed project — available with zero machines online. The
- * default pick: last used target, else the filtered project, else the most
- * recently updated workspace's target.
+ * Where a new chat workspace can be created under the current Home scope: the
+ * selected machine's projects (its `project.list`), or a cloud target per
+ * API-listed project when the scope is Cloud. The place is picked by the scope
+ * filter at the top of Home — never here. The default pick: last used target,
+ * else the most recently updated workspace's target.
  */
 export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	targets: NewChatTarget[];
 	defaultTarget: NewChatTarget | null;
 } {
-	const hosts = useOrgHosts();
+	const scope = useWorkspaceScope();
+	const selectedHost = useSelectedHost();
 	const persistedTargetKey = useNewSessionPreferencesStore(
 		(state) => state.targetKey,
 	);
@@ -56,21 +57,27 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 		(state) => state.hasHydrated,
 	);
 
-	const presence = useHostsPresence(hosts);
-	const onlineHosts = useMemo(
+	// An offline selected machine offers nothing rather than quietly falling
+	// back to another host or Cloud — the scope pick is the user's alone.
+	const scopedHosts = useMemo(
 		() =>
-			hosts
-				.filter((host) => presence?.get(host.machineId) ?? host.isOnline)
-				.map((host) => ({
-					machineId: host.machineId,
-					name: host.name,
-					hostUrl: hostServiceUrl(host.organizationId, host.machineId),
-				})),
-		[hosts, presence],
+			scope === "host" && selectedHost?.isOnline
+				? [
+						{
+							machineId: selectedHost.machineId,
+							name: selectedHost.name,
+							hostUrl: hostServiceUrl(
+								selectedHost.organizationId,
+								selectedHost.machineId,
+							),
+						},
+					]
+				: [],
+		[scope, selectedHost],
 	);
 
 	const projectListQueries = useQueries({
-		queries: onlineHosts.map((host) => ({
+		queries: scopedHosts.map((host) => ({
 			queryKey: ["host-service", "projects", "list", host.machineId],
 			queryFn: () =>
 				getHostServiceClientByUrl(host.hostUrl).project.list.query(),
@@ -84,7 +91,7 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 
 	const targets = useMemo<NewChatTarget[]>(() => {
 		const result: NewChatTarget[] = [];
-		onlineHosts.forEach((host, index) => {
+		scopedHosts.forEach((host, index) => {
 			for (const row of projectListQueries[index]?.data ?? []) {
 				const project = toHostProjectItem(row);
 				result.push({
@@ -99,20 +106,22 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 				});
 			}
 		});
-		for (const project of cloudProjects) {
-			result.push({
-				key: targetKeyFor(project.id, CLOUD_TARGET_ID),
-				kind: "cloud",
-				projectId: project.id,
-				projectName: project.name,
-				projectIconUrl: project.iconUrl,
-				machineId: CLOUD_TARGET_ID,
-				hostName: "Cloud",
-				hostUrl: "",
-			});
+		if (scope === "cloud") {
+			for (const project of cloudProjects) {
+				result.push({
+					key: targetKeyFor(project.id, CLOUD_TARGET_ID),
+					kind: "cloud",
+					projectId: project.id,
+					projectName: project.name,
+					projectIconUrl: project.iconUrl,
+					machineId: CLOUD_TARGET_ID,
+					hostName: "Cloud",
+					hostUrl: "",
+				});
+			}
 		}
 		return result.sort((a, b) => a.projectName.localeCompare(b.projectName));
-	}, [onlineHosts, projectListQueries, cloudProjects]);
+	}, [scope, scopedHosts, projectListQueries, cloudProjects]);
 
 	const defaultTarget = useMemo<NewChatTarget | null>(() => {
 		if (targets.length === 0) return null;

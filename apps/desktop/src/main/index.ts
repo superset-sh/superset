@@ -211,6 +211,15 @@ export function exitImmediately(): void {
 	app.exit(0);
 }
 
+function getLanguageSetting(): string | null {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.language ?? null;
+	} catch {
+		return null;
+	}
+}
+
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -390,9 +399,14 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
-		// First-load language inference from OS preferences; a persisted user
-		// setting takes precedence once it exists (plans/20260826-i18n-strategy.md).
-		initI18n(resolveLocale(app.getPreferredSystemLanguages()));
+		// Persisted language setting wins; otherwise infer from OS preferences
+		// (plans/20260826-i18n-strategy.md).
+		initI18n(
+			resolveLocale([
+				...(getLanguageSetting() ? [getLanguageSetting() as string] : []),
+				...app.getPreferredSystemLanguages(),
+			]),
+		);
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();

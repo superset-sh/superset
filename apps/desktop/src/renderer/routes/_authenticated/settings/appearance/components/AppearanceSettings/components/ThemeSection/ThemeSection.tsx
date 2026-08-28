@@ -306,7 +306,7 @@ export function ThemeSection() {
 	};
 
 	return (
-		<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+		<>
 			<ThemeRow
 				label="Theme"
 				hint={
@@ -404,6 +404,6 @@ export function ThemeSection() {
 					</Button>
 				</div>
 			</div>
-		</div>
+		</>
 	);
 }

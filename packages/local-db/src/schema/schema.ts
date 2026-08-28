@@ -202,6 +202,8 @@ export const settings = sqliteTable("settings", {
 		"agent_preset_permissions_migrated_at",
 	),
 	selectedRingtoneId: text("selected_ringtone_id"),
+	// App display language: "auto" or a supported BCP 47 tag; null = auto.
+	language: text("language"),
 	activeOrganizationId: text("active_organization_id"),
 	confirmOnQuit: integer("confirm_on_quit", { mode: "boolean" }),
 	terminalLinkBehavior: text(

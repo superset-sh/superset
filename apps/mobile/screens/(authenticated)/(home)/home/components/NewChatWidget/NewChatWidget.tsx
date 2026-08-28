@@ -10,6 +10,7 @@ import { useSession } from "@/lib/auth/client";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { posthog } from "@/lib/posthog";
 import { apiClient } from "@/lib/trpc/client";
+import { useWorkspaceScope } from "@/screens/(authenticated)/(home)/hooks/useWorkspaceScope";
 import { useAttachmentsSheet } from "@/screens/(authenticated)/hooks/useAttachmentsSheet";
 import { useComposerDraft } from "@/screens/(authenticated)/hooks/useComposerDraft";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
@@ -64,6 +65,7 @@ export function NewChatWidget({
 	const selectedTarget =
 		targets.find((target) => target.key === targetKey) ?? defaultTarget;
 	const isCloudTarget = selectedTarget?.kind === "cloud";
+	const cloudScope = useWorkspaceScope() === "cloud";
 
 	const { data: session } = useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -208,6 +210,9 @@ export function NewChatWidget({
 	// but only a *picked* one. `fixedTarget` pins the composer to a workspace
 	// and is not the user's to clear, so it gets no chips at all: the chip's
 	// press only clears `storeTarget`, which would leave it stuck on screen.
+	// Under Cloud there is no project to show: a sandbox has no real project
+	// structure yet, so the chip is the place itself and the repo it clones is
+	// resolved without asking.
 	const headerChips = fixedTarget
 		? []
 		: storeTarget
@@ -218,16 +223,14 @@ export function NewChatWidget({
 					},
 				]
 			: [
-					{
-						id: "project",
-						label: selectedTarget
-							? isCloudTarget
-								? `${selectedTarget.projectName} · Cloud`
-								: selectedTarget.projectName
-							: "No project",
-						avatar: true,
-						iconUri: selectedTarget?.projectIconUrl ?? undefined,
-					},
+					cloudScope
+						? { id: "project", label: "Cloud" }
+						: {
+								id: "project",
+								label: selectedTarget?.projectName ?? "No project",
+								avatar: true,
+								iconUri: selectedTarget?.projectIconUrl ?? undefined,
+							},
 					...(branchLabel
 						? [{ id: "branch", label: branchLabel, muted: true }]
 						: []),
@@ -293,6 +296,7 @@ export function NewChatWidget({
 				});
 			}}
 			onChipPress={(id) => {
+				if (id === "project" && cloudScope) return;
 				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 				if (id === "clear-target") {
 					dismiss();

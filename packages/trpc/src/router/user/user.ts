@@ -116,6 +116,25 @@ export const userRouter = {
 		return { success: true };
 	}),
 
+	// Preferred UI language, written through from clients so async surfaces
+	// (web SSR, email) can render in it; null = auto-detect on each device.
+	updateLocale: protectedProcedure
+		.input(
+			z.object({
+				locale: z
+					.string()
+					.regex(/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$/, "Invalid locale tag")
+					.nullable(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await db
+				.update(users)
+				.set({ locale: input.locale })
+				.where(eq(users.id, ctx.session.user.id));
+			return { success: true };
+		}),
+
 	reactivateAccount: protectedProcedure.mutation(async ({ ctx }) => {
 		const userId = ctx.session.user.id;
 

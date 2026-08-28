@@ -1,0 +1,1 @@
+export { requireOfferedIntegration } from "./requireOfferedIntegration";

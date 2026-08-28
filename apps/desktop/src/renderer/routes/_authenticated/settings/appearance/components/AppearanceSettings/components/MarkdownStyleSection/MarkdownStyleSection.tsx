@@ -19,19 +19,27 @@ export function MarkdownStyleSection() {
 	const searchQuery = useSettingsSearchQuery();
 
 	return (
-		<div>
-			<h3 className="text-sm font-medium mb-1">
-				<HighlightText text="Markdown style" query={searchQuery} />
-			</h3>
-			<p className="text-xs text-muted-foreground mb-3">
-				Rendering style for markdown files. Tufte uses elegant serif typography
-				inspired by Edward Tufte's books.
-			</p>
+		<div className="flex items-center justify-between gap-6 p-4">
+			<div className="min-w-0 flex-1">
+				<div className="text-sm font-medium">
+					<HighlightText text="Markdown style" query={searchQuery} />
+				</div>
+				<div className="text-xs text-muted-foreground">
+					<HighlightText
+						text="Rendering style for markdown files. Tufte uses elegant serif typography inspired by Edward Tufte's books."
+						query={searchQuery}
+					/>
+				</div>
+			</div>
 			<Select
 				value={markdownStyle}
 				onValueChange={(value) => setMarkdownStyle(value as MarkdownStyle)}
 			>
-				<SelectTrigger className="w-[200px]" aria-label="Markdown style">
+				<SelectTrigger
+					size="sm"
+					className="w-auto min-w-44 px-2"
+					aria-label="Markdown style"
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

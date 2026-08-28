@@ -11,6 +11,7 @@ import Link from "next/link";
 import { SiNotion } from "react-icons/si";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
+import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
 
 const CALLBACK_MESSAGES = {
@@ -23,6 +24,7 @@ const CALLBACK_MESSAGES = {
 };
 
 export default async function NotionIntegrationPage() {
+	await requireOfferedIntegration("notion");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

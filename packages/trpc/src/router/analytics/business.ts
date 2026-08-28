@@ -270,10 +270,11 @@ export async function refreshSigmaMrr({
 	pollIntervalMs?: number;
 } = {}): Promise<MrrResult> {
 	const startedAt = Date.now();
-	// Ignore the cache on the first step only. Otherwise a scheduled refresh
-	// that runs more often than the entry expires would read its own previous
-	// result and never actually refresh. Subsequent steps must consult the
-	// cache, since that is where the finished run lands.
+	// Ignore the cache on every step. The job runs more often than the entry
+	// expires, so honouring it would hand back the previous result before the
+	// pending run is ever collected — the tile would then only move when the
+	// entry lapsed, with a Sigma run burnt every hour for nothing. The finished
+	// run is returned straight from the pending branch, not via the cache.
 	let last = await advanceSigmaMrr({ ignoreCache: true });
 	while (
 		!last.available &&
@@ -281,7 +282,7 @@ export async function refreshSigmaMrr({
 		Date.now() - startedAt < timeBudgetMs
 	) {
 		await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-		last = await advanceSigmaMrr();
+		last = await advanceSigmaMrr({ ignoreCache: true });
 	}
 	return last;
 }
