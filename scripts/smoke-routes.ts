@@ -63,10 +63,20 @@ async function hit(route: string, mode: "document" | "rsc") {
 		failures.push({ route, mode, detail: `HTTP ${res.status}` });
 		return;
 	}
+	// A route we listed should exist. A 404 here means the page is gone or
+	// failed to render into one, which is exactly what we are watching for.
+	// Redirects are fine: auth-gated routes legitimately send you to sign-in.
+	if (res.status === 404) {
+		failures.push({ route, mode, detail: "HTTP 404" });
+		return;
+	}
 	const body = await res.text();
 	// A caught server-component error still returns 200 with a digest in the
 	// payload, so status alone is not enough.
-	const digest = body.match(/"digest"\s*:\s*"([^"]+)"/);
+	// Next embeds flight data as an escaped JSON string, so the payload reads
+	// \"digest\":\"abc\" rather than "digest":"abc". Match both — an
+	// unescaped-only pattern silently passes every real error page.
+	const digest = body.match(/\\?"digest\\?"\s*:\s*\\?"([^"\\]+)/);
 	if (digest) {
 		failures.push({ route, mode, detail: `error digest ${digest[1]}` });
 		return;
