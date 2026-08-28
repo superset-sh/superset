@@ -172,7 +172,7 @@ function SettingsLayout() {
 	);
 
 	return (
-		<div className="flex flex-col h-screen w-screen bg-tertiary">
+		<div className="flex flex-col h-screen w-screen bg-background">
 			{/* CommandPaletteHost (Cmd/Ctrl+K etc.) only mounts inside the
 			    _dashboard route tree; CHECK_RESOURCES needs its own mount here so
 			    the hotkey and native "Resources" menu item still work in Settings. */}
