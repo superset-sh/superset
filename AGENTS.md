@@ -135,8 +135,13 @@ and are never translated — someone stuck in the wrong language has to recogniz
 Relative times use `formatRelativeTime`/`formatCompactRelativeTime`, not hand-rolled
 "3d ago" helpers; `Intl` already knows every locale's wording.
 
-Two traps worth knowing before you touch catalogs:
+Three traps worth knowing before you touch catalogs:
 
+- **Editing English copy is not enough.** IDs are stable, so Lingui keeps the text loosely
+  coupled to them: `locales/en/messages.po` is what actually renders, and translations are
+  never invalidated when the English moves. `extract` runs `--overwrite` so the source locale
+  is always regenerated, and the `check` script fails on translations the edit stranded.
+  Details and the exemption file: `packages/i18n/README.md`.
 - **Regenerate from a clean tree.** `messages.po` is environment-sensitive. Entry order and
   `#:` reference order both used to vary between macOS and Linux; `orderBy: "messageId"` and
   `scripts/sort-po-references.ts` pin them, but a catalog regenerated on top of local
