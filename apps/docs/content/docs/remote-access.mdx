@@ -84,7 +84,7 @@ Pick a remote host to see the workspaces hosted there. Open one and you get the 
 
 ### Ports on a remote host
 
-The ports sidebar shows ports listening **on the remote host**. When you select a remote workspace, the desktop app forwards each of its ports to the same port number on your machine, so `localhost:3000` reaches the dev server on the host. All traffic for a workspace shares one tunnel: the first connection after selecting the workspace sets it up, and connections after that reuse it. When you select another workspace, the app stops those forwards and starts the new workspace's forwards.
+The ports sidebar shows ports listening **on the remote host**. When you select a remote workspace, the desktop app forwards each of its ports to the same port number on your machine, so `localhost:3000` reaches the dev server on the host. All traffic for a workspace shares one tunnel, established when you select the workspace; every connection reuses it. When you select another workspace, the app stops those forwards and starts the new workspace's forwards.
 
 Only ports that the workspace started are forwarded. Other services on the host stay unreachable.
 

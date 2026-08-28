@@ -1,5 +1,12 @@
 # Forward remote workspace ports to the local machine
 
+> **Superseded in part:** the host leg described below (`/tcp/:port`, one relay
+> dial-back per TCP connection) was replaced before merge by a multiplexed
+> `/fwd?workspaceId=` session — one relay stream per workspace, numbered
+> streams inside (`@superset/shared/port-forward-mux`). The desktop manager,
+> UX, and ownership rule shipped as planned. This document is the historical
+> design record; the code is the contract.
+
 
 This ExecPlan is a living document. The sections `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` must be kept up to date as work proceeds.
 

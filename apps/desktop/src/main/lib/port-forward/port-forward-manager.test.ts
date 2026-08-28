@@ -63,7 +63,17 @@ async function roundTrip(port: number, payload: string): Promise<string> {
 	const socket = net.connect({ host: "127.0.0.1", port });
 	await new Promise<void>((r) => socket.once("connect", () => r()));
 	socket.write(payload);
-	const data = await new Promise<Buffer>((r) => socket.once("data", r));
+	// TCP may split the echo across chunks; collect until it is all here.
+	const expected = Buffer.byteLength(payload);
+	const data = await new Promise<Buffer>((resolve) => {
+		const chunks: Buffer[] = [];
+		let total = 0;
+		socket.on("data", (chunk: Buffer) => {
+			chunks.push(chunk);
+			total += chunk.byteLength;
+			if (total >= expected) resolve(Buffer.concat(chunks));
+		});
+	});
 	socket.destroy();
 	return data.toString();
 }
