@@ -18,7 +18,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { resolveUserRelayUrl } from "../../lib/relay-url";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
@@ -83,9 +83,10 @@ async function verifyHostAccess(
 		.limit(1);
 
 	if (!membership) {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "You don't have access to this host",
+			i18nKey: "serverError.automation.youDonTHaveAccess",
 		});
 	}
 }
@@ -106,9 +107,10 @@ async function verifyWorkspaceInOrg(
 		.limit(1);
 
 	if (!workspace || workspace.organizationId !== organizationId) {
-		throw new TRPCError({
+		throw userError({
 			code: "NOT_FOUND",
 			message: "Workspace not found",
+			i18nKey: "serverError.automation.workspaceNotFound",
 		});
 	}
 	return {
@@ -251,9 +253,10 @@ export const automationRouter = {
 			// Reads are org-scoped (Team tab links to any member's automation);
 			// mutations stay owner-scoped via getAutomationForUser.
 			if (!row) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Automation not found",
+					i18nKey: "serverError.automation.automationNotFound",
 				});
 			}
 
@@ -310,16 +313,20 @@ export const automationRouter = {
 					input.v2WorkspaceId,
 				);
 				if (targetHostId && targetHostId !== workspace.hostId) {
-					throw new TRPCError({
+					throw userError({
 						code: "BAD_REQUEST",
 						message: "targetHostId does not match the workspace's host",
+						i18nKey:
+							"serverError.automation.targethostidDoesNotMatchTheWorkspace",
 					});
 				}
 				targetHostId = workspace.hostId;
 				if (v2ProjectId && v2ProjectId !== workspace.projectId) {
-					throw new TRPCError({
+					throw userError({
 						code: "BAD_REQUEST",
 						message: "v2ProjectId does not match the workspace's project",
+						i18nKey:
+							"serverError.automation.v2projectidDoesNotMatchTheWorkspace",
 					});
 				}
 				v2ProjectId = workspace.projectId;
@@ -370,9 +377,10 @@ export const automationRouter = {
 
 				const row = inserted[0];
 				if (!row) {
-					throw new TRPCError({
+					throw userError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: "Failed to create automation",
+						i18nKey: "serverError.automation.failedToCreateAutomation",
 					});
 				}
 
@@ -478,9 +486,11 @@ export const automationRouter = {
 					input.v2ProjectId !== undefined &&
 					input.v2ProjectId !== workspace.projectId
 				) {
-					throw new TRPCError({
+					throw userError({
 						code: "BAD_REQUEST",
 						message: "v2ProjectId does not match the workspace's project",
+						i18nKey:
+							"serverError.automation.v2projectidDoesNotMatchTheWorkspace",
 					});
 				}
 				nextProjectId = workspace.projectId;
@@ -489,9 +499,11 @@ export const automationRouter = {
 					input.targetHostId !== null &&
 					input.targetHostId !== workspace.hostId
 				) {
-					throw new TRPCError({
+					throw userError({
 						code: "BAD_REQUEST",
 						message: "targetHostId does not match the workspace's host",
+						i18nKey:
+							"serverError.automation.targethostidDoesNotMatchTheWorkspace",
 					});
 				}
 				nextTargetHostId = workspace.hostId;
@@ -539,9 +551,10 @@ export const automationRouter = {
 					.returning();
 
 				if (!row) {
-					throw new TRPCError({
+					throw userError({
 						code: "NOT_FOUND",
 						message: "Automation not found",
+						i18nKey: "serverError.automation.automationNotFound",
 					});
 				}
 
@@ -596,9 +609,10 @@ export const automationRouter = {
 				)
 				.limit(1);
 			if (!existing) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Automation not found",
+					i18nKey: "serverError.automation.automationNotFound",
 				});
 			}
 			return existing;
@@ -626,9 +640,10 @@ export const automationRouter = {
 					.returning();
 
 				if (!row) {
-					throw new TRPCError({
+					throw userError({
 						code: "NOT_FOUND",
 						message: "Automation not found",
+						i18nKey: "serverError.automation.automationNotFound",
 					});
 				}
 
@@ -684,9 +699,10 @@ export const automationRouter = {
 					.returning();
 
 				if (!row) {
-					throw new TRPCError({
+					throw userError({
 						code: "NOT_FOUND",
 						message: "Automation not found",
+						i18nKey: "serverError.automation.automationNotFound",
 					});
 				}
 
@@ -722,9 +738,10 @@ export const automationRouter = {
 			// The dispatcher refuses this too, but through runNow it would surface
 			// as a 500 — an expected user state, not a server fault.
 			if (automation.prompt.trim().length === 0) {
-				throw new TRPCError({
+				throw userError({
 					code: "PRECONDITION_FAILED",
 					message: "Automation has no instructions",
+					i18nKey: "serverError.automation.automationHasNoInstructions",
 				});
 			}
 
@@ -735,9 +752,10 @@ export const automationRouter = {
 			});
 
 			if (outcome.status === "conflict") {
-				throw new TRPCError({
+				throw userError({
 					code: "CONFLICT",
 					message: "A run for this automation is already in progress.",
+					i18nKey: "serverError.automation.aRunForThisAutomation",
 				});
 			}
 			if (outcome.status === "dispatch_failed") {
@@ -780,9 +798,10 @@ export const automationRouter = {
 				.limit(1);
 
 			if (!trigger || trigger.kind !== "webhook") {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Webhook trigger not found",
+					i18nKey: "serverError.automation.webhookTriggerNotFound",
 				});
 			}
 			await getAutomationForUser(
@@ -835,9 +854,10 @@ export const automationRouter = {
 				.limit(1);
 
 			if (!trigger || trigger.kind === "webhook") {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Trigger not found",
+					i18nKey: "serverError.automation.triggerNotFound",
 				});
 			}
 			await getAutomationForUser(

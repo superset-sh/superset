@@ -39,9 +39,10 @@ async function getInvitationById(invitationId: string) {
 	});
 
 	if (!invitation) {
-		throw new TRPCError({
+		throw userError({
 			code: "NOT_FOUND",
 			message: "Invitation not found",
+			i18nKey: "serverError.organization.invitationNotFound",
 		});
 	}
 
@@ -391,16 +392,19 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
 			if (membership.role !== "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only owners can update organization settings",
+					i18nKey:
+						"serverError.organization.onlyOwnersCanUpdateOrganizationSettings",
 				});
 			}
 
@@ -459,16 +463,19 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
 			if (membership.role !== "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only owners can update organization settings",
+					i18nKey:
+						"serverError.organization.onlyOwnersCanUpdateOrganizationSettings",
 				});
 			}
 
@@ -477,9 +484,10 @@ export const organizationRouter = {
 			});
 
 			if (!organization) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Organization not found",
+					i18nKey: "serverError.organization.organizationNotFound",
 				});
 			}
 
@@ -506,9 +514,10 @@ export const organizationRouter = {
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				console.error("[organization/uploadLogo] Upload failed:", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to upload logo",
+					i18nKey: "serverError.organization.failedToUploadLogo",
 				});
 			}
 		}),
@@ -547,9 +556,10 @@ export const organizationRouter = {
 
 			const targetMember = allMembers.find((m) => m.userId === input.userId);
 			if (!targetMember) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Member not found",
+					i18nKey: "serverError.organization.memberNotFound",
 				});
 			}
 
@@ -557,9 +567,10 @@ export const organizationRouter = {
 				(m) => m.userId === ctx.session.user.id,
 			);
 			if (!actorMembership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
@@ -575,20 +586,24 @@ export const organizationRouter = {
 
 			if (!canRemove) {
 				if (isTargetSelf) {
-					throw new TRPCError({
+					throw userError({
 						code: "FORBIDDEN",
 						message: "Cannot remove yourself",
+						i18nKey: "serverError.organization.cannotRemoveYourself",
 					});
 				}
 				if (targetMember.role === "owner" && ownerCount === 1) {
-					throw new TRPCError({
+					throw userError({
 						code: "FORBIDDEN",
 						message: "Cannot remove the last owner. Transfer ownership first.",
+						i18nKey:
+							"serverError.organization.cannotRemoveTheLastOwnerTransfer",
 					});
 				}
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You don't have permission to remove this member",
+					i18nKey: "serverError.organization.youDonTHavePermission",
 				});
 			}
 
@@ -618,9 +633,10 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
@@ -630,9 +646,10 @@ export const organizationRouter = {
 			});
 
 			if (!leaveResult) {
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to leave organization",
+					i18nKey: "serverError.organization.failedToLeaveOrganization",
 				});
 			}
 
@@ -676,9 +693,10 @@ export const organizationRouter = {
 
 			const targetMember = allMembers.find((m) => m.id === input.memberId);
 			if (!targetMember) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Member not found",
+					i18nKey: "serverError.organization.memberNotFound",
 				});
 			}
 
@@ -686,9 +704,10 @@ export const organizationRouter = {
 				(m) => m.userId === ctx.session.user.id,
 			);
 			if (!actorMembership) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "You are not a member of this organization",
+					i18nKey: "serverError.organization.youAreNotAMember",
 				});
 			}
 
@@ -697,23 +716,26 @@ export const organizationRouter = {
 			const ownerCount = allMembers.filter((m) => m.role === "owner").length;
 
 			if (actorRole === "admin" && targetRole === "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Admins cannot modify owners",
+					i18nKey: "serverError.organization.adminsCannotModifyOwners",
 				});
 			}
 
 			if (actorRole === "admin" && input.role === "owner") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Admins cannot promote members to owner",
+					i18nKey: "serverError.organization.adminsCannotPromoteMembersToOwner",
 				});
 			}
 
 			if (actorRole === "member") {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Members cannot modify roles",
+					i18nKey: "serverError.organization.membersCannotModifyRoles",
 				});
 			}
 
@@ -722,9 +744,10 @@ export const organizationRouter = {
 				ownerCount === 1 &&
 				input.role !== "owner"
 			) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Cannot demote the last owner. Promote someone else first.",
+					i18nKey: "serverError.organization.cannotDemoteTheLastOwnerPromote",
 				});
 			}
 

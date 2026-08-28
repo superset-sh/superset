@@ -1,10 +1,9 @@
 import { db } from "@superset/db/client";
 import { apikeys } from "@superset/db/schema";
-import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 
 export const apiKeyRouter = {
 	// API keys mint a session as their creator, so they are personal
@@ -29,9 +28,10 @@ export const apiKeyRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const organizationId = ctx.activeOrganizationId;
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "BAD_REQUEST",
 					message: "Active organization required to create an API key",
+					i18nKey: "serverError.apiKey.activeOrganizationRequiredToCreate",
 				});
 			}
 

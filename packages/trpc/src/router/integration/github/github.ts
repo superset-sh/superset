@@ -5,12 +5,11 @@ import {
 	githubRepositories,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
 import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
-import { protectedProcedure } from "../../../trpc";
+import { protectedProcedure, userError } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 import { listGithubRepositories } from "./trigger-options";
 
@@ -65,9 +64,10 @@ export const githubRouter = {
 			});
 
 			if (!installation) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "GitHub installation not found",
+					i18nKey: "serverError.integration.githubInstallationNotFound",
 				});
 			}
 
