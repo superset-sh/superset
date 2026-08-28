@@ -981,6 +981,11 @@ msgid "dashboard.tasks.issueDetail.byAuthor"
 msgstr "by {0}"
 
 #. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
+msgid "common.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/v2-project/$projectId/components/V2ProjectSettings/components/SetupProjectModal/SetupProjectModal.tsx
 msgid "settings.project.setup.cancel"
 msgstr "Cancel"
@@ -1103,11 +1108,6 @@ msgstr "Cancel"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/account/components/AccountSettings/components/LeaderboardSection/LeaderboardSection.tsx
 msgid "settings.account.leaderboard.leaveCancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
-msgid "common.cancel"
 msgstr "Cancel"
 
 #. js-lingui-explicit-id
@@ -6402,6 +6402,11 @@ msgid "settings.usage.addAccount.addDescription"
 msgstr "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/account-pending-deletion/page.tsx
+msgid "account.pendingDeletion.signOut"
+msgstr "Sign out"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/models/components/ModelsSettings/ModelsSettings.tsx
 msgid "settings.models.signOut"
 msgstr "Sign out"
@@ -6409,11 +6414,6 @@ msgstr "Sign out"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/account/components/AccountSettings/AccountSettings.tsx
 msgid "settings.account.signOutButton"
-msgstr "Sign out"
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/account-pending-deletion/page.tsx
-msgid "account.pendingDeletion.signOut"
 msgstr "Sign out"
 
 #. js-lingui-explicit-id
