@@ -17,6 +17,12 @@
 export interface AgentModelOption {
 	id: string;
 	label: string;
+	/**
+	 * Optional section header this option sits under in the picker. Options
+	 * without one render flat, so a catalog only pays for grouping when its
+	 * list has more than one kind of entry in it.
+	 */
+	group?: string;
 }
 
 export interface AgentModelSupport {
@@ -65,29 +71,51 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 	{ id: "openai/gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "OpenAI" },
 ];
 
+const LATEST_GROUP = "Latest";
+const PINNED_GROUP = "Pinned releases";
+const CURRENT_GROUP = "Current";
+const CODEX_RETIRING_GROUP = "Retiring 2026-08-31";
+
 export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	{
 		presetId: "claude",
 		modelFlag: "--model",
 		models: [
-			{ id: "fable", label: "Fable" },
-			{ id: "opus", label: "Opus" },
-			{ id: "claude-opus-5", label: "Opus 5" },
-			{ id: "sonnet", label: "Sonnet" },
-			{ id: "haiku", label: "Haiku" },
+			// Aliases track whatever the CLI considers newest in each family;
+			// the pinned ids stay on one model release, which is what teams
+			// standardising on a known model need. The group headers carry
+			// that distinction so the labels don't have to.
+			{ id: "fable", label: "Fable", group: LATEST_GROUP },
+			{ id: "opus", label: "Opus", group: LATEST_GROUP },
+			{ id: "sonnet", label: "Sonnet", group: LATEST_GROUP },
+			{ id: "haiku", label: "Haiku", group: LATEST_GROUP },
+			{ id: "claude-fable-5", label: "Fable 5", group: PINNED_GROUP },
+			{ id: "claude-opus-5", label: "Opus 5", group: PINNED_GROUP },
+			{ id: "claude-sonnet-5", label: "Sonnet 5", group: PINNED_GROUP },
+			{ id: "claude-opus-4-8", label: "Opus 4.8", group: PINNED_GROUP },
+			{ id: "claude-opus-4-7", label: "Opus 4.7", group: PINNED_GROUP },
+			{ id: "claude-opus-4-6", label: "Opus 4.6", group: PINNED_GROUP },
+			{ id: "claude-opus-4-5", label: "Opus 4.5", group: PINNED_GROUP },
+			{ id: "claude-sonnet-4-6", label: "Sonnet 4.6", group: PINNED_GROUP },
+			{ id: "claude-haiku-4-5", label: "Haiku 4.5", group: PINNED_GROUP },
 		],
 	},
 	{
 		presetId: "codex",
 		modelFlag: "--model",
 		models: [
-			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
-			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
-			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
-			{ id: "gpt-5.5", label: "GPT-5.5" },
-			// Retiring from Codex on 2026-08-31; superseded by gpt-5.6-terra/luna.
-			{ id: "gpt-5.4", label: "GPT-5.4" },
-			{ id: "gpt-5.3-codex", label: "GPT-5.3 Codex" },
+			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol", group: CURRENT_GROUP },
+			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra", group: CURRENT_GROUP },
+			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna", group: CURRENT_GROUP },
+			{ id: "gpt-5.5", label: "GPT-5.5", group: CURRENT_GROUP },
+			// Superseded by gpt-5.6-terra/luna; the header dates the retirement
+			// so it reaches the person picking rather than only this file.
+			{ id: "gpt-5.4", label: "GPT-5.4", group: CODEX_RETIRING_GROUP },
+			{
+				id: "gpt-5.3-codex",
+				label: "GPT-5.3 Codex",
+				group: CODEX_RETIRING_GROUP,
+			},
 		],
 	},
 	{

@@ -2,6 +2,7 @@ import type { SentryConfig } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "../../../env";
+import { userError } from "../../../i18n-error";
 import {
 	markDisconnected,
 	type RefreshedToken,
@@ -216,9 +217,10 @@ export async function fetchSentryProjects(
 			headers: { Authorization: `Bearer ${token}` },
 		});
 		if (response.status === 401 || response.status === 403) {
-			throw new TRPCError({
+			throw userError({
 				code: "UNAUTHORIZED",
 				message: "Sentry rejected the token",
+				i18nKey: "serverError.integration.sentryRejectedTheToken",
 			});
 		}
 		if (!response.ok) {

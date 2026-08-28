@@ -15,6 +15,7 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
+	userError,
 } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { isUniqueViolation } from "../utils/unique-violation";
@@ -119,9 +120,10 @@ async function enforceHostBudget(
 	`);
 
 	if (Number(seen.rows[0]?.hosts ?? 0) >= MAX_HOSTS_PER_USER) {
-		throw new TRPCError({
+		throw userError({
 			code: "BAD_REQUEST",
 			message: "Too many machines publishing for this account.",
+			i18nKey: "serverError.leaderboard.tooManyMachinesPublishing",
 		});
 	}
 }
@@ -171,9 +173,10 @@ async function enforcePublicRead(headers: Headers): Promise<void> {
 		return;
 	}
 	if (!success) {
-		throw new TRPCError({
+		throw userError({
 			code: "TOO_MANY_REQUESTS",
 			message: "Rate limit exceeded.",
+			i18nKey: "serverError.leaderboard.rateLimitExceeded",
 		});
 	}
 }
@@ -199,9 +202,10 @@ async function requireParticipant(userId: string) {
 		.limit(1);
 
 	if (!row || row.revokedAt) {
-		throw new TRPCError({
+		throw userError({
 			code: "PRECONDITION_FAILED",
 			message: "Not on the leaderboard. Opt in first.",
+			i18nKey: "serverError.leaderboard.notOnTheLeaderboardOptIn",
 		});
 	}
 	return row;
@@ -388,9 +392,10 @@ export const leaderboardRouter = createTRPCRouter({
 				.limit(1);
 
 			if (taken && taken.userId !== userId) {
-				throw new TRPCError({
+				throw userError({
 					code: "CONFLICT",
 					message: "That handle is taken.",
+					i18nKey: "serverError.leaderboard.thatHandleIsTaken",
 				});
 			}
 
@@ -419,9 +424,10 @@ export const leaderboardRouter = createTRPCRouter({
 				return row;
 			} catch (error) {
 				if (isUniqueViolation(error, HANDLE_CONSTRAINT)) {
-					throw new TRPCError({
+					throw userError({
 						code: "CONFLICT",
 						message: "That handle is taken.",
+						i18nKey: "serverError.leaderboard.thatHandleIsTaken",
 					});
 				}
 				throw error;
@@ -629,7 +635,11 @@ export const leaderboardRouter = createTRPCRouter({
 				await enforcePublicRead(ctx.headers);
 				const profile = await getParticipant(input.handle, input);
 				if (!profile) {
-					throw new TRPCError({ code: "NOT_FOUND", message: "Not found" });
+					throw userError({
+						code: "NOT_FOUND",
+						message: "Not found",
+						i18nKey: "serverError.leaderboard.notFound",
+					});
 				}
 				return profile;
 			}),

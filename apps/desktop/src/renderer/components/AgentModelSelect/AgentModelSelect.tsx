@@ -2,10 +2,14 @@ import type { AgentModelOption } from "@superset/shared/agent-models";
 import {
 	Select,
 	SelectContent,
+	SelectGroup,
 	SelectItem,
+	SelectLabel,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { groupModelOptions } from "./groupModelOptions";
 
 // Radix Select reserves "" for clearing, so "Default" needs a sentinel.
 const DEFAULT_MODEL_VALUE = "__default_model__";
@@ -51,10 +55,28 @@ export function AgentModelSelect({
 			</SelectTrigger>
 			<SelectContent className={contentClassName}>
 				<SelectItem value={DEFAULT_MODEL_VALUE}>{defaultLabel}</SelectItem>
-				{models.map((model) => (
-					<SelectItem key={model.id} value={model.id}>
-						{model.label}
-					</SelectItem>
+				{groupModelOptions(models).map((group, index) => (
+					// Index-qualified: a catalog may return to an earlier header
+					// (groupModelOptions keeps those as separate sections), and a
+					// bare label would then collide as a React key.
+					<SelectGroup key={`${group.label ?? "ungrouped"}-${index}`}>
+						{group.label !== null && (
+							<>
+								{/* Every kind-change gets a rule, including the one
+								    between the default escape hatch and the first
+								    section — it is not a member of that section. */}
+								<SelectSeparator />
+								<SelectLabel className="text-xs text-muted-foreground">
+									{group.label}
+								</SelectLabel>
+							</>
+						)}
+						{group.options.map((model) => (
+							<SelectItem key={model.id} value={model.id}>
+								{model.label}
+							</SelectItem>
+						))}
+					</SelectGroup>
 				))}
 			</SelectContent>
 		</Select>

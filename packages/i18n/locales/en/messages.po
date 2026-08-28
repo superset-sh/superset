@@ -24,9 +24,54 @@ msgid "settings.appearance.themeImport.success"
 msgstr "{totalImported, plural, one {Imported # custom theme} other {Imported # custom themes}}"
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.aHostMustHaveAtLeast"
+msgstr "A host must have at least one owner."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.aRunForThisAutomation"
+msgstr "A run for this automation is already in progress."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.common.accountIsPendingDeletion"
+msgstr "Account is pending deletion."
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/account-pending-deletion/page.tsx
 msgid "account.pendingDeletion.title"
 msgstr "Account pending deletion"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.apiKey.activeOrganizationRequiredToCreate"
+msgstr "Active organization required to create an API key"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.integration.adminAccessRequired"
+msgstr "Admin access required"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.adminsCannotModifyOwners"
+msgstr "Admins cannot modify owners"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.adminsCannotPromoteMembersToOwner"
+msgstr "Admins cannot promote members to owner"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.automationHasNoInstructions"
+msgstr "Automation has no instructions"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.automationNotFound"
+msgstr "Automation not found"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
@@ -34,9 +79,54 @@ msgid "common.cancel"
 msgstr "Cancel"
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.cannotDemoteTheLastOwnerPromote"
+msgstr "Cannot demote the last owner. Promote someone else first."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.cannotRemoveTheLastOwnerTransfer"
+msgstr "Cannot remove the last owner. Transfer ownership first."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.cannotRemoveYourself"
+msgstr "Cannot remove yourself"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.chat.chatSessionNotFound"
+msgstr "Chat session not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.cloudWorkspace.cloudWorkspacesAreNotAvailableYet"
+msgstr "Cloud workspaces are not available yet"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.commentNotFound"
+msgstr "Comment not found"
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/account-pending-deletion/page.tsx
 msgid "account.pendingDeletion.contactSupport"
 msgstr "Contact support"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.blaxel.couldNotMintSandboxAccessToken"
+msgstr "Could not mint sandbox access token"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.cloudWorkspace.couldNotRecordCloudWorkspace"
+msgstr "Could not record cloud workspace"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.cloudWorkspace.couldNotStartCloudWorkspaceProvisioning"
+msgstr "Could not start cloud workspace provisioning"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/components/DownloadButton/DownloadButton.tsx
@@ -55,8 +145,103 @@ msgstr "Email me a link"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts
+msgid "serverError.automation.failedToCreateAutomation"
+msgstr "Failed to create automation"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
 msgid "serverError.organization.createFailed"
 msgstr "Failed to create organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.failedToCreatePage"
+msgstr "Failed to create page"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.failedToCreateThread"
+msgstr "Failed to create thread"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.host.failedToEnsureHost"
+msgstr "Failed to ensure host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.task.failedToGenerateAUniqueTask"
+msgstr "Failed to generate a unique task slug"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.failedToLeaveOrganization"
+msgstr "Failed to leave organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.chat.failedToRecordChatAttachment"
+msgstr "Failed to record chat attachment"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.failedToRecordPageVersion"
+msgstr "Failed to record page version"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.failedToSavePrompt"
+msgstr "Failed to save prompt"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.failedToSendFeedback"
+msgstr "Failed to send feedback"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.failedToSendMigrationReport"
+msgstr "Failed to send migration report"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.user.failedToUploadAvatar"
+msgstr "Failed to upload avatar"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.failedToUploadLogo"
+msgstr "Failed to upload logo"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.feedbackRateLimitingIsNotConfigured"
+msgstr "Feedback rate limiting is not configured"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.uploadBytes.fileIsEmpty"
+msgstr "File is empty"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.integration.githubInstallationNotFound"
+msgstr "GitHub installation not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.hostNotFoundInThisOrganization"
+msgstr "Host not found in this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.host.invalidHostid"
+msgstr "Invalid hostId"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.upload.invalidImageTypeOnlyPngJpeg"
+msgstr "Invalid image type. Only PNG, JPEG, and WebP are allowed"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts
@@ -79,14 +264,189 @@ msgid "settings.appearance.themeImport.tooLargeHint"
 msgstr "Maximum size is 256 KB."
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.memberNotFound"
+msgstr "Member not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.membersCannotModifyRoles"
+msgstr "Members cannot modify roles"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.host.noAccessToThisHost"
+msgstr "No access to this host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.billing.noActiveOrganization"
+msgstr "No active organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.chat.noActiveOrganizationSelected"
+msgstr "No active organization selected"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/main/lib/tray/index.ts
 msgid "tray.noActiveServices"
 msgstr "No active services"
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.billing.noStripeCustomerFound"
+msgstr "No Stripe customer found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.cloudWorkspace.notAMemberOfThisOrganization"
+msgstr "Not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.host.notAMemberOfThisOrganization"
+msgstr "Not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.integration.notAMemberOfThisOrganization"
+msgstr "Not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.notAMemberOfThisOrganization"
+msgstr "Not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Project.notAMemberOfThisOrganization"
+msgstr "Not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Workspace.notAMemberOfThisOrganization"
+msgstr "Not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.common.notAuthenticatedPleaseSignIn"
+msgstr "Not authenticated. Please sign in."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.common.notAuthenticatedProvideABearerJwt"
+msgstr "Not authenticated. Provide a bearer JWT, x-api-key, or session."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.cloudWorkspace.notFound"
+msgstr "Not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.leaderboard.notFound"
+msgstr "Not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.leaderboard.notOnTheLeaderboardOptIn"
+msgstr "Not on the leaderboard. Opt in first."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.onlyAPersonCanHand"
+msgstr "Only a person can hand a thread to an agent"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.onlyHostOwnersCanChangeMembership"
+msgstr "Only host owners can change membership"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.onlyHostOwnersCanDelete"
+msgstr "Only host owners can delete this host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.integration.onlyOwnersCanDeleteProjects"
+msgstr "Only owners can delete projects"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.billing.onlyOwnersCanManageBilling"
+msgstr "Only owners can manage billing"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.onlyOwnersCanUpdateOrganizationSettings"
+msgstr "Only owners can update organization settings"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.onlyTheAuthorCanEdit"
+msgstr "Only the author can edit a comment"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.host.onlyTheHostOwnerCanSet"
+msgstr "Only the host owner can set its wake command"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.onlyThePersonWhoCreated"
+msgstr "Only the person who created this page can change it"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.onlyTheThreadSAuthor"
+msgstr "Only the thread's author or the page's owner can delete it"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/main/lib/tray/index.ts
 msgid "tray.openApp"
 msgstr "Open Superset"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.organizationNotFound"
+msgstr "Organization not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.pageContentIsNotAvailable"
+msgstr "Page content is not available"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.pageHasNoVersions"
+msgstr "Page has no versions"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.pageNotFound"
+msgstr "Page not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.pageNotFound"
+msgstr "Page not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.cloudWorkspace.projectNotFoundInThisOrganization"
+msgstr "Project not found in this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.provideEitherIdOrSlug"
+msgstr "Provide either id or slug"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.leaderboard.rateLimitExceeded"
+msgstr "Rate limit exceeded."
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/account-pending-deletion/page.tsx
@@ -99,9 +459,19 @@ msgid "account.pendingDeletion.reactivating"
 msgstr "Reactivating…"
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.blaxel.sandboxPreviewHasNoUrl"
+msgstr "Sandbox preview has no URL"
+
+#. js-lingui-explicit-id
 #: ../../apps/docs/src/app/(docs)/components/Sidebar/Sidebar.tsx
 msgid "docs.sidebar.searchPlaceholder"
 msgstr "Search docs..."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.integration.sentryRejectedTheToken"
+msgstr "Sentry rejected the token"
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/account-pending-deletion/page.tsx
@@ -114,14 +484,159 @@ msgid "common.unexpectedError"
 msgstr "Something went wrong. Please try again."
 
 #. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.submitPromptRateLimitingIsNot"
+msgstr "Submit prompt rate limiting is not configured"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.supportRateLimitingIsNotConfigured"
+msgstr "Support rate limiting is not configured"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.targethostidDoesNotMatchTheWorkspace"
+msgstr "targetHostId does not match the workspace's host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.team.teamNotFoundInThisOrganization"
+msgstr "Team not found in this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.leaderboard.thatHandleIsTaken"
+msgstr "That handle is taken."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.user.theRecoveryPeriodHasEndedContact"
+msgstr "The recovery period has ended. Contact support@superset.sh."
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.themeImport.tooLarge"
 msgstr "Theme file too large"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts
+msgid "serverError.page.thisPageIsBeingPublishedFrom"
+msgstr "This page is being published from somewhere else — retry"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
 msgid "serverError.organization.slugTaken"
 msgstr "This slug is already taken"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.thisThreadHasNotBeenHanded"
+msgstr "This thread has not been handed to an agent. Someone has to hand it off from the page first."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.thisUserRunsTheHostService"
+msgstr "This user runs the host service for this device and can't be removed."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.thisUserRunsTheHostService2"
+msgstr "This user runs the host service for this device and must remain an owner."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.pageComment.threadNotFound"
+msgstr "Thread not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.tooManyFeedbackSubmissionsTryAgain"
+msgstr "Too many feedback submissions. Try again later."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.leaderboard.tooManyMachinesPublishing"
+msgstr "Too many machines publishing for this account."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.tooManyPromptSubmissionsTryAgain"
+msgstr "Too many prompt submissions. Try again later."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.support.tooManySupportReportsTryAgain"
+msgstr "Too many support reports. Try again later."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.triggerNotFound"
+msgstr "Trigger not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.userAlreadyHasAccess"
+msgstr "User already has access to this host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.userIsNotAMemberOf2"
+msgstr "User is not a member of this host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.v2Host.userIsNotAMember"
+msgstr "User is not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.user.userNotFound"
+msgstr "User not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.v2projectidDoesNotMatchTheWorkspace"
+msgstr "v2ProjectId does not match the workspace's project"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.versionNotFound"
+msgstr "Version not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.webhookTriggerNotFound"
+msgstr "Webhook trigger not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.workspaceNotFound"
+msgstr "Workspace not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.page.workspaceNotFound"
+msgstr "Workspace not found"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.youAreNotAMember"
+msgstr "You are not a member of this organization"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.user.youAreTheOnlyOwner"
+msgstr "You are the only owner of an organization that has other members. Transfer ownership or delete the organization first."
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.automation.youDonTHaveAccess"
+msgstr "You don't have access to this host"
+
+#. js-lingui-explicit-id
+#: src/server-errors.ts
+msgid "serverError.organization.youDonTHavePermission"
+msgstr "You don't have permission to remove this member"
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/account-pending-deletion/page.tsx

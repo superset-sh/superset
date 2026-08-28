@@ -4,10 +4,10 @@ import {
 	automations,
 	users,
 } from "@superset/db/schema";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import type { TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { getAutomationForUser, recordPromptVersion } from "./helpers";
 
@@ -83,9 +83,10 @@ export const automationVersionsRouter = {
 				.limit(1);
 
 			if (!row) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Version not found",
+					i18nKey: "serverError.automation.versionNotFound",
 				});
 			}
 
@@ -118,9 +119,10 @@ export const automationVersionsRouter = {
 				.limit(1);
 
 			if (!version) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Version not found",
+					i18nKey: "serverError.automation.versionNotFound",
 				});
 			}
 

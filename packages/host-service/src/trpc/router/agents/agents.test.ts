@@ -12,6 +12,7 @@ import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
 	validateAgentEffortSelection,
+	validateAgentModelSelection,
 	validateAgentModeSelection,
 	validateAgentResumeSelection,
 } from "./agents";
@@ -311,6 +312,33 @@ describe("buildTerminalAgentLaunch", () => {
 		);
 	});
 
+	it("rejects a stale model instead of launching on the agent default", () => {
+		const db = createTestDb();
+		db.insert(schema.hostAgentConfigs)
+			.values({
+				id: "00000000-0000-0000-0000-00000000000d",
+				presetId: "claude",
+				label: "Claude",
+				command: "claude",
+				argsJson: "[]",
+				promptTransport: "argv",
+				promptArgsJson: "[]",
+				resumeArgsJson: "[]",
+				envJson: "{}",
+				displayOrder: 3,
+			})
+			.run();
+
+		expect(() =>
+			buildTerminalAgentLaunch(db, {
+				workspaceId: "11111111-1111-1111-1111-111111111111",
+				agent: "claude",
+				prompt: "do the thing",
+				model: "claude-opus-9",
+			}),
+		).toThrow(/Unsupported model "claude-opus-9" for Claude/);
+	});
+
 	it("throws NOT_FOUND for an unknown agent", () => {
 		const db = createTestDb();
 		expect(() =>
@@ -422,6 +450,47 @@ describe("buildTerminalAgentLaunch default account env", () => {
 			prompt: "hi",
 		});
 		expect(launch.fullCommand).toBe("'claude' 'hi'");
+	});
+});
+
+describe("validateAgentModelSelection", () => {
+	it("leaves the model unset so the agent can use its own default", () => {
+		expect(() =>
+			validateAgentModelSelection("claude", "Claude", undefined),
+		).not.toThrow();
+	});
+
+	it("accepts a pinned legacy model for the selected agent", () => {
+		expect(() =>
+			validateAgentModelSelection("claude", "Claude", "claude-opus-4-8"),
+		).not.toThrow();
+	});
+
+	it("rejects an unknown model instead of silently dropping the flag", () => {
+		try {
+			validateAgentModelSelection("claude", "Claude", "claude-opus-9");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toContain(
+				'Unsupported model "claude-opus-9" for Claude. Choose one of: ',
+			);
+			expect((error as Error).message).toContain("claude-opus-4-8");
+		}
+	});
+
+	it("rejects overrides for agents without model support", () => {
+		try {
+			validateAgentModelSelection("superset", "Superset", "claude-opus-5");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toBe(
+				"Superset does not support a model override. Omit model to use the agent default.",
+			);
+		}
 	});
 });
 

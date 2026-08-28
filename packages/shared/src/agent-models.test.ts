@@ -106,6 +106,43 @@ describe("buildAgentModelArgs", () => {
 		]);
 	});
 
+	it("offers pinned claude releases alongside the latest-tracking aliases", () => {
+		const ids = getAgentModelSupport("claude")?.models.map((m) => m.id) ?? [];
+		// Aliases follow the CLI's newest model; teams standardising on one
+		// release need an id that stays put.
+		expect(ids).toContain("opus");
+		expect(ids).toContain("claude-opus-4-8");
+		expect(ids).toContain("claude-opus-4-7");
+		expect(ids).toContain("claude-sonnet-4-6");
+		expect(ids).toContain("claude-haiku-4-5");
+	});
+
+	it("labels claude's aliases and pinned releases as separate sections", () => {
+		const models = getAgentModelSupport("claude")?.models ?? [];
+		const groupOf = (id: string) =>
+			models.find((model) => model.id === id)?.group;
+		expect(groupOf("opus")).toBe("Latest");
+		expect(groupOf("claude-opus-4-8")).toBe("Pinned releases");
+		// The header carries the distinction, so labels stay bare.
+		expect(models.find((model) => model.id === "opus")?.label).toBe("Opus");
+	});
+
+	it("dates codex's retiring models in the picker, not just in a comment", () => {
+		const models = getAgentModelSupport("codex")?.models ?? [];
+		const groupOf = (id: string) =>
+			models.find((model) => model.id === id)?.group;
+		expect(groupOf("gpt-5.6-sol")).toBe("Current");
+		expect(groupOf("gpt-5.4")).toBe("Retiring 2026-08-31");
+		expect(groupOf("gpt-5.3-codex")).toBe("Retiring 2026-08-31");
+	});
+
+	it("passes a pinned legacy claude model through to the CLI flag", () => {
+		expect(buildAgentModelArgs("claude", "claude-opus-4-8")).toEqual([
+			"--model",
+			"claude-opus-4-8",
+		]);
+	});
+
 	it("includes opus 5 in claude's curated list", () => {
 		expect(buildAgentModelArgs("claude", "claude-opus-5")).toEqual([
 			"--model",

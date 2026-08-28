@@ -4,6 +4,7 @@ import {
 	buildAgentModelArgs,
 	buildAgentModelEnv,
 	getAgentEffortSupport,
+	getAgentModelSupport,
 	getAgentModeSupport,
 	resolveAgentLaunchPresetId,
 } from "@superset/shared/agent-models";
@@ -194,6 +195,38 @@ export type AgentRunResult = {
 };
 
 /**
+ * Validate an explicit model override before launch. Omitting model always
+ * delegates to the underlying agent's own default.
+ *
+ * Without this the launch builder silently drops an id outside the curated
+ * list, so a stale or mistyped model reads as "Superset ignored my choice":
+ * the agent starts on its own default with no flag, no warning, and a
+ * success exit code.
+ */
+export function validateAgentModelSelection(
+	presetId: string,
+	label: string,
+	model: string | undefined,
+): void {
+	if (!model) return;
+
+	const support = getAgentModelSupport(presetId);
+	if (!support) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${label} does not support a model override. Omit model to use the agent default.`,
+		});
+	}
+
+	if (!support.models.some((option) => option.id === model)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Unsupported model "${model}" for ${label}. Choose one of: ${support.models.map((option) => option.id).join(", ")}.`,
+		});
+	}
+}
+
+/**
  * Validate an explicit effort override before launch. Omitting effort always
  * delegates to the underlying agent's own default.
  */
@@ -279,9 +312,9 @@ export function validateAgentResumeSelection(
  */
 export function validateAgentLaunchOptions(
 	db: HostDb,
-	input: Pick<AgentRunInput, "agent" | "effort" | "mode">,
+	input: Pick<AgentRunInput, "agent" | "model" | "effort" | "mode">,
 ): void {
-	if (!input.effort && !input.mode) return;
+	if (!input.model && !input.effort && !input.mode) return;
 
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
@@ -294,6 +327,7 @@ export function validateAgentLaunchOptions(
 		config.presetId,
 		config.command,
 	);
+	validateAgentModelSelection(launchPresetId, config.label, input.model);
 	validateAgentEffortSelection(launchPresetId, config.label, input.effort);
 	validateAgentModeSelection(launchPresetId, config.label, input.mode);
 }
@@ -322,6 +356,7 @@ export function buildTerminalAgentLaunch(
 		config.presetId,
 		config.command,
 	);
+	validateAgentModelSelection(launchPresetId, config.label, input.model);
 	validateAgentEffortSelection(launchPresetId, config.label, input.effort);
 	validateAgentModeSelection(launchPresetId, config.label, input.mode);
 	validateAgentResumeSelection(config, input.resumeSessionId);
