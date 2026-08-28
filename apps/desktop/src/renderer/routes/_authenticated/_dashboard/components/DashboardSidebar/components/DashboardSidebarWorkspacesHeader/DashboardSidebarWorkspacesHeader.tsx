@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,6 +23,7 @@ import {
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 
 export function DashboardSidebarWorkspacesHeader() {
+	const { t } = useLingui();
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
@@ -50,7 +51,13 @@ export function DashboardSidebarWorkspacesHeader() {
 	};
 
 	return (
-		<DashboardSidebarSectionHeader label="Projects" section="workspaces">
+		<DashboardSidebarSectionHeader
+			label={t({
+				id: "dashboard.sidebar.sectionProjects",
+				message: "Projects",
+			})}
+			section="workspaces"
+		>
 			<DropdownMenu>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>

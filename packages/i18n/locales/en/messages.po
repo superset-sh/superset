@@ -716,6 +716,16 @@ msgid "components.promptGroupAdvancedOptions.title"
 msgstr "Advanced options"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/components/DiffSectionBar/DiffSectionBar.tsx
+msgid "workspace.changes.groupAgainstBase"
+msgstr "Against base"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
+msgid "workspace.changesList.groupAgainstBase"
+msgstr "Against base"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx
 msgid "dashboard.workspaces.header.agentFilter"
 msgstr "Agent"
@@ -1554,6 +1564,11 @@ msgid "settings.billing.plans.changeToMonthly"
 msgstr "Change to Monthly"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/useChangesTab.tsx
+msgid "workspace.changesTab.label"
+msgstr "Changes"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/plugins/$pluginName/components/PluginDetail/PluginDetail.tsx
 msgid "dashboard.plugins.detail.takesEffect"
 msgstr "Changes take effect in new agent sessions."
@@ -1860,6 +1875,11 @@ msgid "dashboard.pullRequests.confirm.closeAction"
 msgstr "Close pull request"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCloudSection/DashboardSidebarCloudSection.tsx
+msgid "dashboard.sidebar.sectionCloud"
+msgstr "Cloud"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/DevicePicker.tsx
 msgid "dashboard.newWorkspaceModal.devicePicker.cloudSelected"
 msgstr "Cloud"
@@ -1943,6 +1963,16 @@ msgstr "Comment not found"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
 msgid "workspace.commentsSection.commentsTitle"
 msgstr "Comments"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/components/DiffSectionBar/DiffSectionBar.tsx
+msgid "workspace.changes.groupCommitted"
+msgstr "Committed"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
+msgid "workspace.changesList.groupCommitted"
+msgstr "Committed"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/LeaderboardPrompt/LeaderboardPrompt.tsx
@@ -3642,6 +3672,11 @@ msgstr "File was deleted on disk."
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/FilePane/components/OrphanedBanner/OrphanedBanner.tsx
 msgid "workspace.filePane.deletedOnDiskDirty"
 msgstr "File was deleted on disk. You still have unsaved changes."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/WorkspaceSidebar.tsx
+msgid "workspace.sidebar.filesTab"
+msgstr "Files"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/$prNumber/components/PullRequestCodeTab/PullRequestCodeTab.tsx
@@ -6403,9 +6438,19 @@ msgid "workspace.commentsSection.openAsCommentPane"
 msgstr "Open as comment pane"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceEmptyState/WorkspaceEmptyState.tsx
+msgid "workspace.emptyState.openBrowser"
+msgstr "Open Browser"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
 msgid "components.oauthDialog.openBrowserAgain"
 msgstr "Open browser again"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceEmptyState/WorkspaceEmptyState.tsx
+msgid "workspace.emptyState.openChatV3"
+msgstr "Open Chat v3"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/BrowserPaneToolbar/BrowserPaneToolbar.tsx
@@ -6616,6 +6661,11 @@ msgstr "Open Superset"
 #: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
 msgid "components.importHistoryDialog.openSystemSettings"
 msgstr "Open System Settings"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceEmptyState/WorkspaceEmptyState.tsx
+msgid "workspace.emptyState.openTerminal"
+msgstr "Open Terminal"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx
@@ -7031,6 +7081,11 @@ msgstr "Project Settings"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageWorkspacesPage/UsageWorkspacesPage.tsx
 msgid "settings.usage.workspacesPage.projectFilterChip"
 msgstr "Project: {0}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
+msgid "dashboard.sidebar.sectionProjects"
+msgstr "Projects"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageWorkspacesPage/UsageWorkspacesPage.tsx
@@ -7806,6 +7861,11 @@ msgid "dashboard.plugins.skillPreview.revealInFinder"
 msgstr "Reveal in Finder"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/useReviewTab.tsx
+msgid "workspace.reviewTab.label"
+msgstr "Review"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
 msgid "workspace.commentsSection.reviewTitle"
 msgstr "Review"
@@ -8096,6 +8156,11 @@ msgid "workspace.filesTab.searchFiles"
 msgstr "Search files"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceEmptyState/WorkspaceEmptyState.tsx
+msgid "workspace.emptyState.searchFiles"
+msgstr "Search Files"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.prLink.searching"
 msgstr "Searching..."
@@ -8275,6 +8340,11 @@ msgstr "Session"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageDrilldownPage/UsageDrilldownPage.tsx
 msgid "settings.usage.drilldown.sessionFallbackLabel"
 msgstr "Session {0}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSessionsSection/DashboardSidebarSessionsSection.tsx
+msgid "dashboard.sidebar.sectionSessions"
+msgstr "Sessions"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/SessionPicker/SessionPicker.tsx
@@ -8665,6 +8735,16 @@ msgstr "Squash and merge"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/$prNumber/page.tsx
 msgid "dashboard.pullRequests.mergeMethod.squash"
 msgstr "Squash and merge"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/components/DiffSectionBar/DiffSectionBar.tsx
+msgid "workspace.changes.groupStaged"
+msgstr "Staged"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
+msgid "workspace.changesList.groupStaged"
+msgstr "Staged"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/components/GithubStarRow/GithubStarRow.tsx
@@ -9538,6 +9618,11 @@ msgid "settings.billing.invoiceUncollectible"
 msgstr "Uncollectible"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/CommitFilterDropdown/CommitFilterDropdown.tsx
+msgid "workspace.commitFilter.uncommitted"
+msgstr "Uncommitted"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkDeleteDialog/DashboardSidebarBulkDeleteDialog.tsx
 msgid "dashboard.sidebar.bulkDelete.uncommitted"
 msgstr "Uncommitted"
@@ -9681,6 +9766,16 @@ msgstr "Unpushed"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/$prNumber/components/PullRequestCommentThread/PullRequestCommentThread.tsx
 msgid "dashboard.pullRequests.commentThread.unresolve"
 msgstr "Unresolve"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/components/DiffSectionBar/DiffSectionBar.tsx
+msgid "workspace.changes.groupUnstaged"
+msgstr "Unstaged"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
+msgid "workspace.changesList.groupUnstaged"
+msgstr "Unstaged"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: item.kind

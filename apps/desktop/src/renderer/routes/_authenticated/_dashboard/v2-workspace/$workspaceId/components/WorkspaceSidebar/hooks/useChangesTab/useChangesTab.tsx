@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -35,6 +36,7 @@ export function useChangesTab({
 	onSelectFile,
 	onOpenFile,
 }: UseChangesTabParams): SidebarTabDefinition {
+	const { t } = useLingui();
 	const status = useWorkspaceGitStatus();
 	const collections = useCollections();
 	const utils = workspaceTrpc.useUtils();
@@ -196,7 +198,7 @@ export function useChangesTab({
 
 	return {
 		id: "changes",
-		label: "Changes",
+		label: t({ id: "workspace.changesTab.label", message: "Changes" }),
 		badge: totalChanges > 0 ? totalChanges : undefined,
 		content,
 	};

@@ -1,5 +1,6 @@
 import { Plural, Trans } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
+import { i18n } from "@superset/i18n";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -18,8 +19,16 @@ type Commit =
 	inferRouterOutputs<AppRouter>["git"]["listCommits"]["commits"][number];
 
 function getFilterLabel(filter: ChangesFilter, commits: Commit[]): string {
-	if (filter.kind === "all") return "All changes";
-	if (filter.kind === "uncommitted") return "Uncommitted";
+	if (filter.kind === "all")
+		return i18n._({
+			id: "workspace.commitFilter.allChanges",
+			message: "All changes",
+		});
+	if (filter.kind === "uncommitted")
+		return i18n._({
+			id: "workspace.commitFilter.uncommitted",
+			message: "Uncommitted",
+		});
 	if (filter.kind === "range") {
 		const from = commits.find((c) => c.hash === filter.fromHash);
 		const to = commits.find((c) => c.hash === filter.toHash);

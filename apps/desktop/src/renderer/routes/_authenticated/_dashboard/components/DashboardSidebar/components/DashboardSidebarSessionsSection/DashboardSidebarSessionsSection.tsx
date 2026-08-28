@@ -2,7 +2,7 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
 import { useOpenNewSessionModal } from "renderer/stores/new-workspace-modal";
@@ -42,6 +42,7 @@ export function DashboardSidebarSessionsSection({
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 }: DashboardSidebarSessionsSectionProps) {
+	const { t } = useLingui();
 	const openNewSessionModal = useOpenNewSessionModal();
 	const { sessionItems, workspacesById, activeWorkspaceHome } =
 		useDashboardSidebarDnd();
@@ -76,7 +77,13 @@ export function DashboardSidebarSessionsSection({
 
 	return (
 		<div className="mt-3 pb-1 first:mt-0">
-			<DashboardSidebarSectionHeader label="Sessions" section="sessions">
+			<DashboardSidebarSectionHeader
+				label={t({
+					id: "dashboard.sidebar.sectionSessions",
+					message: "Sessions",
+				})}
+				section="sessions"
+			>
 				<Tooltip delayDuration={700}>
 					<TooltipTrigger asChild>
 						<button
