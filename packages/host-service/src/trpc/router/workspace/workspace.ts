@@ -8,6 +8,10 @@ import {
 	toCloudShape,
 	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
+import {
+	repairMovedWorktree,
+	validateWorktreePathUpdate,
+} from "../../../workspaces/moved-worktree";
 import { protectedProcedure, router } from "../../index";
 import { resolveWorktreePath } from "../git/utils/resolve-worktree";
 import { destroyWorkspace } from "../workspace-cleanup";
@@ -15,18 +19,19 @@ import { destroyWorkspace } from "../workspace-cleanup";
 export const workspaceRouter = router({
 	get: protectedProcedure
 		.input(z.object({ id: z.string() }))
-		.query(({ ctx, input }) => {
-			const localWorkspace = ctx.db.query.workspaces
+		.query(async ({ ctx, input }) => {
+			const stored = ctx.db.query.workspaces
 				.findFirst({ where: eq(workspaces.id, input.id) })
 				.sync();
 
-			if (!localWorkspace) {
+			if (!stored) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Workspace not found",
 				});
 			}
 
+			const localWorkspace = await repairMovedWorktree(ctx, stored);
 			return {
 				...localWorkspace,
 				worktreeExists: existsSync(localWorkspace.worktreePath),
@@ -84,6 +89,8 @@ export const workspaceRouter = router({
 	 * row commits and broadcasts immediately; the cloud mirror push is
 	 * best-effort (the reconciler retries when unreachable). `branch` only
 	 * re-points the record — callers rename the git branch themselves.
+	 * `worktreePath` re-points a workspace whose worktree was moved on disk;
+	 * the path must be a worktree of the project on the workspace's branch.
 	 */
 	update: protectedProcedure
 		.input(
@@ -92,6 +99,7 @@ export const workspaceRouter = router({
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
 				taskId: z.string().uuid().nullable().optional(),
+				worktreePath: z.string().min(1).optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -111,11 +119,29 @@ export const workspaceRouter = router({
 						'The local workspace cannot be renamed — it always displays as "local".',
 				});
 			}
-			const patch: { name?: string; branch?: string; taskId?: string | null } =
-				{};
+			const patch: {
+				name?: string;
+				branch?: string;
+				taskId?: string | null;
+				worktreePath?: string;
+			} = {};
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
 			if (input.taskId !== undefined) patch.taskId = input.taskId;
+			if (input.worktreePath !== undefined) {
+				const validated = await validateWorktreePathUpdate(
+					ctx,
+					current,
+					input.worktreePath,
+				);
+				if (!validated.ok) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: validated.message,
+					});
+				}
+				patch.worktreePath = validated.worktreePath;
+			}
 			if (Object.keys(patch).length === 0) {
 				return toCloudShape(current, ctx.organizationId);
 			}

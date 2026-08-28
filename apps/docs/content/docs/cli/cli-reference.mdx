@@ -745,6 +745,7 @@ superset workspaces get --field branch   # inside a workspace
 		{ flag: "--name <name>", description: "New workspace name." },
 		{ flag: "--task-id <id>", description: "Link the workspace to a task by id." },
 		{ flag: "--clear-task", description: "Unlink the workspace from its current task. Mutually exclusive with --task-id." },
+		{ flag: "--worktree-path <path>", description: "Re-point the workspace at a worktree that was moved on disk. The path must be a worktree of the project on the workspace's branch." },
 	]}
 	output="Workspace"
 >
@@ -754,7 +755,12 @@ Update a workspace on its host (default: this machine).
 superset workspaces update ws_… --name "better-name"
 superset workspaces update ws_… --task-id tsk_…
 superset workspaces update ws_… --clear-task
+superset workspaces update ws_… --worktree-path ~/repo/.worktrees/feature
 ```
+
+A workspace whose worktree was relocated with `git worktree move` is also repaired
+automatically the next time it is opened or fetched with `workspaces get`, as long as
+the branch still appears in `git worktree list` for the project.
 </Command>
 
 <Command

@@ -26,6 +26,7 @@ import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts"
 import {
 	normalizeWorktreePath,
 	parseWorktreeList,
+	type WorktreeRecord,
 } from "../../trpc/router/workspace-creation/shared/worktree-list.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
 
@@ -235,6 +236,19 @@ export const gitWorktreeRemoveTask = defineWorkerTask<
 	},
 });
 
+export const gitWorktreeListTask = defineWorkerTask<
+	{ repoPath: string; gitEnv: GitTaskEnv },
+	WorktreeRecord[]
+>({
+	type: "git/listWorktrees",
+	handler: async ({ repoPath, gitEnv }) => {
+		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		return parseWorktreeList(
+			await git.raw(["worktree", "list", "--porcelain"]),
+		);
+	},
+});
+
 export const gitDeleteBranchTask = defineWorkerTask<
 	{ repoPath: string; branch: string; gitEnv: GitTaskEnv },
 	{ deleted: boolean }
@@ -262,5 +276,6 @@ export const gitTasks = [
 	gitIdentityTask,
 	gitWorktreeStateTask,
 	gitWorktreeRemoveTask,
+	gitWorktreeListTask,
 	gitDeleteBranchTask,
 ];

@@ -259,6 +259,11 @@ export interface WorkspaceUpdateParams {
 	name?: string;
 	/** Link the workspace to a task by id, or pass `null` to unlink. */
 	taskId?: string | null;
+	/**
+	 * Re-point the workspace at a worktree that was moved on disk. Must be a
+	 * worktree of the project on the workspace's branch.
+	 */
+	worktreePath?: string;
 }
 
 export interface WorkspaceUpdateResult {

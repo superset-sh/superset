@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
@@ -11,6 +12,9 @@ export default command({
 		name: string().desc("Workspace name"),
 		taskId: string().desc("Link the workspace to a task by id"),
 		clearTask: boolean().desc("Unlink the workspace from its current task"),
+		worktreePath: string().desc(
+			"Re-point the workspace at a worktree that was moved on disk",
+		),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
@@ -32,10 +36,14 @@ export default command({
 				? options.taskId
 				: undefined;
 
-		if (options.name === undefined && taskId === undefined) {
+		if (
+			options.name === undefined &&
+			taskId === undefined &&
+			options.worktreePath === undefined
+		) {
 			throw new CLIError(
 				"No fields to update",
-				"Pass --name, --task-id, or --clear-task",
+				"Pass --name, --task-id, --clear-task, or --worktree-path",
 			);
 		}
 
@@ -49,6 +57,9 @@ export default command({
 			id,
 			...(options.name !== undefined ? { name: options.name } : {}),
 			...(taskId !== undefined ? { taskId } : {}),
+			...(options.worktreePath !== undefined
+				? { worktreePath: resolve(options.worktreePath) }
+				: {}),
 		});
 
 		return {
