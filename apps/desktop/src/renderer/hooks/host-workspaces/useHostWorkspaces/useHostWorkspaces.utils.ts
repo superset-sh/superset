@@ -5,6 +5,7 @@ import type {
 	WorkspaceSnapshotPayload,
 } from "@superset/workspace-client";
 import { get as idbGet, set as idbSet } from "idb-keyval";
+import { filterRepresentableHostRows } from "renderer/lib/hostRowContract";
 
 /**
  * The frozen cloud row shape, widened for host-only capabilities the cloud
@@ -243,6 +244,22 @@ export function applyWorkspaceChangedEvent(
 }
 
 /**
+ * Drop rows whose workspace or project id this app cannot represent. Every
+ * source a host row can arrive from — the live `workspace.list` answer, an
+ * IndexedDB snapshot, a `workspace:changed` patch — passes through here, so
+ * this is the one place the identity contract has to hold for downstream
+ * consumers (see `filterRepresentableHostRows`).
+ */
+export function keepRepresentableHostWorkspaces(
+	rows: readonly HostWorkspaceRow[],
+): readonly HostWorkspaceRow[] {
+	return filterRepresentableHostRows(rows, "workspace", (row) => ({
+		id: row.id,
+		projectId: row.projectId,
+	}));
+}
+
+/**
  * Merge per-host results. A host that answered is authoritative for its
  * rows — a deleted row must not resurrect.
  */
@@ -260,7 +277,7 @@ export function mergeHostWorkspaces({
 
 	for (const result of hostResults) {
 		if (!result.rows) continue;
-		for (const row of result.rows) {
+		for (const row of keepRepresentableHostWorkspaces(result.rows)) {
 			if (seenIds.has(row.id)) continue;
 			seenIds.add(row.id);
 			items.push({

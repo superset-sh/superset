@@ -1,6 +1,7 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { ProjectSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
+import { filterRepresentableHostRows } from "renderer/lib/hostRowContract";
 
 /** A project row as served by a host (`project.list`). */
 export interface HostProjectRow {
@@ -275,7 +276,13 @@ export function mergeHostProjects({
 
 	for (const result of hostResults) {
 		if (!result.rows) continue;
-		for (const row of result.rows) {
+		// Same identity contract as workspaces: a project id the app cannot
+		// represent would crash the sidebar's project collection on insert.
+		for (const row of filterRepresentableHostRows(
+			result.rows,
+			"project",
+			(candidate) => ({ id: candidate.id }),
+		)) {
 			const key = row.id;
 			const existing = byKey.get(key);
 			if (!existing) {

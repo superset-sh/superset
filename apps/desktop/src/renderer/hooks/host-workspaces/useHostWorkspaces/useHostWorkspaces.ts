@@ -13,6 +13,7 @@ import {
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
 	isEventBusReopen,
+	keepRepresentableHostWorkspaces,
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
@@ -336,7 +337,9 @@ export function useHostWorkspacesSource(
 		const liveIds = new Set(merged.map((row) => row.id));
 		const archived: HostWorkspaceItem[] = targets.flatMap((_target, index) => {
 			const query = archivedQueries[index];
-			const rows = query?.data ?? [];
+			// Tombstones skip mergeHostWorkspaces, so they get the same
+			// identity filter here rather than an exemption from it.
+			const rows = keepRepresentableHostWorkspaces(query?.data ?? []);
 			return rows
 				.filter((row) => !liveIds.has(row.id))
 				.map((row) => ({
