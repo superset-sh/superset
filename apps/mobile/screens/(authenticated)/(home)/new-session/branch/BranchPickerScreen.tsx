@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
@@ -51,6 +52,7 @@ function BranchRow({
 export function BranchPickerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
+	const insets = useSafeAreaInsets();
 	const [query, setQuery] = useState("");
 	const params = useLocalSearchParams<{
 		projectId?: string;
@@ -158,7 +160,10 @@ export function BranchPickerScreen() {
 			</View>
 			<ScrollView
 				className="bg-background"
-				contentContainerStyle={{ paddingBottom: 24, paddingHorizontal: 24 }}
+				contentContainerStyle={{
+					paddingBottom: insets.bottom + 8,
+					paddingHorizontal: 24,
+				}}
 				keyboardShouldPersistTaps="handled"
 			>
 				{defaultBranch ? (
