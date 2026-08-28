@@ -290,6 +290,8 @@ export function PromptInputProvider({
 		[],
 	);
 	// Read at call time so `add` stays stable while still seeing the live count.
+	// Re-synced from state on every render, and advanced by `add` itself so two
+	// calls in the same tick do not both budget against the pre-add count.
 	const attachmentCountRef = useRef(0);
 	attachmentCountRef.current = attachmentFiles.length;
 
@@ -309,6 +311,10 @@ export function PromptInputProvider({
 			if (incoming.length === 0) {
 				return;
 			}
+			// Keep the budget in step within this tick. Validation deliberately
+			// stays outside the updater: it calls onError, and React invokes
+			// updaters twice under StrictMode, which would double every toast.
+			attachmentCountRef.current += incoming.length;
 
 			setAttachmentFiles((prev) =>
 				prev.concat(
