@@ -13,9 +13,13 @@ export default command({
 		agent: string().desc(
 			"New host agent instance id or presetId (e.g. claude, codex, superset).",
 		),
-		host: string().desc("New target host id"),
+		host: string().desc(
+			"New target host id — moves the automation. Omitting it keeps the current host",
+		),
 		project: string().desc("New v2 project id"),
-		workspace: string().desc("New v2 workspace id"),
+		workspace: string().desc(
+			'New v2 workspace id to reuse every run. Pass "" to clear the pin so each run creates a fresh workspace',
+		),
 		session: boolean().desc(
 			"Switch to session mode: no project, each run creates a project-less session workspace",
 		),
@@ -39,8 +43,10 @@ export default command({
 			});
 		}
 
-		// Retargeting (--workspace or --project) re-derives targetHostId +
-		// v2ProjectId; the resource must exist on the target host.
+		// Retargeting (--workspace or --project) re-derives v2ProjectId
+		// against a concrete host; the resource must exist there. That host
+		// defaults to the automation's current one, not this machine, so an
+		// update that omits --host never moves the automation (#6522).
 		let target:
 			| { targetHostId: string; v2ProjectId: string | null }
 			| undefined;
@@ -52,12 +58,14 @@ export default command({
 					"Run: superset auth login",
 				);
 			}
+			const existing = await ctx.api.automation.get.query({ id });
 			target = await resolveAutomationTarget({
 				organizationId,
 				userJwt: ctx.bearer,
 				api: ctx.api,
 				hostId: options.host ?? undefined,
-				workspaceId: options.workspace ?? undefined,
+				defaultHostId: existing.targetHostId ?? undefined,
+				workspaceId: options.workspace || undefined,
 				projectId: options.project ?? undefined,
 			});
 		}
@@ -73,12 +81,25 @@ export default command({
 			...(options.project !== undefined
 				? { v2ProjectId: options.project }
 				: {}),
+			// An empty --workspace is an explicit null: it clears the pin so
+			// each run creates a fresh workspace again (#6523).
 			...(options.workspace !== undefined
-				? { v2WorkspaceId: options.workspace }
+				? { v2WorkspaceId: options.workspace || null }
 				: {}),
 			// Session mode clears both the project and any workspace pin.
 			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
-			...target,
+			...(target
+				? {
+						v2ProjectId: target.v2ProjectId,
+						// A workspace pin is stored denormalized, so the pin's
+						// host must ride along even without --host; it is the
+						// automation's current host. A plain --project update
+						// sends a host only when --host names one.
+						...(options.workspace || options.host !== undefined
+							? { targetHostId: target.targetHostId }
+							: {}),
+					}
+				: {}),
 		});
 
 		return {
