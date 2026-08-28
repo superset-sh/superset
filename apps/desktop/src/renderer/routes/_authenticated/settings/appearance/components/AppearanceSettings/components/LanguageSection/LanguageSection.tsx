@@ -32,7 +32,16 @@ export function LanguageSection() {
 			await utils.settings.getLanguage.invalidate();
 			updateLocale.mutate(
 				{ locale: variables.language },
-				{ onError: () => undefined },
+				{
+					onError: (error) => {
+						// Signed-out desktops keep the local setting; only real
+						// sync failures need surfacing.
+						if (error.data?.code === "UNAUTHORIZED") return;
+						toast.error(
+							"Language saved on this device, but syncing it to your account failed.",
+						);
+					},
+				},
 			);
 		},
 		onError: () => toast.error("Failed to update language"),
