@@ -7,6 +7,7 @@ import {
 	realpathSync,
 	rmSync,
 	statSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -15,9 +16,11 @@ import {
 	branchExistsOnRemote,
 	createWorktree,
 	getCurrentBranch,
+	getGitRoot,
 	getWorktreeCreatedAt,
 	hasUnpushedCommits,
 	isUnbornHeadError,
+	NotGitRepoError,
 	parsePorcelainStatusV2,
 	parsePrUrl,
 } from "./git";
@@ -1132,5 +1135,161 @@ describe("parsePrUrl", () => {
 		expect(
 			parsePrUrl("https://github.com/superset-sh/superset/issues/1781"),
 		).toBe(null);
+	});
+});
+
+describe("getGitRoot", () => {
+	beforeEach(() => {
+		mkdirSync(TEST_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		if (existsSync(TEST_DIR)) {
+			rmSync(TEST_DIR, { recursive: true, force: true });
+		}
+	});
+
+	test("reports the repo root itself as the root", async () => {
+		const repoPath = createTestRepo("root");
+		seedCommit(repoPath);
+
+		const result = await getGitRoot(repoPath);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.isRoot).toBe(true);
+	});
+
+	// Guards the untrimmed read of `--show-toplevel`: a directory name may end
+	// in whitespace, and trimming it hands callers a path that doesn't exist.
+	test("preserves a root whose directory name ends in whitespace", async () => {
+		const repoPath = createTestRepo("trailing space ");
+		seedCommit(repoPath);
+
+		const result = await getGitRoot(repoPath);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.root.endsWith(" ")).toBe(true);
+		expect(existsSync(result.root)).toBe(true);
+		expect(result.isRoot).toBe(true);
+	});
+
+	// Git terminates the line with LF and round-trips a trailing CR that is part
+	// of the name, so the terminator strip must not consume it.
+	test("preserves a root whose directory name ends in a carriage return", async () => {
+		const repoPath = createTestRepo("trailing-cr\r");
+		seedCommit(repoPath);
+
+		const result = await getGitRoot(repoPath);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.root.endsWith("\r")).toBe(true);
+		expect(existsSync(result.root)).toBe(true);
+		expect(result.isRoot).toBe(true);
+	});
+
+	// The walk-up is deliberate and stays: a subdirectory still resolves to the
+	// repo it belongs to. Only isRoot tells the caller the user picked something
+	// other than that root.
+	test("walks up from a subdirectory and reports it is not the root", async () => {
+		const repoPath = createTestRepo("subdir");
+		seedCommit(repoPath);
+		const nested = join(repoPath, "packages", "app");
+		mkdirSync(nested, { recursive: true });
+
+		const result = await getGitRoot(nested);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.isRoot).toBe(false);
+	});
+
+	test("reports an untracked folder inside a repo as not the root", async () => {
+		const repoPath = createTestRepo("untracked-child");
+		seedCommit(repoPath);
+		const scratch = join(repoPath, "scratch");
+		mkdirSync(scratch, { recursive: true });
+
+		const result = await getGitRoot(scratch);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.isRoot).toBe(false);
+	});
+
+	test("throws NotGitRepoError when no ancestor is a repo", async () => {
+		const plainPath = join(TEST_DIR, "plain");
+		mkdirSync(plainPath, { recursive: true });
+
+		await expect(getGitRoot(plainPath)).rejects.toBeInstanceOf(NotGitRepoError);
+	});
+
+	// A worktree root keeps `.git` as a FILE, not a directory, so a filesystem
+	// check would misclassify it and offer to initialize a repo Superset made.
+	test("treats a linked worktree root as a root", async () => {
+		const repoPath = createTestRepo("worktree-main");
+		seedCommit(repoPath);
+		const worktreePath = join(TEST_DIR, "worktree-linked");
+		execSync(`git worktree add -b wt-branch "${worktreePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		expect(statSync(join(worktreePath, ".git")).isFile()).toBe(true);
+
+		const result = await getGitRoot(worktreePath);
+
+		expect(result.root).toBe(worktreePath);
+		expect(result.isRoot).toBe(true);
+	});
+
+	test("resolves a subdirectory of a worktree to the worktree", async () => {
+		const repoPath = createTestRepo("worktree-sub-main");
+		seedCommit(repoPath);
+		const worktreePath = join(TEST_DIR, "worktree-sub");
+		execSync(`git worktree add -b wt-sub-branch "${worktreePath}"`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+		const nested = join(worktreePath, "src");
+		mkdirSync(nested, { recursive: true });
+
+		const result = await getGitRoot(nested);
+
+		expect(result.root).toBe(worktreePath);
+		expect(result.isRoot).toBe(false);
+	});
+
+	// Git reports the real path, so a symlinked repo root would fail any
+	// comparison of the requested path against the reported root.
+	test("treats a symlink to a repo root as a root", async () => {
+		const repoPath = createTestRepo("symlink-target");
+		seedCommit(repoPath);
+		const linkPath = join(TEST_DIR, "symlink-to-repo");
+		symlinkSync(repoPath, linkPath);
+
+		const result = await getGitRoot(linkPath);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.isRoot).toBe(true);
+	});
+
+	// Bare repos and `.git` directories fail with "must be run in a work tree",
+	// not "not a git repository". They have no `.git` child, so classifying them
+	// as NotGitRepoError would offer to initialize a repo inside a repo.
+	test("does not classify a bare repo as NotGitRepoError", async () => {
+		const barePath = join(TEST_DIR, "bare.git");
+		mkdirSync(barePath, { recursive: true });
+		execSync("git init --bare", { cwd: barePath, stdio: "ignore" });
+
+		await expect(getGitRoot(barePath)).rejects.not.toBeInstanceOf(
+			NotGitRepoError,
+		);
+	});
+
+	test("does not classify a .git directory as NotGitRepoError", async () => {
+		const repoPath = createTestRepo("dotgit");
+		seedCommit(repoPath);
+
+		await expect(getGitRoot(join(repoPath, ".git"))).rejects.not.toBeInstanceOf(
+			NotGitRepoError,
+		);
 	});
 });

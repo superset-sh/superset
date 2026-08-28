@@ -57,7 +57,12 @@ type OpenNewError = { canceled: false; error: string };
 type OpenNewResult =
 	| OpenNewCanceled
 	| { canceled: false; project: Project }
-	| { canceled: false; needsGitInit: true; selectedPath: string }
+	| {
+			canceled: false;
+			needsGitInit: true;
+			selectedPath: string;
+			enclosingRepoPath?: string;
+	  }
 	| OpenNewError;
 
 /**
@@ -100,7 +105,7 @@ function parsePullRequests(raw: unknown) {
 
 type FolderOutcome =
 	| { status: "success"; project: Project }
-	| { status: "needsGitInit"; selectedPath: string }
+	| { status: "needsGitInit"; selectedPath: string; enclosingRepoPath?: string }
 	| { status: "error"; selectedPath: string; error: string };
 
 type OpenNewMultiResult =
@@ -1096,7 +1101,19 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 			for (const selectedPath of result.filePaths) {
 				try {
-					const mainRepoPath = await getGitRoot(selectedPath);
+					const { root: mainRepoPath, isRoot } = await getGitRoot(selectedPath);
+					// The selected folder sits inside a repo but isn't its root, so
+					// opening it means opening the enclosing repo. Let the user
+					// confirm that (or initialize the folder they actually picked)
+					// before anything is written.
+					if (!isRoot) {
+						outcomes.push({
+							status: "needsGitInit",
+							selectedPath,
+							enclosingRepoPath: mainRepoPath,
+						});
+						continue;
+					}
 					const defaultBranch = await getDefaultBranch(mainRepoPath);
 
 					const project = upsertProject(mainRepoPath, defaultBranch);
@@ -1157,7 +1174,18 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				let mainRepoPath: string;
 				try {
-					mainRepoPath = await getGitRoot(selectedPath);
+					const gitRoot = await getGitRoot(selectedPath);
+					// See openNew: a folder nested inside a repo resolves to that
+					// repo, so ask before opening something the user didn't pick.
+					if (!gitRoot.isRoot) {
+						return {
+							canceled: false,
+							needsGitInit: true as const,
+							selectedPath,
+							enclosingRepoPath: gitRoot.root,
+						};
+					}
+					mainRepoPath = gitRoot.root;
 				} catch (error) {
 					if (error instanceof NotGitRepoError) {
 						return {
