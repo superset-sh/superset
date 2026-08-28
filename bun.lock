@@ -243,8 +243,8 @@
         "@xterm/addon-serialize": "0.15.0-beta.289",
         "@xterm/addon-unicode11": "0.10.0-beta.289",
         "@xterm/addon-webgl": "0.20.0-beta.297",
-        "@xterm/headless": "6.1.0-beta.289",
-        "@xterm/xterm": "6.1.0-beta.289",
+        "@xterm/headless": "6.1.0-beta.302",
+        "@xterm/xterm": "6.1.0-beta.302",
         "ai": "6.0.235",
         "better-auth": "1.6.22",
         "better-sqlite3": "12.11.1",
@@ -615,7 +615,7 @@
         "@types/node": "24.12.0",
         "@types/react": "19.2.14",
         "@xterm/addon-fit": "0.12.0-beta.289",
-        "@xterm/xterm": "6.1.0-beta.289",
+        "@xterm/xterm": "6.1.0-beta.302",
         "babel-preset-expo": "57.0.7",
         "expo-mcp": "0.2.4",
         "storybook": "10.4.2",
@@ -960,7 +960,7 @@
         "@t3-oss/env-core": "0.13.11",
         "@trpc/client": "11.16.0",
         "@trpc/server": "11.16.0",
-        "@xterm/headless": "6.1.0-beta.289",
+        "@xterm/headless": "6.1.0-beta.302",
         "better-sqlite3": "12.11.1",
         "drizzle-orm": "0.45.2",
         "hono": "4.12.34",
@@ -1154,7 +1154,7 @@
         "@types/culori": "4.0.1",
         "@types/friendly-words": "1.2.2",
         "@types/semver": "7.7.1",
-        "@xterm/xterm": "6.1.0-beta.289",
+        "@xterm/xterm": "6.1.0-beta.302",
         "bun-types": "1.3.14",
         "typescript": "6.0.3",
       },
@@ -3717,9 +3717,9 @@
 
     "@xterm/addon-webgl": ["@xterm/addon-webgl@0.20.0-beta.297", "", { "peerDependencies": { "@xterm/xterm": "^6.1.0-beta.300" } }, "sha512-XWnYnI36ynIdI2nzC9QTlbQis9+W5PgosjBfKYsXy1EJfxyopkcTxctq9YwfaQJ9X1cGsevfNg7gXfj4hpUpUA=="],
 
-    "@xterm/headless": ["@xterm/headless@6.1.0-beta.289", "", {}, "sha512-2O36sJvUsDVMitxVSBP+74RncxhsnI+K9M7OhgX39ok2Y71MOi1wWvdl6A/IYwaXEUl+lz2htU8RypWlpzdXvQ=="],
+    "@xterm/headless": ["@xterm/headless@6.1.0-beta.302", "", {}, "sha512-UZTvl9zme7wu4q8H5dvudJ7jDYk2BkXbDpiuhbDj0eDg0smoDHk5vcHDfy8zokwDCIHCZXV5Yzy45Wi7DC7dXQ=="],
 
-    "@xterm/xterm": ["@xterm/xterm@6.1.0-beta.289", "", {}, "sha512-Mg8PqFpnDlRwdbpd92TMdu2h6gL5+uyHrNh1zAfOCouYiMia7Djf8VM4YGdj6WR0m3oTvrzZa4SG0wRRQIj+Ew=="],
+    "@xterm/xterm": ["@xterm/xterm@6.1.0-beta.302", "", {}, "sha512-yTlcgFDNe0ZE7U1RA1JX9oZkVOE8gKvLLh55tMHrS3/ZHkJCOWHlC0mFt3GYyWChSQ1XF+VY0iIme7ZktSaMRA=="],
 
     "@xtuc/ieee754": ["@xtuc/ieee754@1.2.0", "", {}, "sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA=="],
 
