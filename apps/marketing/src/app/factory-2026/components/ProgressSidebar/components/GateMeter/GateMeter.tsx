@@ -1,4 +1,10 @@
-import { formatTally, GATE_SCORECARD, tallyGates } from "../../../../constants";
+import { Trans, useLingui } from "@lingui/react/macro";
+import {
+	formatTally,
+	GATE_SCORECARD,
+	GATE_STATUS_LABELS,
+	tallyGates,
+} from "../../../../constants";
 import { GateJumpLink } from "../../../GateJumpLink";
 
 const CELL_CLASSES = {
@@ -13,6 +19,7 @@ interface GateMeterProps {
 }
 
 export function GateMeter({ level }: GateMeterProps) {
+	const { t } = useLingui();
 	const scores = GATE_SCORECARD.filter((score) => score.level === level);
 	const tally = tallyGates(level);
 	return (
@@ -21,18 +28,27 @@ export function GateMeter({ level }: GateMeterProps) {
 				{level}
 			</span>
 			<div className="flex gap-0.5">
-				{scores.map((score) => (
-					<GateJumpLink
-						key={score.gateId}
-						targetId={`gate-${score.gateId}`}
-						title={`${score.gate} · ${score.status}`}
-						className={`h-2.5 w-2.5 hover:outline hover:outline-1 hover:outline-brand ${CELL_CLASSES[score.status]}`}
-					>
-						<span className="sr-only">
-							{score.gate}: {score.status}
-						</span>
-					</GateJumpLink>
-				))}
+				{scores.map((score) => {
+					const gate = t(score.gate);
+					const statusLabel = t(GATE_STATUS_LABELS[score.status]);
+					return (
+						<GateJumpLink
+							key={score.gateId}
+							targetId={`gate-${score.gateId}`}
+							title={t({
+								id: "marketing.factory.gateMeter.jumpTitle",
+								message: `${gate} · ${statusLabel}`,
+							})}
+							className={`h-2.5 w-2.5 hover:outline hover:outline-1 hover:outline-brand ${CELL_CLASSES[score.status]}`}
+						>
+							<span className="sr-only">
+								<Trans id="marketing.factory.gateMeter.jumpLabel">
+									{gate}: {statusLabel}
+								</Trans>
+							</span>
+						</GateJumpLink>
+					);
+				})}
 			</div>
 			<span className="text-[10px] font-mono text-brand tabular-nums">
 				{formatTally(tally)}

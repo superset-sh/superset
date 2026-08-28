@@ -616,7 +616,7 @@ export function NewWorkspaceScreen({
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "create the workspace",
+					action: "createWorkspace",
 				});
 			} else {
 				toast.error(submitBlocker);

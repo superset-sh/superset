@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { GridCross } from "@/app/blog/components/GridCross";
 
 export function PricingHero() {
@@ -8,14 +9,18 @@ export function PricingHero() {
 				<GridCross className="top-0 right-0" />
 
 				<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-					Pricing
+					<Trans id="marketing.pricing.hero.eyebrow">Pricing</Trans>
 				</span>
 				<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-					Simple pricing for every team
+					<Trans id="marketing.pricing.hero.title">
+						Simple pricing for every team
+					</Trans>
 				</h1>
 				<p className="text-muted-foreground mt-3 max-w-lg">
-					Start free. Upgrade when your team outgrows it. Enterprise plans for
-					organizations with advanced security and compliance needs.
+					<Trans id="marketing.pricing.hero.subtitle">
+						Start free. Upgrade when your team outgrows it. Enterprise plans for
+						organizations with advanced security and compliance needs.
+					</Trans>
 				</p>
 
 				<GridCross className="bottom-0 left-0" />

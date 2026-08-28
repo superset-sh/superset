@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DownloadButton } from "../DownloadButton";
@@ -23,7 +24,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 			href={dashboardUrl}
 			className="px-4 py-2 font-mono text-xs uppercase tracking-wider text-center whitespace-nowrap border border-border text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
 		>
-			Dashboard
+			<Trans id="marketing.nav.dashboard">Dashboard</Trans>
 		</a>
 	);
 

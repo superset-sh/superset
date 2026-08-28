@@ -188,6 +188,10 @@
 			"types": "./src/tunnel-v2-protocol.ts",
 			"default": "./src/tunnel-v2-protocol.ts"
 		},
+		"./port-forward-mux": {
+			"types": "./src/port-forward-mux.ts",
+			"default": "./src/port-forward-mux.ts"
+		},
 		"./host-info": {
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"
@@ -236,6 +240,7 @@
 	},
 	"dependencies": {
 		"@date-fns/tz": "1.4.1",
+		"@superset/i18n": "workspace:*",
 		"culori": "4.0.2",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",

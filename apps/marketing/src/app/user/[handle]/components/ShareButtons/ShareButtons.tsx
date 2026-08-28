@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { CheckIcon, LinkIcon } from "lucide-react";
 import { useState } from "react";
 import { RiLinkedinBoxFill, RiTwitterXFill } from "react-icons/ri";
@@ -33,7 +34,7 @@ export function ShareButtons({ url, text }: ShareButtonsProps) {
 				rel="noopener noreferrer"
 			>
 				<RiTwitterXFill className="size-3.5" />
-				Post
+				<Trans id="marketing.profile.share.post">Post</Trans>
 			</a>
 			<a
 				className={BUTTON}
@@ -42,7 +43,7 @@ export function ShareButtons({ url, text }: ShareButtonsProps) {
 				rel="noopener noreferrer"
 			>
 				<RiLinkedinBoxFill className="size-3.5" />
-				Share
+				<Trans id="marketing.profile.share.share">Share</Trans>
 			</a>
 			<button type="button" className={BUTTON} onClick={copy}>
 				{copied ? (
@@ -50,7 +51,11 @@ export function ShareButtons({ url, text }: ShareButtonsProps) {
 				) : (
 					<LinkIcon className="size-3" />
 				)}
-				{copied ? "Copied" : "Copy link"}
+				{copied ? (
+					<Trans id="marketing.profile.share.copied">Copied</Trans>
+				) : (
+					<Trans id="marketing.profile.share.copyLink">Copy link</Trans>
+				)}
 			</button>
 		</div>
 	);

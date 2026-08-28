@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -9,6 +10,7 @@ import { InsightTileFrame } from "../InsightTileFrame";
 // Where the money goes: average monthly outflow per counterparty over the
 // last 3 complete months — the actionable half of a burn chart.
 export function BurnByVendorTile() {
+	const { t } = useLingui();
 	const trpc = useTRPC();
 	const query = useQuery(trpc.business.getCashFlow.queryOptions());
 
@@ -19,14 +21,25 @@ export function BurnByVendorTile() {
 
 	return (
 		<InsightTileFrame
-			title="Burn by vendor (Mercury)"
-			description="Avg monthly outflow per counterparty, last 3 complete months"
+			title={t({
+				id: "admin.burnByVendor.title",
+				message: "Burn by vendor (Mercury)",
+			})}
+			description={t({
+				id: "admin.burnByVendor.description",
+				message: "Avg monthly outflow per counterparty, last 3 complete months",
+			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={vendors.length === 0}
 			emptyLabel={
-				unavailableReason ? `Unavailable: ${unavailableReason}` : "No data"
+				unavailableReason
+					? t({
+							id: "admin.tile.unavailableReason",
+							message: `Unavailable: ${unavailableReason}`,
+						})
+					: undefined
 			}
 		>
 			<div className="space-y-2">

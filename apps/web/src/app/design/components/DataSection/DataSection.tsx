@@ -1,5 +1,7 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -55,31 +57,63 @@ export function DataSection() {
 		<ShowcaseSection
 			id="data"
 			index="07"
-			title="Data display"
-			description="Badges, avatars, cards, tables, and lists"
+			title={i18n._({
+				id: "web.design.dataSection.dataDisplay",
+				message: "Data display",
+			})}
+			description={i18n._({
+				id: "web.design.dataSection.badgesAvatarsCardsTablesAnd",
+				message: "Badges, avatars, cards, tables, and lists",
+			})}
 		>
 			<ComponentCard
-				title="Badge"
+				title={i18n._({ id: "web.design.dataSection.badge", message: "Badge" })}
 				importPath="@superset/ui/badge"
-				description="Includes the Superset-specific box variant"
+				description={i18n._({
+					id: "web.design.dataSection.includesTheSupersetSpecificBox",
+					message: "Includes the Superset-specific box variant",
+				})}
 			>
-				<Badge>Default</Badge>
-				<Badge variant="secondary">Secondary</Badge>
-				<Badge variant="outline">Outline</Badge>
-				<Badge variant="destructive">Destructive</Badge>
-				<Badge variant="box">Box</Badge>
+				<Badge>
+					<Trans id="web.design.dataSection.default">Default</Trans>
+				</Badge>
+				<Badge variant="secondary">
+					<Trans id="web.design.dataSection.secondary">Secondary</Trans>
+				</Badge>
+				<Badge variant="outline">
+					<Trans id="web.design.dataSection.outline">Outline</Trans>
+				</Badge>
+				<Badge variant="destructive">
+					<Trans id="web.design.dataSection.destructive">Destructive</Trans>
+				</Badge>
+				<Badge variant="box">
+					<Trans id="web.design.dataSection.box">Box</Trans>
+				</Badge>
 			</ComponentCard>
 
-			<ComponentCard title="Avatar" importPath="@superset/ui/avatar">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.dataSection.avatar",
+					message: "Avatar",
+				})}
+				importPath="@superset/ui/avatar"
+			>
 				<Avatar>
 					<AvatarImage
 						src="https://github.com/superset-sh.png"
-						alt="Superset"
+						alt={i18n._({
+							id: "web.design.dataSection.superset",
+							message: "Superset",
+						})}
 					/>
-					<AvatarFallback>SS</AvatarFallback>
+					<AvatarFallback>
+						<Trans id="web.design.dataSection.ss">SS</Trans>
+					</AvatarFallback>
 				</Avatar>
 				<Avatar>
-					<AvatarFallback>AP</AvatarFallback>
+					<AvatarFallback>
+						<Trans id="web.design.dataSection.ap">AP</Trans>
+					</AvatarFallback>
 				</Avatar>
 				<div className="flex -space-x-2">
 					{["A", "B", "C"].map((letter) => (
@@ -90,42 +124,79 @@ export function DataSection() {
 				</div>
 			</ComponentCard>
 
-			<ComponentCard title="Card" importPath="@superset/ui/card">
+			<ComponentCard
+				title={i18n._({ id: "web.design.dataSection.card", message: "Card" })}
+				importPath="@superset/ui/card"
+			>
 				<Card className="w-full max-w-72">
 					<CardHeader>
-						<CardTitle>Notifications</CardTitle>
-						<CardDescription>Choose when Superset pings you.</CardDescription>
+						<CardTitle>
+							<Trans id="web.design.dataSection.notifications">
+								Notifications
+							</Trans>
+						</CardTitle>
+						<CardDescription>
+							<Trans id="web.design.dataSection.chooseWhenSupersetPingsYou">
+								Choose when Superset pings you.
+							</Trans>
+						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-3">
 						<div className="flex items-center justify-between">
-							<Label htmlFor="dsg-card-done">Agent finished</Label>
+							<Label htmlFor="dsg-card-done">
+								<Trans id="web.design.dataSection.agentFinished">
+									Agent finished
+								</Trans>
+							</Label>
 							<Switch id="dsg-card-done" defaultChecked />
 						</div>
 						<div className="flex items-center justify-between">
-							<Label htmlFor="dsg-card-fail">CI failed</Label>
+							<Label htmlFor="dsg-card-fail">
+								<Trans id="web.design.dataSection.ciFailed">CI failed</Trans>
+							</Label>
 							<Switch id="dsg-card-fail" />
 						</div>
 					</CardContent>
 					<CardFooter>
 						<Button size="sm" className="w-full">
-							Save preferences
+							<Trans id="web.design.dataSection.savePreferences">
+								Save preferences
+							</Trans>
 						</Button>
 					</CardFooter>
 				</Card>
 			</ComponentCard>
 
-			<ComponentCard title="Item" importPath="@superset/ui/item">
+			<ComponentCard
+				title={i18n._({ id: "web.design.dataSection.item", message: "Item" })}
+				importPath="@superset/ui/item"
+			>
 				<ItemGroup className="w-full max-w-80">
 					<Item>
 						<ItemMedia variant="icon">
 							<FolderGitIcon />
 						</ItemMedia>
 						<ItemContent>
-							<ItemTitle>component-showcase</ItemTitle>
-							<ItemDescription>2 agents · 14 files changed</ItemDescription>
+							<ItemTitle>
+								<Trans id="web.design.dataSection.componentShowcase">
+									component-showcase
+								</Trans>
+							</ItemTitle>
+							<ItemDescription>
+								<Trans id="web.design.dataSection.2Agents14FilesChanged">
+									2 agents · 14 files changed
+								</Trans>
+							</ItemDescription>
 						</ItemContent>
 						<ItemActions>
-							<Button variant="ghost" size="icon-sm" aria-label="More">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={i18n._({
+									id: "web.design.dataSection.more",
+									message: "More",
+								})}
+							>
 								<MoreHorizontalIcon />
 							</Button>
 						</ItemActions>
@@ -136,21 +207,44 @@ export function DataSection() {
 							<FolderGitIcon />
 						</ItemMedia>
 						<ItemContent>
-							<ItemTitle>fix-auth-redirect</ItemTitle>
-							<ItemDescription>Idle · branch pushed</ItemDescription>
+							<ItemTitle>
+								<Trans id="web.design.dataSection.fixAuthRedirect">
+									fix-auth-redirect
+								</Trans>
+							</ItemTitle>
+							<ItemDescription>
+								<Trans id="web.design.dataSection.idleBranchPushed">
+									Idle · branch pushed
+								</Trans>
+							</ItemDescription>
 						</ItemContent>
 					</Item>
 				</ItemGroup>
 			</ComponentCard>
 
-			<ComponentCard title="Table" importPath="@superset/ui/table" span bleed>
+			<ComponentCard
+				title={i18n._({ id: "web.design.dataSection.table", message: "Table" })}
+				importPath="@superset/ui/table"
+				span
+				bleed
+			>
 				<Table>
-					<TableCaption>Active agent sessions.</TableCaption>
+					<TableCaption>
+						<Trans id="web.design.dataSection.activeAgentSessions">
+							Active agent sessions.
+						</Trans>
+					</TableCaption>
 					<TableHeader>
 						<TableRow>
-							<TableHead>Workspace</TableHead>
-							<TableHead>Agent</TableHead>
-							<TableHead className="text-right">Status</TableHead>
+							<TableHead>
+								<Trans id="web.design.dataSection.workspace">Workspace</Trans>
+							</TableHead>
+							<TableHead>
+								<Trans id="web.design.dataSection.agent">Agent</Trans>
+							</TableHead>
+							<TableHead className="text-right">
+								<Trans id="web.design.dataSection.status">Status</Trans>
+							</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -175,7 +269,14 @@ export function DataSection() {
 				</Table>
 			</ComponentCard>
 
-			<ComponentCard title="Carousel" importPath="@superset/ui/carousel" span>
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.dataSection.carousel",
+					message: "Carousel",
+				})}
+				importPath="@superset/ui/carousel"
+				span
+			>
 				<Carousel className="w-full max-w-56">
 					<CarouselContent>
 						{[1, 2, 3, 4, 5].map((slide) => (

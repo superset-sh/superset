@@ -1,5 +1,7 @@
+import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
 import Script from "next/script";
+import { initServerI18n } from "@/app/i18n-server";
 
 declare global {
 	namespace React.JSX {
@@ -35,19 +37,25 @@ export const metadata: Metadata = {
 };
 
 export default function JoinUsPage() {
+	initServerI18n();
+
 	return (
 		<main className="relative min-h-screen bg-background">
 			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">
 				<section className="grid gap-10 md:grid-cols-[2fr_3fr] md:gap-24 lg:gap-32">
 					<h1 className="text-4xl md:text-5xl font-normal leading-tight text-foreground m-0">
-						Building the last piece of software
+						<Trans id="marketing.joinUs.title">
+							Building the last piece of software
+						</Trans>
 					</h1>
 
 					<div>
 						<p className="text-xl md:text-2xl text-foreground leading-snug m-0">
-							Superset is building self-improving software. It starts with
-							giving engineers the best tools that adapt to their needs over
-							time.
+							<Trans id="marketing.joinUs.lede">
+								Superset is building self-improving software. It starts with
+								giving engineers the best tools that adapt to their needs over
+								time.
+							</Trans>
 						</p>
 
 						<div
@@ -55,20 +63,25 @@ export default function JoinUsPage() {
 							style={{ fontFamily: "var(--font-inter), sans-serif" }}
 						>
 							<p>
-								Today, tens of thousands of engineers run Superset as their
-								primary IDE, at companies like Wix, DoorDash, and Netflix. Soon,
-								teams will run 100s of agents in parallel - software factories
-								that autonomously manufacture and ship code. We're making
-								Superset the place where teams run and manage those factories,
-								starting with our own.
+								<Trans id="marketing.joinUs.bodyScale">
+									Today, tens of thousands of engineers run Superset as their
+									primary IDE, at companies like Wix, DoorDash, and Netflix.
+									Soon, teams will run 100s of agents in parallel - software
+									factories that autonomously manufacture and ship code. We're
+									making Superset the place where teams run and manage those
+									factories, starting with our own.
+								</Trans>
 							</p>
 
 							<p>
-								Superset is built in Superset, so we're our own #1 users - you
-								get paid to make your own life easier. We're building a flat and
-								talent-dense team, and we're looking for people who have crazy
-								ideas and are crazy enough to ship them. If you've ever wanted
-								to build a product you love to use, come build it with us.
+								<Trans id="marketing.joinUs.bodyTeam">
+									Superset is built in Superset, so we're our own #1 users - you
+									get paid to make your own life easier. We're building a flat
+									and talent-dense team, and we're looking for people who have
+									crazy ideas and are crazy enough to ship them. If you've ever
+									wanted to build a product you love to use, come build it with
+									us.
+								</Trans>
 							</p>
 						</div>
 					</div>
@@ -78,7 +91,7 @@ export default function JoinUsPage() {
 			<div className="max-w-[90rem] mx-auto px-6 pb-24 md:pb-32">
 				<section id="open-roles" className="mt-24 md:mt-32 scroll-mt-24">
 					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
-						Open roles
+						<Trans id="marketing.joinUs.openRoles">Open roles</Trans>
 					</h2>
 
 					{/* Managed via YC Work at a Startup; layout/colors configured at bookface.ycombinator.com/workatastartup/job_board_settings */}
@@ -170,7 +183,9 @@ export default function JoinUsPage() {
 					<waas-job-board company="superset" />
 					<noscript>
 						<a href="https://www.ycombinator.com/companies/superset/jobs">
-							View open roles on Y Combinator
+							<Trans id="marketing.joinUs.noscriptLink">
+								View open roles on Y Combinator
+							</Trans>
 						</a>
 					</noscript>
 				</section>

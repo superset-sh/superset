@@ -230,7 +230,7 @@ export function RunIssuesInWorkspacePopover({
 		if (submitBlocker) {
 			if (hostId === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "run issues in workspaces",
+					action: "runIssuesInWorkspaces",
 				});
 			} else {
 				toast.error(submitBlocker);

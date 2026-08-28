@@ -6,7 +6,7 @@ import { formatter } from "@lingui/format-po";
 // and `lingui compile --strict` gates CI via the `check` script.
 export default defineConfig({
 	sourceLocale: "en",
-	locales: ["en"],
+	locales: ["en", "ja", "zh-CN"],
 	// lineNumbers off: line-only churn in .po files would dirty every PR that
 	// moves code, and the CI drift check diffs this file.
 	format: formatter({ lineNumbers: false }),
@@ -22,12 +22,16 @@ export default defineConfig({
 				"<rootDir>/../../apps/desktop/src",
 				"<rootDir>/../../apps/web/src",
 				"<rootDir>/../../apps/marketing/src",
+				"<rootDir>/../../apps/admin/src",
 				"<rootDir>/../../apps/docs/src",
 				"<rootDir>/../../apps/mobile/app",
 				"<rootDir>/../../apps/mobile/screens",
 				"<rootDir>/../../apps/mobile/components",
+				"<rootDir>/../../apps/mobile/hooks",
+				"<rootDir>/../../apps/mobile/lib",
 				"<rootDir>/../../packages/ui/src",
 				"<rootDir>/../../packages/chat-ui/src",
+				"<rootDir>/../../packages/shared/src",
 				"<rootDir>/src",
 			],
 			exclude: ["**/node_modules/**", "**/*.test.*", "**/*.stories.*"],

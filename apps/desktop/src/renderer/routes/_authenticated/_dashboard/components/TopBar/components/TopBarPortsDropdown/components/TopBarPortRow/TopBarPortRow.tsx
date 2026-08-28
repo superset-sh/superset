@@ -6,6 +6,9 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { useDashboardSidebarPortKill } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPort } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortsData";
 import { usePortOpenActions } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/usePortOpenActions";
+import { usePortForward } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/PortForwardsProvider";
+import { formatPortRowLabel } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/utils/formatPortRowLabel";
+import { PortForwardBusyActions } from "renderer/routes/_authenticated/_dashboard/components/PortForwardBusyActions";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 
 interface TopBarPortRowProps {
@@ -25,6 +28,8 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 	const { canOpenInBrowser, portUrl, openExternal, openPrimary } =
 		usePortOpenActions(port);
 	const { copyToClipboard } = useCopyToClipboard();
+	const forward = usePortForward(port);
+	const address = formatPortRowLabel({ port, forward });
 
 	const description = [port.label, port.processName]
 		.filter(Boolean)
@@ -40,8 +45,8 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 		onNavigate();
 	};
 
-	// Only offered for local-device ports: `portUrl` is always a localhost
-	// address, which isn't reachable for a remote host's port.
+	// Only offered when `portUrl` reaches this machine: a local port, or a
+	// remote one the main process forwards.
 	const handleCopy = async () => {
 		try {
 			await copyToClipboard(portUrl);
@@ -82,10 +87,18 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 				<span className="font-medium font-mono text-foreground text-xs tabular-nums">
 					:{port.port}
 				</span>
-				<span className="truncate text-[11px] text-muted-foreground">
-					{description || `localhost:${port.port}`}
+				<span
+					className="truncate text-[11px] text-muted-foreground"
+					title={address.title}
+				>
+					{description ? `${description} · ${address.text}` : address.text}
 				</span>
 			</button>
+			{forward?.status.state === "busy" && (
+				<div className="px-2 pb-1.5">
+					<PortForwardBusyActions forward={forward} />
+				</div>
+			)}
 			<div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-px rounded-md border border-border bg-popover/95 p-px opacity-0 transition-opacity focus-within:opacity-100 group-hover/port:opacity-100">
 				{canOpenInBrowser && (
 					<button

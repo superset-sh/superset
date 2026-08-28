@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { m, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
@@ -36,6 +37,7 @@ const FILE_TREE = [
 ];
 
 export function OpenInDemo() {
+	const { t } = useLingui();
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -73,7 +75,9 @@ export function OpenInDemo() {
 					<div className="flex flex-1 items-center gap-2 rounded-sm border border-border/60 px-2.5 py-1.5">
 						<HiMagnifyingGlass className="w-3.5 h-3.5 text-muted-foreground/45" />
 						<span className="text-xs text-muted-foreground/45">
-							Search files...
+							<Trans id="marketing.features.openIn.searchFiles">
+								Search files...
+							</Trans>
 						</span>
 					</div>
 
@@ -97,12 +101,17 @@ export function OpenInDemo() {
 								height={14}
 								className="object-contain"
 							/>
-							<span className="font-medium text-xs">Open in</span>
+							<span className="font-medium text-xs">
+								<Trans id="marketing.features.openIn.openIn">Open in</Trans>
+							</span>
 						</button>
 						<button
 							type="button"
 							className="flex items-center rounded-r-sm border border-border bg-card px-2 text-foreground/90 transition-colors hover:bg-foreground/[0.05]"
-							aria-label="Select IDE"
+							aria-label={t({
+								id: "marketing.features.openIn.selectIde",
+								message: "Select IDE",
+							})}
 						>
 							<HiChevronDown className="w-3.5 h-3.5" />
 						</button>

@@ -1,5 +1,9 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { MS_PER_DAY } from "../../constants";
@@ -11,10 +15,29 @@ function groupSessionsByRecency(sessions: MockSession[]) {
 	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 	const yesterday = new Date(today.getTime() - MS_PER_DAY);
 
-	const groups: { label: string; sessions: MockSession[] }[] = [
-		{ label: "Today", sessions: [] },
-		{ label: "Yesterday", sessions: [] },
-		{ label: "Older", sessions: [] },
+	const groups: {
+		id: string;
+		label: MessageDescriptor;
+		sessions: MockSession[];
+	}[] = [
+		{
+			id: "today",
+			label: msg({ id: "web.sessionList.groupToday", message: "Today" }),
+			sessions: [],
+		},
+		{
+			id: "yesterday",
+			label: msg({
+				id: "web.sessionList.groupYesterday",
+				message: "Yesterday",
+			}),
+			sessions: [],
+		},
+		{
+			id: "older",
+			label: msg({ id: "web.sessionList.groupOlder", message: "Older" }),
+			sessions: [],
+		},
 	];
 
 	for (const session of sessions) {
@@ -36,6 +59,7 @@ type SessionListProps = {
 };
 
 export function SessionList({ sessions, workspaceId }: SessionListProps) {
+	const { t } = useLingui();
 	const [search, setSearch] = useState("");
 
 	const filtered = useMemo(() => {
@@ -55,8 +79,14 @@ export function SessionList({ sessions, workspaceId }: SessionListProps) {
 				<Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 				<input
 					type="text"
-					placeholder="Search sessions..."
-					aria-label="Search sessions"
+					placeholder={t({
+						id: "web.sessionList.searchPlaceholder",
+						message: "Search sessions...",
+					})}
+					aria-label={t({
+						id: "web.sessionList.searchLabel",
+						message: "Search sessions",
+					})}
 					value={search}
 					onChange={(e) => setSearch(e.target.value)}
 					className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -66,13 +96,13 @@ export function SessionList({ sessions, workspaceId }: SessionListProps) {
 			{/* Grouped sessions */}
 			{groups.length === 0 ? (
 				<p className="py-8 text-center text-sm text-muted-foreground">
-					No sessions found
+					<Trans id="web.sessionList.empty">No sessions found</Trans>
 				</p>
 			) : (
 				groups.map((group) => (
-					<div key={group.label}>
+					<div key={group.id}>
 						<h3 className="px-1 py-2 text-xs font-medium text-muted-foreground">
-							{group.label}
+							{i18n._(group.label)}
 						</h3>
 						<div className="flex flex-col gap-1">
 							{group.sessions.map((session) => (

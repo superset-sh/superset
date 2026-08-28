@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { Drawer, DrawerContent, DrawerTitle } from "@superset/ui/drawer";
 import {
 	DropdownMenu,
@@ -42,6 +43,7 @@ export function ResponsiveDropdown({
 	contentClassName,
 	onCloseAutoFocus,
 }: ResponsiveDropdownProps) {
+	const { t } = useLingui();
 	const isMobile = useIsMobile();
 	const [open, setOpen] = useState(false);
 
@@ -64,7 +66,10 @@ export function ResponsiveDropdown({
 				{mobileTrigger}
 				<Drawer open={open} onOpenChange={setOpen}>
 					<DrawerContent>
-						<DrawerTitle className="sr-only">{title ?? "Menu"}</DrawerTitle>
+						<DrawerTitle className="sr-only">
+							{title ??
+								t({ id: "web.responsiveDropdown.title", message: "Menu" })}
+						</DrawerTitle>
 						<div className="flex flex-col gap-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 							{items.map((item) => (
 								<button

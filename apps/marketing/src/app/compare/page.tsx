@@ -1,6 +1,9 @@
+import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { getComparisonPages } from "@/lib/compare";
 import { formatCompareDate } from "@/lib/compare-utils";
 
@@ -28,6 +31,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ComparePage() {
+	initServerI18n();
+
 	const pages = getComparisonPages();
 
 	const oneVsOne = pages.filter((p) => p.type === "1v1");
@@ -53,14 +58,18 @@ export default async function ComparePage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Compare
+						<Trans id="marketing.compare.eyebrow">Compare</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						Superset vs the Alternatives
+						<Trans id="marketing.compare.title">
+							Superset vs the Alternatives
+						</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						See how Superset compares to other AI coding tools, from AI editors
-						to coding agents to cloud-based AI engineers.
+						<Trans id="marketing.compare.subtitle">
+							See how Superset compares to other AI coding tools, from AI
+							editors to coding agents to cloud-based AI engineers.
+						</Trans>
 					</p>
 
 					<GridCross className="bottom-0 left-0" />
@@ -71,19 +80,40 @@ export default async function ComparePage() {
 			{/* Content */}
 			<div className="relative max-w-3xl mx-auto px-6 py-12">
 				{roundups.length > 0 && (
-					<CompareSection title="Roundups" pages={roundups} />
+					<CompareSection
+						title={
+							<Trans id="marketing.compare.section.roundups">Roundups</Trans>
+						}
+						pages={roundups}
+					/>
 				)}
 
 				{tutorials.length > 0 && (
-					<CompareSection title="Workflow Tutorials" pages={tutorials} />
+					<CompareSection
+						title={
+							<Trans id="marketing.compare.section.tutorials">
+								Workflow Tutorials
+							</Trans>
+						}
+						pages={tutorials}
+					/>
 				)}
 
 				{oneVsOne.length > 0 && (
-					<CompareSection title="Head-to-Head Comparisons" pages={oneVsOne} />
+					<CompareSection
+						title={
+							<Trans id="marketing.compare.section.headToHead">
+								Head-to-Head Comparisons
+							</Trans>
+						}
+						pages={oneVsOne}
+					/>
 				)}
 
 				{pages.length === 0 && (
-					<p className="text-muted-foreground">No comparisons yet.</p>
+					<p className="text-muted-foreground">
+						<Trans id="marketing.compare.empty">No comparisons yet.</Trans>
+					</p>
 				)}
 			</div>
 		</main>
@@ -94,7 +124,7 @@ function CompareSection({
 	title,
 	pages,
 }: {
-	title: string;
+	title: ReactNode;
 	pages: ReturnType<typeof getComparisonPages>;
 }) {
 	return (
@@ -114,6 +144,8 @@ function CompareCard({
 }: {
 	page: ReturnType<typeof getComparisonPages>[number];
 }) {
+	const date = formatCompareDate(page.lastUpdated || page.date);
+
 	return (
 		<Link
 			href={page.url}
@@ -128,7 +160,7 @@ function CompareCard({
 				</p>
 			)}
 			<span className="text-xs text-muted-foreground mt-3 block">
-				Updated {formatCompareDate(page.lastUpdated || page.date)}
+				<Trans id="marketing.compare.card.updated">Updated {date}</Trans>
 			</span>
 		</Link>
 	);

@@ -1,17 +1,10 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { AnimatePresence, m } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { HiPlus } from "react-icons/hi2";
-import type { FAQItem } from "@/app/components/FAQSection";
-import { ENTERPRISE_FAQ_ITEMS } from "./constants";
-
-function slugify(text: string): string {
-	return text
-		.toLowerCase()
-		.replace(/[^\w\s-]/g, "")
-		.replace(/\s+/g, "-");
-}
+import { ENTERPRISE_FAQ_ITEMS, type EnterpriseFAQItem } from "./constants";
 
 function FAQAccordionItem({
 	item,
@@ -19,16 +12,14 @@ function FAQAccordionItem({
 	isOpen,
 	onToggle,
 }: {
-	item: FAQItem;
+	item: EnterpriseFAQItem;
 	index: number;
 	isOpen: boolean;
 	onToggle: () => void;
 }) {
-	// Memoize ID generation and ensure uniqueness with index
-	const contentId = useMemo(
-		() => `faq-${slugify(item.question)}-${index}`,
-		[item.question, index],
-	);
+	const { t } = useLingui();
+	// Index keeps the id unique even if the same question renders twice.
+	const contentId = `faq-${item.id}-${index}`;
 
 	return (
 		<div className="border-b border-border last:border-b-0">
@@ -40,7 +31,7 @@ function FAQAccordionItem({
 				className="group flex w-full items-center justify-between py-5 text-left outline-none"
 			>
 				<span className="text-sm sm:text-base font-medium text-foreground pr-4">
-					{item.question}
+					{t(item.question)}
 				</span>
 				<HiPlus
 					className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
@@ -62,7 +53,7 @@ function FAQAccordionItem({
 						className="overflow-hidden"
 					>
 						<p className="pb-5 text-sm text-muted-foreground leading-relaxed pr-8">
-							{item.answer}
+							{t(item.answer)}
 						</p>
 					</m.div>
 				)}
@@ -81,15 +72,15 @@ export function EnterpriseFAQ() {
 	return (
 		<div>
 			<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-				FAQ
+				<Trans id="marketing.enterprise.faq.eyebrow">FAQ</Trans>
 			</span>
 			<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-8">
-				Common questions
+				<Trans id="marketing.enterprise.faq.title">Common questions</Trans>
 			</h2>
 			<div>
 				{ENTERPRISE_FAQ_ITEMS.map((item, index) => (
 					<FAQAccordionItem
-						key={item.question}
+						key={item.id}
 						item={item}
 						index={index}
 						isOpen={openIndex === index}

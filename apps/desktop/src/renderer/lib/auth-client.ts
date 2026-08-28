@@ -10,6 +10,7 @@ import { createAuthClient } from "better-auth/react";
 import { useSyncExternalStore } from "react";
 import { env } from "renderer/env.renderer";
 import { decodeJwtExpiresAtMs } from "renderer/lib/jwt-expiry";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 
 let authToken: string | null = null;
 const authTokenListeners = new Set<() => void>();
@@ -54,6 +55,13 @@ export function setJwt(token: string | null) {
 	jwt = token;
 	jwtGeneration++;
 	jwtExpiresAtMs = token ? decodeJwtExpiresAtMs(token) : null;
+	// The main process dials the relay for port forwards with this same token
+	// and has no auth client of its own; keep its copy current.
+	electronTrpcClient.portForwards.setRelayToken
+		.mutate({ token })
+		.catch((err) => {
+			console.warn("[auth] failed to hand relay token to main:", err);
+		});
 }
 
 function jwtIsFresh(): boolean {

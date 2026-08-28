@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	Composer,
 	type ComposerHandle,
@@ -75,7 +76,7 @@ export const TerminalComposer = forwardRef<
 >(function TerminalComposer(
 	{
 		workspaceId,
-		placeholder = "Type a message...",
+		placeholder,
 		onSubmit,
 		onQuickKey,
 		attachmentTarget,
@@ -89,6 +90,7 @@ export const TerminalComposer = forwardRef<
 	},
 	ref,
 ) {
+	const { t } = useLingui();
 	const composerRef = useRef<ComposerHandle>(null);
 	// The screen owns the tap-to-dismiss target over the terminal, so it needs
 	// the composer's blur: `Keyboard.dismiss()` alone cannot lower the keyboard,
@@ -114,7 +116,15 @@ export const TerminalComposer = forwardRef<
 
 	const quickKeys: ComposerQuickKey[] = selectActive
 		? selectHasSelection
-			? [{ id: COPY_SELECTION_KEY, label: "Copy Selection" }]
+			? [
+					{
+						id: COPY_SELECTION_KEY,
+						label: t({
+							id: "mobile.terminal.copySelection",
+							message: "Copy Selection",
+						}),
+					},
+				]
 			: []
 		: QUICK_KEYS.map((key) => ({
 				id: key.id,
@@ -130,7 +140,12 @@ export const TerminalComposer = forwardRef<
 		// submit, not just the `+` button.
 		if (allowAttachments && files.length > 0) {
 			if (!attachmentTarget) {
-				Alert.alert("Attachments need an online host");
+				Alert.alert(
+					t({
+						id: "mobile.terminal.attachmentsNeedHost",
+						message: "Attachments need an online host",
+					}),
+				);
 				return;
 			}
 			// A PTY takes bytes, not files: the agent gets the attachments as
@@ -162,7 +177,7 @@ export const TerminalComposer = forwardRef<
 			else draft.setText("");
 		} catch (cause) {
 			Alert.alert(
-				"Could not send",
+				t({ id: "mobile.terminal.sendFailed", message: "Could not send" }),
 				cause instanceof Error ? cause.message : String(cause),
 			);
 		} finally {
@@ -174,7 +189,13 @@ export const TerminalComposer = forwardRef<
 		<View>
 			<Composer
 				ref={composerRef}
-				placeholder={placeholder}
+				placeholder={
+					placeholder ??
+					t({
+						id: "mobile.terminal.placeholder",
+						message: "Type a message...",
+					})
+				}
 				initialDraft={initialDraft}
 				// The transcript stays live behind the composer: reading the scrollback
 				// while typing the next command is the whole point of this screen.

@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import { initServerI18n } from "@/app/i18n-server";
 import {
 	ArticleJsonLd,
 	BreadcrumbJsonLd,
@@ -21,6 +22,8 @@ interface PageProps {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
+	initServerI18n();
+
 	const { slug } = await params;
 	const post = getBlogPost(slug);
 

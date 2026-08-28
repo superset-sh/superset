@@ -1,3 +1,4 @@
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { useQueries } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowRight, GitCommitVertical } from "lucide-react-native";
@@ -16,6 +17,7 @@ import { TimelineRow } from "./components/TimelineRow";
 const MAX_STAT_QUERIES = 30;
 
 export function CommitsSheet() {
+	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const workspaceId = id ?? null;
@@ -70,14 +72,21 @@ export function CommitsSheet() {
 		<>
 			<Stack.Title asChild>
 				<View className="items-center">
-					<Text className="font-semibold text-[17px]">Commits</Text>
+					<Text className="font-semibold text-[17px]">
+						<Trans id="mobile.nav.commits.title">Commits</Trans>
+					</Text>
 					<View className="flex-row items-center gap-1.5">
 						<Icon
 							as={GitCommitVertical}
 							className="text-muted-foreground size-3.5"
 						/>
 						<Text className="text-muted-foreground text-xs">
-							{commits.length === 1 ? "1 Commit" : `${commits.length} Commits`}
+							<Plural
+								id="mobile.commits.count"
+								value={commits.length}
+								one="# Commit"
+								other="# Commits"
+							/>
 						</Text>
 						{baseBranch ? (
 							<>
@@ -96,7 +105,10 @@ export function CommitsSheet() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
@@ -149,7 +161,9 @@ export function CommitsSheet() {
 				ListEmptyComponent={
 					<View className="items-center py-16">
 						<Text className="text-muted-foreground text-sm">
-							No commits on this branch yet.
+							<Trans id="mobile.commits.empty">
+								No commits on this branch yet.
+							</Trans>
 						</Text>
 					</View>
 				}

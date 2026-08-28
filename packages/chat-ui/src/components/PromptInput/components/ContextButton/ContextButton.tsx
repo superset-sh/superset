@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { PlusIcon } from "lucide-react";
 
 export type ContextButtonProps = {
@@ -9,11 +10,18 @@ export type ContextButtonProps = {
 
 // Click-equivalent of typing "@": opens the mention menu in browse mode.
 export function ContextButton({ onClick, disabled }: ContextButtonProps) {
+	const { t } = useLingui();
 	return (
 		<button
 			type="button"
-			aria-label="Add files, apps, and more"
-			title="Add files, apps, and more (@)"
+			aria-label={t({
+				id: "chatUi.contextButton.label",
+				message: "Add files, apps, and more",
+			})}
+			title={t({
+				id: "chatUi.contextButton.title",
+				message: "Add files, apps, and more (@)",
+			})}
 			disabled={disabled}
 			onClick={onClick}
 			className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"

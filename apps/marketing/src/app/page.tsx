@@ -1,12 +1,13 @@
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { initServerI18n } from "@/app/i18n-server";
 import {
 	FAQPageJsonLd,
 	HomeWebPageJsonLd,
 	ServiceJsonLd,
 } from "@/components/JsonLd";
-import { FAQ_ITEMS } from "./components/FAQSection";
+import { FAQ_ITEMS, faqSourceText } from "./components/FAQSection";
 import { HeroSection } from "./components/HeroSection";
 import { WebMcpTools } from "./components/WebMcpTools";
 
@@ -40,9 +41,16 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
+	initServerI18n();
+
 	return (
 		<main className="flex flex-col bg-background">
-			<FAQPageJsonLd items={FAQ_ITEMS} />
+			<FAQPageJsonLd
+				items={FAQ_ITEMS.map((item) => ({
+					question: faqSourceText(item.question),
+					answer: faqSourceText(item.answer),
+				}))}
+			/>
 			<HomeWebPageJsonLd />
 			<ServiceJsonLd />
 			<WebMcpTools />

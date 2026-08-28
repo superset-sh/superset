@@ -126,6 +126,27 @@ JSX text — add a directory there once it is fully converted. `errorMessage()` 
 translated and is display-only: logs, Sentry/PostHog, and error classification use
 `rawErrorMessage()` or the error object (enforced by `packages/i18n/test/display-only.test.ts`).
 
+**Shipping locales.** `SUPPORTED_LOCALES` in `packages/i18n/src/locales.ts` is the single
+source of truth — adding a locale there is what makes it appear in the Settings picker and
+the optional onboarding step, and what `lingui.config.ts` must list. Every enabled locale
+must be **fully translated**: `compile --strict` fails the build on a missing message, so
+finish a translation before adding its locale. Native language names live in `LOCALE_LABELS`
+and are never translated — someone stuck in the wrong language has to recognize their own.
+Relative times use `formatRelativeTime`/`formatCompactRelativeTime`, not hand-rolled
+"3d ago" helpers; `Intl` already knows every locale's wording.
+
+Two traps worth knowing before you touch catalogs:
+
+- **Regenerate from a clean tree.** `messages.po` is environment-sensitive. Entry order and
+  `#:` reference order both used to vary between macOS and Linux; `orderBy: "messageId"` and
+  `scripts/sort-po-references.ts` pin them, but a catalog regenerated on top of local
+  experiments will still commit noise.
+- **`bun test` runs uncompiled source.** The Lingui macro rewrites `` message: `${n} items` ``
+  into a placeholder message plus values at build time, so the catalog stores `{n} items`.
+  Tests see neither, which is why `apps/desktop/test-setup.ts` shims the macros and `i18n._`.
+  Mock that module with a Proxy, never a spread — `i18n` is a class instance and a spread
+  drops `load`/`activate`.
+
 ## Further reading
 
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching

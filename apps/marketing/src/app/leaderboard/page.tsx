@@ -1,8 +1,10 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
 import Link from "next/link";
 import { FactoryBackdrop } from "@/app/components/FactoryBackdrop";
+import { initServerI18n } from "@/app/i18n-server";
 import { fetchStandings, fetchStats } from "@/app/utils/fetchLeaderboard";
 import { LeaderboardBoard } from "./components/LeaderboardBoard";
 
@@ -39,6 +41,8 @@ export const revalidate = 300;
 const DEFAULT_PERIOD = "30d" as const;
 
 export default async function LeaderboardPage() {
+	initServerI18n();
+
 	const [standings, stats] = await Promise.all([
 		fetchStandings({ period: DEFAULT_PERIOD, metric: "tokens", limit: 50 }),
 		fetchStats({ period: DEFAULT_PERIOD }),
@@ -53,16 +57,20 @@ export default async function LeaderboardPage() {
 					<h1
 						className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
 					>
-						Leaderboard
+						<Trans id="marketing.leaderboard.title">Leaderboard</Trans>
 					</h1>
 					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
-						Agent usage, ranked
+						<Trans id="marketing.leaderboard.tagline">
+							Agent usage, ranked
+						</Trans>
 					</p>
 					<Link
 						href="/stats"
 						className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-brand hover:text-brand-light transition-colors mt-4"
 					>
-						See all stats →
+						<Trans id="marketing.leaderboard.seeAllStats">
+							See all stats →
+						</Trans>
 					</Link>
 				</header>
 

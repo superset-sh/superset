@@ -1,7 +1,9 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
 import { StarChartSection } from "./components/StarChartSection";
 import { getStarHistory } from "./utils/getStarHistory";
@@ -35,14 +37,17 @@ export const metadata: Metadata = {
 	},
 };
 
-function formatWeekOf(date: string): string {
-	return `week of ${formatUTCDate(new Date(date).getTime(), {
+function formatWeekDate(date: string): string {
+	return formatUTCDate(new Date(date).getTime(), {
 		month: "short",
 		day: "numeric",
-	})}`;
+	});
 }
 
 export default async function StarChartPage() {
+	initServerI18n();
+
+	const { t } = useLingui();
 	const history = await getStarHistory();
 	const points = history?.points ?? [];
 	const totalStars = history?.totalStars ?? null;
@@ -50,6 +55,26 @@ export default async function StarChartPage() {
 	// the chart below is currently showing.
 	const deltas = computePeriodDeltas(aggregateToWeekly(points));
 	const pace = computePaceStats(deltas);
+	const repoSlug = getGitHubRepoSlug();
+	const starCount = totalStars !== null ? formatStarCount(totalStars) : "";
+
+	const weekOf = (date: string) => {
+		const week = formatWeekDate(date);
+		return t({ id: "marketing.starchart.weekOf", message: `week of ${week}` });
+	};
+
+	const perDay = (value: number) => {
+		const count = Math.round(value);
+		return t({ id: "marketing.starchart.perDay", message: `${count}/day` });
+	};
+
+	const projectedThisWeek = (value: number) => {
+		const stars = formatStarCount(value);
+		return t({
+			id: "marketing.starchart.projectedThisWeek",
+			message: `~${stars} projected this week`,
+		});
+	};
 
 	return (
 		<main className="relative min-h-screen">
@@ -70,19 +95,25 @@ export default async function StarChartPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Star History
+						<Trans id="marketing.starchart.eyebrow">Star History</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						{totalStars !== null
-							? `${formatStarCount(totalStars)} stars and counting`
-							: "Star History"}
+						{totalStars !== null ? (
+							<Trans id="marketing.starchart.headline">
+								{starCount} stars and counting
+							</Trans>
+						) : (
+							<Trans id="marketing.starchart.headlineFallback">
+								Star History
+							</Trans>
+						)}
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						Every star on{" "}
-						<span className="font-mono text-foreground">
-							{getGitHubRepoSlug()}
-						</span>
-						, plotted since launch.
+						<Trans id="marketing.starchart.subtitle">
+							Every star on{" "}
+							<span className="font-mono text-foreground">{repoSlug}</span>,
+							plotted since launch.
+						</Trans>
 					</p>
 
 					{(pace.peak || pace.current) && (
@@ -90,28 +121,30 @@ export default async function StarChartPage() {
 							{pace.peak && (
 								<div>
 									<div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-										Peak pace
+										<Trans id="marketing.starchart.peakPace">Peak pace</Trans>
 									</div>
 									<div className="mt-1 text-lg font-medium text-foreground tabular-nums">
-										{Math.round(pace.peak.perDay)}/day
+										{perDay(pace.peak.perDay)}
 									</div>
 									<div className="text-xs text-muted-foreground">
-										{formatWeekOf(pace.peak.date)}
+										{weekOf(pace.peak.date)}
 									</div>
 								</div>
 							)}
 							{pace.current && (
 								<div>
 									<div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-										Current pace
+										<Trans id="marketing.starchart.currentPace">
+											Current pace
+										</Trans>
 									</div>
 									<div className="mt-1 text-lg font-medium text-foreground tabular-nums">
-										{Math.round(pace.current.perDay)}/day
+										{perDay(pace.current.perDay)}
 									</div>
 									<div className="text-xs text-muted-foreground">
 										{pace.current.isPartial
-											? `~${formatStarCount(pace.current.projectedTotal)} projected this week`
-											: formatWeekOf(pace.current.date)}
+											? projectedThisWeek(pace.current.projectedTotal)
+											: weekOf(pace.current.date)}
 									</div>
 								</div>
 							)}
@@ -124,7 +157,9 @@ export default async function StarChartPage() {
 							target="_blank"
 							rel="noopener noreferrer"
 						>
-							Star on GitHub
+							<Trans id="marketing.starchart.starOnGitHub">
+								Star on GitHub
+							</Trans>
 						</a>
 					</Button>
 
@@ -139,7 +174,9 @@ export default async function StarChartPage() {
 					<StarChartSection points={points} />
 				) : (
 					<div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
-						Star history isn't available right now. Check back soon.
+						<Trans id="marketing.starchart.unavailable">
+							Star history isn't available right now. Check back soon.
+						</Trans>
 					</div>
 				)}
 			</div>

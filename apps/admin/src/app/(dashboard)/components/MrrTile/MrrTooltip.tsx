@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 
 export interface MrrDatum {
@@ -22,7 +23,9 @@ export function MrrTooltip({ active, payload }: MrrTooltipProps) {
 	return (
 		<div className="border-border/50 bg-background min-w-[11rem] rounded-lg border px-3 py-2 text-xs shadow-xl">
 			<div className="flex items-center justify-between gap-4 pb-1">
-				<span className="font-medium">MRR</span>
+				<span className="font-medium">
+					<Trans id="admin.mrr.label">MRR</Trans>
+				</span>
 				{datum.changePct !== null ? (
 					<span
 						className={cn(

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -14,14 +15,20 @@ import { useTRPC } from "@/trpc/react";
 import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
-const chartConfig = {
-	cashUsd: { label: "total cash", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
 // Total cash across all Mercury accounts + Treasury, reconstructed from the
 // transaction history. Tranche wires show as steps up; burn as gentle slope.
 export function CashBalanceTile() {
+	const { t } = useLingui();
 	const trpc = useTRPC();
+	const chartConfig = {
+		cashUsd: {
+			label: t({
+				id: "admin.cashBalance.seriesTotalCash",
+				message: "total cash",
+			}),
+			color: "var(--chart-2)",
+		},
+	} satisfies ChartConfig;
 	const query = useQuery(trpc.business.getCashFlow.queryOptions());
 
 	const unavailableReason =
@@ -31,14 +38,26 @@ export function CashBalanceTile() {
 
 	return (
 		<InsightTileFrame
-			title="Cash — total balance (Mercury)"
-			description="Checking + savings + Treasury over time; fundraise tranches are the steps"
+			title={t({
+				id: "admin.cashBalance.title",
+				message: "Cash — total balance (Mercury)",
+			})}
+			description={t({
+				id: "admin.cashBalance.description",
+				message:
+					"Checking + savings + Treasury over time; fundraise tranches are the steps",
+			})}
 			lastRefresh={query.data?.available ? query.data.asOf : null}
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={points.length === 0}
 			emptyLabel={
-				unavailableReason ? `Unavailable: ${unavailableReason}` : "No data"
+				unavailableReason
+					? t({
+							id: "admin.tile.unavailableReason",
+							message: `Unavailable: ${unavailableReason}`,
+						})
+					: undefined
 			}
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">

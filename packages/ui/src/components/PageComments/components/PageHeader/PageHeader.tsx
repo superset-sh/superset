@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Share2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { cn } from "../../../../lib/utils";
@@ -34,6 +35,7 @@ export function PageHeader({
 	onSetSharedVersion,
 	onDelete,
 }: PageHeaderProps) {
+	const { t } = useLingui();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [shareOpen, setShareOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
@@ -49,7 +51,10 @@ export function PageHeader({
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Could not change the shared version",
+					: t({
+							id: "ui.pageHeader.sharedVersionFailed",
+							message: "Could not change the shared version",
+						}),
 			);
 		}
 	};
@@ -98,7 +103,7 @@ export function PageHeader({
 				>
 					<Button size="xs" variant="ghost" className="gap-1.5">
 						<Share2 className="size-3.5" />
-						Share
+						<Trans id="ui.pageHeader.share">Share</Trans>
 					</Button>
 				</PageSharePopover>
 			</div>

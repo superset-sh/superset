@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import Link from "next/link";
 import { useState } from "react";
@@ -10,22 +11,31 @@ import { BoidsBackground } from "./components/BoidsBackground";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
-const HERO_COPY = {
-	segments: [
-		{ text: "Bring Any Agent. " },
+export function HeroSection() {
+	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+	const { t } = useLingui();
+
+	const headlineSegments = [
 		{
-			text: "Orchestrate Them All.",
+			id: "lead",
+			// Trailing space separates the two segments as the typewriter runs
+			text: `${t({
+				id: "marketing.hero.headlineLead",
+				message: "Bring Any Agent.",
+			})} `,
+		},
+		{
+			id: "emphasis",
+			text: t({
+				id: "marketing.hero.headlineEmphasis",
+				message: "Orchestrate Them All.",
+			}),
 			// Plain inline (not inline-block): vertical padding on inline boxes
 			// paints the brackets without affecting line height, so the line
 			// can't jump when this segment mounts mid-animation
 			className: "corner-brackets px-[0.2em] py-[0.06em] whitespace-nowrap",
 		},
-	],
-	subheadline: "One workspace for Claude Code, Codex, and any coding agent.",
-};
-
-export function HeroSection() {
-	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+	];
 
 	return (
 		<div>
@@ -40,8 +50,16 @@ export function HeroSection() {
 						>
 							<span className="text-brand shrink-0">●</span>
 							<span>
-								We&apos;re hiring engineers
-								<span className="hidden sm:inline"> in San Francisco</span>
+								<span className="sm:hidden">
+									<Trans id="marketing.hero.hiring">
+										We&apos;re hiring engineers
+									</Trans>
+								</span>
+								<span className="hidden sm:inline">
+									<Trans id="marketing.hero.hiringInSanFrancisco">
+										We&apos;re hiring engineers in San Francisco
+									</Trans>
+								</span>
 							</span>
 							<span className="shrink-0 transition-transform group-hover:translate-x-0.5">
 								→
@@ -52,19 +70,19 @@ export function HeroSection() {
 								{/* Real headline for screen readers and no-JS crawlers; the
 								    typewriter below is purely visual */}
 								<span className="sr-only">
-									{HERO_COPY.segments.map((segment) => segment.text).join("")}
+									{headlineSegments.map((segment) => segment.text).join("")}
 								</span>
 								{/* Sizer must mirror the visible segments' styling so wrapping matches */}
 								<span className="invisible" aria-hidden="true">
-									{HERO_COPY.segments.map((segment) => (
-										<span key={segment.text} className={segment.className}>
+									{headlineSegments.map((segment) => (
+										<span key={segment.id} className={segment.className}>
 											{segment.text}
 										</span>
 									))}
 								</span>
 								<span className="absolute inset-0" aria-hidden="true">
 									<TypewriterText
-										segments={HERO_COPY.segments}
+										segments={headlineSegments}
 										speed={40}
 										delay={600}
 										// Caret matches the corner-bracket box height (1.30em) for the
@@ -78,7 +96,9 @@ export function HeroSection() {
 								id="hero-subheadline"
 								className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto"
 							>
-								{HERO_COPY.subheadline}
+								<Trans id="marketing.hero.subheadline">
+									One workspace for Claude Code, Codex, and any coding agent.
+								</Trans>
 							</p>
 						</div>
 
@@ -88,9 +108,12 @@ export function HeroSection() {
 								type="button"
 								className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
 								onClick={() => window.open(COMPANY.GITHUB_URL, "_blank")}
-								aria-label="View on GitHub"
+								aria-label={t({
+									id: "marketing.hero.viewOnGithub",
+									message: "View on GitHub",
+								})}
 							>
-								View on GitHub
+								<Trans id="marketing.hero.viewOnGithub">View on GitHub</Trans>
 								<FaGithub className="size-4" />
 							</button>
 						</div>

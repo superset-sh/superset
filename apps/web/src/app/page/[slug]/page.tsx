@@ -3,6 +3,7 @@ import { TRPCClientError } from "@trpc/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { i18n } from "@/lib/i18n-server";
 import { api } from "../../../trpc/server";
 import { PageCommentsShell } from "./components/PageCommentsShell";
 import { PageHeaderBar } from "./components/PageHeaderBar";
@@ -79,7 +80,9 @@ export default async function PublishedPage({ params }: PageProps) {
 			version={page.version}
 			user={{
 				id: session?.user.id ?? "",
-				name: session?.user.name ?? "You",
+				name:
+					session?.user.name ??
+					i18n._({ id: "web.page.anonymousUser", message: "You" }),
 				image: session?.user.image ?? null,
 			}}
 		>

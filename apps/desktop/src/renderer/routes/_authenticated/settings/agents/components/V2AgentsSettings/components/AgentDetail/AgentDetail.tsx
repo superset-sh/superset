@@ -130,7 +130,7 @@ export function AgentDetail({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "save the agent",
+						action: "saveAgent",
 					}),
 				);
 			}
@@ -156,7 +156,7 @@ export function AgentDetail({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "remove the agent",
+						action: "removeAgent",
 					}),
 				);
 			}
@@ -182,7 +182,7 @@ export function AgentDetail({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "restore the agent defaults",
+						action: "restoreAgentDefaults",
 					}),
 				);
 			}

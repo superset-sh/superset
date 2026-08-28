@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { i18n } from "@superset/i18n";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
 import type {
@@ -837,13 +838,19 @@ class BrowserManager extends EventEmitter {
 			if (linkURL) {
 				menuItems.push(
 					{
-						label: "Open Link in Default Browser",
+						label: i18n._({
+							id: "main.browserContextMenu.openLinkExternally",
+							message: "Open Link in Default Browser",
+						}),
 						click: () => {
 							void safeOpenExternal(linkURL);
 						},
 					},
 					{
-						label: "Open Link as New Split",
+						label: i18n._({
+							id: "main.browserContextMenu.openLinkAsSplit",
+							message: "Open Link as New Split",
+						}),
 						click: () =>
 							this.emit(`context-menu-action:${paneId}`, {
 								action: "open-in-split" as const,
@@ -851,7 +858,10 @@ class BrowserManager extends EventEmitter {
 							}),
 					},
 					{
-						label: "Copy Link Address",
+						label: i18n._({
+							id: "main.browserContextMenu.copyLinkAddress",
+							message: "Copy Link Address",
+						}),
 						click: () => clipboard.writeText(linkURL),
 					},
 					{ type: "separator" },
@@ -860,7 +870,10 @@ class BrowserManager extends EventEmitter {
 
 			if (selectionText) {
 				menuItems.push({
-					label: "Copy",
+					label: i18n._({
+						id: "main.browserContextMenu.copy",
+						message: "Copy",
+					}),
 					enabled: editFlags.canCopy,
 					click: () => wc.copy(),
 				});
@@ -868,14 +881,20 @@ class BrowserManager extends EventEmitter {
 
 			if (editFlags.canPaste) {
 				menuItems.push({
-					label: "Paste",
+					label: i18n._({
+						id: "main.browserContextMenu.paste",
+						message: "Paste",
+					}),
 					click: () => wc.paste(),
 				});
 			}
 
 			if (editFlags.canSelectAll) {
 				menuItems.push({
-					label: "Select All",
+					label: i18n._({
+						id: "main.browserContextMenu.selectAll",
+						message: "Select All",
+					}),
 					click: () => wc.selectAll(),
 				});
 			}
@@ -886,17 +905,26 @@ class BrowserManager extends EventEmitter {
 
 			menuItems.push(
 				{
-					label: "Back",
+					label: i18n._({
+						id: "main.browserContextMenu.back",
+						message: "Back",
+					}),
 					enabled: wc.canGoBack(),
 					click: () => wc.goBack(),
 				},
 				{
-					label: "Forward",
+					label: i18n._({
+						id: "main.browserContextMenu.forward",
+						message: "Forward",
+					}),
 					enabled: wc.canGoForward(),
 					click: () => wc.goForward(),
 				},
 				{
-					label: "Reload",
+					label: i18n._({
+						id: "main.browserContextMenu.reload",
+						message: "Reload",
+					}),
 					click: () => wc.reload(),
 				},
 			);
@@ -905,7 +933,10 @@ class BrowserManager extends EventEmitter {
 				menuItems.push(
 					{ type: "separator" },
 					{
-						label: "Open Page in Default Browser",
+						label: i18n._({
+							id: "main.browserContextMenu.openPageExternally",
+							message: "Open Page in Default Browser",
+						}),
 						click: () => {
 							if (pageURL && pageURL !== "about:blank") {
 								void safeOpenExternal(pageURL);
@@ -914,7 +945,10 @@ class BrowserManager extends EventEmitter {
 						enabled: !!pageURL && pageURL !== "about:blank",
 					},
 					{
-						label: "Copy Page URL",
+						label: i18n._({
+							id: "main.browserContextMenu.copyPageUrl",
+							message: "Copy Page URL",
+						}),
 						click: () => {
 							if (pageURL) clipboard.writeText(pageURL);
 						},

@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Trans } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -85,7 +86,7 @@ export function ProjectPickerScreen() {
 					className="py-6 text-center text-sm"
 					style={{ color: theme.mutedForeground }}
 				>
-					No projects available
+					<Trans id="mobile.projectPicker.empty">No projects available</Trans>
 				</Text>
 			) : null}
 			{targets.map(renderRow)}

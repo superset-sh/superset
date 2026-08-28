@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -7,6 +8,7 @@ import {
 	RiLinkedinBoxFill,
 	RiTwitterXFill,
 } from "react-icons/ri";
+import { initServerI18n } from "@/app/i18n-server";
 import { getAllPeople } from "@/lib/people";
 import { CTASection } from "../components/CTASection";
 import { TeamBio } from "./components/TeamBio";
@@ -35,6 +37,9 @@ export const metadata: Metadata = {
 };
 
 export default function TeamPage() {
+	initServerI18n();
+
+	const { t } = useLingui();
 	const people = getAllPeople();
 
 	return (
@@ -43,15 +48,19 @@ export default function TeamPage() {
 				{/* Hero */}
 				<section className="mb-24 md:mb-32">
 					<p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
-						About Superset
+						<Trans id="marketing.team.eyebrow">About Superset</Trans>
 					</p>
 					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal leading-[1.05] text-foreground max-w-4xl mb-8">
-						Building the last piece of software.
+						<Trans id="marketing.team.headline">
+							Building the last piece of software.
+						</Trans>
 					</h1>
 					<p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
-						Superset is building self-improving software. It starts with giving
-						engineers the best tools that adapt to their needs over time. We're
-						3 ex-YC CTOs building a tool that we love.
+						<Trans id="marketing.team.intro">
+							Superset is building self-improving software. It starts with
+							giving engineers the best tools that adapt to their needs over
+							time. We're 3 ex-YC CTOs building a tool that we love.
+						</Trans>
 					</p>
 				</section>
 
@@ -60,26 +69,34 @@ export default function TeamPage() {
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-start">
 						<div>
 							<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
-								So how did we get here?
+								<Trans id="marketing.team.story.heading">
+									So how did we get here?
+								</Trans>
 							</h2>
 							<div className="space-y-4 text-muted-foreground leading-relaxed">
 								<p>
-									Superset started as a hackathon project in November 2025. It
-									was a simple desktop app for managing worktrees.
+									<Trans id="marketing.team.story.origin">
+										Superset started as a hackathon project in November 2025. It
+										was a simple desktop app for managing worktrees.
+									</Trans>
 								</p>
 								<p>
-									In just a few months,{" "}
-									<span className="text-foreground">
-										tens of thousands of engineers
-									</span>{" "}
-									run Superset as their primary IDE, at companies like Wix,
-									DoorDash, and Netflix.
+									<Trans id="marketing.team.story.adoption">
+										In just a few months,{" "}
+										<span className="text-foreground">
+											tens of thousands of engineers
+										</span>{" "}
+										run Superset as their primary IDE, at companies like Wix,
+										DoorDash, and Netflix.
+									</Trans>
 								</p>
 								<p>
-									Now, we've raised{" "}
-									<span className="text-foreground">$11M</span> from the best
-									investors in Silicon Valley to build the platform for software
-									factories.
+									<Trans id="marketing.team.story.funding">
+										Now, we've raised{" "}
+										<span className="text-foreground">$11M</span> from the best
+										investors in Silicon Valley to build the platform for
+										software factories.
+									</Trans>
 								</p>
 							</div>
 						</div>
@@ -87,16 +104,22 @@ export default function TeamPage() {
 							<div className="relative aspect-[8/5] rounded-lg overflow-hidden bg-muted border border-border">
 								<Image
 									src="/join-us/founders.jpg"
-									alt="The Superset founders at a hackathon, YC HQ San Francisco"
+									alt={t({
+										id: "marketing.team.foundersPhoto.alt",
+										message:
+											"The Superset founders at a hackathon, YC HQ San Francisco",
+									})}
 									fill
 									className="object-cover"
 									sizes="(max-width: 768px) 100vw, 480px"
 								/>
 							</div>
 							<figcaption className="mt-3 text-xs text-muted-foreground">
-								The founders at the hackathon where Superset started{" "}
-								<span className="text-muted-foreground/40">|</span> YC HQ,
-								November 2025
+								<Trans id="marketing.team.foundersPhoto.caption">
+									The founders at the hackathon where Superset started{" "}
+									<span className="text-muted-foreground/40">|</span> YC HQ,
+									November 2025
+								</Trans>
 							</figcaption>
 						</figure>
 					</div>
@@ -105,10 +128,14 @@ export default function TeamPage() {
 				{/* Founders Grid */}
 				<section className="mb-24 md:mb-32">
 					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-10">
-						The founders
+						<Trans id="marketing.team.founders.heading">The founders</Trans>
 					</h2>
 					{people.length === 0 ? (
-						<p className="text-muted-foreground">No team members yet.</p>
+						<p className="text-muted-foreground">
+							<Trans id="marketing.team.founders.empty">
+								No team members yet.
+							</Trans>
+						</p>
 					) : (
 						<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-12 md:gap-10">
 							{people.map((person) => {
@@ -199,7 +226,9 @@ export default function TeamPage() {
 							href="/join-us"
 							className="inline-flex items-center gap-2 text-foreground hover:text-foreground/80 transition-colors group"
 						>
-							We're hiring in San Francisco
+							<Trans id="marketing.team.hiring">
+								We're hiring in San Francisco
+							</Trans>
 							<ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
 						</Link>
 					</div>

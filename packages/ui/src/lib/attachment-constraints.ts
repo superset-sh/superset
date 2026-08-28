@@ -1,3 +1,5 @@
+import { i18n } from "./i18n";
+
 export type AttachmentConstraintError = {
 	code: "max_files" | "max_file_size" | "accept";
 	message: string;
@@ -48,7 +50,10 @@ export function applyAttachmentConstraints(options: {
 	if (incoming.length > 0 && accepted.length === 0) {
 		onError?.({
 			code: "accept",
-			message: "No files match the accepted types.",
+			message: i18n._({
+				id: "ui.attachmentConstraints.accept.none",
+				message: "No files match the accepted types.",
+			}),
 		});
 		return [];
 	}
@@ -57,7 +62,10 @@ export function applyAttachmentConstraints(options: {
 	if (accepted.length < incoming.length) {
 		onError?.({
 			code: "accept",
-			message: "Some files are not an accepted type and were not added.",
+			message: i18n._({
+				id: "ui.attachmentConstraints.accept.some",
+				message: "Some files are not an accepted type and were not added.",
+			}),
 		});
 	}
 
@@ -68,14 +76,20 @@ export function applyAttachmentConstraints(options: {
 	if (accepted.length > 0 && sized.length === 0) {
 		onError?.({
 			code: "max_file_size",
-			message: "All files exceed the maximum size.",
+			message: i18n._({
+				id: "ui.attachmentConstraints.maxFileSize.all",
+				message: "All files exceed the maximum size.",
+			}),
 		});
 		return [];
 	}
 	if (sized.length < accepted.length) {
 		onError?.({
 			code: "max_file_size",
-			message: "Some files exceed the maximum size and were not added.",
+			message: i18n._({
+				id: "ui.attachmentConstraints.maxFileSize.some",
+				message: "Some files exceed the maximum size and were not added.",
+			}),
 		});
 	}
 
@@ -84,7 +98,10 @@ export function applyAttachmentConstraints(options: {
 	if (sized.length > capacity) {
 		onError?.({
 			code: "max_files",
-			message: "Too many files. Some were not added.",
+			message: i18n._({
+				id: "ui.attachmentConstraints.maxFiles",
+				message: "Too many files. Some were not added.",
+			}),
 		});
 	}
 	return sized.slice(0, capacity);

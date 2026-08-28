@@ -1,4 +1,6 @@
+import { Trans } from "@lingui/react/macro";
 import { useControllableState } from "@rn-primitives/hooks";
+import { i18n } from "@superset/i18n";
 import { ChevronDownIcon, WrenchIcon, XIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { createContext, isValidElement, useContext, useMemo } from "react";
@@ -192,7 +194,7 @@ export type ToolInputProps = React.ComponentProps<typeof View> & {
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
 	<View className={cn("gap-2 overflow-hidden", className)} {...props}>
 		<Text className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-			Parameters
+			<Trans id="mobile.tool.parameters">Parameters</Trans>
 		</Text>
 		<CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
 	</View>
@@ -230,7 +232,9 @@ export const ToolOutput = ({
 	return (
 		<View className={cn("gap-2", className)} {...props}>
 			<Text className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-				{errorText ? "Error" : "Result"}
+				{errorText
+					? i18n._({ id: "mobile.tool.error", message: "Error" })
+					: i18n._({ id: "mobile.tool.result", message: "Result" })}
 			</Text>
 			<View
 				className={cn(

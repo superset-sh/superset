@@ -1,5 +1,7 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	Accordion,
 	AccordionContent,
@@ -49,42 +51,74 @@ export function NavigationSection() {
 		<ShowcaseSection
 			id="navigation"
 			index="06"
-			title="Navigation"
-			description="Wayfinding and disclosure"
+			title={i18n._({
+				id: "web.design.navigationSection.navigation",
+				message: "Navigation",
+			})}
+			description={i18n._({
+				id: "web.design.navigationSection.wayfindingAndDisclosure",
+				message: "Wayfinding and disclosure",
+			})}
 		>
-			<ComponentCard title="Tabs" importPath="@superset/ui/tabs">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.navigationSection.tabs",
+					message: "Tabs",
+				})}
+				importPath="@superset/ui/tabs"
+			>
 				<Tabs defaultValue="terminal" className="w-full max-w-72">
 					<TabsList className="w-full">
-						<TabsTrigger value="terminal">Terminal</TabsTrigger>
-						<TabsTrigger value="diff">Diff</TabsTrigger>
-						<TabsTrigger value="notes">Notes</TabsTrigger>
+						<TabsTrigger value="terminal">
+							<Trans id="web.design.navigationSection.terminal">Terminal</Trans>
+						</TabsTrigger>
+						<TabsTrigger value="diff">
+							<Trans id="web.design.navigationSection.diff">Diff</Trans>
+						</TabsTrigger>
+						<TabsTrigger value="notes">
+							<Trans id="web.design.navigationSection.notes">Notes</Trans>
+						</TabsTrigger>
 					</TabsList>
 					<TabsContent
 						value="terminal"
 						className="pt-2 text-sm text-muted-foreground"
 					>
-						Interactive agent terminal.
+						<Trans id="web.design.navigationSection.interactiveAgentTerminal">
+							Interactive agent terminal.
+						</Trans>
 					</TabsContent>
 					<TabsContent
 						value="diff"
 						className="pt-2 text-sm text-muted-foreground"
 					>
-						Review pending changes.
+						<Trans id="web.design.navigationSection.reviewPendingChanges">
+							Review pending changes.
+						</Trans>
 					</TabsContent>
 					<TabsContent
 						value="notes"
 						className="pt-2 text-sm text-muted-foreground"
 					>
-						Session notes and context.
+						<Trans id="web.design.navigationSection.sessionNotesAndContext">
+							Session notes and context.
+						</Trans>
 					</TabsContent>
 				</Tabs>
 			</ComponentCard>
 
-			<ComponentCard title="Breadcrumb" importPath="@superset/ui/breadcrumb">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.navigationSection.breadcrumb",
+					message: "Breadcrumb",
+				})}
+				importPath="@superset/ui/breadcrumb"
+			>
 				<Breadcrumb>
 					<BreadcrumbList>
 						<BreadcrumbItem>
-							<BreadcrumbLink href="#navigation">Home</BreadcrumbLink>
+							<BreadcrumbLink href="#navigation">
+								<Trans id="web.design.navigationSection.home">Home</Trans>
+							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
@@ -92,17 +126,31 @@ export function NavigationSection() {
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
-							<BreadcrumbLink href="#navigation">Workspaces</BreadcrumbLink>
+							<BreadcrumbLink href="#navigation">
+								<Trans id="web.design.navigationSection.workspaces">
+									Workspaces
+								</Trans>
+							</BreadcrumbLink>
 						</BreadcrumbItem>
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
-							<BreadcrumbPage>component-showcase</BreadcrumbPage>
+							<BreadcrumbPage>
+								<Trans id="web.design.navigationSection.componentShowcase">
+									component-showcase
+								</Trans>
+							</BreadcrumbPage>
 						</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>
 			</ComponentCard>
 
-			<ComponentCard title="Pagination" importPath="@superset/ui/pagination">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.navigationSection.pagination",
+					message: "Pagination",
+				})}
+				importPath="@superset/ui/pagination"
+			>
 				<Pagination>
 					<PaginationContent>
 						<PaginationItem>
@@ -127,28 +175,45 @@ export function NavigationSection() {
 			</ComponentCard>
 
 			<ComponentCard
-				title="Navigation Menu"
+				title={i18n._({
+					id: "web.design.navigationSection.navigationMenu",
+					message: "Navigation Menu",
+				})}
 				importPath="@superset/ui/navigation-menu"
 			>
 				<NavigationMenu>
 					<NavigationMenuList>
 						<NavigationMenuItem>
-							<NavigationMenuTrigger>Product</NavigationMenuTrigger>
+							<NavigationMenuTrigger>
+								<Trans id="web.design.navigationSection.product">Product</Trans>
+							</NavigationMenuTrigger>
 							<NavigationMenuContent>
 								<ul className="grid w-64 gap-1 p-2">
 									<li>
 										<NavigationMenuLink href="#navigation">
-											<span className="font-medium">Workspaces</span>
+											<span className="font-medium">
+												<Trans id="web.design.navigationSection.workspaces">
+													Workspaces
+												</Trans>
+											</span>
 											<span className="text-muted-foreground">
-												Parallel agent worktrees
+												<Trans id="web.design.navigationSection.parallelAgentWorktrees">
+													Parallel agent worktrees
+												</Trans>
 											</span>
 										</NavigationMenuLink>
 									</li>
 									<li>
 										<NavigationMenuLink href="#navigation">
-											<span className="font-medium">Tasks</span>
+											<span className="font-medium">
+												<Trans id="web.design.navigationSection.tasks">
+													Tasks
+												</Trans>
+											</span>
 											<span className="text-muted-foreground">
-												Queue work for agents
+												<Trans id="web.design.navigationSection.queueWorkForAgents">
+													Queue work for agents
+												</Trans>
 											</span>
 										</NavigationMenuLink>
 									</li>
@@ -156,36 +221,73 @@ export function NavigationSection() {
 							</NavigationMenuContent>
 						</NavigationMenuItem>
 						<NavigationMenuItem>
-							<NavigationMenuLink href="#navigation">Docs</NavigationMenuLink>
+							<NavigationMenuLink href="#navigation">
+								<Trans id="web.design.navigationSection.docs">Docs</Trans>
+							</NavigationMenuLink>
 						</NavigationMenuItem>
 					</NavigationMenuList>
 				</NavigationMenu>
 			</ComponentCard>
 
-			<ComponentCard title="Accordion" importPath="@superset/ui/accordion">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.navigationSection.accordion",
+					message: "Accordion",
+				})}
+				importPath="@superset/ui/accordion"
+			>
 				<Accordion type="single" collapsible className="w-full max-w-72">
 					<AccordionItem value="worktrees">
-						<AccordionTrigger>What is a workspace?</AccordionTrigger>
+						<AccordionTrigger>
+							<Trans id="web.design.navigationSection.whatIsAWorkspace">
+								What is a workspace?
+							</Trans>
+						</AccordionTrigger>
 						<AccordionContent>
-							An isolated git worktree where an agent runs without touching your
-							main checkout.
+							<Trans id="web.design.navigationSection.anIsolatedGitWorktreeWhere">
+								An isolated git worktree where an agent runs without touching
+								your main checkout.
+							</Trans>
 						</AccordionContent>
 					</AccordionItem>
 					<AccordionItem value="agents">
-						<AccordionTrigger>Which agents are supported?</AccordionTrigger>
+						<AccordionTrigger>
+							<Trans id="web.design.navigationSection.whichAgentsAreSupported">
+								Which agents are supported?
+							</Trans>
+						</AccordionTrigger>
 						<AccordionContent>
-							Claude Code, Codex, Cursor, OpenCode, and more.
+							<Trans id="web.design.navigationSection.claudeCodeCodexCursorOpencode">
+								Claude Code, Codex, Cursor, OpenCode, and more.
+							</Trans>
 						</AccordionContent>
 					</AccordionItem>
 				</Accordion>
 			</ComponentCard>
 
-			<ComponentCard title="Collapsible" importPath="@superset/ui/collapsible">
+			<ComponentCard
+				title={i18n._({
+					id: "web.design.navigationSection.collapsible",
+					message: "Collapsible",
+				})}
+				importPath="@superset/ui/collapsible"
+			>
 				<Collapsible className="w-full max-w-72">
 					<div className="flex items-center justify-between">
-						<span className="text-sm font-medium">3 archived workspaces</span>
+						<span className="text-sm font-medium">
+							<Trans id="web.design.navigationSection.3ArchivedWorkspaces">
+								3 archived workspaces
+							</Trans>
+						</span>
 						<CollapsibleTrigger asChild>
-							<Button variant="ghost" size="icon-sm" aria-label="Toggle">
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label={i18n._({
+									id: "web.design.navigationSection.toggle",
+									message: "Toggle",
+								})}
+							>
 								<ChevronsUpDownIcon />
 							</Button>
 						</CollapsibleTrigger>

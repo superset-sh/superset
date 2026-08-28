@@ -216,7 +216,7 @@ export function RunInWorkspacePopoverV2({
 		if (submitBlocker) {
 			if (hostId === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "run tasks in workspaces",
+					action: "runTasksInWorkspaces",
 				});
 			} else {
 				toast.error(submitBlocker);

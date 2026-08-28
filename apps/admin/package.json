@@ -11,9 +11,12 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@lingui/core": "6.6.0",
+		"@lingui/react": "6.6.0",
 		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/i18n": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/ui": "workspace:*",
@@ -40,6 +43,7 @@
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@lingui/swc-plugin": "6.6.0",
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/postcss": "4.2.2",
 		"@types/node": "24.12.0",

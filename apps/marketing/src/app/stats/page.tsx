@@ -1,8 +1,10 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
 import Link from "next/link";
 import { FactoryBackdrop } from "@/app/components/FactoryBackdrop";
+import { initServerI18n } from "@/app/i18n-server";
 import { fetchStats } from "@/app/utils/fetchLeaderboard";
 import { formatDayRange } from "@/app/utils/formatUsage";
 import { StatsBody } from "./components/StatsBody";
@@ -39,7 +41,10 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function StatsPage() {
+	initServerI18n();
+
 	const stats = await fetchStats({ period: "all" });
+	const range = stats?.range ? formatDayRange(stats.range) : null;
 
 	return (
 		<main className="relative min-h-screen">
@@ -50,17 +55,26 @@ export default async function StatsPage() {
 					<h1
 						className={`${pixel.className} text-3xl md:text-4xl text-foreground`}
 					>
-						Stats
+						<Trans id="marketing.stats.title">Stats</Trans>
 					</h1>
 					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-5">
-						Site-wide telemetry
-						{stats?.range ? ` · ${formatDayRange(stats.range)}` : " · all time"}
+						{range ? (
+							<Trans id="marketing.stats.telemetryRange">
+								Site-wide telemetry · {range}
+							</Trans>
+						) : (
+							<Trans id="marketing.stats.telemetryAllTime">
+								Site-wide telemetry · all time
+							</Trans>
+						)}
 					</p>
 					<Link
 						href="/leaderboard"
 						className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-brand hover:text-brand-light transition-colors mt-4"
 					>
-						← Back to leaderboard
+						<Trans id="marketing.stats.backToLeaderboard">
+							← Back to leaderboard
+						</Trans>
 					</Link>
 				</header>
 

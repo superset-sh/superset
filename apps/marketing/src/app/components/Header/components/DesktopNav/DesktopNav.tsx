@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	NavigationMenu,
 	NavigationMenuContent,
@@ -45,7 +46,7 @@ export function DesktopNav() {
 						className={triggerClass}
 						onClick={ignoreCloseClick("product")}
 					>
-						Product
+						<Trans id="marketing.nav.productMenu">Product</Trans>
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
 						<ul className="flex w-[320px] flex-col gap-1 p-2">
@@ -61,7 +62,7 @@ export function DesktopNav() {
 						className={triggerClass}
 						onClick={ignoreCloseClick("resources")}
 					>
-						Resources
+						<Trans id="marketing.nav.resourcesMenu">Resources</Trans>
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
 						<ul className="grid w-[400px] grid-cols-1 gap-1 p-2 sm:w-[460px] sm:grid-cols-2">

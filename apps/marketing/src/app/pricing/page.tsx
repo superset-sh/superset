@@ -1,5 +1,7 @@
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
+import { initServerI18n } from "@/app/i18n-server";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import { ComparisonTable } from "./components/ComparisonTable";
 import { PricingFAQ } from "./components/PricingFAQ";
@@ -17,9 +19,18 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
+	initServerI18n();
+
+	// JSON-LD is machine-facing, so it gets rendered strings rather than the
+	// message descriptors the UI components resolve through Lingui.
+	const faqJsonLdItems = PRICING_FAQ_ITEMS.map((item) => ({
+		question: i18n._(item.question),
+		answer: i18n._(item.answer),
+	}));
+
 	return (
 		<main className="relative min-h-screen">
-			<FAQPageJsonLd items={PRICING_FAQ_ITEMS} />
+			<FAQPageJsonLd items={faqJsonLdItems} />
 			<PricingHero />
 
 			<section className="relative border-b border-border">

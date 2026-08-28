@@ -1,10 +1,12 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { submitEnterpriseInquiry } from "../../actions";
 
 export function EnterpriseContactForm() {
+	const { t } = useLingui();
 	const [formState, setFormState] = useState({
 		name: "",
 		role: "",
@@ -31,11 +33,22 @@ export function EnterpriseContactForm() {
 				setStatus("success");
 			} else {
 				setStatus("error");
-				setErrorMessage(result.error ?? "Something went wrong.");
+				setErrorMessage(
+					result.error ??
+						t({
+							id: "marketing.form.error.genericShort",
+							message: "Something went wrong.",
+						}),
+				);
 			}
 		} catch (_error) {
 			setStatus("error");
-			setErrorMessage("Something went wrong. Please try again.");
+			setErrorMessage(
+				t({
+					id: "marketing.form.error.generic",
+					message: "Something went wrong. Please try again.",
+				}),
+			);
 		}
 	};
 
@@ -44,10 +57,14 @@ export function EnterpriseContactForm() {
 			<div className="flex flex-col items-center justify-center py-16 text-center">
 				<CheckCircle2 className="size-6 text-muted-foreground mb-4" />
 				<p className="text-lg font-medium text-foreground">
-					Thanks for reaching out
+					<Trans id="marketing.enterprise.form.successTitle">
+						Thanks for reaching out
+					</Trans>
 				</p>
 				<p className="mt-2 text-sm text-muted-foreground">
-					We&apos;ll be in touch shortly.
+					<Trans id="marketing.enterprise.form.successBody">
+						We&apos;ll be in touch shortly.
+					</Trans>
 				</p>
 			</div>
 		);
@@ -61,7 +78,7 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-name"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						Full name
+						<Trans id="marketing.enterprise.form.nameLabel">Full name</Trans>
 					</label>
 					<input
 						id="ent-name"
@@ -80,7 +97,7 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-role"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						Role
+						<Trans id="marketing.enterprise.form.roleLabel">Role</Trans>
 					</label>
 					<input
 						id="ent-role"
@@ -100,7 +117,7 @@ export function EnterpriseContactForm() {
 					htmlFor="ent-company"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					Company
+					<Trans id="marketing.enterprise.form.companyLabel">Company</Trans>
 				</label>
 				<input
 					id="ent-company"
@@ -120,7 +137,9 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-email"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						Company email
+						<Trans id="marketing.enterprise.form.emailLabel">
+							Company email
+						</Trans>
 					</label>
 					<input
 						id="ent-email"
@@ -139,7 +158,9 @@ export function EnterpriseContactForm() {
 						htmlFor="ent-phone"
 						className="block text-sm text-muted-foreground mb-1.5"
 					>
-						Phone number
+						<Trans id="marketing.enterprise.form.phoneLabel">
+							Phone number
+						</Trans>
 					</label>
 					<input
 						id="ent-phone"
@@ -158,7 +179,9 @@ export function EnterpriseContactForm() {
 					htmlFor="ent-message"
 					className="block text-sm text-muted-foreground mb-1.5"
 				>
-					What problem are you trying to solve?
+					<Trans id="marketing.enterprise.form.messageLabel">
+						What problem are you trying to solve?
+					</Trans>
 				</label>
 				<textarea
 					id="ent-message"
@@ -196,12 +219,12 @@ export function EnterpriseContactForm() {
 			>
 				{status === "submitting" ? (
 					<>
-						Sending
+						<Trans id="marketing.form.sending">Sending</Trans>
 						<Loader2 className="size-3.5 animate-spin" />
 					</>
 				) : (
 					<>
-						Send
+						<Trans id="marketing.enterprise.form.submit">Send</Trans>
 						<ArrowRight className="size-3.5" />
 					</>
 				)}

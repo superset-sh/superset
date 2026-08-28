@@ -1,7 +1,9 @@
+import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
+import { initServerI18n } from "@/app/i18n-server";
 import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
 
 interface PageProps {
@@ -17,12 +19,16 @@ function formatDate(date: string | Date): string {
 }
 
 export default async function LegalPage({ params }: PageProps) {
+	initServerI18n();
+
 	const { slug } = await params;
 	const page = getLegalPage(slug);
 
 	if (!page) {
 		notFound();
 	}
+
+	const lastUpdated = formatDate(page.lastUpdated);
 
 	return (
 		<main className="bg-background pt-24 pb-16 min-h-screen">
@@ -32,7 +38,9 @@ export default async function LegalPage({ params }: PageProps) {
 						{page.title}
 					</h1>
 					<p className="mt-4 text-sm text-muted-foreground">
-						Last updated: {formatDate(page.lastUpdated)}
+						<Trans id="marketing.legal.lastUpdated">
+							Last updated: {lastUpdated}
+						</Trans>
 					</p>
 				</header>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
@@ -72,10 +73,10 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 					}}
 				>
 					<ToggleGroupItem value="day" className="font-mono text-xs">
-						Day
+						<Trans id="marketing.starchart.granularity.day">Day</Trans>
 					</ToggleGroupItem>
 					<ToggleGroupItem value="week" className="font-mono text-xs">
-						Week
+						<Trans id="marketing.starchart.granularity.week">Week</Trans>
 					</ToggleGroupItem>
 				</ToggleGroup>
 				<DateRangePicker
@@ -90,7 +91,15 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 					<StarHistoryChart points={filteredPoints} granularity={granularity} />
 					<div>
 						<span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-							Stars gained per {granularity}
+							{granularity === "day" ? (
+								<Trans id="marketing.starchart.starsGainedPerDay">
+									Stars gained per day
+								</Trans>
+							) : (
+								<Trans id="marketing.starchart.starsGainedPerWeek">
+									Stars gained per week
+								</Trans>
+							)}
 						</span>
 						<div className="mt-3">
 							<StarPaceChart deltas={deltas} granularity={granularity} />
@@ -99,7 +108,9 @@ export function StarChartSection({ points }: StarChartSectionProps) {
 				</div>
 			) : (
 				<div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
-					No stars in this range.
+					<Trans id="marketing.starchart.emptyRange">
+						No stars in this range.
+					</Trans>
 				</div>
 			)}
 		</div>

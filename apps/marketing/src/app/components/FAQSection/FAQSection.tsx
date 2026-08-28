@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { AnimatePresence, m } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
@@ -16,6 +17,8 @@ function FAQAccordionItem({
 	isOpen: boolean;
 	onToggle: () => void;
 }) {
+	const { t } = useLingui();
+
 	return (
 		<div className="border-b border-border">
 			<button
@@ -24,7 +27,7 @@ function FAQAccordionItem({
 				className="group flex w-full items-center justify-between py-6 text-left transition-all outline-none"
 			>
 				<span className="text-base sm:text-lg font-medium text-foreground pr-4">
-					{item.question}
+					{t(item.question)}
 				</span>
 				<HiPlus
 					className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 ${
@@ -43,14 +46,14 @@ function FAQAccordionItem({
 					>
 						<div className="pb-6 pr-12 space-y-3">
 							<p className="text-base text-muted-foreground leading-relaxed">
-								{item.answer}
+								{t(item.answer)}
 							</p>
 							{item.link && (
 								<Link
 									href={item.link.href}
 									className="inline-block text-base text-brand hover:text-brand-light transition-colors"
 								>
-									{item.link.label} →
+									{t(item.link.label)} →
 								</Link>
 							)}
 						</div>
@@ -75,9 +78,11 @@ export function FAQSection() {
 					{/* Left Column - Title */}
 					<div className="xl:sticky xl:top-24 xl:self-start">
 						<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
-							Frequently
-							<br />
-							asked questions
+							<Trans id="marketing.faq.heading">
+								Frequently
+								<br />
+								asked questions
+							</Trans>
 						</h2>
 					</div>
 
@@ -86,7 +91,7 @@ export function FAQSection() {
 						<div className="w-full">
 							{FAQ_ITEMS.map((item, index) => (
 								<FAQAccordionItem
-									key={item.question}
+									key={item.id}
 									item={item}
 									isOpen={openIndex === index}
 									onToggle={() => handleToggle(index)}

@@ -38,7 +38,7 @@ export function SectionActionsMenuItems({
 }: SectionActionsMenuItemsProps) {
 	const { t } = useLingui();
 	const selectedValue = color ?? PROJECT_COLOR_DEFAULT;
-	const colorOptions = [
+	const colorOptions: { name: string; value: string }[] = [
 		{
 			name: t({
 				id: "dashboard.sidebar.sectionMenu.defaultColor",
@@ -46,7 +46,10 @@ export function SectionActionsMenuItems({
 			}),
 			value: PROJECT_COLOR_DEFAULT,
 		},
-		...PROJECT_COLORS,
+		...PROJECT_COLORS.map((projectColor) => ({
+			name: projectColor.name(),
+			value: projectColor.value,
+		})),
 	];
 	const iconClassName = kind === "context" ? "size-4 mr-2" : "size-4";
 

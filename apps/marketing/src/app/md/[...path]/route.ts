@@ -1,7 +1,10 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { i18n, initI18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { MCP_CAPABILITIES } from "@/app/mcp-install/components/McpCapabilities/constants";
 import {
 	COMPARISON_SECTIONS,
+	type ComparisonValue,
 	PRICING_FAQ_ITEMS,
 	PRICING_TIERS,
 } from "@/app/pricing/constants";
@@ -18,6 +21,10 @@ import {
 import { markdownNotFound } from "@/lib/markdown-not-found";
 import { getAllPeople } from "@/lib/people";
 
+// Route handlers render outside the root layout, so the shared i18n instance
+// is not seeded for them. Idempotent.
+initI18n();
+
 interface MarkdownPage {
 	title: string;
 	url: string;
@@ -27,10 +34,16 @@ interface MarkdownPage {
 	content: string;
 }
 
-function cell(value: string | boolean | null): string {
+// Pricing copy lives as Lingui message descriptors; this feed is plain text
+// for LLM clients, so every descriptor is rendered before it is joined.
+function text(value: string | MessageDescriptor): string {
+	return typeof value === "string" ? value : i18n._(value);
+}
+
+function cell(value: ComparisonValue | null): string {
 	if (value === true) return "Yes";
 	if (value === false || value === null) return "No";
-	return value;
+	return text(value);
 }
 
 function pricingPage(): MarkdownPage {
@@ -38,35 +51,35 @@ function pricingPage(): MarkdownPage {
 	const tiers = PRICING_TIERS.map((tier) => {
 		const price =
 			tier.price.kind === "variable"
-				? `${tier.price.monthly.display} ${tier.price.monthly.note} (${tier.price.monthly.cadence}) or ${tier.price.yearly.display} ${tier.price.yearly.note} (${tier.price.yearly.cadence})`
-				: `${tier.price.display} (${tier.price.note})`;
+				? `${tier.price.monthly.display} ${text(tier.price.monthly.note)} (${text(tier.price.monthly.cadence)}) or ${tier.price.yearly.display} ${text(tier.price.yearly.note)} (${text(tier.price.yearly.cadence)})`
+				: `${text(tier.price.display)} (${text(tier.price.note)})`;
 		return [
-			`### ${tier.name}`,
+			`### ${text(tier.name)}`,
 			"",
-			tier.description,
+			text(tier.description),
 			"",
 			`- **Price**: ${price}`,
-			...tier.features.map((feature) => `- ${feature}`),
-			`- [${tier.cta.label}](${tier.cta.href.startsWith("/") ? baseUrl + tier.cta.href : tier.cta.href})`,
+			...tier.features.map((feature) => `- ${text(feature.label)}`),
+			`- [${text(tier.cta.label)}](${tier.cta.href.startsWith("/") ? baseUrl + tier.cta.href : tier.cta.href})`,
 			"",
 		];
 	});
-	const tierNames = PRICING_TIERS.map((tier) => tier.name);
+	const tierNames = PRICING_TIERS.map((tier) => text(tier.name));
 	const comparison = COMPARISON_SECTIONS.flatMap((section) => [
-		`### ${section.title}`,
+		`### ${text(section.title)}`,
 		"",
 		`| | ${tierNames.join(" | ")} |`,
 		`|---|${tierNames.map(() => "---").join("|")}|`,
 		...section.rows.map(
 			(row) =>
-				`| ${row.label}${row.badge ? ` (${row.badge.label})` : ""} | ${row.values.map(cell).join(" | ")} |`,
+				`| ${text(row.label)}${row.badge ? ` (${text(row.badge.label)})` : ""} | ${row.values.map(cell).join(" | ")} |`,
 		),
 		"",
 	]);
 	const faq = PRICING_FAQ_ITEMS.flatMap((item) => [
-		`### ${item.question}`,
+		`### ${text(item.question)}`,
 		"",
-		item.answer,
+		text(item.answer),
 		"",
 	]);
 	return {
@@ -118,7 +131,7 @@ function mcpInstallPage(): MarkdownPage {
 			"",
 			...MCP_CAPABILITIES.map(
 				(capability) =>
-					`- **${capability.category}**: ${capability.description}`,
+					`- **${text(capability.category)}**: ${text(capability.description)}`,
 			),
 			"",
 			"## Resources",
@@ -169,7 +182,9 @@ function enterprisePage(): MarkdownPage {
 		content: [
 			"## What Enterprise includes",
 			"",
-			...(enterprise?.features ?? []).map((feature) => `- ${feature}`),
+			...(enterprise?.features ?? []).map(
+				(feature) => `- ${text(feature.label)}`,
+			),
 			"",
 			"## Where your code runs",
 			"",

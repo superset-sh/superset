@@ -1,13 +1,22 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const navItems = [
-	{ href: "/", label: "Home" },
-	{ href: "/integrations", label: "Integrations" },
-	{ href: "/settings/account", label: "Account" },
+const navItems: { href: string; label: MessageDescriptor }[] = [
+	{ href: "/", label: msg({ id: "web.sidebarNav.home", message: "Home" }) },
+	{
+		href: "/integrations",
+		label: msg({ id: "web.sidebarNav.integrations", message: "Integrations" }),
+	},
+	{
+		href: "/settings/account",
+		label: msg({ id: "web.sidebarNav.account", message: "Account" }),
+	},
 ];
 
 export function SidebarNav() {
@@ -29,7 +38,7 @@ export function SidebarNav() {
 								: "opacity-60 hover:opacity-80",
 						)}
 					>
-						{item.label}
+						{i18n._(item.label)}
 					</Link>
 				);
 			})}

@@ -4,4 +4,5 @@ export {
 	TierBadge,
 	tierLabel,
 	tierRgb,
+	UNRANKED_LABEL,
 } from "./TierBadge";

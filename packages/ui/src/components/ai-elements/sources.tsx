@@ -1,5 +1,6 @@
 "use client";
 
+import { Plural } from "@lingui/react/macro";
 import { BookIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "../../lib/utils";
@@ -34,7 +35,14 @@ export const SourcesTrigger = ({
 	>
 		{children ?? (
 			<>
-				<p className="font-medium">Used {count} sources</p>
+				<p className="font-medium">
+					<Plural
+						id="ui.sources.usedCount"
+						one="Used # source"
+						other="Used # sources"
+						value={count}
+					/>
+				</p>
 				<ChevronDownIcon className="h-4 w-4" />
 			</>
 		)}

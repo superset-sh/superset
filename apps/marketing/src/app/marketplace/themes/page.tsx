@@ -1,9 +1,11 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
 import { ArrowUpRight, Download } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { initServerI18n } from "@/app/i18n-server";
 import { themeListings } from "@/lib/marketplace";
 
 export const metadata: Metadata = {
@@ -16,18 +18,22 @@ export const metadata: Metadata = {
 };
 
 export default function MarketplaceThemesPage() {
+	initServerI18n();
+
+	const { t } = useLingui();
+
 	return (
 		<main className="min-h-screen">
 			<div className="mx-auto max-w-4xl px-6 py-10">
 				<h1 className="mb-6 text-xl font-semibold text-foreground md:text-2xl">
-					Themes
+					<Trans id="marketing.marketplace.themes.title">Themes</Trans>
 				</h1>
 
 				<div className="grid gap-4 md:grid-cols-2">
-					{themeListings.map((theme) => (
+					{themeListings.map(({ name, ...theme }) => (
 						<ThemePreviewCard
 							key={theme.slug}
-							name={theme.name}
+							name={name}
 							backgroundColor={theme.terminal.background}
 							foregroundColor={theme.terminal.foreground}
 							promptColor={theme.terminal.green}
@@ -53,8 +59,14 @@ export default function MarketplaceThemesPage() {
 									>
 										<Link
 											href={`/marketplace/themes/${theme.slug}`}
-											aria-label={`View ${theme.name}`}
-											title={`View ${theme.name}`}
+											aria-label={t({
+												id: "marketing.marketplace.themes.view",
+												message: `View ${name}`,
+											})}
+											title={t({
+												id: "marketing.marketplace.themes.view",
+												message: `View ${name}`,
+											})}
 										>
 											<ArrowUpRight className="size-4" aria-hidden="true" />
 										</Link>
@@ -68,8 +80,14 @@ export default function MarketplaceThemesPage() {
 										<a
 											href={theme.source.href}
 											download
-											aria-label={`Download ${theme.name}`}
-											title={`Download ${theme.name}`}
+											aria-label={t({
+												id: "marketing.marketplace.themes.download",
+												message: `Download ${name}`,
+											})}
+											title={t({
+												id: "marketing.marketplace.themes.download",
+												message: `Download ${name}`,
+											})}
 										>
 											<Download className="size-4" aria-hidden="true" />
 										</a>

@@ -252,7 +252,7 @@ export function PresetEditorDialog({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "save the agent command",
+						action: "saveAgentCommand",
 					}),
 				);
 			}

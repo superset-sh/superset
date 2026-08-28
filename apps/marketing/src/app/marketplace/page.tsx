@@ -1,6 +1,9 @@
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { initServerI18n } from "@/app/i18n-server";
 
 export const metadata: Metadata = {
 	title: "Marketplace",
@@ -13,26 +16,39 @@ export const metadata: Metadata = {
 const marketplaceLinks = [
 	{
 		href: "/marketplace/themes",
-		label: "Themes",
-		description: "Shared theme JSON files you can import into Superset.",
+		label: msg({ id: "marketing.marketplace.themes.label", message: "Themes" }),
+		description: msg({
+			id: "marketing.marketplace.themes.description",
+			message: "Shared theme JSON files you can import into Superset.",
+		}),
 	},
 	{
 		href: "/marketplace/agents",
-		label: "Agent Configs",
-		description: "Future home for reusable agent configs.",
+		label: msg({
+			id: "marketing.marketplace.agents.label",
+			message: "Agent Configs",
+		}),
+		description: msg({
+			id: "marketing.marketplace.agents.description",
+			message: "Future home for reusable agent configs.",
+		}),
 	},
 ] as const;
 
 export default function MarketplacePage() {
+	initServerI18n();
+
+	const { t } = useLingui();
+
 	return (
 		<main className="min-h-screen">
 			<div className="mx-auto max-w-4xl px-6 py-10">
 				<div className="mb-8">
 					<h1 className="text-xl font-semibold text-foreground md:text-2xl">
-						Marketplace
+						<Trans id="marketing.marketplace.title">Marketplace</Trans>
 					</h1>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Choose a section.
+						<Trans id="marketing.marketplace.subtitle">Choose a section.</Trans>
 					</p>
 				</div>
 
@@ -46,10 +62,10 @@ export default function MarketplacePage() {
 							}`}
 						>
 							<div className="text-sm font-medium text-foreground">
-								{link.label}
+								{t(link.label)}
 							</div>
 							<div className="mt-1 text-sm text-muted-foreground">
-								{link.description}
+								{t(link.description)}
 							</div>
 						</Link>
 					))}

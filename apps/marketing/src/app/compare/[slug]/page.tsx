@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
+import { initServerI18n } from "@/app/i18n-server";
 import {
 	BreadcrumbJsonLd,
 	ComparisonJsonLd,
@@ -24,6 +25,8 @@ interface PageProps {
 }
 
 export default async function ComparePageRoute({ params }: PageProps) {
+	initServerI18n();
+
 	const { slug } = await params;
 	const page = getComparisonPage(slug);
 

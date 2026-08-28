@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { ATTENTION_CURVE } from "../../constants";
 
@@ -17,6 +18,7 @@ const y = (share: number) => PAD.top + (1 - share / 100) * plotH;
 const LABELED_LEVELS = new Set(["F0", "F3", "F5"]);
 
 export function AttentionChart() {
+	const { t } = useLingui();
 	const [hovered, setHovered] = useState<number | null>(null);
 
 	const path = ATTENTION_CURVE.map(
@@ -33,15 +35,21 @@ export function AttentionChart() {
 	};
 
 	const hoveredPoint = hovered === null ? null : ATTENTION_CURVE[hovered];
+	// Named local so the tooltip message extracts as `{share}`, not `{0}`.
+	const share = hoveredPoint?.share ?? 0;
 
 	return (
 		<figure className="border border-border p-4 md:p-6">
 			<figcaption>
 				<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-					Fig. 1 · Human share of the effort behind a merged change
+					<Trans id="marketing.factory.attentionChart.caption">
+						Fig. 1 · Human share of the effort behind a merged change
+					</Trans>
 				</span>
 				<span className="block text-xs text-muted-foreground mt-1">
-					Schematic, by autonomy level. Hover for values.
+					<Trans id="marketing.factory.attentionChart.subcaption">
+						Schematic, by autonomy level. Hover for values.
+					</Trans>
 				</span>
 			</figcaption>
 			<div className="relative mt-4">
@@ -49,7 +57,11 @@ export function AttentionChart() {
 					viewBox={`0 0 ${W} ${H}`}
 					className="w-full h-auto touch-none"
 					role="img"
-					aria-label="Line chart: the human share of effort per merged change falls from 100 percent at F0 to about 2 percent at F5"
+					aria-label={t({
+						id: "marketing.factory.attentionChart.ariaLabel",
+						message:
+							"Line chart: the human share of effort per merged change falls from 100 percent at F0 to about 2 percent at F5",
+					})}
 					onPointerMove={onMove}
 					onPointerLeave={() => setHovered(null)}
 				>
@@ -132,12 +144,18 @@ export function AttentionChart() {
 						}}
 					>
 						<span className="text-muted-foreground">{hoveredPoint.level}</span>{" "}
-						<span className="text-foreground">{hoveredPoint.share}% human</span>
+						<span className="text-foreground">
+							<Trans id="marketing.factory.attentionChart.tooltipHuman">
+								{share}% human
+							</Trans>
+						</span>
 					</div>
 				)}
 			</div>
 			<p className="text-xs font-mono text-muted-foreground mt-2">
-				<span className="text-foreground">F3</span> · you are here
+				<Trans id="marketing.factory.attentionChart.youAreHere">
+					<span className="text-foreground">F3</span> · you are here
+				</Trans>
 			</p>
 		</figure>
 	);

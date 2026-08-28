@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { ExternalLinkIcon, GlobeIcon } from "lucide-react";
 import { Loader } from "./loader";
 import { ToolCallRow } from "./tool-call-row";
@@ -34,7 +35,9 @@ export const WebSearchTool = ({
 			<Loader size={12} />
 		</div>
 	) : isError ? (
-		<span className="text-xs text-destructive">Failed</span>
+		<span className="text-xs text-destructive">
+			<Trans id="ui.webSearchTool.failed">Failed</Trans>
+		</span>
 	) : null;
 
 	return (

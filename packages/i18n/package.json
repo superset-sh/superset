@@ -27,6 +27,10 @@
 		"./react": {
 			"types": "./src/react.tsx",
 			"default": "./src/react.tsx"
+		},
+		"./server": {
+			"types": "./src/server.ts",
+			"default": "./src/server.ts"
 		}
 	},
 	"scripts": {

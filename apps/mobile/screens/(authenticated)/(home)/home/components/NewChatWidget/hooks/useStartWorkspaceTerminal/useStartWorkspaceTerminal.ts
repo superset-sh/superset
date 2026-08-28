@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
@@ -79,7 +80,10 @@ export function useStartWorkspaceTerminal(workspaces: HostWorkspaceItem[]) {
 				result: "failed",
 			});
 			Alert.alert(
-				"Could not start agent",
+				i18n._({
+					id: "mobile.agent.startFailed",
+					message: "Could not start agent",
+				}),
 				error instanceof Error ? error.message : String(error),
 			);
 		},

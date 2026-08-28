@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
@@ -15,6 +16,7 @@ import { tierRgb } from "@/app/components/TierBadge";
 import { TierIcon } from "@/app/components/TierIcon";
 import { TierTube } from "@/app/components/TierTube";
 import { TokenSplitBar } from "@/app/components/TokenSplitBar";
+import { initServerI18n } from "@/app/i18n-server";
 import { avatarUrl } from "@/app/utils/avatarUrl";
 import { fetchParticipant } from "@/app/utils/fetchLeaderboard";
 import {
@@ -78,6 +80,9 @@ export async function generateMetadata({
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
+	initServerI18n();
+
+	const { t } = useLingui();
 	const { handle } = await params;
 	const profile = await fetchParticipant(handle, { period: "all" });
 
@@ -85,9 +90,16 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 	const colors = buildModelColors([profile.models]);
 	const shareUrl = `${COMPANY.MARKETING_URL.replace(/\/$/, "")}/user/${profile.handle}`;
-	const shareText = `I'm #${profile.rank} on the ${COMPANY.NAME} leaderboard with ${formatTokens(
-		profile.allTime.tokens,
-	)} tokens of agent usage.`;
+	const company = COMPANY.NAME;
+	const profileHandle = profile.handle;
+	const rank = profile.rank;
+	const total = profile.total;
+	const tokens = formatTokens(profile.allTime.tokens);
+	const days = profile.dayRange ? dayCount(profile.dayRange) : 0;
+	const shareText = t({
+		id: "marketing.profile.shareText",
+		message: `I'm #${rank} on the ${company} leaderboard with ${tokens} tokens of agent usage.`,
+	});
 
 	const tier = profile.factory?.tier ?? 0;
 	const tint = tier >= 1 ? tierRgb(tier) : undefined;
@@ -101,7 +113,9 @@ export default async function UserProfilePage({ params }: PageProps) {
 					href="/leaderboard"
 					className="inline-block font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground hover:text-brand transition-colors"
 				>
-					← Back to leaderboard
+					<Trans id="marketing.profile.backToLeaderboard">
+						← Back to leaderboard
+					</Trans>
 				</Link>
 
 				<header className="text-center pt-8 md:pt-10">
@@ -136,7 +150,9 @@ export default async function UserProfilePage({ params }: PageProps) {
 						{profile.name ?? profile.handle}
 					</h1>
 					<p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground mt-3">
-						@{profile.handle} · rank #{profile.rank} of {profile.total}
+						<Trans id="marketing.profile.handleAndRank">
+							@{profileHandle} · rank #{rank} of {total}
+						</Trans>
 					</p>
 
 					<div className="mt-7">
@@ -159,25 +175,49 @@ export default async function UserProfilePage({ params }: PageProps) {
 						pixelClassName={pixel.className}
 						stats={[
 							{
-								label: "Tokens",
-								value: formatTokens(profile.allTime.tokens),
-								hint: "all time",
+								label: t({
+									id: "marketing.profile.stats.tokens",
+									message: "Tokens",
+								}),
+								value: tokens,
+								hint: t({
+									id: "marketing.profile.stats.tokensHint",
+									message: "all time",
+								}),
 							},
 							{
-								label: "Cost",
+								label: t({
+									id: "marketing.profile.stats.cost",
+									message: "Cost",
+								}),
 								value: formatUsd(profile.allTime.usd),
-								hint: "API-equivalent",
+								hint: t({
+									id: "marketing.profile.stats.costHint",
+									message: "API-equivalent",
+								}),
 							},
 							{
-								label: "Rank",
-								value: `#${profile.rank}`,
-								hint: `of ${profile.total}`,
+								label: t({
+									id: "marketing.profile.stats.rank",
+									message: "Rank",
+								}),
+								value: `#${rank}`,
+								hint: t({
+									id: "marketing.profile.stats.rankHint",
+									message: `of ${total}`,
+								}),
 							},
 							{
-								label: "Tracking",
+								label: t({
+									id: "marketing.profile.stats.tracking",
+									message: "Tracking",
+								}),
 
 								value: profile.dayRange
-									? `${dayCount(profile.dayRange)}d`
+									? t({
+											id: "marketing.profile.stats.trackingDays",
+											message: `${days}d`,
+										})
 									: "—",
 								hint: profile.dayRange
 									? formatDayRange(profile.dayRange)
@@ -188,7 +228,7 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 					<section className="border border-border p-5">
 						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							Models
+							<Trans id="marketing.profile.models">Models</Trans>
 						</h2>
 						<ModelBars
 							rows={toTokenRows(
@@ -200,7 +240,9 @@ export default async function UserProfilePage({ params }: PageProps) {
 
 					<section className="border border-border p-5">
 						<h2 className="font-mono text-[0.68rem] uppercase tracking-[0.11em] text-muted-foreground mb-4">
-							Token breakdown
+							<Trans id="marketing.profile.tokenBreakdown">
+								Token breakdown
+							</Trans>
 						</h2>
 						<TokenSplitBar split={profile.tokenSplit} />
 					</section>

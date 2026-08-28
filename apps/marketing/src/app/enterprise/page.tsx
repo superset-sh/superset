@@ -1,7 +1,9 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { Soc2Badge } from "@/app/components/Soc2Badge";
+import { initServerI18n } from "@/app/i18n-server";
 import { EnterpriseContactForm } from "./components/EnterpriseContactForm";
 import { EnterpriseFAQ } from "./components/EnterpriseFAQ";
 
@@ -14,6 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default function EnterprisePage() {
+	initServerI18n();
+
+	const { t } = useLingui();
+
 	return (
 		<main className="relative min-h-screen">
 			{/* Vertical guide lines */}
@@ -35,22 +41,29 @@ export default function EnterprisePage() {
 					<div className="flex items-start justify-between gap-8">
 						<div>
 							<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-								Enterprise
+								<Trans id="marketing.enterprise.hero.eyebrow">Enterprise</Trans>
 							</span>
 							<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-								Superset for your team
+								<Trans id="marketing.enterprise.hero.title">
+									Superset for your team
+								</Trans>
 							</h1>
 							<p className="text-muted-foreground mt-3 max-w-lg">
-								Interested in bringing Superset to your organization? Reach out
-								and we&apos;ll work with you to find the right setup for your
-								team.
+								<Trans id="marketing.enterprise.hero.subtitle">
+									Interested in bringing Superset to your organization? Reach
+									out and we&apos;ll work with you to find the right setup for
+									your team.
+								</Trans>
 							</p>
 						</div>
 						<a
 							href={COMPANY.TRUST_URL}
 							target="_blank"
 							rel="noopener noreferrer"
-							aria-label="SOC 2 Type II compliant. Request our report."
+							aria-label={t({
+								id: "marketing.enterprise.hero.soc2BadgeLabel",
+								message: "SOC 2 Type II compliant. Request our report.",
+							})}
 							className="hidden md:block shrink-0 text-muted-foreground transition-colors hover:text-foreground"
 						>
 							<Soc2Badge size={104} />

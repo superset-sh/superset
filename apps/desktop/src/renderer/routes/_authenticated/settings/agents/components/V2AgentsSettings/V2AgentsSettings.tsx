@@ -132,7 +132,7 @@ export function V2AgentsSettings({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "add an agent",
+						action: "addAgent",
 					}),
 				);
 			}
@@ -180,7 +180,7 @@ export function V2AgentsSettings({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "add an agent",
+						action: "addAgent",
 					}),
 				);
 			}
@@ -213,7 +213,7 @@ export function V2AgentsSettings({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "reorder agents",
+						action: "reorderAgents",
 					}),
 				);
 			}
@@ -260,7 +260,7 @@ export function V2AgentsSettings({
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "reset agents",
+						action: "resetAgents",
 					}),
 				);
 			}
@@ -293,7 +293,7 @@ export function V2AgentsSettings({
 	);
 	const hostServiceUnavailableMessage = getHostServiceUnavailableMessage(
 		hostService,
-		{ action: "load agent settings" },
+		{ action: "loadAgentSettings" },
 	);
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);

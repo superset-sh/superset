@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type { AgentTab, FileChange, WorkspaceData } from "./types";
 
 export const WORKSPACES: WorkspaceData[] = [
@@ -102,19 +104,55 @@ export const AGENT_TABS: AgentTab[] = [
 
 export interface AutomationRow {
 	name: string;
-	schedule: string;
-	lastRun: string;
+	schedule: MessageDescriptor;
+	lastRun: MessageDescriptor;
 	running?: boolean;
 }
 
 export const AUTOMATIONS: AutomationRow[] = [
 	{
 		name: "daily-triage",
-		schedule: "daily 9:00",
-		lastRun: "running",
+		schedule: msg({
+			id: "marketing.hero.mockup.schedule.daily",
+			message: "daily 9:00",
+		}),
+		lastRun: msg({
+			id: "marketing.hero.mockup.lastRun.running",
+			message: "running",
+		}),
 		running: true,
 	},
-	{ name: "changelog-draft", schedule: "sun 11:00", lastRun: "✓ 2h ago" },
-	{ name: "dep-upgrades", schedule: "weekly", lastRun: "✓ 1d ago" },
-	{ name: "roadmap-sync", schedule: "monthly", lastRun: "✓ 3d ago" },
+	{
+		name: "changelog-draft",
+		schedule: msg({
+			id: "marketing.hero.mockup.schedule.sunday",
+			message: "sun 11:00",
+		}),
+		lastRun: msg({
+			id: "marketing.hero.mockup.lastRun.twoHoursAgo",
+			message: "✓ 2h ago",
+		}),
+	},
+	{
+		name: "dep-upgrades",
+		schedule: msg({
+			id: "marketing.hero.mockup.schedule.weekly",
+			message: "weekly",
+		}),
+		lastRun: msg({
+			id: "marketing.hero.mockup.lastRun.oneDayAgo",
+			message: "✓ 1d ago",
+		}),
+	},
+	{
+		name: "roadmap-sync",
+		schedule: msg({
+			id: "marketing.hero.mockup.schedule.monthly",
+			message: "monthly",
+		}),
+		lastRun: msg({
+			id: "marketing.hero.mockup.lastRun.threeDaysAgo",
+			message: "✓ 3d ago",
+		}),
+	},
 ];

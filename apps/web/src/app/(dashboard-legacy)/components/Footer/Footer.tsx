@@ -1,4 +1,5 @@
 import { env } from "@/env";
+import { i18n } from "@/lib/i18n-server";
 
 export function Footer() {
 	const currentYear = new Date().getFullYear();
@@ -7,7 +8,11 @@ export function Footer() {
 		<footer className="mt-auto w-full border-t border-border/50 py-5">
 			<div className="mx-auto flex w-[95vw] max-w-screen-2xl items-center justify-between">
 				<p className="text-sm text-muted-foreground">
-					© {currentYear} Superset
+					{i18n._({
+						id: "web.footer.copyright",
+						message: "© {year} Superset",
+						values: { year: currentYear },
+					})}
 				</p>
 				<div className="flex items-center gap-4">
 					<a
@@ -16,7 +21,7 @@ export function Footer() {
 						rel="noopener noreferrer"
 						className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
 					>
-						Terms of Service
+						{i18n._({ id: "web.footer.terms", message: "Terms of Service" })}
 					</a>
 					<span className="text-xs text-muted-foreground/70" aria-hidden="true">
 						|
@@ -27,7 +32,7 @@ export function Footer() {
 						rel="noopener noreferrer"
 						className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
 					>
-						Privacy Policy
+						{i18n._({ id: "web.footer.privacy", message: "Privacy Policy" })}
 					</a>
 				</div>
 			</div>

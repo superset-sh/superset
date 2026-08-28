@@ -27,7 +27,7 @@ async function resolvePath(context: CommandContext): Promise<string | null> {
 				hostServiceStatus: context.hostServiceStatus,
 				machineId: context.localMachineId,
 			},
-			{ action: "resolve the workspace path" },
+			{ action: "resolveWorkspacePath" },
 		);
 		return null;
 	}

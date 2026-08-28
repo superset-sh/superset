@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
 import { Stack, useLocalSearchParams } from "expo-router";
@@ -13,6 +14,7 @@ import type { ChangesetSource } from "../hooks/useWorkspaceChangeset";
 import { languageForPath } from "../utils/languageForPath";
 
 export function FileViewerScreen() {
+	const { t } = useLingui();
 	const { id, path, source } = useLocalSearchParams<{
 		id: string;
 		path: string;
@@ -43,7 +45,9 @@ export function FileViewerScreen() {
 	});
 
 	const contents = query.data?.newFile.contents ?? "";
-	const fileName = path?.split("/").pop() ?? "File";
+	const fileName =
+		path?.split("/").pop() ??
+		t({ id: "mobile.fileViewer.fallbackName", message: "File" });
 	const directory = path?.includes("/")
 		? path.slice(0, path.lastIndexOf("/"))
 		: null;
@@ -67,24 +71,36 @@ export function FileViewerScreen() {
 					</View>
 				</Stack.Title>
 				<Stack.Toolbar placement="right">
-					<Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel="File actions">
+					<Stack.Toolbar.Menu
+						icon="ellipsis"
+						accessibilityLabel={t({
+							id: "mobile.fileViewer.actions",
+							message: "File actions",
+						})}
+					>
 						<Stack.Toolbar.MenuAction
 							icon="doc.on.doc"
 							onPress={() => void Clipboard.setStringAsync(path ?? "")}
 						>
-							Copy relative path
+							{t({
+								id: "mobile.fileViewer.copyRelativePath",
+								message: "Copy relative path",
+							})}
 						</Stack.Toolbar.MenuAction>
 						<Stack.Toolbar.MenuAction
 							icon="doc.on.doc"
 							onPress={() => void Clipboard.setStringAsync(fileName)}
 						>
-							Copy file name
+							{t({
+								id: "mobile.fileViewer.copyFileName",
+								message: "Copy file name",
+							})}
 						</Stack.Toolbar.MenuAction>
 						<Stack.Toolbar.MenuAction
 							icon="square.and.arrow.up"
 							onPress={() => void Share.share({ message: contents })}
 						>
-							Share via…
+							{t({ id: "mobile.fileViewer.shareVia", message: "Share via…" })}
 						</Stack.Toolbar.MenuAction>
 					</Stack.Toolbar.Menu>
 				</Stack.Toolbar>
@@ -101,13 +117,17 @@ export function FileViewerScreen() {
 				) : query.isError ? (
 					<View className="items-center px-10 py-20">
 						<Text className="text-muted-foreground text-center text-sm">
-							Could not load this file.
+							<Trans id="mobile.fileViewer.loadFailed">
+								Could not load this file.
+							</Trans>
 						</Text>
 					</View>
 				) : contents.length === 0 ? (
 					<View className="items-center px-10 py-20">
 						<Text className="text-muted-foreground text-center text-sm">
-							This file is empty or was deleted.
+							<Trans id="mobile.fileViewer.empty">
+								This file is empty or was deleted.
+							</Trans>
 						</Text>
 					</View>
 				) : (

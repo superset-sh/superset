@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import { initI18n } from "@superset/i18n";
 import type { ChecksTally } from "../../../../utils/pullRequest/checks";
 import { actionLabelFor, headlineFor } from "./copy";
+
+initI18n();
 
 function tally(overrides: Partial<ChecksTally> = {}): ChecksTally {
 	return {

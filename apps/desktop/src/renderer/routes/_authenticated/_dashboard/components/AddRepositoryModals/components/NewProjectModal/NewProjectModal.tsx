@@ -139,7 +139,7 @@ export function NewProjectModal({
 			}
 			if (!activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "clone the repository",
+					action: "cloneRepository",
 				});
 				return;
 			}

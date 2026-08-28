@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -16,16 +17,21 @@ interface StarPaceChartProps {
 	granularity: "day" | "week";
 }
 
-const chartConfig = {
-	displayValue: {
-		label: "New stars",
-		color: "var(--chart-1)",
-	},
-} satisfies ChartConfig;
-
 const GRADIENT_ID = "star-pace-partial-gradient";
 
 export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
+	const { t } = useLingui();
+
+	const chartConfig = {
+		displayValue: {
+			label: t({
+				id: "marketing.starchart.chart.newStars",
+				message: "New stars",
+			}),
+			color: "var(--chart-1)",
+		},
+	} satisfies ChartConfig;
+
 	const data = deltas.map((delta) => ({
 		...delta,
 		timestamp: new Date(delta.date).getTime(),
@@ -99,7 +105,10 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 									year: "numeric",
 								});
 								return granularity === "week"
-									? `Week of ${formatted}`
+									? t({
+											id: "marketing.starchart.chart.weekOf",
+											message: `Week of ${formatted}`,
+										})
 									: formatted;
 							}}
 							formatter={(_value, _name, item) => {
@@ -109,7 +118,10 @@ export function StarPaceChart({ deltas, granularity }: StarPaceChartProps) {
 								return (
 									<span className="text-foreground font-mono font-medium tabular-nums">
 										{isPartial
-											? `${actual} so far · ~${projected} projected`
+											? t({
+													id: "marketing.starchart.chart.partialTooltip",
+													message: `${actual} so far · ~${projected} projected`,
+												})
 											: actual}
 									</span>
 								);

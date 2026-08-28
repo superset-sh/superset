@@ -1,4 +1,9 @@
-import type { GateScore, GateStatus } from "../../constants";
+import { Trans, useLingui } from "@lingui/react/macro";
+import {
+	GATE_STATUS_LABELS,
+	type GateScore,
+	type GateStatus,
+} from "../../constants";
 import { GateJumpLink } from "../GateJumpLink";
 
 interface GatesSummaryProps {
@@ -19,6 +24,8 @@ const GLYPHS: Record<GateStatus, string> = {
 };
 
 export function GatesSummary({ scores }: GatesSummaryProps) {
+	const { t } = useLingui();
+
 	const counts: Record<GateStatus, number> = {
 		open: 0,
 		partial: 0,
@@ -28,21 +35,50 @@ export function GatesSummary({ scores }: GatesSummaryProps) {
 		counts[score.status] += 1;
 	}
 
+	const openCount = counts.open;
+	const partialCount = counts.partial;
+	const closedCount = counts.closed;
+	const total = scores.length;
+	const countLabels: Record<GateStatus, string> = {
+		open: t({
+			id: "marketing.factory.gates.countOpen",
+			message: `${openCount} open`,
+		}),
+		partial: t({
+			id: "marketing.factory.gates.countPartial",
+			message: `${partialCount} partial`,
+		}),
+		closed: t({
+			id: "marketing.factory.gates.countClosed",
+			message: `${closedCount} closed`,
+		}),
+	};
+
 	return (
 		<div>
 			<div className="flex gap-0.5">
-				{scores.map((score) => (
-					<GateJumpLink
-						key={score.gateId}
-						targetId={`gate-${score.gateId}`}
-						title={`${score.level} · ${score.gate} · ${score.status}`}
-						className={`h-3 flex-1 hover:outline hover:outline-1 hover:outline-brand ${SEGMENT_CLASSES[score.status]}`}
-					>
-						<span className="sr-only">
-							{score.level} {score.gate}: {score.status}
-						</span>
-					</GateJumpLink>
-				))}
+				{scores.map((score) => {
+					const level = score.level;
+					const gate = t(score.gate);
+					const statusLabel = t(GATE_STATUS_LABELS[score.status]);
+					return (
+						<GateJumpLink
+							key={score.gateId}
+							targetId={`gate-${score.gateId}`}
+							title={t({
+								id: "marketing.factory.gates.jumpTitle",
+								message: `${level} · ${gate} · ${statusLabel}`,
+							})}
+							className={`h-3 flex-1 hover:outline hover:outline-1 hover:outline-brand ${SEGMENT_CLASSES[score.status]}`}
+						>
+							<span className="sr-only">
+								<Trans id="marketing.factory.gates.jumpLabel">
+									{level} {gate}: {statusLabel}
+								</Trans>
+							</span>
+						</GateJumpLink>
+					);
+				})}
 			</div>
 			<p className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono mt-2">
 				{(Object.keys(counts) as GateStatus[]).map((status) => (
@@ -53,11 +89,13 @@ export function GatesSummary({ scores }: GatesSummaryProps) {
 						>
 							{GLYPHS[status]}
 						</span>{" "}
-						{counts[status]} {status}
+						{countLabels[status]}
 					</span>
 				))}
 				<span className="text-muted-foreground">
-					of {scores.length} F3 and F4 gates
+					<Trans id="marketing.factory.gates.total">
+						of {total} F3 and F4 gates
+					</Trans>
 				</span>
 			</p>
 		</div>

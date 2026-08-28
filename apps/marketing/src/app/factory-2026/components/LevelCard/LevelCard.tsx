@@ -1,8 +1,10 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	type FactoryLevel,
 	formatTally,
 	GATE_GLYPHS,
 	GATE_STATUS_BY_ID,
+	GATE_STATUS_LABELS,
 	tallyGates,
 } from "../../constants";
 import { GateJumpLink } from "../GateJumpLink";
@@ -18,9 +20,11 @@ const STATUS_TEXT_CLASSES = {
 };
 
 export function LevelCard({ level }: LevelCardProps) {
+	const { t } = useLingui();
 	const highlighted = level.id === "F4";
 	const tracked = level.gates.some((gate) => gate.id);
 	const tally = tracked ? tallyGates(level.id) : null;
+	const tallyText = tally ? formatTally(tally) : "";
 
 	return (
 		<article
@@ -36,10 +40,10 @@ export function LevelCard({ level }: LevelCardProps) {
 					{level.id}
 				</span>
 				<h3 className="text-xl md:text-2xl font-medium tracking-tight text-foreground">
-					{level.name}
+					{t(level.name)}
 				</h3>
 				<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-					{level.era}
+					{t(level.era)}
 				</span>
 				{level.badge && (
 					<span
@@ -49,23 +53,25 @@ export function LevelCard({ level }: LevelCardProps) {
 								: "border-border text-muted-foreground"
 						}`}
 					>
-						{level.badge}
+						{t(level.badge)}
 					</span>
 				)}
 			</div>
 
 			<p className="text-muted-foreground mt-3 leading-relaxed">
-				{level.description}
+				{t(level.description)}
 			</p>
 
 			<div className="mt-5">
 				<div className="flex items-baseline gap-3">
 					<span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-						Gates
+						<Trans id="marketing.factory.level.gatesLabel">Gates</Trans>
 					</span>
 					{tally && (
 						<span className="text-xs font-mono text-brand">
-							{formatTally(tally)} open
+							<Trans id="marketing.factory.level.gatesOpenTally">
+								{tallyText} open
+							</Trans>
 						</span>
 					)}
 				</div>
@@ -75,10 +81,13 @@ export function LevelCard({ level }: LevelCardProps) {
 
 						if (gate.id && status) {
 							return (
-								<li key={gate.text}>
+								<li key={gate.text.id}>
 									<GateJumpLink
 										targetId={`gate-${gate.id}`}
-										title="See this gate on the scorecard"
+										title={t({
+											id: "marketing.factory.level.gateJumpTitle",
+											message: "See this gate on the scorecard",
+										})}
 										className="group flex gap-2.5 text-sm text-muted-foreground leading-relaxed hover:text-foreground transition-colors"
 									>
 										<span
@@ -88,9 +97,9 @@ export function LevelCard({ level }: LevelCardProps) {
 											{GATE_GLYPHS[status]}
 										</span>
 										<span>
-											{gate.text}{" "}
+											{t(gate.text)}{" "}
 											<span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 group-hover:text-brand transition-colors">
-												{status} →
+												{t(GATE_STATUS_LABELS[status])} →
 											</span>
 										</span>
 									</GateJumpLink>
@@ -100,7 +109,7 @@ export function LevelCard({ level }: LevelCardProps) {
 
 						return (
 							<li
-								key={gate.text}
+								key={gate.text.id}
 								className="flex gap-2.5 text-sm text-muted-foreground leading-relaxed"
 							>
 								<span
@@ -109,7 +118,7 @@ export function LevelCard({ level }: LevelCardProps) {
 								>
 									{level.id === "F5" ? GATE_GLYPHS.closed : "▸"}
 								</span>
-								{gate.text}
+								{t(gate.text)}
 							</li>
 						);
 					})}

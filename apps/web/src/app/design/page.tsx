@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { i18n } from "@/lib/i18n-server";
 
 import { ActionsSection } from "./components/ActionsSection";
 import { DataSection } from "./components/DataSection";
@@ -17,14 +18,46 @@ export const metadata: Metadata = {
 };
 
 const NAV_ITEMS: ShowcaseNavItem[] = [
-	{ id: "actions", index: "01", title: "Actions" },
-	{ id: "inputs", index: "02", title: "Inputs" },
-	{ id: "overlays", index: "03", title: "Overlays" },
-	{ id: "menus", index: "04", title: "Menus" },
-	{ id: "feedback", index: "05", title: "Feedback" },
-	{ id: "navigation", index: "06", title: "Navigation" },
-	{ id: "data", index: "07", title: "Data display" },
-	{ id: "layout", index: "08", title: "Layout" },
+	{
+		id: "actions",
+		index: "01",
+		title: i18n._({ id: "web.design.nav.actions", message: "Actions" }),
+	},
+	{
+		id: "inputs",
+		index: "02",
+		title: i18n._({ id: "web.design.nav.inputs", message: "Inputs" }),
+	},
+	{
+		id: "overlays",
+		index: "03",
+		title: i18n._({ id: "web.design.nav.overlays", message: "Overlays" }),
+	},
+	{
+		id: "menus",
+		index: "04",
+		title: i18n._({ id: "web.design.nav.menus", message: "Menus" }),
+	},
+	{
+		id: "feedback",
+		index: "05",
+		title: i18n._({ id: "web.design.nav.feedback", message: "Feedback" }),
+	},
+	{
+		id: "navigation",
+		index: "06",
+		title: i18n._({ id: "web.design.nav.navigation", message: "Navigation" }),
+	},
+	{
+		id: "data",
+		index: "07",
+		title: i18n._({ id: "web.design.nav.data", message: "Data display" }),
+	},
+	{
+		id: "layout",
+		index: "08",
+		title: i18n._({ id: "web.design.nav.layout", message: "Layout" }),
+	},
 ];
 
 export default function DesignPage() {
@@ -32,13 +65,22 @@ export default function DesignPage() {
 		<div className="min-h-screen bg-background">
 			<DesignPageHeader
 				active="primitives"
-				title="Superset Design System"
+				title={i18n._({
+					id: "web.design.primitives.title",
+					message: "Superset Design System",
+				})}
 				description={
 					<>
-						A living reference of every component exported from{" "}
-						<code className="font-mono text-foreground">@superset/ui</code>.
-						Each card shows the canonical import path — click it to copy. Reach
-						for these before writing anything custom.
+						{i18n._({
+							id: "web.design.primitives.descriptionLead",
+							message: "A living reference of every component exported from",
+						})}{" "}
+						<code className="font-mono text-foreground">@superset/ui</code>
+						{i18n._({
+							id: "web.design.primitives.descriptionTail",
+							message:
+								". Each card shows the canonical import path — click it to copy. Reach for these before writing anything custom.",
+						})}
 					</>
 				}
 			/>

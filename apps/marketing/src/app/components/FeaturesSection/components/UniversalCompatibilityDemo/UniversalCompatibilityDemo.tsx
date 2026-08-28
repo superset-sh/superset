@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { m, useInView } from "framer-motion";
 import Image from "next/image";
 import { useRef } from "react";
@@ -20,6 +21,8 @@ const AGENTS = [
 	{ name: "Antigravity", icon: "/app-icons/agy.svg", size: 18 },
 	{ name: "Kiro", icon: "/app-icons/kiro.svg", size: 18 },
 ];
+
+const TERMINAL_COUNT = 3;
 
 export function UniversalCompatibilityDemo() {
 	const ref = useRef<HTMLDivElement>(null);
@@ -49,7 +52,11 @@ export function UniversalCompatibilityDemo() {
 			<div className="border-b border-border/60 px-2 py-1.5">
 				<div className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-[12px] text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground/90">
 					<HiPlus className="size-3.5" />
-					<span>New Terminal</span>
+					<span>
+						<Trans id="marketing.features.compatibility.newTerminal">
+							New Terminal
+						</Trans>
+					</span>
 					<HiOutlineTerminal className="ml-auto size-3.5 text-muted-foreground/45" />
 				</div>
 			</div>
@@ -80,7 +87,11 @@ export function UniversalCompatibilityDemo() {
 			<div className="border-t border-border/60 px-4 py-3">
 				<div className="flex items-center gap-2 text-muted-foreground/55">
 					<HiOutlineTerminal className="size-3.5" />
-					<span className="text-[11px]">Terminals (3)</span>
+					<span className="text-[11px]">
+						<Trans id="marketing.features.compatibility.terminalCount">
+							Terminals ({TERMINAL_COUNT})
+						</Trans>
+					</span>
 				</div>
 			</div>
 		</m.div>

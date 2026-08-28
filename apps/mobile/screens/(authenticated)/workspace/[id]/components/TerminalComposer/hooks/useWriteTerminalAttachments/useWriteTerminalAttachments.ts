@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import {
 	assignAttachmentFileName,
 	WORKSPACE_ATTACHMENTS_DIR,
@@ -70,7 +71,10 @@ export function useWriteTerminalAttachments() {
 		},
 		onError: (error) => {
 			Alert.alert(
-				"Could not attach files",
+				i18n._({
+					id: "mobile.terminal.attachFailed",
+					message: "Could not attach files",
+				}),
 				error instanceof Error ? error.message : String(error),
 			);
 		},

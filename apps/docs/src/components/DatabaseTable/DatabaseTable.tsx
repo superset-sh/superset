@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { Check, Key, Link, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -39,16 +40,22 @@ export function DatabaseTable({
 					<thead>
 						<tr className="border-b bg-muted/30">
 							<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-								Field
+								{i18n._({ id: "docs.databaseTable.field", message: "Field" })}
 							</th>
 							<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-								Type
+								{i18n._({ id: "docs.databaseTable.type", message: "Type" })}
 							</th>
 							<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-								Constraints
+								{i18n._({
+									id: "docs.databaseTable.constraints",
+									message: "Constraints",
+								})}
 							</th>
 							<th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-								Description
+								{i18n._({
+									id: "docs.databaseTable.description",
+									message: "Description",
+								})}
 							</th>
 						</tr>
 					</thead>
@@ -68,19 +75,31 @@ export function DatabaseTable({
 											{field.isPrimaryKey && (
 												<span
 													className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
-													title="Primary Key"
+													title={i18n._({
+														id: "docs.databaseTable.primaryKey",
+														message: "Primary Key",
+													})}
 												>
 													<Key className="h-3 w-3" />
-													PK
+													{i18n._({
+														id: "docs.databaseTable.primaryKeyAbbr",
+														message: "PK",
+													})}
 												</span>
 											)}
 											{field.isForeignKey && (
 												<span
 													className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400"
-													title="Foreign Key"
+													title={i18n._({
+														id: "docs.databaseTable.foreignKey",
+														message: "Foreign Key",
+													})}
 												>
 													<Link className="h-3 w-3" />
-													FK
+													{i18n._({
+														id: "docs.databaseTable.foreignKeyAbbr",
+														message: "FK",
+													})}
 												</span>
 											)}
 										</div>
@@ -95,26 +114,44 @@ export function DatabaseTable({
 											{isRequired ? (
 												<span
 													className="inline-flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
-													title="Required"
+													title={i18n._({
+														id: "docs.databaseTable.required",
+														message: "Required",
+													})}
 												>
 													<Check className="h-3 w-3" />
-													Required
+													{i18n._({
+														id: "docs.databaseTable.required",
+														message: "Required",
+													})}
 												</span>
 											) : (
 												<span
 													className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-													title="Optional"
+													title={i18n._({
+														id: "docs.databaseTable.optional",
+														message: "Optional",
+													})}
 												>
 													<X className="h-3 w-3" />
-													Optional
+													{i18n._({
+														id: "docs.databaseTable.optional",
+														message: "Optional",
+													})}
 												</span>
 											)}
 											{field.isUnique && (
 												<span
 													className="inline-flex items-center rounded-md bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"
-													title="Unique"
+													title={i18n._({
+														id: "docs.databaseTable.unique",
+														message: "Unique",
+													})}
 												>
-													Unique
+													{i18n._({
+														id: "docs.databaseTable.unique",
+														message: "Unique",
+													})}
 												</span>
 											)}
 										</div>
@@ -126,7 +163,11 @@ export function DatabaseTable({
 											</p>
 											{field.references && (
 												<p className="text-xs text-muted-foreground/70">
-													→ References{" "}
+													→{" "}
+													{i18n._({
+														id: "docs.databaseTable.references",
+														message: "References",
+													})}{" "}
 													<code className="rounded bg-muted px-1 py-0.5 font-mono">
 														{field.references.model}.{field.references.field}
 													</code>

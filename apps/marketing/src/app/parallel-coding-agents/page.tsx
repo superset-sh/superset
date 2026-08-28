@@ -2,11 +2,14 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CategoryArticle } from "@/app/components/CategoryArticle";
+import { initServerI18n } from "@/app/i18n-server";
 import { getCategoryPage } from "@/lib/category";
 
 const SLUG = "parallel-coding-agents";
 
 export default function ParallelCodingAgentsPage() {
+	initServerI18n();
+
 	const page = getCategoryPage(SLUG);
 
 	if (!page) {

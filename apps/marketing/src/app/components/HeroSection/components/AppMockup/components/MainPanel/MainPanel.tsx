@@ -1,5 +1,6 @@
 "use client";
 
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { m } from "framer-motion";
 import Image from "next/image";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -20,6 +21,7 @@ interface MainPanelProps {
 }
 
 export function MainPanel({ activeDemo }: MainPanelProps) {
+	const { t } = useLingui();
 	const isAutomate = activeDemo === "Automate Tasks";
 	const isRemote = activeDemo === "Remote Access";
 	const isDefault = !isAutomate && !isRemote;
@@ -100,16 +102,27 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 								claude
 							</span>
 							<span className="text-[10px] text-muted-foreground/55">
-								finished · worked for 7s
+								<Trans id="marketing.hero.mockup.agentCard.status">
+									finished · worked for 7s
+								</Trans>
 							</span>
 						</div>
 						<div className="px-3 pt-1.5 pb-2.5 text-[11px] leading-relaxed text-muted-foreground">
-							Pushed and opened a draft PR.
+							<Trans id="marketing.hero.mockup.agentCard.summary">
+								Pushed and opened a draft PR.
+							</Trans>
 						</div>
 						<div className="flex items-center justify-between border-t border-border/60 px-3 py-2">
 							<div className="flex items-center gap-1.5 font-mono text-[10px] tabular-nums">
 								<LuGitPullRequest className="size-2.5 text-muted-foreground/55" />
-								<span className="text-muted-foreground/75">2 files</span>
+								<span className="text-muted-foreground/75">
+									<Plural
+										id="marketing.hero.mockup.agentCard.fileCount"
+										value={2}
+										one="# file"
+										other="# files"
+									/>
+								</span>
 								<span className="text-emerald-400/85">+46</span>
 								<span className="text-rose-400/75">−1</span>
 							</div>
@@ -117,7 +130,9 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 								type="button"
 								className="rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[10px] text-foreground/90 hover:bg-foreground/[0.05]"
 							>
-								Preview
+								<Trans id="marketing.hero.mockup.agentCard.preview">
+									Preview
+								</Trans>
 							</button>
 						</div>
 					</div>
@@ -127,7 +142,9 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 							<span className="text-muted-foreground/55">❯</span>
 							<span className="h-3.5 w-[7px] bg-foreground/60" />
 							<span className="flex-1 text-[11px] text-muted-foreground/40">
-								Type a task for Claude…
+								<Trans id="marketing.hero.mockup.promptPlaceholder">
+									Type a task for Claude…
+								</Trans>
 							</span>
 						</div>
 					</div>
@@ -149,19 +166,23 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 					</div>
 					<div className="grid max-w-[380px] grid-cols-[1fr_auto_auto] gap-x-8 gap-y-2">
 						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-							Name
+							<Trans id="marketing.hero.mockup.automations.name">Name</Trans>
 						</div>
 						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-							Schedule
+							<Trans id="marketing.hero.mockup.automations.schedule">
+								Schedule
+							</Trans>
 						</div>
 						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-							Last run
+							<Trans id="marketing.hero.mockup.automations.lastRun">
+								Last run
+							</Trans>
 						</div>
 						{AUTOMATIONS.map((automation) => (
 							<div key={automation.name} className="contents">
 								<div className="text-foreground/90">{automation.name}</div>
 								<div className="text-muted-foreground/65">
-									{automation.schedule}
+									{t(automation.schedule)}
 								</div>
 								{automation.running ? (
 									<div className="flex items-center gap-1.5">
@@ -169,11 +190,15 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 											className="text-[10px]"
 											toneClassName="text-brand-light"
 										/>
-										<span className="text-brand-light">running</span>
+										<span className="text-brand-light">
+											<Trans id="marketing.hero.mockup.automations.running">
+												running
+											</Trans>
+										</span>
 									</div>
 								) : (
 									<div className="text-muted-foreground/55">
-										{automation.lastRun}
+										{t(automation.lastRun)}
 									</div>
 								)}
 							</div>

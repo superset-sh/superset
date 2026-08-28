@@ -1,6 +1,10 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import { initServerI18n } from "@/app/i18n-server";
 import { getGitHubRepoSlug } from "@/lib/github";
 
 export const metadata: Metadata = {
@@ -39,7 +43,10 @@ const COMMUNITY_LINKS = [
 	{
 		name: "DISCORD",
 		href: COMPANY.DISCORD_URL,
-		cta: "JOIN OUR DISCORD",
+		cta: msg({
+			id: "marketing.community.cta.discord",
+			message: "JOIN OUR DISCORD",
+		}),
 		icon: (
 			<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
 				<title>Discord</title>
@@ -50,7 +57,10 @@ const COMMUNITY_LINKS = [
 	{
 		name: "YOUTUBE",
 		href: "https://www.youtube.com/@superset-sh",
-		cta: "SUBSCRIBE",
+		cta: msg({
+			id: "marketing.community.cta.youtube",
+			message: "SUBSCRIBE",
+		}),
 		icon: (
 			<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
 				<title>YouTube</title>
@@ -61,7 +71,10 @@ const COMMUNITY_LINKS = [
 	{
 		name: "LINKEDIN",
 		href: "https://www.linkedin.com/company/superset-sh",
-		cta: "FOLLOW US",
+		cta: msg({
+			id: "marketing.community.cta.linkedin",
+			message: "FOLLOW US",
+		}),
 		icon: (
 			<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
 				<title>LinkedIn</title>
@@ -72,7 +85,10 @@ const COMMUNITY_LINKS = [
 	{
 		name: "TWITTER",
 		href: COMPANY.X_URL,
-		cta: "FOLLOW ON X",
+		cta: msg({
+			id: "marketing.community.cta.x",
+			message: "FOLLOW ON X",
+		}),
 		icon: (
 			<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
 				<title>X / Twitter</title>
@@ -83,7 +99,10 @@ const COMMUNITY_LINKS = [
 	{
 		name: "GITHUB",
 		href: COMPANY.GITHUB_URL,
-		cta: "VIEW ON GITHUB",
+		cta: msg({
+			id: "marketing.community.cta.github",
+			message: "VIEW ON GITHUB",
+		}),
 		icon: (
 			<svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
 				<title>GitHub</title>
@@ -94,6 +113,8 @@ const COMMUNITY_LINKS = [
 ];
 
 export default async function CommunityPage() {
+	initServerI18n();
+
 	const stars = await getGitHubStars();
 
 	return (
@@ -102,12 +123,14 @@ export default async function CommunityPage() {
 				{/* Hero */}
 				<header className="text-center mb-12 sm:mb-16">
 					<h1 className="text-4xl sm:text-5xl font-medium tracking-tight text-foreground">
-						Community
+						<Trans id="marketing.community.title">Community</Trans>
 					</h1>
 					<p className="mt-4 sm:mt-6 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-						Join the <span className="font-semibold italic">Superset</span>{" "}
-						community to get help, share ideas, and stay up to date with the
-						latest news and updates.
+						<Trans id="marketing.community.subtitle">
+							Join the <span className="font-semibold italic">Superset</span>{" "}
+							community to get help, share ideas, and stay up to date with the
+							latest news and updates.
+						</Trans>
 					</p>
 				</header>
 
@@ -130,7 +153,7 @@ export default async function CommunityPage() {
 								</span>
 							</div>
 							<div className="flex items-center gap-1.5 text-[11px] font-medium tracking-wider text-right">
-								{link.cta}
+								{i18n._(link.cta)}
 								<ArrowUpRight className="size-3 shrink-0" />
 							</div>
 						</a>
@@ -158,13 +181,13 @@ export default async function CommunityPage() {
 					<div className="grid grid-cols-3 divide-x divide-border border-t border-border">
 						{COMMUNITY_LINKS.slice(0, 3).map((link) => (
 							<a
-								key={link.cta}
+								key={link.name}
 								href={link.href}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="flex items-center justify-center gap-2 py-4 text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
 							>
-								{link.cta}
+								{i18n._(link.cta)}
 								<ArrowUpRight className="size-4" />
 							</a>
 						))}
@@ -189,13 +212,13 @@ export default async function CommunityPage() {
 					<div className="grid grid-cols-2 divide-x divide-border border-t border-border">
 						{COMMUNITY_LINKS.slice(3).map((link) => (
 							<a
-								key={link.cta}
+								key={link.name}
 								href={link.href}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="flex items-center justify-center gap-2 py-4 text-sm font-medium tracking-wider text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
 							>
-								{link.cta}
+								{i18n._(link.cta)}
 								<ArrowUpRight className="size-4" />
 							</a>
 						))}
@@ -228,7 +251,7 @@ export default async function CommunityPage() {
 								<title>GitHub</title>
 								<path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
 							</svg>
-							STARS
+							<Trans id="marketing.community.stars">STARS</Trans>
 							<ArrowUpRight className="size-3 sm:size-4" />
 						</a>
 					</div>

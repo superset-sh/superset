@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { Link } from "expo-router";
 import type { ReactNode } from "react";
 
@@ -22,6 +23,7 @@ export function WorkspaceRowMenu({
 	onShare: () => void;
 	children: ReactNode;
 }) {
+	const { t } = useLingui();
 	// Tap navigation lives on the row itself; the Link exists solely because
 	// Link.Menu must be a direct child of Link, so tap is a no-op here.
 	return (
@@ -38,24 +40,32 @@ export function WorkspaceRowMenu({
 					icon={isUnread ? "envelope.open" : "envelope.badge"}
 					onPress={onToggleUnread}
 				>
-					{isUnread ? "Mark as Read" : "Mark as Unread"}
+					{isUnread
+						? t({
+								id: "mobile.workspaceRow.markAsRead",
+								message: "Mark as Read",
+							})
+						: t({
+								id: "mobile.workspaceRow.markAsUnread",
+								message: "Mark as Unread",
+							})}
 				</Link.MenuAction>
 				{canRename ? (
 					<Link.MenuAction icon="pencil" onPress={onRename}>
-						Rename
+						{t({ id: "mobile.workspaceRow.rename", message: "Rename" })}
 					</Link.MenuAction>
 				) : null}
 				{canDelete ? (
 					<Link.MenuAction icon="trash" destructive onPress={onDelete}>
-						Delete
+						{t({ id: "mobile.workspaceRow.delete", message: "Delete" })}
 					</Link.MenuAction>
 				) : null}
 				<Link.Menu inline>
 					<Link.MenuAction icon="doc.on.doc" onPress={onCopyId}>
-						Copy ID
+						{t({ id: "mobile.workspaceRow.copyId", message: "Copy ID" })}
 					</Link.MenuAction>
 					<Link.MenuAction icon="square.and.arrow.up" onPress={onShare}>
-						Share
+						{t({ id: "mobile.common.share", message: "Share" })}
 					</Link.MenuAction>
 				</Link.Menu>
 			</Link.Menu>

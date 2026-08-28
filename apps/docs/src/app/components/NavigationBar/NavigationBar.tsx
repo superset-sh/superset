@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { Menu } from "lucide-react";
 import Link from "next/link";
@@ -29,11 +30,15 @@ function SupersetLogo() {
 
 function SidebarTrigger() {
 	const { toggleNavbar } = useNavbarMobile();
+	const { t } = useLingui();
 
 	return (
 		<button
 			type="button"
-			aria-label="Toggle sidebar"
+			aria-label={t({
+				id: "docs.nav.toggleSidebar",
+				message: "Toggle sidebar",
+			})}
 			className="navbar:hidden flex items-center justify-center p-2"
 			onClick={toggleNavbar}
 		>
@@ -43,6 +48,8 @@ function SidebarTrigger() {
 }
 
 export default function NavigationBar() {
+	const { t } = useLingui();
+
 	return (
 		<div className="flex flex-col sticky top-0 bg-background backdrop-blur-md z-30">
 			<div
@@ -61,15 +68,18 @@ export default function NavigationBar() {
 					<SidebarTrigger />
 					<ul className="navbar:flex items-center gap-2 hidden shrink-0">
 						<NavLink href={COMPANY.CHANGELOG_URL} external>
-							Changelog
+							<Trans id="docs.nav.changelog">Changelog</Trans>
 						</NavLink>
 						<NavLink href={COMPANY.MARKETING_URL} external>
-							Website
+							<Trans id="docs.nav.website">Website</Trans>
 						</NavLink>
 						<NavLink
 							href="https://github.com/superset-sh/superset"
 							external
-							aria-label="View Superset repository on GitHub"
+							aria-label={t({
+								id: "docs.nav.githubRepo",
+								message: "View Superset repository on GitHub",
+							})}
 						>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
@@ -88,7 +98,7 @@ export default function NavigationBar() {
 							href={`${COMPANY.MARKETING_URL}/download`}
 							className="ml-2 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-85"
 						>
-							Download
+							<Trans id="docs.nav.download">Download</Trans>
 						</a>
 					</ul>
 				</div>

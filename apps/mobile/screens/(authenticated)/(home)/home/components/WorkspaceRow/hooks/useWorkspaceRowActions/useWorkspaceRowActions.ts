@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { prompt } from "@superset/alert-prompt";
 import * as Clipboard from "expo-clipboard";
 import { Alert, Share } from "react-native";
@@ -22,6 +23,7 @@ export function useWorkspaceRowActions(
 	/** Set for a cloud workspace, whose name and lifetime the API owns. */
 	cloudStatus?: CloudWorkspaceStatus,
 ) {
+	const { t } = useLingui();
 	const cloud = useCloudWorkspaceActions();
 	const remove = useDeleteWorkspace();
 	const isCloud = cloudStatus !== undefined;
@@ -64,13 +66,21 @@ export function useWorkspaceRowActions(
 	const renameWorkspace = async () => {
 		const hostUrl = isCloud ? null : cache.resolveHostUrl(workspace.hostId);
 		if (!isCloud && !hostUrl) {
-			Alert.alert("Host is not online");
+			Alert.alert(
+				t({
+					id: "mobile.workspace.hostNotOnline",
+					message: "Host is not online",
+				}),
+			);
 			return;
 		}
 		const name = await prompt({
-			title: "Rename workspace",
+			title: t({
+				id: "mobile.workspaceRow.renameTitle",
+				message: "Rename workspace",
+			}),
 			defaultValue: workspace.name,
-			confirmText: "Rename",
+			confirmText: t({ id: "mobile.workspaceRow.rename", message: "Rename" }),
 			selectText: true,
 		});
 		const trimmed = name?.trim();
@@ -88,7 +98,9 @@ export function useWorkspaceRowActions(
 				});
 			}
 		} catch {
-			Alert.alert("Rename failed");
+			Alert.alert(
+				t({ id: "mobile.workspaceRow.renameFailed", message: "Rename failed" }),
+			);
 		}
 		cache.invalidateHost(workspace.hostId);
 	};

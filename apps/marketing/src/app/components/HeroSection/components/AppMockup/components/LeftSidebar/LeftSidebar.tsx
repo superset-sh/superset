@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { m } from "framer-motion";
 import {
 	LuChevronDown,
@@ -18,6 +19,7 @@ interface LeftSidebarProps {
 }
 
 export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
+	const { t } = useLingui();
 	const isOrchestrate = activeDemo === "Orchestrate Parallel Agents";
 	const isRemote = activeDemo === "Remote Access";
 
@@ -30,9 +32,27 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 			</div>
 
 			<div className="space-y-px px-1.5 pt-1">
-				<NavRow icon={LuLayers} label="Workspaces" />
-				<NavRow icon={LuZap} label="Automations" />
-				<NavRow icon={LuPlus} label="New Workspace" />
+				<NavRow
+					icon={LuLayers}
+					label={t({
+						id: "marketing.hero.mockup.nav.workspaces",
+						message: "Workspaces",
+					})}
+				/>
+				<NavRow
+					icon={LuZap}
+					label={t({
+						id: "marketing.hero.mockup.nav.automations",
+						message: "Automations",
+					})}
+				/>
+				<NavRow
+					icon={LuPlus}
+					label={t({
+						id: "marketing.hero.mockup.nav.newWorkspace",
+						message: "New Workspace",
+					})}
+				/>
 			</div>
 
 			<div className="mt-6 flex-1 overflow-hidden">
@@ -55,7 +75,7 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 						/>
 						<span className="truncate text-foreground/95">new workspace</span>
 						<span className="ml-auto font-mono text-[10px] text-muted-foreground/55">
-							creating
+							<Trans id="marketing.hero.mockup.creating">creating</Trans>
 						</span>
 					</div>
 				</m.div>

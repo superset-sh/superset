@@ -1,5 +1,6 @@
 "use client";
 
+import { i18n } from "@superset/i18n";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -37,7 +38,7 @@ export function PreviewPromptComposer({
 	containerClassName,
 	footerToolsClassName,
 	afterComposer,
-	message = AGENTS_WEB_PREVIEW_MESSAGE,
+	message = i18n._(AGENTS_WEB_PREVIEW_MESSAGE),
 	messageClassName,
 }: PreviewPromptComposerProps) {
 	const handleSubmit = useCallback(() => {}, []);

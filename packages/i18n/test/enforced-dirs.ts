@@ -53,4 +53,22 @@ export const ENFORCED_DIRS: readonly string[] = [
 	"apps/desktop/src/renderer/react-query",
 	"apps/desktop/src/renderer/routes/create-organization",
 	"apps/desktop/src/renderer/routes/sign-in",
+	// batch 5: the Expo mobile app (routing, screens, shared components)
+	"apps/mobile/app",
+	"apps/mobile/screens",
+	"apps/mobile/components",
+	// batch 5: the shared composer package. `packages/ui/src` is converted too
+	// but stays out: its `open-in-chat` provider logos carry brand names
+	// ("GitHub", "OpenAI", …) as SVG <title> text, which the glossary keeps
+	// untranslated and this scan cannot tell apart from prose.
+	"packages/chat-ui/src",
+	// batch 5: marketing routes that are fully converted. The component
+	// directories stay out — their mockups deliberately render fake CLI output
+	// and brand names, which the scanner cannot tell from real copy.
+	"apps/marketing/src/app/contact",
+	"apps/marketing/src/app/enterprise",
+	"apps/marketing/src/app/mcp-install",
+	"apps/marketing/src/app/pricing",
+	"apps/marketing/src/app/roadmap",
+	"apps/marketing/src/app/stats",
 ];
