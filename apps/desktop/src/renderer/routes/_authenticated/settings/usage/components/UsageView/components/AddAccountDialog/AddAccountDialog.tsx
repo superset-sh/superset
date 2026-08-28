@@ -1,4 +1,6 @@
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -97,7 +99,16 @@ function findSignInChange(
 		baseline.codex.find((entry) => entry.home === home)?.fingerprint ?? null;
 	const after =
 		current.codex.find((entry) => entry.home === home)?.fingerprint ?? null;
-	return after && after !== before ? { label: "The Codex sign-in" } : null;
+	return after && after !== before
+		? {
+				label: i18n._(
+					msg({
+						id: "settings.usage.addAccount.codexSignInLabel",
+						message: "The Codex sign-in",
+					}),
+				),
+			}
+		: null;
 }
 
 interface AddAccountDialogProps {
@@ -275,10 +286,20 @@ export function AddAccountDialog({
 											{ provider, selection: found.selection },
 											{
 												onSuccess: () => {
-													toast.success(`New agents will use ${found.label}.`, {
-														description:
-															"Running sessions keep their current account — restart them to switch.",
-													});
+													const foundLabel = found.label;
+													toast.success(
+														t({
+															id: "settings.usage.addAccount.defaultSetToast",
+															message: `New agents will use ${foundLabel}.`,
+														}),
+														{
+															description: t({
+																id: "settings.usage.addAccount.defaultSetDescription",
+																message:
+																	"Running sessions keep their current account — restart them to switch.",
+															}),
+														},
+													);
 													onOpenChange(false);
 												},
 												onError: (error) => toast.error(errorMessage(error)),

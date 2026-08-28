@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -30,6 +30,7 @@ export function HostSelect({
 	align = "end",
 	className,
 }: HostSelectProps) {
+	const { t } = useLingui();
 	const selected = options.find((option) => option.id === value);
 
 	return (
@@ -51,7 +52,17 @@ export function HostSelect({
 						</span>
 						{selected && !selected.isLocal && (
 							<span
-								title={selected.isOnline ? "Online" : "Offline"}
+								title={
+									selected.isOnline
+										? t({
+												id: "settings.components.hostSelect.onlineTitle",
+												message: "Online",
+											})
+										: t({
+												id: "settings.components.hostSelect.offlineTitle",
+												message: "Offline",
+											})
+								}
 								className={
 									selected.isOnline
 										? "size-1.5 shrink-0 rounded-full bg-emerald-500"

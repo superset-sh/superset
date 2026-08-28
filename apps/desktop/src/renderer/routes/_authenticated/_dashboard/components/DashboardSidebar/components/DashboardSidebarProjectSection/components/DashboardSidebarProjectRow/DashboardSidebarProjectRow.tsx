@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
@@ -45,6 +45,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 		},
 		ref,
 	) => {
+		const { t } = useLingui();
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: The header acts as a single toggle target in view mode while preserving nested inline controls.
 			<div
@@ -110,7 +111,10 @@ export const DashboardSidebarProjectRow = forwardRef<
 									}}
 									onKeyDown={(event) => event.stopPropagation()}
 									onContextMenu={(event) => event.stopPropagation()}
-									aria-label="New workspace"
+									aria-label={t({
+										id: "dashboard.sidebar.projectRow.newWorkspaceAriaLabel",
+										message: "New workspace",
+									})}
 									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-fill-hover group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />

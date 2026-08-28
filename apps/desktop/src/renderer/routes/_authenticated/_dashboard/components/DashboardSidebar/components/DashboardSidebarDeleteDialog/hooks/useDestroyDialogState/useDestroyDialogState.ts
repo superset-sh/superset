@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
@@ -34,6 +35,7 @@ export function useDestroyDialogState({
 	onOpenChange,
 	onDeleted,
 }: UseDestroyDialogStateOptions) {
+	const { t } = useLingui();
 	const { destroy, inspect, hostTarget } = useDestroyWorkspace(workspaceId);
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
@@ -157,10 +159,18 @@ export function useDestroyDialogState({
 					setError(e);
 					onOpenChange(true);
 				} else if (e.kind === "in-progress") {
-					toast.error(`A delete is already in progress for ${workspaceName}.`);
+					toast.error(
+						t({
+							id: "dashboard.sidebar.deleteDialog.deleteInProgress",
+							message: `A delete is already in progress for ${workspaceName}.`,
+						}),
+					);
 				} else {
 					toast.error(
-						`Failed to delete ${workspaceName}: ${"message" in e ? e.message : String(e.kind)}`,
+						t({
+							id: "dashboard.sidebar.deleteDialog.deleteFailed",
+							message: `Failed to delete ${workspaceName}: ${"message" in e ? e.message : String(e.kind)}`,
+						}),
 					);
 				}
 			} finally {
@@ -178,6 +188,7 @@ export function useDestroyDialogState({
 			navigateAwayFromWorkspace,
 			hostWorkspaces,
 			hostWorkspacesCache,
+			t,
 		],
 	);
 

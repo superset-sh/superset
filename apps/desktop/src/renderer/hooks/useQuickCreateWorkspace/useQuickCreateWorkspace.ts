@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
@@ -15,6 +16,7 @@ import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
  * falls back to opening the modal so the user can add or pick one.
  */
 export function useQuickCreateWorkspace() {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { machineId } = useLocalHostService();
 	const { projects: hostProjects } = useHostProjects();
@@ -50,15 +52,24 @@ export function useQuickCreateWorkspace() {
 					if (!outcome.ok) throw new Error(outcome.error);
 				}),
 				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
+					loading: t({
+						id: "hooks.quickCreateWorkspace.creating",
+						message: "Creating workspace...",
+					}),
+					success: t({
+						id: "hooks.quickCreateWorkspace.created",
+						message: "Workspace created",
+					}),
 					error: (error) =>
 						error instanceof Error
 							? error.message
-							: "Failed to create workspace",
+							: t({
+									id: "hooks.quickCreateWorkspace.createFailed",
+									message: "Failed to create workspace",
+								}),
 				},
 			);
 		},
-		[hostProjects, machineId, navigate, openNewWorkspaceModal, submit],
+		[hostProjects, machineId, navigate, openNewWorkspaceModal, submit, t],
 	);
 }

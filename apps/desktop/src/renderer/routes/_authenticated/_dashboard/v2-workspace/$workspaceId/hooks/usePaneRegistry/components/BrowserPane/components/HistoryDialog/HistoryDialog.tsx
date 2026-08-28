@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -30,6 +30,7 @@ export function HistoryDialog({
 	onOpenChange,
 	onSelect,
 }: HistoryDialogProps) {
+	const { t } = useLingui();
 	const [entries, setEntries] = useState<HistoryEntry[]>([]);
 	const [query, setQuery] = useState("");
 	// Whole-table results for the current query. `getAll` only loads the most
@@ -104,7 +105,10 @@ export function HistoryDialog({
 				<Input
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
-					placeholder="Search history"
+					placeholder={t({
+						id: "workspace.browserPane.searchHistoryPlaceholder",
+						message: "Search history",
+					})}
 					autoFocus
 				/>
 				<ScrollArea className="h-80 min-w-0 -mx-1 px-1">

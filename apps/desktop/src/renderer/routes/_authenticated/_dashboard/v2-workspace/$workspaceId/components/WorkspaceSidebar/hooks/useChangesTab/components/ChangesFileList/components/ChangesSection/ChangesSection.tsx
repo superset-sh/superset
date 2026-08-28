@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	Collapsible,
@@ -35,6 +35,7 @@ export function ChangesSection({
 	stagingActions,
 	children,
 }: ChangesSectionProps) {
+	const { t } = useLingui();
 	const collapsed = useV2ChangesSectionsStore(
 		(state) => state.collapsed[sectionKey] ?? false,
 	);
@@ -59,31 +60,55 @@ export function ChangesSection({
 	const discardAllUnstaged = workspaceTrpc.git.discardAllUnstaged.useMutation({
 		onSuccess: invalidate,
 		onError: (err) => {
-			toast.error("Couldn't discard unstaged changes", {
-				description: errorMessage(err),
-			});
+			toast.error(
+				t({
+					id: "workspace.changesSection.discardUnstagedFailed",
+					message: "Couldn't discard unstaged changes",
+				}),
+				{
+					description: errorMessage(err),
+				},
+			);
 		},
 	});
 	const discardAllStaged = workspaceTrpc.git.discardAllStaged.useMutation({
 		onSuccess: invalidate,
 		onError: (err) => {
-			toast.error("Couldn't discard staged changes", {
-				description: errorMessage(err),
-			});
+			toast.error(
+				t({
+					id: "workspace.changesSection.discardStagedFailed",
+					message: "Couldn't discard staged changes",
+				}),
+				{
+					description: errorMessage(err),
+				},
+			);
 		},
 	});
 	const stageAll = workspaceTrpc.git.stageAll.useMutation({
 		onSuccess: invalidate,
 		onError: (err) => {
-			toast.error("Couldn't stage changes", { description: errorMessage(err) });
+			toast.error(
+				t({
+					id: "workspace.changesSection.stageFailed",
+					message: "Couldn't stage changes",
+				}),
+				{ description: errorMessage(err) },
+			);
 		},
 	});
 	const unstageAll = workspaceTrpc.git.unstageAll.useMutation({
 		onSuccess: invalidate,
 		onError: (err) => {
-			toast.error("Couldn't unstage changes", {
-				description: errorMessage(err),
-			});
+			toast.error(
+				t({
+					id: "workspace.changesSection.unstageFailed",
+					message: "Couldn't unstage changes",
+				}),
+				{
+					description: errorMessage(err),
+				},
+			);
 		},
 	});
 
@@ -112,18 +137,32 @@ export function ChangesSection({
 	const dialogCopy =
 		stagingActions?.kind === "unstaged"
 			? {
-					title: "Discard all unstaged changes?",
-					description:
-						"This will revert all unstaged modifications and delete untracked files. This cannot be undone.",
+					title: t({
+						id: "workspace.changesSection.discardUnstagedConfirmTitle",
+						message: "Discard all unstaged changes?",
+					}),
+					description: t({
+						id: "workspace.changesSection.discardUnstagedConfirmBody",
+						message:
+							"This will revert all unstaged modifications and delete untracked files. This cannot be undone.",
+					}),
 				}
 			: {
-					title: "Discard all staged changes?",
-					description:
-						"This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone.",
+					title: t({
+						id: "workspace.changesSection.discardStagedConfirmTitle",
+						message: "Discard all staged changes?",
+					}),
+					description: t({
+						id: "workspace.changesSection.discardStagedConfirmBody",
+						message:
+							"This will unstage and revert all staged changes. Staged new files will be deleted. This cannot be undone.",
+					}),
 				};
 
 	const isUnstaged = stagingActions?.kind === "unstaged";
-	const stagingToggleLabel = isUnstaged ? "Stage all" : "Unstage all";
+	const stagingToggleLabel = isUnstaged
+		? t({ id: "workspace.changesSection.stageAll", message: "Stage all" })
+		: t({ id: "workspace.changesSection.unstageAll", message: "Unstage all" });
 	const StagingToggleIcon = isUnstaged ? Plus : Minus;
 
 	return (
@@ -150,7 +189,17 @@ export function ChangesSection({
 							<TooltipTrigger asChild>
 								<button
 									type="button"
-									aria-label={`Discard all ${stagingActions.kind} changes`}
+									aria-label={
+										stagingActions.kind === "unstaged"
+											? t({
+													id: "workspace.changesSection.discardAllUnstagedAria",
+													message: "Discard all unstaged changes",
+												})
+											: t({
+													id: "workspace.changesSection.discardAllStagedAria",
+													message: "Discard all staged changes",
+												})
+									}
 									onClick={() => setShowConfirm(true)}
 									className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
 								>

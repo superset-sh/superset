@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type {
 	DraftTrigger,
 	TriggerProblem,
@@ -37,6 +38,7 @@ export function TriggerSentence({
 	nextRun,
 	disabled,
 }: TriggerSentenceProps) {
+	const { t } = useLingui();
 	const config = trigger.config;
 	const provider = providerFor(config);
 	const Icon = provider.icon;
@@ -63,7 +65,10 @@ export function TriggerSentence({
 				type="button"
 				variant="ghost"
 				size="icon"
-				aria-label="Remove trigger"
+				aria-label={t({
+					id: "dashboard.automations.triggerSentence.removeTriggerAriaLabel",
+					message: "Remove trigger",
+				})}
 				disabled={disabled}
 				onClick={onRemove}
 				className="ml-auto size-6 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 text-muted-foreground hover:text-foreground"

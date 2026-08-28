@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
@@ -91,6 +91,7 @@ function PermissionRowSkeleton() {
 export function PermissionsSettings({
 	visibleItems,
 }: PermissionsSettingsProps) {
+	const { t } = useLingui();
 	const { data: status, isLoading } =
 		electronTrpc.permissions.getStatus.useQuery(undefined, {
 			refetchInterval: 2000,
@@ -134,8 +135,15 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Full Disk Access"
-								description="Persistent access to Documents, Downloads, Desktop, and iCloud."
+								label={t({
+									id: "settings.permissions.fullDiskAccessLabel",
+									message: "Full Disk Access",
+								})}
+								description={t({
+									id: "settings.permissions.fullDiskAccessDescription",
+									message:
+										"Persistent access to Documents, Downloads, Desktop, and iCloud.",
+								})}
 								granted={status?.fullDiskAccess}
 								onRequest={() => requestFDA.mutate()}
 							/>
@@ -146,8 +154,15 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Accessibility"
-								description="Send keystrokes, manage windows, and control other applications."
+								label={t({
+									id: "settings.permissions.accessibilityLabel",
+									message: "Accessibility",
+								})}
+								description={t({
+									id: "settings.permissions.accessibilityDescription",
+									message:
+										"Send keystrokes, manage windows, and control other applications.",
+								})}
 								granted={status?.accessibility}
 								onRequest={() => requestA11y.mutate()}
 							/>
@@ -158,8 +173,14 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Microphone"
-								description="Use voice transcription and push-to-talk features."
+								label={t({
+									id: "settings.permissions.microphoneLabel",
+									message: "Microphone",
+								})}
+								description={t({
+									id: "settings.permissions.microphoneDescription",
+									message: "Use voice transcription and push-to-talk features.",
+								})}
 								granted={status?.microphone}
 								onRequest={() => requestMicrophone.mutate()}
 							/>
@@ -170,8 +191,15 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Automation"
-								description="Run terminal commands and interact with other applications."
+								label={t({
+									id: "settings.permissions.automationLabel",
+									message: "Automation",
+								})}
+								description={t({
+									id: "settings.permissions.automationDescription",
+									message:
+										"Run terminal commands and interact with other applications.",
+								})}
 								granted={undefined}
 								onRequest={() => requestAppleEvents.mutate()}
 							/>
@@ -182,8 +210,15 @@ export function PermissionsSettings({
 							visibleItems,
 						) && (
 							<PermissionRow
-								label="Local Network"
-								description="Discover and connect to development servers on your network."
+								label={t({
+									id: "settings.permissions.localNetworkLabel",
+									message: "Local Network",
+								})}
+								description={t({
+									id: "settings.permissions.localNetworkDescription",
+									message:
+										"Discover and connect to development servers on your network.",
+								})}
 								granted={undefined}
 								onRequest={() => requestLocalNetwork.mutate()}
 							/>

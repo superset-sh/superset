@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { FaGithub } from "react-icons/fa";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
@@ -33,8 +35,18 @@ function renderSlot(
 					onChange={(v) => set({ repositories: v })}
 					className={mark("repositories")}
 					options={options.github?.repositories ?? []}
-					emptyLabel="Select repos"
-					anyLabel="Any repo"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.selectRepos",
+							message: "Select repos",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.anyRepo",
+							message: "Any repo",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -50,8 +62,18 @@ function renderSlot(
 						set({ branches: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={[]}
-					emptyLabel="Any branch"
-					anyLabel="Any branch"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.anyBranchEmpty",
+							message: "Any branch",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.anyBranch",
+							message: "Any branch",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -64,8 +86,18 @@ function renderSlot(
 						set({ labels: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={[]}
-					emptyLabel="Any label"
-					anyLabel="Any label"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.anyLabelEmpty",
+							message: "Any label",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.anyLabel",
+							message: "Any label",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -77,8 +109,18 @@ function renderSlot(
 					onChange={(v) => set({ actor: v })}
 					className={mark("actor")}
 					options={options.github?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.actorSelectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.actorAnyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -90,8 +132,18 @@ function renderSlot(
 					onChange={(v) => set({ subjectAuthor: v })}
 					className={mark("subjectAuthor")}
 					options={options.github?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.subjectAuthorSelectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.subjectAuthorAnyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -101,8 +153,18 @@ function renderSlot(
 					key={index}
 					value={c.commentFilter}
 					onChange={(v) => set({ commentFilter: v })}
-					emptyLabel="Any comment"
-					placeholder="Contains this text..."
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.anyComment",
+							message: "Any comment",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.github.commentFilterPlaceholder",
+							message: "Contains this text...",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);

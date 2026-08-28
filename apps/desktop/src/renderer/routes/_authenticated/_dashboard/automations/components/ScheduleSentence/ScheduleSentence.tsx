@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	rruleProblem,
 	timezoneAbbreviation,
@@ -101,7 +102,10 @@ export function ScheduleSentence({
 				<SelectChip
 					value={state.kind}
 					disabled={disabled}
-					options={PRESET_OPTIONS}
+					options={PRESET_OPTIONS.map((option) => ({
+						value: option.value,
+						label: i18n._(option.label),
+					}))}
 					onChange={(value) => update({ kind: value as PresetKind })}
 				/>
 
@@ -115,7 +119,10 @@ export function ScheduleSentence({
 						<SelectChip
 							value={state.day}
 							disabled={disabled}
-							options={DAY_OPTIONS}
+							options={DAY_OPTIONS.map((option) => ({
+								value: option.value,
+								label: i18n._(option.label),
+							}))}
 							onChange={(value) => update({ day: value as Weekday })}
 						/>
 					</>

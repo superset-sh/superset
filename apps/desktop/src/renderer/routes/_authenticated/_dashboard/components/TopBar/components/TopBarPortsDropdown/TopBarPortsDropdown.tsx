@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
@@ -28,6 +28,7 @@ interface TopBarPortsDropdownProps {
 export function TopBarPortsDropdown({
 	align = "end",
 }: TopBarPortsDropdownProps) {
+	const { t } = useLingui();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const portsDisplayMode = usePortsDisplayMode();
 	const [open, setOpen] = useState(false);
@@ -50,7 +51,10 @@ export function TopBarPortsDropdown({
 					<PopoverTrigger asChild>
 						<button
 							type="button"
-							aria-label={`Ports — ${totalPortCount} live`}
+							aria-label={t({
+								id: "dashboard.topBar.ports.pillAriaLabel",
+								message: `Ports — ${totalPortCount} live`,
+							})}
 							className="flex items-center gap-1.5 rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-fill-hover hover:text-foreground data-[state=open]:bg-fill-hover data-[state=open]:text-foreground"
 						>
 							<LuRadioTower className="size-3.5" strokeWidth={STROKE_WIDTH} />

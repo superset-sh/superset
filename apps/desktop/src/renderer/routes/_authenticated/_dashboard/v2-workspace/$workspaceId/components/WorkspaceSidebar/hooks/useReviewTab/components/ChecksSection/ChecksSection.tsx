@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -39,6 +39,7 @@ export function ChecksSection({
 	checksStatus,
 	prUrl,
 }: ChecksSectionProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(true);
 
 	// Mirrors computeChecksRollup: a cancelled check is a relevant failure, not
@@ -54,8 +55,14 @@ export function ChecksSection({
 	).length;
 	const checksSummary =
 		relevantChecks.length > 0
-			? `${passingChecks}/${relevantChecks.length} checks passing`
-			: "No checks reported";
+			? t({
+					id: "workspace.checksSection.checksPassingSummary",
+					message: `${passingChecks}/${relevantChecks.length} checks passing`,
+				})
+			: t({
+					id: "workspace.checksSection.noChecksReported",
+					message: "No checks reported",
+				});
 	const checksStatusConfig = checkSummaryIconConfig[checksStatus];
 	const ChecksStatusIcon = checksStatusConfig.Icon;
 
@@ -203,6 +210,7 @@ function CopyLogsButton({
 	workspaceId: string;
 	detailsUrl: string;
 }) {
+	const { t } = useLingui();
 	const utils = workspaceTrpc.useUtils();
 	const [state, setState] = useState<"idle" | "loading" | "copied" | "error">(
 		"idle",
@@ -241,8 +249,14 @@ function CopyLogsButton({
 		<button
 			type="button"
 			onClick={handleCopy}
-			title="Copy job logs to clipboard"
-			aria-label="Copy job logs to clipboard"
+			title={t({
+				id: "workspace.checksSection.copyJobLogs",
+				message: "Copy job logs to clipboard",
+			})}
+			aria-label={t({
+				id: "workspace.checksSection.copyJobLogs",
+				message: "Copy job logs to clipboard",
+			})}
 			className={cn(
 				"shrink-0 rounded-sm p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground",
 				"opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",

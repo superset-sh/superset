@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { PluginCatalogEntry } from "@superset/shared/plugins";
 import { Button } from "@superset/ui/button";
 import {
@@ -34,6 +34,7 @@ export function PluginCard({
 	onUninstall,
 	onSetEnabled,
 }: PluginCardProps) {
+	const { t } = useLingui();
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: the card nests real buttons (Install, ··· menu); a native <button> cannot contain them
 		<div
@@ -76,7 +77,10 @@ export function PluginCard({
 							variant="ghost"
 							size="icon-xs"
 							className="shrink-0 text-muted-foreground"
-							aria-label={`${plugin.interface.displayName} options`}
+							aria-label={t({
+								id: "dashboard.plugins.card.pluginOptionsLabel",
+								message: `${plugin.interface.displayName} options`,
+							})}
 							onClick={(event) => event.stopPropagation()}
 						>
 							<LuEllipsis className="size-4" />

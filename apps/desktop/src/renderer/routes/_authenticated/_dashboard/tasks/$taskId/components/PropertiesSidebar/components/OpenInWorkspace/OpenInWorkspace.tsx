@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
@@ -36,6 +36,7 @@ interface OpenInWorkspaceProps {
 }
 
 export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
+	const { t } = useLingui();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
@@ -88,7 +89,12 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			selectedAgent !== "none" &&
 			!agentConfigsById.get(selectedAgent)?.enabled
 		) {
-			toast.error("Enable an agent in Settings > Agents first");
+			toast.error(
+				t({
+					id: "dashboard.tasks.openInWorkspace.enableAgentFirst",
+					message: "Enable an agent in Settings > Agents first",
+				}),
+			);
 			return;
 		}
 		await handleSelectProject(effectiveProjectId);
@@ -141,18 +147,45 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 					write: (input) => terminalWrite.mutateAsync(input),
 				});
 				if (launchResult.status === "failed") {
-					toast.error("Failed to start agent", {
-						description: launchResult.error ?? "Failed to start agent session.",
-					});
+					toast.error(
+						t({
+							id: "dashboard.tasks.openInWorkspace.startAgentFailed",
+							message: "Failed to start agent",
+						}),
+						{
+							description:
+								launchResult.error ??
+								t({
+									id: "dashboard.tasks.openInWorkspace.startAgentSessionFailed",
+									message: "Failed to start agent session.",
+								}),
+						},
+					);
 					return;
 				}
 			}
 
 			toast.success(
-				result.wasExisting ? "Opened existing workspace" : "Workspace created",
+				result.wasExisting
+					? t({
+							id: "dashboard.tasks.openInWorkspace.openedExisting",
+							message: "Opened existing workspace",
+						})
+					: t({
+							id: "dashboard.tasks.openInWorkspace.workspaceCreated",
+							message: "Workspace created",
+						}),
 			);
 		} catch (err) {
-			toast.error(errorMessage(err, "Failed to create workspace"));
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "dashboard.tasks.openInWorkspace.createWorkspaceFailed",
+						message: "Failed to create workspace",
+					}),
+				),
+			);
 		}
 	};
 
@@ -244,11 +277,17 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			<AgentSelect<TaskLaunchAgent>
 				agents={enabledAgentPresets}
 				value={selectedAgent}
-				placeholder="Select agent"
+				placeholder={t({
+					id: "dashboard.tasks.openInWorkspace.selectAgent",
+					message: "Select agent",
+				})}
 				onValueChange={setSelectedAgent}
 				triggerClassName="h-8 text-xs"
 				allowNone
-				noneLabel="No agent"
+				noneLabel={t({
+					id: "dashboard.tasks.openInWorkspace.noAgent",
+					message: "No agent",
+				})}
 				noneValue="none"
 			/>
 			<div className="flex items-center justify-between">

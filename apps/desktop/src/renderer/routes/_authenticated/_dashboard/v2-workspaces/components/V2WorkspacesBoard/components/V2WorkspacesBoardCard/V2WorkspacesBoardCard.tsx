@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import { LuGitBranch, LuLaptop, LuMonitor } from "react-icons/lu";
@@ -40,6 +40,7 @@ function BoardCardBody({
 	// ContextMenuTrigger asChild merges its handlers/ref in here; they must
 	// reach the real <button> or right-click never opens the menu.
 } & React.ComponentPropsWithRef<"button">) {
+	const { t } = useLingui();
 	const isArchived = workspace.archivedAt != null;
 	const HostIcon = workspace.hostType === "local-device" ? LuLaptop : LuMonitor;
 	const timeLabel = getRelativeTime(
@@ -63,7 +64,13 @@ function BoardCardBody({
 			<div className="mb-1 flex items-center justify-between gap-2">
 				<span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
 					<V2WorkspaceProjectIcon
-						projectName={workspace.projectName ?? "Session"}
+						projectName={
+							workspace.projectName ??
+							t({
+								id: "dashboard.workspaces.boardCard.sessionName",
+								message: "Session",
+							})
+						}
 						iconUrl={workspace.projectIconUrl}
 						size="sm"
 					/>

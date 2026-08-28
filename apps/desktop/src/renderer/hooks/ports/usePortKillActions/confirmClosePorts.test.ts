@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { initI18n } from "@superset/i18n";
+
+// Alert copy now renders through i18n._; activate the default locale so the
+// descriptors fall back to their English messages.
+initI18n();
+
 import type { AlertOptions } from "@superset/ui/atoms/Alert";
 
 let suppressed = false;

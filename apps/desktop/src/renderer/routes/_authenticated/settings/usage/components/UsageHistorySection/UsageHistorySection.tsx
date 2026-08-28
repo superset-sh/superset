@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
@@ -24,6 +24,7 @@ import { formatDayLabel, formatTokens, formatUsd } from "./utils/formatUsage";
 type Provider = (typeof PROVIDER_ORDER)[number];
 
 export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
+	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
 	const [hiddenProviders, setHiddenProviders] = useState<Set<Provider>>(
@@ -200,7 +201,17 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											key={provider}
 											type="button"
 											onClick={() => toggleProvider(provider)}
-											title={hidden ? "Show in chart" : "Hide from chart"}
+											title={
+												hidden
+													? t({
+															id: "settings.usage.history.showInChart",
+															message: "Show in chart",
+														})
+													: t({
+															id: "settings.usage.history.hideFromChart",
+															message: "Hide from chart",
+														})
+											}
 											className={cn(
 												"flex items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:bg-muted/60",
 												hidden && "opacity-40",
@@ -243,7 +254,10 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											type="button"
 											className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
 											onClick={() => setSelectedDay(null)}
-											aria-label="Clear selected day"
+											aria-label={t({
+												id: "settings.usage.history.clearSelectedDay",
+												message: "Clear selected day",
+											})}
 										>
 											<LuX className="size-3" />
 										</button>

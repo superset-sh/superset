@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -14,8 +14,17 @@ import { HiExclamationTriangle } from "react-icons/hi2";
  * Go-home link both recover it.
  */
 export function DashboardContentError({ error }: ErrorComponentProps) {
+	const { t } = useLingui();
 	const message =
-		error instanceof Error ? error.message : String(error ?? "Unknown error");
+		error instanceof Error
+			? error.message
+			: String(
+					error ??
+						t({
+							id: "dashboard.contentError.unknownError",
+							message: "Unknown error",
+						}),
+				);
 
 	useEffect(() => {
 		console.error("[dashboard] Content route error caught:", error);

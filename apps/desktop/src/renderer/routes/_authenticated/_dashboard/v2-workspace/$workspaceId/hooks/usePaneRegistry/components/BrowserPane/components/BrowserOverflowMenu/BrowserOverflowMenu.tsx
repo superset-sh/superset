@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -63,6 +63,7 @@ export function BrowserOverflowMenu({
 	onOpenFindBar,
 	onNavigateToUrl,
 }: BrowserOverflowMenuProps) {
+	const { t } = useLingui();
 	const { copyToClipboard } = useCopyToClipboard();
 	const navigate = useNavigate();
 	const [isImportOpen, setIsImportOpen] = useState(false);
@@ -91,26 +92,43 @@ export function BrowserOverflowMenu({
 		electronTrpcClient.browser.screenshot
 			.mutate({ paneId })
 			.then(({ base64 }) => {
-				toast.success("Screenshot copied to clipboard", {
-					description: (
-						<img
-							src={`data:image/png;base64,${base64}`}
-							alt="Screenshot preview"
-							className="mt-1 max-h-32 w-full rounded border border-border object-contain"
-						/>
-					),
-					action: {
-						label: "View all",
-						// Same Radix dismissable-layer race as the menu items below:
-						// opening the Dialog synchronously from this click lets Radix's
-						// newly-mounted outside-click detector see the tail of that same
-						// click and immediately close it.
-						onClick: openAfterClose(setIsScreenshotsOpen),
+				toast.success(
+					t({
+						id: "workspace.browserPane.screenshotCopied",
+						message: "Screenshot copied to clipboard",
+					}),
+					{
+						description: (
+							<img
+								src={`data:image/png;base64,${base64}`}
+								alt={t({
+									id: "workspace.browserPane.screenshotPreviewAlt",
+									message: "Screenshot preview",
+								})}
+								className="mt-1 max-h-32 w-full rounded border border-border object-contain"
+							/>
+						),
+						action: {
+							label: t({
+								id: "workspace.browserPane.screenshotViewAll",
+								message: "View all",
+							}),
+							// Same Radix dismissable-layer race as the menu items below:
+							// opening the Dialog synchronously from this click lets Radix's
+							// newly-mounted outside-click detector see the tail of that same
+							// click and immediately close it.
+							onClick: openAfterClose(setIsScreenshotsOpen),
+						},
 					},
-				});
+				);
 			})
 			.catch(() => {
-				toast.error("Could not take a screenshot");
+				toast.error(
+					t({
+						id: "workspace.browserPane.screenshotFailed",
+						message: "Could not take a screenshot",
+					}),
+				);
 			});
 	};
 
@@ -183,7 +201,10 @@ export function BrowserOverflowMenu({
 								tabIndex={-1}
 								onClick={handleZoomOut}
 								disabled={!hasPage || zoomFactor <= MIN_ZOOM}
-								aria-label="Zoom out"
+								aria-label={t({
+									id: "workspace.browserPane.zoomOut",
+									message: "Zoom out",
+								})}
 								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<MinusIcon className="size-3.5" />
@@ -196,7 +217,10 @@ export function BrowserOverflowMenu({
 								tabIndex={-1}
 								onClick={handleZoomIn}
 								disabled={!hasPage || zoomFactor >= MAX_ZOOM}
-								aria-label="Zoom in"
+								aria-label={t({
+									id: "workspace.browserPane.zoomIn",
+									message: "Zoom in",
+								})}
 								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<PlusIcon className="size-3.5" />
@@ -206,7 +230,10 @@ export function BrowserOverflowMenu({
 								tabIndex={-1}
 								onClick={handleZoomReset}
 								disabled={!hasPage || zoomFactor === 1}
-								aria-label="Reset zoom"
+								aria-label={t({
+									id: "workspace.browserPane.resetZoom",
+									message: "Reset zoom",
+								})}
 								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<RotateCcwIcon className="size-3.5" />

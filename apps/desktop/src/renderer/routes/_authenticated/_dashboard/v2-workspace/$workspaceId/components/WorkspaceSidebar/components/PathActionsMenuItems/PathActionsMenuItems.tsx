@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenuItem,
@@ -24,13 +24,25 @@ export function PathActionsMenuItems({
 	relativePath,
 	menuType = "context",
 }: PathActionsMenuItemsProps) {
+	const { t } = useLingui();
 	const { copyToClipboard } = useCopyToClipboard();
 
 	const handleCopy = (path: string, successMessage: string) => {
 		toast.promise(copyToClipboard(path), {
 			success: successMessage,
-			error: (err: unknown) =>
-				`Failed to copy path: ${errorMessage(err, "Unknown error")}`,
+			error: (err: unknown) => {
+				const reason = errorMessage(
+					err,
+					t({
+						id: "workspace.pathActionsMenuItems.unknownError",
+						message: "Unknown error",
+					}),
+				);
+				return t({
+					id: "workspace.pathActionsMenuItems.copyPathFailed",
+					message: `Failed to copy path: ${reason}`,
+				});
+			},
 		});
 	};
 
@@ -38,8 +50,18 @@ export function PathActionsMenuItems({
 		try {
 			await electronTrpcClient.external.openInFinder.mutate(absolutePath);
 		} catch (error) {
+			const reason = errorMessage(
+				error,
+				t({
+					id: "workspace.pathActionsMenuItems.unknownError",
+					message: "Unknown error",
+				}),
+			);
 			toast.error(
-				`Failed to reveal in Finder: ${errorMessage(error, "Unknown error")}`,
+				t({
+					id: "workspace.pathActionsMenuItems.revealInFinderFailed",
+					message: `Failed to reveal in Finder: ${reason}`,
+				}),
 			);
 		}
 	};
@@ -55,7 +77,15 @@ export function PathActionsMenuItems({
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
-					onSelect={() => handleCopy(absolutePath, "Path copied")}
+					onSelect={() =>
+						handleCopy(
+							absolutePath,
+							t({
+								id: "workspace.pathActionsMenuItems.pathCopied",
+								message: "Path copied",
+							}),
+						)
+					}
 				>
 					<Clipboard />
 					<Trans id="workspace.pathActionsMenuItems.dropdownCopyPath">
@@ -64,7 +94,15 @@ export function PathActionsMenuItems({
 				</DropdownMenuItem>
 				{relativePath && (
 					<DropdownMenuItem
-						onSelect={() => handleCopy(relativePath, "Relative path copied")}
+						onSelect={() =>
+							handleCopy(
+								relativePath,
+								t({
+									id: "workspace.pathActionsMenuItems.relativePathCopied",
+									message: "Relative path copied",
+								}),
+							)
+						}
 					>
 						<Copy />
 						<Trans id="workspace.pathActionsMenuItems.dropdownCopyRelativePath">
@@ -85,7 +123,17 @@ export function PathActionsMenuItems({
 				</Trans>
 			</ContextMenuItem>
 			<ContextMenuSeparator />
-			<ContextMenuItem onSelect={() => handleCopy(absolutePath, "Path copied")}>
+			<ContextMenuItem
+				onSelect={() =>
+					handleCopy(
+						absolutePath,
+						t({
+							id: "workspace.pathActionsMenuItems.pathCopied",
+							message: "Path copied",
+						}),
+					)
+				}
+			>
 				<Clipboard />
 				<Trans id="workspace.pathActionsMenuItems.contextCopyPath">
 					Copy Path
@@ -93,7 +141,15 @@ export function PathActionsMenuItems({
 			</ContextMenuItem>
 			{relativePath && (
 				<ContextMenuItem
-					onSelect={() => handleCopy(relativePath, "Relative path copied")}
+					onSelect={() =>
+						handleCopy(
+							relativePath,
+							t({
+								id: "workspace.pathActionsMenuItems.relativePathCopied",
+								message: "Relative path copied",
+							}),
+						)
+					}
 				>
 					<Copy />
 					<Trans id="workspace.pathActionsMenuItems.contextCopyRelativePath">

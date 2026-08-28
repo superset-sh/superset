@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -33,6 +33,7 @@ export function DeleteProjectSection({
 	projectName,
 	hostIds,
 }: DeleteProjectSectionProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const hostUrls = useHostUrls(hostIds);
 	const reachableHosts = hostUrls.filter(
@@ -54,7 +55,12 @@ export function DeleteProjectSection({
 
 	const handleDelete = async () => {
 		if (reachableHosts.length === 0) {
-			toast.error("No host serving this project is reachable right now");
+			toast.error(
+				t({
+					id: "settings.project.delete.noReachableHostToast",
+					message: "No host serving this project is reachable right now",
+				}),
+			);
 			return;
 		}
 		setIsDeleting(true);
@@ -77,15 +83,31 @@ export function DeleteProjectSection({
 			const skipped = hostIds.length - reachableHosts.length;
 			if (failed.length > 0 || skipped > 0) {
 				toast.warning(
-					`Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+					t({
+						id: "settings.project.delete.partialToast",
+						message: `Deleted "${projectName}" from ${results.length - failed.length} of ${hostIds.length} devices — unreachable devices keep their copy`,
+					}),
 				);
 			} else {
-				toast.success(`Deleted "${projectName}"`);
+				toast.success(
+					t({
+						id: "settings.project.delete.successToast",
+						message: `Deleted "${projectName}"`,
+					}),
+				);
 			}
 			setIsOpen(false);
 			navigate({ to: "/settings/projects" });
 		} catch (err) {
-			toast.error(errorMessage(err, "Failed to delete"));
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.project.delete.failedToast",
+						message: "Failed to delete",
+					}),
+				),
+			);
 		} finally {
 			setIsDeleting(false);
 		}

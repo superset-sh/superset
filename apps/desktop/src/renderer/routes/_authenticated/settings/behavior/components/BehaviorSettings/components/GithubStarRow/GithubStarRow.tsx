@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -15,6 +15,7 @@ interface GithubStarRowProps {
 }
 
 export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
+	const { t } = useLingui();
 	// A status row the user navigated to specifically to check, not an
 	// ambient surface — worth a fresh check on every visit rather than
 	// trusting up to 10 minutes of staleness.
@@ -31,7 +32,13 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 		<div className="flex items-center justify-between">
 			<div className="space-y-0.5">
 				<Label className="text-sm font-medium">
-					<HighlightText text="Star Superset on GitHub" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.behavior.githubStar.label",
+							message: "Star Superset on GitHub",
+						})}
+						query={searchQuery}
+					/>
 				</Label>
 				<p className="text-xs text-muted-foreground">
 					<Trans id="settings.behavior.githubStar.hint">

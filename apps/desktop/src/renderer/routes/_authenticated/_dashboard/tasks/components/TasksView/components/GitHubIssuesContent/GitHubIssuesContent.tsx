@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import { useNavigate } from "@tanstack/react-router";
@@ -52,6 +52,7 @@ export function GitHubIssuesContent({
 	onCollapse,
 	onSelectionChange,
 }: GitHubIssuesContentProps) {
+	const { t } = useLingui();
 	const [selectedIssues, setSelectedIssues] = useState<
 		Map<string, SelectedIssue>
 	>(new Map());
@@ -249,8 +250,14 @@ export function GitHubIssuesContent({
 					variant="ghost"
 					size="icon-xs"
 					className="ml-auto"
-					title="Refresh"
-					aria-label="Refresh GitHub issues"
+					title={t({
+						id: "dashboard.tasks.githubIssues.refresh",
+						message: "Refresh",
+					})}
+					aria-label={t({
+						id: "dashboard.tasks.githubIssues.refreshIssues",
+						message: "Refresh GitHub issues",
+					})}
 					disabled={isFetching}
 					onClick={() => refetch()}
 				>
@@ -266,8 +273,14 @@ export function GitHubIssuesContent({
 					<Button
 						variant="ghost"
 						size="icon-xs"
-						title="Minimize"
-						aria-label="Minimize GitHub issues"
+						title={t({
+							id: "dashboard.tasks.githubIssues.minimize",
+							message: "Minimize",
+						})}
+						aria-label={t({
+							id: "dashboard.tasks.githubIssues.minimizeIssues",
+							message: "Minimize GitHub issues",
+						})}
 						onClick={onCollapse}
 					>
 						<LuMinus className="size-3.5" />
@@ -364,7 +377,10 @@ export function GitHubIssuesContent({
 											)
 										}
 										onClick={(e) => e.stopPropagation()}
-										aria-label="Select issue"
+										aria-label={t({
+											id: "dashboard.tasks.githubIssues.selectIssue",
+											message: "Select issue",
+										})}
 										className="cursor-pointer shrink-0"
 									/>
 									<StateIcon
@@ -394,8 +410,14 @@ export function GitHubIssuesContent({
 										<Button
 											variant="ghost"
 											size="icon-xs"
-											title="Open in browser"
-											aria-label={`Open issue #${issue.issueNumber} in browser`}
+											title={t({
+												id: "dashboard.tasks.githubIssues.openInBrowser",
+												message: "Open in browser",
+											})}
+											aria-label={t({
+												id: "dashboard.tasks.githubIssues.openIssueInBrowser",
+												message: `Open issue #${issue.issueNumber} in browser`,
+											})}
 											onClick={(e) => {
 												e.stopPropagation();
 												handleOpenUrl(issue.url);
@@ -406,8 +428,14 @@ export function GitHubIssuesContent({
 										<Button
 											variant="outline"
 											size="sm"
-											title="Add to workspace"
-											aria-label={`Add issue #${issue.issueNumber} to workspace`}
+											title={t({
+												id: "dashboard.tasks.githubIssues.addToWorkspaceTitle",
+												message: "Add to workspace",
+											})}
+											aria-label={t({
+												id: "dashboard.tasks.githubIssues.addIssueToWorkspace",
+												message: `Add issue #${issue.issueNumber} to workspace`,
+											})}
 											className="h-7 gap-1.5 px-2 text-xs"
 											onClick={(e) => {
 												e.stopPropagation();

@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+
 interface OrganizationLogoProps {
 	logo: string | null | undefined;
 	name: string | undefined;
@@ -9,6 +11,7 @@ export function OrganizationLogo({
 	name,
 	size = "md",
 }: OrganizationLogoProps) {
+	const { t } = useLingui();
 	const sizeClasses = size === "sm" ? "w-6 h-6" : "w-8 h-8";
 	const textSize = size === "sm" ? "text-xs" : "text-sm";
 
@@ -16,7 +19,10 @@ export function OrganizationLogo({
 		return (
 			<img
 				src={logo}
-				alt="Organization logo"
+				alt={t({
+					id: "settings.organization.logoAlt",
+					message: "Organization logo",
+				})}
 				className={`${sizeClasses} rounded object-cover`}
 			/>
 		);

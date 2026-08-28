@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { HiXMark } from "react-icons/hi2";
 
 interface SearchResultsBannerProps {
@@ -12,6 +12,7 @@ export function SearchResultsBanner({
 	matchCount,
 	onClear,
 }: SearchResultsBannerProps) {
+	const { t } = useLingui();
 	const hasMatches = matchCount > 0;
 
 	return (
@@ -47,7 +48,10 @@ export function SearchResultsBanner({
 			<button
 				type="button"
 				onClick={onClear}
-				aria-label="Clear search"
+				aria-label={t({
+					id: "settings.components.searchResultsBanner.clearSearch",
+					message: "Clear search",
+				})}
 				className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 			>
 				<HiXMark className="h-3.5 w-3.5" />

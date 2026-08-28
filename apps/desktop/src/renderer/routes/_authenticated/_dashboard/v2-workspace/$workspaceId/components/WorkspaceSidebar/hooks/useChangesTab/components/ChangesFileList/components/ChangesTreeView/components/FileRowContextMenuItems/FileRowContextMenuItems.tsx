@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -57,6 +57,7 @@ export function FileRowContextMenuItems({
 	onOpenInEditor,
 	onRequestDiscard,
 }: FileRowContextMenuItemsProps) {
+	const { t } = useLingui();
 	const absolutePath = worktreePath
 		? toAbsoluteWorkspacePath(worktreePath, file.path)
 		: undefined;
@@ -141,7 +142,15 @@ export function FileRowContextMenuItems({
 						onSelect={() => onRequestDiscard(file)}
 					>
 						{isDeleteAction ? <Trash2 /> : <Undo2 />}
-						{isDeleteAction ? "Delete" : "Discard changes"}
+						{isDeleteAction
+							? t({
+									id: "workspace.fileRowContextMenuItems.delete",
+									message: "Delete",
+								})
+							: t({
+									id: "workspace.fileRowContextMenuItems.discardChanges",
+									message: "Discard changes",
+								})}
 					</DropdownMenuItem>
 				</>
 			)}

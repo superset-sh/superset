@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import {
@@ -38,6 +38,7 @@ export function OrganizationDropdown({
 }: {
 	variant?: "topbar" | "expanded" | "collapsed";
 }) {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const signOut = useSignOut();
@@ -45,7 +46,12 @@ export function OrganizationDropdown({
 	const [submitPromptOpen, setSubmitPromptOpen] = useState(false);
 	const openNewWindow = electronTrpc.window.openNew.useMutation({
 		onError: (error) =>
-			toast.error(`Failed to open new window: ${error.message}`),
+			toast.error(
+				t({
+					id: "dashboard.topBar.organizationDropdown.openWindowFailed",
+					message: `Failed to open new window: ${error.message}`,
+				}),
+			),
 	});
 
 	// Per-window active org (from CollectionsProvider), not the shared session —
@@ -66,7 +72,13 @@ export function OrganizationDropdown({
 	}
 
 	const userName = session?.user?.name;
-	const displayName = activeOrganization?.name ?? userName ?? "Organization";
+	const displayName =
+		activeOrganization?.name ??
+		userName ??
+		t({
+			id: "dashboard.topBar.organizationDropdown.organizationFallback",
+			message: "Organization",
+		});
 
 	const { plan: currentPlan } = useCurrentPlan();
 	const isPaid = currentPlan !== "free";
@@ -85,7 +97,10 @@ export function OrganizationDropdown({
 			<button
 				type="button"
 				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-fill-hover"
-				aria-label="Organization menu"
+				aria-label={t({
+					id: "dashboard.topBar.organizationDropdown.menuCollapsed",
+					message: "Organization menu",
+				})}
 			>
 				<Avatar
 					size="xs"
@@ -98,7 +113,10 @@ export function OrganizationDropdown({
 			<button
 				type="button"
 				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
-				aria-label="Organization menu"
+				aria-label={t({
+					id: "dashboard.topBar.organizationDropdown.menuExpanded",
+					message: "Organization menu",
+				})}
 			>
 				<Avatar
 					size="xs"
@@ -113,7 +131,10 @@ export function OrganizationDropdown({
 			<button
 				type="button"
 				className="group no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
-				aria-label="Organization menu"
+				aria-label={t({
+					id: "dashboard.topBar.organizationDropdown.menuTopbar",
+					message: "Organization menu",
+				})}
 			>
 				<Avatar
 					size="xs"

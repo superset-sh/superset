@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	DiffLineAnnotation,
@@ -85,6 +85,7 @@ export function DiffPane({
 	onOpenFile,
 	onCreateNewAgentSession,
 }: DiffPaneProps) {
+	const { t } = useLingui();
 	const data = context.pane.data as DiffPaneData;
 	const codeViewRef = useRef<CodeViewHandle<DiffAnnotationMetadata>>(null);
 	const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -191,9 +192,18 @@ export function DiffPane({
 			const worktreePath = workspaceQuery.data?.worktreePath;
 			if (!editedFile) return true;
 			if (!file || !worktreePath) {
-				toast.error("Couldn't save edits", {
-					description: "The workspace is not ready yet. Try again.",
-				});
+				toast.error(
+					t({
+						id: "workspace.diffPane.saveEditsFailedToast",
+						message: "Couldn't save edits",
+					}),
+					{
+						description: t({
+							id: "workspace.diffPane.saveEditsNotReadyBody",
+							message: "The workspace is not ready yet. Try again.",
+						}),
+					},
+				);
 				return false;
 			}
 			try {
@@ -204,12 +214,25 @@ export function DiffPane({
 					encoding: "utf-8",
 				});
 				if (!result.ok) {
-					toast.error("Couldn't save edits", {
-						description:
-							result.reason === "conflict"
-								? "The file changed on disk. Review it before saving again."
-								: "The file could not be written.",
-					});
+					toast.error(
+						t({
+							id: "workspace.diffPane.saveEditsRejectedToast",
+							message: "Couldn't save edits",
+						}),
+						{
+							description:
+								result.reason === "conflict"
+									? t({
+											id: "workspace.diffPane.saveEditsConflictBody",
+											message:
+												"The file changed on disk. Review it before saving again.",
+										})
+									: t({
+											id: "workspace.diffPane.saveEditsWriteFailedBody",
+											message: "The file could not be written.",
+										}),
+						},
+					);
 					return false;
 				}
 				setDirtyItemIds((current) => {
@@ -222,9 +245,15 @@ export function DiffPane({
 				void utils.git.getDiffBulk.invalidate({ workspaceId });
 				return true;
 			} catch (error) {
-				toast.error("Couldn't save edits", {
-					description: errorMessage(error),
-				});
+				toast.error(
+					t({
+						id: "workspace.diffPane.saveEditsErrorToast",
+						message: "Couldn't save edits",
+					}),
+					{
+						description: errorMessage(error),
+					},
+				);
 				return false;
 			}
 		},
@@ -234,6 +263,7 @@ export function DiffPane({
 			writeFile,
 			workspaceId,
 			utils,
+			t,
 		],
 	);
 
@@ -269,12 +299,24 @@ export function DiffPane({
 				return;
 			}
 			const file = fileByItemId.get(itemId);
+			const name =
+				file?.path.split("/").pop() ??
+				t({
+					id: "workspace.diffPane.thisFileFallback",
+					message: "this file",
+				});
 			alert({
-				title: `Do you want to save the changes you made to ${file?.path.split("/").pop() ?? "this file"}?`,
-				description: "Your changes will be lost if you don't save them.",
+				title: t({
+					id: "workspace.diffPane.saveChangesTitle",
+					message: `Do you want to save the changes you made to ${name}?`,
+				}),
+				description: t({
+					id: "workspace.diffPane.saveChangesBody",
+					message: "Your changes will be lost if you don't save them.",
+				}),
 				actions: [
 					{
-						label: "Save",
+						label: t({ id: "workspace.diffPane.save", message: "Save" }),
 						onClick: () => {
 							void saveEditedItem(itemId).then((saved) => {
 								if (saved) exitEditing(itemId);
@@ -282,15 +324,29 @@ export function DiffPane({
 						},
 					},
 					{
-						label: "Don't Save",
+						label: t({
+							id: "workspace.diffPane.dontSave",
+							message: "Don't Save",
+						}),
 						variant: "secondary",
 						onClick: () => discardEditing(itemId),
 					},
-					{ label: "Cancel", variant: "ghost", onClick: () => {} },
+					{
+						label: t({ id: "workspace.diffPane.cancel", message: "Cancel" }),
+						variant: "ghost",
+						onClick: () => {},
+					},
 				],
 			});
 		},
-		[dirtyItemIds, discardEditing, exitEditing, fileByItemId, saveEditedItem],
+		[
+			dirtyItemIds,
+			discardEditing,
+			exitEditing,
+			fileByItemId,
+			saveEditedItem,
+			t,
+		],
 	);
 
 	const search = useDiffPaneSearch({
@@ -533,10 +589,19 @@ export function DiffPane({
 						workspaceId={workspaceId}
 						contextLabel={
 							m.startLine === m.endLine
-								? `Line ${m.startLine}`
-								: `Lines ${m.startLine}–${m.endLine}`
+								? t({
+										id: "workspace.diffPane.composerLine",
+										message: `Line ${m.startLine}`,
+									})
+								: t({
+										id: "workspace.diffPane.composerLines",
+										message: `Lines ${m.startLine}–${m.endLine}`,
+									})
 						}
-						placeholder="Ask the AI about these lines…"
+						placeholder={t({
+							id: "workspace.diffPane.composerPlaceholder",
+							message: "Ask the AI about these lines…",
+						})}
 						onCancel={clearComposer}
 						onSubmit={submitComposer}
 					/>
@@ -573,13 +638,16 @@ export function DiffPane({
 			submitComposer,
 			fileByItemId,
 			onOpenFile,
+			t,
 		],
 	);
 
 	if (files.length === 0) {
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-				{isLoading ? "Loading…" : "No changes"}
+				{isLoading
+					? t({ id: "workspace.diffPane.loading", message: "Loading…" })
+					: t({ id: "workspace.diffPane.noChanges", message: "No changes" })}
 			</div>
 		);
 	}
@@ -588,9 +656,12 @@ export function DiffPane({
 		return (
 			<div className="flex h-full w-full cursor-text select-text items-center justify-center text-sm text-muted-foreground">
 				{hasPendingDiff
-					? "Loading…"
+					? t({ id: "workspace.diffPane.diffLoading", message: "Loading…" })
 					: hasDiffError
-						? "Unable to load diff"
+						? t({
+								id: "workspace.diffPane.diffLoadFailed",
+								message: "Unable to load diff",
+							})
 						: null}
 			</div>
 		);

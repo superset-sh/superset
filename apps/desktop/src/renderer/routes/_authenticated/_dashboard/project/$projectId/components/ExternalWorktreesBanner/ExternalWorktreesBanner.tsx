@@ -1,4 +1,5 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -21,6 +22,7 @@ import { useImportAllWorktrees } from "renderer/react-query/workspaces/useImport
 const MAX_VISIBLE_BRANCHES = 5;
 
 export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
+	const { t } = useLingui();
 	const { data: externalWorktrees = [], isLoading } =
 		electronTrpc.workspaces.getExternalWorktrees.useQuery({ projectId });
 	const importableWorktrees = externalWorktrees.filter(
@@ -37,10 +39,24 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 		try {
 			const result = await importAllWorktrees.mutateAsync({ projectId });
 			toast.success(
-				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
+				t({
+					id: "dashboard.project.worktreesBanner.importedCount",
+					message: plural(result.imported, {
+						one: "Imported # workspace",
+						other: "Imported # workspaces",
+					}),
+				}),
 			);
 		} catch (err) {
-			toast.error(errorMessage(err, "Failed to import worktrees"));
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "dashboard.project.worktreesBanner.importFailed",
+						message: "Failed to import worktrees",
+					}),
+				),
+			);
 		}
 	};
 

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -44,6 +44,7 @@ export function PRStatusGroup({
 	workspaceId,
 	onRefresh,
 }: PRStatusGroupProps) {
+	const { t } = useLingui();
 	const pr =
 		state.kind === "pr-exists"
 			? state.pr
@@ -60,24 +61,39 @@ export function PRStatusGroup({
 
 	const mergePRMutation = workspaceTrpc.github.mergePR.useMutation({
 		onMutate: () => {
-			const toastId = toast.loading("Merging PR...");
+			const toastId = toast.loading(
+				t({ id: "workspace.prStatusGroup.merging", message: "Merging PR..." }),
+			);
 			return { toastId };
 		},
 		onSuccess: async (_data, _variables, context) => {
-			toast.success("PR merged", { id: context?.toastId });
+			toast.success(
+				t({ id: "workspace.prStatusGroup.merged", message: "PR merged" }),
+				{ id: context?.toastId },
+			);
 			try {
 				await refreshPRMutation.mutateAsync({ workspaceIds: [workspaceId] });
 			} catch (error) {
 				console.warn("Failed to refresh PR state after merge", error);
 				toast.warning(
-					"Merged, but couldn't refresh PR state — try again in a moment",
+					t({
+						id: "workspace.prStatusGroup.mergedRefreshFailed",
+						message:
+							"Merged, but couldn't refresh PR state — try again in a moment",
+					}),
 				);
 			} finally {
 				onRefresh?.();
 			}
 		},
 		onError: (error, _variables, context) => {
-			toast.error(`Merge failed: ${error.message}`, { id: context?.toastId });
+			toast.error(
+				t({
+					id: "workspace.prStatusGroup.mergeFailed",
+					message: `Merge failed: ${error.message}`,
+				}),
+				{ id: context?.toastId },
+			);
 		},
 	});
 
@@ -167,8 +183,14 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 								aria-label={
 									mergePRMutation.isPending
-										? "Merging pull request"
-										: "Open merge options"
+										? t({
+												id: "workspace.prStatusGroup.mergingAria",
+												message: "Merging pull request",
+											})
+										: t({
+												id: "workspace.prStatusGroup.openMergeOptionsAria",
+												message: "Open merge options",
+											})
 								}
 							>
 								{mergePRMutation.isPending ? (

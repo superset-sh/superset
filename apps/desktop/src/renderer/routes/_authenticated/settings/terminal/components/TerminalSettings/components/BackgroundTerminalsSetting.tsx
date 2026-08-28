@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import {
 } from "shared/constants";
 
 export function BackgroundTerminalsSetting() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
@@ -69,7 +70,10 @@ export function BackgroundTerminalsSetting() {
 					className="text-sm font-medium"
 				>
 					<HighlightText
-						text="Background terminal memory"
+						text={t({
+							id: "settings.terminal.backgroundLimit.label",
+							message: "Background terminal memory",
+						})}
 						query={searchQuery}
 					/>
 				</Label>

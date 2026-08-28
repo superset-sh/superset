@@ -117,7 +117,12 @@ export function CreateTaskDialog({
 		[statusId, statuses],
 	);
 	const handleAttachmentClick = () => {
-		toast.info("Attachments are not wired yet");
+		toast.info(
+			t({
+				id: "dashboard.tasks.createTaskDialog.attachmentsNotWired",
+				message: "Attachments are not wired yet",
+			}),
+		);
 	};
 	const handleCreate = async () => {
 		if (!title.trim() || isCreating) return;
@@ -143,14 +148,27 @@ export function CreateTaskDialog({
 			if (searchQuery) nextSearch.search = searchQuery;
 
 			onOpenChange(false);
-			toast.success(`Created ${result.task.slug}`);
+			toast.success(
+				t({
+					id: "dashboard.tasks.createTaskDialog.createdTask",
+					message: `Created ${result.task.slug}`,
+				}),
+			);
 			navigate({
 				to: "/tasks/$taskId",
 				params: { taskId: result.task.id },
 				search: nextSearch,
 			});
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to create task"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.tasks.createTaskDialog.createFailed",
+						message: "Failed to create task",
+					}),
+				),
+			);
 			setIsCreating(false);
 		}
 	};
@@ -196,7 +214,10 @@ export function CreateTaskDialog({
 							type="button"
 							disabled={isCreating}
 							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-							aria-label="Close"
+							aria-label={t({
+								id: "dashboard.tasks.createTaskDialog.close",
+								message: "Close",
+							})}
 						>
 							<HiXMark className="size-4" />
 						</button>
@@ -215,7 +236,10 @@ export function CreateTaskDialog({
 								void handleCreate();
 							}
 						}}
-						placeholder="Task title"
+						placeholder={t({
+							id: "dashboard.tasks.createTaskDialog.titlePlaceholder",
+							message: "Task title",
+						})}
 						className="w-full bg-transparent text-3xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/60"
 					/>
 
@@ -223,7 +247,10 @@ export function CreateTaskDialog({
 						<MarkdownEditor
 							content={description}
 							onChange={setDescription}
-							placeholder="Add description..."
+							placeholder={t({
+								id: "dashboard.tasks.createTaskDialog.descriptionPlaceholder",
+								message: "Add description...",
+							})}
 							editorClassName="min-h-[240px] text-base leading-relaxed"
 							onModEnter={handleCreate}
 						/>

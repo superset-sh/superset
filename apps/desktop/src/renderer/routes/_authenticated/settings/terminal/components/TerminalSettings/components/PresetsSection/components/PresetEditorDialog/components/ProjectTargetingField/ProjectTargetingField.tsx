@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -34,6 +34,7 @@ export function ProjectTargetingField({
 	preferredProjectId,
 	onChange,
 }: ProjectTargetingFieldProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const projectOptionsById = useMemo(
 		() => new Map(projects.map((project) => [project.id, project])),
@@ -80,8 +81,20 @@ export function ProjectTargetingField({
 	};
 
 	const segmentedOptions: { value: Scope; label: string }[] = [
-		{ value: "all", label: "All projects" },
-		{ value: "specific", label: "Specific" },
+		{
+			value: "all",
+			label: t({
+				id: "settings.terminal.projectTargeting.allProjects",
+				message: "All projects",
+			}),
+		},
+		{
+			value: "specific",
+			label: t({
+				id: "settings.terminal.projectTargeting.specific",
+				message: "Specific",
+			}),
+		},
 	];
 
 	return (
@@ -123,7 +136,12 @@ export function ProjectTargetingField({
 						</PopoverTrigger>
 						<PopoverContent align="start" className="w-[280px] p-0">
 							<Command>
-								<CommandInput placeholder="Search projects..." />
+								<CommandInput
+									placeholder={t({
+										id: "settings.terminal.projectTargeting.searchPlaceholder",
+										message: "Search projects...",
+									})}
+								/>
 								<CommandList className="max-h-72">
 									<CommandEmpty>
 										<Trans id="settings.terminal.projectTargeting.noProjectsFound">

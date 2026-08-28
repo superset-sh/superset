@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import {
 	ArchiveIcon,
 	FileIcon,
@@ -21,7 +22,10 @@ export const workspaceProvider: CommandProvider = {
 		// v2 dashboard view (e.g. the workspaces list), not just an open one.
 		const quickCreate: Command = {
 			id: "workspace.quickCreate",
-			title: "Quick create workspace",
+			title: msg({
+				id: "commandPalette.workspace.quickCreate",
+				message: "Quick create workspace",
+			}),
 			section: "workspace",
 			icon: ZapIcon,
 			hotkeyId: "QUICK_CREATE_WORKSPACE",
@@ -40,7 +44,10 @@ export const workspaceProvider: CommandProvider = {
 		const commands: Command[] = [
 			{
 				id: "workspace.new",
-				title: "New workspace",
+				title: msg({
+					id: "commandPalette.workspace.new",
+					message: "New workspace",
+				}),
 				section: "workspace",
 				icon: PlusIcon,
 				hotkeyId: "NEW_WORKSPACE",
@@ -50,7 +57,10 @@ export const workspaceProvider: CommandProvider = {
 			quickCreate,
 			{
 				id: "files.quickOpen",
-				title: "Search files",
+				title: msg({
+					id: "commandPalette.workspace.searchFiles",
+					message: "Search files",
+				}),
 				section: "workspace",
 				icon: FileIcon,
 				keywords: ["file picker", "quick open"],
@@ -62,7 +72,10 @@ export const workspaceProvider: CommandProvider = {
 			},
 			{
 				id: "workspace.linkTask",
-				title: "Link task",
+				title: msg({
+					id: "commandPalette.workspace.linkTask",
+					message: "Link task",
+				}),
 				section: "workspace",
 				icon: LinkIcon,
 				keywords: ["issue", "linear"],
@@ -73,7 +86,10 @@ export const workspaceProvider: CommandProvider = {
 		if (workspace.projectId) {
 			commands.push({
 				id: `workspace.removeFromSidebar:${workspace.id}`,
-				title: "Remove from sidebar",
+				title: msg({
+					id: "commandPalette.workspace.removeFromSidebar",
+					message: "Remove from sidebar",
+				}),
 				section: "workspace",
 				icon: ArchiveIcon,
 				keywords: ["hide"],
@@ -90,7 +106,10 @@ export const workspaceProvider: CommandProvider = {
 		if (!isMain) {
 			commands.push({
 				id: `workspace.delete:${workspace.id}`,
-				title: "Delete workspace",
+				title: msg({
+					id: "commandPalette.workspace.delete",
+					message: "Delete workspace",
+				}),
 				section: "workspace",
 				icon: Trash2Icon,
 				keywords: ["archive", "remove", "close"],

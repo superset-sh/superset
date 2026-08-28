@@ -30,23 +30,45 @@ export function DashboardSidebarWorkspacesHeader() {
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
-			toast.error(`Import failed: ${message}`);
+			toast.error(
+				t({
+					id: "dashboard.sidebar.workspacesHeader.importFailed",
+					message: `Import failed: ${message}`,
+				}),
+			);
 		},
 		onMultipleProjects: ({ candidates }) => {
-			toast.error("Import failed", {
-				description: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
-				action: {
-					label: "Open Projects",
-					onClick: () => navigate({ to: "/settings/projects" }),
+			toast.error(
+				t({
+					id: "dashboard.sidebar.workspacesHeader.importFailedTitle",
+					message: "Import failed",
+				}),
+				{
+					description: t({
+						id: "dashboard.sidebar.workspacesHeader.importMultipleProjects",
+						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
+					}),
+					action: {
+						label: t({
+							id: "dashboard.sidebar.workspacesHeader.openProjectsAction",
+							message: "Open Projects",
+						}),
+						onClick: () => navigate({ to: "/settings/projects" }),
+					},
 				},
-			});
+			);
 		},
 	});
 
 	const handleImportFolder = async () => {
 		const result = await folderImport.start();
 		if (result) {
-			toast.success("Project ready — open it from the sidebar.");
+			toast.success(
+				t({
+					id: "dashboard.sidebar.workspacesHeader.projectReady",
+					message: "Project ready — open it from the sidebar.",
+				}),
+			);
 		}
 	};
 
@@ -64,7 +86,10 @@ export function DashboardSidebarWorkspacesHeader() {
 						<DropdownMenuTrigger asChild>
 							<button
 								type="button"
-								aria-label="Add project"
+								aria-label={t({
+									id: "dashboard.sidebar.workspacesHeader.addProjectAriaLabel",
+									message: "Add project",
+								})}
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
 								className="group/addrepo flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"

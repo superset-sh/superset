@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSub,
@@ -27,6 +27,7 @@ const VISIBLE_LIMIT = 20;
  * equivalent is listing the sites currently holding one of those cookies.
  */
 export function SignedInSitesSubmenu() {
+	const { t } = useLingui();
 	const [domains, setDomains] = useState<CookieDomain[] | null>(null);
 	const [query, setQuery] = useState("");
 
@@ -42,7 +43,12 @@ export function SignedInSitesSubmenu() {
 			.mutate({ domain })
 			.then(loadDomains)
 			.catch(() => {
-				toast.error(`Could not forget ${domain}`);
+				toast.error(
+					t({
+						id: "workspace.browserPane.forgetSiteFailed",
+						message: `Could not forget ${domain}`,
+					}),
+				);
 			});
 	};
 
@@ -75,7 +81,15 @@ export function SignedInSitesSubmenu() {
 							if (e.key !== "Escape") e.stopPropagation();
 						}}
 						placeholder={
-							domains ? `Search ${domains.length} sites…` : "Search sites…"
+							domains
+								? t({
+										id: "workspace.browserPane.searchSitesCountPlaceholder",
+										message: `Search ${domains.length} sites…`,
+									})
+								: t({
+										id: "workspace.browserPane.searchSitesPlaceholder",
+										message: "Search sites…",
+									})
 						}
 						className="h-7 rounded-md bg-muted/40 px-2"
 						spellCheck={false}
@@ -122,8 +136,21 @@ export function SignedInSitesSubmenu() {
 									<button
 										type="button"
 										tabIndex={-1}
-										aria-label={`Forget ${domain}`}
-										title={`${cookieCount} cookie${cookieCount === 1 ? "" : "s"} — forget this site`}
+										aria-label={t({
+											id: "workspace.browserPane.forgetSiteAria",
+											message: `Forget ${domain}`,
+										})}
+										title={
+											cookieCount === 1
+												? t({
+														id: "workspace.browserPane.forgetSiteTitleOne",
+														message: "1 cookie — forget this site",
+													})
+												: t({
+														id: "workspace.browserPane.forgetSiteTitleOther",
+														message: `${cookieCount} cookies — forget this site`,
+													})
+										}
 										className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
 									>
 										<TbX className="size-3.5" />

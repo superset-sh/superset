@@ -80,7 +80,10 @@ export function PullRequestsTopBar({
 		>
 			<div
 				role="radiogroup"
-				aria-label="Filter by state"
+				aria-label={t({
+					id: "dashboard.pullRequests.stateFilter.groupAria",
+					message: "Filter by state",
+				})}
 				className="flex items-center gap-1"
 			>
 				{stateTabs.map((tab) => (
@@ -112,8 +115,14 @@ export function PullRequestsTopBar({
 					<WorkItemsSearch
 						value={searchQuery}
 						onChange={onSearchChange}
-						placeholder="Search pull requests…"
-						label="Search pull requests"
+						placeholder={t({
+							id: "dashboard.pullRequests.search.placeholder",
+							message: "Search pull requests…",
+						})}
+						label={t({
+							id: "dashboard.pullRequests.search.label",
+							message: "Search pull requests",
+						})}
 						className="bg-muted"
 					/>
 				</div>
@@ -125,10 +134,19 @@ export function PullRequestsTopBar({
 							className="relative shrink-0"
 							aria-label={
 								activeFilterCount > 0
-									? `Filters, ${activeFilterCount} active`
-									: "Filters"
+									? t({
+											id: "dashboard.pullRequests.filters.triggerAriaActive",
+											message: `Filters, ${activeFilterCount} active`,
+										})
+									: t({
+											id: "dashboard.pullRequests.filters.trigger",
+											message: "Filters",
+										})
 							}
-							title="Filters"
+							title={t({
+								id: "dashboard.pullRequests.filters.trigger",
+								message: "Filters",
+							})}
 						>
 							<LuListFilter className="size-3.5" />
 							{activeFilterCount > 0 && (

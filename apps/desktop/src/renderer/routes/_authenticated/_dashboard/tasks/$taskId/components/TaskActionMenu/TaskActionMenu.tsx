@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -23,6 +23,7 @@ interface TaskActionMenuProps {
 }
 
 export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
+	const { t } = useLingui();
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
@@ -53,7 +54,10 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 					variant="ghost"
 					size="icon"
 					className="h-8 w-8"
-					aria-label="Open task actions"
+					aria-label={t({
+						id: "dashboard.tasks.taskActionMenu.openActions",
+						message: "Open task actions",
+					})}
 				>
 					<HiEllipsisHorizontal className="h-4 w-4" />
 				</Button>

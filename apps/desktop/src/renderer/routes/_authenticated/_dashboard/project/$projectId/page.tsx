@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { sanitizeSegment } from "@superset/shared/workspace-launch";
 import { Button } from "@superset/ui/button";
@@ -115,6 +115,7 @@ function parseConfigContent(content: string | null): {
 }
 
 function ProjectPage() {
+	const { t } = useLingui();
 	const { projectId } = Route.useParams();
 
 	const { data: project } = electronTrpc.projects.get.useQuery({
@@ -241,11 +242,28 @@ function ProjectPage() {
 				compareBaseBranch: compareBaseBranch || undefined,
 			});
 
-			toast.success("Workspace created", {
-				description: "Setting up in the background...",
-			});
+			toast.success(
+				t({
+					id: "dashboard.project.onboarding.workspaceCreated",
+					message: "Workspace created",
+				}),
+				{
+					description: t({
+						id: "dashboard.project.onboarding.settingUpInBackground",
+						message: "Setting up in the background...",
+					}),
+				},
+			);
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to create workspace"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.project.onboarding.createWorkspaceFailed",
+						message: "Failed to create workspace",
+					}),
+				),
+			);
 		}
 	};
 
@@ -274,7 +292,15 @@ function ProjectPage() {
 
 			await handleCreateWorkspace();
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to save setup config"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.project.onboarding.saveSetupConfigFailed",
+						message: "Failed to save setup config",
+					}),
+				),
+			);
 		}
 	};
 
@@ -373,7 +399,10 @@ function ProjectPage() {
 											id="task-title"
 											ref={titleInputRef}
 											className="h-11"
-											placeholder="e.g. Add dark mode, Fix checkout bug"
+											placeholder={t({
+												id: "dashboard.project.onboarding.titlePlaceholder",
+												message: "e.g. Add dark mode, Fix checkout bug",
+											})}
 											value={title}
 											onChange={(e) => setTitle(e.target.value)}
 											onKeyDown={(e) => {
@@ -481,7 +510,10 @@ function ProjectPage() {
 																>
 																	<Command shouldFilter={false}>
 																		<CommandInput
-																			placeholder="Search branches..."
+																			placeholder={t({
+																				id: "dashboard.project.onboarding.searchBranches",
+																				message: "Search branches...",
+																			})}
 																			value={branchSearch}
 																			onValueChange={setBranchSearch}
 																		/>
@@ -661,7 +693,10 @@ function ProjectPage() {
 														id="setup-script"
 														wrap="off"
 														className="h-full min-h-[220px] resize-none overflow-x-auto whitespace-pre font-mono text-xs"
-														placeholder="Add setup commands, one per line..."
+														placeholder={t({
+															id: "dashboard.project.onboarding.setupCommandsPlaceholder",
+															message: "Add setup commands, one per line...",
+														})}
 														value={setupContent}
 														onChange={(e) => setSetupContent(e.target.value)}
 													/>

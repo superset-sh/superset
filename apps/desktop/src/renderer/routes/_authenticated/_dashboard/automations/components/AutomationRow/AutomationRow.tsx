@@ -1,5 +1,8 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
+import { i18n } from "@superset/i18n";
 import {
 	describeSchedule,
 	formatDateTimeInTimezone,
@@ -50,34 +53,108 @@ interface AutomationRowProps {
 // A run's terminal success state is workspace creation — say so.
 const LAST_RUN_META: Record<
 	SelectAutomationRun["status"],
-	{ dot: string; label: string; failed?: boolean }
+	{ dot: string; label: MessageDescriptor; failed?: boolean }
 > = {
-	dispatched: { dot: "bg-emerald-500", label: "created" },
-	dispatching: { dot: "bg-amber-500", label: "creating" },
-	skipped_offline: { dot: "bg-red-500", label: "failed", failed: true },
-	dispatch_failed: { dot: "bg-red-500", label: "failed", failed: true },
+	dispatched: {
+		dot: "bg-emerald-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunCreated",
+			message: "created",
+		}),
+	},
+	dispatching: {
+		dot: "bg-amber-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunCreating",
+			message: "creating",
+		}),
+	},
+	skipped_offline: {
+		dot: "bg-red-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunFailedOffline",
+			message: "failed",
+		}),
+		failed: true,
+	},
+	dispatch_failed: {
+		dot: "bg-red-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunFailed",
+			message: "failed",
+		}),
+		failed: true,
+	},
 	// Neither created a workspace, so neither is `failed` — that flag offers to
 	// open one.
-	debounced: { dot: "bg-slate-400", label: "superseded" },
-	rejected: { dot: "bg-amber-500", label: "blocked" },
+	debounced: {
+		dot: "bg-slate-400",
+		label: msg({
+			id: "dashboard.automations.row.lastRunSuperseded",
+			message: "superseded",
+		}),
+	},
+	rejected: {
+		dot: "bg-amber-500",
+		label: msg({
+			id: "dashboard.automations.row.lastRunBlocked",
+			message: "blocked",
+		}),
+	},
 };
 
 function compactUntil(at: number, now: Date): string {
 	const minutes = Math.floor((at - now.getTime()) / 60_000);
-	if (minutes < 1) return "soon";
-	if (minutes < 60) return `in ${minutes}m`;
+	if (minutes < 1)
+		return i18n._(
+			msg({ id: "dashboard.automations.row.untilSoon", message: "soon" }),
+		);
+	if (minutes < 60)
+		return i18n._(
+			msg({
+				id: "dashboard.automations.row.untilMinutes",
+				message: `in ${minutes}m`,
+			}),
+		);
 	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `in ${hours}h`;
-	return `in ${Math.floor(hours / 24)}d`;
+	if (hours < 24)
+		return i18n._(
+			msg({
+				id: "dashboard.automations.row.untilHours",
+				message: `in ${hours}h`,
+			}),
+		);
+	const days = Math.floor(hours / 24);
+	return i18n._(
+		msg({ id: "dashboard.automations.row.untilDays", message: `in ${days}d` }),
+	);
 }
 
 function compactAgo(at: number, now: Date): string {
 	const minutes = Math.floor((now.getTime() - at) / 60_000);
-	if (minutes < 1) return "just now";
-	if (minutes < 60) return `${minutes}m ago`;
+	if (minutes < 1)
+		return i18n._(
+			msg({ id: "dashboard.automations.row.agoJustNow", message: "just now" }),
+		);
+	if (minutes < 60)
+		return i18n._(
+			msg({
+				id: "dashboard.automations.row.agoMinutes",
+				message: `${minutes}m ago`,
+			}),
+		);
 	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
-	return `${Math.floor(hours / 24)}d ago`;
+	if (hours < 24)
+		return i18n._(
+			msg({
+				id: "dashboard.automations.row.agoHours",
+				message: `${hours}h ago`,
+			}),
+		);
+	const days = Math.floor(hours / 24);
+	return i18n._(
+		msg({ id: "dashboard.automations.row.agoDays", message: `${days}d ago` }),
+	);
 }
 
 export function AutomationRow({
@@ -212,10 +289,13 @@ export function AutomationRow({
 						className="text-xs text-muted-foreground"
 						title={
 							automation.enabled && automation.nextRunAt
-								? `Next run ${formatDateTimeInTimezone(
-										new Date(automation.nextRunAt),
-										automation.timezone ?? "UTC",
-									)}`
+								? t({
+										id: "dashboard.automations.row.nextRunTitle",
+										message: `Next run ${formatDateTimeInTimezone(
+											new Date(automation.nextRunAt),
+											automation.timezone ?? "UTC",
+										)}`,
+									})
 								: undefined
 						}
 					>
@@ -255,7 +335,7 @@ export function AutomationRow({
 												lastRunMeta.dot,
 											)}
 										/>
-										{lastRunMeta.label}
+										{i18n._(lastRunMeta.label)}
 										<span
 											className="truncate text-muted-foreground/70"
 											title={new Date(lastRun.at).toLocaleString()}
@@ -327,7 +407,10 @@ export function AutomationRow({
 												e.stopPropagation();
 												onRunNow(automation);
 											}}
-											aria-label={`Run ${automation.name} now`}
+											aria-label={t({
+												id: "dashboard.automations.row.runNowAriaLabel",
+												message: `Run ${automation.name} now`,
+											})}
 											className={cn(
 												"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
 												isRetrying && "opacity-100",
@@ -354,7 +437,10 @@ export function AutomationRow({
 											variant="ghost"
 											size="icon-sm"
 											onClick={(e) => e.stopPropagation()}
-											aria-label="Row actions"
+											aria-label={t({
+												id: "dashboard.automations.row.rowActionsAriaLabel",
+												message: "Row actions",
+											})}
 											className="opacity-0 group-hover/row:opacity-100 data-[state=open]:opacity-100 focus-visible:opacity-100"
 										>
 											<LuEllipsis className="size-4" />

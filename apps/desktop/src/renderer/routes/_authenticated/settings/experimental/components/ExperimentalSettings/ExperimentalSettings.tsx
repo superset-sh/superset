@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
@@ -34,6 +34,7 @@ interface ExperimentalSettingsProps {
 export function ExperimentalSettings({
 	visibleItems,
 }: ExperimentalSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const showSupersetV2 = isItemVisible(
 		SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2,
@@ -87,11 +88,20 @@ export function ExperimentalSettings({
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="superset-v2" className="text-sm font-medium">
-								<HighlightText text="Try Superset v2" query={searchQuery} />
+								<HighlightText
+									text={t({
+										id: "settings.experimental.v2Label",
+										message: "Try Superset v2",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Use the new workspace experience."
+									text={t({
+										id: "settings.experimental.v2Hint",
+										message: "Use the new workspace experience.",
+									})}
 									query={searchQuery}
 								/>
 							</p>
@@ -113,18 +123,31 @@ export function ExperimentalSettings({
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label className="text-sm font-medium">
-								<HighlightText text="Import from v1" query={searchQuery} />
+								<HighlightText
+									text={t({
+										id: "settings.experimental.v1ImportLabel",
+										message: "Import from v1",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried."
+									text={t({
+										id: "settings.experimental.v1ImportHint",
+										message:
+											"Bring v1 projects, workspaces, and terminal scripts over to v2. Each item is imported individually and can be retried.",
+									})}
 									query={searchQuery}
 								/>
 							</p>
 							{!isV2CloudEnabled && (
 								<p className="text-xs text-muted-foreground">
 									<HighlightText
-										text="Available when v2 is enabled."
+										text={t({
+											id: "settings.experimental.v1ImportRequiresV2",
+											message: "Available when v2 is enabled.",
+										})}
 										query={searchQuery}
 									/>
 								</p>
@@ -152,13 +175,20 @@ export function ExperimentalSettings({
 								className="text-sm font-medium"
 							>
 								<HighlightText
-									text="Ports in top bar dropdown"
+									text={t({
+										id: "settings.experimental.inlinePortsLabel",
+										message: "Ports in top bar dropdown",
+									})}
 									query={searchQuery}
 								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Show detected ports as a dropdown in the top bar instead of a chip under each workspace in the sidebar."
+									text={t({
+										id: "settings.experimental.inlinePortsHint",
+										message:
+											"Show detected ports as a dropdown in the top bar instead of a chip under each workspace in the sidebar.",
+									})}
 									query={searchQuery}
 								/>
 							</p>
@@ -176,11 +206,21 @@ export function ExperimentalSettings({
 					<div className="flex items-center justify-between gap-6">
 						<div className="min-w-0 flex-1 space-y-0.5">
 							<Label htmlFor="workspace-agents" className="text-sm font-medium">
-								<HighlightText text="Workspace agents" query={searchQuery} />
+								<HighlightText
+									text={t({
+										id: "settings.experimental.workspaceAgentsLabel",
+										message: "Workspace agents",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<HighlightText
-									text="Show running agents under each workspace in the sidebar, with their live status."
+									text={t({
+										id: "settings.experimental.workspaceAgentsHint",
+										message:
+											"Show running agents under each workspace in the sidebar, with their live status.",
+									})}
 									query={searchQuery}
 								/>
 							</p>

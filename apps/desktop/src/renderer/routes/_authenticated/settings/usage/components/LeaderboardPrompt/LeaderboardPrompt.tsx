@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { TrophyIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -7,6 +7,7 @@ import { useLeaderboardJoinPreview } from "renderer/routes/_authenticated/hooks/
 import { useLeaderboardOptIn } from "renderer/routes/_authenticated/hooks/useLeaderboardOptIn";
 
 export function LeaderboardPrompt({ hostUrl }: { hostUrl: string | null }) {
+	const { t } = useLingui();
 	const { isLoading, optedIn, join, joining } = useLeaderboardOptIn();
 	const {
 		preview,
@@ -51,7 +52,10 @@ export function LeaderboardPrompt({ hostUrl }: { hostUrl: string | null }) {
 					<Button
 						size="sm"
 						variant="ghost"
-						aria-label="Dismiss"
+						aria-label={t({
+							id: "settings.usage.leaderboardPrompt.dismiss",
+							message: "Dismiss",
+						})}
 						onClick={() => setDismissed(true)}
 					>
 						<XIcon className="size-3.5" />

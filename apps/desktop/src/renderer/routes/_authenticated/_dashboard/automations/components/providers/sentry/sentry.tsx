@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { SiSentry } from "react-icons/si";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
@@ -25,8 +27,18 @@ function renderSlot(
 					onChange={(v) => set({ projects: v })}
 					className={mark("projects")}
 					options={options.sentry?.projects ?? []}
-					emptyLabel="Select projects"
-					anyLabel="Any project"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.sentry.selectProjects",
+							message: "Select projects",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.sentry.anyProject",
+							message: "Any project",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -42,8 +54,18 @@ function renderSlot(
 						set({ level: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={options.sentry?.levels ?? []}
-					emptyLabel="Any level"
-					anyLabel="Any level"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.sentry.anyLevelEmpty",
+							message: "Any level",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.sentry.anyLevel",
+							message: "Any level",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);

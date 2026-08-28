@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -73,6 +73,7 @@ export function TerminalConnectionIndicator({
 	terminalId,
 	terminalInstanceId,
 }: TerminalConnectionIndicatorProps) {
+	const { t } = useLingui();
 	const subscribe = useCallback(
 		(callback: () => void) => {
 			const unsubState = terminalRuntimeRegistry.onStateChange(
@@ -125,15 +126,30 @@ export function TerminalConnectionIndicator({
 	);
 	const restartDaemon = workspaceTrpc.terminal.daemon.restart.useMutation({
 		onSuccess: () => {
-			toast.success("Terminals restarted", {
-				description: "All terminal sessions were closed.",
-			});
+			toast.success(
+				t({
+					id: "workspace.terminalPane.restartSucceeded",
+					message: "Terminals restarted",
+				}),
+				{
+					description: t({
+						id: "workspace.terminalPane.restartSucceededDescription",
+						message: "All terminal sessions were closed.",
+					}),
+				},
+			);
 			void healthQuery.refetch();
 		},
 		onError: (error) => {
-			toast.error("Couldn't restart terminals", {
-				description: errorMessage(error),
-			});
+			toast.error(
+				t({
+					id: "workspace.terminalPane.restartFailed",
+					message: "Couldn't restart terminals",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
 		},
 	});
 
@@ -175,10 +191,19 @@ export function TerminalConnectionIndicator({
 	const reconnecting = connectionState === "connecting";
 	const label =
 		mode === "unresponsive"
-			? "Terminals aren't responding"
+			? t({
+					id: "workspace.terminalPane.statusUnresponsive",
+					message: "Terminals aren't responding",
+				})
 			: mode === "disconnected"
-				? "Disconnected"
-				: "Reconnecting…";
+				? t({
+						id: "workspace.terminalPane.statusDisconnected",
+						message: "Disconnected",
+					})
+				: t({
+						id: "workspace.terminalPane.statusReconnecting",
+						message: "Reconnecting…",
+					});
 	const StatusIcon = mode === "reconnecting" ? Loader2 : TriangleAlert;
 	const accentClass =
 		mode === "disconnected" ? "text-destructive" : "text-yellow-500";
@@ -194,7 +219,10 @@ export function TerminalConnectionIndicator({
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					aria-label={`Terminal connection: ${label}`}
+					aria-label={t({
+						id: "workspace.terminalPane.connectionAria",
+						message: `Terminal connection: ${label}`,
+					})}
 					className="flex h-5 items-center gap-1.5 rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<span className={cn("size-1.5 rounded-full", dotClass)} />

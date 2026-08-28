@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { GoGitPullRequest } from "react-icons/go";
@@ -44,6 +44,7 @@ export function PullRequestsContent({
 	selectedPrProjectId,
 	repoSlugByProjectId,
 }: PullRequestsContentProps) {
+	const { t } = useLingui();
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const navigate = useNavigate();
 	const expandDetail = usePullRequestsSplitViewStore((s) => s.expandDetail);
@@ -207,8 +208,14 @@ export function PullRequestsContent({
 					variant="ghost"
 					size="icon-xs"
 					className="ml-auto"
-					title="Refresh"
-					aria-label="Refresh pull requests"
+					title={t({
+						id: "dashboard.pullRequests.list.refresh",
+						message: "Refresh",
+					})}
+					aria-label={t({
+						id: "dashboard.pullRequests.list.refreshAria",
+						message: "Refresh pull requests",
+					})}
 					disabled={isFetching}
 					onClick={() => refetch()}
 				>

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectInvitation } from "@superset/db/schema";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
@@ -18,6 +18,7 @@ interface InvitationActionsProps {
 }
 
 export function InvitationActions({ invitation }: InvitationActionsProps) {
+	const { t } = useLingui();
 	const [isCanceling, setIsCanceling] = useState(false);
 
 	const handleCancel = async () => {
@@ -26,9 +27,22 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 			await authClient.organization.cancelInvitation({
 				invitationId: invitation.id,
 			});
-			toast.success("Invitation canceled");
+			toast.success(
+				t({
+					id: "settings.team.invitationCanceledToast",
+					message: "Invitation canceled",
+				}),
+			);
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to cancel invitation"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.team.invitationCancelFailedToast",
+						message: "Failed to cancel invitation",
+					}),
+				),
+			);
 		} finally {
 			setIsCanceling(false);
 		}

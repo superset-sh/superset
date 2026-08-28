@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { Editor } from "@tiptap/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -47,6 +47,7 @@ function ToolbarButton({
 }
 
 function HeadingDropdown({ editor }: { editor: Editor }) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +73,10 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 				? 3
 				: 0;
 
-	const label = currentLevel === 0 ? "Text" : `H${currentLevel}`;
+	const label =
+		currentLevel === 0
+			? t({ id: "components.bubbleMenuToolbar.textStyleText", message: "Text" })
+			: `H${currentLevel}`;
 
 	const handleSelect = useCallback(
 		(level: number, e: React.MouseEvent) => {
@@ -95,7 +99,10 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 		<div ref={containerRef} className="relative">
 			<button
 				type="button"
-				title="Text style"
+				title={t({
+					id: "components.bubbleMenuToolbar.textStyle",
+					message: "Text style",
+				})}
 				className={`flex items-center gap-0.5 h-7 px-1.5 rounded text-xs font-medium hover:bg-accent/80 ${
 					currentLevel > 0
 						? "bg-accent text-accent-foreground"
@@ -130,10 +137,34 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 			{open && (
 				<div className="absolute top-full left-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md p-1 w-36 z-50">
 					{[
-						{ level: 0, label: "Paragraph" },
-						{ level: 1, label: "Heading 1" },
-						{ level: 2, label: "Heading 2" },
-						{ level: 3, label: "Heading 3" },
+						{
+							level: 0,
+							label: t({
+								id: "components.bubbleMenuToolbar.paragraph",
+								message: "Paragraph",
+							}),
+						},
+						{
+							level: 1,
+							label: t({
+								id: "components.bubbleMenuToolbar.heading1",
+								message: "Heading 1",
+							}),
+						},
+						{
+							level: 2,
+							label: t({
+								id: "components.bubbleMenuToolbar.heading2",
+								message: "Heading 2",
+							}),
+						},
+						{
+							level: 3,
+							label: t({
+								id: "components.bubbleMenuToolbar.heading3",
+								message: "Heading 3",
+							}),
+						},
 					].map((item) => (
 						<button
 							type="button"
@@ -163,6 +194,7 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 }
 
 function ListDropdown({ editor }: { editor: Editor }) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
@@ -204,7 +236,10 @@ function ListDropdown({ editor }: { editor: Editor }) {
 		<div ref={containerRef} className="relative">
 			<button
 				type="button"
-				title="List"
+				title={t({
+					id: "components.bubbleMenuToolbar.list",
+					message: "List",
+				})}
 				className={`flex items-center gap-0.5 h-7 px-1.5 rounded hover:bg-accent/80 ${
 					isAnyListActive
 						? "bg-accent text-accent-foreground"
@@ -279,6 +314,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 }
 
 export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
+	const { t } = useLingui();
 	const prevent = (e: React.MouseEvent) => e.preventDefault();
 	const [showLinkInput, setShowLinkInput] = useState(false);
 	const [linkUrl, setLinkUrl] = useState("");
@@ -324,7 +360,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 						}
 					}}
 					onBlur={cancelLink}
-					placeholder="Enter URL..."
+					placeholder={t({
+						id: "components.bubbleMenuToolbar.enterUrlPlaceholder",
+						message: "Enter URL...",
+					})}
 					className="bg-transparent text-sm outline-none w-48 text-foreground placeholder:text-muted-foreground"
 				/>
 			</div>
@@ -338,7 +377,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			<div className="w-px h-4 bg-border mx-0.5" />
 
 			<ToolbarButton
-				title="Bold"
+				title={t({
+					id: "components.bubbleMenuToolbar.bold",
+					message: "Bold",
+				})}
 				isActive={editor.isActive("bold")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -349,7 +391,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			</ToolbarButton>
 
 			<ToolbarButton
-				title="Italic"
+				title={t({
+					id: "components.bubbleMenuToolbar.italic",
+					message: "Italic",
+				})}
 				isActive={editor.isActive("italic")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -360,7 +405,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			</ToolbarButton>
 
 			<ToolbarButton
-				title="Underline"
+				title={t({
+					id: "components.bubbleMenuToolbar.underline",
+					message: "Underline",
+				})}
 				isActive={editor.isActive("underline")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -371,7 +419,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			</ToolbarButton>
 
 			<ToolbarButton
-				title="Strikethrough"
+				title={t({
+					id: "components.bubbleMenuToolbar.strikethrough",
+					message: "Strikethrough",
+				})}
 				isActive={editor.isActive("strike")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -382,7 +433,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			</ToolbarButton>
 
 			<ToolbarButton
-				title="Inline code"
+				title={t({
+					id: "components.bubbleMenuToolbar.inlineCode",
+					message: "Inline code",
+				})}
 				isActive={editor.isActive("code")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -395,7 +449,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			<div className="w-px h-4 bg-border mx-0.5" />
 
 			<ToolbarButton
-				title="Link"
+				title={t({
+					id: "components.bubbleMenuToolbar.link",
+					message: "Link",
+				})}
 				isActive={editor.isActive("link")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -411,7 +468,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			</ToolbarButton>
 
 			<ToolbarButton
-				title="Blockquote"
+				title={t({
+					id: "components.bubbleMenuToolbar.blockquote",
+					message: "Blockquote",
+				})}
 				isActive={editor.isActive("blockquote")}
 				onMouseDown={(e) => {
 					prevent(e);
@@ -422,7 +482,10 @@ export function BubbleMenuToolbar({ editor }: BubbleMenuToolbarProps) {
 			</ToolbarButton>
 
 			<ToolbarButton
-				title="Code block"
+				title={t({
+					id: "components.bubbleMenuToolbar.codeBlock",
+					message: "Code block",
+				})}
 				isActive={editor.isActive("codeBlock")}
 				onMouseDown={(e) => {
 					prevent(e);

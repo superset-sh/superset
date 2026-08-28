@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import {
 	Empty,
@@ -251,7 +252,7 @@ function StatusSectionGroup({
 					<BoardColumnIcon column={section.column} />
 				</span>
 				<h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-					{BOARD_COLUMN_LABELS[section.column]}
+					{i18n._(BOARD_COLUMN_LABELS[section.column])}
 				</h3>
 				<span className="shrink-0 text-[11px] tabular-nums text-muted-foreground/70">
 					{section.workspaces.length}

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { OutboxEntry } from "@superset/chat/core";
 import type { UserContent } from "@superset/chat/protocol";
 import { Button } from "@superset/ui/button";
@@ -24,6 +25,7 @@ export function Composer({
 	outbox,
 	placeholder,
 }: ComposerProps) {
+	const { t } = useLingui();
 	const [value, setValue] = useState(
 		() => window.localStorage.getItem(draftKey) ?? "",
 	);
@@ -88,7 +90,13 @@ export function Composer({
 						send();
 					}
 				}}
-				placeholder={placeholder ?? "Message the agent"}
+				placeholder={
+					placeholder ??
+					t({
+						id: "workspace.chat.composerPlaceholder",
+						message: "Message the agent",
+					})
+				}
 				value={value}
 			/>
 			{onCancelTurn ? (

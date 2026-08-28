@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { RendererContext } from "@superset/panes";
 import {
 	DropdownMenu,
@@ -57,7 +58,11 @@ interface TerminalPaneLocation {
 const EMPTY_TERMINAL_PANE_LOCATIONS = new Map<string, TerminalPaneLocation[]>();
 
 function formatCreatedAt(createdAt: number | undefined): string {
-	if (!createdAt) return "Creating";
+	if (!createdAt)
+		return i18n._({
+			id: "workspace.terminalPane.sessionCreating",
+			message: "Creating",
+		});
 
 	return getRelativeTime(createdAt, { format: "compact" });
 }
@@ -89,6 +94,7 @@ export function TerminalSessionDropdown({
 	launcher,
 	workspaceId,
 }: TerminalSessionDropdownProps) {
+	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
 	const collections = useCollections();
 	const { terminalId } = context.pane.data as TerminalPaneData;
@@ -234,9 +240,18 @@ export function TerminalSessionDropdown({
 
 	const handleRemoveTerminal = (session: VisibleTerminalSession) => {
 		toast.promise(removeTerminalSession(session), {
-			loading: "Removing terminal...",
-			success: "Terminal removed",
-			error: "Failed to remove terminal",
+			loading: t({
+				id: "workspace.terminalPane.removingTerminal",
+				message: "Removing terminal...",
+			}),
+			success: t({
+				id: "workspace.terminalPane.terminalRemoved",
+				message: "Terminal removed",
+			}),
+			error: t({
+				id: "workspace.terminalPane.removeTerminalFailed",
+				message: "Failed to remove terminal",
+			}),
 		});
 	};
 
@@ -275,7 +290,10 @@ export function TerminalSessionDropdown({
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					aria-label="Terminal sessions"
+					aria-label={t({
+						id: "workspace.terminalPane.sessionsAria",
+						message: "Terminal sessions",
+					})}
 					title={triggerTitle}
 					className="flex min-w-32 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					onMouseDown={(event) => event.stopPropagation()}
@@ -291,7 +309,10 @@ export function TerminalSessionDropdown({
 										? "size-1.5 shrink-0 rounded-full bg-amber-500"
 										: "size-1.5 shrink-0 rounded-full bg-red-500"
 							}
-							title={`Workspace run: ${workspaceRunState}`}
+							title={t({
+								id: "workspace.terminalPane.workspaceRunState",
+								message: `Workspace run: ${workspaceRunState}`,
+							})}
 						/>
 					)}
 					<span className="min-w-0 flex-1 truncate text-left">
@@ -311,8 +332,14 @@ export function TerminalSessionDropdown({
 					</span>
 					<button
 						type="button"
-						aria-label="New terminal"
-						title="New terminal"
+						aria-label={t({
+							id: "workspace.terminalPane.newTerminalAria",
+							message: "New terminal",
+						})}
+						title={t({
+							id: "workspace.terminalPane.newTerminalTitle",
+							message: "New terminal",
+						})}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 						onClick={(event) => {
 							event.preventDefault();
@@ -333,14 +360,29 @@ export function TerminalSessionDropdown({
 							)?.[0];
 							const createdAtLabel = formatCreatedAt(session.createdAt);
 							const status = isCurrent
-								? "Current"
+								? t({
+										id: "workspace.terminalPane.sessionStatusCurrent",
+										message: "Current",
+									})
 								: workspaceRunTerminals[session.terminalId]
-									? "Run"
+									? t({
+											id: "workspace.terminalPane.sessionStatusRun",
+											message: "Run",
+										})
 									: session.pending
-										? "Starting"
+										? t({
+												id: "workspace.terminalPane.sessionStatusStarting",
+												message: "Starting",
+											})
 										: session.attached
-											? "Attached"
-											: "Detached";
+											? t({
+													id: "workspace.terminalPane.sessionStatusAttached",
+													message: "Attached",
+												})
+											: t({
+													id: "workspace.terminalPane.sessionStatusDetached",
+													message: "Detached",
+												});
 							const title = isCurrent
 								? triggerTitle
 								: getTerminalDisplayTitle({
@@ -370,7 +412,17 @@ export function TerminalSessionDropdown({
 									</span>
 									<button
 										type="button"
-										aria-label={`Remove terminal ${session.createdAt ? createdAtLabel : "session"}`}
+										aria-label={
+											session.createdAt
+												? t({
+														id: "workspace.terminalPane.removeTerminalCreatedAria",
+														message: `Remove terminal ${createdAtLabel}`,
+													})
+												: t({
+														id: "workspace.terminalPane.removeTerminalSessionAria",
+														message: "Remove terminal session",
+													})
+										}
 										disabled={killTerminalSession.isPending}
 										className="shrink-0 rounded p-0.5 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-30 group-hover:opacity-100"
 										onClick={(event) => {

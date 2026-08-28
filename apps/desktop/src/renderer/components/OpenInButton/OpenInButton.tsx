@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
@@ -35,6 +35,7 @@ export function OpenInButton({
 	showShortcuts = false,
 	projectId,
 }: OpenInButtonProps) {
+	const { t } = useLingui();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
@@ -104,11 +105,17 @@ export function OpenInButton({
 					<TooltipContent side="bottom">
 						{showOpenInShortcut ? (
 							<HotkeyLabel
-								label={`Open in ${currentApp.displayLabel ?? currentApp.label}`}
+								label={t({
+									id: "components.openInButton.openInApp",
+									message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
+								})}
 								id="OPEN_IN_APP"
 							/>
 						) : (
-							`Open in ${currentApp.displayLabel ?? currentApp.label}`
+							t({
+								id: "components.openInButton.openInApp",
+								message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
+							})
 						)}
 					</TooltipContent>
 				</Tooltip>

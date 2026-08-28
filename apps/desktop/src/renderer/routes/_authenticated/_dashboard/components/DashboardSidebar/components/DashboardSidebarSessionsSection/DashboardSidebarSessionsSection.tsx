@@ -88,7 +88,10 @@ export function DashboardSidebarSessionsSection({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
-							aria-label="New session"
+							aria-label={t({
+								id: "dashboard.sidebar.sessionsSection.newSessionAriaLabel",
+								message: "New session",
+							})}
 							onClick={(event) => {
 								event.stopPropagation();
 								openNewSessionModal();
@@ -131,7 +134,10 @@ export function DashboardSidebarSessionsSection({
 			{dropZoneEligible && (
 				<SidebarDropZone
 					dropZoneId={dropZoneId(SESSIONS_CONTAINER)}
-					label="Drop to unpin"
+					label={t({
+						id: "dashboard.sidebar.sessionsSection.dropToUnpin",
+						message: "Drop to unpin",
+					})}
 				/>
 			)}
 		</div>

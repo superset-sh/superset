@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -36,6 +36,7 @@ export function CloudWorkspaceProvisioningState({
 	branch,
 	status,
 }: CloudWorkspaceProvisioningStateProps) {
+	const { t } = useLingui();
 	const elapsed = useElapsedSeconds();
 
 	if (status === "failed") {
@@ -73,7 +74,11 @@ export function CloudWorkspaceProvisioningState({
 						</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
-						{name || "Untitled workspace"}
+						{name ||
+							t({
+								id: "workspace.states.cloudProvisioningUntitled",
+								message: "Untitled workspace",
+							})}
 					</p>
 				</div>
 
@@ -92,11 +97,17 @@ export function CloudWorkspaceProvisioningState({
 
 				<ul className="flex w-full flex-col gap-2">
 					<StepRow
-						label="Creating sandbox"
+						label={t({
+							id: "workspace.states.cloudProvisioningStepSandbox",
+							message: "Creating sandbox",
+						})}
 						state={sandboxReady ? "done" : "active"}
 					/>
 					<StepRow
-						label="Connecting to the workspace"
+						label={t({
+							id: "workspace.states.cloudProvisioningStepConnect",
+							message: "Connecting to the workspace",
+						})}
 						state={sandboxReady ? "active" : "pending"}
 					/>
 				</ul>
@@ -135,6 +146,7 @@ function CloudWorkspaceFailedState({
 	name: string;
 	branch: string;
 }) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const utils = cloudTrpc.useUtils();
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -171,7 +183,11 @@ function CloudWorkspaceFailedState({
 						</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
-						{name || "Untitled workspace"}
+						{name ||
+							t({
+								id: "workspace.states.cloudProvisioningFailedUntitled",
+								message: "Untitled workspace",
+							})}
 					</p>
 				</div>
 
@@ -204,7 +220,15 @@ function CloudWorkspaceFailedState({
 					disabled={isDeleting}
 					onClick={() => void handleDelete()}
 				>
-					{isDeleting ? "Removing…" : "Remove workspace"}
+					{isDeleting
+						? t({
+								id: "workspace.states.cloudProvisioningRemoving",
+								message: "Removing…",
+							})
+						: t({
+								id: "workspace.states.cloudProvisioningRemoveWorkspace",
+								message: "Remove workspace",
+							})}
 				</Button>
 			</div>
 		</div>

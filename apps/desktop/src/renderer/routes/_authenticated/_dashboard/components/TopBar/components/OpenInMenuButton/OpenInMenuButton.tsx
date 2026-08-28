@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
@@ -30,6 +30,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	branch,
 	projectId,
 }: OpenInMenuButtonProps) {
+	const { t } = useLingui();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const utils = electronTrpc.useUtils();
 	const { data: defaultApp } = electronTrpc.projects.getDefaultApp.useQuery(
@@ -43,11 +44,29 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				utils.projects.getDefaultApp.invalidate({ projectId });
 			}
 		},
-		onError: (error) => toast.error(`Failed to open: ${error.message}`),
+		onError: (error) =>
+			toast.error(
+				t({
+					id: "dashboard.topBar.openInMenu.openFailed",
+					message: `Failed to open: ${error.message}`,
+				}),
+			),
 	});
 	const copyPath = electronTrpc.external.copyPath.useMutation({
-		onSuccess: () => toast.success("Path copied to clipboard"),
-		onError: (error) => toast.error(`Failed to copy path: ${error.message}`),
+		onSuccess: () =>
+			toast.success(
+				t({
+					id: "dashboard.topBar.openInMenu.pathCopied",
+					message: "Path copied to clipboard",
+				}),
+			),
+		onError: (error) =>
+			toast.error(
+				t({
+					id: "dashboard.topBar.openInMenu.copyPathFailed",
+					message: `Failed to copy path: ${error.message}`,
+				}),
+			),
 	});
 
 	const currentApp = useMemo(
@@ -93,8 +112,14 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 						disabled={isLoading || !currentApp}
 						aria-label={
 							currentApp
-								? `Open in ${currentApp.displayLabel ?? currentApp.label}`
-								: "Open in editor"
+								? t({
+										id: "dashboard.topBar.openInMenu.openInApp",
+										message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
+									})
+								: t({
+										id: "dashboard.topBar.openInMenu.openInEditor",
+										message: "Open in editor",
+									})
 						}
 						className={cn(
 							"group flex items-center gap-1.5 h-6 px-1.5 sm:pl-1.5 sm:pr-2 rounded-l border border-r-0 border-border/60 bg-secondary/50 text-xs font-medium",
@@ -125,11 +150,16 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 				<TooltipContent side="bottom" sideOffset={6}>
 					{currentApp ? (
 						<HotkeyLabel
-							label={`Open in ${currentApp.displayLabel ?? currentApp.label}`}
+							label={t({
+								id: "dashboard.topBar.openInMenu.openInAppTooltip",
+								message: `Open in ${currentApp.displayLabel ?? currentApp.label}`,
+							})}
 							id="OPEN_IN_APP"
 						/>
 					) : (
-						"Select an editor from the dropdown"
+						<Trans id="dashboard.topBar.openInMenu.selectEditor">
+							Select an editor from the dropdown
+						</Trans>
 					)}
 				</TooltipContent>
 			</Tooltip>

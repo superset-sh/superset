@@ -1,3 +1,5 @@
+import { useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	type BranchPrefixMode,
 	sanitizeSegment,
@@ -12,8 +14,8 @@ import {
 } from "@superset/ui/select";
 import { useEffect, useState } from "react";
 import {
-	BRANCH_PREFIX_MODE_LABELS,
-	BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT,
+	BRANCH_PREFIX_MODE_MESSAGES,
+	BRANCH_PREFIX_MODE_MESSAGES_WITH_DEFAULT,
 } from "../../utils/branch-prefix";
 
 /** Select value standing in for "no override — inherit the host default". */
@@ -50,6 +52,7 @@ export function BranchPrefixControl({
 	disabled,
 	onChange,
 }: BranchPrefixControlProps) {
+	const { t } = useLingui();
 	const [customPrefixInput, setCustomPrefixInput] = useState(
 		customPrefix ?? "",
 	);
@@ -60,8 +63,8 @@ export function BranchPrefixControl({
 	const selectValue = mode ?? DEFAULT_VALUE;
 
 	const labels = showDefault
-		? BRANCH_PREFIX_MODE_LABELS_WITH_DEFAULT
-		: BRANCH_PREFIX_MODE_LABELS;
+		? BRANCH_PREFIX_MODE_MESSAGES_WITH_DEFAULT
+		: BRANCH_PREFIX_MODE_MESSAGES;
 
 	const handleModeChange = (value: string) => {
 		const nextMode: BranchPrefixControlMode =
@@ -92,14 +95,17 @@ export function BranchPrefixControl({
 				<SelectContent>
 					{Object.entries(labels).map(([value, label]) => (
 						<SelectItem key={value} value={value}>
-							{label}
+							{i18n._(label)}
 						</SelectItem>
 					))}
 				</SelectContent>
 			</Select>
 			{selectValue === "custom" && (
 				<Input
-					placeholder="Prefix"
+					placeholder={t({
+						id: "settings.components.branchPrefixControl.prefixPlaceholder",
+						message: "Prefix",
+					})}
 					value={customPrefixInput}
 					onChange={(e) => setCustomPrefixInput(e.target.value)}
 					onBlur={handleCustomPrefixBlur}

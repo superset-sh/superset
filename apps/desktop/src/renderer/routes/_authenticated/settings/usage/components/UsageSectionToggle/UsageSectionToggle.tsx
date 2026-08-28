@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 
@@ -13,11 +13,18 @@ function pillClass(isActive: boolean) {
 
 /** Pill toggle between the Usage sections (workspaces-header style). */
 export function UsageSectionToggle() {
+	const { t } = useLingui();
 	const matchRoute = useMatchRoute();
 	const onResources = matchRoute({ to: "/settings/usage/resources" }) !== false;
 
 	return (
-		<nav aria-label="Usage sections" className="flex items-center gap-2">
+		<nav
+			aria-label={t({
+				id: "settings.usage.sectionToggle.ariaLabel",
+				message: "Usage sections",
+			})}
+			className="flex items-center gap-2"
+		>
 			<Link
 				to="/settings/usage"
 				className={pillClass(!onResources)}

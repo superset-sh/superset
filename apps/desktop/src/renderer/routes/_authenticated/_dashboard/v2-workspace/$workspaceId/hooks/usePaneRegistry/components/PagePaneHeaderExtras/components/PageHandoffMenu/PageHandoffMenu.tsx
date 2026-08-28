@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -35,6 +35,7 @@ export function PageHandoffMenu({
 	pageSlug,
 	threads,
 }: PageHandoffMenuProps) {
+	const { t } = useLingui();
 	const bindings = useTerminalAgentBindings(workspaceId);
 	const send = workspaceTrpc.terminal.send.useMutation();
 	const activate = cloudTrpc.pageComment.activate.useMutation();
@@ -58,9 +59,15 @@ export function PageHandoffMenu({
 				threadIds: open.map((thread) => thread.id),
 			});
 		} catch (error) {
-			toast.error("Could not hand off these comments", {
-				description: error instanceof Error ? error.message : undefined,
-			});
+			toast.error(
+				t({
+					id: "workspace.pagePane.handoffFailedToast",
+					message: "Could not hand off these comments",
+				}),
+				{
+					description: error instanceof Error ? error.message : undefined,
+				},
+			);
 			return;
 		}
 
@@ -72,11 +79,23 @@ export function PageHandoffMenu({
 				submit: true,
 			},
 			{
-				onSuccess: () => toast.success("Sent to agent"),
+				onSuccess: () =>
+					toast.success(
+						t({
+							id: "workspace.pagePane.sentToAgentToast",
+							message: "Sent to agent",
+						}),
+					),
 				onError: (error) =>
-					toast.error("Could not reach that agent", {
-						description: errorMessage(error),
-					}),
+					toast.error(
+						t({
+							id: "workspace.pagePane.agentUnreachableToast",
+							message: "Could not reach that agent",
+						}),
+						{
+							description: errorMessage(error),
+						},
+					),
 			},
 		);
 	};
@@ -88,8 +107,14 @@ export function PageHandoffMenu({
 					variant="ghost"
 					size="icon"
 					className="size-6 p-0 text-muted-foreground/60 hover:text-muted-foreground"
-					aria-label="Hand off to an agent"
-					title="Hand off to an agent"
+					aria-label={t({
+						id: "workspace.pagePane.handoffAria",
+						message: "Hand off to an agent",
+					})}
+					title={t({
+						id: "workspace.pagePane.handoffTitle",
+						message: "Hand off to an agent",
+					})}
 					disabled={send.isPending || activate.isPending}
 				>
 					<Bot className="size-4" />

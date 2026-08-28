@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -49,6 +50,7 @@ export function PRLinkCommand({
 	projectId,
 	hostId,
 }: PRLinkCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
@@ -93,8 +95,13 @@ export function PRLinkCommand({
 		}
 		if (lastToastedError.current === msg) return;
 		lastToastedError.current = msg;
-		toast.error(`Couldn't load pull requests: ${msg}`);
-	}, [error]);
+		toast.error(
+			t({
+				id: "dashboard.newWorkspaceModal.prLink.loadFailed",
+				message: `Couldn't load pull requests: ${msg}`,
+			}),
+		);
+	}, [error, t]);
 
 	const pullRequests = data?.pullRequests ?? [];
 	const repoMismatch =
@@ -138,7 +145,10 @@ export function PRLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pull requests..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.prLink.searchPlaceholder",
+							message: "Search pull requests...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -203,10 +213,22 @@ export function PRLinkCommand({
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
+										? t({
+												id: "dashboard.newWorkspaceModal.prLink.resultCount",
+												message: plural(pullRequests.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent PRs"
-											: "Open PRs"
+											? t({
+													id: "dashboard.newWorkspaceModal.prLink.recentPrs",
+													message: "Recent PRs",
+												})
+											: t({
+													id: "dashboard.newWorkspaceModal.prLink.openPrs",
+													message: "Open PRs",
+												})
 								}
 							>
 								{pullRequests.map((pr) => {

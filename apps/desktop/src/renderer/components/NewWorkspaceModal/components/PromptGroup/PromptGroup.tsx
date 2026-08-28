@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildPromptAgentLaunchRequest } from "@superset/shared/agent-launch-request";
@@ -187,6 +187,7 @@ function ProjectPickerPill({
 	onImportRepo: () => void;
 	onNewProject: () => void;
 }) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -222,7 +223,12 @@ function ProjectPickerPill({
 				onWheel={(event) => event.stopPropagation()}
 			>
 				<Command>
-					<CommandInput placeholder="Search projects..." />
+					<CommandInput
+						placeholder={t({
+							id: "components.promptGroup.searchProjectsPlaceholder",
+							message: "Search projects...",
+						})}
+					/>
 					<CommandList>
 						<CommandEmpty>
 							<Trans id="components.promptGroup.noProjectsFound">
@@ -317,6 +323,7 @@ function CompareBaseBranchPickerInline({
 	onOpenWorktree: (action: OpenableWorktreeAction) => void;
 	onOpenActiveWorkspace: (workspaceId: string) => void;
 }) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
 	const [filterMode, setFilterMode] = useState<"all" | "worktrees">("all");
@@ -412,7 +419,10 @@ function CompareBaseBranchPickerInline({
 						})}
 					</div>
 					<CommandInput
-						placeholder="Search branches..."
+						placeholder={t({
+							id: "components.promptGroup.searchBranchesPlaceholder",
+							message: "Search branches...",
+						})}
 						value={branchSearch}
 						onValueChange={setBranchSearch}
 					/>
@@ -579,6 +589,7 @@ function PromptGroupInner({
 	onImportRepo,
 	onNewProject,
 }: PromptGroupProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
@@ -769,7 +780,12 @@ function PromptGroupInner({
 	const handleCreate = useCallback(
 		async (preConvertedFiles?: ConvertedFile[]) => {
 			if (!projectId) {
-				toast.error("Select a project first");
+				toast.error(
+					t({
+						id: "components.promptGroup.selectProjectFirst",
+						message: "Select a project first",
+					}),
+				);
 				return;
 			}
 
@@ -826,7 +842,12 @@ function PromptGroupInner({
 						const message = rawErrorMessage(error);
 						if (message.includes("timeout")) {
 							console.warn("[PromptGroup] AI generation timeout");
-							toast.info("Using random branch name (AI generation timed out)");
+							toast.info(
+								t({
+									id: "components.promptGroup.branchNameTimeout",
+									message: "Using random branch name (AI generation timed out)",
+								}),
+							);
 						} else if (
 							message.toLowerCase().includes("auth") ||
 							message.includes("401") ||
@@ -834,14 +855,22 @@ function PromptGroupInner({
 						) {
 							console.error("[PromptGroup] AI auth error:", error);
 							toast.error(
-								"AI authentication failed. Please check your AI settings.",
+								t({
+									id: "components.promptGroup.aiAuthFailed",
+									message:
+										"AI authentication failed. Please check your AI settings.",
+								}),
 							);
 							clearPendingWorkspace(pendingWorkspaceId);
 							return;
 						} else {
 							console.warn("[PromptGroup] AI generation failed:", error);
 							toast.info(
-								"Using random branch name (AI generation unavailable)",
+								t({
+									id: "components.promptGroup.branchNameUnavailable",
+									message:
+										"Using random branch name (AI generation unavailable)",
+								}),
 							);
 						}
 					} finally {
@@ -864,7 +893,10 @@ function PromptGroupInner({
 						toast.error(
 							err instanceof Error
 								? err.message
-								: "Failed to process attachments",
+								: t({
+										id: "components.promptGroup.processAttachmentsFailed",
+										message: "Failed to process attachments",
+									}),
 						);
 						return;
 					}
@@ -994,7 +1026,10 @@ ${sanitizeText(truncatedBody)}`;
 					toast.error(
 						error instanceof Error
 							? error.message
-							: "Failed to prepare agent launch",
+							: t({
+									id: "components.promptGroup.prepareLaunchFailed",
+									message: "Failed to prepare agent launch",
+								}),
 					);
 					return;
 				}
@@ -1008,12 +1043,21 @@ ${sanitizeText(truncatedBody)}`;
 							launchRequest ?? undefined,
 						),
 						{
-							loading: `Creating workspace from PR #${linkedPR.prNumber}...`,
-							success: "Workspace created from PR",
+							loading: t({
+								id: "components.promptGroup.creatingFromPr",
+								message: `Creating workspace from PR #${linkedPR.prNumber}...`,
+							}),
+							success: t({
+								id: "components.promptGroup.createdFromPr",
+								message: "Workspace created from PR",
+							}),
 							error: (err) =>
 								err instanceof Error
 									? err.message
-									: "Failed to create workspace from PR",
+									: t({
+											id: "components.promptGroup.createFromPrFailed",
+											message: "Failed to create workspace from PR",
+										}),
 						},
 						{ closeAndReset: false },
 					).finally(() => {
@@ -1051,9 +1095,22 @@ ${sanitizeText(truncatedBody)}`;
 						},
 					),
 					{
-						loading: "Creating workspace...",
-						success: "Workspace created",
-						error: (err) => errorMessage(err, "Failed to create workspace"),
+						loading: t({
+							id: "components.promptGroup.creatingWorkspace",
+							message: "Creating workspace...",
+						}),
+						success: t({
+							id: "components.promptGroup.workspaceCreated",
+							message: "Workspace created",
+						}),
+						error: (err) =>
+							errorMessage(
+								err,
+								t({
+									id: "components.promptGroup.createWorkspaceFailed",
+									message: "Failed to create workspace",
+								}),
+							),
 					},
 					{ closeAndReset: false },
 				).finally(() => {
@@ -1087,6 +1144,7 @@ ${sanitizeText(truncatedBody)}`;
 			setPendingWorkspace,
 			setPendingWorkspaceStatus,
 			trimmedPrompt,
+			t,
 			utils,
 			workspaceName,
 			workspaceNameEdited,
@@ -1134,9 +1192,22 @@ ${sanitizeText(truncatedBody)}`;
 						worktreeId: action.worktreeId,
 					}),
 					{
-						loading: "Opening worktree...",
-						success: "Worktree opened",
-						error: (err) => errorMessage(err, "Failed to open worktree"),
+						loading: t({
+							id: "components.promptGroup.openingWorktree",
+							message: "Opening worktree...",
+						}),
+						success: t({
+							id: "components.promptGroup.worktreeOpened",
+							message: "Worktree opened",
+						}),
+						error: (err) =>
+							errorMessage(
+								err,
+								t({
+									id: "components.promptGroup.openWorktreeFailed",
+									message: "Failed to open worktree",
+								}),
+							),
 					},
 				);
 			} else {
@@ -1146,9 +1217,22 @@ ${sanitizeText(truncatedBody)}`;
 						worktreePath: action.worktreePath,
 					}),
 					{
-						loading: "Opening worktree...",
-						success: "Worktree opened",
-						error: (err) => errorMessage(err, "Failed to open worktree"),
+						loading: t({
+							id: "components.promptGroup.openingWorktree",
+							message: "Opening worktree...",
+						}),
+						success: t({
+							id: "components.promptGroup.worktreeOpened",
+							message: "Worktree opened",
+						}),
+						error: (err) =>
+							errorMessage(
+								err,
+								t({
+									id: "components.promptGroup.openWorktreeFailed",
+									message: "Failed to open worktree",
+								}),
+							),
 					},
 				);
 			}
@@ -1158,6 +1242,7 @@ ${sanitizeText(truncatedBody)}`;
 			runAsyncAction,
 			openExternalWorktree.mutateAsync,
 			openTrackedWorktree.mutateAsync,
+			t,
 		],
 	);
 
@@ -1211,7 +1296,10 @@ ${sanitizeText(truncatedBody)}`;
 			<div className="flex items-center">
 				<Input
 					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
-					placeholder="Workspace name (optional)"
+					placeholder={t({
+						id: "components.promptGroup.workspaceNamePlaceholder",
+						message: "Workspace name (optional)",
+					})}
 					value={workspaceName}
 					onChange={(e) =>
 						updateDraft({
@@ -1230,7 +1318,10 @@ ${sanitizeText(truncatedBody)}`;
 						className={cn(
 							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
-						placeholder="branch name"
+						placeholder={t({
+							id: "components.promptGroup.branchNamePlaceholder",
+							message: "branch name",
+						})}
 						value={branchName}
 						onChange={(e) =>
 							updateDraft({
@@ -1317,7 +1408,10 @@ ${sanitizeText(truncatedBody)}`;
 				)}
 				<PromptInputTextarea
 					autoFocus
-					placeholder="What do you want to do?"
+					placeholder={t({
+						id: "components.promptGroup.promptPlaceholder",
+						message: "What do you want to do?",
+					})}
 					className="min-h-10"
 					value={prompt}
 					onChange={(e) => updateDraft({ prompt: e.target.value })}
@@ -1327,13 +1421,19 @@ ${sanitizeText(truncatedBody)}`;
 						<AgentSelect<WorkspaceCreateAgent>
 							agents={enabledAgentPresets}
 							value={selectedAgent}
-							placeholder="No agent"
+							placeholder={t({
+								id: "components.promptGroup.noAgentPlaceholder",
+								message: "No agent",
+							})}
 							onValueChange={setSelectedAgent}
 							onBeforeConfigureAgents={closeModal}
 							triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							iconClassName="size-3 object-contain"
 							allowNone
-							noneLabel="No agent"
+							noneLabel={t({
+								id: "components.promptGroup.noAgentLabel",
+								message: "No agent",
+							})}
 							noneValue="none"
 						/>
 					</PromptInputTools>

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getMatchingExternalServers,
 	type PluginCatalogEntry,
@@ -21,6 +21,7 @@ const SKILL_DESCRIPTIONS = new Map<string, string>(
 );
 
 export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { data: installed } = electronTrpc.plugins.listInstalled.useQuery();
 	const { data: externalServers } =
@@ -84,7 +85,10 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 							<Switch
 								checked={isPluginEnabled}
 								disabled={isBusy}
-								aria-label={`${plugin.interface.displayName} enabled`}
+								aria-label={t({
+									id: "dashboard.plugins.detail.pluginEnabledLabel",
+									message: `${plugin.interface.displayName} enabled`,
+								})}
 								onCheckedChange={(checked) => setEnabled(plugin.name, checked)}
 							/>
 							<Button

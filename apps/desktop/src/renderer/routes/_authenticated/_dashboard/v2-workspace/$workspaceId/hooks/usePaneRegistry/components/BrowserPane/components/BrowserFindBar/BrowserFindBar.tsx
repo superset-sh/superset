@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
@@ -9,6 +10,7 @@ interface BrowserFindBarProps {
 
 /** Chrome-style find-in-page bar, floating over the page like the real thing. */
 export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
+	const { t } = useLingui();
 	const [query, setQuery] = useState("");
 	const [match, setMatch] = useState<{ ordinal: number; total: number } | null>(
 		null,
@@ -75,7 +77,10 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				value={query}
 				onChange={handleChange}
 				onKeyDown={handleKeyDown}
-				placeholder="Find in page"
+				placeholder={t({
+					id: "workspace.browserPane.findInPagePlaceholder",
+					message: "Find in page",
+				})}
 				className="h-6 w-40 bg-transparent text-foreground outline-none placeholder:text-muted-foreground/50"
 				spellCheck={false}
 				autoComplete="off"
@@ -92,7 +97,10 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				type="button"
 				onClick={goPrev}
 				disabled={!query}
-				aria-label="Previous match"
+				aria-label={t({
+					id: "workspace.browserPane.findPreviousMatch",
+					message: "Previous match",
+				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 			>
 				<ChevronUpIcon className="size-3.5" />
@@ -101,7 +109,10 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 				type="button"
 				onClick={goNext}
 				disabled={!query}
-				aria-label="Next match"
+				aria-label={t({
+					id: "workspace.browserPane.findNextMatch",
+					message: "Next match",
+				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 			>
 				<ChevronDownIcon className="size-3.5" />
@@ -109,7 +120,10 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 			<button
 				type="button"
 				onClick={onClose}
-				aria-label="Close find bar"
+				aria-label={t({
+					id: "workspace.browserPane.closeFindBar",
+					message: "Close find bar",
+				})}
 				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground"
 			>
 				<XIcon className="size-3.5" />

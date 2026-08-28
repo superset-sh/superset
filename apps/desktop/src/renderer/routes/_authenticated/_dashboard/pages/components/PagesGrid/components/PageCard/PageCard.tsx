@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -36,6 +36,7 @@ export function PageCard({
 	onOpen,
 	onTogglePin,
 }: PageCardProps) {
+	const { t } = useLingui();
 	const isShared = page.visibility === "org";
 	const VisibilityIcon = isShared ? Globe : Lock;
 	const edited = new Date(page.updatedAt).getTime();
@@ -51,9 +52,19 @@ export function PageCard({
 	const copyLink = async () => {
 		try {
 			await navigator.clipboard.writeText(page.url);
-			toast.success("Link copied");
+			toast.success(
+				t({
+					id: "dashboard.pages.pageCard.linkCopied",
+					message: "Link copied",
+				}),
+			);
 		} catch {
-			toast.error("Could not copy the link");
+			toast.error(
+				t({
+					id: "dashboard.pages.pageCard.copyLinkFailed",
+					message: "Could not copy the link",
+				}),
+			);
 		}
 	};
 
@@ -92,7 +103,10 @@ export function PageCard({
 						type="button"
 						variant="ghost"
 						size="icon-sm"
-						aria-label={`Actions for ${page.title}`}
+						aria-label={t({
+							id: "dashboard.pages.pageCard.actionsFor",
+							message: `Actions for ${page.title}`,
+						})}
 						className={cn(
 							"absolute top-2 right-2 size-7 bg-background/80 backdrop-blur transition-opacity",
 							"opacity-0 focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100",

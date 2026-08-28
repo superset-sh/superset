@@ -15,7 +15,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { HostAgentPreset } from "@superset/shared/host-agent-presets";
 import {
@@ -60,6 +60,7 @@ export function AgentsSettingsSidebar({
 	isAdding,
 	isResetting,
 }: AgentsSettingsSidebarProps) {
+	const { t } = useLingui();
 	const sortableIds = useMemo(() => configs.map((c) => c.id), [configs]);
 
 	const sensors = useSensors(
@@ -133,16 +134,39 @@ export function AgentsSettingsSidebar({
 				strategy={verticalListSortingStrategy}
 			>
 				<SettingsListSidebar
-					searchPlaceholder="Filter agents..."
-					searchAriaLabel="Filter agents"
+					searchPlaceholder={t({
+						id: "settings.agents.sidebar.searchPlaceholder",
+						message: "Filter agents...",
+					})}
+					searchAriaLabel={t({
+						id: "settings.agents.sidebar.searchAriaLabel",
+						message: "Filter agents",
+					})}
 					listHeader={listHeader}
-					groups={[{ id: "all", title: "Agents", rows: configs }]}
+					groups={[
+						{
+							id: "all",
+							title: t({
+								id: "settings.agents.sidebar.groupTitle",
+								message: "Agents",
+							}),
+							rows: configs,
+						},
+					]}
 					filterRow={(row, q) =>
 						row.label.toLowerCase().includes(q.toLowerCase())
 					}
 					getRowKey={(row) => row.id}
-					emptyLabel="No agents yet."
-					noMatchLabel={(q) => `No agents match "${q}".`}
+					emptyLabel={t({
+						id: "settings.agents.sidebar.emptyLabel",
+						message: "No agents yet.",
+					})}
+					noMatchLabel={(q) =>
+						t({
+							id: "settings.agents.sidebar.noMatchLabel",
+							message: `No agents match "${q}".`,
+						})
+					}
 					renderRow={(row) => (
 						<AgentSidebarRow
 							row={row}
@@ -163,6 +187,7 @@ interface AgentSidebarRowProps {
 }
 
 function AgentSidebarRow({ row, isActive, onSelect }: AgentSidebarRowProps) {
+	const { t } = useLingui();
 	const {
 		setNodeRef,
 		setActivatorNodeRef,
@@ -205,7 +230,10 @@ function AgentSidebarRow({ row, isActive, onSelect }: AgentSidebarRowProps) {
 					"opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity",
 					isDragging && "opacity-100",
 				)}
-				aria-label="Drag to reorder"
+				aria-label={t({
+					id: "settings.agents.sidebar.dragToReorder",
+					message: "Drag to reorder",
+				})}
 			>
 				<LuGripVertical className="size-3.5" />
 			</button>

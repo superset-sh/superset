@@ -197,9 +197,15 @@ function PullRequestDetailPage() {
 		},
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
-			toast.error("Couldn't update pull request", {
-				description: errorMessage(mutationError),
-			});
+			toast.error(
+				t({
+					id: "dashboard.pullRequests.detail.updateFailed",
+					message: "Couldn't update pull request",
+				}),
+				{
+					description: errorMessage(mutationError),
+				},
+			);
 		},
 	});
 
@@ -224,9 +230,15 @@ function PullRequestDetailPage() {
 		},
 		onSuccess: invalidatePullRequestQueries,
 		onError: (mutationError) => {
-			toast.error("Couldn't merge pull request", {
-				description: errorMessage(mutationError),
-			});
+			toast.error(
+				t({
+					id: "dashboard.pullRequests.detail.mergeFailed",
+					message: "Couldn't merge pull request",
+				}),
+				{
+					description: errorMessage(mutationError),
+				},
+			);
 		},
 	});
 
@@ -325,8 +337,14 @@ function PullRequestDetailPage() {
 								href={data.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label="Open pull request in GitHub"
-								title="Open pull request in GitHub"
+								aria-label={t({
+									id: "dashboard.pullRequests.detail.openInGitHub",
+									message: "Open pull request in GitHub",
+								})}
+								title={t({
+									id: "dashboard.pullRequests.detail.openInGitHub",
+									message: "Open pull request in GitHub",
+								})}
 							>
 								<FaGithub className="size-4" />
 							</a>
@@ -349,7 +367,10 @@ function PullRequestDetailPage() {
 										size="sm"
 										className="h-8 gap-1.5 px-3 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 [.dark_&]:text-[#34d399] [.dark_&]:hover:text-[#34d399]"
 										disabled={isActionPending}
-										aria-label="Merge pull request"
+										aria-label={t({
+											id: "dashboard.pullRequests.detail.mergeAria",
+											message: "Merge pull request",
+										})}
 									>
 										<VscGitMerge className="size-4" />
 										<Trans id="dashboard.pullRequests.detail.merge">
@@ -364,7 +385,10 @@ function PullRequestDetailPage() {
 											value={mergeComment}
 											onChange={(e) => setMergeComment(e.target.value)}
 											onKeyDown={(e) => e.stopPropagation()}
-											placeholder="Leave a comment (optional)"
+											placeholder={t({
+												id: "dashboard.pullRequests.detail.commentPlaceholder",
+												message: "Leave a comment (optional)",
+											})}
 											className="min-h-16 resize-none text-sm"
 										/>
 									</div>
@@ -397,7 +421,12 @@ function PullRequestDetailPage() {
 												<DropdownMenuItem
 													className="flex items-center justify-between gap-2 px-3 py-2"
 													onClick={() =>
-														toast.info("Auto-merge is coming soon")
+														toast.info(
+															t({
+																id: "dashboard.pullRequests.detail.autoMergeComingSoon",
+																message: "Auto-merge is coming soon",
+															}),
+														)
 													}
 												>
 													<div className="flex flex-col gap-0.5">
@@ -501,20 +530,31 @@ function PullRequestDetailPage() {
 									onClick={() => {
 										copyBranch(data.branch)
 											.then(() => {
-												toast.success("Branch copied", {
-													description: data.branch,
-													icon: (
-														<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
-															<LuCheck
-																className="size-2.5 text-white"
-																strokeWidth={3}
-															/>
-														</span>
-													),
-												});
+												toast.success(
+													t({
+														id: "dashboard.pullRequests.detail.branchCopiedToast",
+														message: "Branch copied",
+													}),
+													{
+														description: data.branch,
+														icon: (
+															<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
+																<LuCheck
+																	className="size-2.5 text-white"
+																	strokeWidth={3}
+																/>
+															</span>
+														),
+													},
+												);
 											})
 											.catch(() => {
-												toast.error("Couldn't copy branch name");
+												toast.error(
+													t({
+														id: "dashboard.pullRequests.detail.copyBranchFailed",
+														message: "Couldn't copy branch name",
+													}),
+												);
 											});
 									}}
 									className="flex min-w-0 shrink items-center gap-1 font-mono text-muted-foreground hover:text-foreground"
@@ -564,7 +604,10 @@ function PullRequestDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message="This pull request link is invalid."
+					message={t({
+						id: "dashboard.pullRequests.detail.invalidLink",
+						message: "This pull request link is invalid.",
+					})}
 					isError
 				/>
 			</div>
@@ -575,7 +618,13 @@ function PullRequestDetailPage() {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
-				<WorkItemDetailState message="Choose a project from Pull requests before opening a pull request." />
+				<WorkItemDetailState
+					message={t({
+						id: "dashboard.pullRequests.detail.chooseProject",
+						message:
+							"Choose a project from Pull requests before opening a pull request.",
+					})}
+				/>
 			</div>
 		);
 	}
@@ -587,8 +636,15 @@ function PullRequestDetailPage() {
 				<WorkItemDetailState
 					message={
 						areProjectsReady
-							? "This project is no longer available on your devices."
-							: "Loading project…"
+							? t({
+									id: "dashboard.pullRequests.detail.projectUnavailable",
+									message:
+										"This project is no longer available on your devices.",
+								})
+							: t({
+									id: "dashboard.pullRequests.detail.loadingProject",
+									message: "Loading project…",
+								})
 					}
 					isLoading={!areProjectsReady}
 					isError={areProjectsReady}
@@ -602,7 +658,10 @@ function PullRequestDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message="The device that hosts this project is unavailable."
+					message={t({
+						id: "dashboard.pullRequests.detail.hostUnavailable",
+						message: "The device that hosts this project is unavailable.",
+					})}
 					isError
 				/>
 			</div>
@@ -613,7 +672,13 @@ function PullRequestDetailPage() {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
-				<WorkItemDetailState message="Loading pull request…" isLoading />
+				<WorkItemDetailState
+					message={t({
+						id: "dashboard.pullRequests.detail.loadingPullRequest",
+						message: "Loading pull request…",
+					})}
+					isLoading
+				/>
 			</div>
 		);
 	}
@@ -623,7 +688,13 @@ function PullRequestDetailPage() {
 			<div className="flex min-h-0 flex-1 flex-col">
 				{header}
 				<WorkItemDetailState
-					message={errorMessage(error, "Pull request not found.")}
+					message={errorMessage(
+						error,
+						t({
+							id: "dashboard.pullRequests.detail.notFound",
+							message: "Pull request not found.",
+						}),
+					)}
 					isError
 					onRetry={() => void refetch()}
 				/>
@@ -734,7 +805,10 @@ function PullRequestDetailPage() {
 								href={data.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								aria-label="Edit description"
+								aria-label={t({
+									id: "dashboard.pullRequests.detail.editDescription",
+									message: "Edit description",
+								})}
 								className="absolute right-0 top-0 flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity hover:bg-fill-hover hover:text-foreground focus-visible:opacity-100 group-hover/description:opacity-100"
 							>
 								<LuPencil className="size-3.5" />

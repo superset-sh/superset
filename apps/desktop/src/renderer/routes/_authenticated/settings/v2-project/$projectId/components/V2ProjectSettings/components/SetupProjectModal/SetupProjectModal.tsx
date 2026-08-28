@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -45,6 +45,7 @@ export function SetupProjectModal({
 	isRemoteTarget,
 	onChanged,
 }: SetupProjectModalProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const { ensureProjectInSidebar, ensureWorkspaceInSidebar } =
 		useDashboardSidebarState();
@@ -92,15 +93,26 @@ export function SetupProjectModal({
 
 	const runClone = async () => {
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.setup.hostUnavailableCloneToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		const trimmed = parentDir.trim();
 		if (!trimmed) {
 			toast.error(
 				isRemoteTarget
-					? `Enter a parent directory on ${hostName}`
-					: "Pick a parent directory",
+					? t({
+							id: "settings.project.setup.enterParentDirToast",
+							message: `Enter a parent directory on ${hostName}`,
+						})
+					: t({
+							id: "settings.project.setup.pickParentDirToast",
+							message: "Pick a parent directory",
+						}),
 			);
 			return;
 		}
@@ -114,7 +126,12 @@ export function SetupProjectModal({
 				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "clone", parentDir: trimmed },
 			});
-			toast.success(`Cloned to ${result.repoPath}`);
+			toast.success(
+				t({
+					id: "settings.project.setup.clonedToast",
+					message: `Cloned to ${result.repoPath}`,
+				}),
+			);
 			if (result.mainWorkspaceId) {
 				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
 			} else {
@@ -132,15 +149,26 @@ export function SetupProjectModal({
 
 	const runImport = async () => {
 		if (!hostUrl) {
-			toast.error(`Host unavailable: ${hostName}`);
+			toast.error(
+				t({
+					id: "settings.project.setup.hostUnavailableImportToast",
+					message: `Host unavailable: ${hostName}`,
+				}),
+			);
 			return;
 		}
 		const trimmed = importPath.trim();
 		if (!trimmed) {
 			toast.error(
 				isRemoteTarget
-					? `Enter a path on ${hostName}`
-					: "Pick a project location",
+					? t({
+							id: "settings.project.setup.enterImportPathToast",
+							message: `Enter a path on ${hostName}`,
+						})
+					: t({
+							id: "settings.project.setup.pickImportPathToast",
+							message: "Pick a project location",
+						}),
 			);
 			return;
 		}
@@ -152,7 +180,12 @@ export function SetupProjectModal({
 				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "import", repoPath: trimmed, allowRelocate: false },
 			});
-			toast.success(`Project set up at ${result.repoPath}`);
+			toast.success(
+				t({
+					id: "settings.project.setup.importedToast",
+					message: `Project set up at ${result.repoPath}`,
+				}),
+			);
 			if (result.mainWorkspaceId) {
 				ensureWorkspaceInSidebar(result.mainWorkspaceId, projectId);
 			} else {
@@ -255,7 +288,10 @@ export function SetupProjectModal({
 												placeholder={
 													isRemoteTarget
 														? "/home/user/projects"
-														: "Pick a folder…"
+														: t({
+																id: "settings.project.setup.pickFolderParentPlaceholder",
+																message: "Pick a folder…",
+															})
 												}
 												disabled={working}
 												className="flex-1 font-mono text-sm"
@@ -272,14 +308,21 @@ export function SetupProjectModal({
 														setBrowseTarget("parentDir");
 													} else {
 														void browseFor(
-															"Select parent directory to clone into",
+															t({
+																id: "settings.project.setup.browseParentDirTitle",
+																message:
+																	"Select parent directory to clone into",
+															}),
 															"parentDir",
 														);
 													}
 												}}
 												disabled={working || selectDirectory.isPending}
 												className="shrink-0"
-												aria-label="Browse for directory"
+												aria-label={t({
+													id: "settings.project.setup.browseParentDirAria",
+													message: "Browse for directory",
+												})}
 											>
 												<LuFolderOpen className="size-4" />
 											</Button>
@@ -310,7 +353,10 @@ export function SetupProjectModal({
 										placeholder={
 											isRemoteTarget
 												? "/home/user/projects/my-repo"
-												: "Pick a folder…"
+												: t({
+														id: "settings.project.setup.pickFolderImportPlaceholder",
+														message: "Pick a folder…",
+													})
 										}
 										disabled={working}
 										className="flex-1 font-mono text-sm"
@@ -326,12 +372,21 @@ export function SetupProjectModal({
 											if (isRemoteTarget) {
 												setBrowseTarget("importPath");
 											} else {
-												void browseFor("Select project location", "importPath");
+												void browseFor(
+													t({
+														id: "settings.project.setup.browseImportPathTitle",
+														message: "Select project location",
+													}),
+													"importPath",
+												);
 											}
 										}}
 										disabled={working || selectDirectory.isPending}
 										className="shrink-0"
-										aria-label="Browse for directory"
+										aria-label={t({
+											id: "settings.project.setup.browseImportPathAria",
+											message: "Browse for directory",
+										})}
 									>
 										<LuFolderOpen className="size-4" />
 									</Button>
@@ -385,11 +440,25 @@ export function SetupProjectModal({
 				}
 				title={
 					browseTarget === "parentDir"
-						? "Choose a parent directory"
-						: "Choose an existing repo folder"
+						? t({
+								id: "settings.project.setup.remotePickerParentTitle",
+								message: "Choose a parent directory",
+							})
+						: t({
+								id: "settings.project.setup.remotePickerImportTitle",
+								message: "Choose an existing repo folder",
+							})
 				}
 				confirmLabel={
-					browseTarget === "parentDir" ? "Use this folder" : "Use this repo"
+					browseTarget === "parentDir"
+						? t({
+								id: "settings.project.setup.remotePickerParentConfirm",
+								message: "Use this folder",
+							})
+						: t({
+								id: "settings.project.setup.remotePickerImportConfirm",
+								message: "Use this repo",
+							})
 				}
 				onPick={(path) => {
 					if (browseTarget === "parentDir") setParentDir(path);

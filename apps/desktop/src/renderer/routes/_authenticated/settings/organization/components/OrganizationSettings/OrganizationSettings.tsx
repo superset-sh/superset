@@ -214,10 +214,20 @@ export function OrganizationSettings({
 
 			setLogoPreview(uploadResult.url);
 			await utils.organization.list.invalidate();
-			toast.success("Logo updated");
+			toast.success(
+				t({
+					id: "settings.organization.logoUpdatedToast",
+					message: "Logo updated",
+				}),
+			);
 		} catch (error) {
 			console.error("[organization-settings] Logo upload failed:", error);
-			toast.error("Failed to update logo");
+			toast.error(
+				t({
+					id: "settings.organization.logoUpdateFailedToast",
+					message: "Failed to update logo",
+				}),
+			);
 		}
 	}
 
@@ -250,9 +260,22 @@ export function OrganizationSettings({
 				setDeleteConfirmValue("");
 			}),
 			{
-				loading: "Deleting organization...",
-				success: "Organization deleted",
-				error: (err) => errorMessage(err, "Failed to delete organization"),
+				loading: t({
+					id: "settings.organization.deletingToast",
+					message: "Deleting organization...",
+				}),
+				success: t({
+					id: "settings.organization.deletedToast",
+					message: "Organization deleted",
+				}),
+				error: (err) =>
+					errorMessage(
+						err,
+						t({
+							id: "settings.organization.deleteFailedToast",
+							message: "Failed to delete organization",
+						}),
+					),
 			},
 		);
 	}
@@ -271,10 +294,20 @@ export function OrganizationSettings({
 				name: nameValue,
 			});
 			await utils.organization.list.invalidate();
-			toast.success("Organization name updated");
+			toast.success(
+				t({
+					id: "settings.organization.nameUpdatedToast",
+					message: "Organization name updated",
+				}),
+			);
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
-			toast.error("Failed to update name");
+			toast.error(
+				t({
+					id: "settings.organization.nameUpdateFailedToast",
+					message: "Failed to update name",
+				}),
+			);
 			setNameValue(organization.name);
 		}
 	}
@@ -350,13 +383,25 @@ export function OrganizationSettings({
 						<section>
 							<div>
 								{showLogo && (
-									<SettingsRow label="Logo" hint="Recommended size 256×256.">
+									<SettingsRow
+										label={t({
+											id: "settings.organization.logoLabel",
+											message: "Logo",
+										})}
+										hint={t({
+											id: "settings.organization.logoHint",
+											message: "Recommended size 256×256.",
+										})}
+									>
 										<button
 											type="button"
 											onClick={handleLogoUpload}
 											disabled={!isOwner}
 											className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
-											aria-label="Change organization logo"
+											aria-label={t({
+												id: "settings.organization.changeLogoAriaLabel",
+												message: "Change organization logo",
+											})}
 										>
 											<OrganizationLogo
 												logo={logoPreview}
@@ -367,13 +412,22 @@ export function OrganizationSettings({
 								)}
 
 								{showName && (
-									<SettingsRow label="Name" htmlFor="org-name">
+									<SettingsRow
+										label={t({
+											id: "settings.organization.nameLabel",
+											message: "Name",
+										})}
+										htmlFor="org-name"
+									>
 										<Input
 											id="org-name"
 											value={nameValue}
 											onChange={(e) => setNameValue(e.target.value)}
 											onBlur={handleNameBlur}
-											placeholder="Acme Inc."
+											placeholder={t({
+												id: "settings.organization.namePlaceholder",
+												message: "Acme Inc.",
+											})}
 											className="w-72"
 											disabled={!isOwner}
 										/>
@@ -382,8 +436,14 @@ export function OrganizationSettings({
 
 								{showSlug && (
 									<SettingsRow
-										label="Slug"
-										hint="Used in URLs and APIs."
+										label={t({
+											id: "settings.organization.slugRowLabel",
+											message: "Slug",
+										})}
+										hint={t({
+											id: "settings.organization.slugHint",
+											message: "Used in URLs and APIs.",
+										})}
 										htmlFor="org-slug"
 									>
 										<Input
@@ -413,15 +473,24 @@ export function OrganizationSettings({
 
 								{showId && (
 									<SettingsRow
-										label="ID"
-										hint="Use this when calling the Superset API."
+										label={t({
+											id: "settings.organization.idLabel",
+											message: "ID",
+										})}
+										hint={t({
+											id: "settings.organization.idHint",
+											message: "Use this when calling the Superset API.",
+										})}
 										htmlFor="org-id"
 									>
 										<button
 											type="button"
 											id="org-id"
 											onClick={() => copyToClipboard(organization.id)}
-											aria-label="Copy organization ID"
+											aria-label={t({
+												id: "settings.organization.copyIdAriaLabel",
+												message: "Copy organization ID",
+											})}
 											className="group relative block w-72 cursor-pointer rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>
 											<Input
@@ -484,7 +553,13 @@ export function OrganizationSettings({
 								<div>
 									<div className="mb-3">
 										<h3 className="text-sm font-medium">
-											<HighlightText text="Members" query={searchQuery} />
+											<HighlightText
+												text={t({
+													id: "settings.organization.membersTitle",
+													message: "Members",
+												})}
+												query={searchQuery}
+											/>
 										</h3>
 										<p className="text-xs text-muted-foreground mt-0.5">
 											<Trans id="settings.organization.membersHint">
@@ -640,7 +715,12 @@ export function OrganizationSettings({
 
 					{showDelete && isOwner && (
 						<section>
-							<SettingsRow label="Delete organization">
+							<SettingsRow
+								label={t({
+									id: "settings.organization.deleteRowLabel",
+									message: "Delete organization",
+								})}
+							>
 								<AlertDialog
 									onOpenChange={(open) => {
 										if (!open) setDeleteConfirmValue("");

@@ -1,24 +1,42 @@
+import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
+import { i18n } from "@superset/i18n";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { ToolContentList } from "../ToolContentList";
 
+const DECISION_ANSWERED = msg({
+	id: "workspace.chat.decisionAnswered",
+	message: "Answered",
+});
+
 function decisionLabel(decision: Decision | undefined): string {
-	if (!decision) return "Answered";
+	if (!decision) return i18n._(DECISION_ANSWERED);
 	switch (decision.type) {
 		case "accept":
-			return "Allowed";
+			return i18n._(
+				msg({ id: "workspace.chat.decisionAllowed", message: "Allowed" }),
+			);
 		case "accept_for_session":
-			return "Allowed for session";
+			return i18n._(
+				msg({
+					id: "workspace.chat.decisionAllowedForSession",
+					message: "Allowed for session",
+				}),
+			);
 		case "decline":
-			return "Denied";
+			return i18n._(
+				msg({ id: "workspace.chat.decisionDenied", message: "Denied" }),
+			);
 		case "cancel":
-			return "Canceled";
+			return i18n._(
+				msg({ id: "workspace.chat.decisionCanceled", message: "Canceled" }),
+			);
 		case "option":
 			return decision.optionId;
 		default:
-			return "Answered";
+			return i18n._(DECISION_ANSWERED);
 	}
 }
 

@@ -131,13 +131,29 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				data: { name: trimmedName, slug: trimmedSlug },
 			});
 			if (result.error) {
-				toast.error(result.error.message ?? "Failed to save team");
+				toast.error(
+					result.error.message ??
+						t({
+							id: "settings.teams.detail.saveFailedToast",
+							message: "Failed to save team",
+						}),
+				);
 				return;
 			}
 			await utils.organization.listTeams.invalidate();
-			toast.success("Saved");
+			toast.success(
+				t({ id: "settings.teams.detail.savedToast", message: "Saved" }),
+			);
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to save team"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.teams.detail.saveFailedToast",
+						message: "Failed to save team",
+					}),
+				),
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -152,14 +168,39 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				organizationId: activeOrganizationId,
 			});
 			if (result.error) {
-				toast.error(result.error.message ?? "Failed to delete team");
+				toast.error(
+					result.error.message ??
+						t({
+							id: "settings.teams.detail.deleteFailedToast",
+							message: "Failed to delete team",
+						}),
+				);
 				return;
 			}
 			await utils.organization.listTeams.invalidate();
-			toast.success(`Deleted "${team?.name ?? "team"}"`);
+			const deletedName =
+				team?.name ??
+				t({
+					id: "settings.teams.detail.deletedFallbackName",
+					message: "team",
+				});
+			toast.success(
+				t({
+					id: "settings.teams.detail.deletedToast",
+					message: `Deleted "${deletedName}"`,
+				}),
+			);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to delete team"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.teams.detail.deleteFailedToast",
+						message: "Failed to delete team",
+					}),
+				),
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -174,11 +215,21 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				userId: currentUserId,
 			});
 			await utils.organization.listTeams.invalidate();
-			toast.success("Left team");
+			toast.success(
+				t({ id: "settings.teams.detail.leftTeamToast", message: "Left team" }),
+			);
 			setOpenDialog(null);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to leave team"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.teams.detail.leaveFailedToast",
+						message: "Failed to leave team",
+					}),
+				),
+			);
 		} finally {
 			setIsSubmitting(false);
 		}

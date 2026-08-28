@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -63,6 +63,7 @@ export function DesignModePopover({
 	onCreateNewAgentSession,
 	onFocusAgentTerminal,
 }: DesignModePopoverProps) {
+	const { t } = useLingui();
 	const { send: sendToTerminalAgent } = useSendToTerminalAgent();
 	const workspaceClient = workspaceTrpc.useUtils().client;
 
@@ -120,15 +121,26 @@ export function DesignModePopover({
 					screenshotPath,
 				});
 			} catch (error) {
-				toast.error("Couldn't stage design feedback", {
-					description: error instanceof Error ? error.message : undefined,
-				});
+				toast.error(
+					t({
+						id: "workspace.browserPane.designStageFeedbackFailed",
+						message: "Couldn't stage design feedback",
+					}),
+					{
+						description: error instanceof Error ? error.message : undefined,
+					},
+				);
 				return;
 			}
 
 			if (resolved.kind === "new") {
 				if (!onCreateNewAgentSession) {
-					toast.error("Couldn't start a new agent session");
+					toast.error(
+						t({
+							id: "workspace.browserPane.designNewAgentSessionFailed",
+							message: "Couldn't start a new agent session",
+						}),
+					);
 					return;
 				}
 				const result = await onCreateNewAgentSession({
@@ -149,7 +161,12 @@ export function DesignModePopover({
 					terminalId: resolved.terminalId,
 					text: prompt,
 				});
-				toast.success("Sent to agent");
+				toast.success(
+					t({
+						id: "workspace.browserPane.designSentToAgent",
+						message: "Sent to agent",
+					}),
+				);
 				onFocusAgentTerminal?.(resolved.terminalId);
 				onSent();
 			} catch {
@@ -199,7 +216,10 @@ export function DesignModePopover({
 							setComment(e.target.value);
 							autoGrow();
 						}}
-						placeholder="Describe the change…"
+						placeholder={t({
+							id: "workspace.browserPane.designCommentPlaceholder",
+							message: "Describe the change…",
+						})}
 						rows={1}
 						className="block min-w-[140px] flex-1 resize-none bg-transparent text-[13px] leading-snug text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
 					/>
@@ -211,7 +231,10 @@ export function DesignModePopover({
 							<button
 								type="button"
 								onClick={onDismiss}
-								aria-label="Pick a different element"
+								aria-label={t({
+									id: "workspace.browserPane.designPickDifferentElementAria",
+									message: "Pick a different element",
+								})}
 								className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-full border border-border/60 px-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
 							>
 								<SquareDashedMousePointer className="size-3" />
@@ -233,7 +256,10 @@ export function DesignModePopover({
 					<button
 						type="submit"
 						disabled={!canSubmit}
-						aria-label="Send to agent"
+						aria-label={t({
+							id: "workspace.browserPane.designSendToAgentAria",
+							message: "Send to agent",
+						})}
 						className="ml-auto grid size-6 shrink-0 place-items-center rounded-full bg-foreground text-background transition-opacity hover:opacity-90 disabled:opacity-35"
 					>
 						{submitting ? (

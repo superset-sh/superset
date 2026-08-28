@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type {
 	FileTreeRenameEvent,
 	FileTreeRowDecoration,
@@ -79,6 +79,7 @@ export function FilesTab({
 	gitStatus,
 	onSearch,
 }: FilesTabProps) {
+	const { t } = useLingui();
 	// Shares the query cache with V2WorkspacePage's workspace.get query, so
 	// the first render after a workspace switch typically already has cached
 	// data from React Query (the parent route resolves it first). staleTime
@@ -317,7 +318,10 @@ export function FilesTab({
 						</span>
 					</>
 				) : (
-					"Workspace worktree not available"
+					t({
+						id: "workspace.filesTab.worktreeUnavailable",
+						message: "Workspace worktree not available",
+					})
 				)}
 			</div>
 		);
@@ -362,23 +366,35 @@ export function FilesTab({
 							<div className="ml-auto flex items-center gap-0.5">
 								<FilesTabHeaderButton
 									icon={FilePlus}
-									label="New File"
+									label={t({
+										id: "workspace.filesTab.newFile",
+										message: "New File",
+									})}
 									onClick={() => void startCreating("file")}
 								/>
 								<FilesTabHeaderButton
 									icon={FolderPlus}
-									label="New Folder"
+									label={t({
+										id: "workspace.filesTab.newFolder",
+										message: "New Folder",
+									})}
 									onClick={() => void startCreating("folder")}
 								/>
 								<FilesTabHeaderButton
 									icon={RefreshCw}
-									label="Refresh"
+									label={t({
+										id: "workspace.filesTab.refresh",
+										message: "Refresh",
+									})}
 									loading={bridge.isRefreshing}
 									onClick={() => void bridge.doRefresh()}
 								/>
 								<FilesTabHeaderButton
 									icon={FoldVertical}
-									label="Collapse All"
+									label={t({
+										id: "workspace.filesTab.collapseAll",
+										message: "Collapse All",
+									})}
 									onClick={collapseAll}
 								/>
 							</div>

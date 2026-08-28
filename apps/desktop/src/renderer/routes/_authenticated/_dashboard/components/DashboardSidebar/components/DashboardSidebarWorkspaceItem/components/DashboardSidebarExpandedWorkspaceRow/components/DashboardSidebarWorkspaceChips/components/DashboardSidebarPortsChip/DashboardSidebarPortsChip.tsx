@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import {
 	HoverCard,
@@ -27,6 +28,7 @@ interface DashboardSidebarPortsChipProps {
 export function DashboardSidebarPortsChip({
 	ports,
 }: DashboardSidebarPortsChipProps) {
+	const { t } = useLingui();
 	const { isPending, killPorts } = useDashboardSidebarPortKill();
 	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
 		useDashboardSidebarChipHoverSuppression();
@@ -37,7 +39,13 @@ export function DashboardSidebarPortsChip({
 		const closedCount = results.filter((result) => result.success).length;
 		if (closedCount > 0) {
 			toast.success(
-				closedCount === 1 ? "Closed 1 port" : `Closed ${closedCount} ports`,
+				t({
+					id: "dashboard.sidebar.portsChip.closedPortsToast",
+					message: plural(closedCount, {
+						one: "Closed # port",
+						other: "Closed # ports",
+					}),
+				}),
 			);
 		}
 	};
@@ -70,7 +78,23 @@ export function DashboardSidebarPortsChip({
 						disabled={isPending}
 						aria-busy={isPending}
 						aria-expanded={isOpen}
-						aria-label={`${ports.length} active ${ports.length === 1 ? "port" : "ports"} — ${isOpen ? "hide" : "show"} details`}
+						aria-label={
+							isOpen
+								? t({
+										id: "dashboard.sidebar.portsChip.hideDetailsAriaLabel",
+										message: plural(ports.length, {
+											one: "# active port — hide details",
+											other: "# active ports — hide details",
+										}),
+									})
+								: t({
+										id: "dashboard.sidebar.portsChip.showDetailsAriaLabel",
+										message: plural(ports.length, {
+											one: "# active port — show details",
+											other: "# active ports — show details",
+										}),
+									})
+						}
 						className={cn(
 							"group/chip h-[18px] bg-muted/60 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
 							"[&>svg]:size-2.5 hover:bg-muted hover:text-foreground disabled:opacity-70",

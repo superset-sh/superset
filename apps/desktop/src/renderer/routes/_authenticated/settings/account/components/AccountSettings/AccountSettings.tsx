@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
 import {
@@ -40,6 +40,7 @@ interface AccountSettingsProps {
 }
 
 export function AccountSettings({ visibleItems }: AccountSettingsProps) {
+	const { t } = useLingui();
 	const showProfile = isItemVisible(
 		SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		visibleItems,
@@ -78,7 +79,15 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			await apiTrpcClient.user.deleteAccount.mutate();
 			await signOut();
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to delete account"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.account.deleteAccountFailed",
+						message: "Failed to delete account",
+					}),
+				),
+			);
 		} finally {
 			setIsDeleting(false);
 		}
@@ -108,9 +117,16 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			setAvatarPreview(uploadResult.url);
 			await refetchSession();
-			toast.success("Avatar updated!");
+			toast.success(
+				t({ id: "settings.account.avatarUpdated", message: "Avatar updated!" }),
+			);
 		} catch {
-			toast.error("Failed to update avatar");
+			toast.error(
+				t({
+					id: "settings.account.avatarUpdateFailed",
+					message: "Failed to update avatar",
+				}),
+			);
 		}
 	}
 
@@ -125,9 +141,16 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 		try {
 			await apiTrpcClient.user.updateProfile.mutate({ name: nameValue });
 			await refetchSession();
-			toast.success("Name updated!");
+			toast.success(
+				t({ id: "settings.account.nameUpdated", message: "Name updated!" }),
+			);
 		} catch {
-			toast.error("Failed to update name");
+			toast.error(
+				t({
+					id: "settings.account.nameUpdateFailed",
+					message: "Failed to update name",
+				}),
+			);
 			setNameValue(user.name ?? "");
 		}
 	}
@@ -151,13 +174,25 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 						<ProfileSkeleton />
 					) : user ? (
 						<>
-							<SettingRow label="Avatar" hint="Recommended size 256×256.">
+							<SettingRow
+								label={t({
+									id: "settings.account.avatarLabel",
+									message: "Avatar",
+								})}
+								hint={t({
+									id: "settings.account.avatarHint",
+									message: "Recommended size 256×256.",
+								})}
+							>
 								<button
 									type="button"
 									onClick={handleAvatarUpload}
 									disabled={selectImageMutation.isPending}
 									className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
-									aria-label="Change avatar"
+									aria-label={t({
+										id: "settings.account.changeAvatarAriaLabel",
+										message: "Change avatar",
+									})}
 								>
 									<Avatar
 										size="xl"
@@ -167,17 +202,27 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								</button>
 							</SettingRow>
 
-							<SettingRow label="Name">
+							<SettingRow
+								label={t({ id: "settings.account.nameLabel", message: "Name" })}
+							>
 								<Input
 									value={nameValue}
 									onChange={(e) => setNameValue(e.target.value)}
 									onBlur={handleNameBlur}
-									placeholder="Your name"
+									placeholder={t({
+										id: "settings.account.namePlaceholder",
+										message: "Your name",
+									})}
 									className="w-80"
 								/>
 							</SettingRow>
 
-							<SettingRow label="Email">
+							<SettingRow
+								label={t({
+									id: "settings.account.emailLabel",
+									message: "Email",
+								})}
+							>
 								<Input
 									value={user.email}
 									readOnly
@@ -196,14 +241,26 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 				{showSignOut && (
 					<div className={showProfile ? "pt-5" : undefined}>
 						<SettingRow
-							label="Sign out of this device"
-							hint="You'll need to sign in again to use Superset on this device."
+							label={t({
+								id: "settings.account.signOutLabel",
+								message: "Sign out of this device",
+							})}
+							hint={t({
+								id: "settings.account.signOutHint",
+								message:
+									"You'll need to sign in again to use Superset on this device.",
+							})}
 						>
 							<Button
 								variant="outline"
 								onClick={async () => {
 									await signOut();
-									toast.success("Signed out");
+									toast.success(
+										t({
+											id: "settings.account.signedOut",
+											message: "Signed out",
+										}),
+									);
 								}}
 							>
 								<Trans id="settings.account.signOutButton">Sign out</Trans>
@@ -220,7 +277,12 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 				{showDelete && (
 					<div className="pt-5">
-						<SettingRow label="Delete account">
+						<SettingRow
+							label={t({
+								id: "settings.account.deleteAccountLabel",
+								message: "Delete account",
+							})}
+						>
 							<AlertDialog>
 								<AlertDialogTrigger asChild>
 									<Button variant="destructive" disabled={isDeleting}>

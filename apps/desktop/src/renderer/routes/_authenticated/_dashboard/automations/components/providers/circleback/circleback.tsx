@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { isEmptyScope } from "@superset/shared/automation-triggers";
 import { LuMic } from "react-icons/lu";
 import { env } from "renderer/env.renderer";
@@ -35,9 +37,26 @@ function renderSlot(
 					// lie.
 					onChange={(v) => set({ tags: isEmptyScope(v) ? { mode: "any" } : v })}
 					options={[]}
-					emptyLabel="Any tag"
-					anyLabel="Any tag"
-					allowCustom={{ placeholder: "Type a tag, press Enter" }}
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.circleback.anyTagEmpty",
+							message: "Any tag",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.circleback.anyTag",
+							message: "Any tag",
+						}),
+					)}
+					allowCustom={{
+						placeholder: i18n._(
+							msg({
+								id: "dashboard.automations.providers.circleback.tagPlaceholder",
+								message: "Type a tag, press Enter",
+							}),
+						),
+					}}
 					disabled={disabled}
 				/>
 			);
@@ -50,9 +69,26 @@ function renderSlot(
 						set({ attendees: isEmptyScope(v) ? { mode: "any" } : v })
 					}
 					options={[]}
-					emptyLabel="Any attendee"
-					anyLabel="Any attendee"
-					allowCustom={{ placeholder: "Type an email, press Enter" }}
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.circleback.anyAttendeeEmpty",
+							message: "Any attendee",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.circleback.anyAttendee",
+							message: "Any attendee",
+						}),
+					)}
+					allowCustom={{
+						placeholder: i18n._(
+							msg({
+								id: "dashboard.automations.providers.circleback.emailPlaceholder",
+								message: "Type an email, press Enter",
+							}),
+						),
+					}}
 					disabled={disabled}
 				/>
 			);
@@ -62,8 +98,18 @@ function renderSlot(
 					key={index}
 					value={config.nameFilter}
 					onChange={(v) => set({ nameFilter: v })}
-					emptyLabel="Any name"
-					placeholder="Contains this text..."
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.circleback.anyName",
+							message: "Any name",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.circleback.nameFilterPlaceholder",
+							message: "Contains this text...",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);

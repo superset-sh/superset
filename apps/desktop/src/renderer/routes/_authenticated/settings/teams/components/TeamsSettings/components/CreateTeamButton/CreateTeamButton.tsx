@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -28,6 +28,7 @@ function slugify(value: string): string {
 }
 
 export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
+	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
 	const [name, setName] = useState("");
 	const [slug, setSlug] = useState("");
@@ -65,15 +66,34 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 				organizationId,
 			});
 			if (result.error) {
-				toast.error(result.error.message ?? "Failed to create team");
+				toast.error(
+					result.error.message ??
+						t({
+							id: "settings.teams.createFailedToast",
+							message: "Failed to create team",
+						}),
+				);
 				return;
 			}
 			await utils.organization.listTeams.invalidate();
-			toast.success(`Created team "${trimmedName}"`);
+			toast.success(
+				t({
+					id: "settings.teams.createdToast",
+					message: `Created team "${trimmedName}"`,
+				}),
+			);
 			reset();
 			setIsOpen(false);
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to create team"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.teams.createFailedToast",
+						message: "Failed to create team",
+					}),
+				),
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
@@ -114,7 +134,10 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 									id="team-name"
 									value={name}
 									onChange={(event) => handleNameChange(event.target.value)}
-									placeholder="e.g. Engineering"
+									placeholder={t({
+										id: "settings.teams.namePlaceholder",
+										message: "e.g. Engineering",
+									})}
 									autoFocus
 									required
 								/>
@@ -127,7 +150,10 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 									id="team-slug"
 									value={slug}
 									onChange={(event) => handleSlugChange(event.target.value)}
-									placeholder="e.g. engineering"
+									placeholder={t({
+										id: "settings.teams.slugPlaceholder",
+										message: "e.g. engineering",
+									})}
 									required
 								/>
 							</div>

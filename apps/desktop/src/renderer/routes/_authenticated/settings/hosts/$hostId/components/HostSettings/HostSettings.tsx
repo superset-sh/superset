@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -36,6 +36,7 @@ interface HostSettingsProps {
 }
 
 export function HostSettings({ hostId }: HostSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id ?? null;
@@ -83,7 +84,12 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					usersHostsId: `${row.userId}:${row.hostId}`,
 					userId: row.userId,
 					role: row.role as "owner" | "member",
-					name: u?.name ?? "Unknown user",
+					name:
+						u?.name ??
+						t({
+							id: "settings.hosts.membersUnknownUser",
+							message: "Unknown user",
+						}),
 					email: u?.email ?? "",
 				};
 			})
@@ -91,7 +97,7 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				if (a.role !== b.role) return a.role === "owner" ? -1 : 1;
 				return a.name.localeCompare(b.name);
 			});
-	}, [hostUserRows, userMap]);
+	}, [hostUserRows, userMap, t]);
 
 	const candidates: CandidateRow[] = useMemo(() => {
 		const onHost = new Set(hostUserRows.map((r) => r.userId));
@@ -101,12 +107,17 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				const u = userMap.get(m.userId);
 				return {
 					userId: m.userId,
-					name: u?.name ?? "Unknown user",
+					name:
+						u?.name ??
+						t({
+							id: "settings.hosts.candidatesUnknownUser",
+							message: "Unknown user",
+						}),
 					email: u?.email ?? "",
 				};
 			})
 			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [orgMembers, hostUserRows, userMap]);
+	}, [orgMembers, hostUserRows, userMap, t]);
 
 	const isOwner = useMemo(() => {
 		if (!currentUserId) return false;
@@ -134,21 +145,21 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				userId: candidate.userId,
 				organizationId: host.organizationId,
 			}),
-			"Member added",
+			t({ id: "settings.hosts.memberAddedToast", message: "Member added" }),
 		);
 	};
 
 	const handleRemove = (member: MemberRowData) => {
 		notifyOnPersist(
 			actions.v2UsersHosts.removeMember(member.usersHostsId),
-			"Member removed",
+			t({ id: "settings.hosts.memberRemovedToast", message: "Member removed" }),
 		);
 	};
 
 	const handleSetRole = (member: MemberRowData, role: "owner" | "member") => {
 		notifyOnPersist(
 			actions.v2UsersHosts.setMemberRole(member.usersHostsId, role),
-			"Role updated",
+			t({ id: "settings.hosts.roleUpdatedToast", message: "Role updated" }),
 		);
 	};
 
@@ -173,7 +184,13 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				{hostId === machineId && (
 					<section className="space-y-3">
 						<h3 className="text-sm font-medium">
-							<HighlightText text="Remote workspaces" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.hosts.remoteWorkspacesTitle",
+									message: "Remote workspaces",
+								})}
+								query={searchQuery}
+							/>
 						</h3>
 						<ExposeViaRelaySection />
 					</section>
@@ -183,7 +200,13 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					<div className="flex items-end justify-between gap-4">
 						<div>
 							<h3 className="text-sm font-medium">
-								<HighlightText text="Members" query={searchQuery} />
+								<HighlightText
+									text={t({
+										id: "settings.hosts.membersTitle",
+										message: "Members",
+									})}
+									query={searchQuery}
+								/>
 							</h3>
 							{!isOwner && (
 								<p className="text-sm text-muted-foreground mt-0.5">

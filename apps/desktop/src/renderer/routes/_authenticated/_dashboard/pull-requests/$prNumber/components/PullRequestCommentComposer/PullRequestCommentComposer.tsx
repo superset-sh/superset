@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -43,6 +43,7 @@ export function PullRequestCommentComposer({
 	onCancel,
 	onSubmit,
 }: PullRequestCommentComposerProps) {
+	const { t } = useLingui();
 	const bindings = useTerminalAgentBindings(linkedWorkspaceId ?? "", {
 		enabled: linkedWorkspaceId != null,
 	});
@@ -122,7 +123,10 @@ export function PullRequestCommentComposer({
 					ref={textareaRef}
 					value={comment}
 					onChange={(e) => setComment(e.target.value)}
-					placeholder="Ask the AI…"
+					placeholder={t({
+						id: "dashboard.pullRequests.commentComposer.placeholder",
+						message: "Ask the AI…",
+					})}
 					rows={3}
 					className={cn(
 						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",

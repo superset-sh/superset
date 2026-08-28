@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -17,6 +17,7 @@ import { HighlightText } from "renderer/routes/_authenticated/settings/component
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function SessionsSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
@@ -60,13 +61,31 @@ export function SessionsSection() {
 			},
 			onSuccess: (result) => {
 				if (result.remainingCount > 0) {
-					toast.warning("Some sessions could not be killed", {
-						description: `${result.killedCount} terminated, ${result.remainingCount} remaining`,
-					});
+					toast.warning(
+						t({
+							id: "settings.terminal.sessions.killAllPartialToast",
+							message: "Some sessions could not be killed",
+						}),
+						{
+							description: t({
+								id: "settings.terminal.sessions.killAllPartialDescription",
+								message: `${result.killedCount} terminated, ${result.remainingCount} remaining`,
+							}),
+						},
+					);
 				} else {
-					toast.success("Killed all terminal sessions", {
-						description: `${result.killedCount} sessions terminated`,
-					});
+					toast.success(
+						t({
+							id: "settings.terminal.sessions.killAllSuccessToast",
+							message: "Killed all terminal sessions",
+						}),
+						{
+							description: t({
+								id: "settings.terminal.sessions.killAllSuccessDescription",
+								message: `${result.killedCount} sessions terminated`,
+							}),
+						},
+					);
 				}
 			},
 			onError: (error, _vars, context) => {
@@ -76,9 +95,15 @@ export function SessionsSection() {
 						context.previous,
 					);
 				}
-				toast.error("Failed to kill sessions", {
-					description: errorMessage(error),
-				});
+				toast.error(
+					t({
+						id: "settings.terminal.sessions.killAllErrorToast",
+						message: "Failed to kill sessions",
+					}),
+					{
+						description: errorMessage(error),
+					},
+				);
 			},
 			onSettled: () => {
 				setTimeout(() => {
@@ -90,40 +115,77 @@ export function SessionsSection() {
 	const clearTerminalHistory =
 		electronTrpc.terminal.clearTerminalHistory.useMutation({
 			onSuccess: () => {
-				toast.success("Cleared terminal history");
+				toast.success(
+					t({
+						id: "settings.terminal.sessions.clearHistorySuccessToast",
+						message: "Cleared terminal history",
+					}),
+				);
 				utils.terminal.listDaemonSessions.invalidate();
 			},
 			onError: (error) => {
-				toast.error("Failed to clear terminal history", {
-					description: errorMessage(error),
-				});
+				toast.error(
+					t({
+						id: "settings.terminal.sessions.clearHistoryErrorToast",
+						message: "Failed to clear terminal history",
+					}),
+					{
+						description: errorMessage(error),
+					},
+				);
 			},
 		});
 
 	const killDaemonSession = electronTrpc.terminal.kill.useMutation({
 		onSuccess: () => {
-			toast.success("Killed terminal session");
+			toast.success(
+				t({
+					id: "settings.terminal.sessions.killOneSuccessToast",
+					message: "Killed terminal session",
+				}),
+			);
 			utils.terminal.listDaemonSessions.invalidate();
 		},
 		onError: (error) => {
-			toast.error("Failed to kill session", {
-				description: errorMessage(error),
-			});
+			toast.error(
+				t({
+					id: "settings.terminal.sessions.killOneErrorToast",
+					message: "Failed to kill session",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
 		},
 	});
 
 	const restartDaemon = electronTrpc.terminal.restartDaemon.useMutation({
 		onSuccess: () => {
-			toast.success("Daemon restarted", {
-				description:
-					"All sessions killed and daemon restarted. The app will use a fresh daemon.",
-			});
+			toast.success(
+				t({
+					id: "settings.terminal.sessions.restartDaemonSuccessToast",
+					message: "Daemon restarted",
+				}),
+				{
+					description: t({
+						id: "settings.terminal.sessions.restartDaemonSuccessDescription",
+						message:
+							"All sessions killed and daemon restarted. The app will use a fresh daemon.",
+					}),
+				},
+			);
 			utils.terminal.listDaemonSessions.invalidate();
 		},
 		onError: (error) => {
-			toast.error("Failed to restart daemon", {
-				description: errorMessage(error),
-			});
+			toast.error(
+				t({
+					id: "settings.terminal.sessions.restartDaemonErrorToast",
+					message: "Failed to restart daemon",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
 		},
 	});
 
@@ -138,7 +200,13 @@ export function SessionsSection() {
 				<div className="space-y-0.5">
 					<div className="flex items-center justify-between">
 						<Label className="text-sm font-medium">
-							<HighlightText text="Terminal daemon" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.terminal.sessions.daemonLabel",
+									message: "Terminal daemon",
+								})}
+								query={searchQuery}
+							/>
 						</Label>
 						<Button
 							variant="ghost"

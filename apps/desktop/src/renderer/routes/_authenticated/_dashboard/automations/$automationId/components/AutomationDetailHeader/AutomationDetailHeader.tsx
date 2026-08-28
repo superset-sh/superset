@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -38,6 +38,7 @@ export function AutomationDetailHeader({
 	runNowDisabled,
 	readOnly,
 }: AutomationDetailHeaderProps) {
+	const { t } = useLingui();
 	return (
 		<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
 			<Breadcrumb>
@@ -72,7 +73,10 @@ export function AutomationDetailHeader({
 								size="icon-sm"
 								onClick={onOpenHistory}
 								disabled={readOnly}
-								aria-label="Prompt history"
+								aria-label={t({
+									id: "dashboard.automations.detailHeader.promptHistoryAriaLabel",
+									message: "Prompt history",
+								})}
 							>
 								<LuClock className="size-4" />
 							</Button>
@@ -96,7 +100,10 @@ export function AutomationDetailHeader({
 							variant="ghost"
 							size="icon-sm"
 							disabled={readOnly}
-							aria-label="More actions"
+							aria-label={t({
+								id: "dashboard.automations.detailHeader.moreActionsAriaLabel",
+								message: "More actions",
+							})}
 						>
 							<LuEllipsis className="size-4" />
 						</Button>

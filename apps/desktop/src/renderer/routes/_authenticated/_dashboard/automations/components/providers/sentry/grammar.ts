@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	SentryTriggerEvent,
 	TriggerConfigInput,
@@ -35,25 +37,91 @@ export const SENTRY_SENTENCES: Record<SentryTriggerEvent, SentencePart[]> = {
 };
 
 export const SENTRY_MENU: TriggerMenuEntry<SentryConfig>[] = [
-	leaf("Issue created", "issue.created"),
-	leaf("Issue resolved", "issue.resolved"),
-	leaf("Issue assigned", "issue.assigned"),
-	leaf("Issue archived", "issue.archived"),
-	leaf("Issue unresolved", "issue.unresolved"),
-	leaf("Any issue event", "issue.any"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.sentry.menuIssueCreated",
+			message: "Issue created",
+		}),
+		"issue.created",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.sentry.menuIssueResolved",
+			message: "Issue resolved",
+		}),
+		"issue.resolved",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.sentry.menuIssueAssigned",
+			message: "Issue assigned",
+		}),
+		"issue.assigned",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.sentry.menuIssueArchived",
+			message: "Issue archived",
+		}),
+		"issue.archived",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.sentry.menuIssueUnresolved",
+			message: "Issue unresolved",
+		}),
+		"issue.unresolved",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.sentry.menuIssueAny",
+			message: "Any issue event",
+		}),
+		"issue.any",
+	),
 ];
 
-function leaf(label: string, event: SentryTriggerEvent) {
+function leaf(label: MessageDescriptor, event: SentryTriggerEvent) {
 	return { label, create: () => createSentryConfig(event) };
 }
 
 /** Sentry's fixed severity levels; the ids are what the webhook payload carries. */
-export const SENTRY_LEVELS = [
-	{ id: "fatal", label: "Fatal" },
-	{ id: "error", label: "Error" },
-	{ id: "warning", label: "Warning" },
-	{ id: "info", label: "Info" },
-	{ id: "debug", label: "Debug" },
+export const SENTRY_LEVELS: { id: string; label: MessageDescriptor }[] = [
+	{
+		id: "fatal",
+		label: msg({
+			id: "dashboard.automations.providers.sentry.levelFatal",
+			message: "Fatal",
+		}),
+	},
+	{
+		id: "error",
+		label: msg({
+			id: "dashboard.automations.providers.sentry.levelError",
+			message: "Error",
+		}),
+	},
+	{
+		id: "warning",
+		label: msg({
+			id: "dashboard.automations.providers.sentry.levelWarning",
+			message: "Warning",
+		}),
+	},
+	{
+		id: "info",
+		label: msg({
+			id: "dashboard.automations.providers.sentry.levelInfo",
+			message: "Info",
+		}),
+	},
+	{
+		id: "debug",
+		label: msg({
+			id: "dashboard.automations.providers.sentry.levelDebug",
+			message: "Debug",
+		}),
+	},
 ];
 
 /**

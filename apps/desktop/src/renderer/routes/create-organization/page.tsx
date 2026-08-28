@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Card, CardContent, CardHeader } from "@superset/ui/card";
 import {
@@ -47,6 +47,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function CreateOrganization() {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const isSignedIn = !!session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -151,13 +152,21 @@ export function CreateOrganization() {
 				organizationId: organization.id,
 			});
 
-			toast.success("Organization created successfully!");
+			toast.success(
+				t({
+					id: "auth.createOrganization.created",
+					message: "Organization created successfully!",
+				}),
+			);
 			navigate({ to: "/" });
 		} catch (error) {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to create organization",
+					: t({
+							id: "auth.createOrganization.createFailed",
+							message: "Failed to create organization",
+						}),
 			);
 		} finally {
 			setIsSubmitting(false);
@@ -220,7 +229,10 @@ export function CreateOrganization() {
 										<FormControl>
 											<Input
 												{...field}
-												placeholder="Acme Inc."
+												placeholder={t({
+													id: "auth.createOrganization.namePlaceholder",
+													message: "Acme Inc.",
+												})}
 												disabled={isSubmitting}
 											/>
 										</FormControl>

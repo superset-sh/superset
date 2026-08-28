@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -19,6 +19,7 @@ interface BrowserSettingsProps {
 }
 
 export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const [isImportOpen, setIsImportOpen] = useState(false);
 
@@ -71,7 +72,13 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 					<div className="flex items-center justify-between gap-4">
 						<div className="space-y-0.5">
 							<Label htmlFor="browser-homepage" className="text-sm font-medium">
-								<HighlightText text="Browser homepage" query={searchQuery} />
+								<HighlightText
+									text={t({
+										id: "settings.browser.homepageLabel",
+										message: "Browser homepage",
+									})}
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
 								<Trans id="settings.browser.homepageHint">
@@ -100,7 +107,10 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 						<div className="space-y-0.5">
 							<Label className="text-sm font-medium">
 								<HighlightText
-									text="Import settings from another browser"
+									text={t({
+										id: "settings.browser.importLabel",
+										message: "Import settings from another browser",
+									})}
 									query={searchQuery}
 								/>
 							</Label>

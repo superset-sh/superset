@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
@@ -22,9 +22,19 @@ export function WorkspaceHostUnreachableState({
 	detail,
 	isReconnecting,
 	onRetry,
-	retryLabel = "Retry",
-	retryBusyLabel = "Retrying…",
+	retryLabel,
+	retryBusyLabel,
 }: WorkspaceHostUnreachableStateProps) {
+	const { t } = useLingui();
+	const resolvedRetryLabel =
+		retryLabel ??
+		t({ id: "workspace.states.hostUnreachableRetry", message: "Retry" });
+	const resolvedRetryBusyLabel =
+		retryBusyLabel ??
+		t({
+			id: "workspace.states.hostUnreachableRetrying",
+			message: "Retrying…",
+		});
 	return (
 		<div className="flex h-full w-full items-center justify-center p-6">
 			<div className="flex w-full max-w-sm flex-col items-start gap-6">
@@ -80,7 +90,15 @@ export function WorkspaceHostUnreachableState({
 							{hostName}
 						</span>
 						<span className="ml-auto shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-							{isReconnecting ? "Reconnecting" : "Disconnected"}
+							{isReconnecting
+								? t({
+										id: "workspace.states.hostUnreachableReconnecting",
+										message: "Reconnecting",
+									})
+								: t({
+										id: "workspace.states.hostUnreachableDisconnected",
+										message: "Disconnected",
+									})}
 						</span>
 					</div>
 					<div className="border-t border-border/60 px-3 py-2">
@@ -114,7 +132,7 @@ export function WorkspaceHostUnreachableState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						{isReconnecting ? retryBusyLabel : retryLabel}
+						{isReconnecting ? resolvedRetryBusyLabel : resolvedRetryLabel}
 					</Button>
 					<Button
 						asChild

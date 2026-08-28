@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -62,6 +62,7 @@ export function CompareBaseBranchPicker({
 	onSelectCompareBaseBranch,
 	onOpenWorkspace,
 }: CompareBaseBranchPickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	// Mirror cmdk's selected row so Mod+Enter can resolve it without DOM lookup.
 	const [selectedValue, setSelectedValue] = useState("");
@@ -156,7 +157,10 @@ export function CompareBaseBranchPicker({
 					}}
 				>
 					<CommandInput
-						placeholder="Search branches..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.compareBaseBranchPicker.searchPlaceholder",
+							message: "Search branches...",
+						})}
 						value={branchSearch}
 						onValueChange={onBranchSearchChange}
 					/>

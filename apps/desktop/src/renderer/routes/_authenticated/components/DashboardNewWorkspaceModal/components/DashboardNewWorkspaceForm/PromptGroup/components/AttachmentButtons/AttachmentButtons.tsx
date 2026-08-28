@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	PromptInputButton,
 	usePromptInputAttachments,
@@ -19,13 +19,17 @@ export function AttachmentButtons({
 	githubIssueTrigger,
 	prTrigger,
 }: AttachmentButtonsProps) {
+	const { t } = useLingui();
 	const attachments = usePromptInputAttachments();
 	return (
 		<div className="flex items-center gap-1">
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<PromptInputButton
-						aria-label="Add attachment"
+						aria-label={t({
+							id: "dashboard.newWorkspaceModal.attachmentButtons.addAttachmentAria",
+							message: "Add attachment",
+						})}
 						className={`${PILL_BUTTON_CLASS} w-[22px]`}
 						onClick={() => attachments.openFileDialog()}
 					>

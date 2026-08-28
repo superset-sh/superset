@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -20,6 +20,7 @@ import { HighlightText } from "renderer/routes/_authenticated/settings/component
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function LeaderboardSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { activeHostUrl } = useLocalHostService();
 	const { handle, isLoading, optedIn, join, leave, joining } =
@@ -45,7 +46,13 @@ export function LeaderboardSection() {
 			<div className="flex items-start justify-between gap-6">
 				<div className="space-y-1 flex-1">
 					<Label htmlFor="leaderboard-opt-in" className="text-sm font-medium">
-						<HighlightText text="Public leaderboard" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.account.leaderboard.title",
+								message: "Public leaderboard",
+							})}
+							query={searchQuery}
+						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						{optedIn && handle ? (

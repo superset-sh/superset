@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -22,6 +22,7 @@ export function AgentCardFields({
 	validationMessage,
 	onFieldBlur,
 }: AgentCardFieldsProps) {
+	const { t } = useLingui();
 	return (
 		<>
 			<div className="grid gap-4 md:grid-cols-2">
@@ -92,7 +93,10 @@ export function AgentCardFields({
 							onBlur={(event) =>
 								onFieldBlur("promptCommandSuffix", event.target.value)
 							}
-							placeholder="Optional flags appended after the prompt payload"
+							placeholder={t({
+								id: "settings.agents.card.promptCommandSuffixPlaceholder",
+								message: "Optional flags appended after the prompt payload",
+							})}
 						/>
 					</div>
 				</div>

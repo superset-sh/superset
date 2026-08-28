@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -18,6 +18,7 @@ interface AssigneeCellProps {
 }
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
+	const { t } = useLingui();
 	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
@@ -61,7 +62,13 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 					) : task.assigneeExternalId ? (
 						<Avatar
 							size="xs"
-							fullName={task.assigneeDisplayName || "External"}
+							fullName={
+								task.assigneeDisplayName ||
+								t({
+									id: "dashboard.tasks.assigneeCell.externalName",
+									message: "External",
+								})
+							}
 							image={task.assigneeAvatarUrl}
 						/>
 					) : (

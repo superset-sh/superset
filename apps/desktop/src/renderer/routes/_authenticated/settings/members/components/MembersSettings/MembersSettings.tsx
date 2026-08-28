@@ -122,7 +122,13 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 
 					<div className="max-w-5xl space-y-4">
 						<h3 className="text-lg font-semibold">
-							<HighlightText text="Team Members" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.members.teamMembersTitle",
+									message: "Team Members",
+								})}
+								query={searchQuery}
+							/>
 						</h3>
 
 						{showMembersList &&

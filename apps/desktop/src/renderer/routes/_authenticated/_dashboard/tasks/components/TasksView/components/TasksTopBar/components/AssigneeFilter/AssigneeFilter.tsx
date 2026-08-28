@@ -148,8 +148,20 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 				<Button
 					variant="ghost"
 					size="sm"
-					title={selectedUser?.name ?? "Assignee"}
-					aria-label={selectedUser?.name ?? "Assignee"}
+					title={
+						selectedUser?.name ??
+						t({
+							id: "dashboard.tasks.assigneeFilter.assignee",
+							message: "Assignee",
+						})
+					}
+					aria-label={
+						selectedUser?.name ??
+						t({
+							id: "dashboard.tasks.assigneeFilter.assignee",
+							message: "Assignee",
+						})
+					}
 					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					{selectedUser ? (
@@ -183,7 +195,10 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 			<PopoverContent align="start" className="w-60 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search people..."
+						placeholder={t({
+							id: "dashboard.tasks.assigneeFilter.searchPeople",
+							message: "Search people...",
+						})}
 						value={search}
 						onValueChange={setSearch}
 					/>
@@ -255,7 +270,10 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 									<CommandGroup
 										heading={
 											tab === "all" && visibleExternal.length > 0
-												? "Internal"
+												? t({
+														id: "dashboard.tasks.assigneeFilter.headingInternal",
+														message: "Internal",
+													})
 												: undefined
 										}
 									>
@@ -290,7 +308,10 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 									<CommandGroup
 										heading={
 											tab === "all" && visibleUsers.length > 0
-												? "External"
+												? t({
+														id: "dashboard.tasks.assigneeFilter.headingExternal",
+														message: "External",
+													})
 												: undefined
 										}
 									>
@@ -301,7 +322,13 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 											>
 												<Avatar
 													size="xs"
-													fullName={ext.name || "External"}
+													fullName={
+														ext.name ||
+														t({
+															id: "dashboard.tasks.assigneeFilter.externalName",
+															message: "External",
+														})
+													}
 													image={ext.avatar}
 												/>
 												<span className="text-sm truncate">

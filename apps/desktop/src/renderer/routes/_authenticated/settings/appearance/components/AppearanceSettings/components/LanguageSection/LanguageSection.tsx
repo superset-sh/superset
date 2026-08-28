@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { SUPPORTED_LOCALES, type SupportedLocale } from "@superset/i18n";
 import {
 	Select,
@@ -22,6 +22,7 @@ const LOCALE_LABELS: Record<SupportedLocale, string> = {
 };
 
 export function LanguageSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const { data: language } = electronTrpc.settings.getLanguage.useQuery();
@@ -39,24 +40,44 @@ export function LanguageSection() {
 						// sync failures need surfacing.
 						if (error.data?.code === "UNAUTHORIZED") return;
 						toast.error(
-							"Language saved on this device, but syncing it to your account failed.",
+							t({
+								id: "settings.appearance.language.syncFailed",
+								message:
+									"Language saved on this device, but syncing it to your account failed.",
+							}),
 						);
 					},
 				},
 			);
 		},
-		onError: () => toast.error("Failed to update language"),
+		onError: () =>
+			toast.error(
+				t({
+					id: "settings.appearance.language.updateFailed",
+					message: "Failed to update language",
+				}),
+			),
 	});
 
 	return (
 		<div className="flex items-center justify-between gap-6 p-4">
 			<div className="min-w-0 flex-1">
 				<div className="text-sm font-medium">
-					<HighlightText text="Language" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.appearance.language.label",
+							message: "Language",
+						})}
+						query={searchQuery}
+					/>
 				</div>
 				<div className="text-xs text-muted-foreground">
 					<HighlightText
-						text="App display language. Auto follows your system language."
+						text={t({
+							id: "settings.appearance.language.hint",
+							message:
+								"App display language. Auto follows your system language.",
+						})}
 						query={searchQuery}
 					/>
 				</div>

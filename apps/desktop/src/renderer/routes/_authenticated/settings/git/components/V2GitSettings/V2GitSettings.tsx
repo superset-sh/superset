@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	type BranchPrefixMode,
@@ -36,6 +36,7 @@ interface V2GitSettingsProps {
  * user has 2+ devices in this org.
  */
 export function V2GitSettings({ hostId }: V2GitSettingsProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const hostService = useLocalHostService();
 	const { machineId } = hostService;
@@ -46,11 +47,15 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 	const queryClient = useQueryClient();
 
 	const hostOptions = useMemo<HostSelectOption[]>(() => {
+		const thisDeviceLabel = t({
+			id: "settings.git.v2ThisDevice",
+			message: "This device",
+		});
 		const options: HostSelectOption[] = [];
 		if (localHostId) {
 			options.push({
 				id: localHostId,
-				name: currentDeviceName ?? "This device",
+				name: currentDeviceName ?? thisDeviceLabel,
 				isLocal: true,
 				isOnline: true,
 			});
@@ -66,13 +71,13 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 		if (targetHostId && !options.some((o) => o.id === targetHostId)) {
 			options.push({
 				id: targetHostId,
-				name: targetHostId === machineId ? "This device" : targetHostId,
+				name: targetHostId === machineId ? thisDeviceLabel : targetHostId,
 				isLocal: targetHostId === machineId,
 				isOnline: targetHostId === machineId,
 			});
 		}
 		return options;
-	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId]);
+	}, [currentDeviceName, localHostId, machineId, otherHosts, targetHostId, t]);
 
 	const selectedHost = useMemo(
 		() => hostOptions.find((o) => o.id === targetHostId) ?? null,
@@ -81,9 +86,13 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 	const hasMultipleHosts = hostOptions.length > 1;
 	const isRemoteTarget = Boolean(selectedHost && !selectedHost.isLocal);
 	const isHostOnline = selectedHost?.isOnline ?? true;
+	const thisDeviceLower = t({
+		id: "settings.git.v2ThisDeviceLower",
+		message: "this device",
+	});
 	const selectedHostName = selectedHost?.isLocal
-		? "this device"
-		: (selectedHost?.name ?? "this device");
+		? thisDeviceLower
+		: (selectedHost?.name ?? thisDeviceLower);
 
 	const worktreeQuery = useV2WorktreeLocationSettings(targetHostUrl, {
 		enabled: isHostOnline,
@@ -139,7 +148,15 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 			});
 		},
 		onError: (err) =>
-			toast.error(errorMessage(err, "Failed to update branch prefix")),
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.git.updateBranchPrefixError",
+						message: "Failed to update branch prefix",
+					}),
+				),
+			),
 	});
 
 	const previewPrefix =
@@ -188,7 +205,10 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 
 			<section>
 				<SettingsRow
-					label="Branch prefix"
+					label={t({
+						id: "settings.git.v2BranchPrefixLabel",
+						message: "Branch prefix",
+					})}
 					hint={
 						<>
 							<Trans id="settings.git.v2BranchPrefixHint">
@@ -213,8 +233,14 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 					/>
 				</SettingsRow>
 				<SettingsRow
-					label="Worktree location"
-					hint={`Base directory for new worktrees on ${selectedHostName}.`}
+					label={t({
+						id: "settings.git.v2WorktreeLocationLabel",
+						message: "Worktree location",
+					})}
+					hint={t({
+						id: "settings.git.v2WorktreeLocationHint",
+						message: `Base directory for new worktrees on ${selectedHostName}.`,
+					})}
 				>
 					<V2WorktreeLocationPicker
 						currentPath={worktreeQuery.data?.worktreeBaseDir ?? null}
@@ -230,7 +256,10 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 							worktreeQuery.isLoading ||
 							setWorktreeBaseDir.isPending
 						}
-						browseTitle="Select default worktree location"
+						browseTitle={t({
+							id: "settings.git.v2BrowseTitle",
+							message: "Select default worktree location",
+						})}
 						onSelect={(path) => setWorktreeBaseDir.mutate(path)}
 						onReset={() => setWorktreeBaseDir.mutate(null)}
 					/>

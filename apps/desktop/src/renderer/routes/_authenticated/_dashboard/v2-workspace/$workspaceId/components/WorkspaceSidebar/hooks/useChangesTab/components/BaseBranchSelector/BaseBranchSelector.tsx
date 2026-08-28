@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { ScrollArea } from "@superset/ui/scroll-area";
@@ -20,6 +20,7 @@ export function BaseBranchSelector({
 	currentValue,
 	onChange,
 }: BaseBranchSelectorProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -48,7 +49,10 @@ export function BaseBranchSelector({
 			>
 				<div className="border-b px-3 py-2">
 					<input
-						placeholder="Search branches..."
+						placeholder={t({
+							id: "workspace.baseBranchSelector.searchPlaceholder",
+							message: "Search branches...",
+						})}
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"

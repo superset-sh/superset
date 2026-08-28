@@ -1,4 +1,7 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import {
@@ -28,13 +31,28 @@ import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWor
 
 const PR_STATE_LABEL: Record<
 	DashboardSidebarWorkspacePullRequest["state"],
-	string
+	MessageDescriptor
 > = {
-	open: "Open",
-	merged: "Merged",
-	closed: "Closed",
-	draft: "Draft",
-	queued: "Queued",
+	open: msg({
+		id: "dashboard.sidebar.expandedWorkspaceRow.prStateOpen",
+		message: "Open",
+	}),
+	merged: msg({
+		id: "dashboard.sidebar.expandedWorkspaceRow.prStateMerged",
+		message: "Merged",
+	}),
+	closed: msg({
+		id: "dashboard.sidebar.expandedWorkspaceRow.prStateClosed",
+		message: "Closed",
+	}),
+	draft: msg({
+		id: "dashboard.sidebar.expandedWorkspaceRow.prStateDraft",
+		message: "Draft",
+	}),
+	queued: msg({
+		id: "dashboard.sidebar.expandedWorkspaceRow.prStateQueued",
+		message: "Queued",
+	}),
 };
 
 interface DashboardSidebarExpandedWorkspaceRowProps
@@ -94,6 +112,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		},
 		ref,
 	) => {
+		const { t } = useLingui();
 		const {
 			hostType,
 			hostIsOnline,
@@ -199,7 +218,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 												event.stopPropagation();
 											}
 										}}
-										aria-label={`Open pull request #${pullRequest.number}`}
+										aria-label={t({
+											id: "dashboard.sidebar.expandedWorkspaceRow.openPrAriaLabel",
+											message: `Open pull request #${pullRequest.number}`,
+										})}
 										className="relative mr-2 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
 									>
 										<DashboardSidebarWorkspaceIcon
@@ -234,7 +256,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 										<p className="text-xs font-medium">
 											<Trans id="dashboard.sidebar.expandedWorkspaceRow.prTooltipTitle">
 												PR #{pullRequest.number} —{" "}
-												{PR_STATE_LABEL[pullRequest.state]}
+												{i18n._(PR_STATE_LABEL[pullRequest.state])}
 											</Trans>
 										</p>
 										<p className="text-xs text-muted-foreground">
@@ -302,14 +324,24 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<TooltipTrigger asChild>
 								<div className="mr-1.5 flex shrink-0 items-center">
 									<ProjectThumbnail
-										projectName={pinnedContext.projectName ?? "Session"}
+										projectName={
+											pinnedContext.projectName ??
+											t({
+												id: "dashboard.sidebar.expandedWorkspaceRow.sessionThumbnailFallback",
+												message: "Session",
+											})
+										}
 										iconUrl={pinnedContext.projectIconUrl}
 										className="size-3.5 text-[8px]"
 									/>
 								</div>
 							</TooltipTrigger>
 							<TooltipContent side="right" sideOffset={8}>
-								{pinnedContext.projectName ?? "Session"}
+								{pinnedContext.projectName ??
+									t({
+										id: "dashboard.sidebar.expandedWorkspaceRow.sessionTooltipFallback",
+										message: "Session",
+									})}
 							</TooltipContent>
 						</Tooltip>
 					)}
@@ -389,13 +421,21 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 														}
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Remove from sidebar"
+													aria-label={t({
+														id: "dashboard.sidebar.expandedWorkspaceRow.removeFromSidebarAriaLabel",
+														message: "Remove from sidebar",
+													})}
 												>
 													<HiMiniMinus className="size-3.5" />
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="top">
-												<HotkeyLabel label="Remove from sidebar" />
+												<HotkeyLabel
+													label={t({
+														id: "dashboard.sidebar.expandedWorkspaceRow.removeFromSidebar",
+														message: "Remove from sidebar",
+													})}
+												/>
 											</TooltipContent>
 										</Tooltip>
 									) : (
@@ -417,14 +457,20 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 														}
 													}}
 													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Close workspace"
+													aria-label={t({
+														id: "dashboard.sidebar.expandedWorkspaceRow.closeWorkspaceAriaLabel",
+														message: "Close workspace",
+													})}
 												>
 													<HiMiniXMark className="size-3.5" />
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="top">
 												<HotkeyLabel
-													label="Close workspace"
+													label={t({
+														id: "dashboard.sidebar.expandedWorkspaceRow.closeWorkspace",
+														message: "Close workspace",
+													})}
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}
 												/>
 											</TooltipContent>

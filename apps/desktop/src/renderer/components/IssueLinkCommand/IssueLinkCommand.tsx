@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -43,6 +43,7 @@ export function IssueLinkCommand({
 	tooltipLabel,
 	onSelect,
 }: IssueLinkCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
@@ -169,7 +170,10 @@ export function IssueLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search issues..."
+						placeholder={t({
+							id: "components.issueLinkCommand.searchPlaceholder",
+							message: "Search issues...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -206,10 +210,19 @@ export function IssueLinkCommand({
 							<CommandGroup
 								heading={
 									searchQuery
-										? "Results"
+										? t({
+												id: "components.issueLinkCommand.results",
+												message: "Results",
+											})
 										: showClosed
-											? "Recent issues"
-											: "Open issues"
+											? t({
+													id: "components.issueLinkCommand.recentIssues",
+													message: "Recent issues",
+												})
+											: t({
+													id: "components.issueLinkCommand.openIssues",
+													message: "Open issues",
+												})
 								}
 							>
 								{filteredTasks.map((task) => {

@@ -1,4 +1,6 @@
-import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -85,16 +87,32 @@ function QuotaWindowRow({ window }: { window: UsageQuotaWindow }) {
 
 function creditsLine(account: UsageAccount): string | null {
 	if (account.creditsBalance !== null) {
-		return `$${account.creditsBalance.toFixed(2)} credits`;
+		const balance = account.creditsBalance.toFixed(2);
+		return i18n._(
+			msg({
+				id: "settings.usage.account.creditsBalance",
+				message: `$${balance} credits`,
+			}),
+		);
 	}
 	if (account.extraUsage) {
-		return `extra $${(account.extraUsage.usedCents / 100).toFixed(2)} of $${(account.extraUsage.limitCents / 100).toFixed(2)}`;
+		const used = (account.extraUsage.usedCents / 100).toFixed(2);
+		const limit = (account.extraUsage.limitCents / 100).toFixed(2);
+		return i18n._(
+			msg({
+				id: "settings.usage.account.extraUsage",
+				message: `extra $${used} of $${limit}`,
+			}),
+		);
 	}
 	return null;
 }
 
-const DEFAULT_TITLE =
-	"New agent launches use this account. Relaunch a running agent to switch it.";
+const DEFAULT_TITLE = msg({
+	id: "settings.usage.account.defaultTitle",
+	message:
+		"New agent launches use this account. Relaunch a running agent to switch it.",
+});
 
 function AccountCard({
 	account,
@@ -118,6 +136,7 @@ function AccountCard({
 	/** Replaces account emails so screenshots do not retain identifying pixels. */
 	hideEmails: boolean;
 }) {
+	const { t } = useLingui();
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
@@ -134,7 +153,10 @@ function AccountCard({
 			<div className="flex items-baseline gap-1.5">
 				{selectable &&
 					(account.isDefault ? (
-						<span className="shrink-0 self-center" title={DEFAULT_TITLE}>
+						<span
+							className="shrink-0 self-center"
+							title={i18n._(DEFAULT_TITLE)}
+						>
 							<LuCircleCheck className="size-3.5 text-primary" />
 						</span>
 					) : (
@@ -142,7 +164,11 @@ function AccountCard({
 							type="button"
 							className="shrink-0 self-center text-muted-foreground/50 transition-colors hover:text-primary disabled:pointer-events-none"
 							disabled={isSwitching}
-							title="Make default — launch new terminals and agents on this account."
+							title={t({
+								id: "settings.usage.account.makeDefaultTitle",
+								message:
+									"Make default — launch new terminals and agents on this account.",
+							})}
 							onClick={onMakeDefault}
 						>
 							<LuCircle className="size-3.5" />
@@ -230,7 +256,13 @@ function AccountCard({
 						title={expiredCommand}
 						onClick={() =>
 							copyToClipboard(expiredCommand).catch(() =>
-								toast.error("Copy failed", { description: expiredCommand }),
+								toast.error(
+									t({
+										id: "settings.usage.account.copyFailed",
+										message: "Copy failed",
+									}),
+									{ description: expiredCommand },
+								),
 							)
 						}
 					>
@@ -264,7 +296,7 @@ function AccountCard({
 						!selectable && (
 							<span
 								className="inline-flex items-center gap-1 text-[10px] font-medium text-primary"
-								title={DEFAULT_TITLE}
+								title={i18n._(DEFAULT_TITLE)}
 							>
 								<LuCircleCheck className="size-3" />
 								<Trans id="settings.usage.account.defaultForNewAgents">
@@ -278,7 +310,7 @@ function AccountCard({
 							size="sm"
 							className="h-5 rounded px-1.5 text-[10px]"
 							disabled={isSwitching}
-							title={DEFAULT_TITLE}
+							title={i18n._(DEFAULT_TITLE)}
 							onClick={onMakeDefault}
 						>
 							<Trans id="settings.usage.account.makeDefault">
@@ -298,6 +330,7 @@ function AccountCard({
 }
 
 export function UsageView({ hostUrl }: { hostUrl: string | null }) {
+	const { t } = useLingui();
 	const quotaQuery = useHostUsageQuota(hostUrl);
 	const setDefault = useSetDefaultUsageAccount(hostUrl);
 	const removeAccount = useRemoveUsageAccount(hostUrl);
@@ -319,10 +352,18 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 			{ provider: account.provider, selection: account.selection },
 			{
 				onSuccess: () => {
+					const providerLabel = PROVIDER_LABELS[account.provider];
+					const accountLabel = account.email ?? account.sourceLabel;
 					toast.success(
-						`New ${PROVIDER_LABELS[account.provider]} agents will use ${account.email ?? account.sourceLabel}.`,
+						t({
+							id: "settings.usage.account.madeDefaultToast",
+							message: `New ${providerLabel} agents will use ${accountLabel}.`,
+						}),
 						{
-							description: "Relaunch running agents to switch them.",
+							description: t({
+								id: "settings.usage.account.madeDefaultDescription",
+								message: "Relaunch running agents to switch them.",
+							}),
 						},
 					);
 				},
@@ -474,8 +515,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 						},
 						{
 							onSuccess: () => {
+								const removedLabel =
+									removeTarget.email ?? removeTarget.sourceLabel;
 								toast.success(
-									`Removed ${removeTarget.email ?? removeTarget.sourceLabel}.`,
+									t({
+										id: "settings.usage.account.removedToast",
+										message: `Removed ${removedLabel}.`,
+									}),
 								);
 								setRemoveTarget(null);
 							},

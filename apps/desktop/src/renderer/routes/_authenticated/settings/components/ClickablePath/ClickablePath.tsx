@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
@@ -24,6 +24,7 @@ export function ClickablePath({
 	className,
 	truncate,
 }: ClickablePathProps) {
+	const { t } = useLingui();
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = electronTrpc.useUtils();
@@ -36,12 +37,30 @@ export function ClickablePath({
 		onSuccess: () => {
 			utils.settings.getDefaultEditor.invalidate();
 		},
-		onError: (error) => toast.error(`Failed to open: ${error.message}`),
+		onError: (error) =>
+			toast.error(
+				t({
+					id: "settings.components.clickablePath.openFailed",
+					message: `Failed to open: ${error.message}`,
+				}),
+			),
 	});
 
 	const copyPath = electronTrpc.external.copyPath.useMutation({
-		onSuccess: () => toast.success("Path copied to clipboard"),
-		onError: (error) => toast.error(`Failed to copy path: ${error.message}`),
+		onSuccess: () =>
+			toast.success(
+				t({
+					id: "settings.components.clickablePath.pathCopied",
+					message: "Path copied to clipboard",
+				}),
+			),
+		onError: (error) =>
+			toast.error(
+				t({
+					id: "settings.components.clickablePath.copyFailed",
+					message: `Failed to copy path: ${error.message}`,
+				}),
+			),
 	});
 
 	const isDark = activeTheme?.type === "dark";

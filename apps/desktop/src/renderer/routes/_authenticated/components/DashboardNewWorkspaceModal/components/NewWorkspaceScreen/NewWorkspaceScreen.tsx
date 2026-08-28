@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getAgentEffortSupport,
 	getAgentModelSupport,
@@ -128,6 +128,7 @@ export function NewWorkspaceScreen({
 	preSelectedProjectId,
 	preSelectedSession = false,
 }: NewWorkspaceScreenProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const [promptSeed, setPromptSeed] = useState(0);
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
@@ -320,13 +321,18 @@ export function NewWorkspaceScreen({
 		wasOpenRef.current = isOpen;
 	}, [isOpen]);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: re-roll per draft reset and per open
-	const promptPlaceholder = useMemo(
-		() =>
+	const promptPlaceholder = useMemo(() => {
+		const descriptor =
 			PROMPT_PLACEHOLDERS[
 				Math.floor(Math.random() * PROMPT_PLACEHOLDERS.length)
-			] ?? "What do you want to do?",
-		[resetKey, placeholderRoll],
-	);
+			];
+		return descriptor
+			? t(descriptor)
+			: t({
+					id: "dashboard.newWorkspaceModal.promptPlaceholder.whatDoYouWantToDo",
+					message: "What do you want to do?",
+				});
+	}, [resetKey, placeholderRoll, t]);
 
 	const projectId = draft.selectedProjectId;
 	const selectedProject = projects.find((project) => project.id === projectId);
@@ -537,17 +543,32 @@ export function NewWorkspaceScreen({
 
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!projectId && !draft.isSession) return "Select a project";
+		if (!projectId && !draft.isSession)
+			return t({
+				id: "dashboard.newWorkspaceModal.newWorkspaceScreen.blockerSelectProject",
+				message: "Select a project",
+			});
 		const selectedHostId = draft.hostId ?? machineId;
 		// A cloud workspace is provisioned on submit, so there is no host whose
 		// readiness could block it.
 		if (selectedHostId === CLOUD_HOST_ID) return null;
-		if (!selectedHostId) return "No active host";
+		if (!selectedHostId)
+			return t({
+				id: "dashboard.newWorkspaceModal.newWorkspaceScreen.blockerNoActiveHost",
+				message: "No active host",
+			});
 		if (selectedHostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === selectedHostId);
-			if (!remote?.isOnline) return "Host is offline";
+			if (!remote?.isOnline)
+				return t({
+					id: "dashboard.newWorkspaceModal.newWorkspaceScreen.blockerHostOffline",
+					message: "Host is offline",
+				});
 		} else if (!activeHostUrl) {
-			return "Host service is not running";
+			return t({
+				id: "dashboard.newWorkspaceModal.newWorkspaceScreen.blockerHostServiceNotRunning",
+				message: "Host service is not running",
+			});
 		}
 		return null;
 	}, [
@@ -557,6 +578,7 @@ export function NewWorkspaceScreen({
 		machineId,
 		activeHostUrl,
 		otherHosts,
+		t,
 	]);
 
 	const handleGoToSetup = useCallback(() => {
@@ -656,7 +678,10 @@ export function NewWorkspaceScreen({
 								type="button"
 								variant="ghost"
 								size="icon"
-								aria-label="Update naming instructions"
+								aria-label={t({
+									id: "dashboard.newWorkspaceModal.newWorkspaceScreen.updateNamingInstructionsAria",
+									message: "Update naming instructions",
+								})}
 								className="size-7 text-muted-foreground"
 								onClick={handleGoToNamingInstructions}
 							>
@@ -672,13 +697,19 @@ export function NewWorkspaceScreen({
 				)}
 				<PromptHistoryCommand
 					onSelect={applyPrompt}
-					tooltipLabel="Previous prompts"
+					tooltipLabel={t({
+						id: "dashboard.newWorkspaceModal.newWorkspaceScreen.previousPrompts",
+						message: "Previous prompts",
+					})}
 				>
 					<Button
 						type="button"
 						variant="ghost"
 						size="icon"
-						aria-label="Previous prompts"
+						aria-label={t({
+							id: "dashboard.newWorkspaceModal.newWorkspaceScreen.previousPrompts",
+							message: "Previous prompts",
+						})}
 						className="size-7 text-muted-foreground"
 					>
 						<HistoryIcon className="size-4" />
@@ -828,13 +859,19 @@ export function NewWorkspaceScreen({
 								<AgentSelect<WorkspaceCreateAgent>
 									agents={v2Agents}
 									value={selectedAgent}
-									placeholder="No agent"
+									placeholder={t({
+										id: "dashboard.newWorkspaceModal.newWorkspaceScreen.noAgent",
+										message: "No agent",
+									})}
 									onValueChange={setSelectedAgent}
 									onBeforeConfigureAgents={closeModal}
 									triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									iconClassName="size-3 object-contain"
 									allowNone
-									noneLabel="No agent"
+									noneLabel={t({
+										id: "dashboard.newWorkspaceModal.newWorkspaceScreen.noAgent",
+										message: "No agent",
+									})}
 									noneValue="none"
 								/>
 								{modelSupport && (
@@ -842,7 +879,10 @@ export function NewWorkspaceScreen({
 										models={modelSupport.models}
 										value={selectedModel}
 										onValueChange={setSelectedModel}
-										defaultLabel="Default model"
+										defaultLabel={t({
+											id: "dashboard.newWorkspaceModal.newWorkspaceScreen.defaultModel",
+											message: "Default model",
+										})}
 										triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									/>
 								)}
@@ -851,7 +891,10 @@ export function NewWorkspaceScreen({
 										models={effortSupport.efforts}
 										value={selectedEffort}
 										onValueChange={setSelectedEffort}
-										defaultLabel="Default effort"
+										defaultLabel={t({
+											id: "dashboard.newWorkspaceModal.newWorkspaceScreen.defaultEffort",
+											message: "Default effort",
+										})}
 										triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									/>
 								)}
@@ -860,7 +903,10 @@ export function NewWorkspaceScreen({
 										models={modeSupport.modes}
 										value={selectedMode}
 										onValueChange={setSelectedMode}
-										defaultLabel="Direct mode"
+										defaultLabel={t({
+											id: "dashboard.newWorkspaceModal.newWorkspaceScreen.directMode",
+											message: "Direct mode",
+										})}
 										triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 									/>
 								)}
@@ -868,10 +914,16 @@ export function NewWorkspaceScreen({
 							<div className="flex items-center gap-2">
 								<IssueLinkCommand
 									onSelect={addLinkedIssue}
-									tooltipLabel="Link issue"
+									tooltipLabel={t({
+										id: "dashboard.newWorkspaceModal.newWorkspaceScreen.linkIssue",
+										message: "Link issue",
+									})}
 								>
 									<PromptInputButton
-										aria-label="Link issue"
+										aria-label={t({
+											id: "dashboard.newWorkspaceModal.newWorkspaceScreen.linkIssue",
+											message: "Link issue",
+										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<SiLinear className="size-3.5" />
@@ -888,10 +940,16 @@ export function NewWorkspaceScreen({
 									}
 									projectId={projectId}
 									hostId={draft.hostId}
-									tooltipLabel="Link GitHub issue"
+									tooltipLabel={t({
+										id: "dashboard.newWorkspaceModal.newWorkspaceScreen.linkGitHubIssue",
+										message: "Link GitHub issue",
+									})}
 								>
 									<PromptInputButton
-										aria-label="Link GitHub issue"
+										aria-label={t({
+											id: "dashboard.newWorkspaceModal.newWorkspaceScreen.linkGitHubIssue",
+											message: "Link GitHub issue",
+										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<GoIssueOpened className="size-3.5" />
@@ -901,10 +959,16 @@ export function NewWorkspaceScreen({
 									onSelect={setLinkedPR}
 									projectId={projectId}
 									hostId={draft.hostId}
-									tooltipLabel="Link pull request"
+									tooltipLabel={t({
+										id: "dashboard.newWorkspaceModal.newWorkspaceScreen.linkPullRequest",
+										message: "Link pull request",
+									})}
 								>
 									<PromptInputButton
-										aria-label="Link pull request"
+										aria-label={t({
+											id: "dashboard.newWorkspaceModal.newWorkspaceScreen.linkPullRequest",
+											message: "Link pull request",
+										})}
 										className={`${PILL_BUTTON_CLASS} w-[22px]`}
 									>
 										<LuGitPullRequest className="size-3.5" />
@@ -913,7 +977,10 @@ export function NewWorkspaceScreen({
 								<Tooltip>
 									<TooltipTrigger asChild>
 										<PromptInputButton
-											aria-label="Add attachment"
+											aria-label={t({
+												id: "dashboard.newWorkspaceModal.newWorkspaceScreen.addAttachment",
+												message: "Add attachment",
+											})}
 											className={`${PILL_BUTTON_CLASS} w-[22px]`}
 											onClick={() => attachments.openFileDialog()}
 										>

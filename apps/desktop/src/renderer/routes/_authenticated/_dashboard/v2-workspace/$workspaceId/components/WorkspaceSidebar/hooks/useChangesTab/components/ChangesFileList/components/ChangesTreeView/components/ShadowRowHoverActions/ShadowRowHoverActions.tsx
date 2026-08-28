@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -33,6 +34,7 @@ export function ShadowRowHoverActions({
 	renderMenuContent,
 	children,
 }: ShadowRowHoverActionsProps) {
+	const { t } = useLingui();
 	const [hover, setHover] = useState<{
 		rect: DOMRect;
 		treePath: string;
@@ -112,7 +114,10 @@ export function ShadowRowHoverActions({
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
-									aria-label="More actions"
+									aria-label={t({
+										id: "workspace.changesTreeView.moreActionsAria",
+										message: "More actions",
+									})}
 									className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground"
 									onClick={(e) => e.stopPropagation()}
 								>

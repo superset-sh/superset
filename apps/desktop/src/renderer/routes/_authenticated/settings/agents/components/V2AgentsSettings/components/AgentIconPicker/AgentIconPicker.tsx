@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -31,6 +31,7 @@ export function AgentIconPicker({
 	onChange,
 	disabled,
 }: AgentIconPickerProps) {
+	const { t } = useLingui();
 	const selectImageMutation = electronTrpc.window.selectImageFile.useMutation();
 	// Covers the whole flow (native dialog → mutate → resize), not just the
 	// mutation, so re-entrant clicks can't fire overlapping selections.
@@ -47,7 +48,12 @@ export function AgentIconPicker({
 			const resized = await resizeImageDataUrl(result.dataUrl);
 			onChange(resized);
 		} catch {
-			toast.error("Failed to load image");
+			toast.error(
+				t({
+					id: "settings.agents.iconPicker.loadImageFailed",
+					message: "Failed to load image",
+				}),
+			);
 		} finally {
 			setIsProcessing(false);
 		}

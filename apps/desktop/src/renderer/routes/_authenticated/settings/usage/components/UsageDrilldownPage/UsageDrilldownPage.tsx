@@ -69,7 +69,15 @@ export function UsageDrilldownPage({
 			? PROVIDER_CHART_CONFIG[provider].color
 			: "#d06a48";
 	const chartConfig = {
-		value: { label: title ?? "Usage", color: seriesColor },
+		value: {
+			label:
+				title ??
+				t({
+					id: "settings.usage.drilldown.chartFallbackLabel",
+					message: "Usage",
+				}),
+			color: seriesColor,
+		},
 	} satisfies ChartConfig;
 
 	// Zero-fill the sparse per-entity series against the range's day list so
@@ -360,7 +368,11 @@ export function UsageDrilldownPage({
 											key={session.id}
 											type="button"
 											onClick={() => copySessionId(session.id)}
-											title={`${session.id}\nClick to copy the session ID (resume with \`claude --resume <id>\`).`}
+											title={`${session.id}\n${t({
+												id: "settings.usage.drilldown.sessionCopyTitle",
+												message:
+													"Click to copy the session ID (resume with `claude --resume <id>`).",
+											})}`}
 											className="group flex flex-col gap-0.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/60"
 										>
 											<div className="flex items-baseline justify-between gap-3 text-[11px]">

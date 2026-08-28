@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import {
 	buildRrule,
 	matchPreset,
@@ -15,22 +17,95 @@ export interface SchedulePickerState {
 	customRrule: string;
 }
 
-export const PRESET_OPTIONS: { value: PresetKind; label: string }[] = [
-	{ value: "hourly", label: "Hourly" },
-	{ value: "daily", label: "Daily" },
-	{ value: "weekdays", label: "Weekdays" },
-	{ value: "weekly", label: "Weekly" },
-	{ value: "custom", label: "Custom" },
-];
+export const PRESET_OPTIONS: { value: PresetKind; label: MessageDescriptor }[] =
+	[
+		{
+			value: "hourly",
+			label: msg({
+				id: "dashboard.automations.schedule.presetHourly",
+				message: "Hourly",
+			}),
+		},
+		{
+			value: "daily",
+			label: msg({
+				id: "dashboard.automations.schedule.presetDaily",
+				message: "Daily",
+			}),
+		},
+		{
+			value: "weekdays",
+			label: msg({
+				id: "dashboard.automations.schedule.presetWeekdays",
+				message: "Weekdays",
+			}),
+		},
+		{
+			value: "weekly",
+			label: msg({
+				id: "dashboard.automations.schedule.presetWeekly",
+				message: "Weekly",
+			}),
+		},
+		{
+			value: "custom",
+			label: msg({
+				id: "dashboard.automations.schedule.presetCustom",
+				message: "Custom",
+			}),
+		},
+	];
 
-export const DAY_OPTIONS: { value: Weekday; label: string }[] = [
-	{ value: "MO", label: "Monday" },
-	{ value: "TU", label: "Tuesday" },
-	{ value: "WE", label: "Wednesday" },
-	{ value: "TH", label: "Thursday" },
-	{ value: "FR", label: "Friday" },
-	{ value: "SA", label: "Saturday" },
-	{ value: "SU", label: "Sunday" },
+export const DAY_OPTIONS: { value: Weekday; label: MessageDescriptor }[] = [
+	{
+		value: "MO",
+		label: msg({
+			id: "dashboard.automations.schedule.dayMonday",
+			message: "Monday",
+		}),
+	},
+	{
+		value: "TU",
+		label: msg({
+			id: "dashboard.automations.schedule.dayTuesday",
+			message: "Tuesday",
+		}),
+	},
+	{
+		value: "WE",
+		label: msg({
+			id: "dashboard.automations.schedule.dayWednesday",
+			message: "Wednesday",
+		}),
+	},
+	{
+		value: "TH",
+		label: msg({
+			id: "dashboard.automations.schedule.dayThursday",
+			message: "Thursday",
+		}),
+	},
+	{
+		value: "FR",
+		label: msg({
+			id: "dashboard.automations.schedule.dayFriday",
+			message: "Friday",
+		}),
+	},
+	{
+		value: "SA",
+		label: msg({
+			id: "dashboard.automations.schedule.daySaturday",
+			message: "Saturday",
+		}),
+	},
+	{
+		value: "SU",
+		label: msg({
+			id: "dashboard.automations.schedule.daySunday",
+			message: "Sunday",
+		}),
+	},
 ];
 
 /** Derive the picker's structured state from an RRULE string. */

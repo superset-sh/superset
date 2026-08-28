@@ -384,3 +384,32 @@ mock.module("@lingui/core/macro", () => ({
 	plural: (value: number, branches: Record<string, string>) =>
 		String(pickPluralBranch(value, branches)),
 }));
+
+// The compiled macro turns `message: `${minutes}m`` into "{minutes}m" plus
+// matching `values`, so the catalog stores placeholders. The shim above runs
+// on uncompiled source, where the template is already interpolated and no
+// values exist — a real `i18n._` would then find the catalog's placeholder
+// message and render it empty. Resolve descriptors from their own message in
+// tests so assertions see the English defaults.
+const realI18nModule = await import("@superset/i18n");
+// Proxy rather than spread: `i18n` is a class instance, so `load`/`activate`
+// live on the prototype and a spread would drop them.
+const testI18n = new Proxy(realI18nModule.i18n, {
+	get(target, prop, receiver) {
+		if (prop === "_") {
+			return (
+				descriptor: MessageDescriptor | string,
+				values?: Record<string, unknown>,
+			) =>
+				typeof descriptor === "string"
+					? descriptor
+					: renderMessage({
+							...descriptor,
+							values: values ?? descriptor.values,
+						});
+		}
+		const value = Reflect.get(target, prop, receiver);
+		return typeof value === "function" ? value.bind(target) : value;
+	},
+});
+mock.module("@superset/i18n", () => ({ ...realI18nModule, i18n: testI18n }));

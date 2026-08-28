@@ -110,7 +110,10 @@ export function PagesView({
 							<Input
 								value={search}
 								onChange={(event) => onSearchChange(event.target.value)}
-								placeholder="Search pages"
+								placeholder={t({
+									id: "dashboard.pages.searchPlaceholder",
+									message: "Search pages",
+								})}
 								className="h-8 pl-7 text-sm"
 							/>
 						</div>

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -47,6 +47,7 @@ export function NewProjectModal({
 	onSuccess,
 	onError,
 }: NewProjectModalProps) {
+	const { t } = useLingui();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
@@ -87,7 +88,10 @@ export function NewProjectModal({
 	const handleBrowse = async () => {
 		try {
 			const result = await selectDirectory.mutateAsync({
-				title: "Select project location",
+				title: t({
+					id: "dashboard.newProjectModal.selectLocationDialogTitle",
+					message: "Select project location",
+				}),
 				defaultPath: parentDir || undefined,
 			});
 			if (!result.canceled && result.path) {
@@ -102,11 +106,21 @@ export function NewProjectModal({
 		const trimmedUrl = url.trim();
 		const trimmedParent = parentDir.trim();
 		if (!trimmedUrl) {
-			toast.error("Please enter a repository URL");
+			toast.error(
+				t({
+					id: "dashboard.newProjectModal.enterRepoUrl",
+					message: "Please enter a repository URL",
+				}),
+			);
 			return;
 		}
 		if (!trimmedParent) {
-			toast.error("Please select a project location");
+			toast.error(
+				t({
+					id: "dashboard.newProjectModal.selectProjectLocation",
+					message: "Please select a project location",
+				}),
+			);
 			return;
 		}
 
@@ -131,7 +145,12 @@ export function NewProjectModal({
 			}
 			const trimmedName = name.trim() || deriveProjectNameFromUrl(trimmedUrl);
 			if (!trimmedName) {
-				toast.error("Please enter a project name");
+				toast.error(
+					t({
+						id: "dashboard.newProjectModal.enterProjectName",
+						message: "Please enter a project name",
+					}),
+				);
 				return;
 			}
 			const client = getHostServiceClientByUrl(activeHostUrl);
@@ -151,9 +170,19 @@ export function NewProjectModal({
 			const isLeakedSql = raw.startsWith("Failed query:");
 			if (isLeakedSql) console.error("[NewProjectModal] create failed", err);
 			const message = isLeakedSql
-				? "Could not create project. Please try a different name or check the logs."
+				? t({
+						id: "dashboard.newProjectModal.createFailedGeneric",
+						message:
+							"Could not create project. Please try a different name or check the logs.",
+					})
 				: errorMessage(err);
-			toast.error("Could not create project", { description: message });
+			toast.error(
+				t({
+					id: "dashboard.newProjectModal.createFailedTitle",
+					message: "Could not create project",
+				}),
+				{ description: message },
+			);
 			onError?.(message);
 		} finally {
 			setWorking(false);
@@ -187,7 +216,10 @@ export function NewProjectModal({
 							id="clone-url"
 							value={url}
 							onChange={(e) => setUrl(e.target.value)}
-							placeholder="https://github.com/owner/repo.git or /path/to/repo"
+							placeholder={t({
+								id: "dashboard.newProjectModal.repoUrlPlaceholder",
+								message: "https://github.com/owner/repo.git or /path/to/repo",
+							})}
 							disabled={working}
 							onKeyDown={(e) => {
 								if (e.key === "Enter" && !working) {
@@ -239,7 +271,10 @@ export function NewProjectModal({
 								onClick={handleBrowse}
 								disabled={working || selectDirectory.isPending}
 								className="shrink-0"
-								aria-label="Browse for directory"
+								aria-label={t({
+									id: "dashboard.newProjectModal.browseForDirectory",
+									message: "Browse for directory",
+								})}
 							>
 								<LuFolderOpen className="size-4" />
 							</Button>

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { mergeAttributes, Node } from "@tiptap/core";
@@ -11,6 +11,7 @@ import { LuX } from "react-icons/lu";
 import { FileIcon } from "renderer/lib/fileIcons";
 
 function FileMentionChip({ node, selected, deleteNode }: NodeViewProps) {
+	const { t } = useLingui();
 	const path = (node.attrs.path as string | null | undefined) ?? "";
 	const broken = node.attrs.broken === true;
 	const fileName = path.split("/").pop() || path;
@@ -39,7 +40,10 @@ function FileMentionChip({ node, selected, deleteNode }: NodeViewProps) {
 					<TooltipTrigger asChild>
 						<button
 							type="button"
-							aria-label={`Remove mention ${path}`}
+							aria-label={t({
+								id: "components.fileMention.removeMention",
+								message: `Remove mention ${path}`,
+							})}
 							onMouseDown={(event) => {
 								event.preventDefault();
 							}}

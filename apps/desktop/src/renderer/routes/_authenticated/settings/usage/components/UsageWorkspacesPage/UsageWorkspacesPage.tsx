@@ -1,4 +1,7 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Link } from "@tanstack/react-router";
@@ -17,11 +20,32 @@ import { WorkspaceUsageRow } from "../WorkspaceUsageRow";
 type KindFilter = "all" | ProjectRow["kind"];
 type ViewMode = "workspaces" | "projects";
 
-const KIND_FILTERS: Array<{ value: KindFilter; label: string }> = [
-	{ value: "all", label: "All" },
-	{ value: "workspace", label: "Workspaces" },
-	{ value: "project", label: "Repos" },
-	{ value: "other", label: "Other" },
+const KIND_FILTERS: Array<{ value: KindFilter; label: MessageDescriptor }> = [
+	{
+		value: "all",
+		label: msg({ id: "settings.usage.workspacesPage.kindAll", message: "All" }),
+	},
+	{
+		value: "workspace",
+		label: msg({
+			id: "settings.usage.workspacesPage.kindWorkspaces",
+			message: "Workspaces",
+		}),
+	},
+	{
+		value: "project",
+		label: msg({
+			id: "settings.usage.workspacesPage.kindRepos",
+			message: "Repos",
+		}),
+	},
+	{
+		value: "other",
+		label: msg({
+			id: "settings.usage.workspacesPage.kindOther",
+			message: "Other",
+		}),
+	},
 ];
 
 /**
@@ -51,7 +75,19 @@ function matchesGroup(row: ProjectRow, filter: GroupKey): boolean {
 
 function groupLabel(key: GroupKey): string {
 	if (key.kind === "project") return key.name;
-	return key.kind === "sessions" ? "Sessions" : "No project";
+	return key.kind === "sessions"
+		? i18n._(
+				msg({
+					id: "settings.usage.workspacesPage.groupSessions",
+					message: "Sessions",
+				}),
+			)
+		: i18n._(
+				msg({
+					id: "settings.usage.workspacesPage.groupNoProject",
+					message: "No project",
+				}),
+			);
 }
 
 interface ProjectGroup {
@@ -68,6 +104,7 @@ interface ProjectGroup {
  * workspace list to that project.
  */
 export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
+	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
 	const [view, setView] = useState<ViewMode>("workspaces");
@@ -207,7 +244,15 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
 					placeholder={
-						view === "projects" ? "Filter projects…" : "Filter workspaces…"
+						view === "projects"
+							? t({
+									id: "settings.usage.workspacesPage.filterProjectsPlaceholder",
+									message: "Filter projects…",
+								})
+							: t({
+									id: "settings.usage.workspacesPage.filterWorkspacesPlaceholder",
+									message: "Filter workspaces…",
+								})
 					}
 					className="h-6 w-56 px-2 text-[11px]"
 				/>
@@ -223,7 +268,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 									value={option.value}
 									className="h-4 px-1.5 text-[10px]"
 								>
-									{option.label}
+									{i18n._(option.label)}
 								</TabsTrigger>
 							))}
 						</TabsList>

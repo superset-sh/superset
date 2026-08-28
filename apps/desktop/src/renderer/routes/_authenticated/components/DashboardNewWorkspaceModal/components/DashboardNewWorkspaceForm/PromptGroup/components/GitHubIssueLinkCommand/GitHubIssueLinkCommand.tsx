@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -49,6 +50,7 @@ export function GitHubIssueLinkCommand({
 	projectId,
 	hostId,
 }: GitHubIssueLinkCommandProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
@@ -91,8 +93,13 @@ export function GitHubIssueLinkCommand({
 		}
 		if (lastToastedError.current === msg) return;
 		lastToastedError.current = msg;
-		toast.error(`Couldn't load issues: ${msg}`);
-	}, [error]);
+		toast.error(
+			t({
+				id: "dashboard.newWorkspaceModal.githubIssueLink.loadFailed",
+				message: `Couldn't load issues: ${msg}`,
+			}),
+		);
+	}, [error, t]);
 
 	const searchResults = data?.issues ?? [];
 	const repoMismatch =
@@ -136,7 +143,10 @@ export function GitHubIssueLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search issues..."
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.githubIssueLink.searchPlaceholder",
+							message: "Search issues...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -201,10 +211,22 @@ export function GitHubIssueLinkCommand({
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${searchResults.length} result${searchResults.length === 1 ? "" : "s"}`
+										? t({
+												id: "dashboard.newWorkspaceModal.githubIssueLink.resultCount",
+												message: plural(searchResults.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent issues"
-											: "Open issues"
+											? t({
+													id: "dashboard.newWorkspaceModal.githubIssueLink.recentIssues",
+													message: "Recent issues",
+												})
+											: t({
+													id: "dashboard.newWorkspaceModal.githubIssueLink.openIssues",
+													message: "Open issues",
+												})
 								}
 							>
 								{searchResults.map((issue) => {

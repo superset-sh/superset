@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
 import { format } from "date-fns";
@@ -54,7 +55,7 @@ export function CurrentPlanCard({
 								id: "settings.billing.plan.renewsOn",
 								message: `Renews ${format(new Date(periodEnd), "MMMM d, yyyy")}.`,
 							})
-						: `${plan.description}.`;
+						: `${i18n._(plan.description)}.`;
 
 	return (
 		<div className="flex items-center justify-between gap-8 py-3">
@@ -62,12 +63,12 @@ export function CurrentPlanCard({
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">
 						<Trans id="settings.billing.plan.currentPlanName">
-							{plan.name} plan
+							{i18n._(plan.name)} plan
 						</Trans>
 					</span>
 					{isPaidPlan && (
 						<span className="inline-flex items-center rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
-							{plan.name}
+							{i18n._(plan.name)}
 						</span>
 					)}
 				</div>

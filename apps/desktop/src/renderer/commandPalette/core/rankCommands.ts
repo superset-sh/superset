@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { Command, CommandSection } from "./types";
 
 const TITLE_EXACT = 100;
@@ -31,7 +32,7 @@ export function scoreCommand(command: Searchable, rawQuery: string): number {
 	const query = normalize(rawQuery);
 	if (!query) return 1;
 
-	const title = normalize(command.title);
+	const title = normalize(i18n._(command.title));
 	if (title === query) return TITLE_EXACT;
 	if (title.startsWith(query)) return TITLE_PREFIX;
 

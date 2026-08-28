@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { ContextMenuItem } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
 import { HiCheck } from "react-icons/hi2";
@@ -51,9 +52,19 @@ export function ColorSelector({
 	disabled = false,
 	className,
 }: ColorSelectorProps) {
+	const { t } = useLingui();
 	const selectedValue = selectedColor ?? PROJECT_COLOR_DEFAULT;
 	const colors = includeDefault
-		? [{ name: "Default", value: PROJECT_COLOR_DEFAULT }, ...PROJECT_COLORS]
+		? [
+				{
+					name: t({
+						id: "components.colorSelector.defaultColor",
+						message: "Default",
+					}),
+					value: PROJECT_COLOR_DEFAULT,
+				},
+				...PROJECT_COLORS,
+			]
 		: [...PROJECT_COLORS];
 
 	if (variant === "menu") {
@@ -91,7 +102,10 @@ export function ColorSelector({
 						key={color.value}
 						type="button"
 						title={color.name}
-						aria-label={`Set color to ${color.name}`}
+						aria-label={t({
+							id: "components.colorSelector.setColor",
+							message: `Set color to ${color.name}`,
+						})}
 						aria-pressed={isSelected}
 						disabled={disabled}
 						onClick={() => onSelectColor(color.value)}

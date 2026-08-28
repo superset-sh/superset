@@ -26,7 +26,7 @@ export function V2WorktreeLocationPicker({
 	hostName,
 	isRemoteTarget,
 	disabled,
-	browseTitle = "Select worktree location",
+	browseTitle,
 	browseDescription,
 	onSelect,
 	onReset,
@@ -34,6 +34,12 @@ export function V2WorktreeLocationPicker({
 	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const [remoteBrowseOpen, setRemoteBrowseOpen] = useState(false);
+	const resolvedBrowseTitle =
+		browseTitle ??
+		t({
+			id: "settings.components.v2WorktreeLocationPicker.browseTitle",
+			message: "Select worktree location",
+		});
 
 	const displayPath =
 		currentPath ??
@@ -51,7 +57,7 @@ export function V2WorktreeLocationPicker({
 			return;
 		}
 		const result = await selectDirectory.mutateAsync({
-			title: browseTitle,
+			title: resolvedBrowseTitle,
 			defaultPath: currentPath ?? fallbackPath ?? undefined,
 		});
 		if (!result.canceled && result.path) {
@@ -79,7 +85,10 @@ export function V2WorktreeLocationPicker({
 							className="size-9 shrink-0"
 							onClick={handleBrowse}
 							disabled={isBusy || !hostUrl}
-							aria-label="Change worktree location"
+							aria-label={t({
+								id: "settings.components.v2WorktreeLocationPicker.changeAriaLabel",
+								message: "Change worktree location",
+							})}
 						>
 							<LuFolderOpen className="size-4" />
 						</Button>
@@ -100,7 +109,10 @@ export function V2WorktreeLocationPicker({
 								className="size-9 shrink-0"
 								onClick={onReset}
 								disabled={disabled}
-								aria-label="Reset worktree location"
+								aria-label={t({
+									id: "settings.components.v2WorktreeLocationPicker.resetAriaLabel",
+									message: "Reset worktree location",
+								})}
 							>
 								<LuRotateCcw className="size-4" />
 							</Button>
@@ -120,11 +132,18 @@ export function V2WorktreeLocationPicker({
 				hostUrl={hostUrl}
 				hostName={hostName}
 				initialPath={currentPath ?? fallbackPath}
-				title={browseTitle}
+				title={resolvedBrowseTitle}
 				description={
-					browseDescription ?? `Pick the worktree folder on ${hostName}.`
+					browseDescription ??
+					t({
+						id: "settings.components.v2WorktreeLocationPicker.browseDescription",
+						message: `Pick the worktree folder on ${hostName}.`,
+					})
 				}
-				confirmLabel="Use this folder"
+				confirmLabel={t({
+					id: "settings.components.v2WorktreeLocationPicker.confirmLabel",
+					message: "Use this folder",
+				})}
 				onPick={(path) => {
 					void onSelect(path);
 				}}

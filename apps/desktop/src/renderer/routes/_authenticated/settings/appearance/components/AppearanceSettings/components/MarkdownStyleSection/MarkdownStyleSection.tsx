@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	Select,
 	SelectContent,
@@ -15,6 +15,7 @@ import {
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function MarkdownStyleSection() {
+	const { t } = useLingui();
 	const markdownStyle = useMarkdownStyle();
 	const setMarkdownStyle = useSetMarkdownStyle();
 	const searchQuery = useSettingsSearchQuery();
@@ -23,11 +24,21 @@ export function MarkdownStyleSection() {
 		<div className="flex items-center justify-between gap-6 p-4">
 			<div className="min-w-0 flex-1">
 				<div className="text-sm font-medium">
-					<HighlightText text="Markdown style" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.appearance.markdownStyle.label",
+							message: "Markdown style",
+						})}
+						query={searchQuery}
+					/>
 				</div>
 				<div className="text-xs text-muted-foreground">
 					<HighlightText
-						text="Rendering style for markdown files. Tufte uses elegant serif typography inspired by Edward Tufte's books."
+						text={t({
+							id: "settings.appearance.markdownStyle.hint",
+							message:
+								"Rendering style for markdown files. Tufte uses elegant serif typography inspired by Edward Tufte's books.",
+						})}
 						query={searchQuery}
 					/>
 				</div>
@@ -39,7 +50,10 @@ export function MarkdownStyleSection() {
 				<SelectTrigger
 					size="sm"
 					className="w-auto min-w-44 px-2"
-					aria-label="Markdown style"
+					aria-label={t({
+						id: "settings.appearance.markdownStyle.ariaLabel",
+						message: "Markdown style",
+					})}
 				>
 					<SelectValue />
 				</SelectTrigger>

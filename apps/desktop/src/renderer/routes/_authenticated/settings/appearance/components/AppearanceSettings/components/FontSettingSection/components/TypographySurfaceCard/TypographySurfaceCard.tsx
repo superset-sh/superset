@@ -1,4 +1,6 @@
-import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -49,7 +51,10 @@ type NumericSettingKey =
 
 const VARIANT_CONFIG = {
 	editor: {
-		title: "Editor typography",
+		title: msg({
+			id: "settings.appearance.typography.editorTitle",
+			message: "Editor typography",
+		}),
 		defaultFamily: DEFAULT_CODE_EDITOR_FONT_FAMILY,
 		defaultSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
 		defaultLineHeight: 1.5,
@@ -69,7 +74,10 @@ const VARIANT_CONFIG = {
 		] satisfies FontSettingKey[],
 	},
 	terminal: {
-		title: "Terminal typography",
+		title: msg({
+			id: "settings.appearance.typography.terminalTitle",
+			message: "Terminal typography",
+		}),
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 		defaultSize: DEFAULT_TERMINAL_FONT_SIZE,
 		defaultLineHeight: DEFAULT_TERMINAL_LINE_HEIGHT,
@@ -110,7 +118,9 @@ export function TypographySurfaceCard({
 	fonts,
 	fontsLoading,
 }: TypographySurfaceCardProps) {
+	const { t } = useLingui();
 	const config = VARIANT_CONFIG[variant];
+	const configTitle = i18n._(config.title);
 	const searchQuery = useSettingsSearchQuery();
 	const [drafts, setDrafts] = useState<
 		Partial<Record<NumericSettingKey, string>>
@@ -183,7 +193,7 @@ export function TypographySurfaceCard({
 							<SquareTerminal className="size-4 text-muted-foreground" />
 						)}
 						<h4 className="text-sm font-medium">
-							<HighlightText text={config.title} query={searchQuery} />
+							<HighlightText text={configTitle} query={searchQuery} />
 						</h4>
 					</div>
 					<p className="mt-1 text-xs text-muted-foreground">
@@ -283,7 +293,10 @@ export function TypographySurfaceCard({
 							}}
 							disabled={isLoading}
 							className="pr-7"
-							aria-label={`${config.title} font size`}
+							aria-label={t({
+								id: "settings.appearance.typography.fontSizeAriaLabel",
+								message: `${configTitle} font size`,
+							})}
 						/>
 						<span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
 							<Trans id="settings.appearance.typography.pxUnit">px</Trans>

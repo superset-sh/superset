@@ -47,13 +47,33 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			}
 		},
 		onError: (error) =>
-			toast.error(errorMessage(error, "Failed to generate token")),
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.webhookSentence.generateTokenFailedToast",
+						message: "Failed to generate token",
+					}),
+				),
+			),
 	});
 
 	const copyHeader = () =>
 		navigator.clipboard.writeText(`Authorization: Bearer ${token}`).then(
-			() => toast.success("Auth header copied"),
-			() => toast.error("Copy failed"),
+			() =>
+				toast.success(
+					t({
+						id: "dashboard.automations.webhookSentence.headerCopiedToast",
+						message: "Auth header copied",
+					}),
+				),
+			() =>
+				toast.error(
+					t({
+						id: "dashboard.automations.webhookSentence.copyFailedToast",
+						message: "Copy failed",
+					}),
+				),
 		);
 
 	const generate = () => {
@@ -63,12 +83,28 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			return;
 		}
 		alert({
-			title: "Regenerate auth header?",
-			description: `The current token (${secretPrefix}…) stops working immediately.`,
+			title: t({
+				id: "dashboard.automations.webhookSentence.regenerateDialogTitle",
+				message: "Regenerate auth header?",
+			}),
+			description: t({
+				id: "dashboard.automations.webhookSentence.regenerateDialogDescription",
+				message: `The current token (${secretPrefix}…) stops working immediately.`,
+			}),
 			actions: [
-				{ label: "Cancel", variant: "outline", onClick: () => {} },
 				{
-					label: "Regenerate",
+					label: t({
+						id: "dashboard.automations.webhookSentence.regenerateDialogCancel",
+						message: "Cancel",
+					}),
+					variant: "outline",
+					onClick: () => {},
+				},
+				{
+					label: t({
+						id: "dashboard.automations.webhookSentence.regenerateDialogConfirm",
+						message: "Regenerate",
+					}),
 					variant: "destructive",
 					onClick: () => rotate.mutate(triggerId),
 				},

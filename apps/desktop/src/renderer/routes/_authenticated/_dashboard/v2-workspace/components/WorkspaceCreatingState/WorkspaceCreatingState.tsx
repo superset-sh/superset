@@ -1,4 +1,7 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { Check, GitBranch, Loader2, RotateCw } from "lucide-react";
@@ -7,7 +10,7 @@ import "./WorkspaceCreatingState.css";
 
 interface Step {
 	id: string;
-	label: string;
+	label: MessageDescriptor;
 	/** Cumulative seconds at which this step is considered complete. */
 	doneAt: number;
 }
@@ -16,22 +19,92 @@ interface Step {
 // labels feel real — v2 workspaces.create runs the same git work server-side
 // without streaming progress events, so timings here are estimates.
 const WORKTREE_STEPS: readonly Step[] = [
-	{ id: "preparing", label: "Preparing", doneAt: 1 },
-	{ id: "syncing", label: "Syncing with remote", doneAt: 4 },
-	{ id: "verifying", label: "Verifying base branch", doneAt: 5 },
-	{ id: "fetching", label: "Fetching latest changes", doneAt: 15 },
-	{ id: "creating_worktree", label: "Creating git worktree", doneAt: 18 },
-	{ id: "copying_config", label: "Copying configuration", doneAt: 20 },
-	{ id: "finalizing", label: "Finalizing setup", doneAt: 23 },
+	{
+		id: "preparing",
+		label: msg({
+			id: "workspace.states.creatingStepPreparing",
+			message: "Preparing",
+		}),
+		doneAt: 1,
+	},
+	{
+		id: "syncing",
+		label: msg({
+			id: "workspace.states.creatingStepSyncing",
+			message: "Syncing with remote",
+		}),
+		doneAt: 4,
+	},
+	{
+		id: "verifying",
+		label: msg({
+			id: "workspace.states.creatingStepVerifying",
+			message: "Verifying base branch",
+		}),
+		doneAt: 5,
+	},
+	{
+		id: "fetching",
+		label: msg({
+			id: "workspace.states.creatingStepFetching",
+			message: "Fetching latest changes",
+		}),
+		doneAt: 15,
+	},
+	{
+		id: "creating_worktree",
+		label: msg({
+			id: "workspace.states.creatingStepWorktree",
+			message: "Creating git worktree",
+		}),
+		doneAt: 18,
+	},
+	{
+		id: "copying_config",
+		label: msg({
+			id: "workspace.states.creatingStepCopyingConfig",
+			message: "Copying configuration",
+		}),
+		doneAt: 20,
+	},
+	{
+		id: "finalizing",
+		label: msg({
+			id: "workspace.states.creatingStepFinalizing",
+			message: "Finalizing setup",
+		}),
+		doneAt: 23,
+	},
 ] as const;
 
 // A session has no worktree work — just a folder + git init — so it skips
 // the remote-sync/worktree steps entirely rather than showing steps that
 // never happen.
 const SESSION_STEPS: readonly Step[] = [
-	{ id: "preparing", label: "Preparing", doneAt: 1 },
-	{ id: "initializing", label: "Initializing session", doneAt: 3 },
-	{ id: "finalizing", label: "Finalizing setup", doneAt: 5 },
+	{
+		id: "preparing",
+		label: msg({
+			id: "workspace.states.creatingSessionStepPreparing",
+			message: "Preparing",
+		}),
+		doneAt: 1,
+	},
+	{
+		id: "initializing",
+		label: msg({
+			id: "workspace.states.creatingSessionStepInitializing",
+			message: "Initializing session",
+		}),
+		doneAt: 3,
+	},
+	{
+		id: "finalizing",
+		label: msg({
+			id: "workspace.states.creatingSessionStepFinalizing",
+			message: "Finalizing setup",
+		}),
+		doneAt: 5,
+	},
 ] as const;
 
 // Cap synthetic progress so the bar never claims completion before the real
@@ -54,6 +127,7 @@ export function WorkspaceCreatingState({
 	startedAt,
 	isSession = false,
 }: WorkspaceCreatingStateProps) {
+	const { t } = useLingui();
 	const steps = isSession ? SESSION_STEPS : WORKTREE_STEPS;
 	const totalSeconds = steps[steps.length - 1].doneAt;
 	const elapsed = useElapsedSeconds(startedAt);
@@ -72,10 +146,22 @@ export function WorkspaceCreatingState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						{isSession ? "Creating session" : "Creating workspace"}
+						{isSession
+							? t({
+									id: "workspace.states.creatingSessionTitle",
+									message: "Creating session",
+								})
+							: t({
+									id: "workspace.states.creatingWorkspaceTitle",
+									message: "Creating workspace",
+								})}
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
-						{name || "Untitled workspace"}
+						{name ||
+							t({
+								id: "workspace.states.creatingUntitled",
+								message: "Untitled workspace",
+							})}
 					</p>
 				</div>
 
@@ -100,7 +186,9 @@ export function WorkspaceCreatingState({
 								: i === activeIndex
 									? "active"
 									: "pending";
-						return <StepRow key={step.id} label={step.label} state={state} />;
+						return (
+							<StepRow key={step.id} label={i18n._(step.label)} state={state} />
+						);
 					})}
 				</ul>
 

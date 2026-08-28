@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
@@ -31,6 +31,7 @@ export function AddMemberButton({
 	currentMemberUserIds,
 	orgUsers,
 }: AddMemberButtonProps) {
+	const { t } = useLingui();
 	const [isOpen, setIsOpen] = useState(false);
 	const [query, setQuery] = useState("");
 	const [pendingUserId, setPendingUserId] = useState<string | null>(null);
@@ -92,8 +93,14 @@ export function AddMemberButton({
 				error instanceof Error
 					? error.message
 					: isCurrentlyMember
-						? "Failed to remove member"
-						: "Failed to add member",
+						? t({
+								id: "settings.teams.addMember.removeFailedToast",
+								message: "Failed to remove member",
+							})
+						: t({
+								id: "settings.teams.addMember.addFailedToast",
+								message: "Failed to add member",
+							}),
 			);
 		} finally {
 			setPendingUserId(null);
@@ -113,7 +120,10 @@ export function AddMemberButton({
 					<Input
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Add team member..."
+						placeholder={t({
+							id: "settings.teams.addMember.searchPlaceholder",
+							message: "Add team member...",
+						})}
 						className="h-8"
 						autoFocus
 					/>

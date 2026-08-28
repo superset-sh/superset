@@ -1,4 +1,4 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -61,6 +61,7 @@ export function PullRequestCommentThread({
 	isReplyPending,
 	focusTick,
 }: PullRequestCommentThreadProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
 	const [replyText, setReplyText] = useState("");
@@ -80,7 +81,12 @@ export function PullRequestCommentThread({
 			.then(() => setIsCopied(true))
 			.catch((err) => {
 				console.error("[PullRequestCommentThread/copy] Failed to copy:", err);
-				toast.error("Couldn't copy comment");
+				toast.error(
+					t({
+						id: "dashboard.pullRequests.commentThread.copyFailed",
+						message: "Couldn't copy comment",
+					}),
+				);
 			});
 	};
 	// Auto-collapse on resolve/outdated (matches GitHub).
@@ -99,9 +105,18 @@ export function PullRequestCommentThread({
 		if (!trimmed) return;
 		const dispatched = onReply(trimmed);
 		if (!dispatched) {
-			toast.error("Couldn't send reply", {
-				description: "This thread has no comment to reply to.",
-			});
+			toast.error(
+				t({
+					id: "dashboard.pullRequests.commentThread.sendReplyFailed",
+					message: "Couldn't send reply",
+				}),
+				{
+					description: t({
+						id: "dashboard.pullRequests.commentThread.sendReplyFailedHint",
+						message: "This thread has no comment to reply to.",
+					}),
+				},
+			);
 			return;
 		}
 		// Optimistic clear: the mutation itself is fire-and-forget from here,
@@ -132,7 +147,17 @@ export function PullRequestCommentThread({
 			<div className="flex items-center gap-2 px-3 py-1.5">
 				<CollapsibleTrigger
 					className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none"
-					aria-label={open ? "Collapse thread" : "Expand thread"}
+					aria-label={
+						open
+							? t({
+									id: "dashboard.pullRequests.commentThread.collapseThread",
+									message: "Collapse thread",
+								})
+							: t({
+									id: "dashboard.pullRequests.commentThread.expandThread",
+									message: "Expand thread",
+								})
+					}
 				>
 					<LuChevronRight
 						className={cn(
@@ -183,10 +208,19 @@ export function PullRequestCommentThread({
 						className="shrink-0 text-muted-foreground hover:text-foreground"
 						aria-label={
 							isCopied
-								? "Copied"
+								? t({
+										id: "dashboard.pullRequests.commentThread.copied",
+										message: "Copied",
+									})
 								: comments.length === 1
-									? "Copy comment"
-									: "Copy comments"
+									? t({
+											id: "dashboard.pullRequests.commentThread.copyComment",
+											message: "Copy comment",
+										})
+									: t({
+											id: "dashboard.pullRequests.commentThread.copyComments",
+											message: "Copy comments",
+										})
 						}
 					>
 						{isCopied ? (
@@ -202,7 +236,10 @@ export function PullRequestCommentThread({
 							rel="noreferrer"
 							onClick={(e) => e.stopPropagation()}
 							className="shrink-0 text-muted-foreground hover:text-foreground"
-							aria-label="Open on GitHub"
+							aria-label={t({
+								id: "dashboard.pullRequests.commentThread.openOnGitHub",
+								message: "Open on GitHub",
+							})}
 						>
 							<LuExternalLink className="size-3" />
 						</a>
@@ -225,7 +262,10 @@ export function PullRequestCommentThread({
 								handleReplySubmit();
 							}
 						}}
-						placeholder="Write a reply…"
+						placeholder={t({
+							id: "dashboard.pullRequests.commentThread.replyPlaceholder",
+							message: "Write a reply…",
+						})}
 						rows={2}
 						className="resize-none bg-background text-xs"
 					/>

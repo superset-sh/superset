@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { FileTree, FileTreeRenameEvent } from "@pierre/trees";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
@@ -67,6 +68,7 @@ export function useFilesTabActions({
 	rootPath,
 	workspaceId,
 }: UseFilesTabActionsOptions): FilesTabActions {
+	const { t } = useLingui();
 	const createUniqueEntry =
 		workspaceTrpc.filesystem.createUniqueEntry.useMutation();
 	const removeEmptyDirectory =
@@ -190,19 +192,32 @@ export function useFilesTabActions({
 					bridge.addPath(entry.key);
 					toast.info(
 						entry.mode === "folder"
-							? "Kept the new folder — it is no longer empty"
-							: "Kept the new file — it changed after it was created",
+							? t({
+									id: "workspace.filesTab.keptNewFolder",
+									message: "Kept the new folder — it is no longer empty",
+								})
+							: t({
+									id: "workspace.filesTab.keptNewFile",
+									message:
+										"Kept the new file — it changed after it was created",
+								}),
 					);
 				})
 				.catch((error) => {
 					if (!bridge.isCurrent(entry.versionToken)) return;
 					bridge.addPath(entry.key);
-					toast.error("Failed to discard the new item", {
-						description: error instanceof Error ? error.message : undefined,
-					});
+					toast.error(
+						t({
+							id: "workspace.filesTab.discardNewItemFailed",
+							message: "Failed to discard the new item",
+						}),
+						{
+							description: error instanceof Error ? error.message : undefined,
+						},
+					);
 				});
 		},
-		[bridge, discardProvisional],
+		[bridge, discardProvisional, t],
 	);
 
 	const startCreating = useCallback(
@@ -245,20 +260,38 @@ export function useFilesTabActions({
 				});
 			} catch (error) {
 				if (!bridge.isCurrent(versionToken)) return;
-				toast.error("Failed to create item", {
-					description: error instanceof Error ? error.message : undefined,
-				});
+				toast.error(
+					t({
+						id: "workspace.filesTab.createItemFailed",
+						message: "Failed to create item",
+					}),
+					{
+						description: error instanceof Error ? error.message : undefined,
+					},
+				);
 				return;
 			}
 
 			if (!created.ok) {
 				if (!bridge.isCurrent(versionToken)) return;
-				toast.error("Failed to create item", {
-					description:
-						created.reason === "exhausted"
-							? "Too many untitled items here already."
-							: "That name isn't allowed.",
-				});
+				toast.error(
+					t({
+						id: "workspace.filesTab.createItemFailed",
+						message: "Failed to create item",
+					}),
+					{
+						description:
+							created.reason === "exhausted"
+								? t({
+										id: "workspace.filesTab.createItemExhausted",
+										message: "Too many untitled items here already.",
+									})
+								: t({
+										id: "workspace.filesTab.createItemBadName",
+										message: "That name isn't allowed.",
+									}),
+					},
+				);
 				return;
 			}
 
@@ -283,14 +316,24 @@ export function useFilesTabActions({
 			// Show it now instead of waiting on the fs watcher's debounce.
 			if (!bridge.addPath(entry.key)) {
 				void discardProvisional(entry).catch(() => {});
-				toast.error("Failed to create item");
+				toast.error(
+					t({
+						id: "workspace.filesTab.createItemFailed",
+						message: "Failed to create item",
+					}),
+				);
 				return;
 			}
 
 			if (!model.startRenaming(entry.key, { removeIfCanceled: true })) {
 				void discardProvisional(entry).catch(() => {});
 				bridge.removePath(entry.key);
-				toast.error("Failed to create item");
+				toast.error(
+					t({
+						id: "workspace.filesTab.createItemFailed",
+						message: "Failed to create item",
+					}),
+				);
 				return;
 			}
 
@@ -310,6 +353,7 @@ export function useFilesTabActions({
 			createUniqueEntry,
 			discardProvisional,
 			dispatchProvisional,
+			t,
 		],
 	);
 
@@ -401,12 +445,18 @@ export function useFilesTabActions({
 				} catch {
 					// ignore — fs:events will reconcile
 				}
-				toast.error("Failed to rename", {
-					description: error instanceof Error ? error.message : undefined,
-				});
+				toast.error(
+					t({
+						id: "workspace.filesTab.renameFailed",
+						message: "Failed to rename",
+					}),
+					{
+						description: error instanceof Error ? error.message : undefined,
+					},
+				);
 			}
 		},
-		[model, rootPath, workspaceId, movePath, bridge, dispatchProvisional],
+		[model, rootPath, workspaceId, movePath, bridge, dispatchProvisional, t],
 	);
 
 	const handleRenameError = useCallback(
@@ -422,30 +472,60 @@ export function useFilesTabActions({
 
 	const handleDelete = useCallback(
 		(absolutePath: string, name: string, isDirectory: boolean): void => {
-			const itemType = isDirectory ? "folder" : "file";
 			alert({
-				title: `Delete ${name}?`,
-				description: `Are you sure you want to delete this ${itemType}? This action cannot be undone.`,
+				title: t({
+					id: "workspace.filesTab.deleteConfirmTitle",
+					message: `Delete ${name}?`,
+				}),
+				description: isDirectory
+					? t({
+							id: "workspace.filesTab.deleteConfirmFolderBody",
+							message:
+								"Are you sure you want to delete this folder? This action cannot be undone.",
+						})
+					: t({
+							id: "workspace.filesTab.deleteConfirmFileBody",
+							message:
+								"Are you sure you want to delete this file? This action cannot be undone.",
+						}),
 				actions: [
 					{
-						label: "Delete",
+						label: t({
+							id: "workspace.filesTab.deleteConfirmAction",
+							message: "Delete",
+						}),
 						variant: "destructive",
 						onClick: () => {
 							toast.promise(
 								deletePath.mutateAsync({ workspaceId, absolutePath }),
 								{
-									loading: `Deleting ${name}...`,
-									success: `Deleted ${name}`,
-									error: `Failed to delete ${name}`,
+									loading: t({
+										id: "workspace.filesTab.deleteLoading",
+										message: `Deleting ${name}...`,
+									}),
+									success: t({
+										id: "workspace.filesTab.deleteSuccess",
+										message: `Deleted ${name}`,
+									}),
+									error: t({
+										id: "workspace.filesTab.deleteFailed",
+										message: `Failed to delete ${name}`,
+									}),
 								},
 							);
 						},
 					},
-					{ label: "Cancel", variant: "ghost" },
+					{
+						label: t({
+							id: "workspace.filesTab.deleteConfirmCancel",
+							message: "Cancel",
+						}),
+						variant: "ghost",
+					},
 				],
 			});
 		},
-		[workspaceId, deletePath],
+		[workspaceId, deletePath, t],
 	);
 
 	const collapseAll = useCallback(() => {

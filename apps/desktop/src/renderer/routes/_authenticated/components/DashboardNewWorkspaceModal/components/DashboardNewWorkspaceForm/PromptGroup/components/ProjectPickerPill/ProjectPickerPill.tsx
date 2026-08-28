@@ -51,16 +51,33 @@ export function ProjectPickerPill({
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
-			toast.error(`Import failed: ${message}`);
+			toast.error(
+				t({
+					id: "dashboard.newWorkspaceModal.projectPicker.importFailedWithReason",
+					message: `Import failed: ${message}`,
+				}),
+			);
 		},
 		onMultipleProjects: ({ candidates }) => {
-			toast.error("Import failed", {
-				description: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
-				action: {
-					label: "Open Projects",
-					onClick: () => navigate({ to: "/settings/projects" }),
+			toast.error(
+				t({
+					id: "dashboard.newWorkspaceModal.projectPicker.importFailed",
+					message: "Import failed",
+				}),
+				{
+					description: t({
+						id: "dashboard.newWorkspaceModal.projectPicker.importFailedMultipleProjects",
+						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
+					}),
+					action: {
+						label: t({
+							id: "dashboard.newWorkspaceModal.projectPicker.openProjects",
+							message: "Open Projects",
+						}),
+						onClick: () => navigate({ to: "/settings/projects" }),
+					},
 				},
-			});
+			);
 		},
 	});
 
@@ -80,7 +97,12 @@ export function ProjectPickerPill({
 		setOpen(false);
 		const result = await folderImport.start();
 		if (result) {
-			toast.success("Project imported and selected.");
+			toast.success(
+				t({
+					id: "dashboard.newWorkspaceModal.projectPicker.importSucceeded",
+					message: "Project imported and selected.",
+				}),
+			);
 			onSelectProject(result.projectId);
 		}
 	};
@@ -120,7 +142,12 @@ export function ProjectPickerPill({
 				onWheel={(event) => event.stopPropagation()}
 			>
 				<Command>
-					<CommandInput placeholder="Search projects..." />
+					<CommandInput
+						placeholder={t({
+							id: "dashboard.newWorkspaceModal.projectPicker.searchPlaceholder",
+							message: "Search projects...",
+						})}
+					/>
 					<CommandList className="max-h-[min(280px,var(--radix-popover-content-available-height))]">
 						<CommandEmpty>
 							<Trans id="dashboard.newWorkspaceModal.projectPicker.empty">

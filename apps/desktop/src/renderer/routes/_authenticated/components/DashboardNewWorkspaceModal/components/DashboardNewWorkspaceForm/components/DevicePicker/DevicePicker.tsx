@@ -25,10 +25,21 @@ import { FormPickerTrigger } from "../../PromptGroup/components/FormPickerTrigge
 import { useWorkspaceHostOptions } from "./hooks/useWorkspaceHostOptions";
 
 function OnlineDot({ online }: { online: boolean }) {
+	const { t } = useLingui();
 	return (
 		<span
 			role="img"
-			aria-label={online ? "online" : "offline"}
+			aria-label={
+				online
+					? t({
+							id: "dashboard.newWorkspaceModal.devicePicker.online",
+							message: "online",
+						})
+					: t({
+							id: "dashboard.newWorkspaceModal.devicePicker.offline",
+							message: "offline",
+						})
+			}
 			className={cn(
 				"inline-block size-1.5 shrink-0 rounded-full",
 				online ? "bg-emerald-500" : "bg-muted-foreground/60",
@@ -124,7 +135,10 @@ export function DevicePicker({
 			<DropdownMenuTrigger asChild disabled={disabled}>
 				<FormPickerTrigger
 					className={cn("max-w-[140px]", className)}
-					aria-label={`Device: ${selectedLabel}`}
+					aria-label={t({
+						id: "dashboard.newWorkspaceModal.devicePicker.triggerAria",
+						message: `Device: ${selectedLabel}`,
+					})}
 					title={selectedLabel}
 				>
 					{getSelectedIcon(hostId, machineId)}

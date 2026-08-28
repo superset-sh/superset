@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -51,7 +51,13 @@ export function ChangesToolbar({
 	collapsed,
 	onToggleFold,
 }: ChangesToolbarProps) {
-	const label = collapsed ? "Expand all" : "Collapse all";
+	const { t } = useLingui();
+	const label = collapsed
+		? t({ id: "workspace.changesToolbar.expandAll", message: "Expand all" })
+		: t({
+				id: "workspace.changesToolbar.collapseAll",
+				message: "Collapse all",
+			});
 	const Icon = collapsed ? UnfoldVertical : FoldVertical;
 	return (
 		<>
@@ -88,7 +94,10 @@ export function ChangesToolbar({
 								className="size-7 text-muted-foreground hover:text-foreground"
 								onClick={onRefresh}
 								disabled={isRefreshing}
-								aria-label="Refresh changes"
+								aria-label={t({
+									id: "workspace.changesToolbar.refreshAria",
+									message: "Refresh changes",
+								})}
 							>
 								<RefreshCw
 									className={cn("size-3.5", isRefreshing && "animate-spin")}

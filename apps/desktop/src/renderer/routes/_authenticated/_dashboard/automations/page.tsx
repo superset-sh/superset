@@ -1,4 +1,6 @@
+import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
@@ -141,7 +143,13 @@ function AutomationsPage() {
 		}) => apiTrpcClient.automation.runNow.mutate({ id }),
 		onMutate: ({ id }) => addRetrying([id]),
 		onSettled: (_data, _error, { id }) => removeRetrying([id]),
-		onSuccess: (_, { name }) => toast.success(`Running "${name}" now`),
+		onSuccess: (_, { name }) =>
+			toast.success(
+				t({
+					id: "dashboard.automations.page.runNowToast",
+					message: `Running "${name}" now`,
+				}),
+			),
 		onError: (error, { targetHostId }) => {
 			const message = error instanceof Error ? error.message : null;
 			if (isHostOfflineError(message)) {
@@ -149,10 +157,16 @@ function AutomationsPage() {
 				return;
 			}
 			if (isStaleAgentError(message)) {
-				toast.error(STALE_AGENT_HELP);
+				toast.error(i18n._(STALE_AGENT_HELP));
 				return;
 			}
-			toast.error(message ?? "Failed to trigger run");
+			toast.error(
+				message ??
+					t({
+						id: "dashboard.automations.page.runNowFailedToast",
+						message: "Failed to trigger run",
+					}),
+			);
 		},
 	});
 
@@ -176,9 +190,13 @@ function AutomationsPage() {
 			const retried = outcomes.length - failed.length;
 			if (retried > 0) {
 				toast.success(
-					retried === 1
-						? "Retrying 1 automation"
-						: `Retrying ${retried} automations`,
+					t({
+						id: "dashboard.automations.page.retryingToast",
+						message: plural(retried, {
+							one: "Retrying # automation",
+							other: "Retrying # automations",
+						}),
+					}),
 				);
 			}
 			if (failed.length === 0) return;
@@ -194,12 +212,21 @@ function AutomationsPage() {
 			);
 			if (other.length === 0) return;
 			const message = settledErrorMessage(other[0].result);
+			const failedCount = other.length;
+			const totalCount = outcomes.length;
 			toast.error(
 				other.length === 1
 					? isStaleAgentError(message)
-						? STALE_AGENT_HELP
-						: (message ?? "Failed to retry automation")
-					: `Failed to retry ${other.length} of ${outcomes.length} automations`,
+						? i18n._(STALE_AGENT_HELP)
+						: (message ??
+							t({
+								id: "dashboard.automations.page.retryFailedToast",
+								message: "Failed to retry automation",
+							}))
+					: t({
+							id: "dashboard.automations.page.retryFailedCountToast",
+							message: `Failed to retry ${failedCount} of ${totalCount} automations`,
+						}),
 			);
 		},
 	});
@@ -218,10 +245,28 @@ function AutomationsPage() {
 		onSuccess: (_, { id, enabled, name }) => {
 			void utils.automation.list.invalidate();
 			void utils.automation.get.invalidate({ id });
-			toast.success(enabled ? `"${name}" resumed` : `"${name}" paused`);
+			toast.success(
+				enabled
+					? t({
+							id: "dashboard.automations.page.resumedToast",
+							message: `"${name}" resumed`,
+						})
+					: t({
+							id: "dashboard.automations.page.pausedToast",
+							message: `"${name}" paused`,
+						}),
+			);
 		},
 		onError: (error) =>
-			toast.error(errorMessage(error, "Failed to update automation")),
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.page.updateFailedToast",
+						message: "Failed to update automation",
+					}),
+				),
+			),
 	});
 
 	const deleteMutation = useMutation({
@@ -230,10 +275,23 @@ function AutomationsPage() {
 		onSuccess: (_, { name }) => {
 			void utils.automation.list.invalidate();
 			setPendingDelete(null);
-			toast.success(`"${name}" deleted`);
+			toast.success(
+				t({
+					id: "dashboard.automations.page.deletedToast",
+					message: `"${name}" deleted`,
+				}),
+			);
 		},
 		onError: (error) =>
-			toast.error(errorMessage(error, "Failed to delete automation")),
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "dashboard.automations.page.deleteFailedToast",
+						message: "Failed to delete automation",
+					}),
+				),
+			),
 	});
 
 	const {
@@ -429,7 +487,12 @@ function AutomationsPage() {
 				agentChoices[0];
 			if (!choice) throw new Error("No agent available yet");
 			return apiTrpcClient.automation.create.mutate({
-				name: template?.name ?? "Untitled",
+				name: template
+					? i18n._(template.name)
+					: t({
+							id: "dashboard.automations.page.untitledName",
+							message: "Untitled",
+						}),
 				prompt: template?.prompt ?? "",
 				// Preset slug when unambiguous — instance UUIDs die when the host's
 				// agent-config table is re-seeded, orphaning the automation.
@@ -452,7 +515,13 @@ function AutomationsPage() {
 			// Raw Postgres errors are multi-line SQL dumps — keep the first line.
 			const message =
 				error instanceof Error ? error.message.split("\n")[0]?.trim() : null;
-			toast.error(message || "Failed to create automation");
+			toast.error(
+				message ||
+					t({
+						id: "dashboard.automations.page.createFailedToast",
+						message: "Failed to create automation",
+					}),
+			);
 		},
 	});
 
@@ -468,7 +537,12 @@ function AutomationsPage() {
 	const handleCreateWithAgent = () => {
 		if (creatingWithAgent) return;
 		if (!machineId) {
-			toast.error("Host service is not running");
+			toast.error(
+				t({
+					id: "dashboard.automations.page.hostServiceNotRunningToast",
+					message: "Host service is not running",
+				}),
+			);
 			return;
 		}
 		const terminalAgents = agentChoices.filter((a) => a.id !== "superset");
@@ -476,7 +550,12 @@ function AutomationsPage() {
 		const agent =
 			terminalAgents.find((a) => a.id === stored)?.id ?? terminalAgents[0]?.id;
 		if (!agent) {
-			toast.error("No terminal agent is configured on this device");
+			toast.error(
+				t({
+					id: "dashboard.automations.page.noTerminalAgentToast",
+					message: "No terminal agent is configured on this device",
+				}),
+			);
 			return;
 		}
 		setCreatingWithAgent(true);
@@ -585,7 +664,10 @@ function AutomationsPage() {
 											href={`${COMPANY.DOCS_URL}/automations`}
 											target="_blank"
 											rel="noreferrer"
-											aria-label="Automations docs"
+											aria-label={t({
+												id: "dashboard.automations.page.docsAriaLabel",
+												message: "Automations docs",
+											})}
 										>
 											<LuCircleHelp className="size-4" />
 										</a>
@@ -725,8 +807,14 @@ function AutomationsPage() {
 										<Input
 											value={search}
 											onChange={(e) => setSearch(e.target.value)}
-											placeholder="Search"
-											aria-label="Search automations"
+											placeholder={t({
+												id: "dashboard.automations.page.searchPlaceholder",
+												message: "Search",
+											})}
+											aria-label={t({
+												id: "dashboard.automations.page.searchAriaLabel",
+												message: "Search automations",
+											})}
 											className="h-8 w-44 pl-8"
 										/>
 									</div>
@@ -822,7 +910,10 @@ function AutomationsPage() {
 											<TableHead className={cn(DATA_TABLE_HEAD_CELL, "pl-4")}>
 												<SortableHeader
 													field="name"
-													label="Name"
+													label={t({
+														id: "dashboard.automations.page.nameColumn",
+														message: "Name",
+													})}
 													sortField={sortField}
 													sortDirection={sortDirection}
 													onSort={handleSort}
@@ -834,7 +925,10 @@ function AutomationsPage() {
 												>
 													<SortableHeader
 														field="owner"
-														label="Owner"
+														label={t({
+															id: "dashboard.automations.page.ownerColumn",
+															message: "Owner",
+														})}
 														sortField={sortField}
 														sortDirection={sortDirection}
 														onSort={handleSort}
@@ -846,7 +940,10 @@ function AutomationsPage() {
 											>
 												<SortableHeader
 													field="schedule"
-													label="Schedule"
+													label={t({
+														id: "dashboard.automations.page.scheduleColumn",
+														message: "Schedule",
+													})}
 													sortField={sortField}
 													sortDirection={sortDirection}
 													onSort={handleSort}
@@ -857,7 +954,10 @@ function AutomationsPage() {
 											>
 												<SortableHeader
 													field="status"
-													label="Status"
+													label={t({
+														id: "dashboard.automations.page.statusColumn",
+														message: "Status",
+													})}
 													sortField={sortField}
 													sortDirection={sortDirection}
 													onSort={handleSort}
@@ -955,7 +1055,10 @@ function AutomationsPage() {
 								variant="ghost"
 								size="icon-sm"
 								onClick={() => setCliHintDismissed(true)}
-								aria-label="Dismiss"
+								aria-label={t({
+									id: "dashboard.automations.page.dismissAriaLabel",
+									message: "Dismiss",
+								})}
 								className="absolute right-1.5 top-1/2 size-6 -translate-y-1/2 text-muted-foreground hover:text-foreground"
 							>
 								<LuX className="size-3.5" />

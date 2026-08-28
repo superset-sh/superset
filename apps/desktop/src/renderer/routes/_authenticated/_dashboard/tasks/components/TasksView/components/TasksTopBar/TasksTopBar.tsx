@@ -130,7 +130,10 @@ export function TasksTopBar({
 									onClick={
 										showIssues ? onClearIssueSelection : onClearSelection
 									}
-									aria-label="Clear selection"
+									aria-label={t({
+										id: "dashboard.tasks.topBar.clearSelection",
+										message: "Clear selection",
+									})}
 								>
 									<HiXMark />
 								</Button>
@@ -244,12 +247,21 @@ export function TasksTopBar({
 
 								<fieldset
 									className="flex items-center rounded-md border bg-muted/30 p-0.5"
-									aria-label="Task layout"
+									aria-label={t({
+										id: "dashboard.tasks.topBar.taskLayout",
+										message: "Task layout",
+									})}
 								>
 									<button
 										type="button"
-										title="Table view"
-										aria-label="Table view"
+										title={t({
+											id: "dashboard.tasks.topBar.tableView",
+											message: "Table view",
+										})}
+										aria-label={t({
+											id: "dashboard.tasks.topBar.tableView",
+											message: "Table view",
+										})}
 										aria-pressed={viewMode === "table"}
 										className={cn(
 											"flex size-6 items-center justify-center rounded-sm transition-colors",
@@ -263,8 +275,14 @@ export function TasksTopBar({
 									</button>
 									<button
 										type="button"
-										title="Board view"
-										aria-label="Board view"
+										title={t({
+											id: "dashboard.tasks.topBar.boardView",
+											message: "Board view",
+										})}
+										aria-label={t({
+											id: "dashboard.tasks.topBar.boardView",
+											message: "Board view",
+										})}
 										aria-pressed={viewMode === "board"}
 										className={cn(
 											"flex size-6 items-center justify-center rounded-sm transition-colors",
@@ -284,9 +302,27 @@ export function TasksTopBar({
 							value={searchQuery}
 							onChange={onSearchChange}
 							placeholder={
-								showIssues ? "Search GitHub issues…" : "Search tasks…"
+								showIssues
+									? t({
+											id: "dashboard.tasks.topBar.searchIssuesPlaceholder",
+											message: "Search GitHub issues…",
+										})
+									: t({
+											id: "dashboard.tasks.topBar.searchTasksPlaceholder",
+											message: "Search tasks…",
+										})
 							}
-							label={showIssues ? "Search GitHub issues" : "Search tasks"}
+							label={
+								showIssues
+									? t({
+											id: "dashboard.tasks.topBar.searchIssuesLabel",
+											message: "Search GitHub issues",
+										})
+									: t({
+											id: "dashboard.tasks.topBar.searchTasksLabel",
+											message: "Search tasks",
+										})
+							}
 						/>
 					</div>
 				</div>

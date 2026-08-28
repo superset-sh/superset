@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { getBrowserLogo } from "@superset/ui/icons/browser-icons";
 import { XIcon } from "lucide-react";
@@ -22,6 +22,7 @@ export function ChromeImportBanner({
 	onImport,
 	onDismiss,
 }: ChromeImportBannerProps) {
+	const { t } = useLingui();
 	const logo = getBrowserLogo(browserKey);
 	return (
 		// relative z-20: on the blank-page state (which can now show alongside
@@ -49,7 +50,10 @@ export function ChromeImportBanner({
 			<button
 				type="button"
 				onClick={onDismiss}
-				aria-label="Dismiss"
+				aria-label={t({
+					id: "workspace.browserPane.importBannerDismiss",
+					message: "Dismiss",
+				})}
 				className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 			>
 				<XIcon className="size-3.5" />

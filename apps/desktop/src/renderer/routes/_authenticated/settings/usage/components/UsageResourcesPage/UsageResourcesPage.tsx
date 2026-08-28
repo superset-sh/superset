@@ -1,4 +1,7 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -40,11 +43,17 @@ import {
 import { ResourceSparkline } from "./components/ResourceSparkline";
 import { useResourceSampleBuffer } from "./hooks/useResourceSampleBuffer";
 
-const SORT_LABELS: Record<SortOption, string> = {
-	memory: "Memory",
-	cpu: "CPU",
-	name: "Name",
-	sidebar: "Sidebar order",
+const SORT_LABELS: Record<SortOption, MessageDescriptor> = {
+	memory: msg({
+		id: "settings.usage.resources.sortLabelMemory",
+		message: "Memory",
+	}),
+	cpu: msg({ id: "settings.usage.resources.sortLabelCpu", message: "CPU" }),
+	name: msg({ id: "settings.usage.resources.sortLabelName", message: "Name" }),
+	sidebar: msg({
+		id: "settings.usage.resources.sortLabelSidebarOrder",
+		message: "Sidebar order",
+	}),
 };
 
 const CPU_COL = "w-20 shrink-0 text-right tabular-nums tracking-tight";
@@ -130,6 +139,7 @@ function MemoryLegendItem({
 }
 
 function SystemOverview({ snapshot }: { snapshot: ResourceMetricsSnapshot }) {
+	const { t } = useLingui();
 	const { host } = snapshot;
 	const trackedSharePercent =
 		host.totalMemory > 0 ? (snapshot.totalMemory / host.totalMemory) * 100 : 0;
@@ -154,26 +164,56 @@ function SystemOverview({ snapshot }: { snapshot: ResourceMetricsSnapshot }) {
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="grid grid-cols-3 gap-x-4 gap-y-1 border-y py-2 md:grid-cols-6">
-				<Stat label="Superset CPU" value={formatCpu(snapshot.totalCpu)} />
 				<Stat
-					label="Superset memory"
+					label={t({
+						id: "settings.usage.resources.statSupersetCpu",
+						message: "Superset CPU",
+					})}
+					value={formatCpu(snapshot.totalCpu)}
+				/>
+				<Stat
+					label={t({
+						id: "settings.usage.resources.statSupersetMemory",
+						message: "Superset memory",
+					})}
 					value={formatMemory(snapshot.totalMemory)}
 				/>
 				<Stat
-					label="System RAM share"
+					label={t({
+						id: "settings.usage.resources.statSystemRamShare",
+						message: "System RAM share",
+					})}
 					value={formatPercent(trackedSharePercent)}
 				/>
 				<Stat
-					label="System memory"
+					label={t({
+						id: "settings.usage.resources.statSystemMemory",
+						message: "System memory",
+					})}
 					value={`${formatMemory(host.usedMemory)} · ${formatPercent(host.memoryUsagePercent)}`}
 				/>
-				<Stat label="CPU cores" value={String(host.cpuCoreCount)} />
-				<Stat label="Load (1 m)" value={host.loadAverage1m.toFixed(2)} />
+				<Stat
+					label={t({
+						id: "settings.usage.resources.statCpuCores",
+						message: "CPU cores",
+					})}
+					value={String(host.cpuCoreCount)}
+				/>
+				<Stat
+					label={t({
+						id: "settings.usage.resources.statLoad1m",
+						message: "Load (1 m)",
+					})}
+					value={host.loadAverage1m.toFixed(2)}
+				/>
 			</div>
 			<div
 				role="img"
 				className="flex h-1.5 w-full gap-px overflow-hidden rounded-full bg-muted/60"
-				aria-label={`System RAM: Superset ${formatMemory(snapshot.totalMemory)}, other apps ${formatMemory(otherUsedMemory)}, free ${formatMemory(freeMemory)}`}
+				aria-label={t({
+					id: "settings.usage.resources.ramBarAriaLabel",
+					message: `System RAM: Superset ${formatMemory(snapshot.totalMemory)}, other apps ${formatMemory(otherUsedMemory)}, free ${formatMemory(freeMemory)}`,
+				})}
 			>
 				<div
 					className={cn(
@@ -195,12 +235,18 @@ function SystemOverview({ snapshot }: { snapshot: ResourceMetricsSnapshot }) {
 				/>
 				<MemoryLegendItem
 					colorClass="bg-muted-foreground/40"
-					label="Other apps"
+					label={t({
+						id: "settings.usage.resources.legendOtherApps",
+						message: "Other apps",
+					})}
 					value={formatMemory(otherUsedMemory)}
 				/>
 				<MemoryLegendItem
 					colorClass="bg-muted/60"
-					label="Free"
+					label={t({
+						id: "settings.usage.resources.legendFree",
+						message: "Free",
+					})}
 					value={formatMemory(freeMemory)}
 				/>
 			</div>
@@ -219,6 +265,7 @@ function toggleSetMember(previous: Set<string>, member: string): Set<string> {
 }
 
 export function UsageResourcesPage() {
+	const { t } = useLingui();
 	const isV2 = useIsV2CloudEnabled();
 	const surface = isV2 ? "v2" : "v1";
 	const [sortOption, setSortOption] = useState<SortOption>("memory");
@@ -284,10 +331,13 @@ export function UsageResourcesPage() {
 						<button
 							type="button"
 							className="flex h-6 items-center gap-1 rounded px-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-							aria-label="Sort workspaces"
+							aria-label={t({
+								id: "settings.usage.resources.sortAriaLabel",
+								message: "Sort workspaces",
+							})}
 						>
 							<HiOutlineBarsArrowDown className="h-3.5 w-3.5" />
-							<span>{SORT_LABELS[sortOption]}</span>
+							<span>{i18n._(SORT_LABELS[sortOption])}</span>
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end" className="w-40">
@@ -318,7 +368,10 @@ export function UsageResourcesPage() {
 					className="size-6"
 					disabled={isFetching}
 					onClick={() => refetch()}
-					aria-label="Refresh metrics"
+					aria-label={t({
+						id: "settings.usage.resources.refreshAriaLabel",
+						message: "Refresh metrics",
+					})}
 				>
 					<LuRefreshCw className={cn("size-3", isFetching && "animate-spin")} />
 				</Button>
@@ -336,7 +389,10 @@ export function UsageResourcesPage() {
 
 					<div className="grid gap-3 sm:grid-cols-2">
 						<ResourceSparkline
-							label="Superset CPU · last 5 min"
+							label={t({
+								id: "settings.usage.resources.sparklineCpu",
+								message: "Superset CPU · last 5 min",
+							})}
 							current={formatCpu(snapshot.totalCpu)}
 							color="var(--chart-1)"
 							samples={samples}
@@ -344,7 +400,10 @@ export function UsageResourcesPage() {
 							formatValue={formatCpu}
 						/>
 						<ResourceSparkline
-							label="Superset memory · last 5 min"
+							label={t({
+								id: "settings.usage.resources.sparklineMemory",
+								message: "Superset memory · last 5 min",
+							})}
 							current={formatMemory(snapshot.totalMemory)}
 							color="var(--chart-2)"
 							samples={samples}
@@ -393,18 +452,39 @@ export function UsageResourcesPage() {
 						</div>
 						{(
 							[
-								{ label: "Main", values: snapshot.app.main },
-								{ label: "Renderer", values: snapshot.app.renderer },
-								{ label: "Other", values: snapshot.app.other },
+								{
+									key: "main",
+									label: t({
+										id: "settings.usage.resources.processMain",
+										message: "Main",
+									}),
+									values: snapshot.app.main,
+								},
+								{
+									key: "renderer",
+									label: t({
+										id: "settings.usage.resources.processRenderer",
+										message: "Renderer",
+									}),
+									values: snapshot.app.renderer,
+								},
+								{
+									key: "other",
+									label: t({
+										id: "settings.usage.resources.processOther",
+										message: "Other",
+									}),
+									values: snapshot.app.other,
+								},
 							] as const
 						)
 							.filter(
-								({ label, values }) =>
-									label !== "Other" || values.cpu > 0 || values.memory > 0,
+								({ key, values }) =>
+									key !== "other" || values.cpu > 0 || values.memory > 0,
 							)
-							.map(({ label, values }) => (
+							.map(({ key, label, values }) => (
 								<div
-									key={label}
+									key={key}
 									className="flex items-center gap-3 px-3 py-1 pl-9"
 								>
 									<div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -440,7 +520,15 @@ export function UsageResourcesPage() {
 										}
 										className="group flex w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-foreground/[0.04]"
 										aria-label={
-											isProjectCollapsed ? "Expand project" : "Collapse project"
+											isProjectCollapsed
+												? t({
+														id: "settings.usage.resources.expandProject",
+														message: "Expand project",
+													})
+												: t({
+														id: "settings.usage.resources.collapseProject",
+														message: "Collapse project",
+													})
 										}
 									>
 										<div className="flex min-w-0 flex-1 items-center gap-1">
@@ -489,8 +577,14 @@ export function UsageResourcesPage() {
 																className="ml-5 flex h-8 w-5 shrink-0 items-center justify-center text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 																aria-label={
 																	isCollapsed
-																		? "Expand workspace"
-																		: "Collapse workspace"
+																		? t({
+																				id: "settings.usage.resources.expandWorkspace",
+																				message: "Expand workspace",
+																			})
+																		: t({
+																				id: "settings.usage.resources.collapseWorkspace",
+																				message: "Collapse workspace",
+																			})
 																}
 															>
 																{isCollapsed ? (

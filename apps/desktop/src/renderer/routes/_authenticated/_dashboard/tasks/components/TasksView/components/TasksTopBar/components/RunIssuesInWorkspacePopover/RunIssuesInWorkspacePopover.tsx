@@ -1,4 +1,5 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -58,6 +59,7 @@ export function RunIssuesInWorkspacePopover({
 	projectFilter,
 	onComplete,
 }: RunIssuesInWorkspacePopoverProps) {
+	const { t } = useLingui();
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
@@ -154,24 +156,57 @@ export function RunIssuesInWorkspacePopover({
 
 	const submitBlocker = useMemo<string | null>(() => {
 		if (hasMixedRepos) {
-			return "Selected issues span multiple repositories. Select issues from a single repository to run them.";
+			return t({
+				id: "dashboard.tasks.runIssuesPopover.blockerMixedRepos",
+				message:
+					"Selected issues span multiple repositories. Select issues from a single repository to run them.",
+			});
 		}
-		if (!selectedProjectId) return "Select a project";
-		if (!hostId) return "No active host";
+		if (!selectedProjectId)
+			return t({
+				id: "dashboard.tasks.runIssuesPopover.blockerSelectProject",
+				message: "Select a project",
+			});
+		if (!hostId)
+			return t({
+				id: "dashboard.tasks.runIssuesPopover.blockerNoActiveHost",
+				message: "No active host",
+			});
 		if (hostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === hostId);
-			if (!remote?.isOnline) return "Host is offline";
+			if (!remote?.isOnline)
+				return t({
+					id: "dashboard.tasks.runIssuesPopover.blockerHostOffline",
+					message: "Host is offline",
+				});
 		} else if (!activeHostUrl) {
-			return "Host service is not running";
+			return t({
+				id: "dashboard.tasks.runIssuesPopover.blockerHostServiceNotRunning",
+				message: "Host service is not running",
+			});
 		}
-		if (setUpProjectIds === null) return "Checking host…";
+		if (setUpProjectIds === null)
+			return t({
+				id: "dashboard.tasks.runIssuesPopover.blockerCheckingHost",
+				message: "Checking host…",
+			});
 		if (selectedProject?.needsSetup === true) {
-			return "Project not set up on this host";
+			return t({
+				id: "dashboard.tasks.runIssuesPopover.blockerProjectNotSetUp",
+				message: "Project not set up on this host",
+			});
 		}
 		if (selectedAgent !== NONE) {
-			if (!v2AgentsFetched) return "Checking agents…";
+			if (!v2AgentsFetched)
+				return t({
+					id: "dashboard.tasks.runIssuesPopover.blockerCheckingAgents",
+					message: "Checking agents…",
+				});
 			if (!validAgentIds.has(selectedAgent)) {
-				return "Selected agent is not available on this host";
+				return t({
+					id: "dashboard.tasks.runIssuesPopover.blockerAgentUnavailable",
+					message: "Selected agent is not available on this host",
+				});
 			}
 		}
 		return null;
@@ -187,6 +222,7 @@ export function RunIssuesInWorkspacePopover({
 		machineId,
 		otherHosts,
 		activeHostUrl,
+		t,
 	]);
 
 	const handleRun = () => {
@@ -244,8 +280,21 @@ export function RunIssuesInWorkspacePopover({
 		);
 
 		toast.promise(promise, {
-			loading: `Creating ${issues.length} workspace${issues.length === 1 ? "" : "s"}...`,
-			success: (count) => `Created ${count} workspace${count === 1 ? "" : "s"}`,
+			loading: t({
+				id: "dashboard.tasks.runIssuesPopover.creatingWorkspaces",
+				message: plural(issues.length, {
+					one: "Creating # workspace...",
+					other: "Creating # workspaces...",
+				}),
+			}),
+			success: (count) =>
+				t({
+					id: "dashboard.tasks.runIssuesPopover.createdWorkspaces",
+					message: plural(count, {
+						one: "Created # workspace",
+						other: "Created # workspaces",
+					}),
+				}),
 			error: (err) => errorMessage(err),
 		});
 
@@ -308,7 +357,12 @@ export function RunIssuesInWorkspacePopover({
 						</PopoverTrigger>
 						<PopoverContent align="start" className="w-60 p-0">
 							<Command>
-								<CommandInput placeholder="Search projects..." />
+								<CommandInput
+									placeholder={t({
+										id: "dashboard.tasks.runIssuesPopover.searchProjects",
+										message: "Search projects...",
+									})}
+								/>
 								<CommandList>
 									<CommandEmpty>
 										<Trans id="dashboard.tasks.runIssuesPopover.noProjects">
@@ -353,12 +407,18 @@ export function RunIssuesInWorkspacePopover({
 					<AgentSelect<SelectedAgent>
 						agents={v2Agents}
 						value={selectedAgent}
-						placeholder="Select agent"
+						placeholder={t({
+							id: "dashboard.tasks.runIssuesPopover.selectAgent",
+							message: "Select agent",
+						})}
 						onValueChange={setSelectedAgent}
 						onBeforeConfigureAgents={() => setOpen(false)}
 						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
 						allowNone
-						noneLabel="No agent"
+						noneLabel={t({
+							id: "dashboard.tasks.runIssuesPopover.noAgent",
+							message: "No agent",
+						})}
 						noneValue={NONE}
 					/>
 				</div>

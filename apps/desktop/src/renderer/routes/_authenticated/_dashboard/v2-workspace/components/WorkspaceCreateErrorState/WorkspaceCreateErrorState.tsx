@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, GitBranch } from "lucide-react";
@@ -13,6 +13,7 @@ interface WorkspaceCreateErrorStateProps {
 export function WorkspaceCreateErrorState({
 	entry,
 }: WorkspaceCreateErrorStateProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const { submit } = useWorkspaceCreates();
@@ -63,7 +64,11 @@ export function WorkspaceCreateErrorState({
 						</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
-						{name || "Untitled workspace"}
+						{name ||
+							t({
+								id: "workspace.states.createErrorUntitled",
+								message: "Untitled workspace",
+							})}
 					</p>
 				</div>
 

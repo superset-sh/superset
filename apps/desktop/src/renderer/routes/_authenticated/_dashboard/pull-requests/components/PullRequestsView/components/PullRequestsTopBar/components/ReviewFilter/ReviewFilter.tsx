@@ -31,7 +31,10 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 				message: "All reviews",
 			}),
 		},
-		...PULL_REQUEST_REVIEW_FILTERS,
+		...PULL_REQUEST_REVIEW_FILTERS.map((filter) => ({
+			value: filter.value,
+			label: t(filter.label),
+		})),
 	] as const;
 
 	return (
@@ -41,7 +44,10 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 					variant="ghost"
 					size="sm"
 					title={label}
-					aria-label={`Reviews: ${label}`}
+					aria-label={t({
+						id: "dashboard.pullRequests.reviewFilter.triggerAria",
+						message: `Reviews: ${label}`,
+					})}
 					className="h-8 max-w-52 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineChatBubbleLeftRight className="size-4 shrink-0" />
@@ -59,13 +65,23 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 					<Button
 						variant="ghost"
 						size="icon-xs"
-						aria-label="Close review filter"
+						aria-label={t({
+							id: "dashboard.pullRequests.reviewFilter.close",
+							message: "Close review filter",
+						})}
 						onClick={() => setOpen(false)}
 					>
 						<HiXMark className="size-4" />
 					</Button>
 				</div>
-				<div role="radiogroup" aria-label="Filter by reviews" className="py-1">
+				<div
+					role="radiogroup"
+					aria-label={t({
+						id: "dashboard.pullRequests.reviewFilter.groupAria",
+						message: "Filter by reviews",
+					})}
+					className="py-1"
+				>
 					{options.map((option) => {
 						const selected = option.value === value;
 						return (

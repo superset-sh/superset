@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -35,11 +35,24 @@ interface AgentCommentComposerProps {
 export function AgentCommentComposer({
 	workspaceId,
 	contextLabel,
-	placeholder = "Ask the AI…",
-	submitLabel = "Comment",
+	placeholder,
+	submitLabel,
 	onCancel,
 	onSubmit,
 }: AgentCommentComposerProps) {
+	const { t } = useLingui();
+	const resolvedPlaceholder =
+		placeholder ??
+		t({
+			id: "workspace.agentCommentComposer.placeholder",
+			message: "Ask the AI…",
+		});
+	const resolvedSubmitLabel =
+		submitLabel ??
+		t({
+			id: "workspace.agentCommentComposer.submitLabel",
+			message: "Comment",
+		});
 	const bindings = useTerminalAgentBindings(workspaceId);
 	const sessions = useMemo(
 		() =>
@@ -123,7 +136,7 @@ export function AgentCommentComposer({
 					ref={textareaRef}
 					value={comment}
 					onChange={(e) => setComment(e.target.value)}
-					placeholder={placeholder}
+					placeholder={resolvedPlaceholder}
 					rows={3}
 					className={cn(
 						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",
@@ -170,7 +183,14 @@ export function AgentCommentComposer({
 						{submitting ? (
 							<LuLoaderCircle className="size-3 animate-spin" />
 						) : null}
-						<span>{submitting ? "Sending…" : submitLabel}</span>
+						<span>
+							{submitting
+								? t({
+										id: "workspace.agentCommentComposer.sending",
+										message: "Sending…",
+									})
+								: resolvedSubmitLabel}
+						</span>
 						{submitting ? null : <KbdEnter />}
 					</Button>
 				</div>

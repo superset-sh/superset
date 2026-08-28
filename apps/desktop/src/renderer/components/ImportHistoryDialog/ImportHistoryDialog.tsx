@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -53,6 +54,7 @@ export function ImportHistoryDialog({
 	open,
 	onOpenChange,
 }: ImportHistoryDialogProps) {
+	const { t } = useLingui();
 	const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [importHistory, setImportHistory] = useState(true);
@@ -112,10 +114,17 @@ export function ImportHistoryDialog({
 				importedSomething ||= result.imported > 0;
 				messages.push(
 					result.imported === 0
-						? "no history"
-						: `${result.imported.toLocaleString()} history ${
-								result.imported === 1 ? "item" : "items"
-							}`,
+						? t({
+								id: "components.importHistoryDialog.noHistory",
+								message: "no history",
+							})
+						: t({
+								id: "components.importHistoryDialog.historyCount",
+								message: plural(result.imported, {
+									one: "# history item",
+									other: "# history items",
+								}),
+							}),
 				);
 			}
 
@@ -127,26 +136,53 @@ export function ImportHistoryDialog({
 				if (result.keyUnavailable) {
 					// Nothing was actually written — Keychain denied access — so this
 					// must not count toward importedSomething below.
-					messages.push("logins skipped (Keychain access denied)");
+					messages.push(
+						t({
+							id: "components.importHistoryDialog.loginsSkipped",
+							message: "logins skipped (Keychain access denied)",
+						}),
+					);
 				} else {
 					importedSomething ||= result.imported > 0;
 					messages.push(
 						result.imported === 0
-							? "no logins"
-							: `${result.imported.toLocaleString()} ${
-									result.imported === 1 ? "login" : "logins"
-								}`,
+							? t({
+									id: "components.importHistoryDialog.noLogins",
+									message: "no logins",
+								})
+							: t({
+									id: "components.importHistoryDialog.loginsCount",
+									message: plural(result.imported, {
+										one: "# login",
+										other: "# logins",
+									}),
+								}),
 					);
 				}
 			}
 
+			const joinedMessages = messages.join(
+				t({
+					id: "components.importHistoryDialog.messageSeparator",
+					message: " and ",
+				}),
+			);
 			if (importedSomething) {
-				toast.success(`Imported ${messages.join(" and ")}`);
+				toast.success(
+					t({
+						id: "components.importHistoryDialog.importedSummary",
+						message: `Imported ${joinedMessages}`,
+					}),
+				);
 				dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
 			} else {
-				toast.error("Could not import from browser", {
-					description: messages.join(" and ") || undefined,
-				});
+				toast.error(
+					t({
+						id: "components.importHistoryDialog.importFailed",
+						message: "Could not import from browser",
+					}),
+					{ description: joinedMessages || undefined },
+				);
 			}
 			onOpenChange(false);
 		} catch (error: unknown) {
@@ -155,9 +191,13 @@ export function ImportHistoryDialog({
 			// job is done even though the dialog is reporting an error and
 			// staying open for the user to see the failure/retry.
 			if (importedSomething) dismissImportBanner(BROWSER_IMPORT_BANNER_ID);
-			toast.error("Could not import from browser", {
-				description: error instanceof Error ? error.message : undefined,
-			});
+			toast.error(
+				t({
+					id: "components.importHistoryDialog.importErrored",
+					message: "Could not import from browser",
+				}),
+				{ description: error instanceof Error ? error.message : undefined },
+			);
 		} finally {
 			setIsImporting(false);
 		}

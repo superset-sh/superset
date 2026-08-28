@@ -45,13 +45,20 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 const REFETCH_WHILE_OPEN_MS = 5_000;
 
 export function V2SessionsSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const { activeHostUrl } = useLocalHostService();
 	if (!activeHostUrl) {
 		return (
 			<div className="space-y-1">
 				<h3 className="text-sm font-medium">
-					<HighlightText text="Terminal daemon" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.terminal.v2Sessions.daemonLabel",
+							message: "Terminal daemon",
+						})}
+						query={searchQuery}
+					/>
 				</h3>
 				<p className="text-sm text-muted-foreground">
 					<Trans id="settings.terminal.v2Sessions.hostStarting">
@@ -117,19 +124,38 @@ function V2SessionsSectionInner() {
 	const restartDaemon = workspaceTrpc.terminal.daemon.restart.useMutation({
 		onSuccess: () => {
 			const versions = updateStatusQuery.data;
-			toast.success("Daemon restarted", {
-				description:
-					versions && versions.running !== versions.expected
-						? `Now running ${versions.expected} (was ${versions.running}). All sessions were closed.`
-						: "All sessions were closed and a fresh daemon is running.",
-			});
+			toast.success(
+				t({
+					id: "settings.terminal.v2Sessions.restartSuccessToast",
+					message: "Daemon restarted",
+				}),
+				{
+					description:
+						versions && versions.running !== versions.expected
+							? t({
+									id: "settings.terminal.v2Sessions.restartSuccessVersionDescription",
+									message: `Now running ${versions.expected} (was ${versions.running}). All sessions were closed.`,
+								})
+							: t({
+									id: "settings.terminal.v2Sessions.restartSuccessDescription",
+									message:
+										"All sessions were closed and a fresh daemon is running.",
+								}),
+				},
+			);
 			void updateStatusQuery.refetch();
 			void sessionsQuery.refetch();
 		},
 		onError: (error) => {
-			toast.error("Failed to restart daemon", {
-				description: errorMessage(error),
-			});
+			toast.error(
+				t({
+					id: "settings.terminal.v2Sessions.restartErrorToast",
+					message: "Failed to restart daemon",
+				}),
+				{
+					description: errorMessage(error),
+				},
+			);
 		},
 	});
 
@@ -137,12 +163,24 @@ function V2SessionsSectionInner() {
 		onSuccess: (result) => {
 			if (result.ok) {
 				const versions = updateStatusQuery.data;
-				toast.success("Daemon updated", {
-					description:
-						versions && versions.running !== versions.expected
-							? `Now running ${versions.expected} (was ${versions.running}). All sessions preserved.`
-							: "All sessions preserved across the upgrade.",
-				});
+				toast.success(
+					t({
+						id: "settings.terminal.v2Sessions.updateSuccessToast",
+						message: "Daemon updated",
+					}),
+					{
+						description:
+							versions && versions.running !== versions.expected
+								? t({
+										id: "settings.terminal.v2Sessions.updateSuccessVersionDescription",
+										message: `Now running ${versions.expected} (was ${versions.running}). All sessions preserved.`,
+									})
+								: t({
+										id: "settings.terminal.v2Sessions.updateSuccessDescription",
+										message: "All sessions preserved across the upgrade.",
+									}),
+					},
+				);
 				void updateStatusQuery.refetch();
 				void sessionsQuery.refetch();
 			} else {
@@ -220,7 +258,13 @@ function V2SessionsSectionInner() {
 				<div className="flex items-start justify-between gap-4">
 					<div>
 						<h3 className="text-sm font-medium flex items-baseline gap-2">
-							<HighlightText text="Terminal daemon" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.terminal.v2Sessions.daemonLabel",
+									message: "Terminal daemon",
+								})}
+								query={searchQuery}
+							/>
 							{versionLabel ? (
 								<span className="text-xs font-mono font-normal text-muted-foreground/80">
 									{versionLabel}
@@ -229,7 +273,10 @@ function V2SessionsSectionInner() {
 						</h3>
 						<p className="text-sm text-muted-foreground mt-0.5">
 							<HighlightText
-								text="Owns every PTY session and survives app restarts."
+								text={t({
+									id: "settings.terminal.v2Sessions.daemonHint",
+									message: "Owns every PTY session and survives app restarts.",
+								})}
 								query={searchQuery}
 							/>
 						</p>

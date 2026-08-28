@@ -2,6 +2,7 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useLingui } from "@lingui/react/macro";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import {
@@ -34,6 +35,7 @@ export function DashboardSidebarExpandedProjectContent({
 	onRenameSection,
 	onToggleSectionCollapse,
 }: DashboardSidebarExpandedProjectContentProps) {
+	const { t } = useLingui();
 	const {
 		projectItems,
 		getProjectSortableItems,
@@ -171,7 +173,10 @@ export function DashboardSidebarExpandedProjectContent({
 							{dropZoneEligible && (
 								<SidebarDropZone
 									dropZoneId={dropZoneId(projectId)}
-									label="Drop to unpin"
+									label={t({
+										id: "dashboard.sidebar.projectContent.dropToUnpin",
+										message: "Drop to unpin",
+									})}
 								/>
 							)}
 						</WorkspaceBulkMenuScope>

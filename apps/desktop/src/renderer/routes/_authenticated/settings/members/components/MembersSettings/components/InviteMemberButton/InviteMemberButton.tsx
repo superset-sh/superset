@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getInvitableRoles,
 	type OrganizationRole,
@@ -21,6 +21,7 @@ export function InviteMemberButton({
 	organizationId,
 	organizationName,
 }: InviteMemberButtonProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const { gateFeature } = usePaywall();
 
@@ -34,12 +35,31 @@ export function InviteMemberButton({
 	const handleClick = () => {
 		gateFeature(GATED_FEATURES.INVITE_MEMBERS, () => {
 			alert({
-				title: "This will affect your billing",
-				description:
-					"Adding members will increase your subscription cost, prorated to your billing cycle.",
+				title: t({
+					id: "settings.members.inviteBillingTitle",
+					message: "This will affect your billing",
+				}),
+				description: t({
+					id: "settings.members.inviteBillingDescription",
+					message:
+						"Adding members will increase your subscription cost, prorated to your billing cycle.",
+				}),
 				actions: [
-					{ label: "Cancel", variant: "outline", onClick: () => {} },
-					{ label: "Continue", onClick: () => setOpen(true) },
+					{
+						label: t({
+							id: "settings.members.inviteBillingCancel",
+							message: "Cancel",
+						}),
+						variant: "outline",
+						onClick: () => {},
+					},
+					{
+						label: t({
+							id: "settings.members.inviteBillingContinue",
+							message: "Continue",
+						}),
+						onClick: () => setOpen(true),
+					},
 				],
 			});
 		});

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
@@ -56,6 +56,7 @@ function PaymentMethodLabel({
 }
 
 export function BillingDetails() {
+	const { t } = useLingui();
 	const [details, setDetails] = useState<BillingDetailsData | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [openingPortal, setOpeningPortal] = useState<string | null>(null);
@@ -80,7 +81,10 @@ export function BillingDetails() {
 			toast.error(
 				error instanceof Error
 					? error.message
-					: "Failed to open the billing portal",
+					: t({
+							id: "settings.billing.portalOpenFailedToast",
+							message: "Failed to open the billing portal",
+						}),
 			);
 		} finally {
 			setOpeningPortal(null);
@@ -98,7 +102,13 @@ export function BillingDetails() {
 			</h3>
 			<div>
 				<DetailRow
-					label={details.name ?? "No name on file"}
+					label={
+						details.name ??
+						t({
+							id: "settings.billing.noNameOnFile",
+							message: "No name on file",
+						})
+					}
 					hint={
 						<>
 							{addressStr && <div>{addressStr}</div>}
@@ -117,12 +127,18 @@ export function BillingDetails() {
 					}
 				/>
 				<DetailRow
-					label="Payment method"
+					label={t({
+						id: "settings.billing.paymentMethodLabel",
+						message: "Payment method",
+					})}
 					hint={
 						details.paymentMethod ? (
 							<PaymentMethodLabel paymentMethod={details.paymentMethod} />
 						) : (
-							"No payment method on file"
+							t({
+								id: "settings.billing.noPaymentMethodOnFile",
+								message: "No payment method on file",
+							})
 						)
 					}
 					action={
@@ -137,11 +153,14 @@ export function BillingDetails() {
 					}
 				/>
 				<DetailRow
-					label="Tax ID"
+					label={t({ id: "settings.billing.taxIdLabel", message: "Tax ID" })}
 					hint={
 						details.taxId
 							? `${details.taxId.type.toUpperCase().replace("_", " ")} · ${details.taxId.value}`
-							: "No tax identifier on file"
+							: t({
+									id: "settings.billing.noTaxIdOnFile",
+									message: "No tax identifier on file",
+								})
 					}
 					action={
 						<Button

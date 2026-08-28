@@ -78,7 +78,15 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			await utils.apiKey.list.invalidate();
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
-			toast.error(errorMessage(error, "Failed to generate API key"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.apiKeys.generateFailed",
+						message: "Failed to generate API key",
+					}),
+				),
+			);
 		} finally {
 			setIsGenerating(false);
 		}
@@ -95,22 +103,43 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		},
 		onError: (error, _input, context) => {
 			utils.apiKey.list.setData(undefined, context?.previousKeys);
-			toast.error(error.message || "Failed to revoke API key");
+			toast.error(
+				error.message ||
+					t({
+						id: "settings.apiKeys.revokeFailed",
+						message: "Failed to revoke API key",
+					}),
+			);
 		},
 		onSuccess: () => {
-			toast.success("API key revoked");
+			toast.success(
+				t({ id: "settings.apiKeys.revoked", message: "API key revoked" }),
+			);
 		},
 		onSettled: () => utils.apiKey.list.invalidate(),
 	});
 
 	const handleRevokeKey = (id: string, name: string | null) => {
+		const keyName =
+			name ??
+			t({ id: "settings.apiKeys.revokeUnnamedKey", message: "Unnamed key" });
 		alert({
-			title: "Revoke API key",
-			description: `Are you sure you want to revoke "${name ?? "Unnamed key"}"? This action cannot be undone.`,
+			title: t({
+				id: "settings.apiKeys.revokeDialogTitle",
+				message: "Revoke API key",
+			}),
+			description: t({
+				id: "settings.apiKeys.revokeDialogDescription",
+				message: `Are you sure you want to revoke "${keyName}"? This action cannot be undone.`,
+			}),
 			actions: [
-				{ label: "Cancel", variant: "outline", onClick: () => {} },
 				{
-					label: "Revoke",
+					label: t({ id: "settings.apiKeys.revokeCancel", message: "Cancel" }),
+					variant: "outline",
+					onClick: () => {},
+				},
+				{
+					label: t({ id: "settings.apiKeys.revokeConfirm", message: "Revoke" }),
 					variant: "destructive",
 					onClick: () => {
 						revokeMutation.mutate({ id });
@@ -140,7 +169,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
 					<h2 className="text-xl font-semibold">
-						<HighlightText text="API keys" query={searchQuery} />
+						<HighlightText
+							text={t({ id: "settings.apiKeys.title", message: "API keys" })}
+							query={searchQuery}
+						/>
 					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						<Trans id="settings.apiKeys.subtitle">
@@ -229,7 +261,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 										size="icon"
 										className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
 										onClick={() => handleRevokeKey(key.id, key.name)}
-										aria-label="Revoke key"
+										aria-label={t({
+											id: "settings.apiKeys.revokeKeyAriaLabel",
+											message: "Revoke key",
+										})}
 									>
 										<HiOutlineTrash className="h-4 w-4" />
 									</Button>
@@ -243,7 +278,13 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							<HighlightText text="Generate API key" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.apiKeys.generateDialogTitle",
+									message: "Generate API key",
+								})}
+								query={searchQuery}
+							/>
 						</DialogTitle>
 						<DialogDescription>
 							<Trans id="settings.apiKeys.generateDialogDescription">
@@ -258,7 +299,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						</Label>
 						<Input
 							id="key-name"
-							placeholder="e.g. Claude Desktop"
+							placeholder={t({
+								id: "settings.apiKeys.keyNamePlaceholder",
+								message: "e.g. Claude Desktop",
+							})}
 							value={newKeyName}
 							onChange={(e) => setNewKeyName(e.target.value)}
 							onKeyDown={(e) => {
@@ -318,7 +362,10 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 								size="icon"
 								className="absolute right-1 top-1 h-7 w-7"
 								onClick={handleCopyKey}
-								aria-label="Copy key"
+								aria-label={t({
+									id: "settings.apiKeys.copyKeyAriaLabel",
+									message: "Copy key",
+								})}
 							>
 								<HiOutlineClipboardDocument className="h-4 w-4" />
 							</Button>

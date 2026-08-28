@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	type ExecutionMode,
 	normalizeExecutionMode,
@@ -40,6 +40,7 @@ export function PresetsSection({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: PresetsSectionProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const isDark = useIsDarkTheme();
 	const { data: groupedProjects = [] } =
@@ -485,7 +486,13 @@ export function PresetsSection({
 			<div className="flex items-center justify-between">
 				<div className="space-y-0.5">
 					<Label className="text-sm font-medium">
-						<HighlightText text="Terminal Scripts" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.terminal.presets.label",
+								message: "Terminal Scripts",
+							})}
+							query={searchQuery}
+						/>
 					</Label>
 					<p className="text-xs text-muted-foreground">
 						<Trans id="settings.terminal.presets.subtitle">

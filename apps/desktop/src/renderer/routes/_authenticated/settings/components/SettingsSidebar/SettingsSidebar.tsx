@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { Link } from "@tanstack/react-router";
 import {
@@ -17,6 +17,7 @@ import { getVisibleMatchCountBySection } from "../../utils/settings-search";
 import { GeneralSettings } from "./GeneralSettings";
 
 export function SettingsSidebar() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const setSearchQuery = useSetSettingsSearchQuery();
 	const originRoute = useSettingsOriginRoute();
@@ -49,7 +50,10 @@ export function SettingsSidebar() {
 				<HiMagnifyingGlass className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 				<input
 					type="text"
-					placeholder="Search settings..."
+					placeholder={t({
+						id: "settings.components.settingsSidebar.searchPlaceholder",
+						message: "Search settings...",
+					})}
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
 					className="w-full h-8 pl-8 pr-8 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"

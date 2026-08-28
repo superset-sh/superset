@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -14,6 +14,7 @@ const IS_DEV = process.env.NODE_ENV === "development";
 const ERROR_DETAILS_ID = "error-details";
 
 export function ErrorPage({ error, info }: ErrorComponentProps) {
+	const { t } = useLingui();
 	const message =
 		error instanceof Error ? error.message : String(error ?? "Unknown error");
 	const stack = error instanceof Error ? error.stack : undefined;
@@ -88,7 +89,10 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 									void copyToClipboard(details).catch(() => {});
 								}}
 								className="absolute top-2 right-2 flex items-center justify-center h-6 w-6 bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
-								aria-label="Copy error details"
+								aria-label={t({
+									id: "app.errorPage.copyDetails",
+									message: "Copy error details",
+								})}
 							>
 								{copied ? (
 									<HiCheck className="w-3.5 h-3.5 text-green-500" />

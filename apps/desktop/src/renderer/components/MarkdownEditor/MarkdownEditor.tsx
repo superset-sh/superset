@@ -1,6 +1,7 @@
 import "../../styles/hljs-github.css";
 import "./markdown-editor.css";
 
+import { useLingui } from "@lingui/react/macro";
 import { getClipboardFiles } from "@superset/ui/lib/clipboard-files";
 import { cn } from "@superset/ui/utils";
 import { Extension } from "@tiptap/core";
@@ -187,7 +188,7 @@ export function MarkdownEditor({
 	content,
 	onSave,
 	onChange,
-	placeholder = "Add description...",
+	placeholder,
 	autoFocus = false,
 	className,
 	editorClassName,
@@ -198,6 +199,13 @@ export function MarkdownEditor({
 	features,
 	editable = true,
 }: MarkdownEditorProps) {
+	const { t } = useLingui();
+	const resolvedPlaceholder =
+		placeholder ??
+		t({
+			id: "components.markdownEditor.placeholder",
+			message: "Add description...",
+		});
 	const showSlashCommand = features?.slashCommand ?? true;
 	const showEmoji = features?.emoji ?? true;
 	const showFileMention = features?.fileMention ?? true;
@@ -312,7 +320,7 @@ export function MarkdownEditor({
 			Placeholder.configure({
 				placeholder: ({ node }) => {
 					if (node.type.name === "paragraph") {
-						return placeholder;
+						return resolvedPlaceholder;
 					}
 					return "";
 				},

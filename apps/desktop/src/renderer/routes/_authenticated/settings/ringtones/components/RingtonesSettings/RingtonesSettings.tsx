@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { Switch } from "@superset/ui/switch";
@@ -42,6 +42,7 @@ function RingtoneRow({
 	onSelect,
 	onTogglePlay,
 }: RingtoneRowProps) {
+	const { t } = useLingui();
 	return (
 		// biome-ignore lint/a11y/useSemanticElements: div role=button needed so the inner play button can be nested
 		<div
@@ -86,7 +87,15 @@ function RingtoneRow({
 					onTogglePlay();
 				}}
 				aria-label={
-					isPlaying ? `Stop ${ringtone.name}` : `Play ${ringtone.name}`
+					isPlaying
+						? t({
+								id: "settings.ringtones.stopRingtone",
+								message: `Stop ${ringtone.name}`,
+							})
+						: t({
+								id: "settings.ringtones.playRingtone",
+								message: `Play ${ringtone.name}`,
+							})
 				}
 				className={cn(
 					"h-7 w-7 rounded-full flex items-center justify-center transition-colors border shrink-0",
@@ -110,6 +119,7 @@ interface RingtonesSettingsProps {
 }
 
 export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const showNotification = isItemVisible(
 		SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
@@ -300,7 +310,10 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 							<div>
 								<h3 className="text-sm font-medium mb-1">
 									<HighlightText
-										text="Notification sound"
+										text={t({
+											id: "settings.ringtones.notificationSoundLabel",
+											message: "Notification sound",
+										})}
 										query={searchQuery}
 									/>
 								</h3>

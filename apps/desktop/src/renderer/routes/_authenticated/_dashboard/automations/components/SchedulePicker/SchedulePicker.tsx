@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	describeSchedule,
 	isValidRrule,
@@ -109,7 +110,7 @@ export function SchedulePicker({
 						<SelectContent>
 							{PRESET_OPTIONS.map((option) => (
 								<SelectItem key={option.value} value={option.value}>
-									{option.label}
+									{i18n._(option.label)}
 								</SelectItem>
 							))}
 						</SelectContent>
@@ -126,7 +127,7 @@ export function SchedulePicker({
 							<SelectContent>
 								{DAY_OPTIONS.map((option) => (
 									<SelectItem key={option.value} value={option.value}>
-										{option.label}
+										{i18n._(option.label)}
 									</SelectItem>
 								))}
 							</SelectContent>

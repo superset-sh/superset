@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import type { ProFeature } from "../../constants";
@@ -56,6 +56,7 @@ interface FeatureButtonProps {
 }
 
 function FeatureButton({ feature, isSelected, onSelect }: FeatureButtonProps) {
+	const { i18n } = useLingui();
 	const Icon = feature.icon;
 
 	return (
@@ -85,7 +86,7 @@ function FeatureButton({ feature, isSelected, onSelect }: FeatureButtonProps) {
 						isSelected ? "text-foreground" : "",
 					)}
 				>
-					{feature.title}
+					{i18n._(feature.title)}
 				</span>
 				{feature.comingSoon && (
 					<span className="text-[11px] text-muted-foreground font-normal">

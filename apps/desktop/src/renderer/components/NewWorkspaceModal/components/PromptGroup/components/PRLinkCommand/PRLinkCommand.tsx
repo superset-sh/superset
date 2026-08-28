@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -63,6 +64,7 @@ export function PRLinkCommand({
 	repoName,
 	anchorRef,
 }: PRLinkCommandProps) {
+	const { t } = useLingui();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
@@ -168,7 +170,10 @@ export function PRLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search pull requests..."
+						placeholder={t({
+							id: "components.prLinkCommand.searchPlaceholder",
+							message: "Search pull requests...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
@@ -223,10 +228,22 @@ export function PRLinkCommand({
 							<CommandGroup
 								heading={
 									debouncedTrimmed
-										? `${pullRequests.length} result${pullRequests.length === 1 ? "" : "s"}`
+										? t({
+												id: "components.prLinkCommand.resultsCount",
+												message: plural(pullRequests.length, {
+													one: "# result",
+													other: "# results",
+												}),
+											})
 										: showClosed
-											? "Recent pull requests"
-											: "Open pull requests"
+											? t({
+													id: "components.prLinkCommand.recentPullRequests",
+													message: "Recent pull requests",
+												})
+											: t({
+													id: "components.prLinkCommand.openPullRequests",
+													message: "Open pull requests",
+												})
 								}
 							>
 								{pullRequests.map((pr) => (

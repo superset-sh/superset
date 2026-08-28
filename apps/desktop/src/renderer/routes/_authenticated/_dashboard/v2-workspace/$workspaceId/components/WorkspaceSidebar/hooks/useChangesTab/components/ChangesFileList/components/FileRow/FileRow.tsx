@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
@@ -72,6 +72,7 @@ export const FileRow = memo(function FileRow({
 	onOpenFile,
 	onOpenInEditor,
 }: FileRowProps) {
+	const { t } = useLingui();
 	const { dir: fullDir, basename } = splitPath(file.path);
 	const dir = hideDir ? "" : fullDir;
 	const oldBasename =
@@ -93,9 +94,15 @@ export const FileRow = memo(function FileRow({
 			void utils.git.getDiffBulk.invalidate({ workspaceId });
 		},
 		onError: (err) => {
-			toast.error("Couldn't discard changes", {
-				description: errorMessage(err),
-			});
+			toast.error(
+				t({
+					id: "workspace.fileRow.discardFailed",
+					message: "Couldn't discard changes",
+				}),
+				{
+					description: errorMessage(err),
+				},
+			);
 		},
 	});
 	const confirmDiscard = () => {
@@ -159,7 +166,10 @@ export const FileRow = memo(function FileRow({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								aria-label="Discard changes"
+								aria-label={t({
+									id: "workspace.fileRow.discardChangesAria",
+									message: "Discard changes",
+								})}
 								className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-destructive"
 								onClick={(e) => {
 									e.stopPropagation();
@@ -180,7 +190,10 @@ export const FileRow = memo(function FileRow({
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							aria-label="More actions"
+							aria-label={t({
+								id: "workspace.fileRow.moreActionsAria",
+								message: "More actions",
+							})}
 							className="flex size-5 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground"
 							onClick={(e) => e.stopPropagation()}
 						>
@@ -326,7 +339,12 @@ export const FileRow = memo(function FileRow({
 							onSelect={() => setShowDiscardConfirm(true)}
 						>
 							{isDeleteAction ? <Trash2 /> : <Undo2 />}
-							{isDeleteAction ? "Delete" : "Discard changes"}
+							{isDeleteAction
+								? t({ id: "workspace.fileRow.menuDelete", message: "Delete" })
+								: t({
+										id: "workspace.fileRow.menuDiscardChanges",
+										message: "Discard changes",
+									})}
 						</ContextMenuItem>
 					</>
 				)}
@@ -336,15 +354,39 @@ export const FileRow = memo(function FileRow({
 				onOpenChange={setShowDiscardConfirm}
 				title={
 					isDeleteAction
-						? `Delete "${basename}"?`
-						: `Discard changes to "${basename}"?`
+						? t({
+								id: "workspace.fileRow.deleteConfirmTitle",
+								message: `Delete "${basename}"?`,
+							})
+						: t({
+								id: "workspace.fileRow.discardConfirmTitle",
+								message: `Discard changes to "${basename}"?`,
+							})
 				}
 				description={
 					isDeleteAction
-						? "This will permanently delete this file. This action cannot be undone."
-						: "This will revert all changes to this file. This action cannot be undone."
+						? t({
+								id: "workspace.fileRow.deleteConfirmBody",
+								message:
+									"This will permanently delete this file. This action cannot be undone.",
+							})
+						: t({
+								id: "workspace.fileRow.discardConfirmBody",
+								message:
+									"This will revert all changes to this file. This action cannot be undone.",
+							})
 				}
-				confirmLabel={isDeleteAction ? "Delete" : "Discard"}
+				confirmLabel={
+					isDeleteAction
+						? t({
+								id: "workspace.fileRow.deleteConfirmAction",
+								message: "Delete",
+							})
+						: t({
+								id: "workspace.fileRow.discardConfirmAction",
+								message: "Discard",
+							})
+				}
 				onConfirm={confirmDiscard}
 			/>
 		</ContextMenu>

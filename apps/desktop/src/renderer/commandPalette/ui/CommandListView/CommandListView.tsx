@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { CommandEmpty, CommandGroup, CommandList } from "@superset/ui/command";
 import { useMemo } from "react";
 import { useCommandContext } from "../../core/ContextProvider";
@@ -13,6 +13,7 @@ interface CommandListViewProps {
 }
 
 export function CommandListView({ query, onSelect }: CommandListViewProps) {
+	const { i18n } = useLingui();
 	const context = useCommandContext();
 	const sections = useActiveCommands(context);
 	const ranked = useMemo(
@@ -26,7 +27,7 @@ export function CommandListView({ query, onSelect }: CommandListViewProps) {
 				<Trans id="commandPalette.commandList.empty">No commands found.</Trans>
 			</CommandEmpty>
 			{ranked.map((section) => (
-				<CommandGroup key={section.id} heading={section.label}>
+				<CommandGroup key={section.id} heading={i18n._(section.label)}>
 					{section.commands.map((command) => (
 						<CommandItemRow
 							key={command.id}

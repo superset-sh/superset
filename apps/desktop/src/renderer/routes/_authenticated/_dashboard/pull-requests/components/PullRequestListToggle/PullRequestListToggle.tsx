@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { LuPanelLeft, LuPanelLeftClose, LuPanelLeftOpen } from "react-icons/lu";
 import { usePullRequestsSplitViewStore } from "../../stores/pullRequestsSplitViewStore";
 
@@ -8,6 +9,7 @@ import { usePullRequestsSplitViewStore } from "../../stores/pullRequestsSplitVie
  * so it stays reachable from every child route without stacking two bars.
  */
 export function PullRequestListToggle() {
+	const { t } = useLingui();
 	const isListCollapsed = usePullRequestsSplitViewStore(
 		(s) => s.isListCollapsed,
 	);
@@ -20,7 +22,15 @@ export function PullRequestListToggle() {
 			type="button"
 			onClick={toggleListCollapsed}
 			aria-label={
-				isListCollapsed ? "Show pull request list" : "Hide pull request list"
+				isListCollapsed
+					? t({
+							id: "dashboard.pullRequests.listToggle.show",
+							message: "Show pull request list",
+						})
+					: t({
+							id: "dashboard.pullRequests.listToggle.hide",
+							message: "Hide pull request list",
+						})
 			}
 			className="group flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
 		>

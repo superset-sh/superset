@@ -92,12 +92,24 @@ export function WorkspacePicker({
 	const label = selected
 		? selected.name
 		: resolving
-			? "Loading…"
+			? t({
+					id: "dashboard.automations.workspacePicker.loading",
+					message: "Loading…",
+				})
 			: missing
-				? "Workspace not found"
+				? t({
+						id: "dashboard.automations.workspacePicker.notFoundLabel",
+						message: "Workspace not found",
+					})
 				: projectId === null
-					? "New session"
-					: "New workspace";
+					? t({
+							id: "dashboard.automations.workspacePicker.newSessionLabel",
+							message: "New session",
+						})
+					: t({
+							id: "dashboard.automations.workspacePicker.newWorkspaceLabel",
+							message: "New workspace",
+						});
 
 	return (
 		// Guard the open state, not just the trigger: Radix opens on pointerdown,
@@ -126,7 +138,12 @@ export function WorkspacePicker({
 				className="w-60 p-0"
 			>
 				<Command>
-					<CommandInput placeholder="Search workspaces..." />
+					<CommandInput
+						placeholder={t({
+							id: "dashboard.automations.workspacePicker.searchPlaceholder",
+							message: "Search workspaces...",
+						})}
+					/>
 					<CommandList>
 						<CommandGroup>
 							<CommandItem

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
@@ -65,6 +65,7 @@ interface DashboardSidebarHeaderProps {
 export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
+	const { t } = useLingui();
 	const openModal = useOpenNewWorkspaceModal();
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
@@ -72,23 +73,45 @@ export function DashboardSidebarHeader({
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
-			toast.error(`Import failed: ${message}`);
+			toast.error(
+				t({
+					id: "dashboard.sidebar.header.importFailed",
+					message: `Import failed: ${message}`,
+				}),
+			);
 		},
 		onMultipleProjects: ({ candidates }) => {
-			toast.error("Import failed", {
-				description: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
-				action: {
-					label: "Open Projects",
-					onClick: () => navigate({ to: "/settings/projects" }),
+			toast.error(
+				t({
+					id: "dashboard.sidebar.header.importFailedTitle",
+					message: "Import failed",
+				}),
+				{
+					description: t({
+						id: "dashboard.sidebar.header.importMultipleProjects",
+						message: `Multiple projects use this repository (${candidates.length}). Choose the project in settings to set it up on this device.`,
+					}),
+					action: {
+						label: t({
+							id: "dashboard.sidebar.header.openProjects",
+							message: "Open Projects",
+						}),
+						onClick: () => navigate({ to: "/settings/projects" }),
+					},
 				},
-			});
+			);
 		},
 	});
 
 	const handleImportFolder = async () => {
 		const result = await folderImport.start();
 		if (result) {
-			toast.success("Project ready — open it from the sidebar.");
+			toast.success(
+				t({
+					id: "dashboard.sidebar.header.projectReady",
+					message: "Project ready — open it from the sidebar.",
+				}),
+			);
 		}
 	};
 
@@ -260,8 +283,14 @@ export function DashboardSidebarHeader({
 						</TooltipTrigger>
 						<TooltipContent side="right">
 							{searchShortcutText !== "Unassigned"
-								? `Search (${searchShortcutText})`
-								: "Search"}
+								? t({
+										id: "dashboard.sidebar.header.searchWithShortcut",
+										message: `Search (${searchShortcutText})`,
+									})
+								: t({
+										id: "dashboard.sidebar.header.searchTooltip",
+										message: "Search",
+									})}
 						</TooltipContent>
 					</Tooltip>
 
@@ -294,8 +323,14 @@ export function DashboardSidebarHeader({
 								onClick={handleAutomationsClick}
 								aria-label={
 									myFailedCount > 0
-										? `Automations, ${myFailedCount} failing`
-										: "Automations"
+										? t({
+												id: "dashboard.sidebar.header.automationsFailingAriaLabel",
+												message: `Automations, ${myFailedCount} failing`,
+											})
+										: t({
+												id: "dashboard.sidebar.header.automationsAriaLabel",
+												message: "Automations",
+											})
 								}
 								className={cn(
 									"relative flex size-7 items-center justify-center rounded-md transition-colors",
@@ -331,7 +366,10 @@ export function DashboardSidebarHeader({
 							<button
 								type="button"
 								onClick={handleTasksClick}
-								aria-label="Tasks"
+								aria-label={t({
+									id: "dashboard.sidebar.header.tasksRailAriaLabel",
+									message: "Tasks",
+								})}
 								aria-current={isTasksOpen ? "page" : undefined}
 								className={cn(
 									"flex size-7 items-center justify-center rounded-md transition-colors",
@@ -353,7 +391,10 @@ export function DashboardSidebarHeader({
 							<button
 								type="button"
 								onClick={handlePullRequestsClick}
-								aria-label="Pull requests"
+								aria-label={t({
+									id: "dashboard.sidebar.header.pullRequestsRailAriaLabel",
+									message: "Pull requests",
+								})}
 								aria-current={isPullRequestsOpen ? "page" : undefined}
 								className={cn(
 									"flex size-7 items-center justify-center rounded-md transition-colors",
@@ -378,7 +419,10 @@ export function DashboardSidebarHeader({
 								<button
 									type="button"
 									onClick={handlePagesClick}
-									aria-label="Pages"
+									aria-label={t({
+										id: "dashboard.sidebar.header.pagesRailAriaLabel",
+										message: "Pages",
+									})}
 									aria-current={isPagesOpen ? "page" : undefined}
 									className={cn(
 										"flex size-7 items-center justify-center rounded-md transition-colors",
@@ -402,7 +446,10 @@ export function DashboardSidebarHeader({
 								<button
 									type="button"
 									onClick={handlePluginsClick}
-									aria-label="Plugins"
+									aria-label={t({
+										id: "dashboard.sidebar.header.pluginsRailAriaLabel",
+										message: "Plugins",
+									})}
 									aria-current={isPluginsOpen ? "page" : undefined}
 									className={cn(
 										"flex size-7 items-center justify-center rounded-md transition-colors",
@@ -428,7 +475,10 @@ export function DashboardSidebarHeader({
 								<DropdownMenuTrigger asChild>
 									<button
 										type="button"
-										aria-label="Add project"
+										aria-label={t({
+											id: "dashboard.sidebar.header.addProjectAriaLabel",
+											message: "Add project",
+										})}
 										className="group/addrepo flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover"
 									>
 										<VscNewFolder className="size-3.5 group-hover/addrepo:hidden" />
@@ -585,7 +635,10 @@ export function DashboardSidebarHeader({
 				</span>
 				{myFailedCount > 0 && (
 					<span
-						title={`${myFailedCount} of your automations failed their last run`}
+						title={t({
+							id: "dashboard.sidebar.header.automationsFailedTitle",
+							message: `${myFailedCount} of your automations failed their last run`,
+						})}
 						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
 					>
 						{myFailedCount > 9 ? "9+" : myFailedCount}
@@ -596,7 +649,10 @@ export function DashboardSidebarHeader({
 			<button
 				type="button"
 				onClick={handleTasksClick}
-				aria-label="Tasks"
+				aria-label={t({
+					id: "dashboard.sidebar.header.tasksAriaLabel",
+					message: "Tasks",
+				})}
 				aria-current={isTasksOpen ? "page" : undefined}
 				className={cn(
 					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
@@ -614,7 +670,10 @@ export function DashboardSidebarHeader({
 			<button
 				type="button"
 				onClick={handlePullRequestsClick}
-				aria-label="Pull requests"
+				aria-label={t({
+					id: "dashboard.sidebar.header.pullRequestsAriaLabel",
+					message: "Pull requests",
+				})}
 				aria-current={isPullRequestsOpen ? "page" : undefined}
 				className={cn(
 					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
@@ -635,7 +694,10 @@ export function DashboardSidebarHeader({
 				<button
 					type="button"
 					onClick={handlePagesClick}
-					aria-label="Pages"
+					aria-label={t({
+						id: "dashboard.sidebar.header.pagesAriaLabel",
+						message: "Pages",
+					})}
 					aria-current={isPagesOpen ? "page" : undefined}
 					className={cn(
 						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
@@ -658,7 +720,10 @@ export function DashboardSidebarHeader({
 				<button
 					type="button"
 					onClick={handlePluginsClick}
-					aria-label="Plugins"
+					aria-label={t({
+						id: "dashboard.sidebar.header.pluginsAriaLabel",
+						message: "Plugins",
+					})}
 					aria-current={isPluginsOpen ? "page" : undefined}
 					className={cn(
 						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",

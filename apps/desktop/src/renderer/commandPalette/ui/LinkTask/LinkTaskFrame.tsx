@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -42,6 +42,7 @@ interface LinkTaskFrameProps {
 }
 
 export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
+	const { t } = useLingui();
 	const query = useCommandPaletteQuery();
 	const deferredQuery = useDeferredValue(query);
 	const setOpen = useFrameStackStore((s) => s.setOpen);
@@ -121,7 +122,12 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 
 	const handleSelect = (taskId: string, slug: string) => {
 		v2Workspaces.updateWorkspace(workspaceId, { taskId });
-		toast.success(`Linked ${slug} to workspace`);
+		toast.success(
+			t({
+				id: "commandPalette.linkTask.linked",
+				message: `Linked ${slug} to workspace`,
+			}),
+		);
 		setOpen(false);
 	};
 
@@ -131,7 +137,13 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 				<Trans id="commandPalette.linkTask.empty">No tasks found.</Trans>
 			</CommandEmpty>
 			{filtered.length > 0 && (
-				<CommandGroup heading={deferredQuery ? "Results" : "Tasks"}>
+				<CommandGroup
+					heading={
+						deferredQuery
+							? t({ id: "commandPalette.linkTask.results", message: "Results" })
+							: t({ id: "commandPalette.linkTask.tasks", message: "Tasks" })
+					}
+				>
 					{filtered.map((task) => {
 						const status = task.statusId
 							? statusMap.get(task.statusId)

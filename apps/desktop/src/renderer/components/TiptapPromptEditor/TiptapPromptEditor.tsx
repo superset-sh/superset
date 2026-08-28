@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	usePromptInputAttachments,
 	usePromptInputController,
@@ -88,10 +88,17 @@ export function TiptapPromptEditor({
 	previewSlashCommand,
 	slashCommands,
 	availableModels,
-	placeholder = "Ask to make changes, @mention files, run /commands",
+	placeholder,
 	className,
 	focusShortcutText,
 }: TiptapPromptEditorProps) {
+	const { t } = useLingui();
+	const resolvedPlaceholder =
+		placeholder ??
+		t({
+			id: "components.tiptapPromptEditor.placeholder",
+			message: "Ask to make changes, @mention files, run /commands",
+		});
 	const controller = usePromptInputController();
 	const attachments = usePromptInputAttachments();
 
@@ -196,7 +203,7 @@ export function TiptapPromptEditor({
 			HardBreak,
 			History,
 
-			Placeholder.configure({ placeholder }),
+			Placeholder.configure({ placeholder: resolvedPlaceholder }),
 
 			FileMentionNode,
 			SlashCommandNode,
@@ -751,7 +758,10 @@ export function TiptapPromptEditor({
 					>
 						<Command shouldFilter={false}>
 							<CommandInput
-								placeholder="Search files..."
+								placeholder={t({
+									id: "components.tiptapPromptEditor.searchFilesPlaceholder",
+									message: "Search files...",
+								})}
 								value={mentionState?.query ?? ""}
 								onValueChange={(q) =>
 									setMentionState((prev) =>
@@ -762,13 +772,24 @@ export function TiptapPromptEditor({
 							<CommandList className="max-h-[200px] [&::-webkit-scrollbar]:hidden">
 								{mentionFiles.length === 0 && (
 									<CommandEmpty className="px-2 py-3 text-left text-xs text-muted-foreground">
-										{!mentionState?.query
-											? "Type to search files..."
-											: "No results found."}
+										{!mentionState?.query ? (
+											<Trans id="components.tiptapPromptEditor.typeToSearchFiles">
+												Type to search files...
+											</Trans>
+										) : (
+											<Trans id="components.tiptapPromptEditor.noFileResults">
+												No results found.
+											</Trans>
+										)}
 									</CommandEmpty>
 								)}
 								{mentionFiles.length > 0 && (
-									<CommandGroup heading="Files">
+									<CommandGroup
+										heading={t({
+											id: "components.tiptapPromptEditor.filesHeading",
+											message: "Files",
+										})}
+									>
 										{mentionFiles.map((file, idx) => {
 											const dirPath = getDirectoryPath(file.relativePath);
 											return (

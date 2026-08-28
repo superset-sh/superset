@@ -1,3 +1,4 @@
+import type { MessageDescriptor } from "@lingui/core";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
@@ -49,12 +50,13 @@ function HotkeyRow({
 	onReset,
 }: {
 	id: HotkeyId;
-	label: string;
-	description?: string;
+	label: MessageDescriptor;
+	description?: MessageDescriptor;
 	isRecording: boolean;
 	onStartRecording: () => void;
 	onReset: () => void;
 }) {
+	const { i18n } = useLingui();
 	const { keys } = useHotkeyDisplay(id);
 
 	return (
@@ -65,9 +67,11 @@ function HotkeyRow({
 			)}
 		>
 			<div className="flex flex-col">
-				<span className="text-sm text-foreground">{label}</span>
+				<span className="text-sm text-foreground">{i18n._(label)}</span>
 				{description && (
-					<span className="text-xs text-muted-foreground">{description}</span>
+					<span className="text-xs text-muted-foreground">
+						{i18n._(description)}
+					</span>
 				)}
 			</div>
 			<div className="flex items-center gap-2">
@@ -107,11 +111,19 @@ export const Route = createFileRoute("/_authenticated/settings/keyboard/")({
 
 function getHotkeysByCategory(): Record<
 	HotkeyCategory,
-	Array<{ id: HotkeyId; label: string; description?: string }>
+	Array<{
+		id: HotkeyId;
+		label: MessageDescriptor;
+		description?: MessageDescriptor;
+	}>
 > {
 	const grouped: Record<
 		HotkeyCategory,
-		Array<{ id: HotkeyId; label: string; description?: string }>
+		Array<{
+			id: HotkeyId;
+			label: MessageDescriptor;
+			description?: MessageDescriptor;
+		}>
 	> = {
 		Navigation: [],
 		Workspace: [],
@@ -133,7 +145,7 @@ function getHotkeysByCategory(): Record<
 const hotkeysByCategory = getHotkeysByCategory();
 
 function KeyboardShortcutsPage() {
-	const { t } = useLingui();
+	const { t, i18n } = useLingui();
 	const settingsSearchQuery = useSettingsSearchQuery();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
@@ -185,11 +197,11 @@ function KeyboardShortcutsPage() {
 			CATEGORY_ORDER.map((category) => [
 				category,
 				(hotkeysByCategory[category] ?? []).filter((hotkey) =>
-					hotkey.label.toLowerCase().includes(lower),
+					i18n._(hotkey.label).toLowerCase().includes(lower),
 				),
 			]),
 		) as typeof hotkeysByCategory;
-	}, [searchQuery]);
+	}, [searchQuery, i18n]);
 
 	const handleStartRecording = (id: HotkeyId) => {
 		setRecordingId((current) => (current === id ? null : id));
@@ -229,7 +241,10 @@ function KeyboardShortcutsPage() {
 				<div>
 					<h2 className="text-xl font-semibold">
 						<HighlightText
-							text="Keyboard shortcuts"
+							text={t({
+								id: "settings.keyboard.title",
+								message: "Keyboard shortcuts",
+							})}
 							query={settingsSearchQuery}
 						/>
 					</h2>
@@ -286,7 +301,10 @@ function KeyboardShortcutsPage() {
 				<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 				<Input
 					type="text"
-					placeholder="Search"
+					placeholder={t({
+						id: "settings.keyboard.searchPlaceholder",
+						message: "Search",
+					})}
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
 					className="pl-9 bg-accent/30 border-transparent focus:border-accent"
@@ -355,9 +373,9 @@ function KeyboardShortcutsPage() {
 									{pendingConflict
 										? t({
 												id: "settings.keyboard.conflictMessage",
-												message: `${conflictDisplay.text} is already assigned to "${
-													HOTKEYS[pendingConflict.conflictId].label
-												}".`,
+												message: `${conflictDisplay.text} is already assigned to "${i18n._(
+													HOTKEYS[pendingConflict.conflictId].label,
+												)}".`,
 											})
 										: ""}
 								</span>

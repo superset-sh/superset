@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 
 interface AutomationStatCardsProps {
@@ -25,6 +25,7 @@ export function AutomationStatCards({
 	canFilterFailed,
 	onToggleFailedFilter,
 }: AutomationStatCardsProps) {
+	const { t } = useLingui();
 	const total = created7d + failed7d;
 	const pct = (n: number) =>
 		total > 0 ? `${((n / total) * 100).toFixed(1)}%` : null;
@@ -39,7 +40,10 @@ export function AutomationStatCards({
 			</div>
 			<div
 				className={CARD}
-				title="Workspaces created by runs in the last 7 days"
+				title={t({
+					id: "dashboard.automations.statCards.created7dTitle",
+					message: "Workspaces created by runs in the last 7 days",
+				})}
 			>
 				<p className={LABEL}>
 					<Trans id="dashboard.automations.statCards.created7d">
@@ -57,10 +61,20 @@ export function AutomationStatCards({
 				onClick={onToggleFailedFilter}
 				title={
 					failedFilter
-						? "Show all automations again"
+						? t({
+								id: "dashboard.automations.statCards.showAllTitle",
+								message: "Show all automations again",
+							})
 						: canFilterFailed
-							? "Show only automations whose last run failed"
-							: "Runs failed earlier this week, but nothing is failing right now"
+							? t({
+									id: "dashboard.automations.statCards.showFailedTitle",
+									message: "Show only automations whose last run failed",
+								})
+							: t({
+									id: "dashboard.automations.statCards.noFailingTitle",
+									message:
+										"Runs failed earlier this week, but nothing is failing right now",
+								})
 				}
 				className={cn(
 					CARD,

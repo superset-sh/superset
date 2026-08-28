@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatPrice } from "@superset/i18n/format";
 import { isPaymentFailingStatus } from "@superset/shared/billing";
 import { Button } from "@superset/ui/button";
@@ -31,6 +31,7 @@ interface BillingOverviewProps {
 }
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const utils = cloudTrpc.useUtils();
 	const searchQuery = useSettingsSearchQuery();
@@ -148,7 +149,12 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			await authClient.subscription.restore({
 				referenceId: activeOrgId,
 			});
-			toast.success("Plan restored");
+			toast.success(
+				t({
+					id: "settings.billing.planRestoredToast",
+					message: "Plan restored",
+				}),
+			);
 		} finally {
 			setIsRestoring(false);
 			await utils.billing.activePlan.invalidate();
@@ -177,7 +183,13 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				</div>
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing/plans">
-						<HighlightText text="All plans" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.billing.allPlansLink",
+								message: "All plans",
+							})}
+							query={searchQuery}
+						/>
 						<HiArrowRight className="h-3 w-3" />
 					</Link>
 				</Button>

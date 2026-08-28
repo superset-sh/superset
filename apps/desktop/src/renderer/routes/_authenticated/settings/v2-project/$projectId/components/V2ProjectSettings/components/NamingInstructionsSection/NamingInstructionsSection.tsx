@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Label } from "@superset/ui/label";
 import { Textarea } from "@superset/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
@@ -25,6 +25,7 @@ export function NamingInstructionsSection({
 	instructions,
 	onChanged,
 }: NamingInstructionsSectionProps) {
+	const { t } = useLingui();
 	const savedValue = instructions ?? "";
 	const [value, setValue] = useState(savedValue);
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -164,9 +165,11 @@ export function NamingInstructionsSection({
 				value={value}
 				onChange={(e) => handleChange(e.target.value)}
 				onBlur={handleBlur}
-				placeholder={
-					"Include the Linear ticket id from the prompt in the branch name (e.g. bin-344-fix-login). Prefix branches with fix/ or feat/ based on the task."
-				}
+				placeholder={t({
+					id: "settings.project.namingInstructions.placeholder",
+					message:
+						"Include the Linear ticket id from the prompt in the branch name (e.g. bin-344-fix-login). Prefix branches with fix/ or feat/ based on the task.",
+				})}
 				rows={3}
 				spellCheck={false}
 				className="text-sm resize-y min-h-[calc(3lh+1.125rem)]"

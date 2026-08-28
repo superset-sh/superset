@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -21,17 +21,24 @@ export function useDefaultWorktreePath() {
 export function WorktreeLocationPicker({
 	currentPath,
 	defaultPathLabel,
-	dialogTitle = "Select worktree location",
+	dialogTitle,
 	defaultBrowsePath,
 	disabled,
 	onSelect,
 	onReset,
 }: WorktreeLocationPickerProps) {
+	const { t } = useLingui();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
+	const resolvedDialogTitle =
+		dialogTitle ??
+		t({
+			id: "settings.components.worktreeLocationPicker.dialogTitle",
+			message: "Select worktree location",
+		});
 
 	const handleBrowse = async () => {
 		const result = await selectDirectory.mutateAsync({
-			title: dialogTitle,
+			title: resolvedDialogTitle,
 			defaultPath: defaultBrowsePath ?? undefined,
 		});
 		if (!result.canceled && result.path) {

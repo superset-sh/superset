@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -29,6 +29,7 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useFrameStackStore } from "../../core/frames";
 
 export function RecentlyViewedFrame() {
+	const { i18n } = useLingui();
 	const recentEntries = useRecentlyViewed(20);
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
 	const isV2CloudEnabled = useIsV2CloudEnabled();
@@ -121,7 +122,12 @@ export function RecentlyViewedFrame() {
 					Nothing here yet.
 				</Trans>
 			</CommandEmpty>
-			<CommandGroup heading="Recently Viewed">
+			<CommandGroup
+				heading={i18n._({
+					id: "commandPalette.recentlyViewed.heading",
+					message: "Recently Viewed",
+				})}
+			>
 				{filteredEntries.map((entry) => {
 					const isCurrent = entry.path === currentPath;
 					if (entry.type === "task") {
@@ -191,6 +197,7 @@ function WorkspaceRow({
 		branch: string;
 	}[];
 }) {
+	const { i18n } = useLingui();
 	const ws = workspaceData.find((w) => w.id === entry.entityId);
 	return (
 		<CommandItem
@@ -199,7 +206,11 @@ function WorkspaceRow({
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				{ws?.projectName ?? "Workspace"}
+				{ws?.projectName ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.workspaceFallback",
+						message: "Workspace",
+					})}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				{ws ? (
@@ -215,7 +226,11 @@ function WorkspaceRow({
 					!ws && "text-muted-foreground",
 				)}
 			>
-				{ws?.branch ?? "Unknown"}
+				{ws?.branch ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.branchUnknown",
+						message: "Unknown",
+					})}
 			</span>
 		</CommandItem>
 	);
@@ -229,6 +244,7 @@ function V2WorkspaceRow({
 }: RowProps & {
 	v2WorkspaceData: { id: string; projectName: string; branch: string }[];
 }) {
+	const { i18n } = useLingui();
 	const ws = v2WorkspaceData.find((w) => w.id === entry.entityId);
 	return (
 		<CommandItem
@@ -237,7 +253,11 @@ function V2WorkspaceRow({
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				{ws?.projectName ?? "Workspace"}
+				{ws?.projectName ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.v2WorkspaceFallback",
+						message: "Workspace",
+					})}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				<LuGitBranch
@@ -251,7 +271,11 @@ function V2WorkspaceRow({
 					!ws && "text-muted-foreground",
 				)}
 			>
-				{ws?.branch ?? "Unknown"}
+				{ws?.branch ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.v2BranchUnknown",
+						message: "Unknown",
+					})}
 			</span>
 		</CommandItem>
 	);
@@ -265,6 +289,7 @@ function AutomationRow({
 }: RowProps & {
 	automationData: { id: string; name: string }[];
 }) {
+	const { i18n } = useLingui();
 	const automation = automationData.find((a) => a.id === entry.entityId);
 	return (
 		<CommandItem
@@ -286,7 +311,11 @@ function AutomationRow({
 					!automation && "text-muted-foreground",
 				)}
 			>
-				{automation?.name ?? "Unknown"}
+				{automation?.name ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.automationUnknown",
+						message: "Unknown",
+					})}
 			</span>
 		</CommandItem>
 	);
@@ -307,6 +336,7 @@ function TaskRow({
 		statusProgress: number | null;
 	}[];
 }) {
+	const { i18n } = useLingui();
 	const task = taskData.find(
 		(t) => t.id === entry.entityId || t.slug === entry.entityId,
 	);
@@ -317,7 +347,11 @@ function TaskRow({
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				{task?.slug ?? "Task"}
+				{task?.slug ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.taskFallback",
+						message: "Task",
+					})}
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				{task ? (
@@ -335,7 +369,11 @@ function TaskRow({
 					!task && "text-muted-foreground",
 				)}
 			>
-				{task?.title ?? "Unknown"}
+				{task?.title ??
+					i18n._({
+						id: "commandPalette.recentlyViewed.taskUnknown",
+						message: "Unknown",
+					})}
 			</span>
 		</CommandItem>
 	);

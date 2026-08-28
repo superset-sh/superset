@@ -1,3 +1,5 @@
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import { FaSlack } from "react-icons/fa";
 import { ScopeChip } from "../../TriggerSentence/components/ScopeChip";
 import { SelectChip } from "../../TriggerSentence/components/SelectChip";
@@ -13,8 +15,20 @@ import {
 } from "./grammar";
 
 const THREAD_OPTIONS = [
-	{ value: "top", label: "top-level only" },
-	{ value: "replies", label: "including replies" },
+	{
+		value: "top",
+		label: msg({
+			id: "dashboard.automations.providers.slack.threadTopLevelOnly",
+			message: "top-level only",
+		}),
+	},
+	{
+		value: "replies",
+		label: msg({
+			id: "dashboard.automations.providers.slack.threadIncludingReplies",
+			message: "including replies",
+		}),
+	},
 ] as const;
 
 /**
@@ -36,8 +50,18 @@ function renderSlot(
 					onChange={(v) => set({ channels: v })}
 					className={mark("channels")}
 					options={options.slack?.channels ?? []}
-					emptyLabel="Select channels"
-					anyLabel="Any channel"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.selectChannels",
+							message: "Select channels",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.anyChannel",
+							message: "Any channel",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -57,8 +81,18 @@ function renderSlot(
 						})
 					}
 					className={mark("emoji")}
-					emptyLabel="Any reaction"
-					placeholder=":bug: or bug, eyes"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.anyReaction",
+							message: "Any reaction",
+						}),
+					)}
+					placeholder={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.emojiPlaceholder",
+							message: ":bug: or bug, eyes",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -70,8 +104,18 @@ function renderSlot(
 					onChange={(v) => set({ actor: v })}
 					className={mark("actor")}
 					options={options.slack?.people ?? []}
-					emptyLabel="Select people"
-					anyLabel="Anyone"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.selectPeople",
+							message: "Select people",
+						}),
+					)}
+					anyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.anyone",
+							message: "Anyone",
+						}),
+					)}
 					disabled={disabled}
 				/>
 			);
@@ -84,11 +128,35 @@ function renderSlot(
 					key={index}
 					value={config.messageFilter}
 					onChange={(v) => set({ messageFilter: v })}
-					emptyLabel={isChannelName ? "Any name" : "Any message"}
+					emptyLabel={
+						isChannelName
+							? i18n._(
+									msg({
+										id: "dashboard.automations.providers.slack.anyName",
+										message: "Any name",
+									}),
+								)
+							: i18n._(
+									msg({
+										id: "dashboard.automations.providers.slack.anyMessage",
+										message: "Any message",
+									}),
+								)
+					}
 					placeholder={
 						isChannelName
-							? "Name contains this text..."
-							: "Contains this text..."
+							? i18n._(
+									msg({
+										id: "dashboard.automations.providers.slack.nameFilterPlaceholder",
+										message: "Name contains this text...",
+									}),
+								)
+							: i18n._(
+									msg({
+										id: "dashboard.automations.providers.slack.messageFilterPlaceholder",
+										message: "Contains this text...",
+									}),
+								)
 					}
 					disabled={disabled}
 				/>
@@ -100,7 +168,10 @@ function renderSlot(
 					key={index}
 					value={config.topLevelOnly === false ? "replies" : "top"}
 					onChange={(v) => set({ topLevelOnly: v === "top" })}
-					options={THREAD_OPTIONS}
+					options={THREAD_OPTIONS.map((option) => ({
+						value: option.value,
+						label: i18n._(option.label),
+					}))}
 					disabled={disabled}
 				/>
 			);
@@ -121,7 +192,12 @@ function renderSlot(
 					onChange={(names) =>
 						set({ completionReaction: names[names.length - 1] ?? null })
 					}
-					emptyLabel="No reaction"
+					emptyLabel={i18n._(
+						msg({
+							id: "dashboard.automations.providers.slack.noReaction",
+							message: "No reaction",
+						}),
+					)}
 					placeholder=":white_check_mark:"
 					disabled={disabled}
 				/>

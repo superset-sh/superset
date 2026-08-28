@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { XIcon } from "lucide-react";
 import {
@@ -19,6 +19,7 @@ export function LinkedPRPill({
 	state,
 	onRemove,
 }: LinkedPRPillProps) {
+	const { t } = useLingui();
 	return (
 		<div
 			title={title}
@@ -30,7 +31,10 @@ export function LinkedPRPill({
 					className="size-5 transition-opacity group-hover:opacity-0"
 				/>
 				<Button
-					aria-label="Remove linked PR"
+					aria-label={t({
+						id: "components.linkedPrPill.removeLinkedPr",
+						message: "Remove linked PR",
+					})}
 					className="pointer-events-none absolute inset-0 size-7 cursor-pointer rounded-md p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-3"
 					onClick={(e) => {
 						e.stopPropagation();

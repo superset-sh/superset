@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectScreenshot } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -24,6 +24,7 @@ export function ScreenshotsDialog({
 	open,
 	onOpenChange,
 }: ScreenshotsDialogProps) {
+	const { t } = useLingui();
 	const [rows, setRows] = useState<SelectScreenshot[]>([]);
 	const { copyToClipboard } = useCopyToClipboard();
 
@@ -46,17 +47,28 @@ export function ScreenshotsDialog({
 	const handleCopyPath = (savePath: string) => {
 		copyToClipboard(savePath)
 			.then(() => {
-				toast.success("Path copied", {
-					description: savePath,
-					icon: (
-						<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
-							<LuCheck className="size-2.5 text-white" strokeWidth={3} />
-						</span>
-					),
-				});
+				toast.success(
+					t({
+						id: "workspace.browserPane.screenshotPathCopied",
+						message: "Path copied",
+					}),
+					{
+						description: savePath,
+						icon: (
+							<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
+								<LuCheck className="size-2.5 text-white" strokeWidth={3} />
+							</span>
+						),
+					},
+				);
 			})
 			.catch(() => {
-				toast.error("Couldn't copy path");
+				toast.error(
+					t({
+						id: "workspace.browserPane.screenshotPathCopyFailed",
+						message: "Couldn't copy path",
+					}),
+				);
 			});
 	};
 
@@ -113,8 +125,14 @@ export function ScreenshotsDialog({
 									<button
 										type="button"
 										onClick={() => handleCopyPath(row.savePath)}
-										aria-label="Copy path"
-										title="Copy path"
+										aria-label={t({
+											id: "workspace.browserPane.screenshotCopyPath",
+											message: "Copy path",
+										})}
+										title={t({
+											id: "workspace.browserPane.screenshotCopyPathTitle",
+											message: "Copy path",
+										})}
 										className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
 									>
 										<TbCopy className="size-4" />
@@ -122,8 +140,14 @@ export function ScreenshotsDialog({
 									<button
 										type="button"
 										onClick={() => handleShowInFolder(row.id)}
-										aria-label="Show in folder"
-										title="Show in folder"
+										aria-label={t({
+											id: "workspace.browserPane.screenshotShowInFolder",
+											message: "Show in folder",
+										})}
+										title={t({
+											id: "workspace.browserPane.screenshotShowInFolderTitle",
+											message: "Show in folder",
+										})}
 										className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
 									>
 										<TbFolderOpen className="size-4" />

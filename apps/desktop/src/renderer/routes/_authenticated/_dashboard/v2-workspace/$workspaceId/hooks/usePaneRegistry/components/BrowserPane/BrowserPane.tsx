@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { RendererContext, Tab } from "@superset/panes";
 import { useParams } from "@tanstack/react-router";
 import { GlobeIcon, SquareDashedMousePointer, XIcon } from "lucide-react";
@@ -71,6 +71,7 @@ export function BrowserPane({
 	onCreateNewAgentSession,
 	onFocusAgentTerminal,
 }: BrowserPaneProps) {
+	const { t } = useLingui();
 	const paneId = ctx.pane.id;
 	const state = useBrowserState(paneId);
 	const { placeholderRef, reload } = usePersistentWebview({ paneId, ctx });
@@ -260,7 +261,10 @@ export function BrowserPane({
 					<button
 						type="button"
 						onClick={() => designModeStore.exit(paneId)}
-						aria-label="Exit design mode"
+						aria-label={t({
+							id: "workspace.browserPane.exitDesignMode",
+							message: "Exit design mode",
+						})}
 						className="shrink-0 rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
 						<XIcon className="size-3.5" />
@@ -322,7 +326,10 @@ export function BrowserPane({
 						    navigate out from under the open composer. */}
 						<button
 							type="button"
-							aria-label="Discard captured element"
+							aria-label={t({
+								id: "workspace.browserPane.discardCapturedElement",
+								message: "Discard captured element",
+							})}
 							onClick={() => designModeStore.rearm(paneId)}
 							className="absolute inset-0 z-10 cursor-default"
 						/>

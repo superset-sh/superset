@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
@@ -18,6 +18,7 @@ import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const navigate = useNavigate();
 	// Per-window org, not the shared session: the session holds one org for
@@ -52,7 +53,10 @@ export function TeamsSettings() {
 				<div className="max-w-5xl flex items-end justify-between gap-4">
 					<div>
 						<h2 className="text-2xl font-semibold">
-							<HighlightText text="Teams" query={searchQuery} />
+							<HighlightText
+								text={t({ id: "settings.teams.title", message: "Teams" })}
+								query={searchQuery}
+							/>
 						</h2>
 						<p className="text-sm text-muted-foreground mt-1">
 							<Trans id="settings.teams.subtitle">

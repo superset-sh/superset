@@ -1,4 +1,5 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
@@ -50,6 +51,7 @@ export function CommentThread({
 	comments,
 	focusTick,
 }: CommentThreadProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(!isResolved && !isOutdated);
 	const [isCopied, setIsCopied] = useState(false);
 	useEffect(() => {
@@ -68,7 +70,12 @@ export function CommentThread({
 			.then(() => setIsCopied(true))
 			.catch((err) => {
 				console.error("[CommentThread/copy] Failed to copy:", err);
-				toast.error("Couldn't copy comment");
+				toast.error(
+					t({
+						id: "workspace.diffPane.copyCommentFailedToast",
+						message: "Couldn't copy comment",
+					}),
+				);
 			});
 	};
 	// Auto-collapse on resolve/outdated (matches GitHub).
@@ -87,9 +94,15 @@ export function CommentThread({
 				void utils.git.getPullRequestThreads.invalidate({ workspaceId });
 			},
 			onError: (error) => {
-				toast.error("Couldn't update thread", {
-					description: errorMessage(error),
-				});
+				toast.error(
+					t({
+						id: "workspace.diffPane.updateThreadFailedToast",
+						message: "Couldn't update thread",
+					}),
+					{
+						description: errorMessage(error),
+					},
+				);
 			},
 		},
 	);
@@ -106,7 +119,17 @@ export function CommentThread({
 			<div className="flex items-center gap-2 px-2.5 py-1.5">
 				<CollapsibleTrigger
 					className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none"
-					aria-label={open ? "Collapse thread" : "Expand thread"}
+					aria-label={
+						open
+							? t({
+									id: "workspace.diffPane.collapseThreadAria",
+									message: "Collapse thread",
+								})
+							: t({
+									id: "workspace.diffPane.expandThreadAria",
+									message: "Expand thread",
+								})
+					}
 				>
 					<LuChevronRight
 						className={cn(
@@ -139,10 +162,16 @@ export function CommentThread({
 					className="shrink-0 text-muted-foreground hover:text-foreground"
 					aria-label={
 						isCopied
-							? "Copied"
+							? t({ id: "workspace.diffPane.copiedAria", message: "Copied" })
 							: comments.length === 1
-								? "Copy comment"
-								: "Copy comments"
+								? t({
+										id: "workspace.diffPane.copyCommentAria",
+										message: "Copy comment",
+									})
+								: t({
+										id: "workspace.diffPane.copyCommentsAria",
+										message: "Copy comments",
+									})
 					}
 				>
 					{isCopied ? (
@@ -158,7 +187,10 @@ export function CommentThread({
 						rel="noreferrer"
 						onClick={(e) => e.stopPropagation()}
 						className="shrink-0 text-muted-foreground hover:text-foreground"
-						aria-label="Open on GitHub"
+						aria-label={t({
+							id: "workspace.diffPane.openOnGithubAria",
+							message: "Open on GitHub",
+						})}
 					>
 						<LuExternalLink className="size-3" />
 					</a>
@@ -187,7 +219,13 @@ export function CommentThread({
 						{setResolution.isPending && (
 							<LuLoaderCircle className="size-3 animate-spin" />
 						)}
-						{isResolved ? "Unresolve" : "Resolve conversation"}
+						{isResolved ? (
+							<Trans id="workspace.diffPane.unresolve">Unresolve</Trans>
+						) : (
+							<Trans id="workspace.diffPane.resolveConversation">
+								Resolve conversation
+							</Trans>
+						)}
 					</Button>
 				</div>
 			</CollapsibleContent>
@@ -233,15 +271,44 @@ function formatRelative(ms: number): string {
 	// Clamp >=0 so future-dated timestamps from clock skew aren't negative.
 	const delta = Math.max(0, Date.now() - ms);
 	const seconds = Math.floor(delta / 1000);
-	if (seconds < 60) return `${seconds}s ago`;
+	if (seconds < 60)
+		return i18n._({
+			id: "workspace.diffPane.relSecondsAgo",
+			message: "{seconds}s ago",
+			values: { seconds },
+		});
 	const minutes = Math.floor(seconds / 60);
-	if (minutes < 60) return `${minutes}m ago`;
+	if (minutes < 60)
+		return i18n._({
+			id: "workspace.diffPane.relMinutesAgo",
+			message: "{minutes}m ago",
+			values: { minutes },
+		});
 	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
+	if (hours < 24)
+		return i18n._({
+			id: "workspace.diffPane.relHoursAgo",
+			message: "{hours}h ago",
+			values: { hours },
+		});
 	const days = Math.floor(hours / 24);
-	if (days < 30) return `${days}d ago`;
+	if (days < 30)
+		return i18n._({
+			id: "workspace.diffPane.relDaysAgo",
+			message: "{days}d ago",
+			values: { days },
+		});
 	const months = Math.floor(days / 30);
-	if (months < 12) return `${months}mo ago`;
+	if (months < 12)
+		return i18n._({
+			id: "workspace.diffPane.relMonthsAgo",
+			message: "{months}mo ago",
+			values: { months },
+		});
 	const years = Math.floor(days / 365);
-	return `${years}y ago`;
+	return i18n._({
+		id: "workspace.diffPane.relYearsAgo",
+		message: "{years}y ago",
+		values: { years },
+	});
 }

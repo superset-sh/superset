@@ -1,4 +1,5 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -33,6 +34,7 @@ export function DashboardSidebarBulkActions({
 	projects,
 	children,
 }: DashboardSidebarBulkActionsProps) {
+	const { t } = useLingui();
 	const { clearSelection, removeSelectedWorkspaces, selectedProjectId } =
 		useDashboardSidebarSelection();
 	const selectedProject = useMemo(
@@ -86,7 +88,10 @@ export function DashboardSidebarBulkActions({
 			) : (
 				<div
 					role="toolbar"
-					aria-label="Selected workspace actions"
+					aria-label={t({
+						id: "dashboard.sidebar.bulkActions.toolbarAriaLabel",
+						message: "Selected workspace actions",
+					})}
 					// Sticky: the toolbar's natural slot (the Workspaces header) can be
 					// scrolled far out of view when selecting rows at the bottom of a
 					// long sidebar — pin it to the scroller top so the selection always
@@ -99,7 +104,10 @@ export function DashboardSidebarBulkActions({
 								type="button"
 								onClick={clearSelection}
 								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
-								aria-label="Clear workspace selection"
+								aria-label={t({
+									id: "dashboard.sidebar.bulkActions.clearSelectionAriaLabel",
+									message: "Clear workspace selection",
+								})}
 							>
 								<LuX className="size-3.5" />
 							</button>
@@ -129,7 +137,13 @@ export function DashboardSidebarBulkActions({
 									<button
 										type="button"
 										className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
-										aria-label={`Move ${selectedWorkspaces.length} selected ${selectedWorkspaces.length === 1 ? "workspace" : "workspaces"} to a group`}
+										aria-label={t({
+											id: "dashboard.sidebar.bulkActions.moveToGroupAriaLabel",
+											message: plural(selectedWorkspaces.length, {
+												one: "Move # selected workspace to a group",
+												other: "Move # selected workspaces to a group",
+											}),
+										})}
 									>
 										<LuFolderInput className="size-3.5" />
 									</button>
@@ -188,7 +202,10 @@ export function DashboardSidebarBulkActions({
 								disabled={groupedWorkspaceIds.length === 0}
 								onClick={ungroupSelection}
 								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
-								aria-label="Ungroup selected workspaces"
+								aria-label={t({
+									id: "dashboard.sidebar.bulkActions.ungroupAriaLabel",
+									message: "Ungroup selected workspaces",
+								})}
 							>
 								<LuUngroup className="size-3.5" />
 							</button>
@@ -204,7 +221,10 @@ export function DashboardSidebarBulkActions({
 								type="button"
 								onClick={openDeleteDialog}
 								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-								aria-label="Delete selected workspaces"
+								aria-label={t({
+									id: "dashboard.sidebar.bulkActions.deleteAriaLabel",
+									message: "Delete selected workspaces",
+								})}
 							>
 								<LuTrash2 className="size-3.5" />
 							</button>

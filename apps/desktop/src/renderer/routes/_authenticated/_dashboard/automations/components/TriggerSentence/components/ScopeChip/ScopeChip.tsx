@@ -1,4 +1,6 @@
+import { msg, plural } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { TriggerScope } from "@superset/shared/automation-triggers";
 import {
 	DropdownMenu,
@@ -25,7 +27,15 @@ function scopeLabel(
 		const match = options.find((o) => o.id === scope.ids[0]);
 		return match?.label ?? scope.ids[0] ?? emptyLabel;
 	}
-	return `${scope.ids.length} selected`;
+	return i18n._(
+		msg({
+			id: "dashboard.automations.scopeChip.selectedCount",
+			message: plural(scope.ids.length, {
+				one: "# selected",
+				other: "# selected",
+			}),
+		}),
+	);
 }
 
 /**

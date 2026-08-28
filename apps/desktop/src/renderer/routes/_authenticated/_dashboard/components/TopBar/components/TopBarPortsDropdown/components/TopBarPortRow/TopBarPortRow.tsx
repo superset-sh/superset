@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { LuCopy, LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
@@ -19,6 +20,7 @@ interface TopBarPortRowProps {
  * process, and a hover-revealed action cluster (open / copy / close).
  */
 export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
+	const { t } = useLingui();
 	const { isPending, killPort } = useDashboardSidebarPortKill();
 	const { canOpenInBrowser, portUrl, openExternal, openPrimary } =
 		usePortOpenActions(port);
@@ -43,9 +45,19 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 	const handleCopy = async () => {
 		try {
 			await copyToClipboard(portUrl);
-			toast.success(`Copied ${portUrl.replace(/^https?:\/\//, "")}`);
+			toast.success(
+				t({
+					id: "dashboard.topBar.ports.copiedUrl",
+					message: `Copied ${portUrl.replace(/^https?:\/\//, "")}`,
+				}),
+			);
 		} catch {
-			toast.error("Failed to copy to clipboard");
+			toast.error(
+				t({
+					id: "dashboard.topBar.ports.copyFailed",
+					message: "Failed to copy to clipboard",
+				}),
+			);
 		}
 	};
 
@@ -78,7 +90,10 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 				{canOpenInBrowser && (
 					<button
 						type="button"
-						aria-label={`Open localhost:${port.port} in external browser`}
+						aria-label={t({
+							id: "dashboard.topBar.ports.openExternalAriaLabel",
+							message: `Open localhost:${port.port} in external browser`,
+						})}
 						onClick={handleOpenExternal}
 						className="rounded p-1 text-muted-foreground hover:bg-fill-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					>
@@ -88,7 +103,10 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 				{canOpenInBrowser && (
 					<button
 						type="button"
-						aria-label={`Copy localhost:${port.port}`}
+						aria-label={t({
+							id: "dashboard.topBar.ports.copyAriaLabel",
+							message: `Copy localhost:${port.port}`,
+						})}
 						onClick={() => void handleCopy()}
 						className="rounded p-1 text-muted-foreground hover:bg-fill-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					>
@@ -97,7 +115,10 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 				)}
 				<button
 					type="button"
-					aria-label={`Close port ${port.port}`}
+					aria-label={t({
+						id: "dashboard.topBar.ports.closePortAriaLabel",
+						message: `Close port ${port.port}`,
+					})}
 					onClick={handleClose}
 					disabled={isPending}
 					className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

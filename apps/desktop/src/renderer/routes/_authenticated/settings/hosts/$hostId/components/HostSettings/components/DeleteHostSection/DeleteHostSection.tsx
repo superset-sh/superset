@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -31,6 +31,7 @@ export function DeleteHostSection({
 	hostName,
 	isLocalHost,
 }: DeleteHostSectionProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const searchQuery = useSettingsSearchQuery();
 	const actions = useOptimisticActions();
@@ -68,7 +69,12 @@ export function DeleteHostSection({
 
 		try {
 			await transaction.isPersisted.promise;
-			toast.success(`Deleted "${hostName}"`);
+			toast.success(
+				t({
+					id: "settings.hosts.deleteHost.deletedToast",
+					message: `Deleted "${hostName}"`,
+				}),
+			);
 		} catch {
 			// The shared mutation runner reports the error, and the collection
 			// restores the host without disrupting wherever the user navigated.
@@ -79,7 +85,13 @@ export function DeleteHostSection({
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-medium">
-					<HighlightText text="Delete host" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.hosts.deleteHost.label",
+							message: "Delete host",
+						})}
+						query={searchQuery}
+					/>
 				</p>
 				<p
 					id={deleteHostDescriptionId}

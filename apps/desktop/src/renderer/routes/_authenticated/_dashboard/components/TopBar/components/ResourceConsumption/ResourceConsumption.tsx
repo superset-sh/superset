@@ -1,4 +1,7 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -25,11 +28,20 @@ import { useResourceNavigation } from "./hooks/useResourceNavigation";
 import { useResourceSnapshot } from "./hooks/useResourceSnapshot";
 import type { SortOption, UsageValues } from "./types";
 
-const SORT_LABELS: Record<SortOption, string> = {
-	memory: "Memory",
-	cpu: "CPU",
-	name: "Name",
-	sidebar: "Sidebar order",
+const SORT_LABELS: Record<SortOption, MessageDescriptor> = {
+	memory: msg({
+		id: "dashboard.topBar.resources.sortLabelMemory",
+		message: "Memory",
+	}),
+	cpu: msg({ id: "dashboard.topBar.resources.sortLabelCpu", message: "CPU" }),
+	name: msg({
+		id: "dashboard.topBar.resources.sortLabelName",
+		message: "Name",
+	}),
+	sidebar: msg({
+		id: "dashboard.topBar.resources.sortLabelSidebarOrder",
+		message: "Sidebar order",
+	}),
 };
 
 function getTotalUsage(
@@ -51,6 +63,7 @@ export function ResourceConsumption({
 	surface = "v1",
 	className,
 }: ResourceConsumptionProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const { data: enabled } =
 		electronTrpc.settings.getShowResourceMonitor.useQuery();
@@ -70,7 +83,10 @@ export function ResourceConsumption({
 						<Button
 							variant="ghost"
 							size="icon-xs"
-							aria-label="Resource consumption"
+							aria-label={t({
+								id: "dashboard.topBar.resources.triggerAriaLabel",
+								message: "Resource consumption",
+							})}
 							className={cn(
 								"no-drag relative text-muted-foreground hover:text-foreground",
 								className,
@@ -104,6 +120,7 @@ function ResourceConsumptionContent({
 	surface,
 	onClose,
 }: ResourceConsumptionContentProps) {
+	const { t } = useLingui();
 	const [sortOption, setSortOption] = useState<SortOption>("memory");
 	const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(
 		new Set(),
@@ -170,10 +187,13 @@ function ResourceConsumptionContent({
 								<button
 									type="button"
 									className="flex items-center gap-1 h-6 px-1.5 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
-									aria-label="Sort workspaces"
+									aria-label={t({
+										id: "dashboard.topBar.resources.sortWorkspaces",
+										message: "Sort workspaces",
+									})}
 								>
 									<HiOutlineBarsArrowDown className="h-3.5 w-3.5" />
-									<span>{SORT_LABELS[sortOption]}</span>
+									<span>{i18n._(SORT_LABELS[sortOption])}</span>
 								</button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-40">
@@ -204,7 +224,10 @@ function ResourceConsumptionContent({
 							type="button"
 							onClick={() => refetch()}
 							className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
-							aria-label="Refresh metrics"
+							aria-label={t({
+								id: "dashboard.topBar.resources.refreshMetrics",
+								message: "Refresh metrics",
+							})}
 						>
 							<HiOutlineArrowPath
 								className={cn("h-3.5 w-3.5", isFetching && "animate-spin")}

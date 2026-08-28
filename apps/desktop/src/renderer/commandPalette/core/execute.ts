@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { track } from "renderer/lib/analytics";
@@ -13,6 +14,12 @@ export async function executeCommand(
 		await command.run(context);
 	} catch (error) {
 		const message = errorMessage(error);
-		toast.error(`Command "${command.title}" failed: ${message}`);
+		toast.error(
+			i18n._({
+				id: "commandPalette.execute.failed",
+				message: 'Command "{title}" failed: {message}',
+				values: { title: i18n._(command.title), message },
+			}),
+		);
 	}
 }

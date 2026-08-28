@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
@@ -38,7 +39,7 @@ export function WorkspaceStateGlyph({ workspace }: WorkspaceStateGlyphProps) {
 			label = getStatusTooltip("review");
 		} else {
 			glyph = <BoardColumnIcon column={column} />;
-			label = BOARD_COLUMN_LABELS[column];
+			label = i18n._(BOARD_COLUMN_LABELS[column]);
 		}
 	}
 

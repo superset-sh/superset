@@ -71,7 +71,13 @@ export function PendingInvitations({
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
 					<h3 className="text-lg font-semibold">
-						<HighlightText text="Pending Invitations" query={searchQuery} />
+						<HighlightText
+							text={t({
+								id: "settings.members.pendingInvitationsTitle",
+								message: "Pending Invitations",
+							})}
+							query={searchQuery}
+						/>
 					</h3>
 					{showInvite && (
 						<InviteMemberButton
@@ -101,7 +107,13 @@ export function PendingInvitations({
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<h3 className="text-lg font-semibold">
-					<HighlightText text="Pending Invitations" query={searchQuery} />
+					<HighlightText
+						text={t({
+							id: "settings.members.pendingInvitationsTitle",
+							message: "Pending Invitations",
+						})}
+						query={searchQuery}
+					/>
 				</h3>
 				{showInvite && (
 					<InviteMemberButton

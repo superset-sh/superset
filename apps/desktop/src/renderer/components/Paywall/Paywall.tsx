@@ -55,7 +55,7 @@ export const Paywall = () => {
 			track("paywall_opened", {
 				trigger_source: paywallOptions.feature,
 				feature_id: initialFeatureId,
-				feature_title: feature?.title,
+				feature_title: feature?.title.message,
 			});
 		}
 	}, [isOpen, paywallOptions, initialFeatureId]);
@@ -76,7 +76,7 @@ export const Paywall = () => {
 			track("paywall_feature_clicked", {
 				trigger_source: triggerSource,
 				feature_id: featureId,
-				feature_title: feature?.title,
+				feature_title: feature?.title.message,
 				previous_feature_id: selectedFeatureId,
 			});
 			featuresViewedRef.current.add(featureId);
@@ -113,7 +113,7 @@ export const Paywall = () => {
 		track("paywall_upgrade_clicked", {
 			trigger_source: triggerSource,
 			feature_id: selectedFeatureId,
-			feature_title: selectedFeature.title,
+			feature_title: selectedFeature.title.message,
 			features_viewed_count: featuresViewedRef.current.size,
 			time_spent_ms: timeSpent,
 		});

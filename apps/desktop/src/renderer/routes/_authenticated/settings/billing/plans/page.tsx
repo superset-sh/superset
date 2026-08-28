@@ -1,4 +1,7 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -30,46 +33,60 @@ type PlanCardAction =
 	| "restore"
 	| "contact";
 
-type PlanCardData = {
-	id: "free" | "pro" | "enterprise";
-	name: string;
-	price: { monthly: string; yearly: string } | string;
-	priceNote?: { monthly: string; yearly: string } | string;
-	billingText: { monthly: string; yearly: string } | string;
-	showBillingToggle?: boolean;
-	actions: Array<{
-		label: string;
-		action: PlanCardAction;
-		variant: "default" | "secondary" | "outline";
-		size?: "default" | "sm";
-		fullWidth?: boolean;
-		align?: "center" | "start";
-	}>;
+type PlanCardText =
+	| { monthly: MessageDescriptor; yearly: MessageDescriptor }
+	| MessageDescriptor;
+
+type PlanCardActionButton = {
+	action: PlanCardAction;
+	variant: "default" | "secondary" | "outline";
+	size?: "default" | "sm";
+	fullWidth?: boolean;
+	align?: "center" | "start";
 };
 
-type ComparisonValue = string | boolean | null;
+type PlanCardData = {
+	id: "free" | "pro" | "enterprise";
+	name: MessageDescriptor;
+	price: PlanCardText;
+	priceNote?: PlanCardText;
+	billingText: PlanCardText;
+	showBillingToggle?: boolean;
+	actions: Array<PlanCardActionButton & { label: MessageDescriptor }>;
+};
+
+type ComparisonValue = MessageDescriptor | boolean | null;
 
 type ComparisonRow = {
-	label: string;
+	label: MessageDescriptor;
 	values: ComparisonValue[];
-	badge?: { label: string; variant: "default" | "secondary" };
+	badge?: { label: MessageDescriptor; variant: "default" | "secondary" };
 };
 
 type ComparisonSection = {
-	title: string;
+	title: MessageDescriptor;
 	rows: ComparisonRow[];
 };
 
 const PLAN_CARDS: PlanCardData[] = [
 	{
 		id: "free",
-		name: "Free",
-		price: "$0",
-		priceNote: "per user/month",
-		billingText: "Free for everyone",
+		name: msg({ id: "settings.billing.plans.cardFreeName", message: "Free" }),
+		price: msg({ id: "settings.billing.plans.cardFreePrice", message: "$0" }),
+		priceNote: msg({
+			id: "settings.billing.plans.cardFreePriceNote",
+			message: "per user/month",
+		}),
+		billingText: msg({
+			id: "settings.billing.plans.cardFreeBilling",
+			message: "Free for everyone",
+		}),
 		actions: [
 			{
-				label: "Current plan",
+				label: msg({
+					id: "settings.billing.plans.cardFreeCurrentPlan",
+					message: "Current plan",
+				}),
 				action: "current",
 				variant: "secondary",
 			},
@@ -77,17 +94,38 @@ const PLAN_CARDS: PlanCardData[] = [
 	},
 	{
 		id: "pro",
-		name: "Pro",
-		price: { monthly: "$20", yearly: "$15" },
-		priceNote: { monthly: "per user/month", yearly: "per user/month" },
+		name: msg({ id: "settings.billing.plans.cardProName", message: "Pro" }),
+		price: {
+			monthly: msg({
+				id: "settings.billing.plans.cardProPriceMonthly",
+				message: "$20",
+			}),
+			yearly: msg({
+				id: "settings.billing.plans.cardProPriceYearly",
+				message: "$15",
+			}),
+		},
+		priceNote: msg({
+			id: "settings.billing.plans.cardProPriceNote",
+			message: "per user/month",
+		}),
 		billingText: {
-			monthly: "Billed monthly",
-			yearly: "Billed yearly",
+			monthly: msg({
+				id: "settings.billing.plans.cardProBillingMonthly",
+				message: "Billed monthly",
+			}),
+			yearly: msg({
+				id: "settings.billing.plans.cardProBillingYearly",
+				message: "Billed yearly",
+			}),
 		},
 		showBillingToggle: true,
 		actions: [
 			{
-				label: "Upgrade",
+				label: msg({
+					id: "settings.billing.plans.cardProUpgrade",
+					message: "Upgrade",
+				}),
 				action: "upgrade",
 				variant: "default",
 			},
@@ -95,12 +133,24 @@ const PLAN_CARDS: PlanCardData[] = [
 	},
 	{
 		id: "enterprise",
-		name: "Enterprise",
-		price: "Custom pricing",
-		billingText: "Billed yearly",
+		name: msg({
+			id: "settings.billing.plans.cardEnterpriseName",
+			message: "Enterprise",
+		}),
+		price: msg({
+			id: "settings.billing.plans.cardEnterprisePrice",
+			message: "Custom pricing",
+		}),
+		billingText: msg({
+			id: "settings.billing.plans.cardEnterpriseBilling",
+			message: "Billed yearly",
+		}),
 		actions: [
 			{
-				label: "Request a trial",
+				label: msg({
+					id: "settings.billing.plans.cardEnterpriseRequestTrial",
+					message: "Request a trial",
+				}),
 				action: "contact",
 				variant: "outline",
 			},
@@ -108,101 +158,188 @@ const PLAN_CARDS: PlanCardData[] = [
 	},
 ];
 
+const VALUE_ONE = msg({
+	id: "settings.billing.plans.valueOne",
+	message: "1",
+});
+const VALUE_UNLIMITED = msg({
+	id: "settings.billing.plans.valueUnlimited",
+	message: "Unlimited",
+});
+
 const COMPARISON_SECTIONS: ComparisonSection[] = [
 	{
-		title: "Usage",
+		title: msg({ id: "settings.billing.plans.sectionUsage", message: "Usage" }),
 		rows: [
 			{
-				label: "Team members",
-				values: ["1", "Unlimited", "Unlimited"],
+				label: msg({
+					id: "settings.billing.plans.rowTeamMembers",
+					message: "Team members",
+				}),
+				values: [VALUE_ONE, VALUE_UNLIMITED, VALUE_UNLIMITED],
 			},
 			{
-				label: "Workspaces",
-				values: ["Unlimited", "Unlimited", "Unlimited"],
+				label: msg({
+					id: "settings.billing.plans.rowWorkspaces",
+					message: "Workspaces",
+				}),
+				values: [VALUE_UNLIMITED, VALUE_UNLIMITED, VALUE_UNLIMITED],
 			},
 			{
-				label: "Projects",
-				values: ["Unlimited", "Unlimited", "Unlimited"],
+				label: msg({
+					id: "settings.billing.plans.rowProjects",
+					message: "Projects",
+				}),
+				values: [VALUE_UNLIMITED, VALUE_UNLIMITED, VALUE_UNLIMITED],
 			},
 		],
 	},
 	{
-		title: "Features",
+		title: msg({
+			id: "settings.billing.plans.sectionFeatures",
+			message: "Features",
+		}),
 		rows: [
 			{
-				label: "Desktop app",
+				label: msg({
+					id: "settings.billing.plans.rowDesktopApp",
+					message: "Desktop app",
+				}),
 				values: [true, true, true],
 			},
 			{
-				label: "Local workspaces",
+				label: msg({
+					id: "settings.billing.plans.rowLocalWorkspaces",
+					message: "Local workspaces",
+				}),
 				values: [true, true, true],
 			},
 			{
-				label: "Remote workspaces",
+				label: msg({
+					id: "settings.billing.plans.rowRemoteWorkspaces",
+					message: "Remote workspaces",
+				}),
 				values: [null, true, true],
-				badge: { label: "Beta", variant: "default" },
+				badge: {
+					label: msg({
+						id: "settings.billing.plans.badgeBeta",
+						message: "Beta",
+					}),
+					variant: "default",
+				},
 			},
 			{
-				label: "Automations",
+				label: msg({
+					id: "settings.billing.plans.rowAutomations",
+					message: "Automations",
+				}),
 				values: [true, true, true],
 			},
 			{
-				label: "Mobile app",
+				label: msg({
+					id: "settings.billing.plans.rowMobileApp",
+					message: "Mobile app",
+				}),
 				values: [null, true, true],
-				badge: { label: "Coming soon", variant: "secondary" },
+				badge: {
+					label: msg({
+						id: "settings.billing.plans.badgeComingSoon",
+						message: "Coming soon",
+					}),
+					variant: "secondary",
+				},
 			},
 			{
-				label: "GitHub integration",
+				label: msg({
+					id: "settings.billing.plans.rowGithubIntegration",
+					message: "GitHub integration",
+				}),
 				values: [true, true, true],
 			},
 			{
-				label: "Linear integration",
+				label: msg({
+					id: "settings.billing.plans.rowLinearIntegration",
+					message: "Linear integration",
+				}),
 				values: [null, true, true],
 			},
 			{
-				label: "Slack integration",
+				label: msg({
+					id: "settings.billing.plans.rowSlackIntegration",
+					message: "Slack integration",
+				}),
 				values: [null, true, true],
 			},
 			{
-				label: "Team collaboration",
+				label: msg({
+					id: "settings.billing.plans.rowTeamCollaboration",
+					message: "Team collaboration",
+				}),
 				values: [null, true, true],
 			},
 		],
 	},
 	{
-		title: "Support",
+		title: msg({
+			id: "settings.billing.plans.sectionSupport",
+			message: "Support",
+		}),
 		rows: [
 			{
-				label: "Priority support",
+				label: msg({
+					id: "settings.billing.plans.rowPrioritySupport",
+					message: "Priority support",
+				}),
 				values: [null, true, true],
 			},
 			{
-				label: "Uptime SLA",
+				label: msg({
+					id: "settings.billing.plans.rowUptimeSla",
+					message: "Uptime SLA",
+				}),
 				values: [null, null, true],
 			},
 			{
-				label: "Custom contracts",
+				label: msg({
+					id: "settings.billing.plans.rowCustomContracts",
+					message: "Custom contracts",
+				}),
 				values: [null, null, true],
 			},
 		],
 	},
 	{
-		title: "Security",
+		title: msg({
+			id: "settings.billing.plans.sectionSecurity",
+			message: "Security",
+		}),
 		rows: [
 			{
-				label: "SSO/SAML",
+				label: msg({
+					id: "settings.billing.plans.rowSsoSaml",
+					message: "SSO/SAML",
+				}),
 				values: [null, null, true],
 			},
 			{
-				label: "IP restrictions",
+				label: msg({
+					id: "settings.billing.plans.rowIpRestrictions",
+					message: "IP restrictions",
+				}),
 				values: [null, null, true],
 			},
 			{
-				label: "SCIM provisioning",
+				label: msg({
+					id: "settings.billing.plans.rowScimProvisioning",
+					message: "SCIM provisioning",
+				}),
 				values: [null, null, true],
 			},
 			{
-				label: "Audit log",
+				label: msg({
+					id: "settings.billing.plans.rowAuditLog",
+					message: "Audit log",
+				}),
 				values: [null, null, true],
 			},
 		],
@@ -283,9 +420,12 @@ function PlansPage() {
 		membersData && membersData.length > 0 ? membersData.length : undefined;
 
 	const currentPlanLabelByTier: Record<PlanTier, string> = {
-		free: "Free",
-		pro: "Pro",
-		enterprise: "Enterprise",
+		free: t({ id: "settings.billing.plans.tierFree", message: "Free" }),
+		pro: t({ id: "settings.billing.plans.tierPro", message: "Pro" }),
+		enterprise: t({
+			id: "settings.billing.plans.tierEnterprise",
+			message: "Enterprise",
+		}),
 	};
 	const currentPlanLabel = currentPlanLabelByTier[currentPlan];
 
@@ -338,7 +478,12 @@ function PlansPage() {
 				await authClient.subscription.restore({
 					referenceId: activeOrgId,
 				});
-				toast.success("Plan restored");
+				toast.success(
+					t({
+						id: "settings.billing.plans.planRestoredToast",
+						message: "Plan restored",
+					}),
+				);
 			} finally {
 				setIsRestoring(false);
 				await utils.billing.activePlan.invalidate();
@@ -391,7 +536,7 @@ function PlansPage() {
 		return (
 			<>
 				<HiCheck className="h-3.5 w-3.5 text-muted-foreground" />
-				<span className="text-sm">{value}</span>
+				<span className="text-sm">{i18n._(value)}</span>
 			</>
 		);
 	};
@@ -463,12 +608,14 @@ function PlansPage() {
 									className={cn("px-2", rowKey === "cta" ? "py-3" : "py-2.5")}
 								/>
 								{PLAN_CARDS.map((plan) => {
-									const isCurrent = currentPlanLabel === plan.name;
+									const isCurrent = currentPlan === plan.id;
 									const isDowngrade =
 										plan.id === "free" && currentPlan !== "free";
 									const isOnEnterprise = currentPlan === "enterprise";
 
-									let planActions: typeof plan.actions;
+									let planActions: Array<
+										PlanCardActionButton & { label: string }
+									>;
 									if (isOnEnterprise) {
 										planActions = [
 											{
@@ -580,7 +727,10 @@ function PlansPage() {
 											},
 										];
 									} else {
-										planActions = plan.actions;
+										planActions = plan.actions.map((action) => ({
+											...action,
+											label: i18n._(action.label),
+										}));
 									}
 
 									if (rowKey === "plan") {
@@ -588,7 +738,7 @@ function PlansPage() {
 											<div key={plan.id} className="px-4 py-2.5">
 												<div className="space-y-0.5">
 													<div className="text-base font-medium">
-														{plan.name}
+														{i18n._(plan.name)}
 													</div>
 													<div
 														className={cn(
@@ -597,11 +747,11 @@ function PlansPage() {
 																: "text-base font-medium text-muted-foreground",
 														)}
 													>
-														{getValue(plan.price)}
+														{i18n._(getValue(plan.price))}
 													</div>
 													{plan.priceNote && (
 														<div className="text-xs text-muted-foreground">
-															{getValue(plan.priceNote)}
+															{i18n._(getValue(plan.priceNote))}
 														</div>
 													)}
 												</div>
@@ -619,10 +769,13 @@ function PlansPage() {
 													<Switch
 														checked={isYearly}
 														onCheckedChange={setIsYearly}
-														aria-label="Billed yearly"
+														aria-label={t({
+															id: "settings.billing.plans.billedYearlyToggle",
+															message: "Billed yearly",
+														})}
 													/>
 												)}
-												<span>{getValue(plan.billingText)}</span>
+												<span>{i18n._(getValue(plan.billingText))}</span>
 											</div>
 										);
 									}
@@ -664,9 +817,11 @@ function PlansPage() {
 						))}
 
 						{COMPARISON_SECTIONS.map((section, sectionIndex) => (
-							<Fragment key={section.title}>
+							<Fragment key={section.title.id}>
 								<div className="col-span-4 pt-6 pb-3 px-2">
-									<span className="text-sm font-semibold">{section.title}</span>
+									<span className="text-sm font-semibold">
+										{i18n._(section.title)}
+									</span>
 								</div>
 								<div className="col-span-4 h-px bg-border/60" />
 
@@ -676,21 +831,21 @@ function PlansPage() {
 										rowIndex === section.rows.length - 1;
 
 									return (
-										<Fragment key={row.label}>
+										<Fragment key={row.label.id}>
 											<div className="flex items-center gap-1.5 px-2 py-2.5 text-xs text-muted-foreground">
-												{row.label}
+												{i18n._(row.label)}
 												{row.badge && (
 													<Badge
 														variant={row.badge.variant}
 														className="px-1.5 py-0 text-[10px] font-medium"
 													>
-														{row.badge.label}
+														{i18n._(row.badge.label)}
 													</Badge>
 												)}
 											</div>
 											{row.values.map((value, valueIndex) => (
 												<div
-													key={`${row.label}-${valueIndex}`}
+													key={`${row.label.id}-${valueIndex}`}
 													className="flex items-center justify-start gap-2 px-4 py-2.5"
 												>
 													{renderComparisonValue(value)}

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import { errorMessage } from "@superset/i18n/errors";
 import { AGENT_TYPES } from "@superset/shared/agent-command";
@@ -53,6 +53,7 @@ export function AgentDetail({
 	onChanged,
 	onDeleted,
 }: AgentDetailProps) {
+	const { t } = useLingui();
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const isCustom = config.presetId === "custom";
@@ -73,7 +74,15 @@ export function AgentDetail({
 				void electronUtils.settings.getAgentHooksDisabled.invalidate();
 			},
 			onError: (err) =>
-				toast.error(errorMessage(err, "Failed to update hooks")),
+				toast.error(
+					errorMessage(
+						err,
+						t({
+							id: "settings.agents.detail.hooksUpdateFailed",
+							message: "Failed to update hooks",
+						}),
+					),
+				),
 		});
 
 	const [label, setLabel] = useState(config.label);
@@ -130,7 +139,16 @@ export function AgentDetail({
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
 		},
 		onSuccess: (updated) => onChanged(updated),
-		onError: (err) => toast.error(errorMessage(err, "Failed to save")),
+		onError: (err) =>
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.agents.detail.saveFailed",
+						message: "Failed to save",
+					}),
+				),
+			),
 	});
 
 	const removeMutation = useMutation({
@@ -147,7 +165,16 @@ export function AgentDetail({
 			).settings.agentConfigs.remove.mutate({ id: config.id });
 		},
 		onSuccess: () => onDeleted(),
-		onError: (err) => toast.error(errorMessage(err, "Failed to remove")),
+		onError: (err) =>
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.agents.detail.removeFailed",
+						message: "Failed to remove",
+					}),
+				),
+			),
 	});
 
 	const restoreDefaultMutation = useMutation({
@@ -165,10 +192,24 @@ export function AgentDetail({
 		},
 		onSuccess: (updated) => {
 			onChanged(updated);
-			toast.success(`${updated.label} restored to defaults`);
+			const updatedLabel = updated.label;
+			toast.success(
+				t({
+					id: "settings.agents.detail.restoredToast",
+					message: `${updatedLabel} restored to defaults`,
+				}),
+			);
 		},
 		onError: (err) =>
-			toast.error(errorMessage(err, "Failed to restore defaults")),
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.agents.detail.restoreFailed",
+						message: "Failed to restore defaults",
+					}),
+				),
+			),
 	});
 
 	const handleLabelBlur = () => {
@@ -181,7 +222,12 @@ export function AgentDetail({
 		const patch = parseAgentCommandText(commandText);
 		const { command } = patch;
 		if (command.length === 0) {
-			toast.error("Command cannot be empty");
+			toast.error(
+				t({
+					id: "settings.agents.detail.commandEmpty",
+					message: "Command cannot be empty",
+				}),
+			);
 			setCommandText(getAgentCommandText(config));
 			return;
 		}
@@ -226,7 +272,12 @@ export function AgentDetail({
 			/>
 
 			<div className="space-y-6">
-				<Section title="Label">
+				<Section
+					title={t({
+						id: "settings.agents.detail.labelSection",
+						message: "Label",
+					})}
+				>
 					<Input
 						id={`label-${config.id}`}
 						value={label}
@@ -236,7 +287,12 @@ export function AgentDetail({
 				</Section>
 
 				{isCustom ? (
-					<Section title="Icon">
+					<Section
+						title={t({
+							id: "settings.agents.detail.iconSection",
+							message: "Icon",
+						})}
+					>
 						<AgentIconPicker
 							value={config.iconId}
 							onChange={(iconId) => updateMutation.mutate({ iconId })}
@@ -292,7 +348,10 @@ export function AgentDetail({
 								</p>
 							</div>
 							<Switch
-								aria-label="Superset hooks"
+								aria-label={t({
+									id: "settings.agents.detail.hooksAriaLabel",
+									message: "Superset hooks",
+								})}
 								checked={hooksEnabled}
 								onCheckedChange={(enabled) =>
 									setHooksEnabledMutation.mutate({

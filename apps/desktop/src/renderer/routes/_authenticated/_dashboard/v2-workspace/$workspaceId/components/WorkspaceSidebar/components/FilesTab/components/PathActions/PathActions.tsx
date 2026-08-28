@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	DropdownMenuItem,
@@ -15,20 +15,42 @@ interface PathActionsProps {
 }
 
 export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
+	const { t } = useLingui();
 	const { copyToClipboard } = useCopyToClipboard();
 	const handleCopy = (path: string, successMessage: string) => {
 		toast.promise(copyToClipboard(path), {
 			success: successMessage,
-			error: (err: unknown) =>
-				`Failed to copy path: ${errorMessage(err, "Unknown error")}`,
+			error: (err: unknown) => {
+				const reason = errorMessage(
+					err,
+					t({
+						id: "workspace.pathActions.unknownError",
+						message: "Unknown error",
+					}),
+				);
+				return t({
+					id: "workspace.pathActions.copyPathFailed",
+					message: `Failed to copy path: ${reason}`,
+				});
+			},
 		});
 	};
 	const handleRevealInFinder = async () => {
 		try {
 			await electronTrpcClient.external.openInFinder.mutate(absolutePath);
 		} catch (error) {
+			const reason = errorMessage(
+				error,
+				t({
+					id: "workspace.pathActions.unknownError",
+					message: "Unknown error",
+				}),
+			);
 			toast.error(
-				`Failed to reveal in Finder: ${errorMessage(error, "Unknown error")}`,
+				t({
+					id: "workspace.pathActions.revealInFinderFailed",
+					message: `Failed to reveal in Finder: ${reason}`,
+				}),
 			);
 		}
 	};
@@ -42,14 +64,30 @@ export function PathActions({ absolutePath, relativePath }: PathActionsProps) {
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
 			<DropdownMenuItem
-				onSelect={() => handleCopy(absolutePath, "Path copied")}
+				onSelect={() =>
+					handleCopy(
+						absolutePath,
+						t({
+							id: "workspace.pathActions.pathCopied",
+							message: "Path copied",
+						}),
+					)
+				}
 			>
 				<Clipboard />
 				<Trans id="workspace.pathActions.copyPath">Copy Path</Trans>
 			</DropdownMenuItem>
 			{relativePath && (
 				<DropdownMenuItem
-					onSelect={() => handleCopy(relativePath, "Relative path copied")}
+					onSelect={() =>
+						handleCopy(
+							relativePath,
+							t({
+								id: "workspace.pathActions.relativePathCopied",
+								message: "Relative path copied",
+							}),
+						)
+					}
 				>
 					<Copy />
 					<Trans id="workspace.pathActions.copyRelativePath">

@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import {
 	BookOpenIcon,
 	BugIcon,
@@ -39,6 +40,7 @@ export function SamplePromptCards({
 	layout,
 	tier,
 }: SamplePromptCardsProps) {
+	const { t } = useLingui();
 	return (
 		<div className="group relative px-1 pb-2">
 			{canDismiss && <DismissSuggestionsButton onDismiss={onDismiss} />}
@@ -65,10 +67,10 @@ export function SamplePromptCards({
 								<Icon className="size-3.5 shrink-0 text-muted-foreground" />
 							)}
 							<span className="text-sm font-medium text-foreground/90">
-								{sample.label}
+								{t(sample.label)}
 							</span>
 							<span className="text-xs text-muted-foreground">
-								{sample.description}
+								{t(sample.description)}
 							</span>
 						</button>
 					);

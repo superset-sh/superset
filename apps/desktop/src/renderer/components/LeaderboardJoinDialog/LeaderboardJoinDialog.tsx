@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -35,6 +35,7 @@ export function LeaderboardJoinDialog({
 	isJoining,
 	onConfirm,
 }: LeaderboardJoinDialogProps) {
+	const { t } = useLingui();
 	const [handle, setHandle] = useState("");
 	const [edited, setEdited] = useState(false);
 
@@ -87,7 +88,10 @@ export function LeaderboardJoinDialog({
 								setEdited(true);
 								setHandle(event.target.value);
 							}}
-							placeholder="pick a name for the board"
+							placeholder={t({
+								id: "components.leaderboardJoinDialog.handlePlaceholder",
+								message: "pick a name for the board",
+							})}
 							autoComplete="off"
 							spellCheck={false}
 						/>

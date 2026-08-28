@@ -96,7 +96,10 @@ export function AuthorFilter({
 					variant="ghost"
 					size="sm"
 					title={label}
-					aria-label={`Author: ${label}`}
+					aria-label={t({
+						id: "dashboard.pullRequests.authorFilter.triggerAria",
+						message: `Author: ${label}`,
+					})}
 					className="h-8 max-w-44 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineUserCircle className="size-4 shrink-0" />
@@ -107,7 +110,17 @@ export function AuthorFilter({
 			<PopoverContent align="start" className="w-64 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder={singleTarget ? "Search authors…" : "GitHub username…"}
+						placeholder={
+							singleTarget
+								? t({
+										id: "dashboard.pullRequests.authorFilter.searchAuthors",
+										message: "Search authors…",
+									})
+								: t({
+										id: "dashboard.pullRequests.authorFilter.githubUsername",
+										message: "GitHub username…",
+									})
+						}
 						value={search}
 						onValueChange={setSearch}
 					/>

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
 	type ExecutionMode,
@@ -57,6 +57,7 @@ export function V2PresetsSection({
 	pendingCreateProjectId,
 	onPendingCreateProjectIdChange,
 }: V2PresetsSectionProps) {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const isDark = useIsDarkTheme();
 	const collections = useCollections();
@@ -631,7 +632,13 @@ export function V2PresetsSection({
 				<div className="flex items-start justify-between gap-3 p-4">
 					<div className="min-w-0">
 						<h3 className="text-sm font-medium">
-							<HighlightText text="Terminal scripts" query={searchQuery} />
+							<HighlightText
+								text={t({
+									id: "settings.terminal.v2Presets.label",
+									message: "Terminal scripts",
+								})}
+								query={searchQuery}
+							/>
 						</h3>
 						<p className="text-xs text-muted-foreground mt-0.5">
 							<Trans id="settings.terminal.v2Presets.subtitle">

@@ -1,3 +1,5 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import type {
 	SlackTriggerEvent,
 	TriggerConfigInput,
@@ -47,12 +49,30 @@ export const SLACK_SENTENCES: Record<SlackTriggerEvent, SentencePart[]> = {
 };
 
 export const SLACK_MENU: TriggerMenuEntry<SlackConfig>[] = [
-	leaf("Message in channel", "message_in_channel"),
-	leaf("Reaction added", "reaction_added"),
-	leaf("Channel created", "channel_created"),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.slack.menuMessageInChannel",
+			message: "Message in channel",
+		}),
+		"message_in_channel",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.slack.menuReactionAdded",
+			message: "Reaction added",
+		}),
+		"reaction_added",
+	),
+	leaf(
+		msg({
+			id: "dashboard.automations.providers.slack.menuChannelCreated",
+			message: "Channel created",
+		}),
+		"channel_created",
+	),
 ];
 
-function leaf(label: string, event: SlackTriggerEvent) {
+function leaf(label: MessageDescriptor, event: SlackTriggerEvent) {
 	return { label, create: () => createSlackConfig(event) };
 }
 

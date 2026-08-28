@@ -1,4 +1,7 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -37,19 +40,77 @@ const ICON_SIZE = 128;
 // Neutral glyph tint when the project has no accent color (slate).
 const DEFAULT_GLYPH_COLOR = "#64748b";
 
-const GLYPHS: Array<{ name: string; icon: IconType }> = [
-	{ name: "Folder", icon: LuFolder },
-	{ name: "Rocket", icon: LuRocket },
-	{ name: "Star", icon: LuStar },
-	{ name: "Heart", icon: LuHeart },
-	{ name: "Zap", icon: LuZap },
-	{ name: "Flame", icon: LuFlame },
-	{ name: "Leaf", icon: LuLeaf },
-	{ name: "Globe", icon: LuGlobe },
-	{ name: "Code", icon: LuCode },
-	{ name: "Terminal", icon: LuTerminal },
-	{ name: "Bug", icon: LuBug },
-	{ name: "Package", icon: LuPackage },
+const GLYPHS: Array<{
+	name: string;
+	label: MessageDescriptor;
+	icon: IconType;
+}> = [
+	{
+		name: "Folder",
+		label: msg({ id: "settings.project.icon.glyphFolder", message: "Folder" }),
+		icon: LuFolder,
+	},
+	{
+		name: "Rocket",
+		label: msg({ id: "settings.project.icon.glyphRocket", message: "Rocket" }),
+		icon: LuRocket,
+	},
+	{
+		name: "Star",
+		label: msg({ id: "settings.project.icon.glyphStar", message: "Star" }),
+		icon: LuStar,
+	},
+	{
+		name: "Heart",
+		label: msg({ id: "settings.project.icon.glyphHeart", message: "Heart" }),
+		icon: LuHeart,
+	},
+	{
+		name: "Zap",
+		label: msg({ id: "settings.project.icon.glyphZap", message: "Zap" }),
+		icon: LuZap,
+	},
+	{
+		name: "Flame",
+		label: msg({ id: "settings.project.icon.glyphFlame", message: "Flame" }),
+		icon: LuFlame,
+	},
+	{
+		name: "Leaf",
+		label: msg({ id: "settings.project.icon.glyphLeaf", message: "Leaf" }),
+		icon: LuLeaf,
+	},
+	{
+		name: "Globe",
+		label: msg({ id: "settings.project.icon.glyphGlobe", message: "Globe" }),
+		icon: LuGlobe,
+	},
+	{
+		name: "Code",
+		label: msg({ id: "settings.project.icon.glyphCode", message: "Code" }),
+		icon: LuCode,
+	},
+	{
+		name: "Terminal",
+		label: msg({
+			id: "settings.project.icon.glyphTerminal",
+			message: "Terminal",
+		}),
+		icon: LuTerminal,
+	},
+	{
+		name: "Bug",
+		label: msg({ id: "settings.project.icon.glyphBug", message: "Bug" }),
+		icon: LuBug,
+	},
+	{
+		name: "Package",
+		label: msg({
+			id: "settings.project.icon.glyphPackage",
+			message: "Package",
+		}),
+		icon: LuPackage,
+	},
 ];
 
 interface IconUploadFieldProps {
@@ -144,6 +205,7 @@ export function IconUploadField({
 	isIconRemoved,
 	color,
 }: IconUploadFieldProps) {
+	const { t } = useLingui();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isPending, setIsPending] = useState(false);
 	// Glyph picked in this popover session — lets a later color pick re-bake
@@ -154,7 +216,12 @@ export function IconUploadField({
 	const setIcon = useCallback(
 		async (icon: string | null): Promise<boolean> => {
 			if (!hostUrl) {
-				toast.error("This project's host is offline");
+				toast.error(
+					t({
+						id: "settings.project.icon.hostOfflineSetIconToast",
+						message: "This project's host is offline",
+					}),
+				);
 				return false;
 			}
 			setIsPending(true);
@@ -165,19 +232,32 @@ export function IconUploadField({
 				});
 				return true;
 			} catch (err) {
-				toast.error(errorMessage(err, "Failed to set icon"));
+				toast.error(
+					errorMessage(
+						err,
+						t({
+							id: "settings.project.icon.setIconFailedToast",
+							message: "Failed to set icon",
+						}),
+					),
+				);
 				return false;
 			} finally {
 				setIsPending(false);
 			}
 		},
-		[hostUrl, projectId],
+		[hostUrl, projectId, t],
 	);
 
 	const setColor = useCallback(
 		async (nextColor: string | null): Promise<boolean> => {
 			if (!hostUrl) {
-				toast.error("This project's host is offline");
+				toast.error(
+					t({
+						id: "settings.project.icon.hostOfflineSetColorToast",
+						message: "This project's host is offline",
+					}),
+				);
 				return false;
 			}
 			setIsPending(true);
@@ -188,13 +268,21 @@ export function IconUploadField({
 				});
 				return true;
 			} catch (err) {
-				toast.error(errorMessage(err, "Failed to set color"));
+				toast.error(
+					errorMessage(
+						err,
+						t({
+							id: "settings.project.icon.setColorFailedToast",
+							message: "Failed to set color",
+						}),
+					),
+				);
 				return false;
 			} finally {
 				setIsPending(false);
 			}
 		},
-		[hostUrl, projectId],
+		[hostUrl, projectId, t],
 	);
 
 	const handleSelectGlyph = useCallback(
@@ -203,13 +291,21 @@ export function IconUploadField({
 			try {
 				dataUri = await glyphToDataUri(glyph, color);
 			} catch (err) {
-				toast.error(errorMessage(err, "Could not set icon"));
+				toast.error(
+					errorMessage(
+						err,
+						t({
+							id: "settings.project.icon.glyphRenderFailedToast",
+							message: "Could not set icon",
+						}),
+					),
+				);
 				return;
 			}
 			// Only a stored glyph may re-bake on later color picks.
 			if (await setIcon(dataUri)) setSessionGlyph(() => glyph);
 		},
-		[color, setIcon],
+		[color, setIcon, t],
 	);
 
 	const handleSelectColor = useCallback(
@@ -243,20 +339,33 @@ export function IconUploadField({
 			e.target.value = "";
 			if (!file) return;
 			if (file.size > MAX_SOURCE_BYTES) {
-				toast.error("Image is too large (max 10MB)");
+				toast.error(
+					t({
+						id: "settings.project.icon.imageTooLargeToast",
+						message: "Image is too large (max 10MB)",
+					}),
+				);
 				return;
 			}
 			let dataUri: string;
 			try {
 				dataUri = await toIconDataUri(file);
 			} catch (err) {
-				toast.error(errorMessage(err, "Could not read selected file"));
+				toast.error(
+					errorMessage(
+						err,
+						t({
+							id: "settings.project.icon.readFileFailedToast",
+							message: "Could not read selected file",
+						}),
+					),
+				);
 				return;
 			}
 			setSessionGlyph(null);
 			await setIcon(dataUri);
 		},
-		[setIcon],
+		[setIcon, t],
 	);
 
 	return (
@@ -266,7 +375,10 @@ export function IconUploadField({
 					<button
 						type="button"
 						disabled={disabled}
-						aria-label="Change project icon and color"
+						aria-label={t({
+							id: "settings.project.icon.changeIconColorAria",
+							message: "Change project icon and color",
+						})}
 						className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						<ProjectThumbnail
@@ -300,8 +412,11 @@ export function IconUploadField({
 								<button
 									key={glyph.name}
 									type="button"
-									title={glyph.name}
-									aria-label={`Set icon to ${glyph.name}`}
+									title={i18n._(glyph.label)}
+									aria-label={t({
+										id: "settings.project.icon.setIconToAria",
+										message: `Set icon to ${i18n._(glyph.label)}`,
+									})}
 									disabled={disabled}
 									onClick={() => {
 										void handleSelectGlyph(glyph.icon);

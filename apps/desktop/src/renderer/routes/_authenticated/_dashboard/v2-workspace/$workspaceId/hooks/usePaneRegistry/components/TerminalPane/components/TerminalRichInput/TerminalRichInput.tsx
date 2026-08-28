@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -92,6 +92,7 @@ function TerminalRichInputInner({
 	isOpen,
 	onClose,
 }: TerminalRichInputProps) {
+	const { t } = useLingui();
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
 
@@ -269,7 +270,10 @@ function TerminalRichInputInner({
 							cwd={cwd}
 							searchFiles={searchFiles}
 							slashCommands={[]}
-							placeholder="Ask to make changes"
+							placeholder={t({
+								id: "workspace.terminalPane.richInputPlaceholder",
+								message: "Ask to make changes",
+							})}
 						/>
 						<PromptInputFooter>
 							<span className="flex items-center pl-1">

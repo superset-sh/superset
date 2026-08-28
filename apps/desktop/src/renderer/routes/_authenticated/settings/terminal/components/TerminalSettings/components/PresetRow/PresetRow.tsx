@@ -202,8 +202,28 @@ export function PresetRow({
 					e.stopPropagation();
 					onToggleVisibility(preset.id, !isVisibleInBar);
 				}}
-				title={isVisibleInBar ? "Hide from bar" : "Show in bar"}
-				aria-label={isVisibleInBar ? "Hide from bar" : "Show in bar"}
+				title={
+					isVisibleInBar
+						? t({
+								id: "settings.terminal.presetRow.hideFromBar",
+								message: "Hide from bar",
+							})
+						: t({
+								id: "settings.terminal.presetRow.showInBar",
+								message: "Show in bar",
+							})
+				}
+				aria-label={
+					isVisibleInBar
+						? t({
+								id: "settings.terminal.presetRow.hideFromBar",
+								message: "Hide from bar",
+							})
+						: t({
+								id: "settings.terminal.presetRow.showInBar",
+								message: "Show in bar",
+							})
+				}
 				aria-pressed={isVisibleInBar}
 			>
 				{isVisibleInBar ? (
@@ -222,7 +242,10 @@ export function PresetRow({
 					"opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
 					isDragging && "opacity-100",
 				)}
-				aria-label="Drag to reorder"
+				aria-label={t({
+					id: "settings.terminal.presetRow.dragToReorder",
+					message: "Drag to reorder",
+				})}
 			>
 				<LuGripVertical className="size-4" />
 			</button>

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	PromptInputProvider,
@@ -47,6 +47,7 @@ function PromptInputResetSync() {
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
+	const { t } = useLingui();
 	const closeModal = useCloseNewWorkspaceModal();
 	const { openNew } = useOpenProject();
 	const openEmptyProject = useOpenEmptyProjectModal();
@@ -61,9 +62,13 @@ export function NewWorkspaceModal() {
 		try {
 			await openNew();
 		} catch (error) {
-			toast.error("Failed to open project", {
-				description: errorMessage(error, "An unknown error occurred"),
-			});
+			toast.error(
+				t({
+					id: "components.newWorkspaceModal.openProjectFailed",
+					message: "Failed to open project",
+				}),
+				{ description: errorMessage(error, "An unknown error occurred") },
+			);
 		}
 	};
 

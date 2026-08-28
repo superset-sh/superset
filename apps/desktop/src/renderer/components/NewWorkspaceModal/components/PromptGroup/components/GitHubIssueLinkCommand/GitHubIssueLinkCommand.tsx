@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -47,6 +47,7 @@ export function GitHubIssueLinkCommand({
 	projectId,
 	anchorRef,
 }: GitHubIssueLinkCommandProps) {
+	const { t } = useLingui();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
@@ -122,7 +123,10 @@ export function GitHubIssueLinkCommand({
 			>
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search issues..."
+						placeholder={t({
+							id: "components.githubIssueLinkCommand.searchPlaceholder",
+							message: "Search issues...",
+						})}
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>

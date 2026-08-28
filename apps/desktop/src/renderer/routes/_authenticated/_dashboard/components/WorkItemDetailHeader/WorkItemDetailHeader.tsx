@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ReactNode } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
@@ -23,6 +23,7 @@ export function WorkItemDetailHeader({
 	onBack,
 	onAddToWorkspace,
 }: WorkItemDetailHeaderProps) {
+	const { t } = useLingui();
 	return (
 		<div className="@container flex shrink-0 items-center gap-2 border-b border-border px-4 py-3 @md:gap-3 @md:px-6 @md:py-4">
 			<Button
@@ -60,8 +61,14 @@ export function WorkItemDetailHeader({
 						size="sm"
 						className="h-8 gap-1.5 px-2 @md:px-3"
 						onClick={onAddToWorkspace}
-						aria-label="Add to workspace"
-						title="Add to workspace"
+						aria-label={t({
+							id: "dashboard.workItemDetailHeader.addToWorkspaceLabel",
+							message: "Add to workspace",
+						})}
+						title={t({
+							id: "dashboard.workItemDetailHeader.addToWorkspaceTitle",
+							message: "Add to workspace",
+						})}
 					>
 						<LuPlus className="size-4" />
 						<span className="hidden @md:inline">

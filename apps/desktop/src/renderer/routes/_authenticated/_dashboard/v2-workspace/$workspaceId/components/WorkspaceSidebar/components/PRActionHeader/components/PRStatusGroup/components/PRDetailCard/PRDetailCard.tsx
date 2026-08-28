@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -25,15 +25,16 @@ interface PRDetailCardProps {
  * reasonable PR title on two lines.
  */
 export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
+	const { t } = useLingui();
 	const stateLabel = pr.isDraft
-		? "Draft"
+		? t({ id: "workspace.prDetailCard.stateDraft", message: "Draft" })
 		: pr.state === "merged"
-			? "Merged"
+			? t({ id: "workspace.prDetailCard.stateMerged", message: "Merged" })
 			: pr.state === "closed"
-				? "Closed"
+				? t({ id: "workspace.prDetailCard.stateClosed", message: "Closed" })
 				: pr.state === "queued"
-					? "Queued"
-					: "Open";
+					? t({ id: "workspace.prDetailCard.stateQueued", message: "Queued" })
+					: t({ id: "workspace.prDetailCard.stateOpen", message: "Open" });
 	const statePillClass = stateLabelToPillClass(linkState);
 
 	const updatedRelative = pr.updatedAt
@@ -106,8 +107,18 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 }
 
 function ChecksLine({ checks }: { checks: ChecksRollup }) {
+	const { t } = useLingui();
 	if (checks.overall === "none") {
-		return <DetailLine icon={null} muted text="No checks reported" />;
+		return (
+			<DetailLine
+				icon={null}
+				muted
+				text={t({
+					id: "workspace.prDetailCard.noChecksReported",
+					message: "No checks reported",
+				})}
+			/>
+		);
 	}
 	const total = checks.relevantCount;
 	if (checks.overall === "success") {
@@ -119,7 +130,17 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 						className="size-3.5 shrink-0 text-emerald-500"
 					/>
 				}
-				text={`All ${total} ${total === 1 ? "check" : "checks"} passed`}
+				text={
+					total === 1
+						? t({
+								id: "workspace.prDetailCard.allChecksPassedOne",
+								message: `All ${total} check passed`,
+							})
+						: t({
+								id: "workspace.prDetailCard.allChecksPassedMany",
+								message: `All ${total} checks passed`,
+							})
+				}
 			/>
 		);
 	}
@@ -133,7 +154,17 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 						className="size-3.5 shrink-0 text-rose-500"
 					/>
 				}
-				text={`${failing} of ${total} ${total === 1 ? "check" : "checks"} failing`}
+				text={
+					total === 1
+						? t({
+								id: "workspace.prDetailCard.checksFailingOne",
+								message: `${failing} of ${total} check failing`,
+							})
+						: t({
+								id: "workspace.prDetailCard.checksFailingMany",
+								message: `${failing} of ${total} checks failing`,
+							})
+				}
 				accent="failure"
 			/>
 		);
@@ -147,7 +178,17 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 					className="size-3.5 shrink-0 text-amber-500"
 				/>
 			}
-			text={`${pending} of ${total} ${total === 1 ? "check" : "checks"} running`}
+			text={
+				total === 1
+					? t({
+							id: "workspace.prDetailCard.checksRunningOne",
+							message: `${pending} of ${total} check running`,
+						})
+					: t({
+							id: "workspace.prDetailCard.checksRunningMany",
+							message: `${pending} of ${total} checks running`,
+						})
+			}
 			accent="pending"
 		/>
 	);

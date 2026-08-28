@@ -1,3 +1,4 @@
+import { msg } from "@lingui/core/macro";
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import { LuClock } from "react-icons/lu";
 import { ScheduleSentence } from "../../ScheduleSentence";
@@ -21,9 +22,20 @@ function createScheduleConfig(): ScheduleConfig {
 
 export const scheduleProvider: TriggerProvider<ScheduleConfig> = {
 	kind: "schedule",
-	label: "Scheduled",
+	label: msg({
+		id: "dashboard.automations.providers.schedule.label",
+		message: "Scheduled",
+	}),
 	icon: LuClock,
-	menu: [{ label: "Scheduled", create: createScheduleConfig }],
+	menu: [
+		{
+			label: msg({
+				id: "dashboard.automations.providers.schedule.menuScheduled",
+				message: "Scheduled",
+			}),
+			create: createScheduleConfig,
+		},
+	],
 	renderSentence: (config, { set, nextRun, disabled }) => (
 		<ScheduleSentence
 			rrule={config.rrule}

@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getPluginByName,
 	type InstalledPlugin,
@@ -32,6 +32,7 @@ export function ManageInstalledDialog({
 	onSetEnabled,
 	onUninstall,
 }: ManageInstalledDialogProps) {
+	const { t } = useLingui();
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg">
@@ -83,7 +84,10 @@ export function ManageInstalledDialog({
 									<Switch
 										checked={isEnabled}
 										disabled={isBusy}
-										aria-label={`${plugin?.interface.displayName ?? entry.name} enabled`}
+										aria-label={t({
+											id: "dashboard.plugins.manageInstalled.pluginEnabledLabel",
+											message: `${plugin?.interface.displayName ?? entry.name} enabled`,
+										})}
 										onCheckedChange={(checked) =>
 											onSetEnabled(entry.name, checked)
 										}
@@ -93,7 +97,10 @@ export function ManageInstalledDialog({
 										size="icon-xs"
 										className="shrink-0 text-muted-foreground hover:text-destructive"
 										disabled={isBusy}
-										aria-label={`Uninstall ${plugin?.interface.displayName ?? entry.name}`}
+										aria-label={t({
+											id: "dashboard.plugins.manageInstalled.uninstallLabel",
+											message: `Uninstall ${plugin?.interface.displayName ?? entry.name}`,
+										})}
 										onClick={() => onUninstall(entry.name)}
 									>
 										<LuTrash2 className="size-4" />

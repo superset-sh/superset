@@ -1,4 +1,5 @@
-import { Plural, Trans } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -54,6 +55,7 @@ export function RunInWorkspacePopoverV2({
 	tasks,
 	onComplete,
 }: RunInWorkspacePopoverV2Props) {
+	const { t } = useLingui();
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
@@ -143,26 +145,55 @@ export function RunInWorkspacePopoverV2({
 	const [projectPickerOpen, setProjectPickerOpen] = useState(false);
 
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!selectedProjectId) return "Select a project";
-		if (!hostId) return "No active host";
+		if (!selectedProjectId)
+			return t({
+				id: "dashboard.tasks.runInWorkspacePopoverV2.blockerSelectProject",
+				message: "Select a project",
+			});
+		if (!hostId)
+			return t({
+				id: "dashboard.tasks.runInWorkspacePopoverV2.blockerNoActiveHost",
+				message: "No active host",
+			});
 		if (hostId !== machineId) {
 			const remote = otherHosts.find((host) => host.id === hostId);
-			if (!remote?.isOnline) return "Host is offline";
+			if (!remote?.isOnline)
+				return t({
+					id: "dashboard.tasks.runInWorkspacePopoverV2.blockerHostOffline",
+					message: "Host is offline",
+				});
 		} else if (!activeHostUrl) {
-			return "Host service is not running";
+			return t({
+				id: "dashboard.tasks.runInWorkspacePopoverV2.blockerHostServiceNotRunning",
+				message: "Host service is not running",
+			});
 		}
 		// Block while the host's project list is still loading — otherwise users
 		// can submit before we know whether the project is set up there.
-		if (setUpProjectIds === null) return "Checking host…";
+		if (setUpProjectIds === null)
+			return t({
+				id: "dashboard.tasks.runInWorkspacePopoverV2.blockerCheckingHost",
+				message: "Checking host…",
+			});
 		if (selectedProject?.needsSetup === true) {
-			return "Project not set up on this host";
+			return t({
+				id: "dashboard.tasks.runInWorkspacePopoverV2.blockerProjectNotSetUp",
+				message: "Project not set up on this host",
+			});
 		}
 		// Agent UUIDs are host-scoped; block until the host-specific config
 		// query resolves and the selection is verified to exist there.
 		if (selectedAgent !== NONE) {
-			if (!v2AgentsFetched) return "Checking agents…";
+			if (!v2AgentsFetched)
+				return t({
+					id: "dashboard.tasks.runInWorkspacePopoverV2.blockerCheckingAgents",
+					message: "Checking agents…",
+				});
 			if (!validAgentIds.has(selectedAgent)) {
-				return "Selected agent is not available on this host";
+				return t({
+					id: "dashboard.tasks.runInWorkspacePopoverV2.blockerAgentUnavailable",
+					message: "Selected agent is not available on this host",
+				});
 			}
 		}
 		return null;
@@ -177,6 +208,7 @@ export function RunInWorkspacePopoverV2({
 		machineId,
 		otherHosts,
 		activeHostUrl,
+		t,
 	]);
 
 	const handleRun = () => {
@@ -235,8 +267,21 @@ export function RunInWorkspacePopoverV2({
 		);
 
 		toast.promise(promise, {
-			loading: `Creating ${tasks.length} workspace${tasks.length === 1 ? "" : "s"}...`,
-			success: (count) => `Created ${count} workspace${count === 1 ? "" : "s"}`,
+			loading: t({
+				id: "dashboard.tasks.runInWorkspacePopoverV2.creatingWorkspaces",
+				message: plural(tasks.length, {
+					one: "Creating # workspace...",
+					other: "Creating # workspaces...",
+				}),
+			}),
+			success: (count) =>
+				t({
+					id: "dashboard.tasks.runInWorkspacePopoverV2.createdWorkspaces",
+					message: plural(count, {
+						one: "Created # workspace",
+						other: "Created # workspaces",
+					}),
+				}),
 			error: (err) => errorMessage(err),
 		});
 
@@ -299,7 +344,12 @@ export function RunInWorkspacePopoverV2({
 						</PopoverTrigger>
 						<PopoverContent align="start" className="w-60 p-0">
 							<Command>
-								<CommandInput placeholder="Search projects..." />
+								<CommandInput
+									placeholder={t({
+										id: "dashboard.tasks.runInWorkspacePopoverV2.searchProjects",
+										message: "Search projects...",
+									})}
+								/>
 								<CommandList>
 									<CommandEmpty>
 										<Trans id="dashboard.tasks.runInWorkspacePopoverV2.noProjects">
@@ -344,12 +394,18 @@ export function RunInWorkspacePopoverV2({
 					<AgentSelect<SelectedAgent>
 						agents={v2Agents}
 						value={selectedAgent}
-						placeholder="Select agent"
+						placeholder={t({
+							id: "dashboard.tasks.runInWorkspacePopoverV2.selectAgent",
+							message: "Select agent",
+						})}
 						onValueChange={setSelectedAgent}
 						onBeforeConfigureAgents={() => setOpen(false)}
 						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
 						allowNone
-						noneLabel="No agent"
+						noneLabel={t({
+							id: "dashboard.tasks.runInWorkspacePopoverV2.noAgent",
+							message: "No agent",
+						})}
 						noneValue={NONE}
 					/>
 				</div>

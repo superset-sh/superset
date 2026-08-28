@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
@@ -45,6 +45,7 @@ export function V2WorkspaceContextMenu({
 	isCurrentRoute = false,
 	children,
 }: V2WorkspaceContextMenuProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
 	const { ensureWorkspaceInSidebar, hideWorkspaceInSidebar } =
@@ -99,13 +100,27 @@ export function V2WorkspaceContextMenu({
 	const handleCopyBranchName = useCallback(async () => {
 		try {
 			await copyToClipboard(workspace.branch);
-			toast.success("Branch name copied");
+			toast.success(
+				t({
+					id: "dashboard.workspaces.contextMenu.branchNameCopied",
+					message: "Branch name copied",
+				}),
+			);
 		} catch (error) {
 			toast.error(
-				`Failed to copy branch name: ${errorMessage(error, "Unknown error")}`,
+				t({
+					id: "dashboard.workspaces.contextMenu.copyBranchNameFailed",
+					message: `Failed to copy branch name: ${errorMessage(
+						error,
+						t({
+							id: "dashboard.workspaces.contextMenu.unknownError",
+							message: "Unknown error",
+						}),
+					)}`,
+				}),
 			);
 		}
-	}, [copyToClipboard, workspace.branch]);
+	}, [copyToClipboard, workspace.branch, t]);
 
 	// Globally-mounted dialog (DeleteWorkspaceMount): archive-first
 	// tombstoning drops this row the moment the destroy starts, which

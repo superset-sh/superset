@@ -1,4 +1,5 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -13,12 +14,12 @@ import { useCallback, useState } from "react";
 
 export interface OAuthDialogProps {
 	provider: {
-		title: string;
-		description: string;
-		codeLabel: string;
-		codePlaceholder: string;
-		codeHint: string;
-		preparingLabel: string;
+		title: MessageDescriptor;
+		description: MessageDescriptor;
+		codeLabel: MessageDescriptor;
+		codePlaceholder: MessageDescriptor;
+		codeHint: MessageDescriptor;
+		preparingLabel: MessageDescriptor;
 	};
 	open: boolean;
 	authUrl: string | null;
@@ -55,6 +56,7 @@ export function OAuthDialog({
 	onRetry,
 	onSubmit,
 }: OAuthDialogProps) {
+	const { i18n } = useLingui();
 	const hasAuthUrl = Boolean(authUrl);
 	const showCodeInput = hasAuthUrl || isPending;
 	const canSubmit =
@@ -72,14 +74,14 @@ export function OAuthDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-[calc(100vw-2rem)] overflow-hidden sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>{provider.title}</DialogTitle>
-					<DialogDescription>{provider.description}</DialogDescription>
+					<DialogTitle>{i18n._(provider.title)}</DialogTitle>
+					<DialogDescription>{i18n._(provider.description)}</DialogDescription>
 				</DialogHeader>
 
 				<div className="min-w-0 space-y-4">
 					{isPreparing ? (
 						<div className="rounded-lg border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-							{provider.preparingLabel}
+							{i18n._(provider.preparingLabel)}
 						</div>
 					) : null}
 
@@ -111,11 +113,11 @@ export function OAuthDialog({
 							</div>
 
 							<div className="min-w-0 space-y-2">
-								<Label htmlFor="oauth-code">{provider.codeLabel}</Label>
+								<Label htmlFor="oauth-code">{i18n._(provider.codeLabel)}</Label>
 								<InputGroup>
 									<InputGroupInput
 										id="oauth-code"
-										placeholder={provider.codePlaceholder}
+										placeholder={i18n._(provider.codePlaceholder)}
 										value={code}
 										onChange={(event) => onCodeChange(event.target.value)}
 										onKeyDown={(event) => {
@@ -133,13 +135,13 @@ export function OAuthDialog({
 									/>
 								</InputGroup>
 								<p className="text-muted-foreground text-xs">
-									{provider.codeHint}
+									{i18n._(provider.codeHint)}
 								</p>
 							</div>
 						</div>
 					) : !isPreparing ? (
 						<div className="rounded-lg border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
-							{provider.preparingLabel}
+							{i18n._(provider.preparingLabel)}
 						</div>
 					) : null}
 

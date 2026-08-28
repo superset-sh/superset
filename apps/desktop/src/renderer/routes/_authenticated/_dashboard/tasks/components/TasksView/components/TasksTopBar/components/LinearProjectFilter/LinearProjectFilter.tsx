@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -28,6 +28,7 @@ export function LinearProjectFilter({
 	value,
 	onChange,
 }: LinearProjectFilterProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -75,8 +76,22 @@ export function LinearProjectFilter({
 				<Button
 					variant="ghost"
 					size="sm"
-					title={selected ? selected.name : "Project"}
-					aria-label={selected ? selected.name : "Project"}
+					title={
+						selected
+							? selected.name
+							: t({
+									id: "dashboard.tasks.linearProjectFilter.projectLabel",
+									message: "Project",
+								})
+					}
+					aria-label={
+						selected
+							? selected.name
+							: t({
+									id: "dashboard.tasks.linearProjectFilter.projectLabel",
+									message: "Project",
+								})
+					}
 					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineFolder className="size-4" />
@@ -95,7 +110,10 @@ export function LinearProjectFilter({
 			<PopoverContent align="start" className="w-60 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search projects..."
+						placeholder={t({
+							id: "dashboard.tasks.linearProjectFilter.searchProjects",
+							message: "Search projects...",
+						})}
 						value={search}
 						onValueChange={setSearch}
 					/>

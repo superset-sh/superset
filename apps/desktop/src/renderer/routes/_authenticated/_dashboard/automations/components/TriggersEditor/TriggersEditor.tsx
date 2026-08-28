@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	type DraftTrigger,
 	describeTriggerProblems,
@@ -50,6 +50,7 @@ export function TriggersEditor({
 	renderNextRun,
 	readOnly,
 }: TriggersEditorProps) {
+	const { t } = useLingui();
 	// Edited locally and saved on request, unlike the rest of this page.
 	//
 	// A trigger is invalid the moment it is added — "Comment added" with no
@@ -237,7 +238,10 @@ export function TriggersEditor({
 							<Input
 								autoFocus
 								value={query}
-								placeholder="Search triggers..."
+								placeholder={t({
+									id: "dashboard.automations.triggersEditor.searchPlaceholder",
+									message: "Search triggers...",
+								})}
 								onChange={(event) => setQuery(event.target.value)}
 								onKeyDown={(event) => {
 									if (event.key.length === 1 || event.key === "Backspace") {

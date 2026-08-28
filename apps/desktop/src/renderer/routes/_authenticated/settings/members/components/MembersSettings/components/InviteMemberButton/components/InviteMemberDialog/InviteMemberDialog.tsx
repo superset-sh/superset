@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	canInvite,
@@ -45,6 +45,7 @@ export function InviteMemberDialog({
 	invitableRoles,
 	currentUserRole,
 }: InviteMemberDialogProps) {
+	const { t } = useLingui();
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<OrganizationRole>("member");
 	const [isInviting, setIsInviting] = useState(false);
@@ -52,7 +53,13 @@ export function InviteMemberDialog({
 
 	const handleInvite = async () => {
 		if (!canInvite(currentUserRole, role)) {
-			toast.error(`Cannot invite users as ${ORGANIZATION_ROLES[role].name}`);
+			const roleName = ORGANIZATION_ROLES[role].name;
+			toast.error(
+				t({
+					id: "settings.members.cannotInviteAsRoleToast",
+					message: `Cannot invite users as ${roleName}`,
+				}),
+			);
 			return;
 		}
 
@@ -65,12 +72,25 @@ export function InviteMemberDialog({
 			});
 
 			await utils.organization.listInvitations.invalidate();
-			toast.success(`Invitation sent to ${email}`);
+			toast.success(
+				t({
+					id: "settings.members.invitationSentToast",
+					message: `Invitation sent to ${email}`,
+				}),
+			);
 			setEmail("");
 			setRole("member");
 			onOpenChange(false);
 		} catch (error) {
-			toast.error(errorMessage(error, "Failed to send invitation"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "settings.members.inviteFailedToast",
+						message: "Failed to send invitation",
+					}),
+				),
+			);
 		} finally {
 			setIsInviting(false);
 		}
@@ -99,7 +119,10 @@ export function InviteMemberDialog({
 						<Input
 							id="email"
 							type="email"
-							placeholder="user@example.com"
+							placeholder={t({
+								id: "settings.members.emailPlaceholder",
+								message: "user@example.com",
+							})}
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							onKeyDown={(e) => {

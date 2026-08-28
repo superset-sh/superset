@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { toast } from "@superset/ui/sonner";
@@ -21,6 +22,7 @@ export function BranchPrefixSection({
 	customPrefix,
 	onChanged,
 }: BranchPrefixSectionProps) {
+	const { t } = useLingui();
 	const setMutation = useMutation({
 		mutationFn: (vars: {
 			mode: BranchPrefixMode | null;
@@ -32,7 +34,15 @@ export function BranchPrefixSection({
 			}),
 		onSuccess: () => onChanged(),
 		onError: (err) =>
-			toast.error(errorMessage(err, "Failed to update branch prefix")),
+			toast.error(
+				errorMessage(
+					err,
+					t({
+						id: "settings.project.branchPrefixFailedToast",
+						message: "Failed to update branch prefix",
+					}),
+				),
+			),
 	});
 
 	return (

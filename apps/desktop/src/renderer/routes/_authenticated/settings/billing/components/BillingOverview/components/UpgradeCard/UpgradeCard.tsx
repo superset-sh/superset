@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import { PLANS } from "../../../../constants";
 
@@ -17,11 +18,11 @@ export function UpgradeCard({ onUpgrade, isUpgrading }: UpgradeCardProps) {
 				<div className="flex items-center gap-2">
 					<span className="text-sm font-medium">
 						<Trans id="settings.billing.upgrade.title">
-							Upgrade to {plan.name}
+							Upgrade to {i18n._(plan.name)}
 						</Trans>
 					</span>
 					<span className="inline-flex items-center rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
-						{plan.name}
+						{i18n._(plan.name)}
 					</span>
 				</div>
 				<div className="text-xs text-muted-foreground mt-0.5">

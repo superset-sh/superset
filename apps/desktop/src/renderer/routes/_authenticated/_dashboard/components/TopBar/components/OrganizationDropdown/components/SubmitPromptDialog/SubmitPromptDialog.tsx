@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -24,6 +24,7 @@ export function SubmitPromptDialog({
 	open,
 	onOpenChange,
 }: SubmitPromptDialogProps) {
+	const { t } = useLingui();
 	const [promptText, setPromptText] = useState("");
 	const [submitterName, setSubmitterName] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,11 +50,21 @@ export function SubmitPromptDialog({
 				promptText: promptText.trim(),
 				submitterName: submitterName.trim() || undefined,
 			});
-			toast.success("Prompt submitted — thanks!");
+			toast.success(
+				t({
+					id: "dashboard.topBar.submitPromptDialog.submitted",
+					message: "Prompt submitted — thanks!",
+				}),
+			);
 			handleOpenChange(false);
 		} catch (error) {
 			console.error("[submit-prompt] failed", error);
-			toast.error("Could not submit prompt. Try again.");
+			toast.error(
+				t({
+					id: "dashboard.topBar.submitPromptDialog.submitFailed",
+					message: "Could not submit prompt. Try again.",
+				}),
+			);
 			setIsSubmitting(false);
 		}
 	};
@@ -93,7 +104,10 @@ export function SubmitPromptDialog({
 							value={promptText}
 							onChange={(e) => setPromptText(e.target.value)}
 							onKeyDown={handleKeyDown}
-							placeholder="Describe what you'd like to see built…"
+							placeholder={t({
+								id: "dashboard.topBar.submitPromptDialog.promptPlaceholder",
+								message: "Describe what you'd like to see built…",
+							})}
 							rows={6}
 							autoFocus
 							disabled={isSubmitting}
@@ -112,7 +126,10 @@ export function SubmitPromptDialog({
 							id="submit-prompt-name"
 							value={submitterName}
 							onChange={(e) => setSubmitterName(e.target.value)}
-							placeholder="Jane Doe"
+							placeholder={t({
+								id: "dashboard.topBar.submitPromptDialog.namePlaceholder",
+								message: "Jane Doe",
+							})}
 							disabled={isSubmitting}
 						/>
 					</div>

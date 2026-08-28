@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	isPluginExternallyConfigured,
 	PLUGIN_CATALOG,
@@ -21,6 +21,7 @@ import { PluginCard } from "./components/PluginCard";
 import { SkillsList } from "./components/SkillsList";
 
 export function PluginsView() {
+	const { t } = useLingui();
 	const [search, setSearch] = useState("");
 	const [isManageOpen, setIsManageOpen] = useState(false);
 	const navigate = useNavigate();
@@ -126,7 +127,10 @@ export function PluginsView() {
 						<Input
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Search plugins"
+							placeholder={t({
+								id: "dashboard.plugins.searchPlaceholder",
+								message: "Search plugins",
+							})}
 							className="rounded-full pl-9"
 						/>
 					</div>
@@ -145,7 +149,10 @@ export function PluginsView() {
 											variant="ghost"
 											size="icon-xs"
 											className="text-muted-foreground"
-											aria-label="Manage plugins"
+											aria-label={t({
+												id: "dashboard.plugins.managePlugins",
+												message: "Manage plugins",
+											})}
 											onClick={() => setIsManageOpen(true)}
 										>
 											<LuSettings2 className="size-4" />

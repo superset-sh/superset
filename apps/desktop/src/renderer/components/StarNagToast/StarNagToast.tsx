@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { X } from "lucide-react";
 import { useEffect } from "react";
@@ -11,6 +11,7 @@ import { track } from "renderer/lib/analytics";
 import { useStarNagStore } from "renderer/stores/star-nag";
 
 function StarNagToastContent({ toastId }: { toastId: string | number }) {
+	const { t } = useLingui();
 	const { state, activate, isBusy } = useGithubStarAction();
 	const dismiss = useStarNagStore((s) => s.dismiss);
 
@@ -45,7 +46,10 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 				<button
 					type="button"
 					onClick={handleClose}
-					aria-label="Dismiss"
+					aria-label={t({
+						id: "components.starNagToast.dismiss",
+						message: "Dismiss",
+					})}
 					className="text-muted-foreground transition-colors hover:text-foreground"
 				>
 					<X className="size-3.5" />

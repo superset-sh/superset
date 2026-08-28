@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectUser } from "@superset/db/schema";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
@@ -24,6 +24,7 @@ export function CreateTaskAssigneePicker({
 	value,
 	onChange,
 }: CreateTaskAssigneePickerProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
@@ -89,7 +90,10 @@ export function CreateTaskAssigneePicker({
 			<PopoverContent align="start" className="w-64 p-0">
 				<Command shouldFilter={false}>
 					<CommandInput
-						placeholder="Search people..."
+						placeholder={t({
+							id: "dashboard.tasks.createTaskAssigneePicker.searchPeople",
+							message: "Search people...",
+						})}
 						value={search}
 						onValueChange={setSearch}
 					/>

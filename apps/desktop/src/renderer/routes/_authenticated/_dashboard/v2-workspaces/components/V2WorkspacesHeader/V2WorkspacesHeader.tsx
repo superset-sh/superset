@@ -1,4 +1,7 @@
-import { Trans } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -60,19 +63,43 @@ import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
 
-const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, string> = {
-	open: "Open",
-	draft: "Draft",
-	queued: "Queued",
-	merged: "Merged",
-	closed: "Closed",
+const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, MessageDescriptor> = {
+	open: msg({ id: "dashboard.workspaces.header.prStateOpen", message: "Open" }),
+	draft: msg({
+		id: "dashboard.workspaces.header.prStateDraft",
+		message: "Draft",
+	}),
+	queued: msg({
+		id: "dashboard.workspaces.header.prStateQueued",
+		message: "Queued",
+	}),
+	merged: msg({
+		id: "dashboard.workspaces.header.prStateMerged",
+		message: "Merged",
+	}),
+	closed: msg({
+		id: "dashboard.workspaces.header.prStateClosed",
+		message: "Closed",
+	}),
 };
 
-const ARCHIVED_WINDOW_LABELS: Record<V2WorkspacesArchivedWindow, string> = {
-	none: "Hidden",
-	week: "Past week",
-	month: "Past month",
-	all: "All",
+const ARCHIVED_WINDOW_LABELS: Record<
+	V2WorkspacesArchivedWindow,
+	MessageDescriptor
+> = {
+	none: msg({
+		id: "dashboard.workspaces.header.archivedHidden",
+		message: "Hidden",
+	}),
+	week: msg({
+		id: "dashboard.workspaces.header.archivedPastWeek",
+		message: "Past week",
+	}),
+	month: msg({
+		id: "dashboard.workspaces.header.archivedPastMonth",
+		message: "Past month",
+	}),
+	all: msg({ id: "dashboard.workspaces.header.archivedAll", message: "All" }),
 };
 
 interface V2WorkspacesHeaderProps {
@@ -99,6 +126,7 @@ export function V2WorkspacesHeader({
 	projectOptions,
 	hostsById,
 }: V2WorkspacesHeaderProps) {
+	const { t } = useLingui();
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
 	const setSearchQuery = useV2WorkspacesFilterStore(
 		(state) => state.setSearchQuery,
@@ -147,12 +175,21 @@ export function V2WorkspacesHeader({
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
 	const deviceLabel =
 		deviceFilter === DEVICE_FILTER_THIS_DEVICE
-			? "This device"
+			? t({
+					id: "dashboard.workspaces.header.thisDevice",
+					message: "This device",
+				})
 			: deviceFilter === DEVICE_FILTER_ALL_DEVICES
-				? "All devices"
+				? t({
+						id: "dashboard.workspaces.header.allDevices",
+						message: "All devices",
+					})
 				: (remoteHosts.find((host) => host.hostId === deviceFilter)?.hostName ??
 					hostsById.get(deviceFilter)?.hostName ??
-					"Unknown device");
+					t({
+						id: "dashboard.workspaces.header.unknownDevice",
+						message: "Unknown device",
+					}));
 
 	const projectFilterOptions = [
 		...projectOptions.map((project) => ({
@@ -168,7 +205,10 @@ export function V2WorkspacesHeader({
 		})),
 		{
 			value: PROJECT_FILTER_SESSIONS,
-			label: "Sessions",
+			label: t({
+				id: "dashboard.workspaces.header.sessions",
+				message: "Sessions",
+			}),
 			icon: <LuTerminal className="size-3.5" />,
 		},
 	];
@@ -266,7 +306,7 @@ export function V2WorkspacesHeader({
 									{prStateFilters.length > 0 ? (
 										<SubmenuValue>
 											{prStateFilters
-												.map((state) => PR_STATE_LABELS[state])
+												.map((state) => i18n._(PR_STATE_LABELS[state]))
 												.join(", ")}
 										</SubmenuValue>
 									) : null}
@@ -288,7 +328,7 @@ export function V2WorkspacesHeader({
 										>
 											<span className="flex items-center gap-2">
 												<PRIcon state={state} className="size-3.5" />
-												{PR_STATE_LABELS[state]}
+												{i18n._(PR_STATE_LABELS[state])}
 											</span>
 										</DropdownMenuCheckboxItem>
 									))}
@@ -306,8 +346,8 @@ export function V2WorkspacesHeader({
 									{agentStatusFilters.length > 0 ? (
 										<SubmenuValue>
 											{agentStatusFilters
-												.map(
-													(status) => V2_WORKSPACES_AGENT_STATUS_LABELS[status],
+												.map((status) =>
+													i18n._(V2_WORKSPACES_AGENT_STATUS_LABELS[status]),
 												)
 												.join(", ")}
 										</SubmenuValue>
@@ -328,7 +368,7 @@ export function V2WorkspacesHeader({
 												)
 											}
 										>
-											{V2_WORKSPACES_AGENT_STATUS_LABELS[status]}
+											{i18n._(V2_WORKSPACES_AGENT_STATUS_LABELS[status])}
 										</DropdownMenuCheckboxItem>
 									))}
 								</DropdownMenuSubContent>
@@ -344,7 +384,7 @@ export function V2WorkspacesHeader({
 									</span>
 									{pinFilter !== "all" ? (
 										<SubmenuValue>
-											{V2_WORKSPACES_PIN_FILTER_LABELS[pinFilter]}
+											{i18n._(V2_WORKSPACES_PIN_FILTER_LABELS[pinFilter])}
 										</SubmenuValue>
 									) : null}
 								</DropdownMenuSubTrigger>
@@ -357,7 +397,7 @@ export function V2WorkspacesHeader({
 									>
 										{V2_WORKSPACES_PIN_FILTERS.map((filter) => (
 											<DropdownMenuRadioItem key={filter} value={filter}>
-												{V2_WORKSPACES_PIN_FILTER_LABELS[filter]}
+												{i18n._(V2_WORKSPACES_PIN_FILTER_LABELS[filter])}
 											</DropdownMenuRadioItem>
 										))}
 									</DropdownMenuRadioGroup>
@@ -384,13 +424,19 @@ export function V2WorkspacesHeader({
 										<DropdownMenuRadioItem value={DEVICE_FILTER_ALL_DEVICES}>
 											<DeviceOptionLabel
 												icon={<LuMonitorSmartphone className="size-3.5" />}
-												label="All devices"
+												label={t({
+													id: "dashboard.workspaces.header.allDevices",
+													message: "All devices",
+												})}
 											/>
 										</DropdownMenuRadioItem>
 										<DropdownMenuRadioItem value={DEVICE_FILTER_THIS_DEVICE}>
 											<DeviceOptionLabel
 												icon={<LuLaptop className="size-3.5" />}
-												label="This device"
+												label={t({
+													id: "dashboard.workspaces.header.thisDevice",
+													message: "This device",
+												})}
 											/>
 										</DropdownMenuRadioItem>
 										{remoteHosts.length > 0 ? (
@@ -460,7 +506,7 @@ export function V2WorkspacesHeader({
 							>
 								{V2_WORKSPACES_SORT_MODES.map((mode) => (
 									<DropdownMenuRadioItem key={mode} value={mode}>
-										{V2_WORKSPACES_SORT_LABELS[mode]}
+										{i18n._(V2_WORKSPACES_SORT_LABELS[mode])}
 									</DropdownMenuRadioItem>
 								))}
 							</DropdownMenuRadioGroup>
@@ -485,7 +531,7 @@ export function V2WorkspacesHeader({
 									) as V2WorkspacesArchivedWindow[]
 								).map((window) => (
 									<DropdownMenuRadioItem key={window} value={window}>
-										{ARCHIVED_WINDOW_LABELS[window]}
+										{i18n._(ARCHIVED_WINDOW_LABELS[window])}
 									</DropdownMenuRadioItem>
 								))}
 							</DropdownMenuRadioGroup>
@@ -504,7 +550,7 @@ export function V2WorkspacesHeader({
 										>
 											<span className="flex items-center gap-1.5">
 												<BoardColumnIcon column={lane} className="size-3" />
-												{BOARD_COLUMN_LABELS[lane]}
+												{i18n._(BOARD_COLUMN_LABELS[lane])}
 											</span>
 										</DropdownMenuCheckboxItem>
 									))}
@@ -520,7 +566,10 @@ export function V2WorkspacesHeader({
 				<div className="flex shrink-0 items-center gap-2">
 					<fieldset
 						className="flex items-center rounded-md border bg-muted/30 p-0.5"
-						aria-label="Workspace layout"
+						aria-label={t({
+							id: "dashboard.workspaces.header.workspaceLayout",
+							message: "Workspace layout",
+						})}
 					>
 						<button
 							type="button"
@@ -555,8 +604,14 @@ export function V2WorkspacesHeader({
 					<WorkItemsSearch
 						value={searchQuery}
 						onChange={setSearchQuery}
-						placeholder="Search workspaces…"
-						label="Search workspaces"
+						placeholder={t({
+							id: "dashboard.workspaces.header.searchPlaceholder",
+							message: "Search workspaces…",
+						})}
+						label={t({
+							id: "dashboard.workspaces.header.searchLabel",
+							message: "Search workspaces",
+						})}
 					/>
 				</div>
 			</div>

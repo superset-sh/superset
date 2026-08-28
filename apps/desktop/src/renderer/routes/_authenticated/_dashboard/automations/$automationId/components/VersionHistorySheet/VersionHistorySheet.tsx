@@ -1,4 +1,4 @@
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
@@ -36,6 +36,7 @@ export function VersionHistorySheet({
 	open,
 	onOpenChange,
 }: VersionHistorySheetProps) {
+	const { t } = useLingui();
 	const queryClient = useQueryClient();
 	const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
 		null,
@@ -81,7 +82,12 @@ export function VersionHistorySheet({
 		onSuccess: (restored) => {
 			queryClient.invalidateQueries({ queryKey: versionsQueryKey });
 			setSelectedVersionId(restored?.id ?? null);
-			toast.success("Prompt restored");
+			toast.success(
+				t({
+					id: "dashboard.automations.versionHistory.restoredToast",
+					message: "Prompt restored",
+				}),
+			);
 		},
 	});
 
@@ -91,18 +97,41 @@ export function VersionHistorySheet({
 		if (!selectedVersionId) return;
 		const versionId = selectedVersionId;
 		alert({
-			title: "Restore this version?",
-			description:
-				'The current prompt will be replaced with the selected version. A new "Restored" entry will be added to history so you can undo this.',
+			title: t({
+				id: "dashboard.automations.versionHistory.restoreDialogTitle",
+				message: "Restore this version?",
+			}),
+			description: t({
+				id: "dashboard.automations.versionHistory.restoreDialogDescription",
+				message:
+					'The current prompt will be replaced with the selected version. A new "Restored" entry will be added to history so you can undo this.',
+			}),
 			actions: [
-				{ label: "Cancel", variant: "outline" },
 				{
-					label: "Restore",
+					label: t({
+						id: "dashboard.automations.versionHistory.restoreDialogCancel",
+						message: "Cancel",
+					}),
+					variant: "outline",
+				},
+				{
+					label: t({
+						id: "dashboard.automations.versionHistory.restoreDialogConfirm",
+						message: "Restore",
+					}),
 					onClick: async () => {
 						try {
 							await restoreMutation.mutateAsync(versionId);
 						} catch (error) {
-							toast.error(errorMessage(error, "Failed to restore"));
+							toast.error(
+								errorMessage(
+									error,
+									t({
+										id: "dashboard.automations.versionHistory.restoreFailedToast",
+										message: "Failed to restore",
+									}),
+								),
+							);
 							throw error;
 						}
 					},
@@ -143,7 +172,14 @@ export function VersionHistorySheet({
 							</Trans>
 						</h2>
 						<DialogClose asChild>
-							<Button variant="ghost" size="icon-xs" aria-label="Close">
+							<Button
+								variant="ghost"
+								size="icon-xs"
+								aria-label={t({
+									id: "dashboard.automations.versionHistory.closeAriaLabel",
+									message: "Close",
+								})}
+							>
 								<LuX className="size-3.5" />
 							</Button>
 						</DialogClose>

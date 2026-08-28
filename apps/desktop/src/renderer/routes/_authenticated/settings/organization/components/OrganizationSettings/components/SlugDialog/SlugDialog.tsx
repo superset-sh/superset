@@ -114,9 +114,20 @@ export function SlugDialog({
 			onSuccess?.();
 			onOpenChange(false);
 			setSlugAvailable(null);
-			toast.success("Organization URL updated!");
+			toast.success(
+				t({
+					id: "settings.organization.slugUpdatedToast",
+					message: "Organization URL updated!",
+				}),
+			);
 		} catch (error) {
-			const message = errorMessage(error, "Failed to update URL");
+			const message = errorMessage(
+				error,
+				t({
+					id: "settings.organization.slugUpdateFailedToast",
+					message: "Failed to update URL",
+				}),
+			);
 			toast.error(message);
 		}
 	}

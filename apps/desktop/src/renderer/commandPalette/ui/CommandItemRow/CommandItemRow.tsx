@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { CommandItem, CommandShortcut } from "@superset/ui/command";
 import { useHotkeyDisplay } from "renderer/hotkeys/hooks/useHotkeyDisplay";
 import type { Command } from "../../core/types";
@@ -8,6 +9,7 @@ interface CommandItemRowProps {
 }
 
 export function CommandItemRow({ command, onSelect }: CommandItemRowProps) {
+	const { i18n } = useLingui();
 	const display = useHotkeyDisplay(command.hotkeyId ?? "");
 	const Icon = command.icon;
 	const hasShortcut =
@@ -23,7 +25,7 @@ export function CommandItemRow({ command, onSelect }: CommandItemRowProps) {
 			) : Icon ? (
 				<Icon />
 			) : null}
-			<span>{command.title}</span>
+			<span>{i18n._(command.title)}</span>
 			{hasShortcut ? <CommandShortcut>{display.text}</CommandShortcut> : null}
 		</CommandItem>
 	);
