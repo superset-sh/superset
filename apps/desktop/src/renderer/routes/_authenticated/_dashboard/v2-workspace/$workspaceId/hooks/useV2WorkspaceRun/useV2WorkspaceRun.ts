@@ -1,4 +1,4 @@
-import { errorMessage } from "@superset/i18n/errors";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import type { CreatePaneInput, WorkspaceStore } from "@superset/panes";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -26,7 +26,9 @@ const TERMINAL_GONE_ERROR_MESSAGES = [
 ] as const;
 
 function isTerminalGoneError(error: unknown): boolean {
-	const message = errorMessage(error);
+	// Matches server wording, so it must see the raw English message — the
+	// translated display string would break this under any other locale.
+	const message = rawErrorMessage(error);
 	return TERMINAL_GONE_ERROR_MESSAGES.some((terminalMessage) =>
 		message.includes(terminalMessage),
 	);

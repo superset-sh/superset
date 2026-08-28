@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { errorMessage } from "./errors";
+import { errorMessage, rawErrorMessage } from "./errors";
 import { initI18n } from "./index";
 
 initI18n();
@@ -36,5 +36,19 @@ describe("errorMessage", () => {
 
 	test("explicit fallback wins over the generic one", () => {
 		expect(errorMessage({}, "Saving failed")).toBe("Saving failed");
+	});
+});
+
+describe("rawErrorMessage", () => {
+	test("always returns the untranslated source message", () => {
+		expect(rawErrorMessage(new Error("boom"))).toBe("boom");
+		expect(rawErrorMessage("thrown string")).toBe("thrown string");
+		expect(
+			rawErrorMessage({
+				message: "This slug is already taken",
+				data: { i18nKey: "serverError.organization.slugTaken" },
+			}),
+		).toBe("This slug is already taken");
+		expect(rawErrorMessage(null)).toBe("");
 	});
 });

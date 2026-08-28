@@ -1,7 +1,10 @@
 import { i18n } from "./index";
 import { serverErrorMessages } from "./server-errors";
 
-// Renders a caught error for the user in the active locale. Replaces the raw
+// DISPLAY ONLY: the return value is potentially translated, so it must never
+// reach logs, Sentry/PostHog, or string-matching logic — those need stable
+// English and use rawErrorMessage() or the error object itself. Renders a
+// caught error for the user in the active locale. Replaces the raw
 // `toast.error(error.message)` pattern: if the server attached an i18nKey
 // (via userError() in @superset/trpc, surfaced through shape.data by its
 // errorFormatter), the translated catalog entry wins; otherwise the error's
@@ -34,4 +37,15 @@ export function errorMessage(error: unknown, fallback?: string): string {
 			message: "Something went wrong. Please try again.",
 		})
 	);
+}
+
+// Untranslated extraction for logs, telemetry, and error classification:
+// always the error's own (English) message, never a catalog string. Display
+// code uses errorMessage() instead.
+export function rawErrorMessage(error: unknown): string {
+	if (typeof error === "string") {
+		return error;
+	}
+	const message = (error as { message?: unknown } | null | undefined)?.message;
+	return typeof message === "string" ? message : "";
 }

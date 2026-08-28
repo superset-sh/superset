@@ -122,7 +122,9 @@ or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). C
 and ID scheme: `packages/i18n/README.md`; terms that never translate:
 `packages/i18n/glossary.md`; strategy and phasing: `plans/20260826-i18n-strategy.md`.
 Directories listed in `packages/i18n/test/enforced-dirs.ts` must not contain hardcoded
-JSX text — add a directory there once it is fully converted.
+JSX text — add a directory there once it is fully converted. `errorMessage()` output is potentially
+translated and is display-only: logs, Sentry/PostHog, and error classification use
+`rawErrorMessage()` or the error object (enforced by `packages/i18n/test/display-only.test.ts`).
 
 ## Further reading
 

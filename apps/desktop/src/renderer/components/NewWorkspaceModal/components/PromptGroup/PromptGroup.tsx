@@ -1,4 +1,4 @@
-import { errorMessage } from "@superset/i18n/errors";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildPromptAgentLaunchRequest } from "@superset/shared/agent-launch-request";
 import {
@@ -770,7 +770,9 @@ function PromptGroupInner({
 					} catch (error) {
 						if (timeoutId) clearTimeout(timeoutId);
 
-						const message = errorMessage(error);
+						// Classification needs the stable English message, never the
+						// translated display string.
+						const message = rawErrorMessage(error);
 						if (message.includes("timeout")) {
 							console.warn("[PromptGroup] AI generation timeout");
 							toast.info("Using random branch name (AI generation timed out)");
