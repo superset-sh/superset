@@ -22,6 +22,7 @@ import {
 	pages,
 	pageVersions,
 	projects,
+	reviewPages,
 	subscriptions,
 	taskStatuses,
 	tasks,
@@ -397,6 +398,17 @@ export const pageCommentsRelations = relations(pageComments, ({ one }) => ({
 export const workspacePagesRelations = relations(workspacePages, ({ one }) => ({
 	page: one(pages, {
 		fields: [workspacePages.pageId],
+		references: [pages.id],
+	}),
+}));
+
+export const reviewPagesRelations = relations(reviewPages, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [reviewPages.organizationId],
+		references: [organizations.id],
+	}),
+	page: one(pages, {
+		fields: [reviewPages.pageId],
 		references: [pages.id],
 	}),
 }));

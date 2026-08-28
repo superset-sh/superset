@@ -1161,6 +1161,7 @@
         "@microsoft/microsoft-graph-client": "3.0.7",
         "@notionhq/client": "5.25.2",
         "@octokit/app": "16.1.2",
+        "@octokit/rest": "22.0.1",
         "@slack/web-api": "7.15.0",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",

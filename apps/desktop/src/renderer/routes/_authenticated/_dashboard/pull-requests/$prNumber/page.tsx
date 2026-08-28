@@ -52,6 +52,7 @@ import {
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { Route as PullRequestsLayoutRoute } from "../layout";
 import { PullRequestCodeTab } from "./components/PullRequestCodeTab";
+import { ReviewSharePopover } from "./components/ReviewSharePopover";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pull-requests/$prNumber/",
@@ -273,8 +274,9 @@ function PullRequestDetailPage() {
 				</div>
 				{/* Window-drag leaf standing in for the hidden TopBar. */}
 				<div className="drag h-full min-w-0 flex-1" />
-				{/* Share and the "..." overflow (close/reopen) are coming soon —
-				    both hidden until they have real functionality wired up. */}
+				{data && <ReviewSharePopover prUrl={data.url} />}
+				{/* The "..." overflow (close/reopen) is coming soon — hidden until
+				    it has real functionality wired up. */}
 			</div>
 
 			<div className="flex flex-wrap items-start justify-between gap-3 px-4 pb-3">

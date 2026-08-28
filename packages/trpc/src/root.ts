@@ -8,12 +8,14 @@ import { automationRouter } from "./router/automation";
 import { billingRouter } from "./router/billing";
 import { chatRouter } from "./router/chat";
 import { cloudWorkspaceRouter } from "./router/cloud-workspace";
+import { githubPrRouter } from "./router/github-pr";
 import { hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
 import { leaderboardRouter } from "./router/leaderboard";
 import { organizationRouter } from "./router/organization";
 import { pageRouter } from "./router/page";
 import { pageCommentRouter } from "./router/page-comment";
+import { reviewRouter } from "./router/review";
 import { supportRouter } from "./router/support/support";
 import { taskRouter } from "./router/task";
 import { teamRouter } from "./router/team";
@@ -32,12 +34,14 @@ export const appRouter = createTRPCRouter({
 	billing: billingRouter,
 	chat: chatRouter,
 	cloudWorkspace: cloudWorkspaceRouter,
+	githubPr: githubPrRouter,
 	host: hostRouter,
 	integration: integrationRouter,
 	leaderboard: leaderboardRouter,
 	organization: organizationRouter,
 	page: pageRouter,
 	pageComment: pageCommentRouter,
+	review: reviewRouter,
 	support: supportRouter,
 	task: taskRouter,
 	team: teamRouter,

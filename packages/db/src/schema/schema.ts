@@ -1305,6 +1305,49 @@ export const workspacePages = pgTable(
 export type InsertWorkspacePage = typeof workspacePages.$inferInsert;
 export type SelectWorkspacePage = typeof workspacePages.$inferSelect;
 
+/**
+ * Anchors a page to the PR it reviews, for reviews published with no backing
+ * workspace (e.g. a standalone cloud review of `owner/repo#123`). Workspace-
+ * anchored reviews don't need this — they key off `workspacePages` like any
+ * other page — this is the fallback lookup for the ones that can't.
+ *
+ * The PR identity is parsed out of its github.com URL, not a FK into
+ * `github_pull_requests` — that table only has rows for repos with the GitHub
+ * App installed and synced, and the realistic publisher (a `gh`-CLI-driven
+ * review skill) only ever knows the URL. `repoOwner`/`repoName` are stored
+ * lowercased (GitHub treats both case-insensitively).
+ */
+export const reviewPages = pgTable(
+	"review_pages",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		repoOwner: text("repo_owner").notNull(),
+		repoName: text("repo_name").notNull(),
+		prNumber: integer("pr_number").notNull(),
+		pageId: uuid("page_id")
+			.notNull()
+			.references(() => pages.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(table) => [
+		uniqueIndex("review_pages_org_repo_pr_unique").on(
+			table.organizationId,
+			table.repoOwner,
+			table.repoName,
+			table.prNumber,
+		),
+		index("review_pages_page_id_idx").on(table.pageId),
+	],
+);
+
+export type InsertReviewPage = typeof reviewPages.$inferInsert;
+export type SelectReviewPage = typeof reviewPages.$inferSelect;
+
 export const pageCommentThreads = pgTable(
 	"page_comment_threads",
 	{

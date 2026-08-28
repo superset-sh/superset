@@ -28,6 +28,7 @@ import * as pagesPublish from "./pages/publish";
 import * as pagesPull from "./pages/pull";
 import * as pagesVersions from "./pages/versions";
 import * as projectsList from "./projects/list";
+import * as reviewsPublish from "./reviews/publish";
 import * as tasksCreate from "./tasks/create";
 import * as tasksDelete from "./tasks/delete";
 import * as tasksGet from "./tasks/get";
@@ -82,6 +83,7 @@ const REGISTRARS = [
 	pagesCommentsList,
 	pagesCommentsReply,
 	pagesCommentsResolve,
+	reviewsPublish,
 	projectsList,
 	hostsList,
 ];

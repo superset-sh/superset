@@ -666,6 +666,20 @@
       "when": 1787720351737,
       "tag": "0094_add_leaderboard_and_tier_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1787699885428,
+      "tag": "0095_add_review_pages",
+      "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1787816244859,
+      "tag": "0096_review_pages_url_anchor",
+      "breakpoints": true
     }
   ]
 }

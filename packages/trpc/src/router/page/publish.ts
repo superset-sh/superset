@@ -10,7 +10,7 @@ import { mintPageSlug } from "@superset/shared/page-slug";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
 import { and, desc, eq } from "drizzle-orm";
-import { assertPageWritable } from "./access";
+import { assertPageReadable, assertPageWritable } from "./access";
 import { pageUrl } from "./page-url";
 import {
 	isEntryPathConflict,
@@ -27,10 +27,19 @@ export async function publishPage({
 	input,
 	organizationId,
 	userId,
+	allowAnyOrgMember = false,
 }: {
 	input: PublishPageInput;
 	organizationId: string;
 	userId: string;
+	/**
+	 * When true, any org member who can read the target page can also add a
+	 * version to it — not just whoever created it. Used by collaborative
+	 * publish flows (e.g. reviews) that are meant to be re-run by anyone on
+	 * the team; generic page publishes leave this off so only the creator can
+	 * write.
+	 */
+	allowAnyOrgMember?: boolean;
 }) {
 	const { buffer, sha256 } = validatePublishContent(input);
 
@@ -42,6 +51,7 @@ export async function publishPage({
 				userId,
 				buffer,
 				sha256,
+				allowAnyOrgMember,
 			});
 		} catch (error) {
 			if (!isVersionConflict(error)) throw error;
@@ -60,14 +70,22 @@ async function runPublish({
 	userId,
 	buffer,
 	sha256,
+	allowAnyOrgMember,
 }: {
 	input: PublishPageInput;
 	organizationId: string;
 	userId: string;
 	buffer: Buffer;
 	sha256: string;
+	allowAnyOrgMember: boolean;
 }) {
-	await resolveTargetPage({ executor: dbWs, input, organizationId, userId });
+	await resolveTargetPage({
+		executor: dbWs,
+		input,
+		organizationId,
+		userId,
+		allowAnyOrgMember,
+	});
 
 	const blob = await put(
 		`pages/${organizationId}/${sha256}/${input.filename}`,
@@ -88,6 +106,7 @@ async function runPublish({
 				input,
 				organizationId,
 				userId,
+				allowAnyOrgMember,
 			});
 
 			const page = existing
@@ -200,12 +219,18 @@ async function resolveTargetPage({
 	input,
 	organizationId,
 	userId,
+	allowAnyOrgMember,
 }: {
 	executor: Executor;
 	input: PublishPageInput;
 	organizationId: string;
 	userId: string;
+	allowAnyOrgMember: boolean;
 }): Promise<SelectPage | null> {
+	const assertWritable = allowAnyOrgMember
+		? assertPageReadable
+		: assertPageWritable;
+
 	if (input.pageId) {
 		const [page] = await executor
 			.select()
@@ -220,7 +245,7 @@ async function resolveTargetPage({
 		if (!page) {
 			throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
 		}
-		assertPageWritable(page, userId);
+		assertWritable(page, userId);
 		return page;
 	}
 
@@ -234,11 +259,11 @@ async function resolveTargetPage({
 					eq(workspacePages.workspaceId, input.workspaceId),
 					eq(workspacePages.entryPath, input.entryPath),
 					eq(pages.organizationId, organizationId),
-					eq(pages.createdByUserId, userId),
+					...(allowAnyOrgMember ? [] : [eq(pages.createdByUserId, userId)]),
 				),
 			)
 			.limit(1);
-		if (row?.page) assertPageWritable(row.page, userId);
+		if (row?.page) assertWritable(row.page, userId);
 		return row?.page ?? null;
 	}
 
