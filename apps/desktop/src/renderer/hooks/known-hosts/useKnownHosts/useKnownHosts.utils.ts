@@ -4,6 +4,12 @@ import { get as idbGet, set as idbSet } from "idb-keyval";
 export interface KnownHostRow {
 	organizationId: string;
 	machineId: string;
+	/**
+	 * Display name from `v2Host.list`. Empty string when a pre-name snapshot
+	 * is served, so UI that labels a host falls back to generic copy rather
+	 * than rendering a blank name.
+	 */
+	name: string;
 	isOnline: boolean;
 }
 
@@ -40,11 +46,21 @@ export async function loadKnownHostsSnapshot(
 		// Guard against a snapshot written under a different key scheme or a
 		// corrupted value — bad persistence must degrade to "no snapshot".
 		if (!Array.isArray(rows)) return undefined;
-		return rows.filter(
-			(row) =>
-				row &&
-				typeof row.machineId === "string" &&
-				row.organizationId === organizationId,
+		return (
+			rows
+				.filter(
+					(row) =>
+						row &&
+						typeof row.machineId === "string" &&
+						row.organizationId === organizationId,
+				)
+				// Snapshots written before `name` existed carry no name. Keeping the
+				// key (rather than bumping it) means an offline boot still renders
+				// its hosts; the next live response fills the name in.
+				.map((row) => ({
+					...row,
+					name: typeof row.name === "string" ? row.name : "",
+				}))
 		);
 	} catch (error) {
 		console.warn("[known-hosts] snapshot read failed", {

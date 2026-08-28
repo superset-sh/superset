@@ -32,6 +32,12 @@ export interface DashboardSidebarWorkspace {
 	hostType: DashboardSidebarWorkspaceHostType;
 	type: DashboardSidebarWorkspaceType;
 	hostIsOnline: boolean | null;
+	/**
+	 * Display name of the owning host, or null when it isn't known yet (host
+	 * list still loading, or a cached snapshot written before names were
+	 * stored). Null means fall back to generic copy, never an empty name.
+	 */
+	hostName: string | null;
 	accentColor: string | null;
 	name: string;
 	branch: string;

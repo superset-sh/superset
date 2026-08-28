@@ -24,6 +24,7 @@ import type {
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
 import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
+import { getWorkspaceHostTooltip } from "./utils/getWorkspaceHostTooltip";
 
 const PR_STATE_LABEL: Record<
 	DashboardSidebarWorkspacePullRequest["state"],
@@ -96,6 +97,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const {
 			hostType,
 			hostIsOnline,
+			hostName,
 			name,
 			branch,
 			pullRequest,
@@ -127,12 +129,12 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		// minus would remove the project's anchor row. Removal stays available via
 		// the context menu.
 		const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
-		const workspaceKindTitle = isMainWorkspace
-			? "Main workspace"
-			: "Worktree workspace";
-		const workspaceKindDescription = isMainWorkspace
-			? "Uses the repository checkout on this host"
-			: "Isolated copy for parallel development";
+		const hostTooltip = getWorkspaceHostTooltip({
+			hostType,
+			workspaceType: workspace.type,
+			hostIsOnline,
+			hostName,
+		});
 
 		return (
 			<div
@@ -240,27 +242,9 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									</>
 								) : (
 									<>
-										<p className="text-xs font-medium">
-											{isMainWorkspace
-												? workspaceKindTitle
-												: hostType === "local-device"
-													? "Local workspace"
-													: hostType === "remote-device"
-														? hostIsOnline === false
-															? "Remote workspace — device offline"
-															: "Remote workspace"
-														: "Cloud workspace"}
-										</p>
+										<p className="text-xs font-medium">{hostTooltip.title}</p>
 										<p className="text-xs text-muted-foreground">
-											{isMainWorkspace
-												? workspaceKindDescription
-												: hostType === "local-device"
-													? "Running on this device"
-													: hostType === "remote-device"
-														? hostIsOnline === false
-															? "The associated device isn't reachable right now"
-															: "Running on a paired device"
-														: "Hosted in the cloud"}
+											{hostTooltip.description}
 										</p>
 									</>
 								)}

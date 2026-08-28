@@ -53,6 +53,7 @@ function makeWorkspace(
 		hostId: MACHINE_ID,
 		type: "worktree",
 		hostIsOnline: true,
+		hostName: "Local Device",
 		name: "Workspace",
 		branch: "main",
 		taskId: null,
