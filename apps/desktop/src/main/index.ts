@@ -6,7 +6,7 @@ import {
 	writeSharedDisabledAgentIds,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
-import { initI18n, resolveLocale } from "@superset/i18n";
+import { i18n, initI18n } from "@superset/i18n";
 import { settings } from "@superset/local-db";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
@@ -33,6 +33,7 @@ import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
 import { loadWebviewBrowserExtension } from "./lib/extensions";
 import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
+import { resolveAppLocale } from "./lib/language";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { menuEmitter } from "./lib/menu-events";
@@ -95,12 +96,14 @@ async function processDeepLink(url: string): Promise<void> {
 	if (authLink.type !== "not-auth") {
 		// Never log the auth URL: it contains the desktop session token.
 		console.log("[main] Processing auth deep link");
+		// `error` stays English: it is the log line. What the user reads is
+		// resolved separately below so it can be translated.
 		const result =
 			authLink.type === "valid"
 				? await handleAuthCallback(authLink.params)
 				: {
 						success: false as const,
-						error: "The sign-in link was incomplete. Please try again.",
+						error: "sign-in link was missing required parameters",
 					};
 		if (result.success) {
 			focusMainWindow();
@@ -108,9 +111,18 @@ async function processDeepLink(url: string): Promise<void> {
 			console.error("[main] Auth deep link failed:", result.error);
 			focusMainWindow();
 			dialog.showErrorBox(
-				"Sign-in failed",
-				result.error ??
-					"Superset could not complete sign-in. Please try again.",
+				i18n._({ id: "main.auth.failed.title", message: "Sign-in failed" }),
+				authLink.type === "valid"
+					? (result.error ??
+							i18n._({
+								id: "main.auth.failed.detail",
+								message:
+									"Superset could not complete sign-in. Please try again.",
+							}))
+					: i18n._({
+							id: "main.auth.failed.incompleteLink",
+							message: "The sign-in link was incomplete. Please try again.",
+						}),
 			);
 		}
 		return;
@@ -239,11 +251,17 @@ app.on("before-quit", async (event) => {
 		try {
 			const { response } = await dialog.showMessageBox({
 				type: "question",
-				buttons: ["Quit", "Cancel"],
+				buttons: [
+					i18n._({ id: "main.quit.confirm", message: "Quit" }),
+					i18n._({ id: "main.dialog.cancel", message: "Cancel" }),
+				],
 				defaultId: 0,
 				cancelId: 1,
-				title: "Quit Superset",
-				message: "Are you sure you want to quit?",
+				title: i18n._({ id: "main.quit.title", message: "Quit Superset" }),
+				message: i18n._({
+					id: "main.quit.message",
+					message: "Are you sure you want to quit?",
+				}),
 			});
 
 			if (response === 1) {
@@ -400,13 +418,9 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 		// Persisted language setting wins; otherwise infer from OS preferences
-		// (plans/20260826-i18n-strategy.md).
-		initI18n(
-			resolveLocale([
-				...(getLanguageSetting() ? [getLanguageSetting() as string] : []),
-				...app.getPreferredSystemLanguages(),
-			]),
-		);
+		// (plans/20260826-i18n-strategy.md). Menus are built later in
+		// initAppServices/initTray, so a plain activate is enough here.
+		initI18n(resolveAppLocale(getLanguageSetting()));
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();

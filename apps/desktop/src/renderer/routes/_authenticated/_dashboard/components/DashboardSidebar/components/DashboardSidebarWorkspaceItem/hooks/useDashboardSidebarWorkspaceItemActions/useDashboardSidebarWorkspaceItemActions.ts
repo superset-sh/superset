@@ -142,7 +142,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const resolveWorktreePath = async (): Promise<string | null> => {
 		if (!activeHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
-				action: "resolve the workspace path",
+				action: "resolveWorkspacePath",
 			});
 			return null;
 		}
@@ -236,7 +236,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const handleRemovePullRequest = async () => {
 		if (!workspaceHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
-				action: "remove the PR link",
+				action: "removePrLink",
 			});
 			return;
 		}

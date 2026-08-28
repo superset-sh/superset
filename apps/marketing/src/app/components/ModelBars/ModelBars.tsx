@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { formatCount, formatTokens, formatUsd } from "../../utils/formatUsage";
 
 const PALETTE = [
@@ -50,7 +52,9 @@ export function ModelBars({
 }) {
 	if (rows.length === 0) {
 		return (
-			<p className="text-sm text-muted-foreground">No usage in this range.</p>
+			<p className="text-sm text-muted-foreground">
+				<Trans id="marketing.usage.noneInRange">No usage in this range.</Trans>
+			</p>
 		);
 	}
 
@@ -101,7 +105,11 @@ export function toUserRows(
 		provider: model.provider,
 		model: model.model,
 		value: model.users,
-		display: `${formatCount(model.users)} dev${model.users === 1 ? "" : "s"}`,
+		display: i18n._({
+			id: "marketing.models.devCount",
+			message: "{formatted} {count, plural, one {dev} other {devs}}",
+			values: { formatted: formatCount(model.users), count: model.users },
+		}),
 	}));
 }
 

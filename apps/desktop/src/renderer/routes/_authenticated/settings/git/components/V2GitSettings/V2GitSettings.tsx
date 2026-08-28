@@ -134,7 +134,7 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 			if (!targetHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostService, {
-						action: "update the branch prefix",
+						action: "updateBranchPrefix",
 					}),
 				);
 			}

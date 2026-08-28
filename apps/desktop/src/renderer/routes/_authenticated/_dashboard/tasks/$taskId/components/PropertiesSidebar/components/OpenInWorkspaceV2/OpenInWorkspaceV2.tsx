@@ -212,7 +212,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		if (submitBlocker) {
 			if (hostId === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "open the task in a workspace",
+					action: "openTaskInWorkspace",
 				});
 			} else {
 				toast.error(submitBlocker);

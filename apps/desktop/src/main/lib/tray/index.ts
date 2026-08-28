@@ -14,6 +14,7 @@ import { focusMainWindow, quitApp } from "main/index";
 import { checkForUpdatesInteractive } from "main/lib/auto-updater";
 import {
 	getHostServiceCoordinator,
+	type HostServiceStatus,
 	type HostServiceStatusEvent,
 } from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
@@ -120,6 +121,27 @@ async function fetchHostInfo(organizationId: string): Promise<HostInfo | null> {
 	}
 }
 
+/** Host-service run state as the user reads it in the tray, not the wire value. */
+function statusLabel(status: HostServiceStatus): string {
+	switch (status) {
+		case "starting":
+			return i18n._({
+				id: "tray.hostService.status.starting",
+				message: "starting",
+			});
+		case "running":
+			return i18n._({
+				id: "tray.hostService.status.running",
+				message: "running",
+			});
+		case "stopped":
+			return i18n._({
+				id: "tray.hostService.status.stopped",
+				message: "stopped",
+			});
+	}
+}
+
 function buildHostServiceSubmenu(
 	orgIds: string[],
 	infos: Map<string, HostInfo>,
@@ -148,19 +170,25 @@ function buildHostServiceSubmenu(
 		const status = coordinator.getProcessStatus(orgId);
 		const info = infos.get(orgId);
 		const isRunning = status === "running";
-		const label = info?.organizationName ?? `Organization ${orgId.slice(0, 8)}`;
+		const label =
+			info?.organizationName ??
+			i18n._({
+				id: "tray.hostService.unnamedOrganization",
+				message: "Organization {id}",
+				values: { id: orgId.slice(0, 8) },
+			});
 		const versionSuffix = info?.version ? ` (v${info.version})` : "";
 
 		menuItems.push({ label, enabled: false });
 		menuItems.push({
-			label: `  ${status}${versionSuffix}`,
+			label: `  ${statusLabel(status)}${versionSuffix}`,
 			enabled: false,
 		});
 		menuItems.push({
 			// Enabled in "stopped" too — that's the state where users most need
 			// restart to work (host-service crashed or never came up). Disabled
 			// only while a start is in flight, to avoid racing the pending start.
-			label: "  Restart",
+			label: `  ${i18n._({ id: "tray.hostService.restart", message: "Restart" })}`,
 			enabled: status !== "starting",
 			click: () => {
 				void (async () => {
@@ -182,7 +210,7 @@ function buildHostServiceSubmenu(
 			},
 		});
 		menuItems.push({
-			label: "  Stop",
+			label: `  ${i18n._({ id: "tray.hostService.stop", message: "Stop" })}`,
 			enabled: isRunning,
 			click: () => {
 				coordinator.stop(orgId);
@@ -212,8 +240,12 @@ async function updateTrayMenu(): Promise<void> {
 
 	const hasActive = orgIds.length > 0;
 	const hostServiceLabel = hasActive
-		? `Host Service (${orgIds.length})`
-		: "Host Service";
+		? i18n._({
+				id: "tray.hostService.withCount",
+				message: "Host Service ({count})",
+				values: { count: orgIds.length },
+			})
+		: i18n._({ id: "tray.hostService", message: "Host Service" });
 
 	const hostServiceSubmenu = buildHostServiceSubmenu(orgIds, infos);
 
@@ -228,23 +260,29 @@ async function updateTrayMenu(): Promise<void> {
 			click: focusMainWindow,
 		},
 		{
-			label: "Settings",
+			label: i18n._({ id: "tray.settings", message: "Settings" }),
 			click: openSettings,
 		},
 		{
-			label: "Check for Updates",
+			label: i18n._({
+				id: "tray.checkForUpdates",
+				message: "Check for Updates",
+			}),
 			click: () => {
 				checkForUpdatesInteractive();
 			},
 		},
 		{ type: "separator" },
 		{
-			label: "Close Superset",
+			label: i18n._({ id: "tray.closeApp", message: "Close Superset" }),
 			click: () => quitApp(),
 		},
 		{ type: "separator" },
 		{
-			label: "Quit Superset Completely",
+			label: i18n._({
+				id: "tray.quitCompletely",
+				message: "Quit Superset Completely",
+			}),
 			click: () => {
 				void confirmAndQuitCompletely();
 			},
@@ -252,6 +290,12 @@ async function updateTrayMenu(): Promise<void> {
 	]);
 
 	tray.setContextMenu(menu);
+}
+
+/** Rebuild the tray menu in place (e.g. after the display language changes). */
+export function refreshTrayMenu(): void {
+	if (!tray) return;
+	void updateTrayMenu();
 }
 
 /** Call once after app.whenReady() */

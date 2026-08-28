@@ -1,3 +1,6 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { i18n } from "@superset/i18n";
 import type {
 	FolderLinkAction,
 	FolderTierMap,
@@ -41,13 +44,19 @@ export function folderIntentFor(event: ModifierEvent): FolderIntent {
 	return event.shiftKey ? "external" : "reveal";
 }
 
-const FOLDER_INTENT_LABELS: Record<FolderLinkAction, string> = {
-	reveal: "Reveal in sidebar",
-	external: "Open in editor",
-	finder: "Open in Finder",
+const FOLDER_INTENT_LABELS: Record<FolderLinkAction, MessageDescriptor> = {
+	reveal: msg({
+		id: "clickPolicy.folder.reveal",
+		message: "Reveal in sidebar",
+	}),
+	external: msg({
+		id: "clickPolicy.folder.external",
+		message: "Open in editor",
+	}),
+	finder: msg({ id: "clickPolicy.folder.finder", message: "Open in Finder" }),
 };
 
 export function folderIntentLabel(intent: FolderIntent): string | null {
 	if (intent === null) return null;
-	return FOLDER_INTENT_LABELS[intent];
+	return i18n._(FOLDER_INTENT_LABELS[intent]);
 }

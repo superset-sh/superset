@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import Link from "next/link";
 import { TierBadge } from "@/app/components/TierBadge";
 import type {
@@ -21,6 +22,8 @@ export function LeaderboardTable({
 	isLoading,
 	pixelClassName = "",
 }: LeaderboardTableProps) {
+	const { t } = useLingui();
+
 	if (isLoading) {
 		return (
 			<div className="border border-border">
@@ -38,10 +41,14 @@ export function LeaderboardTable({
 		return (
 			<div className="border border-border p-12 text-center">
 				<p className="text-sm text-muted-foreground">
-					Nobody has joined the board yet.
+					<Trans id="marketing.leaderboard.empty.title">
+						Nobody has joined the board yet.
+					</Trans>
 				</p>
 				<p className="text-xs text-muted-foreground mt-2">
-					Opt in from Superset under Settings → Account.
+					<Trans id="marketing.leaderboard.empty.optIn">
+						Opt in from Superset under Settings → Account.
+					</Trans>
 				</p>
 			</div>
 		);
@@ -56,16 +63,22 @@ export function LeaderboardTable({
 							#
 						</th>
 						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3">
-							Developer
+							<Trans id="marketing.leaderboard.column.developer">
+								Developer
+							</Trans>
 						</th>
 						<th className="text-left font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 hidden md:table-cell">
-							Tier
+							<Trans id="marketing.leaderboard.column.tier">Tier</Trans>
 						</th>
 						<th className="text-right font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3 hidden sm:table-cell">
-							Sessions
+							<Trans id="marketing.leaderboard.column.sessions">Sessions</Trans>
 						</th>
 						<th className="text-right font-normal font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground px-4 py-3">
-							{metric === "cost" ? "Cost" : "Tokens"}
+							{metric === "cost" ? (
+								<Trans id="marketing.leaderboard.column.cost">Cost</Trans>
+							) : (
+								<Trans id="marketing.leaderboard.column.tokens">Tokens</Trans>
+							)}
 						</th>
 					</tr>
 				</thead>
@@ -119,7 +132,10 @@ export function LeaderboardTable({
 								{row.approximate && (
 									<span
 										className="text-muted-foreground ml-1"
-										title="Some models were priced with a fallback rate"
+										title={t({
+											id: "marketing.leaderboard.approximateHint",
+											message: "Some models were priced with a fallback rate",
+										})}
 									>
 										*
 									</span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	type IntegrationProvider,
@@ -40,9 +41,13 @@ export default function IntegrationsPage() {
 	return (
 		<div className="space-y-8">
 			<section>
-				<h2 className="text-xl font-semibold">Featured</h2>
+				<h2 className="text-xl font-semibold">
+					<Trans id="web.integrations.featuredTitle">Featured</Trans>
+				</h2>
 				<p className="text-muted-foreground">
-					A selection of integrations curated by our team.
+					<Trans id="web.integrations.featuredSubtitle">
+						A selection of integrations curated by our team.
+					</Trans>
 				</p>
 
 				<div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -51,8 +56,8 @@ export default function IntegrationsPage() {
 							key={integration.provider}
 							id={integration.webPath.replace("/integrations/", "")}
 							name={integration.label}
-							description={integration.description}
-							category={integration.category}
+							description={integration.description()}
+							category={integration.category()}
 							{...CARD_STYLES[integration.provider]}
 						/>
 					))}

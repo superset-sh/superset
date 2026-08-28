@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
@@ -60,25 +63,143 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 
 	const url = `${COMPANY.MARKETING_URL}/marketplace/themes/${theme.slug}`;
 	const kind = theme.type === "dark" ? "Dark" : "Light";
+	const { name, author, submittedBy, addedOn } = theme;
+
+	// `kind` stays English for the JSON-LD genre; these are the display copies.
+	const kindLabel =
+		theme.type === "dark"
+			? i18n._({ id: "marketing.marketplace.theme.kind.dark", message: "Dark" })
+			: i18n._({
+					id: "marketing.marketplace.theme.kind.light",
+					message: "Light",
+				});
+	const kindLower =
+		theme.type === "dark"
+			? i18n._({
+					id: "marketing.marketplace.theme.kindLower.dark",
+					message: "dark",
+				})
+			: i18n._({
+					id: "marketing.marketplace.theme.kindLower.light",
+					message: "light",
+				});
 
 	const uiColors = [
-		{ label: "Background", value: theme.ui.background },
-		{ label: "Foreground", value: theme.ui.foreground },
-		{ label: "Card", value: theme.ui.card },
-		{ label: "Primary", value: theme.ui.primary },
-		{ label: "Accent", value: theme.ui.accent },
-		{ label: "Border", value: theme.ui.border },
-		{ label: "Sidebar", value: theme.ui.sidebar },
+		{
+			key: "background",
+			label: msg({
+				id: "marketing.marketplace.theme.color.background",
+				message: "Background",
+			}),
+			value: theme.ui.background,
+		},
+		{
+			key: "foreground",
+			label: msg({
+				id: "marketing.marketplace.theme.color.foreground",
+				message: "Foreground",
+			}),
+			value: theme.ui.foreground,
+		},
+		{
+			key: "card",
+			label: msg({
+				id: "marketing.marketplace.theme.color.card",
+				message: "Card",
+			}),
+			value: theme.ui.card,
+		},
+		{
+			key: "primary",
+			label: msg({
+				id: "marketing.marketplace.theme.color.primary",
+				message: "Primary",
+			}),
+			value: theme.ui.primary,
+		},
+		{
+			key: "accent",
+			label: msg({
+				id: "marketing.marketplace.theme.color.accent",
+				message: "Accent",
+			}),
+			value: theme.ui.accent,
+		},
+		{
+			key: "border",
+			label: msg({
+				id: "marketing.marketplace.theme.color.border",
+				message: "Border",
+			}),
+			value: theme.ui.border,
+		},
+		{
+			key: "sidebar",
+			label: msg({
+				id: "marketing.marketplace.theme.color.sidebar",
+				message: "Sidebar",
+			}),
+			value: theme.ui.sidebar,
+		},
 	];
 
 	const terminalColors = [
-		{ label: "Red", value: theme.terminal.red },
-		{ label: "Green", value: theme.terminal.green },
-		{ label: "Yellow", value: theme.terminal.yellow },
-		{ label: "Blue", value: theme.terminal.blue },
-		{ label: "Magenta", value: theme.terminal.magenta },
-		{ label: "Cyan", value: theme.terminal.cyan },
-		{ label: "Cursor", value: theme.terminal.cursor },
+		{
+			key: "red",
+			label: msg({
+				id: "marketing.marketplace.theme.color.red",
+				message: "Red",
+			}),
+			value: theme.terminal.red,
+		},
+		{
+			key: "green",
+			label: msg({
+				id: "marketing.marketplace.theme.color.green",
+				message: "Green",
+			}),
+			value: theme.terminal.green,
+		},
+		{
+			key: "yellow",
+			label: msg({
+				id: "marketing.marketplace.theme.color.yellow",
+				message: "Yellow",
+			}),
+			value: theme.terminal.yellow,
+		},
+		{
+			key: "blue",
+			label: msg({
+				id: "marketing.marketplace.theme.color.blue",
+				message: "Blue",
+			}),
+			value: theme.terminal.blue,
+		},
+		{
+			key: "magenta",
+			label: msg({
+				id: "marketing.marketplace.theme.color.magenta",
+				message: "Magenta",
+			}),
+			value: theme.terminal.magenta,
+		},
+		{
+			key: "cyan",
+			label: msg({
+				id: "marketing.marketplace.theme.color.cyan",
+				message: "Cyan",
+			}),
+			value: theme.terminal.cyan,
+		},
+		{
+			key: "cursor",
+			label: msg({
+				id: "marketing.marketplace.theme.color.cursor",
+				message: "Cursor",
+			}),
+			value: theme.terminal.cursor,
+		},
 	];
 
 	const related = themeListings
@@ -118,14 +239,18 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 					className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
 				>
 					<ArrowLeft className="size-4" aria-hidden="true" />
-					All themes
+					<Trans id="marketing.marketplace.theme.allThemes">All themes</Trans>
 				</Link>
 
 				<div className="flex flex-col gap-8 md:flex-row md:items-start">
 					<div className="w-full max-w-sm shrink-0">
 						<ThemePreviewCard
 							name={theme.name}
-							subtitle={`${kind} · by ${theme.author}`}
+							subtitle={i18n._({
+								id: "marketing.marketplace.theme.previewSubtitle",
+								message: "{kind} · by {author}",
+								values: { kind: kindLabel, author },
+							})}
 							backgroundColor={theme.terminal.background}
 							foregroundColor={theme.terminal.foreground}
 							promptColor={theme.terminal.green}
@@ -146,7 +271,9 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 
 					<div className="min-w-0 flex-1">
 						<span className="inline-block rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
-							{kind} theme
+							<Trans id="marketing.marketplace.theme.kindBadge">
+								{kindLabel} theme
+							</Trans>
 						</span>
 						<h1 className="mt-3 text-2xl font-semibold text-foreground md:text-3xl">
 							{theme.name}
@@ -157,12 +284,15 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 							<Button asChild className="rounded-none">
 								<a href={theme.source.href} download>
 									<Download className="size-4" aria-hidden="true" />
-									Download theme file
+									<Trans id="marketing.marketplace.theme.downloadFile">
+										Download theme file
+									</Trans>
 								</a>
 							</Button>
 							<span className="text-xs text-muted-foreground">
-								by {theme.author} · submitted by {theme.submittedBy} · added{" "}
-								{theme.addedOn}
+								<Trans id="marketing.marketplace.theme.credits">
+									by {author} · submitted by {submittedBy} · added {addedOn}
+								</Trans>
 							</span>
 						</div>
 
@@ -182,21 +312,27 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 				</div>
 
 				<section className="mt-12">
-					<h2 className="text-lg font-semibold text-foreground">Palette</h2>
+					<h2 className="text-lg font-semibold text-foreground">
+						<Trans id="marketing.marketplace.theme.palette">Palette</Trans>
+					</h2>
 					<div className="mt-4 grid gap-8 sm:grid-cols-2">
 						<div>
 							<h3 className="mb-3 text-sm font-medium text-muted-foreground">
-								Interface
+								<Trans id="marketing.marketplace.theme.interface">
+									Interface
+								</Trans>
 							</h3>
 							<ul className="space-y-2">
 								{uiColors.map((c) => (
-									<li key={c.label} className="flex items-center gap-3">
+									<li key={c.key} className="flex items-center gap-3">
 										<span
 											className="size-6 rounded-sm border border-border"
 											style={{ backgroundColor: c.value }}
 											aria-hidden="true"
 										/>
-										<span className="text-sm text-foreground">{c.label}</span>
+										<span className="text-sm text-foreground">
+											{i18n._(c.label)}
+										</span>
 										<span className="ml-auto font-mono text-xs text-muted-foreground uppercase">
 											{c.value}
 										</span>
@@ -206,17 +342,21 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 						</div>
 						<div>
 							<h3 className="mb-3 text-sm font-medium text-muted-foreground">
-								Terminal
+								<Trans id="marketing.marketplace.theme.terminal">
+									Terminal
+								</Trans>
 							</h3>
 							<ul className="space-y-2">
 								{terminalColors.map((c) => (
-									<li key={c.label} className="flex items-center gap-3">
+									<li key={c.key} className="flex items-center gap-3">
 										<span
 											className="size-6 rounded-sm border border-border"
 											style={{ backgroundColor: c.value }}
 											aria-hidden="true"
 										/>
-										<span className="text-sm text-foreground">{c.label}</span>
+										<span className="text-sm text-foreground">
+											{i18n._(c.label)}
+										</span>
 										<span className="ml-auto font-mono text-xs text-muted-foreground uppercase">
 											{c.value}
 										</span>
@@ -229,39 +369,57 @@ export default async function ThemeDetailPage({ params }: PageProps) {
 
 				<section className="mt-12">
 					<h2 className="text-lg font-semibold text-foreground">
-						How to install {theme.name} in Superset
+						<Trans id="marketing.marketplace.theme.installTitle">
+							How to install {name} in Superset
+						</Trans>
 					</h2>
 					<ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
-						<li>Download the theme file above.</li>
 						<li>
-							In the Superset desktop app, open{" "}
-							<span className="text-foreground">
-								Settings → Appearance → Theme
-							</span>
-							.
+							<Trans id="marketing.marketplace.theme.installStep.download">
+								Download the theme file above.
+							</Trans>
 						</li>
 						<li>
-							Click <span className="text-foreground">Import Theme</span> and
-							select the downloaded file.
+							<Trans id="marketing.marketplace.theme.installStep.openSettings">
+								In the Superset desktop app, open{" "}
+								<span className="text-foreground">
+									Settings → Appearance → Theme
+								</span>
+								.
+							</Trans>
 						</li>
-						<li>Pick {theme.name} from the theme grid to apply it.</li>
+						<li>
+							<Trans id="marketing.marketplace.theme.installStep.import">
+								Click <span className="text-foreground">Import Theme</span> and
+								select the downloaded file.
+							</Trans>
+						</li>
+						<li>
+							<Trans id="marketing.marketplace.theme.installStep.apply">
+								Pick {name} from the theme grid to apply it.
+							</Trans>
+						</li>
 					</ol>
 					<p className="mt-4 text-sm text-muted-foreground">
-						See the{" "}
-						<a
-							href={`${COMPANY.DOCS_URL}/custom-themes`}
-							className="text-foreground underline underline-offset-4"
-						>
-							custom themes guide
-						</a>{" "}
-						to edit a theme or build your own.
+						<Trans id="marketing.marketplace.theme.docsHint">
+							See the{" "}
+							<a
+								href={`${COMPANY.DOCS_URL}/custom-themes`}
+								className="text-foreground underline underline-offset-4"
+							>
+								custom themes guide
+							</a>{" "}
+							to edit a theme or build your own.
+						</Trans>
 					</p>
 				</section>
 
 				{related.length > 0 ? (
 					<section className="mt-12">
 						<h2 className="text-lg font-semibold text-foreground">
-							More {kind.toLowerCase()} themes
+							<Trans id="marketing.marketplace.theme.relatedTitle">
+								More {kindLower} themes
+							</Trans>
 						</h2>
 						<div className="mt-4 flex flex-wrap gap-2">
 							{related.map((t) => (

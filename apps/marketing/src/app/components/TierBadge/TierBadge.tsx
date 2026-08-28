@@ -1,11 +1,19 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { TierIcon } from "@/app/components/TierIcon";
 
-export const TIER_NAMES = [
-	"Button pusher",
-	"Operator",
-	"Plant Manager",
-	"Henry Ford",
-] as const;
+export const TIER_NAMES: readonly MessageDescriptor[] = [
+	msg({ id: "marketing.tiers.name.buttonPusher", message: "Button pusher" }),
+	msg({ id: "marketing.tiers.name.operator", message: "Operator" }),
+	msg({ id: "marketing.tiers.name.plantManager", message: "Plant Manager" }),
+	msg({ id: "marketing.tiers.name.henryFord", message: "Henry Ford" }),
+];
+
+export const UNRANKED_LABEL: MessageDescriptor = msg({
+	id: "marketing.tiers.unranked",
+	message: "Unranked",
+});
 
 export const TIER_RGB = [
 	"147,157,171",
@@ -19,8 +27,10 @@ const LOCKED_RGB = "255,255,255";
 export const tierRgb = (tier: number): string =>
 	TIER_RGB[tier - 1] ?? TIER_RGB[1];
 
-export const tierLabel = (tier: number): string =>
-	tier >= 1 && tier <= 4 ? (TIER_NAMES[tier - 1] ?? "Unranked") : "Unranked";
+export const tierLabel = (tier: number): MessageDescriptor =>
+	tier >= 1 && tier <= 4
+		? (TIER_NAMES[tier - 1] ?? UNRANKED_LABEL)
+		: UNRANKED_LABEL;
 
 interface TierBadgeProps {
 	tier: number;
@@ -34,6 +44,7 @@ export function TierBadge({
 	size = "sm",
 	className = "",
 }: TierBadgeProps) {
+	const { t } = useLingui();
 	const ranked = tier >= 1 && tier <= 4;
 	const style = ranked
 		? {
@@ -53,10 +64,15 @@ export function TierBadge({
 			>
 				<TierIcon tier={tier} size={36} hollow={!ranked} className="mb-3" />
 				<span className="font-mono text-[0.58rem] uppercase tracking-[0.2em] opacity-60">
-					{ranked ? `Factory tier ${tier}` : "Unranked"}
+					{ranked
+						? t({
+								id: "marketing.tiers.factoryTier",
+								message: `Factory tier ${tier}`,
+							})
+						: t(UNRANKED_LABEL)}
 				</span>
 				<span className="text-2xl md:text-3xl mt-1.5 tracking-tight">
-					{tierLabel(tier)}
+					{t(tierLabel(tier))}
 				</span>
 			</div>
 		);
@@ -68,7 +84,7 @@ export function TierBadge({
 			style={style}
 		>
 			<TierIcon tier={tier} size={9} hollow={!ranked} />
-			{tierLabel(tier)}
+			{t(tierLabel(tier))}
 		</span>
 	);
 }

@@ -1,4 +1,11 @@
-import { formatTally, GATE_SCORECARD, tallyGates } from "../../constants";
+import { Trans, useLingui } from "@lingui/react/macro";
+import {
+	FACTORY_LEVELS,
+	formatTally,
+	GATE_SCORECARD,
+	GATE_STATUS_LABELS,
+	tallyGates,
+} from "../../constants";
 import { GateJumpLink } from "../GateJumpLink";
 
 const SEGMENT_CLASSES = {
@@ -9,22 +16,27 @@ const SEGMENT_CLASSES = {
 };
 
 export function HeroStats() {
+	const { t } = useLingui();
 	const f3 = tallyGates("F3");
 	const f4 = tallyGates("F4");
+	const currentLevel = FACTORY_LEVELS.find((level) => level.id === "F3");
 
 	return (
 		<div className="mt-8 grid grid-cols-1 sm:grid-cols-3 border border-border divide-y sm:divide-y-0 sm:divide-x divide-border">
 			<div className="px-4 py-3 md:px-5">
 				<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-					Current level
+					<Trans id="marketing.factory.hero.currentLevel">Current level</Trans>
 				</span>
 				<p className="text-lg font-mono text-foreground mt-1">
-					F3 <span className="text-muted-foreground text-sm">· Delegated</span>
+					F3{" "}
+					<span className="text-muted-foreground text-sm">
+						· {currentLevel ? t(currentLevel.name) : null}
+					</span>
 				</p>
 			</div>
 			<div className="px-4 py-3 md:px-5">
 				<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-					Gates open
+					<Trans id="marketing.factory.hero.gatesOpen">Gates open</Trans>
 				</span>
 				<p className="text-lg font-mono text-foreground mt-1">
 					{formatTally(f3)}{" "}
@@ -34,26 +46,41 @@ export function HeroStats() {
 					<span className="text-muted-foreground text-sm">F4</span>
 				</p>
 				<div className="flex gap-0.5 mt-2">
-					{GATE_SCORECARD.map((score) => (
-						<GateJumpLink
-							key={score.gateId}
-							targetId={`gate-${score.gateId}`}
-							title={`${score.level} · ${score.gate} · ${score.status}`}
-							className={`h-1.5 flex-1 hover:outline hover:outline-1 hover:outline-brand ${SEGMENT_CLASSES[score.status]}`}
-						>
-							<span className="sr-only">
-								{score.level} {score.gate}: {score.status}
-							</span>
-						</GateJumpLink>
-					))}
+					{GATE_SCORECARD.map((score) => {
+						const level = score.level;
+						const gate = t(score.gate);
+						const statusLabel = t(GATE_STATUS_LABELS[score.status]);
+						return (
+							<GateJumpLink
+								key={score.gateId}
+								targetId={`gate-${score.gateId}`}
+								title={t({
+									id: "marketing.factory.gates.jumpTitle",
+									message: `${level} · ${gate} · ${statusLabel}`,
+								})}
+								className={`h-1.5 flex-1 hover:outline hover:outline-1 hover:outline-brand ${SEGMENT_CLASSES[score.status]}`}
+							>
+								<span className="sr-only">
+									<Trans id="marketing.factory.gates.jumpLabel">
+										{level} {gate}: {statusLabel}
+									</Trans>
+								</span>
+							</GateJumpLink>
+						);
+					})}
 				</div>
 			</div>
 			<div className="px-4 py-3 md:px-5">
 				<span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
-					F4 gate crossed
+					<Trans id="marketing.factory.hero.f4GateCrossed">
+						F4 gate crossed
+					</Trans>
 				</span>
 				<p className="text-lg font-mono text-foreground mt-1">
-					2027 <span className="text-muted-foreground text-sm">· forecast</span>
+					2027{" "}
+					<span className="text-muted-foreground text-sm">
+						· <Trans id="marketing.factory.hero.forecastNote">forecast</Trans>
+					</span>
 				</p>
 			</div>
 		</div>

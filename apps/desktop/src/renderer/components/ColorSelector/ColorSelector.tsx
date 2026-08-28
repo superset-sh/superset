@@ -54,18 +54,23 @@ export function ColorSelector({
 }: ColorSelectorProps) {
 	const { t } = useLingui();
 	const selectedValue = selectedColor ?? PROJECT_COLOR_DEFAULT;
-	const colors = includeDefault
-		? [
-				{
-					name: t({
-						id: "components.colorSelector.defaultColor",
-						message: "Default",
-					}),
-					value: PROJECT_COLOR_DEFAULT,
-				},
-				...PROJECT_COLORS,
-			]
-		: [...PROJECT_COLORS];
+	const colors: { name: string; value: string }[] = [
+		...(includeDefault
+			? [
+					{
+						name: t({
+							id: "components.colorSelector.defaultColor",
+							message: "Default",
+						}),
+						value: PROJECT_COLOR_DEFAULT,
+					},
+				]
+			: []),
+		...PROJECT_COLORS.map((color) => ({
+			name: color.name(),
+			value: color.value,
+		})),
+	];
 
 	if (variant === "menu") {
 		return (

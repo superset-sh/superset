@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import {
 	BrainIcon,
@@ -94,7 +95,9 @@ export const ChainOfThoughtHeader = memo(
 				>
 					<BrainIcon className="size-4" />
 					<span className="flex-1 text-left">
-						{children ?? "Chain of Thought"}
+						{children ?? (
+							<Trans id="ui.chainOfThought.header">Chain of Thought</Trans>
+						)}
 					</span>
 					<ChevronDownIcon
 						className={cn(

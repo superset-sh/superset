@@ -1,6 +1,10 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { authClient } from "@superset/auth/client";
+import { i18n } from "@superset/i18n";
 import { isPaidPlan } from "@superset/shared/billing";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Badge } from "@superset/ui/badge";
@@ -26,12 +30,22 @@ import { useState } from "react";
 
 import { useTRPC } from "@/trpc/react";
 
-const navItems = [
-	{ label: "Agents", href: "/agents" },
-	{ label: "Integrations", href: "/integrations" },
+const navItems: { label: MessageDescriptor; href: string }[] = [
+	{
+		label: msg({ id: "web.agentsHeader.navAgents", message: "Agents" }),
+		href: "/agents",
+	},
+	{
+		label: msg({
+			id: "web.agentsHeader.navIntegrations",
+			message: "Integrations",
+		}),
+		href: "/integrations",
+	},
 ];
 
 export function AgentsHeader() {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const router = useRouter();
 	const pathname = usePathname();
@@ -60,10 +74,17 @@ export function AgentsHeader() {
 		(org) => org.id === activeOrganizationId,
 	);
 
-	const displayName = activeOrganization?.name ?? "Organization";
+	const displayName =
+		activeOrganization?.name ??
+		t({ id: "web.agentsHeader.organizationFallback", message: "Organization" });
 
-	const handleActionError = (message: string, error: unknown) => {
-		console.error(`[AgentsHeader] ${message}`, error);
+	// `context` stays English for the log; `message` is what the user reads.
+	const handleActionError = (
+		context: string,
+		message: string,
+		error: unknown,
+	) => {
+		console.error(`[AgentsHeader] ${context}`, error);
 		toast.error(message);
 	};
 
@@ -72,7 +93,14 @@ export function AgentsHeader() {
 			await authClient.signOut();
 			return true;
 		} catch (error) {
-			handleActionError("Failed to log out. Please try again.", error);
+			handleActionError(
+				"sign out failed",
+				t({
+					id: "web.agentsHeader.signOutError",
+					message: "Failed to log out. Please try again.",
+				}),
+				error,
+			);
 			return false;
 		}
 	};
@@ -89,7 +117,11 @@ export function AgentsHeader() {
 			return true;
 		} catch (error) {
 			handleActionError(
-				"Failed to switch organization. Please try again.",
+				"switch organization failed",
+				t({
+					id: "web.agentsHeader.switchOrganizationError",
+					message: "Failed to switch organization. Please try again.",
+				}),
 				error,
 			);
 			return false;
@@ -174,7 +206,10 @@ export function AgentsHeader() {
 		<button
 			type="button"
 			className="flex cursor-pointer items-center gap-2 rounded-md border border-border/60 bg-secondary/50 px-3 py-1.5 transition-all duration-150 hover:border-border hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-			aria-label={`Organization menu for ${displayName}`}
+			aria-label={t({
+				id: "web.agentsHeader.organizationMenuLabel",
+				message: `Organization menu for ${displayName}`,
+			})}
 			onClick={isMobile ? () => setDrawerOpen(true) : undefined}
 		>
 			<Avatar className="size-5">
@@ -198,7 +233,9 @@ export function AgentsHeader() {
 			{triggerButton}
 			<Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
 				<DrawerContent>
-					<DrawerTitle className="sr-only">Account menu</DrawerTitle>
+					<DrawerTitle className="sr-only">
+						<Trans id="web.agentsHeader.accountMenu">Account menu</Trans>
+					</DrawerTitle>
 					<div className="flex flex-col gap-1 p-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
 						<div className="flex flex-col space-y-1 px-2 py-1.5">
 							<div className="flex items-center gap-2">
@@ -215,7 +252,9 @@ export function AgentsHeader() {
 						{organizations && organizations.length > 1 && (
 							<>
 								<p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-									Switch organization
+									<Trans id="web.agentsHeader.switchOrganization">
+										Switch organization
+									</Trans>
 								</p>
 								{organizations.map((org) => (
 									<button
@@ -230,7 +269,13 @@ export function AgentsHeader() {
 										<Avatar className="size-4">
 											<AvatarImage
 												src={org.logo ?? undefined}
-												alt={org.name ?? "Organization"}
+												alt={
+													org.name ??
+													t({
+														id: "web.agentsHeader.organizationFallback",
+														message: "Organization",
+													})
+												}
 											/>
 											<AvatarFallback className="text-[8px]">
 												{org.name?.charAt(0) ?? "O"}
@@ -256,7 +301,9 @@ export function AgentsHeader() {
 							}}
 						>
 							<LogOut className="size-4" />
-							<span>Log out</span>
+							<span>
+								<Trans id="web.agentsHeader.logOut">Log out</Trans>
+							</span>
 						</button>
 					</div>
 				</DrawerContent>
@@ -284,7 +331,11 @@ export function AgentsHeader() {
 					<>
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger className="cursor-pointer">
-								<span>Switch organization</span>
+								<span>
+									<Trans id="web.agentsHeader.switchOrganization">
+										Switch organization
+									</Trans>
+								</span>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
 								<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
@@ -303,7 +354,13 @@ export function AgentsHeader() {
 										<Avatar className="size-4">
 											<AvatarImage
 												src={org.logo ?? undefined}
-												alt={org.name ?? "Organization"}
+												alt={
+													org.name ??
+													t({
+														id: "web.agentsHeader.organizationFallback",
+														message: "Organization",
+													})
+												}
 											/>
 											<AvatarFallback className="text-[8px]">
 												{org.name?.charAt(0) ?? "O"}
@@ -329,7 +386,9 @@ export function AgentsHeader() {
 					}}
 				>
 					<LogOut className="size-4" />
-					<span>Log out</span>
+					<span>
+						<Trans id="web.agentsHeader.logOut">Log out</Trans>
+					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
@@ -338,7 +397,13 @@ export function AgentsHeader() {
 	return (
 		<header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<div className="mx-auto flex h-12 w-full items-center justify-between px-4">
-				<Link href="/agents" aria-label="Go to home">
+				<Link
+					href="/agents"
+					aria-label={t({
+						id: "web.agentsHeader.homeLink",
+						message: "Go to home",
+					})}
+				>
 					<svg
 						width="282"
 						height="46"
@@ -373,7 +438,7 @@ export function AgentsHeader() {
 										: "text-muted-foreground hover:text-foreground"
 								}`}
 							>
-								{item.label}
+								{i18n._(item.label)}
 							</Link>
 						);
 					})}

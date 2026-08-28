@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { formatRelativeTime } from "@superset/i18n/format";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -8,7 +9,6 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { formatDistanceToNowStrict } from "date-fns";
 import { Globe, Link2, Lock, MoreVertical, Pin, PinOff } from "lucide-react";
 import type { MouseEvent } from "react";
 import { PageThumbnail } from "./components/PageThumbnail";
@@ -42,12 +42,7 @@ export function PageCard({
 	const edited = new Date(page.updatedAt).getTime();
 	const created = new Date(page.createdAt).getTime();
 	const wasEdited = edited - created > 60_000;
-	const timestamp = formatDistanceToNowStrict(
-		new Date(wasEdited ? edited : created),
-		{
-			addSuffix: true,
-		},
-	);
+	const timestamp = formatRelativeTime(wasEdited ? edited : created);
 
 	const copyLink = async () => {
 		try {

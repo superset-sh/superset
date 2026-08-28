@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { MessageSquarePlus } from "lucide-react";
 import { Toggle } from "../../../../../ui/toggle";
 
@@ -16,7 +17,10 @@ export function CommentModeButton({
 	onToggle,
 	compact = false,
 }: CommentModeButtonProps) {
-	const label = enabled ? "Leave comment mode" : "Comment on this page";
+	const { t } = useLingui();
+	const label = enabled
+		? t({ id: "ui.commentMode.leave", message: "Leave comment mode" })
+		: t({ id: "ui.commentMode.enter", message: "Comment on this page" });
 
 	if (compact) {
 		return (

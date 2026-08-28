@@ -1,3 +1,4 @@
+import { i18n } from "@superset/i18n";
 import type { TableOfContents } from "fumadocs-core/toc";
 import { AnchorProvider } from "fumadocs-core/toc";
 import { Edit, Text } from "lucide-react";
@@ -148,7 +149,7 @@ export function DocsPage({
 					{tocOptions.header}
 					<h3 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
 						<Text className="size-4" />
-						On this page
+						{i18n._({ id: "docs.toc.title", message: "On this page" })}
 					</h3>
 					<TOCScrollArea>
 						<TOCItems items={toc} />
@@ -188,7 +189,7 @@ function EditOnGitHub({
 			)}
 		>
 			<Edit className="size-3.5" />
-			Edit on GitHub
+			{i18n._({ id: "docs.page.editOnGithub", message: "Edit on GitHub" })}
 		</a>
 	);
 }

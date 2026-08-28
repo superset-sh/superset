@@ -1,5 +1,6 @@
 "use client";
 
+import { Plural } from "@lingui/react/macro";
 import { FileDiffTool } from "@superset/ui/ai-elements/file-diff-tool";
 import { useMemo } from "react";
 import type { MockDiffFile } from "../../../../../mock-data";
@@ -33,7 +34,12 @@ export function SessionDiff({ diffFiles }: SessionDiffProps) {
 		<div className="flex h-full flex-col overflow-y-auto px-4 py-4">
 			<div className="mb-4 flex items-center gap-2 text-sm">
 				<span className="font-medium">
-					{diffFiles.length} file{diffFiles.length !== 1 ? "s" : ""} changed
+					<Plural
+						id="web.sessionDiff.filesChanged"
+						value={diffFiles.length}
+						one="# file changed"
+						other="# files changed"
+					/>
 				</span>
 				<span className="text-green-500">+{totalAdditions}</span>
 				<span className="text-red-500">-{totalDeletions}</span>

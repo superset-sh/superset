@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { useRouter } from "expo-router";
 import { FolderGit2, Plus } from "lucide-react-native";
@@ -50,6 +51,7 @@ export function WorkspaceRow({
 	/** Set for a cloud workspace; drives the row's pending/failed treatment. */
 	cloudStatus?: CloudWorkspaceStatus;
 }) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
 	const prIcon = pullRequest
@@ -117,7 +119,10 @@ export function WorkspaceRow({
 					<View className="size-6 items-center justify-center">
 						{prIcon && pullRequest ? (
 							<Button
-								accessibilityLabel={`Pull request #${pullRequest.prNumber}`}
+								accessibilityLabel={t({
+									id: "mobile.workspaceRow.pullRequestLabel",
+									message: `Pull request #${pullRequest.prNumber}`,
+								})}
 								ph-label="workspace-row-pull-request"
 								variant="ghost"
 								size="icon"
@@ -210,7 +215,10 @@ export function WorkspaceRow({
 					</View>
 				) : null}
 				<Button
-					accessibilityLabel={`New agent in ${workspace.name}`}
+					accessibilityLabel={t({
+						id: "mobile.newChat.newAgentIn",
+						message: `New agent in ${workspace.name}`,
+					})}
 					ph-label="workspace-row-new-agent"
 					variant="ghost"
 					size="icon"

@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { m } from "framer-motion";
 import Image from "next/image";
 import { LuChevronDown, LuPlus } from "react-icons/lu";
@@ -14,6 +15,7 @@ interface TabBarProps {
 const TAB_WIDTH = 112;
 
 export function TabBar({ activeDemo }: TabBarProps) {
+	const { t } = useLingui();
 	const showAgentTabs = activeDemo === "Orchestrate Parallel Agents";
 
 	return (
@@ -63,7 +65,10 @@ export function TabBar({ activeDemo }: TabBarProps) {
 			<button
 				type="button"
 				className="ml-1 flex h-6 shrink-0 items-center rounded-sm px-1.5 text-muted-foreground/45 hover:bg-foreground/[0.04] hover:text-foreground/85"
-				aria-label="New tab"
+				aria-label={t({
+					id: "marketing.hero.mockup.newTab",
+					message: "New tab",
+				})}
 			>
 				<LuPlus className="size-3.5" />
 				<LuChevronDown className="ml-0.5 size-3" />

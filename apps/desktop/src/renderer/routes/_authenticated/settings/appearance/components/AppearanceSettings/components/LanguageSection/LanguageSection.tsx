@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import { SUPPORTED_LOCALES, type SupportedLocale } from "@superset/i18n";
+import { LOCALE_LABELS, SUPPORTED_LOCALES } from "@superset/i18n";
 import {
 	Select,
 	SelectContent,
@@ -14,12 +14,6 @@ import { HighlightText } from "renderer/routes/_authenticated/settings/component
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 const AUTO = "auto";
-
-// Native-language labels: a user stuck in the wrong language must be able to
-// recognize their own in this list, so entries are never translated.
-const LOCALE_LABELS: Record<SupportedLocale, string> = {
-	en: "English",
-};
 
 export function LanguageSection() {
 	const { t } = useLingui();

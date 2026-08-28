@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { AutomationsDemo } from "./components/AutomationsDemo";
 import { CliDemo } from "./components/CliDemo";
 import { FeatureDemo } from "./components/FeatureDemo";
@@ -21,6 +22,8 @@ const DEMO_COMPONENTS = [
 ];
 
 export function FeaturesSection() {
+	const { t } = useLingui();
+
 	return (
 		<section id="features" className="relative py-24 sm:py-32">
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
@@ -31,7 +34,7 @@ export function FeaturesSection() {
 						const DemoComponent = DEMO_COMPONENTS[index];
 						return (
 							<div
-								key={feature.title}
+								key={feature.id}
 								className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center"
 							>
 								{/* Text Content */}
@@ -40,14 +43,14 @@ export function FeaturesSection() {
 								>
 									<div className="space-y-4">
 										<span className="text-sm font-mono uppercase tracking-widest text-brand">
-											{feature.tag}
+											{t(feature.tag)}
 										</span>
 										<h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground">
-											{feature.title}
+											{t(feature.title)}
 										</h3>
 									</div>
 									<p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-[500px]">
-										{feature.description}
+										{t(feature.description)}
 									</p>
 								</div>
 

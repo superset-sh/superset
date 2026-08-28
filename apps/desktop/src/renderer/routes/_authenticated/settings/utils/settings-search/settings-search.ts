@@ -314,7 +314,7 @@ const INTEGRATION_SEARCH_ITEMS: SettingsItem[] = INTEGRATIONS.map(
 		id: integrationSettingItemId(integration.provider),
 		section: "integrations",
 		title: integration.label,
-		description: integration.description,
+		description: integration.description(),
 		keywords: [
 			"integrations",
 			integration.label.toLowerCase(),

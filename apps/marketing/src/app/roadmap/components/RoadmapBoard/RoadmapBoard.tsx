@@ -1,10 +1,12 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import Image from "next/image";
 import { useState } from "react";
 import { PRBadge } from "@/app/changelog/components/PRBadge";
 import {
 	CATEGORIES,
+	CATEGORY_LABELS,
 	ROADMAP_ITEMS,
 	type RoadmapCategory,
 	type RoadmapItem,
@@ -25,29 +27,32 @@ const STATUS_DOT: Record<RoadmapStatus, string> = {
 type ShippedItem = RoadmapItem & { status: "shipped" };
 
 function RoadmapCard({ item }: { item: RoadmapItem }) {
+	const { t } = useLingui();
+
 	return (
 		<div className="group border border-border p-4 hover:border-foreground/20 transition-colors">
 			<h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">
-				{item.title}
+				{t(item.title)}
 			</h3>
 			<p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
-				{item.description}
+				{t(item.description)}
 			</p>
 			<span className="text-[11px] font-mono text-muted-foreground mt-2 block uppercase tracking-wider">
-				{item.category}
+				{t(CATEGORY_LABELS[item.category])}
 			</span>
 		</div>
 	);
 }
 
 function ShippedHighlightCard({ item }: { item: ShippedItem }) {
+	const { t } = useLingui();
 	const body = (
 		<>
 			{item.image && (
 				<div className="relative aspect-video overflow-hidden border-b border-border bg-muted/20">
 					<Image
 						src={item.image}
-						alt={item.title}
+						alt={t(item.title)}
 						fill
 						sizes="(min-width: 768px) 33vw, 100vw"
 						className="object-cover object-top transition-transform duration-300 group-hover:scale-[1.02]"
@@ -57,18 +62,20 @@ function ShippedHighlightCard({ item }: { item: ShippedItem }) {
 			<div className="flex-1 p-4">
 				<div className="flex items-baseline justify-between gap-3">
 					<h3 className="text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">
-						{item.title}
+						{t(item.title)}
 					</h3>
 					<span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap">
 						{item.shippedDate}
 					</span>
 				</div>
 				<p className="text-xs text-muted-foreground mt-1.5">
-					{item.description}
+					{t(item.description)}
 				</p>
 				{item.href ? (
 					<span className="text-[11px] font-mono text-muted-foreground mt-2 block uppercase tracking-wider group-hover:text-foreground transition-colors">
-						Read the changelog →
+						<Trans id="marketing.roadmap.readChangelog">
+							Read the changelog →
+						</Trans>
 					</span>
 				) : (
 					item.pr && (
@@ -99,15 +106,16 @@ function ShippedHighlightCard({ item }: { item: ShippedItem }) {
 }
 
 function ShippedCard({ item }: { item: ShippedItem }) {
+	const { t } = useLingui();
 	const body = (
 		<>
 			<div className="flex-1 min-w-0">
 				<h3 className="flex items-center gap-2 text-sm font-medium text-foreground group-hover:text-foreground/80 transition-colors">
-					{item.title}
+					{t(item.title)}
 					{!item.href && item.pr && <PRBadge url={item.pr} />}
 				</h3>
 				<p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
-					{item.description}
+					{t(item.description)}
 				</p>
 			</div>
 			<span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap mt-0.5">
@@ -134,6 +142,7 @@ function ShippedCard({ item }: { item: ShippedItem }) {
 }
 
 export function RoadmapBoard() {
+	const { t } = useLingui();
 	const [activeFilter, setActiveFilter] = useState<RoadmapCategory | null>(
 		null,
 	);
@@ -164,7 +173,7 @@ export function RoadmapBoard() {
 							: "text-muted-foreground hover:text-foreground"
 					}`}
 				>
-					All
+					<Trans id="marketing.roadmap.filter.all">All</Trans>
 				</button>
 				<div className="h-4 w-px bg-border" />
 				{CATEGORIES.map((cat) => (
@@ -178,7 +187,7 @@ export function RoadmapBoard() {
 								: "text-muted-foreground hover:text-foreground"
 						}`}
 					>
-						{cat}
+						{t(CATEGORY_LABELS[cat])}
 					</button>
 				))}
 			</div>
@@ -199,13 +208,13 @@ export function RoadmapBoard() {
 										aria-hidden
 										className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[status]}`}
 									/>
-									{STATUS_LABELS[status]}
+									{t(STATUS_LABELS[status])}
 									<span className="text-muted-foreground/50">
 										{items.length}
 									</span>
 								</h2>
 								<p className="text-[11px] text-muted-foreground/60 mt-1">
-									{STATUS_DESCRIPTIONS[status]}
+									{t(STATUS_DESCRIPTIONS[status])}
 								</p>
 							</div>
 
@@ -216,7 +225,7 @@ export function RoadmapBoard() {
 								))}
 								{items.length === 0 && (
 									<p className="text-xs text-muted-foreground/40 px-4 py-8 text-center">
-										No items
+										<Trans id="marketing.roadmap.column.empty">No items</Trans>
 									</p>
 								)}
 							</div>
@@ -234,7 +243,7 @@ export function RoadmapBoard() {
 								aria-hidden
 								className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT.shipped}`}
 							/>
-							{STATUS_LABELS.shipped}
+							{t(STATUS_LABELS.shipped)}
 							<span className="text-muted-foreground/50">
 								{shippedItems.length}
 							</span>
@@ -243,7 +252,9 @@ export function RoadmapBoard() {
 							href="/changelog"
 							className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 						>
-							Full changelog →
+							<Trans id="marketing.roadmap.fullChangelog">
+								Full changelog →
+							</Trans>
 						</a>
 					</div>
 					{shippedHighlights.length > 0 && (

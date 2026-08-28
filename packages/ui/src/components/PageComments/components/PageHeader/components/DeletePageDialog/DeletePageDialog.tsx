@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { useState } from "react";
 import {
@@ -29,6 +30,7 @@ export function DeletePageDialog({
 	versionCount,
 	onConfirm,
 }: DeletePageDialogProps) {
+	const { t } = useLingui();
 	const [busy, setBusy] = useState(false);
 
 	const confirm = async () => {
@@ -37,7 +39,15 @@ export function DeletePageDialog({
 			await onConfirm();
 			onOpenChange(false);
 		} catch (error) {
-			toast.error(errorMessage(error, "Could not delete this page"));
+			toast.error(
+				errorMessage(
+					error,
+					t({
+						id: "ui.deletePageDialog.deleteFailed",
+						message: "Could not delete this page",
+					}),
+				),
+			);
 		} finally {
 			setBusy(false);
 		}
@@ -47,16 +57,30 @@ export function DeletePageDialog({
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Delete “{title}”?</AlertDialogTitle>
+					<AlertDialogTitle>
+						<Trans id="ui.deletePageDialog.title">Delete “{title}”?</Trans>
+					</AlertDialogTitle>
 					<AlertDialogDescription>
-						{versionCount > 1
-							? `All ${versionCount} versions and their content are removed. Anyone with the link loses access.`
-							: "The page and its content are removed. Anyone with the link loses access."}{" "}
-						This cannot be undone.
+						{versionCount > 1 ? (
+							<Trans id="ui.deletePageDialog.descriptionMany">
+								All {versionCount} versions and their content are removed.
+								Anyone with the link loses access.
+							</Trans>
+						) : (
+							<Trans id="ui.deletePageDialog.descriptionOne">
+								The page and its content are removed. Anyone with the link loses
+								access.
+							</Trans>
+						)}{" "}
+						<Trans id="ui.deletePageDialog.irreversible">
+							This cannot be undone.
+						</Trans>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+					<AlertDialogCancel disabled={busy}>
+						<Trans id="ui.deletePageDialog.cancel">Cancel</Trans>
+					</AlertDialogCancel>
 					<AlertDialogAction
 						disabled={busy}
 						onClick={(event) => {
@@ -64,7 +88,11 @@ export function DeletePageDialog({
 							void confirm();
 						}}
 					>
-						{busy ? "Deleting…" : "Delete page"}
+						{busy ? (
+							<Trans id="ui.deletePageDialog.deleting">Deleting…</Trans>
+						) : (
+							<Trans id="ui.deletePageDialog.confirm">Delete page</Trans>
+						)}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

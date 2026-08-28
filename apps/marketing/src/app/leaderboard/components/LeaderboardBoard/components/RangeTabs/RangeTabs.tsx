@@ -1,5 +1,8 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Calendar } from "@superset/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -9,10 +12,19 @@ import type { LeaderboardPeriod } from "@/app/utils/fetchLeaderboard";
 import { formatRangeLabel } from "@/app/utils/formatRangeLabel";
 import { PillTabs } from "../PillTabs";
 
-const PRESETS: Array<{ id: LeaderboardPeriod; label: string }> = [
-	{ id: "all", label: "All" },
-	{ id: "7d", label: "7D" },
-	{ id: "30d", label: "30D" },
+const PRESETS: Array<{ id: LeaderboardPeriod; label: MessageDescriptor }> = [
+	{
+		id: "all",
+		label: msg({ id: "marketing.leaderboard.range.all", message: "All" }),
+	},
+	{
+		id: "7d",
+		label: msg({ id: "marketing.leaderboard.range.7d", message: "7D" }),
+	},
+	{
+		id: "30d",
+		label: msg({ id: "marketing.leaderboard.range.30d", message: "30D" }),
+	},
 ];
 
 export interface RangeSelection {
@@ -33,13 +45,20 @@ export function RangeTabs({
 	earliest,
 	latest,
 }: RangeTabsProps) {
+	const { t } = useLingui();
 	const customActive = Boolean(value.custom?.from && value.custom?.to);
 
 	return (
 		<PillTabs
-			label="Date range"
+			label={t({
+				id: "marketing.leaderboard.range.ariaLabel",
+				message: "Date range",
+			})}
 			value={customActive ? null : value.period}
-			options={PRESETS}
+			options={PRESETS.map((preset) => ({
+				id: preset.id,
+				label: t(preset.label),
+			}))}
 			onChange={(period) => onChange({ period })}
 		>
 			<Popover>
@@ -54,7 +73,13 @@ export function RangeTabs({
 						}`}
 					>
 						<CalendarIcon className="size-3.5" />
-						{formatRangeLabel(value.custom, "Custom")}
+						{formatRangeLabel(
+							value.custom,
+							t({
+								id: "marketing.leaderboard.range.custom",
+								message: "Custom",
+							}),
+						)}
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent className="w-auto p-3" align="start">

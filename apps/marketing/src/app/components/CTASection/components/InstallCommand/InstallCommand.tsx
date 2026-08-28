@@ -1,10 +1,12 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { DEFAULT_INSTALL_TAB, INSTALL_TABS } from "./constants";
 
 export function InstallCommand() {
+	const { t } = useLingui();
 	const [activeTabId, setActiveTabId] = useState(DEFAULT_INSTALL_TAB.id);
 	const [copied, setCopied] = useState(false);
 
@@ -47,7 +49,10 @@ export function InstallCommand() {
 					type="button"
 					onClick={handleCopy}
 					className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-					aria-label="Copy to clipboard"
+					aria-label={t({
+						id: "marketing.cta.copyCommand",
+						message: "Copy to clipboard",
+					})}
 				>
 					{copied ? (
 						<Check className="size-3.5 text-brand" />

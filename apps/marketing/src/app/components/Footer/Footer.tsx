@@ -1,10 +1,12 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import { m } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { Soc2Badge } from "../Soc2Badge";
 import { SocialLinks } from "../SocialLinks";
 
@@ -29,47 +31,126 @@ function SupersetLogo() {
 
 interface FooterLink {
 	href: string;
-	label: string;
+	label: ReactNode;
 	external?: boolean;
 }
 
 const PRODUCT_LINKS: FooterLink[] = [
-	{ href: "/download", label: "Download" },
-	{ href: "/#how-it-works", label: "How it works" },
-	{ href: "/#features", label: "Features" },
-	{ href: "/#security", label: "Security" },
+	{
+		href: "/download",
+		label: <Trans id="marketing.footer.product.download">Download</Trans>,
+	},
+	{
+		href: "/#how-it-works",
+		label: <Trans id="marketing.footer.product.howItWorks">How it works</Trans>,
+	},
+	{
+		href: "/#features",
+		label: <Trans id="marketing.footer.product.features">Features</Trans>,
+	},
+	{
+		href: "/#security",
+		label: <Trans id="marketing.footer.product.security">Security</Trans>,
+	},
 	{ href: "/mcp-install", label: "MCP" },
-	{ href: "/marketplace", label: "Marketplace" },
-	{ href: "/compare", label: "Compare" },
+	{
+		href: "/marketplace",
+		label: <Trans id="marketing.footer.product.marketplace">Marketplace</Trans>,
+	},
+	{
+		href: "/compare",
+		label: <Trans id="marketing.footer.product.compare">Compare</Trans>,
+	},
 ];
 
 const COMPANY_LINKS: FooterLink[] = [
-	{ href: "/team", label: "About" },
-	{ href: "/contact", label: "Contact" },
-	{ href: "/join-us", label: "Careers" },
-	{ href: COMPANY.STATUS_URL, label: "Status", external: true },
+	{
+		href: "/team",
+		label: <Trans id="marketing.footer.company.about">About</Trans>,
+	},
+	{
+		href: "/contact",
+		label: <Trans id="marketing.footer.company.contact">Contact</Trans>,
+	},
+	{
+		href: "/join-us",
+		label: <Trans id="marketing.footer.company.careers">Careers</Trans>,
+	},
+	{
+		href: COMPANY.STATUS_URL,
+		label: <Trans id="marketing.footer.company.status">Status</Trans>,
+		external: true,
+	},
 ];
 
 const RESOURCE_LINKS: FooterLink[] = [
-	{ href: COMPANY.DOCS_URL, label: "Documentation", external: true },
-	{ href: "/pricing", label: "Pricing" },
-	{ href: "/blog", label: "Blog" },
-	{ href: "/parallel-coding-agents", label: "Parallel agents guide" },
-	{ href: "/agent-orchestration", label: "Orchestration guide" },
-	{ href: "/community", label: "Community" },
-	{ href: "/enterprise", label: "Enterprise" },
-	{ href: "/changelog", label: "Changelog" },
-	{ href: "/roadmap", label: "Roadmap" },
+	{
+		href: COMPANY.DOCS_URL,
+		label: <Trans id="marketing.footer.resources.docs">Documentation</Trans>,
+		external: true,
+	},
+	{
+		href: "/pricing",
+		label: <Trans id="marketing.footer.resources.pricing">Pricing</Trans>,
+	},
+	{
+		href: "/blog",
+		label: <Trans id="marketing.footer.resources.blog">Blog</Trans>,
+	},
+	{
+		href: "/parallel-coding-agents",
+		label: (
+			<Trans id="marketing.footer.resources.parallelAgentsGuide">
+				Parallel agents guide
+			</Trans>
+		),
+	},
+	{
+		href: "/agent-orchestration",
+		label: (
+			<Trans id="marketing.footer.resources.orchestrationGuide">
+				Orchestration guide
+			</Trans>
+		),
+	},
+	{
+		href: "/community",
+		label: <Trans id="marketing.footer.resources.community">Community</Trans>,
+	},
+	{
+		href: "/enterprise",
+		label: <Trans id="marketing.footer.resources.enterprise">Enterprise</Trans>,
+	},
+	{
+		href: "/changelog",
+		label: <Trans id="marketing.footer.resources.changelog">Changelog</Trans>,
+	},
+	{
+		href: "/roadmap",
+		label: <Trans id="marketing.footer.resources.roadmap">Roadmap</Trans>,
+	},
 ];
 
 const LEGAL_LINKS: FooterLink[] = [
-	{ href: COMPANY.TRUST_URL, label: "Security", external: true },
-	{ href: "/terms", label: "Terms" },
-	{ href: "/privacy", label: "Privacy" },
+	{
+		href: COMPANY.TRUST_URL,
+		label: <Trans id="marketing.footer.legal.security">Security</Trans>,
+		external: true,
+	},
+	{
+		href: "/terms",
+		label: <Trans id="marketing.footer.legal.terms">Terms</Trans>,
+	},
+	{
+		href: "/privacy",
+		label: <Trans id="marketing.footer.legal.privacy">Privacy</Trans>,
+	},
 ];
 
 export function Footer() {
 	const pathname = usePathname();
+	// Named local so the copyright message extracts as `{year}`, not `{0}`.
+	const year = new Date().getFullYear();
 	if (pathname === "/download") return null;
 
 	return (
@@ -99,14 +180,30 @@ export function Footer() {
 							<Soc2Badge size={80} />
 						</a>
 						<p className="text-sm text-muted-foreground">
-							© {new Date().getFullYear()} Superset Inc.
+							<Trans id="marketing.footer.copyright">
+								© {year} Superset Inc.
+							</Trans>
 						</p>
 					</div>
 
-					<FooterColumn title="Product" links={PRODUCT_LINKS} />
-					<FooterColumn title="Company" links={COMPANY_LINKS} />
-					<FooterColumn title="Resources" links={RESOURCE_LINKS} />
-					<FooterColumn title="Legal" links={LEGAL_LINKS} />
+					<FooterColumn
+						title={<Trans id="marketing.footer.column.product">Product</Trans>}
+						links={PRODUCT_LINKS}
+					/>
+					<FooterColumn
+						title={<Trans id="marketing.footer.column.company">Company</Trans>}
+						links={COMPANY_LINKS}
+					/>
+					<FooterColumn
+						title={
+							<Trans id="marketing.footer.column.resources">Resources</Trans>
+						}
+						links={RESOURCE_LINKS}
+					/>
+					<FooterColumn
+						title={<Trans id="marketing.footer.column.legal">Legal</Trans>}
+						links={LEGAL_LINKS}
+					/>
 				</div>
 			</m.div>
 		</footer>
@@ -117,7 +214,7 @@ function FooterColumn({
 	title,
 	links,
 }: {
-	title: string;
+	title: ReactNode;
 	links: FooterLink[];
 }) {
 	return (

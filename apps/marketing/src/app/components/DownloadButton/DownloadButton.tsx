@@ -86,7 +86,7 @@ export function DownloadButton({
 				onJoinWaitlist?.();
 			}}
 		>
-			Join Waitlist
+			<Trans id="marketing.download.joinWaitlist">Join Waitlist</Trans>
 			<HiMiniClock className="size-4" />
 		</button>
 	);

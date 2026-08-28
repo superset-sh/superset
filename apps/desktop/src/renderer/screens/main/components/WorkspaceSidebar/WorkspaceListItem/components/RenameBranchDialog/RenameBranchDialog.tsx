@@ -57,7 +57,7 @@ export function RenameBranchDialog({
 		if (isInvalid || isSubmitting) return;
 		if (!workspaceHostUrl) {
 			showHostServiceUnavailableToast(hostService, {
-				action: "rename the branch",
+				action: "renameBranch",
 			});
 			return;
 		}

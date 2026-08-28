@@ -22,7 +22,7 @@ export function useEnsureV2Project(): (args: {
 			if (!activeHostUrl) {
 				throw new Error(
 					getHostServiceUnavailableMessage(hostServiceContext, {
-						action: "import the project",
+						action: "importProject",
 					}),
 				);
 			}

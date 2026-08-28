@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import {
 	formatCompactNumber,
 	formatCurrency,
@@ -8,6 +9,7 @@ import {
 import type { LanguageModelUsage } from "ai";
 import { type ComponentProps, createContext, useContext } from "react";
 import { getUsage } from "tokenlens";
+import { i18n } from "../../lib/i18n";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import {
@@ -73,7 +75,10 @@ const ContextIcon = () => {
 
 	return (
 		<svg
-			aria-label="Model context usage"
+			aria-label={i18n._({
+				id: "ui.context.iconLabel",
+				message: "Model context usage",
+			})}
 			height="20"
 			role="img"
 			style={{ color: "currentcolor" }}
@@ -212,7 +217,9 @@ export const ContextContentFooter = ({
 		>
 			{children ?? (
 				<>
-					<span className="text-muted-foreground">Total cost</span>
+					<span className="text-muted-foreground">
+						<Trans id="ui.context.totalCost">Total cost</Trans>
+					</span>
 					<span>{totalCost}</span>
 				</>
 			)}
@@ -251,7 +258,9 @@ export const ContextInputUsage = ({
 			className={cn("flex items-center justify-between text-xs", className)}
 			{...props}
 		>
-			<span className="text-muted-foreground">Input</span>
+			<span className="text-muted-foreground">
+				<Trans id="ui.context.input">Input</Trans>
+			</span>
 			<TokensWithCost costText={inputCostText} tokens={inputTokens} />
 		</div>
 	);
@@ -288,7 +297,9 @@ export const ContextOutputUsage = ({
 			className={cn("flex items-center justify-between text-xs", className)}
 			{...props}
 		>
-			<span className="text-muted-foreground">Output</span>
+			<span className="text-muted-foreground">
+				<Trans id="ui.context.output">Output</Trans>
+			</span>
 			<TokensWithCost costText={outputCostText} tokens={outputTokens} />
 		</div>
 	);
@@ -325,7 +336,9 @@ export const ContextReasoningUsage = ({
 			className={cn("flex items-center justify-between text-xs", className)}
 			{...props}
 		>
-			<span className="text-muted-foreground">Reasoning</span>
+			<span className="text-muted-foreground">
+				<Trans id="ui.context.reasoning">Reasoning</Trans>
+			</span>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
 		</div>
 	);
@@ -362,7 +375,9 @@ export const ContextCacheUsage = ({
 			className={cn("flex items-center justify-between text-xs", className)}
 			{...props}
 		>
-			<span className="text-muted-foreground">Cache</span>
+			<span className="text-muted-foreground">
+				<Trans id="ui.context.cache">Cache</Trans>
+			</span>
 			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</div>
 	);

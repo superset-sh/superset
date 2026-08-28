@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import Image from "next/image";
 
 const CLIENT_LOGOS = [
@@ -111,7 +112,9 @@ export function TrustedBySection() {
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				<div>
 					<h2 className="text-base sm:text-xl font-medium text-center mb-4 sm:mb-8 text-foreground">
-						Trusted by builders from
+						<Trans id="marketing.trustedBy.heading">
+							Trusted by builders from
+						</Trans>
 					</h2>
 				</div>
 

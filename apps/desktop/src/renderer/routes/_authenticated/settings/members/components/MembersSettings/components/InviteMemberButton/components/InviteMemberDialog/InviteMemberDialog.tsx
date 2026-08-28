@@ -2,8 +2,8 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	canInvite,
-	ORGANIZATION_ROLES,
 	type OrganizationRole,
+	organizationRoleName,
 } from "@superset/shared/auth";
 import { Button } from "@superset/ui/button";
 import {
@@ -53,7 +53,7 @@ export function InviteMemberDialog({
 
 	const handleInvite = async () => {
 		if (!canInvite(currentUserRole, role)) {
-			const roleName = ORGANIZATION_ROLES[role].name;
+			const roleName = organizationRoleName(role);
 			toast.error(
 				t({
 					id: "settings.members.cannotInviteAsRoleToast",
@@ -148,7 +148,7 @@ export function InviteMemberDialog({
 							<SelectContent>
 								{invitableRoles.map((r) => (
 									<SelectItem key={r} value={r}>
-										{ORGANIZATION_ROLES[r].name}
+										{organizationRoleName(r)}
 									</SelectItem>
 								))}
 							</SelectContent>

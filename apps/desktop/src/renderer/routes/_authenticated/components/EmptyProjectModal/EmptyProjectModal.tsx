@@ -107,7 +107,7 @@ export function EmptyProjectModal({
 			const activeHostUrl = await hostService.waitForHostReady();
 			if (!activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
-					action: "create the project",
+					action: "createProject",
 				});
 				return;
 			}

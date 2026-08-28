@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { useId } from "react";
 
 interface Soc2BadgeProps {
@@ -6,7 +7,12 @@ interface Soc2BadgeProps {
 }
 
 export function Soc2Badge({ size = 96, className }: Soc2BadgeProps) {
+	const { t } = useLingui();
 	const ringId = useId();
+	const badgeLabel = t({
+		id: "marketing.soc2.badgeLabel",
+		message: "SOC 2 Type II compliant",
+	});
 
 	return (
 		<svg
@@ -15,10 +21,10 @@ export function Soc2Badge({ size = 96, className }: Soc2BadgeProps) {
 			viewBox="0 0 120 120"
 			fill="none"
 			role="img"
-			aria-label="SOC 2 Type II compliant"
+			aria-label={badgeLabel}
 			className={className}
 		>
-			<title>SOC 2 Type II compliant</title>
+			<title>{badgeLabel}</title>
 			<circle
 				cx="60"
 				cy="60"

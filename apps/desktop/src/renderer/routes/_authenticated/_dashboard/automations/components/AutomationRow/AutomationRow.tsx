@@ -3,6 +3,7 @@ import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
 import { i18n } from "@superset/i18n";
+import { formatCompactRelativeTime } from "@superset/i18n/format";
 import {
 	describeSchedule,
 	formatDateTimeInTimezone,
@@ -103,58 +104,25 @@ const LAST_RUN_META: Record<
 	},
 };
 
+// Both directions come from Intl.RelativeTimeFormat: it renders the compact
+// "3d ago" / "in 2h" shape in every locale, so these need no catalog entries
+// beyond the two "right now" cases where a bare unit would read oddly.
 function compactUntil(at: number, now: Date): string {
-	const minutes = Math.floor((at - now.getTime()) / 60_000);
-	if (minutes < 1)
+	if (at - now.getTime() < 60_000) {
 		return i18n._(
 			msg({ id: "dashboard.automations.row.untilSoon", message: "soon" }),
 		);
-	if (minutes < 60)
-		return i18n._(
-			msg({
-				id: "dashboard.automations.row.untilMinutes",
-				message: `in ${minutes}m`,
-			}),
-		);
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24)
-		return i18n._(
-			msg({
-				id: "dashboard.automations.row.untilHours",
-				message: `in ${hours}h`,
-			}),
-		);
-	const days = Math.floor(hours / 24);
-	return i18n._(
-		msg({ id: "dashboard.automations.row.untilDays", message: `in ${days}d` }),
-	);
+	}
+	return formatCompactRelativeTime(at, now);
 }
 
 function compactAgo(at: number, now: Date): string {
-	const minutes = Math.floor((now.getTime() - at) / 60_000);
-	if (minutes < 1)
+	if (now.getTime() - at < 60_000) {
 		return i18n._(
 			msg({ id: "dashboard.automations.row.agoJustNow", message: "just now" }),
 		);
-	if (minutes < 60)
-		return i18n._(
-			msg({
-				id: "dashboard.automations.row.agoMinutes",
-				message: `${minutes}m ago`,
-			}),
-		);
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24)
-		return i18n._(
-			msg({
-				id: "dashboard.automations.row.agoHours",
-				message: `${hours}h ago`,
-			}),
-		);
-	const days = Math.floor(hours / 24);
-	return i18n._(
-		msg({ id: "dashboard.automations.row.agoDays", message: `${days}d ago` }),
-	);
+	}
+	return formatCompactRelativeTime(at, now);
 }
 
 export function AutomationRow({

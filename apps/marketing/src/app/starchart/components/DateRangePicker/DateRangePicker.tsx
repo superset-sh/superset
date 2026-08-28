@@ -1,5 +1,8 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Calendar } from "@superset/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -14,11 +17,43 @@ interface DateRangePickerProps {
 	toDate: Date;
 }
 
-const PRESETS: Array<{ label: string; days: number | null }> = [
-	{ label: "All time", days: null },
-	{ label: "Last 4 weeks", days: 28 },
-	{ label: "Last 3 months", days: 90 },
-	{ label: "Last 6 months", days: 180 },
+const PRESETS: Array<{
+	id: string;
+	label: MessageDescriptor;
+	days: number | null;
+}> = [
+	{
+		id: "all",
+		label: msg({
+			id: "marketing.starchart.range.allTime",
+			message: "All time",
+		}),
+		days: null,
+	},
+	{
+		id: "4w",
+		label: msg({
+			id: "marketing.starchart.range.last4Weeks",
+			message: "Last 4 weeks",
+		}),
+		days: 28,
+	},
+	{
+		id: "3m",
+		label: msg({
+			id: "marketing.starchart.range.last3Months",
+			message: "Last 3 months",
+		}),
+		days: 90,
+	},
+	{
+		id: "6m",
+		label: msg({
+			id: "marketing.starchart.range.last6Months",
+			message: "Last 6 months",
+		}),
+		days: 180,
+	},
 ];
 
 export function DateRangePicker({
@@ -27,6 +62,7 @@ export function DateRangePicker({
 	fromDate,
 	toDate,
 }: DateRangePickerProps) {
+	const { t } = useLingui();
 	// With no selection, defaultMonth + the next month are both shown
 	// (numberOfMonths={2}) — anchoring on toDate would put a fully-disabled
 	// future month in the second slot, so anchor one month earlier instead.
@@ -38,14 +74,21 @@ export function DateRangePicker({
 			<PopoverTrigger asChild>
 				<Button variant="outline" size="sm" className="gap-2 font-mono text-xs">
 					<CalendarIcon className="size-3.5" />
-					{formatRangeLabel(range, "All time", "MMM d, yyyy")}
+					{formatRangeLabel(
+						range,
+						t({
+							id: "marketing.starchart.range.allTime",
+							message: "All time",
+						}),
+						"MMM d, yyyy",
+					)}
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-auto p-3" align="start">
 				<div className="flex flex-wrap gap-1.5 pb-3 mb-3 border-b border-border">
 					{PRESETS.map((preset) => (
 						<Button
-							key={preset.label}
+							key={preset.id}
 							variant="ghost"
 							size="sm"
 							className="h-7 text-xs"
@@ -69,7 +112,7 @@ export function DateRangePicker({
 								)
 							}
 						>
-							{preset.label}
+							{t(preset.label)}
 						</Button>
 					))}
 				</div>

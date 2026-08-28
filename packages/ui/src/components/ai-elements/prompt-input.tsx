@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
 	CornerDownLeftIcon,
@@ -41,6 +42,7 @@ import {
 	applyAttachmentConstraints,
 } from "../../lib/attachment-constraints";
 import { getClipboardFiles } from "../../lib/clipboard-files";
+import { i18n } from "../../lib/i18n";
 import { isEnterSubmit } from "../../lib/keyboard";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
@@ -497,6 +499,7 @@ export function PromptInputAttachment({
 	className,
 	...props
 }: PromptInputAttachmentProps) {
+	const { t } = useLingui();
 	const attachments = usePromptInputAttachments();
 
 	const filename = data.filename || "";
@@ -505,7 +508,11 @@ export function PromptInputAttachment({
 		data.mediaType?.startsWith("image/") && data.url ? "image" : "file";
 	const isImage = mediaType === "image";
 
-	const attachmentLabel = filename || (isImage ? "Image" : "Attachment");
+	const attachmentLabel =
+		filename ||
+		(isImage
+			? t({ id: "ui.promptInput.attachmentImage", message: "Image" })
+			: t({ id: "ui.promptInput.attachmentFile", message: "Attachment" }));
 
 	return (
 		<PromptInputHoverCard>
@@ -522,7 +529,13 @@ export function PromptInputAttachment({
 						<div className="absolute inset-0 flex size-5 items-center justify-center overflow-hidden rounded bg-background transition-opacity group-hover:opacity-0">
 							{isImage ? (
 								<img
-									alt={filename || "attachment"}
+									alt={
+										filename ||
+										t({
+											id: "ui.promptInput.attachmentAlt",
+											message: "attachment",
+										})
+									}
 									className="size-5 object-cover"
 									height={20}
 									src={data.url}
@@ -535,7 +548,10 @@ export function PromptInputAttachment({
 							)}
 						</div>
 						<Button
-							aria-label="Remove attachment"
+							aria-label={t({
+								id: "ui.promptInput.removeAttachment",
+								message: "Remove attachment",
+							})}
 							className="absolute inset-0 size-5 cursor-pointer rounded p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-2.5"
 							onClick={(e) => {
 								e.stopPropagation();
@@ -545,7 +561,9 @@ export function PromptInputAttachment({
 							variant="ghost"
 						>
 							<XIcon />
-							<span className="sr-only">Remove</span>
+							<span className="sr-only">
+								<Trans id="ui.promptInput.remove">Remove</Trans>
+							</span>
 						</Button>
 					</div>
 
@@ -557,7 +575,13 @@ export function PromptInputAttachment({
 					{isImage && (
 						<div className="relative flex max-h-96 w-96 items-center justify-center overflow-hidden rounded-md border">
 							<img
-								alt={filename || "attachment preview"}
+								alt={
+									filename ||
+									t({
+										id: "ui.promptInput.attachmentPreviewAlt",
+										message: "attachment preview",
+									})
+								}
 								className={cn(
 									"max-h-full max-w-full object-contain",
 									loading && "opacity-50",
@@ -576,7 +600,7 @@ export function PromptInputAttachment({
 					<div className="flex items-center gap-2.5">
 						<div className="min-w-0 flex-1 space-y-1 px-0.5">
 							<h4 className="truncate font-semibold text-sm leading-none">
-								{filename || (isImage ? "Image" : "Attachment")}
+								{attachmentLabel}
 							</h4>
 							{data.mediaType && (
 								<p className="truncate font-mono text-muted-foreground text-xs">
@@ -628,7 +652,10 @@ export type PromptInputActionAddAttachmentsProps = ComponentProps<
 };
 
 export const PromptInputActionAddAttachments = ({
-	label = "Add photos or files",
+	label = i18n._({
+		id: "ui.promptInput.addAttachments",
+		message: "Add photos or files",
+	}),
 	...props
 }: PromptInputActionAddAttachmentsProps) => {
 	const attachments = usePromptInputAttachments();
@@ -691,6 +718,7 @@ export const PromptInput = ({
 	children,
 	...props
 }: PromptInputProps) => {
+	const { t } = useLingui();
 	// Try to use a provider controller if present
 	const controller = useOptionalPromptInputController();
 	const usingProvider = !!controller;
@@ -1032,12 +1060,15 @@ export const PromptInput = ({
 		<>
 			<input
 				accept={accept}
-				aria-label="Upload files"
+				aria-label={t({
+					id: "ui.promptInput.uploadFiles",
+					message: "Upload files",
+				})}
 				className="hidden"
 				multiple={multiple}
 				onChange={handleChange}
 				ref={inputRef}
-				title="Upload files"
+				title={t({ id: "ui.promptInput.uploadFiles", message: "Upload files" })}
 				type="file"
 			/>
 			<form
@@ -1076,7 +1107,10 @@ export type PromptInputTextareaProps = ComponentProps<
 export const PromptInputTextarea = ({
 	onChange,
 	className,
-	placeholder = "What would you like to know?",
+	placeholder = i18n._({
+		id: "ui.promptInput.textareaPlaceholder",
+		message: "What would you like to know?",
+	}),
 	...props
 }: PromptInputTextareaProps) => {
 	const controller = useOptionalPromptInputController();
@@ -1281,6 +1315,7 @@ export const PromptInputSubmit = ({
 	children,
 	...props
 }: PromptInputSubmitProps) => {
+	const { t } = useLingui();
 	let Icon = <CornerDownLeftIcon className="size-4" />;
 
 	if (status === "submitted") {
@@ -1293,7 +1328,7 @@ export const PromptInputSubmit = ({
 
 	return (
 		<InputGroupButton
-			aria-label="Submit"
+			aria-label={t({ id: "ui.promptInput.submit", message: "Submit" })}
 			className={cn(className)}
 			size={size}
 			type="submit"

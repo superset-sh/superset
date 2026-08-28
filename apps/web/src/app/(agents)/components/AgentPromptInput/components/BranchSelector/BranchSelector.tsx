@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { ChevronDown, GitBranch } from "lucide-react";
 import { ResponsiveDropdown } from "../../../ResponsiveDropdown";
 
@@ -16,9 +17,11 @@ export function BranchSelector({
 	onBranchChange,
 	disabled = false,
 }: BranchSelectorProps) {
+	const { t } = useLingui();
+
 	return (
 		<ResponsiveDropdown
-			title="Select branch"
+			title={t({ id: "web.branchSelector.title", message: "Select branch" })}
 			items={branches.map((branch) => ({
 				label: branch,
 				icon: <GitBranch className="size-3" />,

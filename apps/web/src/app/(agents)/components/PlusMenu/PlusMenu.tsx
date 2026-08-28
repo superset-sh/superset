@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import {
 	PromptInputButton,
 	usePromptInputAttachments,
@@ -12,6 +13,7 @@ type PlusMenuProps = {
 };
 
 export function PlusMenu({ disabled = false }: PlusMenuProps) {
+	const { t } = useLingui();
 	const attachments = usePromptInputAttachments();
 
 	if (disabled) {
@@ -30,11 +32,14 @@ export function PlusMenu({ disabled = false }: PlusMenuProps) {
 			side="top"
 			align="end"
 			contentClassName="w-52"
-			title="Add to prompt"
+			title={t({ id: "web.plusMenu.title", message: "Add to prompt" })}
 			onCloseAutoFocus={(e) => e.preventDefault()}
 			items={[
 				{
-					label: "Add attachment",
+					label: t({
+						id: "web.plusMenu.addAttachment",
+						message: "Add attachment",
+					}),
 					icon: <PaperclipIcon className="size-4" />,
 					onSelect: () => attachments.openFileDialog(),
 				},

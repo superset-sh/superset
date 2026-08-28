@@ -1,27 +1,90 @@
 "use client";
 
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { m, useInView } from "framer-motion";
 import { useRef } from "react";
 
-const AUTOMATIONS = [
+const AUTOMATIONS: {
+	name: string;
+	schedule: MessageDescriptor;
+	lastRun: MessageDescriptor;
+	running?: boolean;
+}[] = [
 	{
 		name: "daily-triage",
-		schedule: "daily 9:00",
-		lastRun: "running",
+		schedule: msg({
+			id: "marketing.features.automations.schedule.daily",
+			message: "daily 9:00",
+		}),
+		lastRun: msg({
+			id: "marketing.features.automations.lastRun.running",
+			message: "running",
+		}),
 		running: true,
 	},
-	{ name: "changelog-draft", schedule: "sun 11:00", lastRun: "2h ago" },
-	{ name: "dep-upgrades", schedule: "weekly", lastRun: "1d ago" },
-	{ name: "roadmap-sync", schedule: "monthly", lastRun: "3d ago" },
+	{
+		name: "changelog-draft",
+		schedule: msg({
+			id: "marketing.features.automations.schedule.sunday",
+			message: "sun 11:00",
+		}),
+		lastRun: msg({
+			id: "marketing.features.automations.lastRun.twoHoursAgo",
+			message: "2h ago",
+		}),
+	},
+	{
+		name: "dep-upgrades",
+		schedule: msg({
+			id: "marketing.features.automations.schedule.weekly",
+			message: "weekly",
+		}),
+		lastRun: msg({
+			id: "marketing.features.automations.lastRun.oneDayAgo",
+			message: "1d ago",
+		}),
+	},
+	{
+		name: "roadmap-sync",
+		schedule: msg({
+			id: "marketing.features.automations.schedule.monthly",
+			message: "monthly",
+		}),
+		lastRun: msg({
+			id: "marketing.features.automations.lastRun.threeDaysAgo",
+			message: "3d ago",
+		}),
+	},
 ];
 
-const LOG_LINES = [
-	"triaging 12 new issues…",
-	"drafted 3 support replies",
-	"opened PR #841 for review",
+const LOG_LINES: { id: string; message: MessageDescriptor }[] = [
+	{
+		id: "triaging",
+		message: msg({
+			id: "marketing.features.automations.log.triaging",
+			message: "triaging 12 new issues…",
+		}),
+	},
+	{
+		id: "drafted",
+		message: msg({
+			id: "marketing.features.automations.log.drafted",
+			message: "drafted 3 support replies",
+		}),
+	},
+	{
+		id: "opened-pr",
+		message: msg({
+			id: "marketing.features.automations.log.openedPr",
+			message: "opened PR #841 for review",
+		}),
+	},
 ];
 
 export function AutomationsDemo() {
+	const { t } = useLingui();
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 
@@ -49,13 +112,17 @@ export function AutomationsDemo() {
 			<div className="p-4 font-mono text-[11px] leading-relaxed">
 				<div className="grid grid-cols-[1fr_auto_auto] gap-x-6 gap-y-2">
 					<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-						Name
+						<Trans id="marketing.features.automations.column.name">Name</Trans>
 					</div>
 					<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-						Schedule
+						<Trans id="marketing.features.automations.column.schedule">
+							Schedule
+						</Trans>
 					</div>
 					<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
-						Last run
+						<Trans id="marketing.features.automations.column.lastRun">
+							Last run
+						</Trans>
 					</div>
 					{AUTOMATIONS.map((automation, index) => (
 						<m.div
@@ -67,14 +134,19 @@ export function AutomationsDemo() {
 						>
 							<div className="text-foreground/90">{automation.name}</div>
 							<div className="text-muted-foreground/65">
-								{automation.schedule}
+								{t(automation.schedule)}
 							</div>
 							{automation.running ? (
-								<div className="text-brand-light">⠋ running</div>
+								<div className="text-brand-light">
+									⠋{" "}
+									<Trans id="marketing.features.automations.running">
+										running
+									</Trans>
+								</div>
 							) : (
 								<div className="text-muted-foreground/55">
 									<span className="text-emerald-400/85">✓</span>{" "}
-									{automation.lastRun}
+									{t(automation.lastRun)}
 								</div>
 							)}
 						</m.div>
@@ -87,13 +159,14 @@ export function AutomationsDemo() {
 					</div>
 					{LOG_LINES.map((line, index) => (
 						<m.div
-							key={line}
+							key={line.id}
 							className="text-muted-foreground/70"
 							initial={{ opacity: 0 }}
 							animate={isInView ? { opacity: 1 } : { opacity: 0 }}
 							transition={{ duration: 0.3, delay: 0.5 + index * 0.15 }}
 						>
-							<span className="text-muted-foreground/45">→</span> {line}
+							<span className="text-muted-foreground/45">→</span>{" "}
+							{t(line.message)}
 						</m.div>
 					))}
 				</div>

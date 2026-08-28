@@ -79,3 +79,42 @@ export function formatDateTime(
 ): string {
 	return new Intl.DateTimeFormat(getActiveLocale(), options).format(date);
 }
+
+// Relative time: -3600_000 -> "1 hour ago", 86_400_000 -> "tomorrow".
+// `numeric: "auto"` lets the locale use idiomatic wording ("yesterday")
+// where it has one.
+const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+	["year", 365 * 24 * 60 * 60 * 1000],
+	["month", 30 * 24 * 60 * 60 * 1000],
+	["week", 7 * 24 * 60 * 60 * 1000],
+	["day", 24 * 60 * 60 * 1000],
+	["hour", 60 * 60 * 1000],
+	["minute", 60 * 1000],
+	["second", 1000],
+];
+
+export function formatRelativeTime(
+	date: Date | number,
+	now: Date | number = Date.now(),
+	options: Intl.RelativeTimeFormatOptions = { numeric: "auto" },
+): string {
+	const diffMs =
+		(date instanceof Date ? date.getTime() : date) -
+		(now instanceof Date ? now.getTime() : now);
+	const formatter = new Intl.RelativeTimeFormat(getActiveLocale(), options);
+	for (const [unit, ms] of RELATIVE_UNITS) {
+		if (Math.abs(diffMs) >= ms) {
+			return formatter.format(Math.round(diffMs / ms), unit);
+		}
+	}
+	return formatter.format(0, "second");
+}
+
+// Compact age for dense UI: "3d", "2w", "5m". Locale-aware via
+// `style: "narrow"`, which most locales render without a leading article.
+export function formatCompactRelativeTime(
+	date: Date | number,
+	now: Date | number = Date.now(),
+): string {
+	return formatRelativeTime(date, now, { numeric: "always", style: "narrow" });
+}

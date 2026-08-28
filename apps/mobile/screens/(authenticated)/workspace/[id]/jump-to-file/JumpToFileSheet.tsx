@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { CheckCircle2, MessageSquare } from "lucide-react-native";
 import { FlatList, View } from "react-native";
@@ -27,6 +28,7 @@ function splitPath(path: string): { name: string; dir: string | null } {
 }
 
 export function JumpToFileSheet() {
+	const { t } = useLingui();
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const workspaceId = id ?? "";
@@ -53,11 +55,21 @@ export function JumpToFileSheet() {
 
 	return (
 		<>
-			<Stack.Screen options={{ title: "Jump to file" }} />
+			<Stack.Screen
+				options={{
+					title: t({
+						id: "mobile.nav.jumpToFile.title",
+						message: "Jump to file",
+					}),
+				}}
+			/>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button
 					icon="xmark"
-					accessibilityLabel="Close"
+					accessibilityLabel={t({
+						id: "mobile.common.close",
+						message: "Close",
+					})}
 					onPress={() => router.back()}
 				/>
 			</Stack.Toolbar>
@@ -119,7 +131,7 @@ export function JumpToFileSheet() {
 				ListEmptyComponent={
 					<View className="items-center py-16">
 						<Text className="text-muted-foreground text-sm">
-							No changed files.
+							<Trans id="mobile.jumpToFile.empty">No changed files.</Trans>
 						</Text>
 					</View>
 				}

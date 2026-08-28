@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { i18n } from "./i18n";
 import { hasFiniteRecurrence, rruleProblem } from "./rrule";
 
 /**
@@ -441,17 +442,98 @@ export type TriggerProblem = {
  * to the events whose sentence shows the chip; a rule for a field the config
  * member does not carry skips itself.
  */
+type ScopeNoun =
+	| "repository"
+	| "person"
+	| "channel"
+	| "reaction"
+	| "dataSource"
+	| "team"
+	| "project"
+	| "calendar"
+	| "sender";
+
+type ScopeChoice = "anyone" | "anySender";
+
 type ScopeRequirement = {
 	field: string;
-	noun: string;
-	orChoose?: string;
+	noun: ScopeNoun;
+	orChoose?: ScopeChoice;
 	when?: (config: TriggerConfigInput) => boolean;
 };
+
+// Display-only: the nouns and wide-open choices the "Specify at least one …"
+// sentence is built from. Keyed rather than inlined so the sentence stays one
+// catalog message with placeholders instead of a per-provider copy.
+function scopeNounLabel(noun: ScopeNoun): string {
+	switch (noun) {
+		case "repository":
+			return i18n._({
+				id: "shared.automationTriggers.noun.repository",
+				message: "repository",
+			});
+		case "person":
+			return i18n._({
+				id: "shared.automationTriggers.noun.person",
+				message: "person",
+			});
+		case "channel":
+			return i18n._({
+				id: "shared.automationTriggers.noun.channel",
+				message: "channel",
+			});
+		case "reaction":
+			return i18n._({
+				id: "shared.automationTriggers.noun.reaction",
+				message: "reaction",
+			});
+		case "dataSource":
+			return i18n._({
+				id: "shared.automationTriggers.noun.dataSource",
+				message: "data source",
+			});
+		case "team":
+			return i18n._({
+				id: "shared.automationTriggers.noun.team",
+				message: "team",
+			});
+		case "project":
+			return i18n._({
+				id: "shared.automationTriggers.noun.project",
+				message: "project",
+			});
+		case "calendar":
+			return i18n._({
+				id: "shared.automationTriggers.noun.calendar",
+				message: "calendar",
+			});
+		case "sender":
+			return i18n._({
+				id: "shared.automationTriggers.noun.sender",
+				message: "sender",
+			});
+	}
+}
+
+function scopeChoiceLabel(choice: ScopeChoice): string {
+	switch (choice) {
+		case "anyone":
+			return i18n._({
+				id: "shared.automationTriggers.choice.anyone",
+				message: "Anyone",
+			});
+		case "anySender":
+			return i18n._({
+				id: "shared.automationTriggers.choice.anySender",
+				message: "Any sender",
+			});
+	}
+}
 
 const person = (
 	field: string,
 	when?: (config: TriggerConfigInput) => boolean,
-): ScopeRequirement => ({ field, noun: "person", orChoose: "Anyone", when });
+): ScopeRequirement => ({ field, noun: "person", orChoose: "anyone", when });
 
 const REQUIREMENTS: Partial<
 	Record<TriggerConfigInput["kind"], ScopeRequirement[]>
@@ -477,7 +559,7 @@ const REQUIREMENTS: Partial<
 		person("actor"),
 	],
 	notion: [
-		{ field: "dataSources", noun: "data source" },
+		{ field: "dataSources", noun: "dataSource" },
 		person("actor"),
 		person("mentionedUser"),
 	],
@@ -512,7 +594,7 @@ const REQUIREMENTS: Partial<
 	// The sender is the primary scope, as the repository is for GitHub: a
 	// mailbox-wide trigger has to be chosen ("Any sender"), never arrived at by
 	// leaving the chip empty.
-	gmail: [{ field: "from", noun: "sender", orChoose: "Any sender" }],
+	gmail: [{ field: "from", noun: "sender", orChoose: "anySender" }],
 };
 
 /**
@@ -540,8 +622,19 @@ export function describeTriggerProblems(
 				index,
 				field: rule.field,
 				message: rule.orChoose
-					? `Specify at least one ${rule.noun}, or choose ${rule.orChoose}.`
-					: `Specify at least one ${rule.noun}.`,
+					? i18n._({
+							id: "shared.automationTriggers.specifyScopeOrChoose",
+							message: "Specify at least one {noun}, or choose {choice}.",
+							values: {
+								noun: scopeNounLabel(rule.noun),
+								choice: scopeChoiceLabel(rule.orChoose),
+							},
+						})
+					: i18n._({
+							id: "shared.automationTriggers.specifyScope",
+							message: "Specify at least one {noun}.",
+							values: { noun: scopeNounLabel(rule.noun) },
+						}),
 			});
 		}
 
@@ -551,13 +644,19 @@ export function describeTriggerProblems(
 				problems.push({
 					index,
 					field: "rrule",
-					message: "Enter a valid recurrence rule.",
+					message: i18n._({
+						id: "shared.automationTriggers.invalidRrule",
+						message: "Enter a valid recurrence rule.",
+					}),
 				});
 			} else if (hasFiniteRecurrence(config.rrule)) {
 				problems.push({
 					index,
 					field: "rrule",
-					message: "Schedules repeat — remove COUNT or UNTIL.",
+					message: i18n._({
+						id: "shared.automationTriggers.finiteRrule",
+						message: "Schedules repeat — remove COUNT or UNTIL.",
+					}),
 				});
 			}
 		}
@@ -571,5 +670,8 @@ export function summarizeTriggerProblems(
 	problems: TriggerProblem[],
 ): string | null {
 	if (problems.length === 0) return null;
-	return "Some triggers need additional configuration";
+	return i18n._({
+		id: "shared.automationTriggers.needConfiguration",
+		message: "Some triggers need additional configuration",
+	});
 }

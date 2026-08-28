@@ -288,7 +288,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 							message: "No active organization",
 						})
 					: getHostServiceUnavailableMessage(hostService, {
-							action: "create the workspace",
+							action: "createWorkspace",
 						});
 				recordFailure(error);
 				return {

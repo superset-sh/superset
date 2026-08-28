@@ -1,3 +1,5 @@
+import { formatDate } from "@superset/i18n/format";
+
 const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}/;
 const MULTI_MONTH_SPAN_DAYS = 60;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -12,15 +14,16 @@ interface DateAxisConfig {
 // midnight and formats in local time — which renders it as January in the
 // Americas. Every formatter here pins to UTC so labels match the data.
 export function formatDay(value: string): string {
-	return new Date(`${value.slice(0, 10)}T00:00:00Z`).toLocaleDateString(
-		"en-US",
-		{ month: "short", day: "numeric", timeZone: "UTC" },
-	);
+	return formatDate(new Date(`${value.slice(0, 10)}T00:00:00Z`), {
+		month: "short",
+		day: "numeric",
+		timeZone: "UTC",
+	});
 }
 
 export function formatMonth(value: string): string {
 	const month = value.length === 7 ? `${value}-01` : value.slice(0, 10);
-	return new Date(`${month}T00:00:00Z`).toLocaleDateString("en-US", {
+	return formatDate(new Date(`${month}T00:00:00Z`), {
 		month: "long",
 		timeZone: "UTC",
 	});

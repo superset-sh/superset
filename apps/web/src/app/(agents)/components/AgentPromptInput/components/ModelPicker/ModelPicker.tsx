@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { ModelSelectorLogo } from "@superset/ui/ai-elements/model-selector";
 import { ChevronDown } from "lucide-react";
 import type { MockModel } from "../../../../mock-data";
@@ -18,9 +19,11 @@ export function ModelPicker({
 	onModelChange,
 	disabled = false,
 }: ModelPickerProps) {
+	const { t } = useLingui();
+
 	return (
 		<ResponsiveDropdown
-			title="Select model"
+			title={t({ id: "web.modelPicker.title", message: "Select model" })}
 			items={models.map((model) => ({
 				label: model.name,
 				icon: (

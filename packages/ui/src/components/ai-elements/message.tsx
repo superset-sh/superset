@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans, useLingui } from "@lingui/react/macro";
 import { mermaid } from "@streamdown/mermaid";
 import type { FileUIPart, UIMessage } from "ai";
 import {
@@ -252,11 +253,15 @@ export const MessageBranchPrevious = ({
 	children,
 	...props
 }: MessageBranchPreviousProps) => {
+	const { t } = useLingui();
 	const { goToPrevious, totalBranches } = useMessageBranch();
 
 	return (
 		<Button
-			aria-label="Previous branch"
+			aria-label={t({
+				id: "ui.message.previousBranch",
+				message: "Previous branch",
+			})}
 			disabled={totalBranches <= 1}
 			onClick={goToPrevious}
 			size="icon-sm"
@@ -275,11 +280,12 @@ export const MessageBranchNext = ({
 	children,
 	...props
 }: MessageBranchNextProps) => {
+	const { t } = useLingui();
 	const { goToNext, totalBranches } = useMessageBranch();
 
 	return (
 		<Button
-			aria-label="Next branch"
+			aria-label={t({ id: "ui.message.nextBranch", message: "Next branch" })}
 			disabled={totalBranches <= 1}
 			onClick={goToNext}
 			size="icon-sm"
@@ -299,6 +305,7 @@ export const MessageBranchPage = ({
 	...props
 }: MessageBranchPageProps) => {
 	const { currentBranch, totalBranches } = useMessageBranch();
+	const currentPage = currentBranch + 1;
 
 	return (
 		<ButtonGroupText
@@ -308,7 +315,9 @@ export const MessageBranchPage = ({
 			)}
 			{...props}
 		>
-			{currentBranch + 1} of {totalBranches}
+			<Trans id="ui.message.branchPage">
+				{currentPage} of {totalBranches}
+			</Trans>
 		</ButtonGroupText>
 	);
 };
@@ -369,11 +378,16 @@ export function MessageAttachment({
 	onRemove,
 	...props
 }: MessageAttachmentProps) {
+	const { t } = useLingui();
 	const filename = data.filename || "";
 	const mediaType =
 		data.mediaType?.startsWith("image/") && data.url ? "image" : "file";
 	const isImage = mediaType === "image";
-	const attachmentLabel = filename || (isImage ? "Image" : "Attachment");
+	const attachmentLabel =
+		filename ||
+		(isImage
+			? t({ id: "ui.message.attachmentImage", message: "Image" })
+			: t({ id: "ui.message.attachmentFile", message: "Attachment" }));
 
 	return (
 		<div
@@ -386,7 +400,10 @@ export function MessageAttachment({
 			{isImage ? (
 				<>
 					<img
-						alt={filename || "attachment"}
+						alt={
+							filename ||
+							t({ id: "ui.message.attachmentAlt", message: "attachment" })
+						}
 						className="size-full object-cover"
 						height={100}
 						src={data.url}
@@ -394,7 +411,10 @@ export function MessageAttachment({
 					/>
 					{onRemove && (
 						<Button
-							aria-label="Remove attachment"
+							aria-label={t({
+								id: "ui.message.removeAttachment",
+								message: "Remove attachment",
+							})}
 							className="absolute top-2 right-2 size-6 rounded-full bg-background/80 p-0 opacity-0 backdrop-blur-sm transition-opacity hover:bg-background group-hover:opacity-100 [&>svg]:size-3"
 							onClick={(e) => {
 								e.stopPropagation();
@@ -404,7 +424,9 @@ export function MessageAttachment({
 							variant="ghost"
 						>
 							<XIcon />
-							<span className="sr-only">Remove</span>
+							<span className="sr-only">
+								<Trans id="ui.message.remove">Remove</Trans>
+							</span>
 						</Button>
 					)}
 				</>
@@ -422,7 +444,10 @@ export function MessageAttachment({
 					</Tooltip>
 					{onRemove && (
 						<Button
-							aria-label="Remove attachment"
+							aria-label={t({
+								id: "ui.message.removeAttachment",
+								message: "Remove attachment",
+							})}
 							className="size-6 shrink-0 rounded-full p-0 opacity-0 transition-opacity hover:bg-accent group-hover:opacity-100 [&>svg]:size-3"
 							onClick={(e) => {
 								e.stopPropagation();
@@ -432,7 +457,9 @@ export function MessageAttachment({
 							variant="ghost"
 						>
 							<XIcon />
-							<span className="sr-only">Remove</span>
+							<span className="sr-only">
+								<Trans id="ui.message.remove">Remove</Trans>
+							</span>
 						</Button>
 					)}
 				</>

@@ -1,6 +1,7 @@
 "use server";
 
 import { ContactInquiryEmail } from "@superset/email/emails/internal/contact-inquiry";
+import { i18n } from "@superset/i18n";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
@@ -24,17 +25,35 @@ const contactFormDataSchema = z.object({
 export async function submitContactInquiry(data: unknown) {
 	const parsedData = contactFormDataSchema.safeParse(data);
 	if (!parsedData.success) {
-		return { success: false, error: "Invalid input detected." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.invalidInput",
+				message: "Invalid input detected.",
+			}),
+		};
 	}
 
 	const { name, email, topic, message, honeypot } = parsedData.data;
 
 	if (honeypot && honeypot.length > 0) {
-		return { success: false, error: "Something went wrong. Please try again." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.generic",
+				message: "Something went wrong. Please try again.",
+			}),
+		};
 	}
 
 	if (!name || !email || !message) {
-		return { success: false, error: "Missing required fields." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.missingFields",
+				message: "Missing required fields.",
+			}),
+		};
 	}
 
 	const sanitizedName = sanitizeSingleLine(name);
@@ -43,18 +62,33 @@ export async function submitContactInquiry(data: unknown) {
 	const sanitizedMessage = sanitizeMessage(message);
 
 	if (!sanitizedName || !sanitizedEmail || !sanitizedMessage) {
-		return { success: false, error: "Invalid input detected." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.invalidInput",
+				message: "Invalid input detected.",
+			}),
+		};
 	}
 
 	if (!validateEmail(sanitizedEmail)) {
-		return { success: false, error: "Invalid email address." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.invalidEmail",
+				message: "Invalid email address.",
+			}),
+		};
 	}
 
 	try {
 		if (!(await checkEmailFormRateLimit(sanitizedEmail))) {
 			return {
 				success: false,
-				error: "Too many messages. Please try again later.",
+				error: i18n._({
+					id: "marketing.form.error.rateLimited",
+					message: "Too many messages. Please try again later.",
+				}),
 			};
 		}
 
@@ -77,13 +111,22 @@ export async function submitContactInquiry(data: unknown) {
 			console.error("Failed to send contact inquiry email:", error);
 			return {
 				success: false,
-				error: "Something went wrong. Please try again.",
+				error: i18n._({
+					id: "marketing.form.error.generic",
+					message: "Something went wrong. Please try again.",
+				}),
 			};
 		}
 
 		return { success: true };
 	} catch (error) {
 		console.error("Failed to send contact inquiry email:", error);
-		return { success: false, error: "Something went wrong. Please try again." };
+		return {
+			success: false,
+			error: i18n._({
+				id: "marketing.form.error.generic",
+				message: "Something went wrong. Please try again.",
+			}),
+		};
 	}
 }

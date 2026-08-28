@@ -1,5 +1,6 @@
 "use client";
 
+import { useLingui } from "@lingui/react/macro";
 import { useEffect } from "react";
 import { WaitlistForm } from "../WaitlistForm";
 
@@ -9,6 +10,8 @@ interface WaitlistModalProps {
 }
 
 export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
+	const { t } = useLingui();
+
 	useEffect(() => {
 		if (isOpen) {
 			document.body.style.overflow = "hidden";
@@ -29,7 +32,10 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 				type="button"
 				className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 cursor-default"
 				onClick={onClose}
-				aria-label="Close modal backdrop"
+				aria-label={t({
+					id: "marketing.waitlist.closeBackdrop",
+					message: "Close modal backdrop",
+				})}
 			/>
 
 			<div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
@@ -38,7 +44,10 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 						type="button"
 						onClick={onClose}
 						className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors"
-						aria-label="Close modal"
+						aria-label={t({
+							id: "marketing.waitlist.closeModal",
+							message: "Close modal",
+						})}
 					>
 						<svg
 							width="24"
@@ -57,8 +66,15 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 					</button>
 
 					<WaitlistForm
-						heading="Join the waitlist"
-						description="Get notified when Superset is available on Windows & Linux."
+						heading={t({
+							id: "marketing.waitlist.modalHeading",
+							message: "Join the waitlist",
+						})}
+						description={t({
+							id: "marketing.waitlist.modalDescription",
+							message:
+								"Get notified when Superset is available on Windows & Linux.",
+						})}
 					/>
 				</div>
 			</div>

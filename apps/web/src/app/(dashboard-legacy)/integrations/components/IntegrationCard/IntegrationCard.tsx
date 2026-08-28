@@ -1,5 +1,6 @@
 "use client";
 
+import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import Link from "next/link";
 import { type MouseEvent, type ReactNode, useRef, useState } from "react";
@@ -71,7 +72,11 @@ export function IntegrationCard({
 			{/* Top: Category badge + Coming Soon */}
 			<div className="relative z-10 flex w-full flex-row items-center justify-between">
 				<Badge variant="secondary">{category}</Badge>
-				{disabled && <Badge variant="outline">Coming Soon</Badge>}
+				{disabled && (
+					<Badge variant="outline">
+						<Trans id="web.integrationCard.comingSoon">Coming Soon</Trans>
+					</Badge>
+				)}
 			</div>
 
 			{/* Middle: Icon + Name */}

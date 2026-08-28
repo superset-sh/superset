@@ -3,8 +3,8 @@ import { errorMessage } from "@superset/i18n/errors";
 import {
 	getAvailableRoleChanges,
 	getRoleLevel,
-	ORGANIZATION_ROLES,
 	type OrganizationRole,
+	organizationRoleName,
 } from "@superset/shared/auth";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
@@ -191,7 +191,7 @@ export function MemberActions({
 				role: newRole,
 			});
 			await utils.organization.listMembers.invalidate();
-			const newRoleName = ORGANIZATION_ROLES[newRole].name;
+			const newRoleName = organizationRoleName(newRole);
 			toast.success(
 				t({
 					id: "settings.members.roleChangedToast",
@@ -218,8 +218,8 @@ export function MemberActions({
 			isCurrentUser && getRoleLevel(newRole) < getRoleLevel(member.role);
 
 		if (isSelfDemotion) {
-			const currentRoleName = ORGANIZATION_ROLES[member.role].name;
-			const newRoleName = ORGANIZATION_ROLES[newRole].name;
+			const currentRoleName = organizationRoleName(member.role);
+			const newRoleName = organizationRoleName(newRole);
 			alert({
 				title: t({
 					id: "settings.members.demoteConfirmTitle",
@@ -274,7 +274,7 @@ export function MemberActions({
 									disabled={isChangingRole}
 								>
 									<Trans id="settings.members.changeToRole">
-										Change to {ORGANIZATION_ROLES[role].name}
+										Change to {organizationRoleName(role)}
 									</Trans>
 								</DropdownMenuItem>
 							))}

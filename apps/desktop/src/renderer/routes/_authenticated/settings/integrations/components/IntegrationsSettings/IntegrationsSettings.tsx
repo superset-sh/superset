@@ -220,7 +220,7 @@ export function IntegrationsSettings({
 							name={
 								<HighlightText text={integration.label} query={searchQuery} />
 							}
-							description={integration.description}
+							description={integration.description()}
 							icon={INTEGRATION_ICONS[integration.provider]}
 							isConnected={state.isConnected}
 							connectedOrgName={state.connectedOrgName}

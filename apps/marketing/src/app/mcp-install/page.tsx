@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
@@ -24,23 +25,27 @@ export default function McpPage() {
 					<GridCross className="top-0 right-0" />
 
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						MCP Server
+						<Trans id="marketing.mcpInstall.hero.eyebrow">MCP Server</Trans>
 					</span>
 					<h1 className="text-3xl md:text-4xl font-medium tracking-tight text-foreground mt-4">
-						Install Superset MCP in your client
+						<Trans id="marketing.mcpInstall.hero.title">
+							Install Superset MCP in your client
+						</Trans>
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						Connect Claude, Codex, Cursor, or any{" "}
-						<a
-							href="https://modelcontextprotocol.io"
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-brand hover:text-brand-light transition-colors"
-						>
-							MCP
-						</a>{" "}
-						client and let your agent create tasks, spin up workspaces, launch
-						agents, and run automations on your behalf.
+						<Trans id="marketing.mcpInstall.hero.subtitle">
+							Connect Claude, Codex, Cursor, or any{" "}
+							<a
+								href="https://modelcontextprotocol.io"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-brand hover:text-brand-light transition-colors"
+							>
+								MCP
+							</a>{" "}
+							client and let your agent create tasks, spin up workspaces, launch
+							agents, and run automations on your behalf.
+						</Trans>
 					</p>
 					<p className="mt-6 inline-flex items-center gap-2 text-xs font-mono text-muted-foreground border border-border rounded-[2px] px-3 py-1.5 bg-foreground/[0.03]">
 						{MCP_SERVER_URL}
@@ -49,16 +54,18 @@ export default function McpPage() {
 					<div className="mt-8">
 						<McpInstall />
 						<p className="text-sm text-muted-foreground mt-4">
-							Pick your agent for a one-line install, or copy the config by
-							hand. Every client, including OAuth and API key setup, is covered
-							in the{" "}
-							<a
-								href={`${COMPANY.DOCS_URL}/mcp-server`}
-								className="text-brand hover:text-brand-light transition-colors"
-							>
-								full MCP server docs
-							</a>
-							.
+							<Trans id="marketing.mcpInstall.install.help">
+								Pick your agent for a one-line install, or copy the config by
+								hand. Every client, including OAuth and API key setup, is
+								covered in the{" "}
+								<a
+									href={`${COMPANY.DOCS_URL}/mcp-server`}
+									className="text-brand hover:text-brand-light transition-colors"
+								>
+									full MCP server docs
+								</a>
+								.
+							</Trans>
 						</p>
 					</div>
 
@@ -71,21 +78,27 @@ export default function McpPage() {
 			<section className="relative border-b border-border">
 				<div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Capabilities
+						<Trans id="marketing.mcpInstall.capabilities.eyebrow">
+							Capabilities
+						</Trans>
 					</span>
 					<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-8">
-						What your agent can do
+						<Trans id="marketing.mcpInstall.capabilities.title">
+							What your agent can do
+						</Trans>
 					</h2>
 					<McpCapabilities />
 					<p className="text-sm text-muted-foreground mt-10">
-						See the{" "}
-						<a
-							href={`${COMPANY.DOCS_URL}/mcp-server#available-tools`}
-							className="text-brand hover:text-brand-light transition-colors"
-						>
-							available tools reference
-						</a>{" "}
-						for every tool name and parameter.
+						<Trans id="marketing.mcpInstall.capabilities.toolsReference">
+							See the{" "}
+							<a
+								href={`${COMPANY.DOCS_URL}/mcp-server#available-tools`}
+								className="text-brand hover:text-brand-light transition-colors"
+							>
+								available tools reference
+							</a>{" "}
+							for every tool name and parameter.
+						</Trans>
 					</p>
 				</div>
 			</section>
@@ -94,10 +107,10 @@ export default function McpPage() {
 			<section className="relative border-b border-border">
 				<div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Try it
+						<Trans id="marketing.mcpInstall.examples.eyebrow">Try it</Trans>
 					</span>
 					<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-8">
-						Just ask
+						<Trans id="marketing.mcpInstall.examples.title">Just ask</Trans>
 					</h2>
 					<McpExamples />
 				</div>
@@ -107,24 +120,28 @@ export default function McpPage() {
 			<section className="relative">
 				<div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
 					<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
-						Authentication
+						<Trans id="marketing.mcpInstall.auth.eyebrow">Authentication</Trans>
 					</span>
 					<h2 className="text-2xl md:text-3xl font-medium tracking-tight text-foreground mt-4 mb-3">
-						OAuth by default, API keys for CI
+						<Trans id="marketing.mcpInstall.auth.title">
+							OAuth by default, API keys for CI
+						</Trans>
 					</h2>
 					<p className="text-muted-foreground max-w-lg">
-						Interactive clients authorize over OAuth 2.1 in your browser, scoped
-						to your active organization. For headless environments and CI,
-						generate an API key from Settings → API Keys in the desktop app and
-						pass it as a Bearer token instead. Full setup, including header
-						config for Claude Code, is in the{" "}
-						<a
-							href={`${COMPANY.DOCS_URL}/mcp-server#authentication`}
-							className="text-brand hover:text-brand-light transition-colors"
-						>
-							authentication docs
-						</a>
-						.
+						<Trans id="marketing.mcpInstall.auth.body">
+							Interactive clients authorize over OAuth 2.1 in your browser,
+							scoped to your active organization. For headless environments and
+							CI, generate an API key from Settings → API Keys in the desktop
+							app and pass it as a Bearer token instead. Full setup, including
+							header config for Claude Code, is in the{" "}
+							<a
+								href={`${COMPANY.DOCS_URL}/mcp-server#authentication`}
+								className="text-brand hover:text-brand-light transition-colors"
+							>
+								authentication docs
+							</a>
+							.
+						</Trans>
 					</p>
 				</div>
 			</section>

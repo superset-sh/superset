@@ -1,3 +1,4 @@
+import { useLingui } from "@lingui/react/macro";
 import { prompt } from "@superset/alert-prompt";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
@@ -18,6 +19,7 @@ export function useWorkspaceHeaderActions(
 	workspace: HostWorkspaceRow | null,
 	host: OrgHost | null,
 ) {
+	const { t } = useLingui();
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const cloud = useCloudWorkspaceActions();
@@ -29,13 +31,21 @@ export function useWorkspaceHeaderActions(
 	const renameWorkspace = async () => {
 		if (!workspace) return;
 		if (!host) {
-			Alert.alert("Host is not online");
+			Alert.alert(
+				t({
+					id: "mobile.workspace.hostNotOnline",
+					message: "Host is not online",
+				}),
+			);
 			return;
 		}
 		const name = await prompt({
-			title: "Rename workspace",
+			title: t({
+				id: "mobile.workspaceRow.renameTitle",
+				message: "Rename workspace",
+			}),
 			defaultValue: workspace.name,
-			confirmText: "Rename",
+			confirmText: t({ id: "mobile.workspaceRow.rename", message: "Rename" }),
 			selectText: true,
 		});
 		const trimmed = name?.trim();
@@ -51,7 +61,9 @@ export function useWorkspaceHeaderActions(
 				});
 			}
 		} catch {
-			Alert.alert("Rename failed");
+			Alert.alert(
+				t({ id: "mobile.workspaceRow.renameFailed", message: "Rename failed" }),
+			);
 		}
 		void queryClient.invalidateQueries({
 			queryKey: ["host-service", "workspaces", "list"],
@@ -61,7 +73,12 @@ export function useWorkspaceHeaderActions(
 	const deleteWorkspace = () => {
 		if (!workspace) return;
 		if (!host) {
-			Alert.alert("Host is not online");
+			Alert.alert(
+				t({
+					id: "mobile.workspace.hostNotOnline",
+					message: "Host is not online",
+				}),
+			);
 			return;
 		}
 		remove(

@@ -1,3 +1,5 @@
+import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import {
 	formatCompactNumber,
 	formatCurrency,
@@ -83,7 +85,10 @@ const ContextIcon = () => {
 
 	return (
 		<Svg
-			accessibilityLabel="Model context usage"
+			accessibilityLabel={i18n._({
+				id: "mobile.context.usageLabel",
+				message: "Model context usage",
+			})}
 			height={20}
 			viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
 			width={20}
@@ -225,7 +230,9 @@ export const ContextContentFooter = ({
 			>
 				{children ?? (
 					<>
-						<Text className="text-muted-foreground">Total cost</Text>
+						<Text className="text-muted-foreground">
+							<Trans id="mobile.context.totalCost">Total cost</Trans>
+						</Text>
 						<Text>{totalCost}</Text>
 					</>
 				)}
@@ -280,7 +287,9 @@ export const ContextInputUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Input</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans id="mobile.context.input">Input</Trans>
+			</Text>
 			<TokensWithCost costText={inputCostText} tokens={inputTokens} />
 		</View>
 	);
@@ -317,7 +326,9 @@ export const ContextOutputUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Output</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans id="mobile.context.output">Output</Trans>
+			</Text>
 			<TokensWithCost costText={outputCostText} tokens={outputTokens} />
 		</View>
 	);
@@ -354,7 +365,9 @@ export const ContextReasoningUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Reasoning</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans id="mobile.context.reasoning">Reasoning</Trans>
+			</Text>
 			<TokensWithCost costText={reasoningCostText} tokens={reasoningTokens} />
 		</View>
 	);
@@ -391,7 +404,9 @@ export const ContextCacheUsage = ({
 			className={cn("flex-row items-center justify-between", className)}
 			{...props}
 		>
-			<Text className="text-muted-foreground text-xs">Cache</Text>
+			<Text className="text-muted-foreground text-xs">
+				<Trans id="mobile.context.cache">Cache</Trans>
+			</Text>
 			<TokensWithCost costText={cacheCostText} tokens={cacheTokens} />
 		</View>
 	);

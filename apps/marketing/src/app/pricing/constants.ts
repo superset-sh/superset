@@ -1,79 +1,195 @@
+import type { MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { COMPANY } from "@superset/shared/constants";
-import type { FAQItem } from "@/app/components/FAQSection";
 
 export type TierId = "free" | "pro" | "enterprise";
 
+export interface PricingFeature {
+	id: string;
+	label: MessageDescriptor;
+}
+
 export interface PricingTier {
 	id: TierId;
-	name: string;
-	description: string;
+	name: MessageDescriptor;
+	description: MessageDescriptor;
 	price:
-		| { kind: "fixed"; display: string; note: string }
+		| { kind: "fixed"; display: string; note: MessageDescriptor }
 		| {
 				kind: "variable";
-				monthly: { display: string; note: string; cadence: string };
-				yearly: { display: string; note: string; cadence: string };
+				monthly: {
+					display: string;
+					note: MessageDescriptor;
+					cadence: MessageDescriptor;
+				};
+				yearly: {
+					display: string;
+					note: MessageDescriptor;
+					cadence: MessageDescriptor;
+				};
 		  }
-		| { kind: "custom"; display: string; note: string };
-	features: string[];
+		| { kind: "custom"; display: MessageDescriptor; note: MessageDescriptor };
+	features: PricingFeature[];
 	featureLimits?: Partial<Record<string, string>>;
 	cta: {
-		label: string;
+		label: MessageDescriptor;
 		href: string;
 		variant: "default" | "outline" | "secondary";
 		external?: boolean;
 	};
-	ctaNote?: { label: string; href?: string };
+	ctaNote?: { label: MessageDescriptor; href?: string };
 	highlight?: boolean;
 }
 
 export const PRICING_TIERS: PricingTier[] = [
 	{
 		id: "free",
-		name: "Free",
-		description: "For individuals getting started",
-		price: { kind: "fixed", display: "$0", note: "Free for everyone" },
+		name: msg({ id: "marketing.pricing.tier.free.name", message: "Free" }),
+		description: msg({
+			id: "marketing.pricing.tier.free.description",
+			message: "For individuals getting started",
+		}),
+		price: {
+			kind: "fixed",
+			display: "$0",
+			note: msg({
+				id: "marketing.pricing.tier.free.priceNote",
+				message: "Free for everyone",
+			}),
+		},
 		features: [
-			"1 user",
-			"Local workspaces",
-			"Desktop app",
-			"GitHub integration",
-			"CLI",
+			{
+				id: "users",
+				label: msg({
+					id: "marketing.pricing.tier.free.feature.users",
+					message: "1 user",
+				}),
+			},
+			{
+				id: "localWorkspaces",
+				label: msg({
+					id: "marketing.pricing.tier.free.feature.localWorkspaces",
+					message: "Local workspaces",
+				}),
+			},
+			{
+				id: "desktopApp",
+				label: msg({
+					id: "marketing.pricing.tier.free.feature.desktopApp",
+					message: "Desktop app",
+				}),
+			},
+			{
+				id: "githubIntegration",
+				label: msg({
+					id: "marketing.pricing.tier.free.feature.githubIntegration",
+					message: "GitHub integration",
+				}),
+			},
+			{
+				id: "cli",
+				label: msg({
+					id: "marketing.pricing.tier.free.feature.cli",
+					message: "CLI",
+				}),
+			},
 		],
 		cta: {
-			label: "Download app",
+			label: msg({
+				id: "marketing.pricing.cta.downloadApp",
+				message: "Download app",
+			}),
 			href: "/download",
 			variant: "outline",
 		},
-		ctaNote: { label: "No credit card required." },
+		ctaNote: {
+			label: msg({
+				id: "marketing.pricing.tier.free.ctaNote",
+				message: "No credit card required.",
+			}),
+		},
 	},
 	{
 		id: "pro",
-		name: "Pro",
-		description: "For teams that need more power",
+		name: msg({ id: "marketing.pricing.tier.pro.name", message: "Pro" }),
+		description: msg({
+			id: "marketing.pricing.tier.pro.description",
+			message: "For teams that need more power",
+		}),
 		price: {
 			kind: "variable",
 			monthly: {
 				display: "$20",
-				note: "per user/month",
-				cadence: "Billed monthly",
+				note: msg({
+					id: "marketing.pricing.perUserMonth",
+					message: "per user/month",
+				}),
+				cadence: msg({
+					id: "marketing.pricing.tier.pro.billedMonthly",
+					message: "Billed monthly",
+				}),
 			},
 			yearly: {
 				display: "$15",
-				note: "per user/month",
-				cadence: "$180 per user, billed yearly",
+				note: msg({
+					id: "marketing.pricing.perUserMonth",
+					message: "per user/month",
+				}),
+				cadence: msg({
+					id: "marketing.pricing.tier.pro.billedYearly",
+					message: "$180 per user, billed yearly",
+				}),
 			},
 		},
 		features: [
-			"Everything in Free",
-			"Unlimited users",
-			"Remote access",
-			"Linear integration",
-			"Slack integration",
-			"Mobile (coming soon)",
+			{
+				id: "everythingInFree",
+				label: msg({
+					id: "marketing.pricing.tier.pro.feature.everythingInFree",
+					message: "Everything in Free",
+				}),
+			},
+			{
+				id: "unlimitedUsers",
+				label: msg({
+					id: "marketing.pricing.tier.pro.feature.unlimitedUsers",
+					message: "Unlimited users",
+				}),
+			},
+			{
+				id: "remoteAccess",
+				label: msg({
+					id: "marketing.pricing.tier.pro.feature.remoteAccess",
+					message: "Remote access",
+				}),
+			},
+			{
+				id: "linearIntegration",
+				label: msg({
+					id: "marketing.pricing.tier.pro.feature.linearIntegration",
+					message: "Linear integration",
+				}),
+			},
+			{
+				id: "slackIntegration",
+				label: msg({
+					id: "marketing.pricing.tier.pro.feature.slackIntegration",
+					message: "Slack integration",
+				}),
+			},
+			{
+				id: "mobile",
+				label: msg({
+					id: "marketing.pricing.tier.pro.feature.mobile",
+					message: "Mobile (coming soon)",
+				}),
+			},
 		],
 		cta: {
-			label: "Download app",
+			label: msg({
+				id: "marketing.pricing.cta.downloadApp",
+				message: "Download app",
+			}),
 			href: "/download",
 			variant: "default",
 		},
@@ -81,133 +197,417 @@ export const PRICING_TIERS: PricingTier[] = [
 	},
 	{
 		id: "enterprise",
-		name: "Enterprise",
-		description: "For organizations with advanced needs",
+		name: msg({
+			id: "marketing.pricing.tier.enterprise.name",
+			message: "Enterprise",
+		}),
+		description: msg({
+			id: "marketing.pricing.tier.enterprise.description",
+			message: "For organizations with advanced needs",
+		}),
 		price: {
 			kind: "custom",
-			display: "Custom pricing",
-			note: "Annual billing only",
+			display: msg({
+				id: "marketing.pricing.tier.enterprise.priceDisplay",
+				message: "Custom pricing",
+			}),
+			note: msg({
+				id: "marketing.pricing.tier.enterprise.priceNote",
+				message: "Annual billing only",
+			}),
 		},
 		features: [
-			"Everything in Pro",
-			"SAML SSO & SCIM provisioning",
-			"Audit logs",
-			"SOC 2 Type II report",
-			"Uptime SLA & dedicated support",
-			"Custom integrations",
+			{
+				id: "everythingInPro",
+				label: msg({
+					id: "marketing.pricing.tier.enterprise.feature.everythingInPro",
+					message: "Everything in Pro",
+				}),
+			},
+			{
+				id: "ssoScim",
+				label: msg({
+					id: "marketing.pricing.tier.enterprise.feature.ssoScim",
+					message: "SAML SSO & SCIM provisioning",
+				}),
+			},
+			{
+				id: "auditLogs",
+				label: msg({
+					id: "marketing.pricing.tier.enterprise.feature.auditLogs",
+					message: "Audit logs",
+				}),
+			},
+			{
+				id: "soc2",
+				label: msg({
+					id: "marketing.pricing.tier.enterprise.feature.soc2",
+					message: "SOC 2 Type II report",
+				}),
+			},
+			{
+				id: "slaSupport",
+				label: msg({
+					id: "marketing.pricing.tier.enterprise.feature.slaSupport",
+					message: "Uptime SLA & dedicated support",
+				}),
+			},
+			{
+				id: "customIntegrations",
+				label: msg({
+					id: "marketing.pricing.tier.enterprise.feature.customIntegrations",
+					message: "Custom integrations",
+				}),
+			},
 		],
 		cta: {
-			label: "Contact sales",
+			label: msg({
+				id: "marketing.pricing.cta.contactSales",
+				message: "Contact sales",
+			}),
 			href: "/enterprise",
 			variant: "outline",
 		},
-		ctaNote: { label: "Review our security", href: COMPANY.TRUST_URL },
+		ctaNote: {
+			label: msg({
+				id: "marketing.pricing.tier.enterprise.ctaNote",
+				message: "Review our security",
+			}),
+			href: COMPANY.TRUST_URL,
+		},
 	},
 ];
 
+// Plain strings stay raw numerals ("1"); anything with words is a descriptor.
+export type ComparisonValue = string | boolean | MessageDescriptor;
+
 export interface ComparisonRow {
-	label: string;
+	id: string;
+	label: MessageDescriptor;
 	values: [
-		string | boolean | null,
-		string | boolean | null,
-		string | boolean | null,
+		ComparisonValue | null,
+		ComparisonValue | null,
+		ComparisonValue | null,
 	];
-	badge?: { label: string; variant: "default" | "secondary" };
+	badge?: {
+		label: MessageDescriptor;
+		variant: "default" | "secondary";
+	};
 }
 
 export interface ComparisonSection {
-	title: string;
+	id: string;
+	title: MessageDescriptor;
 	rows: ComparisonRow[];
 }
 
+const UNLIMITED = msg({
+	id: "marketing.pricing.comparison.unlimited",
+	message: "Unlimited",
+});
+
 export const COMPARISON_SECTIONS: ComparisonSection[] = [
 	{
-		title: "Usage",
+		id: "usage",
+		title: msg({
+			id: "marketing.pricing.comparison.usage.title",
+			message: "Usage",
+		}),
 		rows: [
-			{ label: "Team members", values: ["1", "Unlimited", "Unlimited"] },
 			{
-				label: "Workspaces",
-				values: ["Unlimited", "Unlimited", "Unlimited"],
+				id: "teamMembers",
+				label: msg({
+					id: "marketing.pricing.comparison.usage.teamMembers",
+					message: "Team members",
+				}),
+				values: ["1", UNLIMITED, UNLIMITED],
 			},
-			{ label: "Projects", values: ["Unlimited", "Unlimited", "Unlimited"] },
+			{
+				id: "workspaces",
+				label: msg({
+					id: "marketing.pricing.comparison.usage.workspaces",
+					message: "Workspaces",
+				}),
+				values: [UNLIMITED, UNLIMITED, UNLIMITED],
+			},
+			{
+				id: "projects",
+				label: msg({
+					id: "marketing.pricing.comparison.usage.projects",
+					message: "Projects",
+				}),
+				values: [UNLIMITED, UNLIMITED, UNLIMITED],
+			},
 		],
 	},
 	{
-		title: "Features",
+		id: "features",
+		title: msg({
+			id: "marketing.pricing.comparison.features.title",
+			message: "Features",
+		}),
 		rows: [
-			{ label: "Desktop app", values: [true, true, true] },
-			{ label: "Local workspaces", values: [true, true, true] },
 			{
-				label: "Remote access",
+				id: "desktopApp",
+				label: msg({
+					id: "marketing.pricing.comparison.features.desktopApp",
+					message: "Desktop app",
+				}),
+				values: [true, true, true],
+			},
+			{
+				id: "localWorkspaces",
+				label: msg({
+					id: "marketing.pricing.comparison.features.localWorkspaces",
+					message: "Local workspaces",
+				}),
+				values: [true, true, true],
+			},
+			{
+				id: "remoteAccess",
+				label: msg({
+					id: "marketing.pricing.comparison.features.remoteAccess",
+					message: "Remote access",
+				}),
 				values: [null, true, true],
-				badge: { label: "Beta", variant: "default" },
+				badge: {
+					label: msg({
+						id: "marketing.pricing.comparison.badge.beta",
+						message: "Beta",
+					}),
+					variant: "default",
+				},
 			},
-			{ label: "Automations", values: [true, true, true] },
 			{
-				label: "Mobile app",
-				values: [null, true, true],
-				badge: { label: "Coming soon", variant: "secondary" },
+				id: "automations",
+				label: msg({
+					id: "marketing.pricing.comparison.features.automations",
+					message: "Automations",
+				}),
+				values: [true, true, true],
 			},
-			{ label: "GitHub integration", values: [true, true, true] },
-			{ label: "Linear integration", values: [null, true, true] },
-			{ label: "Slack integration", values: [null, true, true] },
-			{ label: "Team collaboration", values: [null, true, true] },
+			{
+				id: "mobileApp",
+				label: msg({
+					id: "marketing.pricing.comparison.features.mobileApp",
+					message: "Mobile app",
+				}),
+				values: [null, true, true],
+				badge: {
+					label: msg({
+						id: "marketing.pricing.comparison.badge.comingSoon",
+						message: "Coming soon",
+					}),
+					variant: "secondary",
+				},
+			},
+			{
+				id: "githubIntegration",
+				label: msg({
+					id: "marketing.pricing.comparison.features.githubIntegration",
+					message: "GitHub integration",
+				}),
+				values: [true, true, true],
+			},
+			{
+				id: "linearIntegration",
+				label: msg({
+					id: "marketing.pricing.comparison.features.linearIntegration",
+					message: "Linear integration",
+				}),
+				values: [null, true, true],
+			},
+			{
+				id: "slackIntegration",
+				label: msg({
+					id: "marketing.pricing.comparison.features.slackIntegration",
+					message: "Slack integration",
+				}),
+				values: [null, true, true],
+			},
+			{
+				id: "teamCollaboration",
+				label: msg({
+					id: "marketing.pricing.comparison.features.teamCollaboration",
+					message: "Team collaboration",
+				}),
+				values: [null, true, true],
+			},
 		],
 	},
 	{
-		title: "Support",
+		id: "support",
+		title: msg({
+			id: "marketing.pricing.comparison.support.title",
+			message: "Support",
+		}),
 		rows: [
-			{ label: "Priority support", values: [null, null, true] },
-			{ label: "Uptime SLA", values: [null, null, true] },
-			{ label: "Custom contracts", values: [null, null, true] },
+			{
+				id: "prioritySupport",
+				label: msg({
+					id: "marketing.pricing.comparison.support.prioritySupport",
+					message: "Priority support",
+				}),
+				values: [null, null, true],
+			},
+			{
+				id: "uptimeSla",
+				label: msg({
+					id: "marketing.pricing.comparison.support.uptimeSla",
+					message: "Uptime SLA",
+				}),
+				values: [null, null, true],
+			},
+			{
+				id: "customContracts",
+				label: msg({
+					id: "marketing.pricing.comparison.support.customContracts",
+					message: "Custom contracts",
+				}),
+				values: [null, null, true],
+			},
 		],
 	},
 	{
-		title: "Security",
+		id: "security",
+		title: msg({
+			id: "marketing.pricing.comparison.security.title",
+			message: "Security",
+		}),
 		rows: [
-			{ label: "SSO/SAML", values: [null, null, true] },
-			{ label: "IP restrictions", values: [null, null, true] },
-			{ label: "SCIM provisioning", values: [null, null, true] },
-			{ label: "Audit log", values: [null, null, true] },
-			{ label: "SOC 2 Type II report", values: [null, null, true] },
+			{
+				id: "sso",
+				label: msg({
+					id: "marketing.pricing.comparison.security.sso",
+					message: "SSO/SAML",
+				}),
+				values: [null, null, true],
+			},
+			{
+				id: "ipRestrictions",
+				label: msg({
+					id: "marketing.pricing.comparison.security.ipRestrictions",
+					message: "IP restrictions",
+				}),
+				values: [null, null, true],
+			},
+			{
+				id: "scim",
+				label: msg({
+					id: "marketing.pricing.comparison.security.scim",
+					message: "SCIM provisioning",
+				}),
+				values: [null, null, true],
+			},
+			{
+				id: "auditLog",
+				label: msg({
+					id: "marketing.pricing.comparison.security.auditLog",
+					message: "Audit log",
+				}),
+				values: [null, null, true],
+			},
+			{
+				id: "soc2",
+				label: msg({
+					id: "marketing.pricing.comparison.security.soc2",
+					message: "SOC 2 Type II report",
+				}),
+				values: [null, null, true],
+			},
 		],
 	},
 ];
 
-export const PRICING_FAQ_ITEMS: FAQItem[] = [
+export interface PricingFAQItem {
+	id: string;
+	question: MessageDescriptor;
+	answer: MessageDescriptor;
+}
+
+export const PRICING_FAQ_ITEMS: PricingFAQItem[] = [
 	{
-		question: "Is there a free plan?",
-		answer:
-			"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, the CLI, and GitHub integration. No credit card required.",
+		id: "freePlan",
+		question: msg({
+			id: "marketing.pricing.faq.freePlan.question",
+			message: "Is there a free plan?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.freePlan.answer",
+			message:
+				"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, the CLI, and GitHub integration. No credit card required.",
+		}),
 	},
 	{
-		question: "How does Pro pricing work?",
-		answer:
-			"Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team.",
+		id: "proPricing",
+		question: msg({
+			id: "marketing.pricing.faq.proPricing.question",
+			message: "How does Pro pricing work?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.proPricing.answer",
+			message:
+				"Pro is $20 per user/month billed monthly, or $15 per user/month billed yearly (a 25% discount). You're billed per active seat on your team.",
+		}),
 	},
 	{
-		question: "Can I switch plans or cancel anytime?",
-		answer:
-			"Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period.",
+		id: "switchPlans",
+		question: msg({
+			id: "marketing.pricing.faq.switchPlans.question",
+			message: "Can I switch plans or cancel anytime?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.switchPlans.answer",
+			message:
+				"Yes. You can upgrade, downgrade, or cancel at any time from the billing settings inside the app. Changes take effect at the end of your current billing period.",
+		}),
 	},
 	{
-		question: "What's included in Enterprise?",
-		answer:
-			"Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, audit logs, a custom SLA, dedicated support, and custom contracts. Pricing is tailored to your organization. Get in touch and we'll scope something that fits.",
+		id: "enterpriseIncludes",
+		question: msg({
+			id: "marketing.pricing.faq.enterpriseIncludes.question",
+			message: "What's included in Enterprise?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.enterpriseIncludes.answer",
+			message:
+				"Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, audit logs, a custom SLA, dedicated support, and custom contracts. Pricing is tailored to your organization. Get in touch and we'll scope something that fits.",
+		}),
 	},
 	{
-		question: "Is Superset SOC 2 compliant?",
-		answer:
-			"Yes. Superset has completed a SOC 2 Type II audit with an independent auditor, covering our security controls in operation over time. Request the report and review our security documentation at trust.superset.sh.",
+		id: "soc2",
+		question: msg({
+			id: "marketing.pricing.faq.soc2.question",
+			message: "Is Superset SOC 2 compliant?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.soc2.answer",
+			message:
+				"Yes. Superset has completed a SOC 2 Type II audit with an independent auditor, covering our security controls in operation over time. Request the report and review our security documentation at trust.superset.sh.",
+		}),
 	},
 	{
-		question: "Where does my code run?",
-		answer:
-			"On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls.",
+		id: "whereCodeRuns",
+		question: msg({
+			id: "marketing.pricing.faq.whereCodeRuns.question",
+			message: "Where does my code run?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.whereCodeRuns.answer",
+			message:
+				"On your machine. Repos, worktrees, terminal output, and agent sessions stay local by default; cloud sync covers account and organization metadata only. Superset doesn't proxy any API calls.",
+		}),
 	},
 	{
-		question: "Do I need my own coding agent subscriptions?",
-		answer:
-			"Yes. Superset is the workspace your agents run in, not a model provider. Bring Claude Code, Codex, OpenCode, or any CLI agent, and use your existing accounts or API keys on every plan.",
+		id: "agentSubscriptions",
+		question: msg({
+			id: "marketing.pricing.faq.agentSubscriptions.question",
+			message: "Do I need my own coding agent subscriptions?",
+		}),
+		answer: msg({
+			id: "marketing.pricing.faq.agentSubscriptions.answer",
+			message:
+				"Yes. Superset is the workspace your agents run in, not a model provider. Bring Claude Code, Codex, OpenCode, or any CLI agent, and use your existing accounts or API keys on every plan.",
+		}),
 	},
 ];

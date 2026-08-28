@@ -6,7 +6,7 @@ export {
 export { ClickHint } from "./components/ClickHint";
 export { LinkHoverHint } from "./components/LinkHoverHint";
 export { ShadowClickHint } from "./components/ShadowClickHint";
-export { buildHint, UNBOUND_HINT } from "./hint";
+export { buildHint, unboundHint } from "./hint";
 export { modifierLabel } from "./modifierLabel";
 export {
 	buildChangesSidebarFileHint,
