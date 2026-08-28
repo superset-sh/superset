@@ -24,9 +24,10 @@ export function StatsBody({
 		models.bySpend,
 		models.byTokens,
 	]);
+	const totalTokens = Number(totals.tokens);
 	const cacheShare =
-		totals.tokens > 0
-			? Math.round((tokenSplit.cachedInput / totals.tokens) * 100)
+		totalTokens > 0
+			? Math.round((Number(tokenSplit.cachedInput) / totalTokens) * 100)
 			: 0;
 
 	return (

@@ -10,21 +10,27 @@ export function TokenSplitBar({
 	split,
 }: {
 	split: {
-		uncachedInput: number;
-		cachedInput: number;
-		cacheWrite5m: number;
-		cacheWrite1h: number;
-		output: number;
-		reasoningOutput: number;
+		uncachedInput: string;
+		cachedInput: string;
+		cacheWrite5m: string;
+		cacheWrite1h: string;
+		output: string;
+		reasoningOutput: string;
 	};
 }) {
+	// Exact sums arrive as decimal strings. A bar width and a rounded percentage
+	// do not need the extra range, so they collapse to doubles here.
 	const segments: Segment[] = [
-		{ label: "Input", tokens: split.uncachedInput, color: "#d25611" },
-		{ label: "Output", tokens: split.output, color: "#c19a5b" },
-		{ label: "Cache read", tokens: split.cachedInput, color: "#6b8ca3" },
+		{ label: "Input", tokens: Number(split.uncachedInput), color: "#d25611" },
+		{ label: "Output", tokens: Number(split.output), color: "#c19a5b" },
+		{
+			label: "Cache read",
+			tokens: Number(split.cachedInput),
+			color: "#6b8ca3",
+		},
 		{
 			label: "Cache write",
-			tokens: split.cacheWrite5m + split.cacheWrite1h,
+			tokens: Number(split.cacheWrite5m) + Number(split.cacheWrite1h),
 			color: "#7a9e7e",
 		},
 	];

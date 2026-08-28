@@ -45,6 +45,9 @@ export const leaderboardParticipants = pgTable(
 
 		payloadVersion: integer("payload_version").notNull().default(1),
 
+		// Token rollups of leaderboard_daily, which nothing prunes: `tokens` and
+		// the per-field sums below grow without bound and can pass 2^53, so the
+		// read path selects them as ::text rather than through `mode: "number"`.
 		tokens: bigint({ mode: "number" }).notNull().default(0),
 		usd: numeric({ precision: 20, scale: 6 }).notNull().default("0"),
 		sessions: integer().notNull().default(0),
@@ -77,6 +80,7 @@ export const leaderboardParticipants = pgTable(
 		axisWidth: numeric("axis_width", { precision: 6, scale: 2 })
 			.notNull()
 			.default("0"),
+		// Bounded tier score rather than a rollup, so a number is safe here.
 		axisDepth: bigint("axis_depth", { mode: "number" }).notNull().default(0),
 		axisOutput: numeric("axis_output", { precision: 8, scale: 2 })
 			.notNull()

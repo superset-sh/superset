@@ -44,7 +44,7 @@ export async function getStandings(
 			.select({
 				handle: leaderboardParticipants.handle,
 				name: users.name,
-				tokens: leaderboardParticipants.tokens,
+				tokens: sql<string>`${leaderboardParticipants.tokens}::text`,
 				usd: leaderboardParticipants.usd,
 				sessions: leaderboardParticipants.sessions,
 				approximate: leaderboardParticipants.approximate,
@@ -90,7 +90,6 @@ export async function getStandings(
 			hasMore: opts.offset + rows.length < participantCount,
 			rows: rows.map((row, index) => ({
 				...row,
-				tokens: Number(row.tokens),
 				sessions: Number(row.sessions),
 				rank: opts.offset + index + 1,
 			})),
@@ -103,7 +102,7 @@ export async function getStandings(
 		.select({
 			handle: leaderboardParticipants.handle,
 			name: users.name,
-			tokens: sql<number>`${total}::bigint`,
+			tokens: sql<string>`${total}::bigint`,
 			usd: sql<string>`sum(${leaderboardDaily.usdEstimate})`,
 			sessions: sql<number>`sum(${leaderboardDaily.sessions})::int`,
 			approximate: sql<boolean>`bool_or(${leaderboardDaily.approximate})`,
@@ -161,7 +160,6 @@ export async function getStandings(
 		hasMore: opts.offset + rows.length < participantCount,
 		rows: rows.map((row, index) => ({
 			...row,
-			tokens: Number(row.tokens),
 			sessions: Number(row.sessions),
 			tier: Number(row.tier),
 			rank: opts.offset + index + 1,
@@ -227,16 +225,16 @@ export async function getStats(opts: WindowOpts): Promise<LeaderboardStats> {
 	const [totalsRow] = await db
 		.select({
 			participants: sql<number>`count(distinct ${leaderboardDaily.userId})::int`,
-			tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+			tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 			usd: sql<string>`coalesce(sum(${leaderboardDaily.usdEstimate}), 0)`,
 
 			sessions: sql<number>`coalesce(sum(${leaderboardDaily.sessions}), 0)::int`,
-			uncachedInput: sql<number>`coalesce(sum(${leaderboardDaily.uncachedInput}), 0)::bigint`,
-			cachedInput: sql<number>`coalesce(sum(${leaderboardDaily.cachedInput}), 0)::bigint`,
-			cacheWrite5m: sql<number>`coalesce(sum(${leaderboardDaily.cacheWrite5m}), 0)::bigint`,
-			cacheWrite1h: sql<number>`coalesce(sum(${leaderboardDaily.cacheWrite1h}), 0)::bigint`,
-			output: sql<number>`coalesce(sum(${leaderboardDaily.output}), 0)::bigint`,
-			reasoningOutput: sql<number>`coalesce(sum(${leaderboardDaily.reasoningOutput}), 0)::bigint`,
+			uncachedInput: sql<string>`coalesce(sum(${leaderboardDaily.uncachedInput}), 0)::bigint`,
+			cachedInput: sql<string>`coalesce(sum(${leaderboardDaily.cachedInput}), 0)::bigint`,
+			cacheWrite5m: sql<string>`coalesce(sum(${leaderboardDaily.cacheWrite5m}), 0)::bigint`,
+			cacheWrite1h: sql<string>`coalesce(sum(${leaderboardDaily.cacheWrite1h}), 0)::bigint`,
+			output: sql<string>`coalesce(sum(${leaderboardDaily.output}), 0)::bigint`,
+			reasoningOutput: sql<string>`coalesce(sum(${leaderboardDaily.reasoningOutput}), 0)::bigint`,
 		})
 		.from(leaderboardDaily)
 		.innerJoin(
@@ -268,7 +266,7 @@ export async function getStats(opts: WindowOpts): Promise<LeaderboardStats> {
 			provider: leaderboardDaily.provider,
 			model: leaderboardDaily.model,
 			usd: sql<string>`sum(${leaderboardDaily.usdEstimate})`,
-			tokens: sql<number>`sum(${leaderboardDaily.tokens})::bigint`,
+			tokens: sql<string>`sum(${leaderboardDaily.tokens})::bigint`,
 		})
 		.from(leaderboardDaily)
 		.innerJoin(
@@ -286,7 +284,7 @@ export async function getStats(opts: WindowOpts): Promise<LeaderboardStats> {
 			provider: leaderboardDaily.provider,
 			model: leaderboardDaily.model,
 			usd: sql<string>`sum(${leaderboardDaily.usdEstimate})`,
-			tokens: sql<number>`sum(${leaderboardDaily.tokens})::bigint`,
+			tokens: sql<string>`sum(${leaderboardDaily.tokens})::bigint`,
 		})
 		.from(leaderboardDaily)
 		.innerJoin(
@@ -304,28 +302,22 @@ export async function getStats(opts: WindowOpts): Promise<LeaderboardStats> {
 		range,
 		totals: {
 			participants: Number(totalsRow?.participants ?? 0),
-			tokens: Number(totalsRow?.tokens ?? 0),
+			tokens: totalsRow?.tokens ?? "0",
 			usd: String(totalsRow?.usd ?? "0"),
 			sessions: Number(totalsRow?.sessions ?? 0),
 		},
 		tokenSplit: {
-			uncachedInput: Number(totalsRow?.uncachedInput ?? 0),
-			cachedInput: Number(totalsRow?.cachedInput ?? 0),
-			cacheWrite5m: Number(totalsRow?.cacheWrite5m ?? 0),
-			cacheWrite1h: Number(totalsRow?.cacheWrite1h ?? 0),
-			output: Number(totalsRow?.output ?? 0),
-			reasoningOutput: Number(totalsRow?.reasoningOutput ?? 0),
+			uncachedInput: totalsRow?.uncachedInput ?? "0",
+			cachedInput: totalsRow?.cachedInput ?? "0",
+			cacheWrite5m: totalsRow?.cacheWrite5m ?? "0",
+			cacheWrite1h: totalsRow?.cacheWrite1h ?? "0",
+			output: totalsRow?.output ?? "0",
+			reasoningOutput: totalsRow?.reasoningOutput ?? "0",
 		},
 		models: {
 			byUsers: modelUsers.map((row) => ({ ...row, users: Number(row.users) })),
-			bySpend: modelSpend.map((row) => ({
-				...row,
-				tokens: Number(row.tokens),
-			})),
-			byTokens: modelTokens.map((row) => ({
-				...row,
-				tokens: Number(row.tokens),
-			})),
+			bySpend: modelSpend,
+			byTokens: modelTokens,
 		},
 		tiers,
 	};
@@ -346,7 +338,7 @@ export async function getParticipant(
 			lastPublishedAt: leaderboardParticipants.lastPublishedAt,
 			dayRangeStart: leaderboardParticipants.dayRangeStart,
 			dayRangeEnd: leaderboardParticipants.dayRangeEnd,
-			tokens: leaderboardParticipants.tokens,
+			tokens: sql<string>`${leaderboardParticipants.tokens}::text`,
 			usd: leaderboardParticipants.usd,
 			sessions: leaderboardParticipants.sessions,
 			approximate: leaderboardParticipants.approximate,
@@ -381,15 +373,15 @@ export async function getParticipant(
 
 	const [windowTotals] = await db
 		.select({
-			tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+			tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 			usd: sql<string>`coalesce(sum(${leaderboardDaily.usdEstimate}), 0)`,
 			sessions: sql<number>`coalesce(sum(${leaderboardDaily.sessions}), 0)::int`,
-			uncachedInput: sql<number>`coalesce(sum(${leaderboardDaily.uncachedInput}), 0)::bigint`,
-			cachedInput: sql<number>`coalesce(sum(${leaderboardDaily.cachedInput}), 0)::bigint`,
-			cacheWrite5m: sql<number>`coalesce(sum(${leaderboardDaily.cacheWrite5m}), 0)::bigint`,
-			cacheWrite1h: sql<number>`coalesce(sum(${leaderboardDaily.cacheWrite1h}), 0)::bigint`,
-			output: sql<number>`coalesce(sum(${leaderboardDaily.output}), 0)::bigint`,
-			reasoningOutput: sql<number>`coalesce(sum(${leaderboardDaily.reasoningOutput}), 0)::bigint`,
+			uncachedInput: sql<string>`coalesce(sum(${leaderboardDaily.uncachedInput}), 0)::bigint`,
+			cachedInput: sql<string>`coalesce(sum(${leaderboardDaily.cachedInput}), 0)::bigint`,
+			cacheWrite5m: sql<string>`coalesce(sum(${leaderboardDaily.cacheWrite5m}), 0)::bigint`,
+			cacheWrite1h: sql<string>`coalesce(sum(${leaderboardDaily.cacheWrite1h}), 0)::bigint`,
+			output: sql<string>`coalesce(sum(${leaderboardDaily.output}), 0)::bigint`,
+			reasoningOutput: sql<string>`coalesce(sum(${leaderboardDaily.reasoningOutput}), 0)::bigint`,
 		})
 		.from(leaderboardDaily)
 		.where(inWindow);
@@ -398,7 +390,7 @@ export async function getParticipant(
 		.select({
 			provider: leaderboardDaily.provider,
 			model: leaderboardDaily.model,
-			tokens: sql<number>`sum(${leaderboardDaily.tokens})::bigint`,
+			tokens: sql<string>`sum(${leaderboardDaily.tokens})::bigint`,
 			usd: sql<string>`sum(${leaderboardDaily.usdEstimate})`,
 		})
 		.from(leaderboardDaily)
@@ -410,7 +402,7 @@ export async function getParticipant(
 	const daily = await db
 		.select({
 			day: leaderboardDaily.day,
-			tokens: sql<number>`sum(${leaderboardDaily.tokens})::bigint`,
+			tokens: sql<string>`sum(${leaderboardDaily.tokens})::bigint`,
 			usd: sql<string>`sum(${leaderboardDaily.usdEstimate})`,
 		})
 		.from(leaderboardDaily)
@@ -443,14 +435,14 @@ export async function getParticipant(
 				? { from: participant.dayRangeStart, to: participant.dayRangeEnd }
 				: null,
 		allTime: {
-			tokens: Number(participant.tokens),
+			tokens: participant.tokens,
 			usd: String(participant.usd),
 			sessions: Number(participant.sessions),
 			approximate: participant.approximate,
 		},
 		window: {
 			range,
-			tokens: Number(windowTotals?.tokens ?? 0),
+			tokens: windowTotals?.tokens ?? "0",
 			usd: String(windowTotals?.usd ?? "0"),
 			sessions: Number(windowTotals?.sessions ?? 0),
 		},
@@ -471,14 +463,14 @@ export async function getParticipant(
 			computedAt: participant.tierComputedAt,
 		},
 		tokenSplit: {
-			uncachedInput: Number(windowTotals?.uncachedInput ?? 0),
-			cachedInput: Number(windowTotals?.cachedInput ?? 0),
-			cacheWrite5m: Number(windowTotals?.cacheWrite5m ?? 0),
-			cacheWrite1h: Number(windowTotals?.cacheWrite1h ?? 0),
-			output: Number(windowTotals?.output ?? 0),
-			reasoningOutput: Number(windowTotals?.reasoningOutput ?? 0),
+			uncachedInput: windowTotals?.uncachedInput ?? "0",
+			cachedInput: windowTotals?.cachedInput ?? "0",
+			cacheWrite5m: windowTotals?.cacheWrite5m ?? "0",
+			cacheWrite1h: windowTotals?.cacheWrite1h ?? "0",
+			output: windowTotals?.output ?? "0",
+			reasoningOutput: windowTotals?.reasoningOutput ?? "0",
 		},
-		models: models.map((row) => ({ ...row, tokens: Number(row.tokens) })),
-		daily: daily.map((row) => ({ ...row, tokens: Number(row.tokens) })),
+		models,
+		daily,
 	};
 }
