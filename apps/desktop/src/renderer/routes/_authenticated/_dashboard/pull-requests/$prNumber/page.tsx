@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -60,26 +61,12 @@ export const Route = createFileRoute(
 });
 
 type MergeMethod = "merge" | "squash" | "rebase";
-const MERGE_METHOD_LABELS: Record<MergeMethod, string> = {
-	squash: "Squash and merge",
-	merge: "Merge commit",
-	rebase: "Rebase and merge",
-};
-const MERGE_METHOD_DESCRIPTIONS: Record<MergeMethod, string> = {
-	squash: "Combine all commits",
-	merge: "Preserve commit history",
-	rebase: "Reapply all commits",
-};
 
 type PendingAction =
 	| { kind: "close" }
 	| { kind: "merge"; method: MergeMethod; force?: boolean };
 
 type DetailTab = "summary" | "code";
-const DETAIL_TABS: ReadonlyArray<{ value: DetailTab; label: string }> = [
-	{ value: "summary", label: "Summary" },
-	{ value: "code", label: "Code" },
-];
 
 // Borderless, flat-tinted pill per Figma (PR Badge, node 3246:2410) — exact
 // hex for "open" (#dcfae8 / #00a558); the other states follow the same
@@ -104,6 +91,51 @@ const STATE_BADGE_STYLES: Record<PRState, string> = {
 };
 
 function PullRequestDetailPage() {
+	const { t } = useLingui();
+	const mergeMethodLabels: Record<MergeMethod, string> = {
+		squash: t({
+			id: "dashboard.pullRequests.mergeMethod.squash",
+			message: "Squash and merge",
+		}),
+		merge: t({
+			id: "dashboard.pullRequests.mergeMethod.merge",
+			message: "Merge commit",
+		}),
+		rebase: t({
+			id: "dashboard.pullRequests.mergeMethod.rebase",
+			message: "Rebase and merge",
+		}),
+	};
+	const mergeMethodDescriptions: Record<MergeMethod, string> = {
+		squash: t({
+			id: "dashboard.pullRequests.mergeMethod.squashHint",
+			message: "Combine all commits",
+		}),
+		merge: t({
+			id: "dashboard.pullRequests.mergeMethod.mergeHint",
+			message: "Preserve commit history",
+		}),
+		rebase: t({
+			id: "dashboard.pullRequests.mergeMethod.rebaseHint",
+			message: "Reapply all commits",
+		}),
+	};
+	const detailTabs: ReadonlyArray<{ value: DetailTab; label: string }> = [
+		{
+			value: "summary",
+			label: t({
+				id: "dashboard.pullRequests.detail.tabSummary",
+				message: "Summary",
+			}),
+		},
+		{
+			value: "code",
+			label: t({
+				id: "dashboard.pullRequests.detail.tabCode",
+				message: "Code",
+			}),
+		},
+	];
 	const { prNumber: prNumberRaw } = Route.useParams();
 	const prNumber = parsePositiveIntegerParam(prNumberRaw);
 	const search = PullRequestsLayoutRoute.useSearch();
@@ -243,18 +275,12 @@ function PullRequestDetailPage() {
 		: null;
 	const createdAtRelative =
 		createdAtMs === null ? null : formatRelativeTime(createdAtMs);
-	const createdAtLabel =
-		createdAtRelative === null
-			? null
-			: createdAtRelative === "now"
-				? "now"
-				: `${createdAtRelative} ago`;
 	const header = (
 		<div className="flex shrink-0 flex-col border-b border-border">
 			<div className="flex h-10 shrink-0 items-center gap-1 px-4">
 				<PullRequestListToggle />
 				<div className="ml-2 flex items-center gap-1">
-					{DETAIL_TABS.map(({ value, label }) => (
+					{detailTabs.map(({ value, label }) => (
 						<button
 							key={value}
 							type="button"
@@ -283,7 +309,13 @@ function PullRequestDetailPage() {
 				) : (
 					<h1 className="min-w-[12rem] flex-1 select-text truncate text-xl font-semibold leading-tight">
 						{data?.title ??
-							(itemNumber === null ? "Pull request" : `#${itemNumber}`)}
+							(itemNumber === null ? (
+								<Trans id="dashboard.pullRequests.detail.fallbackTitle">
+									Pull request
+								</Trans>
+							) : (
+								`#${itemNumber}`
+							))}
 					</h1>
 				)}
 				{data && (
@@ -305,7 +337,9 @@ function PullRequestDetailPage() {
 							className="h-8 px-3"
 							onClick={handleAddToWorkspace}
 						>
-							Start Workspace
+							<Trans id="dashboard.pullRequests.detail.startWorkspace">
+								Start Workspace
+							</Trans>
 						</Button>
 						{canMerge && (
 							<DropdownMenu>
@@ -318,7 +352,9 @@ function PullRequestDetailPage() {
 										aria-label="Merge pull request"
 									>
 										<VscGitMerge className="size-4" />
-										Merge
+										<Trans id="dashboard.pullRequests.detail.merge">
+											Merge
+										</Trans>
 										<VscChevronDown className="size-3" />
 									</Button>
 								</DropdownMenuTrigger>
@@ -333,7 +369,9 @@ function PullRequestDetailPage() {
 										/>
 									</div>
 									<DropdownMenuLabel className="px-3 pb-1 pt-0 text-xs font-normal text-muted-foreground">
-										Select method
+										<Trans id="dashboard.pullRequests.detail.selectMethod">
+											Select method
+										</Trans>
 									</DropdownMenuLabel>
 									{(["squash", "merge", "rebase"] as const).map((method) => (
 										<DropdownMenuItem
@@ -344,10 +382,10 @@ function PullRequestDetailPage() {
 											}
 										>
 											<span className="text-sm font-medium">
-												{MERGE_METHOD_LABELS[method]}
+												{mergeMethodLabels[method]}
 											</span>
 											<span className="text-xs text-muted-foreground">
-												{MERGE_METHOD_DESCRIPTIONS[method]}
+												{mergeMethodDescriptions[method]}
 											</span>
 										</DropdownMenuItem>
 									))}
@@ -364,10 +402,14 @@ function PullRequestDetailPage() {
 												>
 													<div className="flex flex-col gap-0.5">
 														<span className="text-sm font-medium">
-															Enable auto-merge
+															<Trans id="dashboard.pullRequests.detail.enableAutoMerge">
+																Enable auto-merge
+															</Trans>
 														</span>
 														<span className="text-xs text-muted-foreground">
-															Merge when checks pass
+															<Trans id="dashboard.pullRequests.detail.autoMergeHint">
+																Merge when checks pass
+															</Trans>
 														</span>
 													</div>
 													<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
@@ -386,10 +428,14 @@ function PullRequestDetailPage() {
 												>
 													<div className="flex flex-col gap-0.5">
 														<span className="text-sm font-medium">
-															Force merge
+															<Trans id="dashboard.pullRequests.detail.forceMerge">
+																Force merge
+															</Trans>
 														</span>
 														<span className="text-xs text-muted-foreground">
-															Attempt before checks pass
+															<Trans id="dashboard.pullRequests.detail.forceMergeHint">
+																Attempt before checks pass
+															</Trans>
 														</span>
 													</div>
 													<LuChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
@@ -422,7 +468,11 @@ function PullRequestDetailPage() {
 						)}
 					>
 						<PRIcon state={state} className="size-3" />
-						{data.isDraft ? "Draft" : data.state}
+						{data.isDraft ? (
+							<Trans id="dashboard.pullRequests.detail.draftBadge">Draft</Trans>
+						) : (
+							data.state
+						)}
 					</span>
 					{data.author && (
 						<span className="flex shrink-0 items-center gap-1.5">
@@ -476,14 +526,32 @@ function PullRequestDetailPage() {
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								{branchCopied ? "Copied" : "Click to copy"}
+								{branchCopied ? (
+									<Trans id="dashboard.pullRequests.detail.branchCopied">
+										Copied
+									</Trans>
+								) : (
+									<Trans id="dashboard.pullRequests.detail.clickToCopy">
+										Click to copy
+									</Trans>
+								)}
 							</TooltipContent>
 						</Tooltip>
 					</span>
-					{createdAtLabel !== null && (
+					{createdAtRelative !== null && (
 						<span className="inline-flex shrink-0 items-center gap-2">
 							<span aria-hidden>·</span>
-							<span>{createdAtLabel}</span>
+							<span>
+								{createdAtRelative === "now" ? (
+									<Trans id="dashboard.pullRequests.detail.createdNow">
+										now
+									</Trans>
+								) : (
+									<Trans id="dashboard.pullRequests.detail.createdAgo">
+										{createdAtRelative} ago
+									</Trans>
+								)}
+							</span>
 						</span>
 					)}
 				</div>
@@ -575,24 +643,40 @@ function PullRequestDetailPage() {
 				<EnterEnabledAlertDialogContent className="max-w-[360px] gap-0 p-0">
 					<AlertDialogHeader className="px-4 pb-2 pt-4">
 						<AlertDialogTitle className="font-medium">
-							{pendingAction?.kind === "close"
-								? `Close #${data.number}?`
-								: pendingAction?.kind === "merge" && pendingAction.force
-									? `Force merge #${data.number}?`
-									: `Merge #${data.number}?`}
+							{pendingAction?.kind === "close" ? (
+								<Trans id="dashboard.pullRequests.confirm.closeTitle">
+									Close #{data.number}?
+								</Trans>
+							) : pendingAction?.kind === "merge" && pendingAction.force ? (
+								<Trans id="dashboard.pullRequests.confirm.forceMergeTitle">
+									Force merge #{data.number}?
+								</Trans>
+							) : (
+								<Trans id="dashboard.pullRequests.confirm.mergeTitle">
+									Merge #{data.number}?
+								</Trans>
+							)}
 						</AlertDialogTitle>
 						<AlertDialogDescription>
-							{pendingAction?.kind === "close"
-								? `"${data.title}" will be marked closed on GitHub. You can reopen it from here at any time.`
-								: `"${data.title}" will be merged into ${data.baseBranch}${
-										pendingAction?.kind === "merge"
-											? ` via ${MERGE_METHOD_LABELS[pendingAction.method].toLowerCase()}`
-											: ""
-									}.${
-										pendingAction?.kind === "merge" && pendingAction.force
-											? " Checks haven't passed yet — this overrides them."
-											: ""
-									} This can't be undone from here.`}
+							{pendingAction?.kind === "close" ? (
+								<Trans id="dashboard.pullRequests.confirm.closeDescription">
+									"{data.title}" will be marked closed on GitHub. You can reopen
+									it from here at any time.
+								</Trans>
+							) : pendingAction?.kind === "merge" && pendingAction.force ? (
+								<Trans id="dashboard.pullRequests.confirm.forceMergeDescription">
+									"{data.title}" will be merged into {data.baseBranch} via{" "}
+									{mergeMethodLabels[pendingAction.method].toLowerCase()}.
+									Checks haven't passed yet — this overrides them. This can't be
+									undone from here.
+								</Trans>
+							) : pendingAction?.kind === "merge" ? (
+								<Trans id="dashboard.pullRequests.confirm.mergeDescription">
+									"{data.title}" will be merged into {data.baseBranch} via{" "}
+									{mergeMethodLabels[pendingAction.method].toLowerCase()}. This
+									can't be undone from here.
+								</Trans>
+							) : null}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter className="flex-row justify-end gap-2 px-4 pb-4 pt-2">
@@ -602,7 +686,7 @@ function PullRequestDetailPage() {
 							className="h-7 px-3 text-xs"
 							onClick={() => setPendingAction(null)}
 						>
-							Cancel
+							<Trans id="dashboard.pullRequests.confirm.cancel">Cancel</Trans>
 						</Button>
 						<AlertDialogAction
 							variant={
@@ -615,11 +699,19 @@ function PullRequestDetailPage() {
 							className="h-7 px-3 text-xs"
 							onClick={handleConfirmAction}
 						>
-							{pendingAction?.kind === "close"
-								? "Close pull request"
-								: pendingAction?.kind === "merge" && pendingAction.force
-									? "Force merge"
-									: "Merge pull request"}
+							{pendingAction?.kind === "close" ? (
+								<Trans id="dashboard.pullRequests.confirm.closeAction">
+									Close pull request
+								</Trans>
+							) : pendingAction?.kind === "merge" && pendingAction.force ? (
+								<Trans id="dashboard.pullRequests.confirm.forceMergeAction">
+									Force merge
+								</Trans>
+							) : (
+								<Trans id="dashboard.pullRequests.confirm.mergeAction">
+									Merge pull request
+								</Trans>
+							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</EnterEnabledAlertDialogContent>
@@ -651,7 +743,9 @@ function PullRequestDetailPage() {
 								<MarkdownRenderer content={data.body} />
 							) : (
 								<p className="text-sm italic text-muted-foreground">
-									No description provided.
+									<Trans id="dashboard.pullRequests.detail.noDescription">
+										No description provided.
+									</Trans>
 								</p>
 							)}
 						</article>

@@ -2,6 +2,7 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
 import { useOpenNewSessionModal } from "renderer/stores/new-workspace-modal";
@@ -91,7 +92,11 @@ export function DashboardSidebarSessionsSection({
 							<LuPlus className="size-3.5" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">New session</TooltipContent>
+					<TooltipContent side="bottom">
+						<Trans id="dashboard.sidebar.sessionsSection.newSession">
+							New session
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 			</DashboardSidebarSectionHeader>
 			{!isSectionCollapsed && (

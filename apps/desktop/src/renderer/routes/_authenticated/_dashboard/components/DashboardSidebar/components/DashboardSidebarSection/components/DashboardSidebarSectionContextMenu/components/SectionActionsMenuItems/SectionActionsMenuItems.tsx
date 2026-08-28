@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenuItem,
 	ContextMenuSeparator,
@@ -114,7 +115,9 @@ export function SectionActionsMenuItems({
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
-			Set group color
+			<Trans id="dashboard.sidebar.sectionMenu.setGroupColor">
+				Set group color
+			</Trans>
 		</>
 	);
 
@@ -125,7 +128,9 @@ export function SectionActionsMenuItems({
 				children: (
 					<>
 						<LuPencil className={iconClassName} />
-						Rename group
+						<Trans id="dashboard.sidebar.sectionMenu.renameGroup">
+							Rename group
+						</Trans>
 					</>
 				),
 			})}
@@ -161,7 +166,9 @@ export function SectionActionsMenuItems({
 									: "size-4 text-destructive"
 							}
 						/>
-						Delete group
+						<Trans id="dashboard.sidebar.sectionMenu.deleteGroup">
+							Delete group
+						</Trans>
 					</>
 				),
 			})}

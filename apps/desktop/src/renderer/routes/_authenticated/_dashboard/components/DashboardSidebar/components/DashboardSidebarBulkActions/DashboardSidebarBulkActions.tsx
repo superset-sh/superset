@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -103,12 +104,20 @@ export function DashboardSidebarBulkActions({
 								<LuX className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom">Clear selection (Esc)</TooltipContent>
+						<TooltipContent side="bottom">
+							<Trans id="dashboard.sidebar.bulkActions.clearSelection">
+								Clear selection (Esc)
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 
 					<span className="min-w-0 flex-1 truncate pl-1 text-xs font-medium text-foreground">
-						{selectedWorkspaces.length}{" "}
-						{selectedWorkspaces.length === 1 ? "workspace" : "workspaces"}
+						<Plural
+							id="dashboard.sidebar.bulkActions.selectedCount"
+							value={selectedWorkspaces.length}
+							one="# workspace"
+							other="# workspaces"
+						/>
 					</span>
 
 					<div className="mx-1 h-4 w-px bg-border" />
@@ -126,12 +135,18 @@ export function DashboardSidebarBulkActions({
 									</button>
 								</DropdownMenuTrigger>
 							</TooltipTrigger>
-							<TooltipContent side="bottom">Move to group</TooltipContent>
+							<TooltipContent side="bottom">
+								<Trans id="dashboard.sidebar.bulkActions.moveToGroup">
+									Move to group
+								</Trans>
+							</TooltipContent>
 						</Tooltip>
 						<DropdownMenuContent align="end" side="bottom" className="w-48">
 							<DropdownMenuItem onSelect={createGroupFromSelection}>
 								<LuFolderPlus className="size-4" />
-								New group
+								<Trans id="dashboard.sidebar.bulkActions.newGroup">
+									New group
+								</Trans>
 							</DropdownMenuItem>
 							{sectionMenuState === "populated" && <DropdownMenuSeparator />}
 							{sections?.map((section) => (
@@ -152,9 +167,15 @@ export function DashboardSidebarBulkActions({
 							))}
 							{sectionMenuState !== "populated" && (
 								<DropdownMenuItem disabled>
-									{sectionMenuState === "empty"
-										? "No groups yet"
-										: "Loading groups…"}
+									{sectionMenuState === "empty" ? (
+										<Trans id="dashboard.sidebar.bulkActions.noGroupsYet">
+											No groups yet
+										</Trans>
+									) : (
+										<Trans id="dashboard.sidebar.bulkActions.loadingGroups">
+											Loading groups…
+										</Trans>
+									)}
 								</DropdownMenuItem>
 							)}
 						</DropdownMenuContent>
@@ -172,7 +193,9 @@ export function DashboardSidebarBulkActions({
 								<LuUngroup className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom">Ungroup</TooltipContent>
+						<TooltipContent side="bottom">
+							<Trans id="dashboard.sidebar.bulkActions.ungroup">Ungroup</Trans>
+						</TooltipContent>
 					</Tooltip>
 
 					<Tooltip delayDuration={300}>
@@ -186,7 +209,9 @@ export function DashboardSidebarBulkActions({
 								<LuTrash2 className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom">Delete</TooltipContent>
+						<TooltipContent side="bottom">
+							<Trans id="dashboard.sidebar.bulkActions.delete">Delete</Trans>
+						</TooltipContent>
 					</Tooltip>
 				</div>
 			)}

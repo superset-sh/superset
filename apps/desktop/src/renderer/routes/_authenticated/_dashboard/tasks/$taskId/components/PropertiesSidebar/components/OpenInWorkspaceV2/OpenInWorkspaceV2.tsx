@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -242,7 +243,11 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-xs text-muted-foreground">Open in workspace</span>
+			<span className="text-xs text-muted-foreground">
+				<Trans id="dashboard.tasks.openInWorkspaceV2.title">
+					Open in workspace
+				</Trans>
+			</span>
 			<DevicePicker
 				hostId={hostId}
 				onSelectHostId={(next) => {
@@ -270,7 +275,11 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 										<span className="truncate">{selectedProject.name}</span>
 									</>
 								) : (
-									<span className="text-muted-foreground">Select project</span>
+									<span className="text-muted-foreground">
+										<Trans id="dashboard.tasks.openInWorkspaceV2.selectProject">
+											Select project
+										</Trans>
+									</span>
 								)}
 							</span>
 							<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -281,7 +290,11 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 						className="w-[--radix-dropdown-menu-trigger-width]"
 					>
 						{recentProjects.length === 0 ? (
-							<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
+							<DropdownMenuItem disabled>
+								<Trans id="dashboard.tasks.openInWorkspaceV2.noProjects">
+									No projects found
+								</Trans>
+							</DropdownMenuItem>
 						) : (
 							recentProjects.map((project) => (
 								<DropdownMenuItem
@@ -297,7 +310,9 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 									<span className="flex-1 truncate">{project.name}</span>
 									{project.needsSetup === true && (
 										<span className="text-[10px] text-amber-500 shrink-0">
-											not set up
+											<Trans id="dashboard.tasks.openInWorkspaceV2.notSetUp">
+												not set up
+											</Trans>
 										</span>
 									)}
 								</DropdownMenuItem>

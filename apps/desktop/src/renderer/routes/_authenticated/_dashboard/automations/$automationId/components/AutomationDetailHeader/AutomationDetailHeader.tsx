@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -43,7 +44,11 @@ export function AutomationDetailHeader({
 				<BreadcrumbList className="text-sm">
 					<BreadcrumbItem>
 						<BreadcrumbLink asChild>
-							<Link to="/automations">Automations</Link>
+							<Link to="/automations">
+								<Trans id="dashboard.automations.detailHeader.breadcrumbAutomations">
+									Automations
+								</Trans>
+							</Link>
 						</BreadcrumbLink>
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
@@ -74,9 +79,15 @@ export function AutomationDetailHeader({
 						</span>
 					</TooltipTrigger>
 					<TooltipContent>
-						{readOnly
-							? "Only the owner can view prompt history"
-							: "Prompt history"}
+						{readOnly ? (
+							<Trans id="dashboard.automations.detailHeader.historyOwnerOnly">
+								Only the owner can view prompt history
+							</Trans>
+						) : (
+							<Trans id="dashboard.automations.detailHeader.promptHistory">
+								Prompt history
+							</Trans>
+						)}
 					</TooltipContent>
 				</Tooltip>
 				<DropdownMenu>
@@ -97,7 +108,9 @@ export function AutomationDetailHeader({
 							onSelect={onDelete}
 						>
 							<LuTrash2 className="size-4" />
-							Delete automation
+							<Trans id="dashboard.automations.detailHeader.deleteAutomation">
+								Delete automation
+							</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -113,13 +126,19 @@ export function AutomationDetailHeader({
 								disabled={readOnly || runNowDisabled}
 							>
 								<LuPlay className="size-4" />
-								<span>Run now</span>
+								<span>
+									<Trans id="dashboard.automations.detailHeader.runNow">
+										Run now
+									</Trans>
+								</span>
 							</Button>
 						</span>
 					</TooltipTrigger>
 					{readOnly && (
 						<TooltipContent>
-							Only the owner can run this automation
+							<Trans id="dashboard.automations.detailHeader.runOwnerOnly">
+								Only the owner can run this automation
+							</Trans>
 						</TooltipContent>
 					)}
 				</Tooltip>

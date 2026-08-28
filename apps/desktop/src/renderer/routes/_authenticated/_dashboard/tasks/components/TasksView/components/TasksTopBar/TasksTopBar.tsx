@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
@@ -59,8 +60,8 @@ interface TasksTopBarProps {
 }
 
 const TASK_SOURCES = [
-	{ value: "tasks" as const, label: "Linear", Icon: SiLinear },
-	{ value: "issues" as const, label: "GitHub issues", Icon: GoIssueOpened },
+	{ value: "tasks" as const, Icon: SiLinear },
+	{ value: "issues" as const, Icon: GoIssueOpened },
 ] as const;
 
 export function TasksTopBar({
@@ -85,6 +86,17 @@ export function TasksTopBar({
 	includeClosedIssues,
 	onIncludeClosedIssuesChange,
 }: TasksTopBarProps) {
+	const { t } = useLingui();
+	const taskSourceLabels: Record<TaskSource, string> = {
+		tasks: t({
+			id: "dashboard.tasks.topBar.sourceLinear",
+			message: "Linear",
+		}),
+		issues: t({
+			id: "dashboard.tasks.topBar.sourceGithubIssues",
+			message: "GitHub issues",
+		}),
+	};
 	const showTaskOnlyControls = taskSource === "tasks";
 	const showIssues = taskSource === "issues";
 	const taskSelectedCount = selectedTasks.length;
@@ -123,7 +135,9 @@ export function TasksTopBar({
 									<HiXMark />
 								</Button>
 								<span className="text-sm font-medium">
-									{selectedCount} selected
+									<Trans id="dashboard.tasks.topBar.selectedCount">
+										{selectedCount} selected
+									</Trans>
 								</span>
 								<div className="h-4 w-px shrink-0 bg-border" />
 								{showIssues ? (
@@ -163,7 +177,7 @@ export function TasksTopBar({
 													className="h-7 rounded-sm px-2 text-xs shadow-none data-[state=active]:shadow-none"
 												>
 													<Icon className="size-3.5" />
-													<span>{source.label}</span>
+													<span>{taskSourceLabels[source.value]}</span>
 												</TabsTrigger>
 											);
 										})}
@@ -190,7 +204,9 @@ export function TasksTopBar({
 									<>
 										<div className="flex items-center gap-2">
 											<span className="text-xs text-muted-foreground">
-												Repository
+												<Trans id="dashboard.tasks.topBar.repository">
+													Repository
+												</Trans>
 											</span>
 											<ProjectFilter
 												value={projectFilters}
@@ -221,7 +237,9 @@ export function TasksTopBar({
 									onClick={() => setIsCreateTaskOpen(true)}
 								>
 									<HiOutlinePencilSquare className="size-4" />
-									<span className="hidden @4xl:inline">New task</span>
+									<span className="hidden @4xl:inline">
+										<Trans id="dashboard.tasks.topBar.newTask">New task</Trans>
+									</span>
 								</Button>
 
 								<fieldset

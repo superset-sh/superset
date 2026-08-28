@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -111,7 +112,9 @@ export function PullRequestCommentComposer({
 					{contextLabel}
 				</span>
 				<span className="text-[10px] tracking-tight text-muted-foreground/70">
-					esc to dismiss
+					<Trans id="dashboard.pullRequests.commentComposer.escToDismiss">
+						esc to dismiss
+					</Trans>
 				</span>
 			</div>
 			<div className="px-3 pb-2">
@@ -144,7 +147,9 @@ export function PullRequestCommentComposer({
 						disabled={submitting}
 						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
-						Cancel
+						<Trans id="dashboard.pullRequests.commentComposer.cancel">
+							Cancel
+						</Trans>
 					</Button>
 					<Button
 						type="submit"
@@ -153,7 +158,17 @@ export function PullRequestCommentComposer({
 						className="h-7 gap-1.5 px-2.5 text-[11px] font-medium disabled:opacity-40"
 					>
 						{submitting && <LuLoaderCircle className="size-3 animate-spin" />}
-						<span>{submitting ? "Sending…" : "Comment"}</span>
+						<span>
+							{submitting ? (
+								<Trans id="dashboard.pullRequests.commentComposer.sending">
+									Sending…
+								</Trans>
+							) : (
+								<Trans id="dashboard.pullRequests.commentComposer.submit">
+									Comment
+								</Trans>
+							)}
+						</span>
 					</Button>
 				</div>
 			</div>

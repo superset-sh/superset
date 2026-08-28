@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { LuLoaderCircle, LuX } from "react-icons/lu";
 import { useDashboardSidebarPortKill } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortKill";
@@ -47,7 +48,7 @@ export function TopBarPortsFooter({
 				) : (
 					<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 				)}
-				Close all
+				<Trans id="dashboard.topBar.ports.closeAll">Close all</Trans>
 			</button>
 		</div>
 	);

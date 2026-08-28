@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Empty,
@@ -147,20 +148,34 @@ export function V2WorkspacesList({
 						{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
 					</EmptyMedia>
 					<EmptyTitle>
-						{hasActiveFilters
-							? "No workspaces match your filters"
-							: "No workspaces yet"}
+						{hasActiveFilters ? (
+							<Trans id="dashboard.workspaces.empty.noFilterMatches">
+								No workspaces match your filters
+							</Trans>
+						) : (
+							<Trans id="dashboard.workspaces.empty.noWorkspaces">
+								No workspaces yet
+							</Trans>
+						)}
 					</EmptyTitle>
 					<EmptyDescription>
-						{hasActiveFilters
-							? "Try a different search term or another device."
-							: "Workspaces on this device will show up here."}
+						{hasActiveFilters ? (
+							<Trans id="dashboard.workspaces.empty.noFilterMatchesHint">
+								Try a different search term or another device.
+							</Trans>
+						) : (
+							<Trans id="dashboard.workspaces.empty.noWorkspacesHint">
+								Workspaces on this device will show up here.
+							</Trans>
+						)}
 					</EmptyDescription>
 				</EmptyHeader>
 				{hasActiveFilters ? (
 					<EmptyContent>
 						<Button variant="outline" size="sm" onClick={() => resetFilters()}>
-							Clear filters
+							<Trans id="dashboard.workspaces.empty.clearFilters">
+								Clear filters
+							</Trans>
 						</Button>
 					</EmptyContent>
 				) : null}

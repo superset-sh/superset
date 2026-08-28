@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
@@ -117,7 +118,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 							</span>
 						)}
 						<span className="hidden sm:inline text-foreground font-medium">
-							Open
+							<Trans id="dashboard.topBar.openInMenu.open">Open</Trans>
 						</span>
 					</button>
 				</TooltipTrigger>

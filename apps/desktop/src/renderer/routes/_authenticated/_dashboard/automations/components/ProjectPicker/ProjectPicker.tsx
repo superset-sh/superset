@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Command,
 	CommandEmpty,
@@ -66,7 +67,11 @@ export function ProjectPicker({
 				<Command>
 					<CommandInput placeholder="Search projects..." />
 					<CommandList>
-						<CommandEmpty>No projects found.</CommandEmpty>
+						<CommandEmpty>
+							<Trans id="dashboard.automations.projectPicker.noProjectsFound">
+								No projects found.
+							</Trans>
+						</CommandEmpty>
 						<CommandGroup>
 							<CommandItem
 								value="No project session"
@@ -76,8 +81,10 @@ export function ProjectPicker({
 								}}
 							>
 								<LuBox className="size-4 shrink-0" />
-								No project
-								<span className="ml-1 text-muted-foreground">session</span>
+								<Trans id="dashboard.automations.projectPicker.noProjectItem">
+									No project
+									<span className="ml-1 text-muted-foreground">session</span>
+								</Trans>
 								{sessionSelected && <HiCheck className="ml-auto size-4" />}
 							</CommandItem>
 							{recentProjects.map((project) => (

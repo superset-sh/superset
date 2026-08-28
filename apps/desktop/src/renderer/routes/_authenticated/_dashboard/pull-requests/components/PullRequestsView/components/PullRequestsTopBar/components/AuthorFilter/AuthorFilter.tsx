@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -30,9 +31,15 @@ export function AuthorFilter({
 	onChange,
 	projectTargets,
 }: AuthorFilterProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
-	const label = value ? `@${value}` : "All authors";
+	const label = value
+		? `@${value}`
+		: t({
+				id: "dashboard.pullRequests.authorFilter.allAuthors",
+				message: "All authors",
+			});
 
 	const singleTarget =
 		projectTargets.length === 1 ? projectTargets[0] : undefined;
@@ -107,7 +114,9 @@ export function AuthorFilter({
 					<CommandList className="max-h-72">
 						{singleTarget && isLoading && !contributors && (
 							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
-								Loading contributors…
+								<Trans id="dashboard.pullRequests.authorFilter.loadingContributors">
+									Loading contributors…
+								</Trans>
 							</div>
 						)}
 						{(!search || filtered.length > 0 || showCustomOption) && (
@@ -115,7 +124,11 @@ export function AuthorFilter({
 								{!search && (
 									<CommandItem onSelect={() => handleSelect(null)}>
 										<HiOutlineUserCircle className="size-4 shrink-0" />
-										<span className="text-sm">All authors</span>
+										<span className="text-sm">
+											<Trans id="dashboard.pullRequests.authorFilter.allAuthorsOption">
+												All authors
+											</Trans>
+										</span>
 										{!value && (
 											<HiCheck className="ml-auto size-3.5 shrink-0" />
 										)}
@@ -147,7 +160,9 @@ export function AuthorFilter({
 									<CommandItem onSelect={() => handleSelect(normalizedSearch)}>
 										<HiOutlineUserCircle className="size-4 shrink-0" />
 										<span className="text-sm">
-											Filter by @{normalizedSearch}
+											<Trans id="dashboard.pullRequests.authorFilter.filterByUser">
+												Filter by @{normalizedSearch}
+											</Trans>
 										</span>
 									</CommandItem>
 								)}
@@ -155,7 +170,9 @@ export function AuthorFilter({
 						)}
 						{singleTarget && !isLoading && error && (
 							<div className="px-3 py-4 text-center text-sm text-muted-foreground">
-								Couldn't load contributors — type a username instead.
+								<Trans id="dashboard.pullRequests.authorFilter.contributorsError">
+									Couldn't load contributors — type a username instead.
+								</Trans>
 							</div>
 						)}
 						{!isLoading &&
@@ -165,7 +182,15 @@ export function AuthorFilter({
 							(!singleTarget ||
 								(contributors && contributors.length === 0)) && (
 								<CommandEmpty>
-									{search ? "No authors found." : "No contributors found."}
+									{search ? (
+										<Trans id="dashboard.pullRequests.authorFilter.noAuthorsFound">
+											No authors found.
+										</Trans>
+									) : (
+										<Trans id="dashboard.pullRequests.authorFilter.noContributorsFound">
+											No contributors found.
+										</Trans>
+									)}
 								</CommandEmpty>
 							)}
 					</CommandList>

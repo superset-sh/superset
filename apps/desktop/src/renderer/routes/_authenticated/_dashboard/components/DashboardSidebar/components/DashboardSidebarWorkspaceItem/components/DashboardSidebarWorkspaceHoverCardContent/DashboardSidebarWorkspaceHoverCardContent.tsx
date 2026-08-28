@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { formatDistanceToNow } from "date-fns";
@@ -55,7 +56,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 		>
 			<a href={previewUrl} target="_blank" rel="noopener noreferrer">
 				<LuGlobe className="size-3" />
-				Open Preview
+				<Trans id="dashboard.sidebar.workspaceHoverCard.openPreview">
+					Open Preview
+				</Trans>
 			</a>
 		</Button>
 	) : null;
@@ -66,7 +69,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 				{hasCustomAlias && <div className="text-sm font-medium">{name}</div>}
 				<div className="space-y-0.5">
 					<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-						Branch
+						<Trans id="dashboard.sidebar.workspaceHoverCard.branchLabel">
+							Branch
+						</Trans>
 					</span>
 					<div className="flex items-center gap-1.5">
 						{onEditBranchClick ? (
@@ -111,8 +116,18 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
 					<LuTriangleAlert className="size-3.5 shrink-0" />
 					<span>
-						Behind main by {behindCount ?? "?"} commit
-						{behindCount !== 1 && "s"}, needs rebase
+						{behindCount != null ? (
+							<Plural
+								id="dashboard.sidebar.workspaceHoverCard.behindMain"
+								value={behindCount}
+								one="Behind main by # commit, needs rebase"
+								other="Behind main by # commits, needs rebase"
+							/>
+						) : (
+							<Trans id="dashboard.sidebar.workspaceHoverCard.behindMainUnknown">
+								Behind main by ? commits, needs rebase
+							</Trans>
+						)}
 					</span>
 				</div>
 			)}
@@ -170,7 +185,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 					>
 						<a href={pullRequest.url} target="_blank" rel="noopener noreferrer">
 							<FaGithub className="size-3" />
-							View on GitHub
+							<Trans id="dashboard.sidebar.workspaceHoverCard.viewOnGitHub">
+								View on GitHub
+							</Trans>
 							{hasOpenPRShortcut && (
 								<KbdGroup className="ml-auto">
 									{openPRDisplay.map((key) => (
@@ -187,7 +204,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 			) : repoUrl ? (
 				<div className="pt-2 border-t border-border space-y-2">
 					<div className="text-xs text-muted-foreground">
-						No PR for this branch
+						<Trans id="dashboard.sidebar.workspaceHoverCard.noPrForBranch">
+							No PR for this branch
+						</Trans>
 					</div>
 					{previewButton}
 				</div>
@@ -205,7 +224,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 							rel="noopener noreferrer"
 						>
 							<LuGlobe className="size-3" />
-							Open Preview
+							<Trans id="dashboard.sidebar.workspaceHoverCard.openPreviewOnly">
+								Open Preview
+							</Trans>
 						</a>
 					</Button>
 				</div>

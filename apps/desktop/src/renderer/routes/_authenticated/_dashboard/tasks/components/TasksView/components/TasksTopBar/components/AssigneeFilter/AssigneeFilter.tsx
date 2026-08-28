@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -23,6 +24,7 @@ interface AssigneeFilterProps {
 }
 
 export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [tab, setTab] = useState<Tab>("all");
@@ -59,18 +61,34 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 	const selectedUser = useMemo(() => {
 		if (value === null) return null;
 		if (value === "unassigned") {
-			return { id: "unassigned", name: "Unassigned", image: null };
+			return {
+				id: "unassigned",
+				name: t({
+					id: "dashboard.tasks.assigneeFilter.unassignedSelected",
+					message: "Unassigned",
+				}),
+				image: null,
+			};
 		}
 		if (value.startsWith("ext:")) {
 			const extId = value.slice(4);
 			const ext = externalAssignees.find((e) => e.id === extId);
 			return ext
-				? { id: value, name: ext.name || "External", image: ext.avatar }
+				? {
+						id: value,
+						name:
+							ext.name ||
+							t({
+								id: "dashboard.tasks.assigneeFilter.externalSelected",
+								message: "External",
+							}),
+						image: ext.avatar,
+					}
 				: null;
 		}
 		const user = users.find((u) => u.id === value);
 		return user ? { id: user.id, name: user.name, image: user.image } : null;
-	}, [value, users, externalAssignees]);
+	}, [value, users, externalAssignees, t]);
 
 	const query = search.toLowerCase();
 
@@ -152,7 +170,11 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 					) : (
 						<>
 							<HiOutlineUserCircle className="size-4" />
-							<span className="text-sm hidden @4xl:inline">Assignee</span>
+							<span className="text-sm hidden @4xl:inline">
+								<Trans id="dashboard.tasks.assigneeFilter.assignee">
+									Assignee
+								</Trans>
+							</span>
 						</>
 					)}
 					<HiChevronDown className="size-3" />
@@ -166,22 +188,28 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 						onValueChange={setSearch}
 					/>
 					<div className="flex items-center gap-0.5 border-b px-2 py-1.5">
-						{(["all", "internal", "external"] as const).map((t) => (
+						{(["all", "internal", "external"] as const).map((tabValue) => (
 							<button
-								key={t}
+								key={tabValue}
 								type="button"
-								onClick={() => setTab(t)}
+								onClick={() => setTab(tabValue)}
 								className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-									tab === t
+									tab === tabValue
 										? "bg-accent text-accent-foreground"
 										: "text-muted-foreground hover:text-foreground"
 								}`}
 							>
-								{t === "all"
-									? "All"
-									: t === "internal"
-										? "Internal"
-										: "External"}
+								{tabValue === "all" ? (
+									<Trans id="dashboard.tasks.assigneeFilter.tabAll">All</Trans>
+								) : tabValue === "internal" ? (
+									<Trans id="dashboard.tasks.assigneeFilter.tabInternal">
+										Internal
+									</Trans>
+								) : (
+									<Trans id="dashboard.tasks.assigneeFilter.tabExternal">
+										External
+									</Trans>
+								)}
 							</button>
 						))}
 					</div>
@@ -193,12 +221,20 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 						>
 							<CommandGroup>
 								<CommandItem onSelect={() => handleSelect(null)}>
-									<span className="text-sm">All assignees</span>
+									<span className="text-sm">
+										<Trans id="dashboard.tasks.assigneeFilter.allAssignees">
+											All assignees
+										</Trans>
+									</span>
 									{value === null && <HiCheck className="ml-auto size-3.5" />}
 								</CommandItem>
 								<CommandItem onSelect={() => handleSelect("unassigned")}>
 									<HiOutlineUserCircle className="size-4" />
-									<span className="text-sm">Unassigned</span>
+									<span className="text-sm">
+										<Trans id="dashboard.tasks.assigneeFilter.unassigned">
+											Unassigned
+										</Trans>
+									</span>
 									{value === "unassigned" && (
 										<HiCheck className="ml-auto size-3.5" />
 									)}
@@ -206,7 +242,11 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 							</CommandGroup>
 
 							{!hasResults && search && (
-								<CommandEmpty>No people found.</CommandEmpty>
+								<CommandEmpty>
+									<Trans id="dashboard.tasks.assigneeFilter.noPeople">
+										No people found.
+									</Trans>
+								</CommandEmpty>
 							)}
 
 							{visibleUsers.length > 0 && (
@@ -265,7 +305,11 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 													image={ext.avatar}
 												/>
 												<span className="text-sm truncate">
-													{ext.name || "External"}
+													{ext.name ||
+														t({
+															id: "dashboard.tasks.assigneeFilter.externalName",
+															message: "External",
+														})}
 												</span>
 												{value === `ext:${ext.id}` && (
 													<HiCheck className="ml-auto size-3.5 shrink-0" />

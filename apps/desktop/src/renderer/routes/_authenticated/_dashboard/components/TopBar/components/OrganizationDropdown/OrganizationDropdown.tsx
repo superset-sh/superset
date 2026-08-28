@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import {
@@ -147,13 +148,21 @@ export function OrganizationDropdown({
 						onSelect={() => navigate({ to: "/settings/organization" })}
 					>
 						<FiUsers className="h-4 w-4" />
-						<span>Manage members</span>
+						<span>
+							<Trans id="dashboard.topBar.orgDropdown.manageMembers">
+								Manage members
+							</Trans>
+						</span>
 					</DropdownMenuItem>
 					{organizations && organizations.length > 0 && (
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger className="gap-2">
 								<HiOutlineArrowsRightLeft className="h-4 w-4" />
-								<span>Switch organization</span>
+								<span>
+									<Trans id="dashboard.topBar.orgDropdown.switchOrganization">
+										Switch organization
+									</Trans>
+								</span>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
 								{userEmail && (
@@ -186,7 +195,11 @@ export function OrganizationDropdown({
 									onSelect={() => navigate({ to: "/create-organization" })}
 								>
 									<HiOutlinePlus className="h-4 w-4" />
-									<span>Create organization</span>
+									<span>
+										<Trans id="dashboard.topBar.orgDropdown.createOrganization">
+											Create organization
+										</Trans>
+									</span>
 								</DropdownMenuItem>
 							</DropdownMenuSubContent>
 						</DropdownMenuSub>
@@ -194,7 +207,11 @@ export function OrganizationDropdown({
 
 					<DropdownMenuItem onSelect={() => openNewWindow.mutate()}>
 						<HiOutlineWindow className="h-4 w-4" />
-						<span>New window</span>
+						<span>
+							<Trans id="dashboard.topBar.orgDropdown.newWindow">
+								New window
+							</Trans>
+						</span>
 					</DropdownMenuItem>
 
 					<HelpSubMenu onSubmitPrompt={() => setSubmitPromptOpen(true)} />
@@ -204,7 +221,9 @@ export function OrganizationDropdown({
 					{/* Account */}
 					<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
 						<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
-						<span>Log out</span>
+						<span>
+							<Trans id="dashboard.topBar.orgDropdown.logOut">Log out</Trans>
+						</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

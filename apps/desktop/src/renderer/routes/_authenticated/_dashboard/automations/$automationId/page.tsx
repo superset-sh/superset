@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
@@ -120,9 +121,15 @@ function AutomationDetailPage() {
 			loadError.data?.code === "NOT_FOUND";
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
-				{loadError && !isMissing
-					? `Couldn't load automation: ${loadError.message}`
-					: "Automation not found."}
+				{loadError && !isMissing ? (
+					<Trans id="dashboard.automations.detail.loadError">
+						Couldn't load automation: {loadError.message}
+					</Trans>
+				) : (
+					<Trans id="dashboard.automations.detail.notFound">
+						Automation not found.
+					</Trans>
+				)}
 			</div>
 		);
 	}

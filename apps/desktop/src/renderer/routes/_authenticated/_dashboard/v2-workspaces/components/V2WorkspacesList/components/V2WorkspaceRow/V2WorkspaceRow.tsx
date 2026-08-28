@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { CgLaptop } from "react-icons/cg";
@@ -117,7 +118,11 @@ export function V2WorkspaceRow({
 									/>
 								</span>
 							</TooltipTrigger>
-							<TooltipContent side="top">Main workspace</TooltipContent>
+							<TooltipContent side="top">
+								<Trans id="dashboard.workspaces.row.mainWorkspace">
+									Main workspace
+								</Trans>
+							</TooltipContent>
 						</Tooltip>
 					) : null}
 

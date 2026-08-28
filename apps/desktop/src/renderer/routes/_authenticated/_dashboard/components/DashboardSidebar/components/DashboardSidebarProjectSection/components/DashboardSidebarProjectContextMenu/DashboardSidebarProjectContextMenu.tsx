@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -39,29 +40,37 @@ export function DashboardSidebarProjectContextMenu({
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
 				<ContextMenuItem onSelect={onRename}>
 					<LuPencil className="size-4 mr-2" />
-					Rename
+					<Trans id="dashboard.sidebar.projectMenu.rename">Rename</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onOpenInFinder}>
 					<LuFolderOpen className="size-4 mr-2" />
-					Open in Finder
+					<Trans id="dashboard.sidebar.projectMenu.openInFinder">
+						Open in Finder
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onOpenSettings}>
 					<LuSettings className="size-4 mr-2" />
-					Project Settings
+					<Trans id="dashboard.sidebar.projectMenu.projectSettings">
+						Project Settings
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onCreateSection}>
 					<LuFolderPlus className="size-4 mr-2" />
-					New group
+					<Trans id="dashboard.sidebar.projectMenu.newGroup">New group</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onImportWorktrees}>
 					<LuFolderInput className="size-4 mr-2" />
-					Import untracked worktrees
+					<Trans id="dashboard.sidebar.projectMenu.importWorktrees">
+						Import untracked worktrees
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onRemoveFromSidebar}>
 					<LuX className="size-4 mr-2" />
-					Remove from Sidebar
+					<Trans id="dashboard.sidebar.projectMenu.removeFromSidebar">
+						Remove from Sidebar
+					</Trans>
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

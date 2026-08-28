@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun } from "@superset/db/schema";
 import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
@@ -36,6 +37,7 @@ export function AutomationBody({
 	onToggleEnabled: (enabled: boolean) => void;
 	toggleDisabled?: boolean;
 }) {
+	const { t } = useLingui();
 	const [tab, setTab] = useState<DetailTab>("settings");
 	const [name, setName] = useState(automation.name);
 	const [prompt, setPrompt] = useState(automation.prompt);
@@ -124,7 +126,11 @@ export function AutomationBody({
 						}
 					/>
 					<span className="text-muted-foreground">
-						{automation.enabled ? "Active" : "Paused"}
+						{automation.enabled ? (
+							<Trans id="dashboard.automations.body.statusActive">Active</Trans>
+						) : (
+							<Trans id="dashboard.automations.body.statusPaused">Paused</Trans>
+						)}
 					</span>
 					{ownerName && (
 						<>
@@ -135,30 +141,49 @@ export function AutomationBody({
 				</div>
 				{readOnly && (
 					<p className="select-text cursor-text mt-2 text-xs text-muted-foreground">
-						Owned by {ownerName ?? "a teammate"} — only they can edit this
-						automation.
+						<Trans id="dashboard.automations.body.ownedByNotice">
+							Owned by{" "}
+							{ownerName ??
+								t({
+									id: "dashboard.automations.body.teammateFallback",
+									message: "a teammate",
+								})}{" "}
+							— only they can edit this automation.
+						</Trans>
 					</p>
 				)}
 
 				<div className="mt-6 mb-6 flex items-center gap-1">
 					{(
 						[
-							{ value: "settings", label: "Settings" },
-							{ value: "runs", label: "Run History" },
+							{
+								value: "settings",
+								label: t({
+									id: "dashboard.automations.body.tabSettings",
+									message: "Settings",
+								}),
+							},
+							{
+								value: "runs",
+								label: t({
+									id: "dashboard.automations.body.tabRunHistory",
+									message: "Run History",
+								}),
+							},
 						] as const
-					).map((t) => (
+					).map((tabOption) => (
 						<button
-							key={t.value}
+							key={tabOption.value}
 							type="button"
-							onClick={() => setTab(t.value)}
+							onClick={() => setTab(tabOption.value)}
 							className={cn(
 								"rounded-md px-3 py-1.5 text-sm transition-colors",
-								tab === t.value
+								tab === tabOption.value
 									? "bg-accent font-medium text-foreground"
 									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
-							{t.label}
+							{tabOption.label}
 						</button>
 					))}
 				</div>
@@ -179,7 +204,9 @@ export function AutomationBody({
 						/>
 
 						<span className="mt-8 mb-2 text-sm text-muted-foreground">
-							Instructions
+							<Trans id="dashboard.automations.body.instructions">
+								Instructions
+							</Trans>
 						</span>
 						<div className="flex flex-col rounded-xl border border-border bg-card/40">
 							<div className="min-h-[240px] px-4 py-3">
@@ -220,8 +247,10 @@ export function AutomationBody({
 						</div>
 						{agentMissing && (
 							<p className="select-text cursor-text mt-2 text-xs text-amber-600 dark:text-amber-500">
-								This agent no longer exists on the selected device (its agents
-								may have been reset). Runs will fail until you pick a new one.
+								<Trans id="dashboard.automations.body.agentMissingWarning">
+									This agent no longer exists on the selected device (its agents
+									may have been reset). Runs will fail until you pick a new one.
+								</Trans>
 							</p>
 						)}
 					</fieldset>

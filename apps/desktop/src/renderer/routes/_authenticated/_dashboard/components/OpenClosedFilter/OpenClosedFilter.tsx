@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 
 interface OpenClosedFilterProps {
@@ -11,7 +12,9 @@ export function OpenClosedFilter({
 }: OpenClosedFilterProps) {
 	return (
 		<div className="flex items-center gap-2">
-			<span className="text-xs text-muted-foreground">State</span>
+			<span className="text-xs text-muted-foreground">
+				<Trans id="dashboard.openClosedFilter.state">State</Trans>
+			</span>
 			<ToggleGroup
 				type="single"
 				value={includeClosed ? "all" : "open"}
@@ -28,14 +31,14 @@ export function OpenClosedFilter({
 					aria-label="Show open items"
 					className="h-7 border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
 				>
-					Open
+					<Trans id="dashboard.openClosedFilter.open">Open</Trans>
 				</ToggleGroupItem>
 				<ToggleGroupItem
 					value="all"
 					aria-label="Show items in all states"
 					className="h-7 border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
 				>
-					All
+					<Trans id="dashboard.openClosedFilter.all">All</Trans>
 				</ToggleGroupItem>
 			</ToggleGroup>
 		</div>

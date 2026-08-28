@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -66,7 +67,11 @@ export function DashboardSidebarWorkspacesHeader() {
 							</button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Add project</TooltipContent>
+					<TooltipContent side="bottom">
+						<Trans id="dashboard.sidebar.workspacesHeader.addProject">
+							Add project
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent
 					align="end"
@@ -79,19 +84,27 @@ export function DashboardSidebarWorkspacesHeader() {
 				>
 					<DropdownMenuItem onSelect={handleImportFolder}>
 						<VscFolderOpened className="size-4" />
-						Open project
+						<Trans id="dashboard.sidebar.workspacesHeader.openProject">
+							Open project
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openNewProject()}>
 						<VscGithubAlt className="size-4" />
-						Clone from URL
+						<Trans id="dashboard.sidebar.workspacesHeader.cloneFromUrl">
+							Clone from URL
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openEmptyProject()}>
 						<VscNewFolder className="size-4" />
-						Create new project
+						<Trans id="dashboard.sidebar.workspacesHeader.createNewProject">
+							Create new project
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openTemplateGallery()}>
 						<VscLayout className="size-4" />
-						Start from a template
+						<Trans id="dashboard.sidebar.workspacesHeader.startFromTemplate">
+							Start from a template
+						</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

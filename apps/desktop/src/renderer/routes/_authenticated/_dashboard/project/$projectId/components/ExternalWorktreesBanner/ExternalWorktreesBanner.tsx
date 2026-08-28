@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -57,8 +58,12 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 			<div className="flex items-start justify-between gap-4">
 				<div className="space-y-2 min-w-0">
 					<p className="text-sm font-medium text-foreground">
-						{importableWorktrees.length} existing worktree
-						{importableWorktrees.length === 1 ? "" : "s"} found
+						<Plural
+							id="dashboard.project.worktreesBanner.foundCount"
+							value={importableWorktrees.length}
+							one="# existing worktree found"
+							other="# existing worktrees found"
+						/>
 					</p>
 					<div className="flex flex-wrap gap-1.5">
 						{visibleBranches.map((wt) => (
@@ -72,7 +77,9 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 						))}
 						{remainingCount > 0 && (
 							<span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-								+{remainingCount} more
+								<Trans id="dashboard.project.worktreesBanner.moreCount">
+									+{remainingCount} more
+								</Trans>
 							</span>
 						)}
 					</div>
@@ -86,23 +93,43 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 							className="shrink-0"
 							disabled={importAllWorktrees.isPending}
 						>
-							{importAllWorktrees.isPending ? "Importing..." : "Import all"}
+							{importAllWorktrees.isPending ? (
+								<Trans id="dashboard.project.worktreesBanner.importing">
+									Importing...
+								</Trans>
+							) : (
+								<Trans id="dashboard.project.worktreesBanner.importAll">
+									Import all
+								</Trans>
+							)}
 						</Button>
 					</AlertDialogTrigger>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Import all worktrees</AlertDialogTitle>
+							<AlertDialogTitle>
+								<Trans id="dashboard.project.worktreesBanner.importDialogTitle">
+									Import all worktrees
+								</Trans>
+							</AlertDialogTitle>
 							<AlertDialogDescription>
-								This will import {importableWorktrees.length} existing worktree
-								{importableWorktrees.length === 1 ? "" : "s"} into Superset as
-								workspaces. Each worktree on disk will be tracked and appear in
-								your sidebar. No files will be modified.
+								<Plural
+									id="dashboard.project.worktreesBanner.importDialogDescription"
+									value={importableWorktrees.length}
+									one="This will import # existing worktree into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified."
+									other="This will import # existing worktrees into Superset as workspaces. Each worktree on disk will be tracked and appear in your sidebar. No files will be modified."
+								/>
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogCancel>
+								<Trans id="dashboard.project.worktreesBanner.cancel">
+									Cancel
+								</Trans>
+							</AlertDialogCancel>
 							<AlertDialogAction onClick={handleImportAll}>
-								Import all
+								<Trans id="dashboard.project.worktreesBanner.importAllConfirm">
+									Import all
+								</Trans>
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

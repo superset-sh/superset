@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -252,7 +253,9 @@ export function RunInWorkspacePopoverV2({
 					className="h-7 text-xs gap-1.5 bg-muted/50"
 				>
 					<HiMiniPlay className="size-3" />
-					Run in Workspace
+					<Trans id="dashboard.tasks.runInWorkspacePopoverV2.trigger">
+						Run in Workspace
+					</Trans>
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-72 p-0">
@@ -285,7 +288,9 @@ export function RunInWorkspacePopoverV2({
 										</>
 									) : (
 										<span className="text-muted-foreground">
-											Select project
+											<Trans id="dashboard.tasks.runInWorkspacePopoverV2.selectProject">
+												Select project
+											</Trans>
 										</span>
 									)}
 								</span>
@@ -296,7 +301,11 @@ export function RunInWorkspacePopoverV2({
 							<Command>
 								<CommandInput placeholder="Search projects..." />
 								<CommandList>
-									<CommandEmpty>No projects found.</CommandEmpty>
+									<CommandEmpty>
+										<Trans id="dashboard.tasks.runInWorkspacePopoverV2.noProjects">
+											No projects found.
+										</Trans>
+									</CommandEmpty>
 									<CommandGroup>
 										{recentProjects.map((project) => (
 											<CommandItem
@@ -316,7 +325,9 @@ export function RunInWorkspacePopoverV2({
 												<span className="flex-1 truncate">{project.name}</span>
 												{project.needsSetup === true && (
 													<span className="text-[10px] text-amber-500">
-														not set up
+														<Trans id="dashboard.tasks.runInWorkspacePopoverV2.notSetUp">
+															not set up
+														</Trans>
 													</span>
 												)}
 												{project.id === selectedProjectId && (
@@ -350,7 +361,12 @@ export function RunInWorkspacePopoverV2({
 						disabled={!!submitBlocker}
 						onClick={handleRun}
 					>
-						Run {tasks.length} Workspace{tasks.length === 1 ? "" : "s"}
+						<Plural
+							id="dashboard.tasks.runInWorkspacePopoverV2.runCount"
+							value={tasks.length}
+							one="Run # Workspace"
+							other="Run # Workspaces"
+						/>
 					</Button>
 				</div>
 			</PopoverContent>

@@ -5,4 +5,14 @@
 export const ENFORCED_DIRS: readonly string[] = [
 	"packages/i18n/src",
 	"apps/web/src/app/account-pending-deletion",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/components",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/new-workspace",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/plugins",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/project",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks",
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces",
+	"apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal",
 ];

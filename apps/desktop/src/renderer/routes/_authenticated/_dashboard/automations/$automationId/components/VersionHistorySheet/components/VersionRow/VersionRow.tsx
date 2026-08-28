@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { AutomationPromptSource } from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
@@ -41,17 +42,25 @@ export function VersionRow({
 				</span>
 				{source === "agent" && (
 					<Badge variant="secondary" className="px-1 py-0 text-[10px]">
-						Agent
+						<Trans id="dashboard.automations.versionRow.agentBadge">
+							Agent
+						</Trans>
 					</Badge>
 				)}
 				{source === "restore" && (
 					<Badge variant="outline" className="px-1 py-0 text-[10px]">
-						Restored
+						<Trans id="dashboard.automations.versionRow.restoredBadge">
+							Restored
+						</Trans>
 					</Badge>
 				)}
 			</div>
 			<span className="truncate text-xs leading-tight text-muted-foreground">
-				{authorName ?? "Unknown"}
+				{authorName ?? (
+					<Trans id="dashboard.automations.versionRow.unknownAuthor">
+						Unknown
+					</Trans>
+				)}
 			</span>
 		</button>
 	);

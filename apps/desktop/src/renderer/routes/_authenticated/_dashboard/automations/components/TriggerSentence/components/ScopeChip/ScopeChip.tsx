@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { TriggerScope } from "@superset/shared/automation-triggers";
 import {
 	DropdownMenu,
@@ -123,7 +124,11 @@ export function ScopeChip({
 						</DropdownMenuCheckboxItem>
 					))}
 				{options.length === 0 && !allowCustom && (
-					<DropdownMenuItem disabled>Nothing to choose yet</DropdownMenuItem>
+					<DropdownMenuItem disabled>
+						<Trans id="dashboard.automations.scopeChip.nothingToChoose">
+							Nothing to choose yet
+						</Trans>
+					</DropdownMenuItem>
 				)}
 				{allowCustom && (
 					<>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -80,7 +81,13 @@ export function LinearProjectFilter({
 				>
 					<HiOutlineFolder className="size-4" />
 					<span className="text-sm hidden @4xl:inline">
-						{selected ? selected.name : "Project"}
+						{selected ? (
+							selected.name
+						) : (
+							<Trans id="dashboard.tasks.linearProjectFilter.project">
+								Project
+							</Trans>
+						)}
 					</span>
 					<HiChevronDown className="size-3" />
 				</Button>
@@ -94,13 +101,21 @@ export function LinearProjectFilter({
 					/>
 					<CommandList className="max-h-80">
 						{filtered.length === 0 && search && (
-							<CommandEmpty>No projects found.</CommandEmpty>
+							<CommandEmpty>
+								<Trans id="dashboard.tasks.linearProjectFilter.noProjects">
+									No projects found.
+								</Trans>
+							</CommandEmpty>
 						)}
 						<CommandGroup>
 							{!search && (
 								<CommandItem onSelect={() => handleSelect(null)}>
 									<HiOutlineFolder className="size-4 shrink-0" />
-									<span className="text-sm truncate">All projects</span>
+									<span className="text-sm truncate">
+										<Trans id="dashboard.tasks.linearProjectFilter.allProjects">
+											All projects
+										</Trans>
+									</span>
 									{value === null && (
 										<HiCheck className="ml-auto size-3.5 shrink-0" />
 									)}

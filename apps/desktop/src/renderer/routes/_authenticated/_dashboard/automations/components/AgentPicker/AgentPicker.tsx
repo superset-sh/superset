@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { getPresetById } from "@superset/shared/host-agent-presets";
 import {
 	DropdownMenu,
@@ -96,7 +97,11 @@ export function AgentPicker({
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/agents" })}>
 					<LuSettings className="size-4 shrink-0" />
-					<span className="flex-1">Configure agents…</span>
+					<span className="flex-1">
+						<Trans id="dashboard.automations.agentPicker.configureAgents">
+							Configure agents…
+						</Trans>
+					</span>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

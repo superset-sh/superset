@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	rruleProblem,
 	timezoneAbbreviation,
@@ -106,7 +107,11 @@ export function ScheduleSentence({
 
 				{showsDay && (
 					<>
-						<span className="text-muted-foreground">on</span>
+						<span className="text-muted-foreground">
+							<Trans id="dashboard.automations.scheduleSentence.onDay">
+								on
+							</Trans>
+						</span>
 						<SelectChip
 							value={state.day}
 							disabled={disabled}
@@ -118,7 +123,11 @@ export function ScheduleSentence({
 
 				{showsTime && (
 					<>
-						<span className="text-muted-foreground">at</span>
+						<span className="text-muted-foreground">
+							<Trans id="dashboard.automations.scheduleSentence.atTime">
+								at
+							</Trans>
+						</span>
 						<input
 							type="time"
 							disabled={disabled}
@@ -167,9 +176,15 @@ export function ScheduleSentence({
 					/>
 					{draftEdited && customProblem && (
 						<span className="select-text cursor-text text-xs text-destructive">
-							{customProblem === "exhausted"
-								? "No upcoming runs — changes aren't saved"
-								: "Invalid recurrence rule — changes aren't saved"}
+							{customProblem === "exhausted" ? (
+								<Trans id="dashboard.automations.scheduleSentence.exhaustedRrule">
+									No upcoming runs — changes aren't saved
+								</Trans>
+							) : (
+								<Trans id="dashboard.automations.scheduleSentence.invalidRrule">
+									Invalid recurrence rule — changes aren't saved
+								</Trans>
+							)}
 						</span>
 					)}
 				</div>

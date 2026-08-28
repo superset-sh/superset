@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	type DraftTrigger,
 	describeTriggerProblems,
@@ -139,7 +140,11 @@ export function TriggersEditor({
 			    Save that trails the rows drifts down the page as triggers are added,
 			    and takes the reason it was refused with it. */}
 			<div className="mb-2 flex min-h-7 items-center gap-3">
-				<span className="shrink-0 text-muted-foreground text-sm">Triggers</span>
+				<span className="shrink-0 text-muted-foreground text-sm">
+					<Trans id="dashboard.automations.triggersEditor.sectionLabel">
+						Triggers
+					</Trans>
+				</span>
 
 				{banner && (
 					<p className="flex min-w-0 items-center gap-1.5 text-[13px] text-amber-600 dark:text-amber-400">
@@ -158,7 +163,9 @@ export function TriggersEditor({
 							disabled={saving}
 							className="h-7 text-[13px]"
 						>
-							Discard
+							<Trans id="dashboard.automations.triggersEditor.discard">
+								Discard
+							</Trans>
 						</Button>
 						<Button
 							type="button"
@@ -167,7 +174,15 @@ export function TriggersEditor({
 							disabled={saving}
 							className="h-7 text-[13px]"
 						>
-							{saving ? "Saving..." : "Save triggers"}
+							{saving ? (
+								<Trans id="dashboard.automations.triggersEditor.saving">
+									Saving...
+								</Trans>
+							) : (
+								<Trans id="dashboard.automations.triggersEditor.saveTriggers">
+									Save triggers
+								</Trans>
+							)}
 						</Button>
 					</div>
 				)}
@@ -212,7 +227,9 @@ export function TriggersEditor({
 							className="mb-1.5 h-10 w-full justify-start gap-2 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
 						>
 							<LuCirclePlus className="size-4" />
-							Add Trigger
+							<Trans id="dashboard.automations.triggersEditor.addTrigger">
+								Add Trigger
+							</Trans>
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="start" className="w-70">
@@ -259,7 +276,9 @@ export function TriggersEditor({
 								})}
 								{results.length === 0 && (
 									<DropdownMenuItem disabled>
-										No matching trigger
+										<Trans id="dashboard.automations.triggersEditor.noMatchingTrigger">
+											No matching trigger
+										</Trans>
 									</DropdownMenuItem>
 								)}
 							</>

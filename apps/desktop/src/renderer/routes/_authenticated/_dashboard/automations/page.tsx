@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
@@ -100,6 +101,7 @@ function settledErrorMessage(result: PromiseSettledResult<unknown>) {
 }
 
 function AutomationsPage() {
+	const { t } = useLingui();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
 
@@ -568,7 +570,7 @@ function AutomationsPage() {
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
 					<div className="flex items-center justify-between">
 						<h1 className="text-xl font-semibold tracking-tight">
-							Automations
+							<Trans id="dashboard.automations.page.title">Automations</Trans>
 						</h1>
 						<div className="flex items-center gap-2">
 							<Tooltip>
@@ -589,7 +591,11 @@ function AutomationsPage() {
 										</a>
 									</Button>
 								</TooltipTrigger>
-								<TooltipContent>Automations docs</TooltipContent>
+								<TooltipContent>
+									<Trans id="dashboard.automations.page.docsTooltip">
+										Automations docs
+									</Trans>
+								</TooltipContent>
 							</Tooltip>
 							<Button
 								type="button"
@@ -600,7 +606,11 @@ function AutomationsPage() {
 								onClick={handleCreateWithAgent}
 							>
 								<LuSparkles className="size-4" />
-								<span>Create with AI</span>
+								<span>
+									<Trans id="dashboard.automations.page.createWithAi">
+										Create with AI
+									</Trans>
+								</span>
 							</Button>
 							<Button
 								type="button"
@@ -610,7 +620,11 @@ function AutomationsPage() {
 								onClick={() => createMutation.mutate(null)}
 							>
 								<LuPlus className="size-4" />
-								<span>New automation</span>
+								<span>
+									<Trans id="dashboard.automations.page.newAutomation">
+										New automation
+									</Trans>
+								</span>
 							</Button>
 						</div>
 					</div>
@@ -646,7 +660,11 @@ function AutomationsPage() {
 										value="mine"
 										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
-										<span className="text-sm">Mine</span>
+										<span className="text-sm">
+											<Trans id="dashboard.automations.page.tabMine">
+												Mine
+											</Trans>
+										</span>
 										<span className="ml-1 tabular-nums text-xs text-muted-foreground">
 											{mineCount}
 										</span>
@@ -655,7 +673,11 @@ function AutomationsPage() {
 										value="team"
 										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
-										<span className="text-sm">Team</span>
+										<span className="text-sm">
+											<Trans id="dashboard.automations.page.tabTeam">
+												Team
+											</Trans>
+										</span>
 										<span className="ml-1 tabular-nums text-xs text-muted-foreground">
 											{teamCount}
 										</span>
@@ -681,14 +703,20 @@ function AutomationsPage() {
 															retryAllMutation.isPending && "animate-spin",
 														)}
 													/>
-													<span>Retry all</span>
+													<span>
+														<Trans id="dashboard.automations.page.retryAll">
+															Retry all
+														</Trans>
+													</span>
 													<span className="tabular-nums text-xs text-muted-foreground">
 														{failedMine.length}
 													</span>
 												</Button>
 											</TooltipTrigger>
 											<TooltipContent>
-												Retry every automation whose last run failed
+												<Trans id="dashboard.automations.page.retryAllTooltip">
+													Retry every automation whose last run failed
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 									)}
@@ -723,11 +751,19 @@ function AutomationsPage() {
 									>
 										<LuTriangleAlert />
 									</EmptyMedia>
-									<EmptyTitle>Couldn't load automations</EmptyTitle>
+									<EmptyTitle>
+										<Trans id="dashboard.automations.page.loadErrorTitle">
+											Couldn't load automations
+										</Trans>
+									</EmptyTitle>
 									<EmptyDescription className="select-text cursor-text">
-										{automationsError instanceof Error
-											? automationsError.message
-											: "The request failed."}
+										{automationsError instanceof Error ? (
+											automationsError.message
+										) : (
+											<Trans id="dashboard.automations.page.loadErrorFallback">
+												The request failed.
+											</Trans>
+										)}
 									</EmptyDescription>
 								</EmptyHeader>
 								<Button
@@ -738,7 +774,11 @@ function AutomationsPage() {
 									}}
 								>
 									<LuRotateCw className="size-4" />
-									<span>Try again</span>
+									<span>
+										<Trans id="dashboard.automations.page.tryAgain">
+											Try again
+										</Trans>
+									</span>
 								</Button>
 							</Empty>
 						) : showMineEmptyState ? (
@@ -757,9 +797,15 @@ function AutomationsPage() {
 									>
 										<LuSearchX />
 									</EmptyMedia>
-									<EmptyTitle>No team automations</EmptyTitle>
+									<EmptyTitle>
+										<Trans id="dashboard.automations.page.teamEmptyTitle">
+											No team automations
+										</Trans>
+									</EmptyTitle>
 									<EmptyDescription>
-										Nobody on your team has shared automations yet.
+										<Trans id="dashboard.automations.page.teamEmptyDescription">
+											Nobody on your team has shared automations yet.
+										</Trans>
 									</EmptyDescription>
 								</EmptyHeader>
 							</Empty>
@@ -822,7 +868,11 @@ function AutomationsPage() {
 											>
 												{/* Sortable heads are buttons, which Chrome's UA sheet
 												    exempts from the header's `uppercase` — match them. */}
-												<span className="normal-case">Last run</span>
+												<span className="normal-case">
+													<Trans id="dashboard.automations.page.lastRunColumn">
+														Last run
+													</Trans>
+												</span>
 											</TableHead>
 											<TableHead
 												className={cn(DATA_TABLE_HEAD_CELL, "w-20 pr-4")}
@@ -836,7 +886,9 @@ function AutomationsPage() {
 													colSpan={columnCount}
 													className="h-24 text-center text-sm text-muted-foreground"
 												>
-													No automations match
+													<Trans id="dashboard.automations.page.noMatches">
+														No automations match
+													</Trans>
 												</TableCell>
 											</TableRow>
 										) : sortField ? (
@@ -844,11 +896,29 @@ function AutomationsPage() {
 										) : (
 											<>
 												{needsAttention.length > 0 &&
-													sectionRow("Needs attention", true)}
+													sectionRow(
+														t({
+															id: "dashboard.automations.page.sectionNeedsAttention",
+															message: "Needs attention",
+														}),
+														true,
+													)}
 												{needsAttention.map(renderAutomationRow)}
-												{upNext.length > 0 && sectionRow("Up next")}
+												{upNext.length > 0 &&
+													sectionRow(
+														t({
+															id: "dashboard.automations.page.sectionUpNext",
+															message: "Up next",
+														}),
+													)}
 												{upNext.map(renderAutomationRow)}
-												{pausedVisible.length > 0 && sectionRow("Paused")}
+												{pausedVisible.length > 0 &&
+													sectionRow(
+														t({
+															id: "dashboard.automations.page.sectionPaused",
+															message: "Paused",
+														}),
+													)}
 												{pausedVisible.map(renderAutomationRow)}
 											</>
 										)}
@@ -862,18 +932,22 @@ function AutomationsPage() {
 						<div className="relative mt-4 flex items-center gap-2.5 rounded-lg border border-border/60 px-3 py-2 pr-9">
 							<LuTerminal className="size-3.5 shrink-0 text-muted-foreground" />
 							<p className="min-w-0 truncate text-xs text-muted-foreground">
-								Tell any agent to use the{" "}
-								<code className="select-text cursor-text rounded bg-accent/60 px-1 py-0.5 font-mono text-[11px] text-foreground">
-									superset
-								</code>{" "}
-								CLI to spin up workspaces, run tasks, or manage automations.{" "}
+								<Trans id="dashboard.automations.page.cliHint">
+									Tell any agent to use the{" "}
+									<code className="select-text cursor-text rounded bg-accent/60 px-1 py-0.5 font-mono text-[11px] text-foreground">
+										superset
+									</code>{" "}
+									CLI to spin up workspaces, run tasks, or manage automations.
+								</Trans>{" "}
 								<a
 									href={`${COMPANY.DOCS_URL}/cli/getting-started`}
 									target="_blank"
 									rel="noreferrer"
 									className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
 								>
-									CLI docs
+									<Trans id="dashboard.automations.page.cliDocsLink">
+										CLI docs
+									</Trans>
 								</a>
 							</p>
 							<Button
@@ -907,18 +981,26 @@ function AutomationsPage() {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete automation?</AlertDialogTitle>
+						<AlertDialogTitle>
+							<Trans id="dashboard.automations.page.deleteDialogTitle">
+								Delete automation?
+							</Trans>
+						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{pendingDelete ? (
-								<>
+								<Trans id="dashboard.automations.page.deleteDialogDescription">
 									"{pendingDelete.name}" will stop firing and its run history
 									will be removed. This can't be undone.
-								</>
+								</Trans>
 							) : null}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>
+							<Trans id="dashboard.automations.page.deleteDialogCancel">
+								Cancel
+							</Trans>
+						</AlertDialogCancel>
 						<AlertDialogAction
 							disabled={deleteMutation.isPending}
 							onClick={() => {
@@ -930,7 +1012,9 @@ function AutomationsPage() {
 								}
 							}}
 						>
-							Delete
+							<Trans id="dashboard.automations.page.deleteDialogConfirm">
+								Delete
+							</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

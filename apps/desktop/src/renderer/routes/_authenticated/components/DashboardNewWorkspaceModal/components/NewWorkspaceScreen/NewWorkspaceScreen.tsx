@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	getAgentEffortSupport,
 	getAgentModelSupport,
@@ -638,7 +639,9 @@ export function NewWorkspaceScreen({
 						className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/70"
 					>
 						<span className="rounded-lg border border-border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md">
-							Drop to attach
+							<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.dropToAttach">
+								Drop to attach
+							</Trans>
 						</span>
 					</motion.div>
 				)}
@@ -661,7 +664,9 @@ export function NewWorkspaceScreen({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent>
-							Update naming instructions for {selectedProject.name}
+							<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.updateNamingInstructions">
+								Update naming instructions for {selectedProject.name}
+							</Trans>
 						</TooltipContent>
 					</Tooltip>
 				)}
@@ -683,7 +688,9 @@ export function NewWorkspaceScreen({
 			<div className="flex flex-1 flex-col items-center justify-center gap-8">
 				<SupersetIcon className="h-10 w-auto text-muted-foreground/70" />
 				<h1 className="text-center text-3xl font-medium text-foreground/90">
-					What should we build next?
+					<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.heading">
+						What should we build next?
+					</Trans>
 				</h1>
 				<GitHubStarPill surface="new_workspace" reserveSpace />
 			</div>
@@ -912,7 +919,11 @@ export function NewWorkspaceScreen({
 											<PaperclipIcon className="size-3.5" />
 										</PromptInputButton>
 									</TooltipTrigger>
-									<TooltipContent side="bottom">Add attachment</TooltipContent>
+									<TooltipContent side="bottom">
+										<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.addAttachment">
+											Add attachment
+										</Trans>
+									</TooltipContent>
 								</Tooltip>
 								<PromptInputSubmit
 									className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
@@ -956,7 +967,9 @@ export function NewWorkspaceScreen({
 							{draft.linkedPR ? (
 								<span className="flex items-center gap-1 text-xs text-muted-foreground">
 									<LuGitPullRequest className="size-3 shrink-0" />
-									based off PR #{draft.linkedPR.prNumber}
+									<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.basedOffPr">
+										based off PR #{draft.linkedPR.prNumber}
+									</Trans>
 								</span>
 							) : draft.isSession ? null : (
 								<CompareBaseBranchPicker {...pickerProps} />
@@ -970,7 +983,9 @@ export function NewWorkspaceScreen({
 								className="h-6 px-2 text-[11px] text-amber-500 hover:text-amber-500"
 								onClick={handleGoToSetup}
 							>
-								Set up project…
+								<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.setUpProject">
+									Set up project…
+								</Trans>
 							</Button>
 						)}
 					</div>

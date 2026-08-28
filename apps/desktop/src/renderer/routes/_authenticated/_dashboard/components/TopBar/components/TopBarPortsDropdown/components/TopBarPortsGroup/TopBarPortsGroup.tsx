@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -85,7 +86,7 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 				</button>
 				{group.hostType !== "local-device" && (
 					<span className="shrink-0 font-mono text-[9px] text-muted-foreground/60 uppercase">
-						remote
+						<Trans id="dashboard.topBar.ports.remoteBadge">remote</Trans>
 					</span>
 				)}
 				<span className="shrink-0 text-[10px] text-muted-foreground/50 tabular-nums">
@@ -112,7 +113,11 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top">
-						<p className="text-xs">Close all ports in this workspace</p>
+						<p className="text-xs">
+							<Trans id="dashboard.topBar.ports.closeAllInWorkspace">
+								Close all ports in this workspace
+							</Trans>
+						</p>
 					</TooltipContent>
 				</Tooltip>
 			</div>

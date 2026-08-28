@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
@@ -240,7 +241,9 @@ export function DashboardSidebarHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">
-							New Workspace ({shortcutText})
+							<Trans id="dashboard.sidebar.header.newWorkspaceWithShortcut">
+								New Workspace ({shortcutText})
+							</Trans>
 						</TooltipContent>
 					</Tooltip>
 
@@ -277,7 +280,11 @@ export function DashboardSidebarHeader({
 								<LuLayers className="size-3.5" strokeWidth={1.5} />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="right">Workspaces</TooltipContent>
+						<TooltipContent side="right">
+							<Trans id="dashboard.sidebar.header.workspacesTooltip">
+								Workspaces
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 
 					<Tooltip delayDuration={300}>
@@ -307,9 +314,15 @@ export function DashboardSidebarHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">
-							{myFailedCount > 0
-								? `Automations (${myFailedCount} failing)`
-								: "Automations"}
+							{myFailedCount > 0 ? (
+								<Trans id="dashboard.sidebar.header.automationsFailingTooltip">
+									Automations ({myFailedCount} failing)
+								</Trans>
+							) : (
+								<Trans id="dashboard.sidebar.header.automationsTooltip">
+									Automations
+								</Trans>
+							)}
 						</TooltipContent>
 					</Tooltip>
 
@@ -330,7 +343,9 @@ export function DashboardSidebarHeader({
 								<HiOutlineClipboardDocumentList className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="right">Tasks</TooltipContent>
+						<TooltipContent side="right">
+							<Trans id="dashboard.sidebar.header.tasksTooltip">Tasks</Trans>
+						</TooltipContent>
 					</Tooltip>
 
 					<Tooltip delayDuration={300}>
@@ -350,7 +365,11 @@ export function DashboardSidebarHeader({
 								<GoGitPullRequest className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="right">Pull requests</TooltipContent>
+						<TooltipContent side="right">
+							<Trans id="dashboard.sidebar.header.pullRequestsTooltip">
+								Pull requests
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 
 					{isPagesEnabled && (
@@ -371,7 +390,9 @@ export function DashboardSidebarHeader({
 									<LuFileText className="size-3.5" strokeWidth={1.5} />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="right">Pages</TooltipContent>
+							<TooltipContent side="right">
+								<Trans id="dashboard.sidebar.header.pagesTooltip">Pages</Trans>
+							</TooltipContent>
 						</Tooltip>
 					)}
 
@@ -393,7 +414,11 @@ export function DashboardSidebarHeader({
 									<LuPuzzle className="size-3.5" strokeWidth={1.5} />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="right">Plugins</TooltipContent>
+							<TooltipContent side="right">
+								<Trans id="dashboard.sidebar.header.pluginsTooltip">
+									Plugins
+								</Trans>
+							</TooltipContent>
 						</Tooltip>
 					)}
 
@@ -411,7 +436,11 @@ export function DashboardSidebarHeader({
 									</button>
 								</DropdownMenuTrigger>
 							</TooltipTrigger>
-							<TooltipContent side="right">Add project</TooltipContent>
+							<TooltipContent side="right">
+								<Trans id="dashboard.sidebar.header.addProjectTooltip">
+									Add project
+								</Trans>
+							</TooltipContent>
 						</Tooltip>
 						<DropdownMenuContent
 							align="start"
@@ -419,19 +448,27 @@ export function DashboardSidebarHeader({
 						>
 							<DropdownMenuItem onSelect={handleImportFolder}>
 								<VscFolderOpened className="size-4" />
-								Open project
+								<Trans id="dashboard.sidebar.header.openProject">
+									Open project
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem onSelect={() => openNewProject()}>
 								<VscGithubAlt className="size-4" />
-								Clone from URL
+								<Trans id="dashboard.sidebar.header.cloneFromUrl">
+									Clone from URL
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem onSelect={() => openEmptyProject()}>
 								<VscNewFolder className="size-4" />
-								Create new project
+								<Trans id="dashboard.sidebar.header.createNewProject">
+									Create new project
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem onSelect={() => openTemplateGallery()}>
 								<VscLayout className="size-4" />
-								Start from a template
+								<Trans id="dashboard.sidebar.header.startFromTemplate">
+									Start from a template
+								</Trans>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -485,7 +522,9 @@ export function DashboardSidebarHeader({
 					<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
 				</div>
 				<span className="flex-1 truncate text-left whitespace-nowrap">
-					New Workspace
+					<Trans id="dashboard.sidebar.header.newWorkspace">
+						New Workspace
+					</Trans>
 				</span>
 				<SidebarKbdHint label={shortcutText} />
 			</button>
@@ -500,7 +539,9 @@ export function DashboardSidebarHeader({
 					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
-				<span className="flex-1 text-left">Search</span>
+				<span className="flex-1 text-left">
+					<Trans id="dashboard.sidebar.header.search">Search</Trans>
+				</span>
 				{searchShortcutText !== "Unassigned" && (
 					<SidebarKbdHint label={searchShortcutText} />
 				)}
@@ -520,7 +561,9 @@ export function DashboardSidebarHeader({
 					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
-				<span className="flex-1 text-left">Workspaces</span>
+				<span className="flex-1 text-left">
+					<Trans id="dashboard.sidebar.header.workspaces">Workspaces</Trans>
+				</span>
 			</button>
 
 			<button
@@ -537,7 +580,9 @@ export function DashboardSidebarHeader({
 					className="size-4 shrink-0 text-muted-foreground"
 					strokeWidth={1.5}
 				/>
-				<span className="flex-1 text-left">Automations</span>
+				<span className="flex-1 text-left">
+					<Trans id="dashboard.sidebar.header.automations">Automations</Trans>
+				</span>
 				{myFailedCount > 0 && (
 					<span
 						title={`${myFailedCount} of your automations failed their last run`}
@@ -561,7 +606,9 @@ export function DashboardSidebarHeader({
 				)}
 			>
 				<HiOutlineClipboardDocumentList className="size-4 shrink-0 text-muted-foreground" />
-				<span className="flex-1 text-left">Tasks</span>
+				<span className="flex-1 text-left">
+					<Trans id="dashboard.sidebar.header.tasks">Tasks</Trans>
+				</span>
 			</button>
 
 			<button
@@ -577,7 +624,11 @@ export function DashboardSidebarHeader({
 				)}
 			>
 				<GoGitPullRequest className="size-4 shrink-0 text-muted-foreground" />
-				<span className="flex-1 text-left">Pull requests</span>
+				<span className="flex-1 text-left">
+					<Trans id="dashboard.sidebar.header.pullRequests">
+						Pull requests
+					</Trans>
+				</span>
 			</button>
 
 			{isPagesEnabled && (
@@ -597,7 +648,9 @@ export function DashboardSidebarHeader({
 						className="size-4 shrink-0 text-muted-foreground"
 						strokeWidth={1.5}
 					/>
-					<span className="flex-1 text-left">Pages</span>
+					<span className="flex-1 text-left">
+						<Trans id="dashboard.sidebar.header.pages">Pages</Trans>
+					</span>
 				</button>
 			)}
 
@@ -618,7 +671,9 @@ export function DashboardSidebarHeader({
 						className="size-4 shrink-0 text-muted-foreground"
 						strokeWidth={1.5}
 					/>
-					<span className="flex-1 text-left">Plugins</span>
+					<span className="flex-1 text-left">
+						<Trans id="dashboard.sidebar.header.plugins">Plugins</Trans>
+					</span>
 				</button>
 			)}
 		</div>

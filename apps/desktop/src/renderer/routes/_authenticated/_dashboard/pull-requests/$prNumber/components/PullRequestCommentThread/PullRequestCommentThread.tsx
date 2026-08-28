@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -153,20 +154,27 @@ export function PullRequestCommentThread({
 						</Avatar>
 					)}
 					<span className="shrink-0 font-medium text-foreground/90">
-						{comments.length === 1
-							? "1 comment"
-							: `${comments.length} comments`}
+						<Plural
+							id="dashboard.pullRequests.commentThread.commentCount"
+							value={comments.length}
+							one="# comment"
+							other="# comments"
+						/>
 					</span>
 				</CollapsibleTrigger>
 				<div className="flex shrink-0 items-center gap-1.5">
 					{isOutdated && (
 						<span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-							Outdated
+							<Trans id="dashboard.pullRequests.commentThread.outdated">
+								Outdated
+							</Trans>
 						</span>
 					)}
 					{isResolved && (
 						<span className="rounded-full bg-[#dcfae8] px-1.5 py-0.5 text-[10px] font-medium text-[#00a558] [.dark_&]:bg-[#064e3b] [.dark_&]:text-[#34d399]">
-							Resolved
+							<Trans id="dashboard.pullRequests.commentThread.resolved">
+								Resolved
+							</Trans>
 						</span>
 					)}
 					<button
@@ -232,7 +240,15 @@ export function PullRequestCommentThread({
 							{isResolvePending && (
 								<LuLoaderCircle className="size-3 animate-spin" />
 							)}
-							{isResolved ? "Unresolve" : "Resolve conversation"}
+							{isResolved ? (
+								<Trans id="dashboard.pullRequests.commentThread.unresolve">
+									Unresolve
+								</Trans>
+							) : (
+								<Trans id="dashboard.pullRequests.commentThread.resolveConversation">
+									Resolve conversation
+								</Trans>
+							)}
 						</Button>
 						<Button
 							type="button"
@@ -243,7 +259,9 @@ export function PullRequestCommentThread({
 							{isReplyPending && (
 								<LuLoaderCircle className="size-3 animate-spin" />
 							)}
-							Reply
+							<Trans id="dashboard.pullRequests.commentThread.reply">
+								Reply
+							</Trans>
 						</Button>
 					</div>
 				</div>

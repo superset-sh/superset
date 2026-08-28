@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useMemo } from "react";
@@ -16,11 +17,11 @@ import {
 import { PagesGrid } from "../PagesGrid";
 import { usePageFavorites } from "./hooks/usePageFavorites";
 
-const TABS: Array<{ value: PageScope; label: string }> = [
-	{ value: "all", label: "All" },
-	{ value: "pinned", label: "Pinned" },
-	{ value: "team", label: "Team" },
-	{ value: "mine", label: "Just me" },
+const TABS: Array<{ value: PageScope }> = [
+	{ value: "all" },
+	{ value: "pinned" },
+	{ value: "team" },
+	{ value: "mine" },
 ];
 
 interface PagesViewProps {
@@ -36,9 +37,17 @@ export function PagesView({
 	onSearchChange,
 	onScopeChange,
 }: PagesViewProps) {
+	const { t } = useLingui();
 	const pages = cloudTrpc.page.list.useQuery({});
 	const { favoritePageIdSet, toggleFavorite } = usePageFavorites();
 	const openPage = useOpenPage();
+
+	const tabLabels: Record<PageScope, string> = {
+		all: t({ id: "dashboard.pages.tabs.all", message: "All" }),
+		pinned: t({ id: "dashboard.pages.tabs.pinned", message: "Pinned" }),
+		team: t({ id: "dashboard.pages.tabs.team", message: "Team" }),
+		mine: t({ id: "dashboard.pages.tabs.mine", message: "Just me" }),
+	};
 
 	const all = useMemo(() => pages.data ?? [], [pages.data]);
 
@@ -70,7 +79,9 @@ export function PagesView({
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
 					<div className="flex items-center justify-between">
-						<h1 className="font-semibold text-xl tracking-tight">Pages</h1>
+						<h1 className="font-semibold text-xl tracking-tight">
+							<Trans id="dashboard.pages.title">Pages</Trans>
+						</h1>
 					</div>
 
 					<div className="mt-6 flex items-center justify-between gap-2">
@@ -85,7 +96,7 @@ export function PagesView({
 										value={tab.value}
 										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
-										<span className="text-sm">{tab.label}</span>
+										<span className="text-sm">{tabLabels[tab.value]}</span>
 										<span className="ml-1 text-muted-foreground text-xs tabular-nums">
 											{counts[tab.value]}
 										</span>

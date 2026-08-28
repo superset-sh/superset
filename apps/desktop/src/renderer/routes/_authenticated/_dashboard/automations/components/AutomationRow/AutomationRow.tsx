@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { SelectAutomationRun, SelectUser } from "@superset/db/schema";
 import {
 	describeSchedule,
@@ -93,14 +94,21 @@ export function AutomationRow({
 	onToggleEnabled,
 	onDelete,
 }: AutomationRowProps) {
+	const { t } = useLingui();
 	const navigate = useNavigate();
 	// No rrule but some trigger means the automation is driven by events
 	// rather than a clock; no triggers at all means it never fires.
 	const scheduleLabel = automation.rrule
 		? describeSchedule(automation.rrule)
 		: automation.triggerCount > 0
-			? "Event triggered"
-			: "No triggers";
+			? t({
+					id: "dashboard.automations.row.eventTriggered",
+					message: "Event triggered",
+				})
+			: t({
+					id: "dashboard.automations.row.noTriggers",
+					message: "No triggers",
+				});
 
 	const openDetail = () =>
 		navigate({
@@ -178,7 +186,7 @@ export function AutomationRow({
 								</span>
 							) : isSession ? (
 								<span className="ml-1 shrink-0 text-xs text-muted-foreground">
-									Session
+									<Trans id="dashboard.automations.row.session">Session</Trans>
 								</span>
 							) : null}
 						</span>
@@ -213,7 +221,9 @@ export function AutomationRow({
 					>
 						{automation.enabled ? (
 							<span className="truncate">
-								Active
+								<Trans id="dashboard.automations.row.statusActive">
+									Active
+								</Trans>
 								{automation.nextRunAt && (
 									<span className="text-muted-foreground/60">
 										{" · "}
@@ -225,7 +235,7 @@ export function AutomationRow({
 								)}
 							</span>
 						) : (
-							"Paused"
+							<Trans id="dashboard.automations.row.statusPaused">Paused</Trans>
 						)}
 					</TableCell>
 
@@ -270,9 +280,15 @@ export function AutomationRow({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent>
-												{lastRunMeta.failed
-													? "The last run failed. Open its workspace to see why"
-													: "Open the run's workspace"}
+												{lastRunMeta.failed ? (
+													<Trans id="dashboard.automations.row.openFailedRunTooltip">
+														The last run failed. Open its workspace to see why
+													</Trans>
+												) : (
+													<Trans id="dashboard.automations.row.openRunTooltip">
+														Open the run's workspace
+													</Trans>
+												)}
 											</TooltipContent>
 										</Tooltip>
 									);
@@ -284,7 +300,9 @@ export function AutomationRow({
 												<span className="block">{cell}</span>
 											</TooltipTrigger>
 											<TooltipContent>
-												The last run failed. Click the row to see why.
+												<Trans id="dashboard.automations.row.failedRunRowTooltip">
+													The last run failed. Click the row to see why.
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 									);
@@ -322,7 +340,11 @@ export function AutomationRow({
 											)}
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent>Run now</TooltipContent>
+									<TooltipContent>
+										<Trans id="dashboard.automations.row.runNowTooltip">
+											Run now
+										</Trans>
+									</TooltipContent>
 								</Tooltip>
 							)}
 							{isOwner && (

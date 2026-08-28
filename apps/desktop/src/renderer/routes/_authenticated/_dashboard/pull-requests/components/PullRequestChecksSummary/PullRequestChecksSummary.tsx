@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { LuCircleMinus } from "react-icons/lu";
 import { CHECK_STATUS_ICONS } from "renderer/routes/_authenticated/_dashboard/utils/checkStatusIcons";
@@ -47,11 +48,19 @@ export function PullRequestChecksSummary({
 				)}
 			/>
 			<span className="hidden tabular-nums @lg:inline">
-				{summary.status === "none"
-					? checks.length === 0
-						? "No checks"
-						: "Skipped"
-					: `${summary.passing}/${summary.relevantChecks.length}`}
+				{summary.status === "none" ? (
+					checks.length === 0 ? (
+						<Trans id="dashboard.pullRequests.checksSummary.noChecks">
+							No checks
+						</Trans>
+					) : (
+						<Trans id="dashboard.pullRequests.checksSummary.skipped">
+							Skipped
+						</Trans>
+					)
+				) : (
+					`${summary.passing}/${summary.relevantChecks.length}`
+				)}
 			</span>
 		</output>
 	);

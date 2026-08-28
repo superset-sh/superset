@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/lib/utils";
 import type { AppMetrics, UsageValues } from "../../types";
 import { formatCpu, formatMemory } from "../../utils/formatters";
@@ -52,7 +53,9 @@ export function AppResourceSection({
 			<div className="flex items-center justify-between px-3.5 py-1.5">
 				<div className="flex items-center gap-1.5 min-w-0 mr-2">
 					<span className="text-[12px] font-medium text-foreground truncate min-w-0">
-						Superset App
+						<Trans id="dashboard.topBar.appResources.appName">
+							Superset App
+						</Trans>
 					</span>
 					<UsageSeverityBadge severity={appSeverity} />
 				</div>

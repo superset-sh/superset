@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Link } from "@tanstack/react-router";
 import { LuExternalLink } from "react-icons/lu";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
@@ -31,7 +32,7 @@ export function LinkedTaskSection({ taskId }: LinkedTaskSectionProps) {
 	return (
 		<div className="pt-2 border-t border-border space-y-0.5">
 			<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-				Task
+				<Trans id="dashboard.sidebar.linkedTask.taskLabel">Task</Trans>
 			</span>
 			<div className="flex items-center gap-1.5">
 				<Link

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import {
@@ -231,36 +232,64 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								{pullRequest ? (
 									<>
 										<p className="text-xs font-medium">
-											PR #{pullRequest.number} —{" "}
-											{PR_STATE_LABEL[pullRequest.state]}
+											<Trans id="dashboard.sidebar.expandedWorkspaceRow.prTooltipTitle">
+												PR #{pullRequest.number} —{" "}
+												{PR_STATE_LABEL[pullRequest.state]}
+											</Trans>
 										</p>
 										<p className="text-xs text-muted-foreground">
-											Click to open on GitHub
+											<Trans id="dashboard.sidebar.expandedWorkspaceRow.prTooltipOpenHint">
+												Click to open on GitHub
+											</Trans>
 										</p>
 									</>
 								) : (
 									<>
 										<p className="text-xs font-medium">
-											{isMainWorkspace
-												? workspaceKindTitle
-												: hostType === "local-device"
-													? "Local workspace"
-													: hostType === "remote-device"
-														? hostIsOnline === false
-															? "Remote workspace — device offline"
-															: "Remote workspace"
-														: "Cloud workspace"}
+											{isMainWorkspace ? (
+												workspaceKindTitle
+											) : hostType === "local-device" ? (
+												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindLocal">
+													Local workspace
+												</Trans>
+											) : hostType === "remote-device" ? (
+												hostIsOnline === false ? (
+													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemoteOffline">
+														Remote workspace — device offline
+													</Trans>
+												) : (
+													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemote">
+														Remote workspace
+													</Trans>
+												)
+											) : (
+												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindCloud">
+													Cloud workspace
+												</Trans>
+											)}
 										</p>
 										<p className="text-xs text-muted-foreground">
-											{isMainWorkspace
-												? workspaceKindDescription
-												: hostType === "local-device"
-													? "Running on this device"
-													: hostType === "remote-device"
-														? hostIsOnline === false
-															? "The associated device isn't reachable right now"
-															: "Running on a paired device"
-														: "Hosted in the cloud"}
+											{isMainWorkspace ? (
+												workspaceKindDescription
+											) : hostType === "local-device" ? (
+												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindLocalDescription">
+													Running on this device
+												</Trans>
+											) : hostType === "remote-device" ? (
+												hostIsOnline === false ? (
+													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemoteOfflineDescription">
+														The associated device isn't reachable right now
+													</Trans>
+												) : (
+													<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindRemoteDescription">
+														Running on a paired device
+													</Trans>
+												)
+											) : (
+												<Trans id="dashboard.sidebar.expandedWorkspaceRow.kindCloudDescription">
+													Hosted in the cloud
+												</Trans>
+											)}
 										</p>
 									</>
 								)}
@@ -308,7 +337,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											: "text-foreground/80",
 									)}
 								/>
-								{isSelected && <span className="sr-only">, selected</span>}
+								{isSelected && (
+									<span className="sr-only">
+										<Trans id="dashboard.sidebar.expandedWorkspaceRow.selected">
+											, selected
+										</Trans>
+									</span>
+								)}
 							</>
 						)}
 

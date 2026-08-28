@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	describeSchedule,
 	isValidRrule,
@@ -93,7 +94,9 @@ export function SchedulePicker({
 			<PopoverContent className="w-72" align="start" side="top" sideOffset={8}>
 				<div className="flex flex-col gap-3">
 					<span className="text-xs font-medium text-muted-foreground">
-						Schedule
+						<Trans id="dashboard.automations.schedulePicker.schedule">
+							Schedule
+						</Trans>
 					</span>
 
 					<Select
@@ -164,7 +167,9 @@ export function SchedulePicker({
 							/>
 							{customDraft && !customValid && (
 								<span className="select-text cursor-text text-xs text-destructive">
-									Invalid recurrence rule — changes aren't saved
+									<Trans id="dashboard.automations.schedulePicker.invalidRrule">
+										Invalid recurrence rule — changes aren't saved
+									</Trans>
 								</span>
 							)}
 							{customDraft && customValid && (

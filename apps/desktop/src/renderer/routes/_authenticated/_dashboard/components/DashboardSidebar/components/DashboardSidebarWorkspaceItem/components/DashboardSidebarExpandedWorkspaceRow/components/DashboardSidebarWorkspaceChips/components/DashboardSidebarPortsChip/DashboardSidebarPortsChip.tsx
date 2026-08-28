@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import {
 	HoverCard,
@@ -97,7 +98,9 @@ export function DashboardSidebarPortsChip({
 				className="w-64 p-1"
 			>
 				<div className="flex items-center justify-between px-2 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-					<span>Ports</span>
+					<span>
+						<Trans id="dashboard.sidebar.portsChip.title">Ports</Trans>
+					</span>
 					<span className="tabular-nums">{ports.length}</span>
 				</div>
 				<div className="max-h-60 overflow-y-auto">
@@ -116,7 +119,9 @@ export function DashboardSidebarPortsChip({
 					className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
 				>
 					<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
-					Close all ports
+					<Trans id="dashboard.sidebar.portsChip.closeAllPorts">
+						Close all ports
+					</Trans>
 				</button>
 			</HoverCardContent>
 		</HoverCard>

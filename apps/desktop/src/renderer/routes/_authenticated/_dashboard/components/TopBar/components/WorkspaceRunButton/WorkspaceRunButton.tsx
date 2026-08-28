@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -167,7 +168,9 @@ export const WorkspaceRunButton = memo(function WorkspaceRunButton({
 								className="text-destructive focus:text-destructive"
 							>
 								<HiMiniXMark className="mr-2 size-4 text-destructive" />
-								Force Stop
+								<Trans id="dashboard.topBar.runButton.forceStop">
+									Force Stop
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>

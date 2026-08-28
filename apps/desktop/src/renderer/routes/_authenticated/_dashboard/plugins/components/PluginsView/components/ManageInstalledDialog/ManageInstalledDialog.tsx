@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	getPluginByName,
 	type InstalledPlugin,
@@ -35,15 +36,23 @@ export function ManageInstalledDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Manage plugins</DialogTitle>
+					<DialogTitle>
+						<Trans id="dashboard.plugins.manageDialog.title">
+							Manage plugins
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Disabling keeps a plugin installed but removes its servers from your
-						agents. Changes take effect in new agent sessions.
+						<Trans id="dashboard.plugins.manageDialog.description">
+							Disabling keeps a plugin installed but removes its servers from
+							your agents. Changes take effect in new agent sessions.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				{installed.length === 0 ? (
 					<p className="py-4 text-sm text-muted-foreground">
-						Nothing installed yet.
+						<Trans id="dashboard.plugins.manageDialog.empty">
+							Nothing installed yet.
+						</Trans>
 					</p>
 				) : (
 					<div className="flex flex-col divide-y divide-border/60">
@@ -59,9 +68,16 @@ export function ManageInstalledDialog({
 										</div>
 										<p className="truncate text-xs text-muted-foreground">
 											v{entry.version}
-											{plugin
-												? ` · ${Object.keys(plugin.mcpServers).join(", ")}`
-												: " · no longer in the catalog"}
+											{plugin ? (
+												` · ${Object.keys(plugin.mcpServers).join(", ")}`
+											) : (
+												<>
+													{" · "}
+													<Trans id="dashboard.plugins.manageDialog.notInCatalog">
+														no longer in the catalog
+													</Trans>
+												</>
+											)}
 										</p>
 									</div>
 									<Switch

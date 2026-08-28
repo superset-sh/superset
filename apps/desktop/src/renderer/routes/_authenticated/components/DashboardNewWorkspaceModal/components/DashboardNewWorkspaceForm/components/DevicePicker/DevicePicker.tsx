@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
 	DropdownMenu,
@@ -21,10 +22,7 @@ import {
 } from "react-icons/hi2";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { FormPickerTrigger } from "../../PromptGroup/components/FormPickerTrigger";
-import {
-	useWorkspaceHostOptions,
-	type WorkspaceHostOption,
-} from "./hooks/useWorkspaceHostOptions";
+import { useWorkspaceHostOptions } from "./hooks/useWorkspaceHostOptions";
 
 function OnlineDot({ online }: { online: boolean }) {
 	return (
@@ -62,19 +60,6 @@ interface DevicePickerProps {
  */
 export const CLOUD_HOST_ID = "cloud";
 
-function getSelectedLabel(
-	hostId: string | null,
-	machineId: string | null,
-	currentDeviceName: string | null,
-	otherHosts: WorkspaceHostOption[],
-) {
-	if (hostId === CLOUD_HOST_ID) return "Cloud";
-	if (hostId === null || hostId === machineId) {
-		return currentDeviceName ?? "Local Device";
-	}
-	return otherHosts.find((host) => host.id === hostId)?.name ?? "Unknown Host";
-}
-
 function getSelectedIcon(hostId: string | null, machineId: string | null) {
 	if (hostId === CLOUD_HOST_ID) {
 		return <HiOutlineCloud className="size-4 shrink-0" />;
@@ -92,6 +77,7 @@ export function DevicePicker({
 	showLocalOnlineState = false,
 	disabled,
 }: DevicePickerProps) {
+	const { t } = useLingui();
 	const { machineId } = useLocalHostService();
 	const cloudEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
 	const { currentDeviceName, localHostIsOnline, otherHosts } =
@@ -105,12 +91,23 @@ export function DevicePicker({
 		}
 	}, [cloudEnabled, hostId, machineId, onSelectHostId]);
 	const isLocal = hostId === null || hostId === machineId;
-	const selectedLabel = getSelectedLabel(
-		hostId,
-		machineId,
-		currentDeviceName,
-		otherHosts,
-	);
+	const selectedLabel =
+		hostId === CLOUD_HOST_ID
+			? t({
+					id: "dashboard.newWorkspaceModal.devicePicker.cloudSelected",
+					message: "Cloud",
+				})
+			: isLocal
+				? (currentDeviceName ??
+					t({
+						id: "dashboard.newWorkspaceModal.devicePicker.localDeviceSelected",
+						message: "Local Device",
+					}))
+				: (otherHosts.find((host) => host.id === hostId)?.name ??
+					t({
+						id: "dashboard.newWorkspaceModal.devicePicker.unknownHost",
+						message: "Unknown Host",
+					}));
 	// For direct (local) use the app itself is the host, so it's tautologically
 	// online and gets no indicator. Relay-dispatched contexts opt into showing
 	// the local device's relay connectivity instead.
@@ -139,14 +136,22 @@ export function DevicePicker({
 			<DropdownMenuContent align="start" className="w-72">
 				<DropdownMenuItem onSelect={() => onSelectHostId(machineId)}>
 					<HiOutlineComputerDesktop className="size-4" />
-					<span className="flex-1">Local Device</span>
+					<span className="flex-1">
+						<Trans id="dashboard.newWorkspaceModal.devicePicker.localDevice">
+							Local Device
+						</Trans>
+					</span>
 					{localOnline !== null && <OnlineDot online={localOnline} />}
 					{isLocal && <HiCheck className="size-4" />}
 				</DropdownMenuItem>
 				{cloudEnabled && (
 					<DropdownMenuItem onSelect={() => onSelectHostId(CLOUD_HOST_ID)}>
 						<HiOutlineCloud className="size-4" />
-						<span className="flex-1">Cloud</span>
+						<span className="flex-1">
+							<Trans id="dashboard.newWorkspaceModal.devicePicker.cloud">
+								Cloud
+							</Trans>
+						</span>
 						{hostId === CLOUD_HOST_ID && <HiCheck className="size-4" />}
 					</DropdownMenuItem>
 				)}
@@ -156,7 +161,9 @@ export function DevicePicker({
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger>
 								<HiOutlineServer className="size-4" />
-								Other Hosts
+								<Trans id="dashboard.newWorkspaceModal.devicePicker.otherHosts">
+									Other Hosts
+								</Trans>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent className="w-72">
 								{otherHosts.map((host) => {

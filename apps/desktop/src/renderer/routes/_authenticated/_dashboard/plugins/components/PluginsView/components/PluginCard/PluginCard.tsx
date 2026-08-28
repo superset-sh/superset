@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { PluginCatalogEntry } from "@superset/shared/plugins";
 import { Button } from "@superset/ui/button";
 import {
@@ -60,7 +61,7 @@ export function PluginCard({
 					)}
 					{isDisabled && (
 						<span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-							Disabled
+							<Trans id="dashboard.plugins.card.disabled">Disabled</Trans>
 						</span>
 					)}
 				</div>
@@ -91,7 +92,11 @@ export function PluginCard({
 							) : (
 								<LuPause className="size-4" />
 							)}
-							{isDisabled ? "Enable" : "Disable"}
+							{isDisabled ? (
+								<Trans id="dashboard.plugins.card.enable">Enable</Trans>
+							) : (
+								<Trans id="dashboard.plugins.card.disable">Disable</Trans>
+							)}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							variant="destructive"
@@ -99,7 +104,7 @@ export function PluginCard({
 							onSelect={() => onUninstall(plugin)}
 						>
 							<LuTrash2 className="size-4" />
-							Uninstall
+							<Trans id="dashboard.plugins.card.uninstall">Uninstall</Trans>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -114,7 +119,7 @@ export function PluginCard({
 						onInstall(plugin);
 					}}
 				>
-					Install
+					<Trans id="dashboard.plugins.card.install">Install</Trans>
 				</Button>
 			)}
 		</div>

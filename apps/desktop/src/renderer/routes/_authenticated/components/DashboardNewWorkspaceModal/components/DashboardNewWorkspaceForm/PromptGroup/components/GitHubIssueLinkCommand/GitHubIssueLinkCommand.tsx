@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -149,7 +150,9 @@ export function GitHubIssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans id="dashboard.newWorkspaceModal.githubIssueLink.showClosed">
+								Show closed
+							</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
@@ -157,26 +160,40 @@ export function GitHubIssueLinkCommand({
 							<CommandEmpty>
 								{isLoading ? (
 									debouncedTrimmed ? (
-										"Searching..."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.searching">
+											Searching...
+										</Trans>
 									) : (
-										"Loading..."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.loading">
+											Loading...
+										</Trans>
 									)
 								) : error instanceof Error ? (
 									<span className="select-text cursor-text text-destructive">
 										{error.message}
 									</span>
 								) : repoMismatch ? (
-									`Issue URL must match ${repoMismatch}.`
+									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.repoMismatch">
+										Issue URL must match {repoMismatch}.
+									</Trans>
 								) : debouncedTrimmed ? (
 									showClosed ? (
-										"No issues found."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.noResultsAll">
+											No issues found.
+										</Trans>
 									) : (
-										"No open issues found."
+										<Trans id="dashboard.newWorkspaceModal.githubIssueLink.noResultsOpen">
+											No open issues found.
+										</Trans>
 									)
 								) : showClosed ? (
-									"No issues found."
+									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.emptyAll">
+										No issues found.
+									</Trans>
 								) : (
-									"No open issues found."
+									<Trans id="dashboard.newWorkspaceModal.githubIssueLink.emptyOpen">
+										No open issues found.
+									</Trans>
 								)}
 							</CommandEmpty>
 						)}

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -127,11 +128,21 @@ export function ProjectFilter({
 					<CommandList className="max-h-80">
 						{filtered.length === 0 && (
 							<CommandEmpty>
-								{isReady || projects.length > 0
-									? search
-										? "No projects found."
-										: "No projects available."
-									: "Loading projects…"}
+								{isReady || projects.length > 0 ? (
+									search ? (
+										<Trans id="dashboard.projectFilter.noProjectsFound">
+											No projects found.
+										</Trans>
+									) : (
+										<Trans id="dashboard.projectFilter.noProjectsAvailable">
+											No projects available.
+										</Trans>
+									)
+								) : (
+									<Trans id="dashboard.projectFilter.loadingProjects">
+										Loading projects…
+									</Trans>
+								)}
 							</CommandEmpty>
 						)}
 						{filtered.length > 0 && (
@@ -139,7 +150,11 @@ export function ProjectFilter({
 								{!search && (
 									<CommandItem onSelect={() => onChange([])}>
 										<HiOutlineSquares2X2 className="size-4 shrink-0" />
-										<span className="text-sm">All repositories</span>
+										<span className="text-sm">
+											<Trans id="dashboard.projectFilter.allRepositories">
+												All repositories
+											</Trans>
+										</span>
 										{isAllSelected && (
 											<HiCheck className="ml-auto size-3.5 shrink-0" />
 										)}

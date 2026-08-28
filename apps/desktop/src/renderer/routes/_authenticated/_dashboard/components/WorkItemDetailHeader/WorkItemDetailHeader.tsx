@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import type { ReactNode } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
@@ -63,7 +64,11 @@ export function WorkItemDetailHeader({
 						title="Add to workspace"
 					>
 						<LuPlus className="size-4" />
-						<span className="hidden @md:inline">Add to workspace</span>
+						<span className="hidden @md:inline">
+							<Trans id="dashboard.workItemDetailHeader.addToWorkspace">
+								Add to workspace
+							</Trans>
+						</span>
 					</Button>
 				)}
 			</div>

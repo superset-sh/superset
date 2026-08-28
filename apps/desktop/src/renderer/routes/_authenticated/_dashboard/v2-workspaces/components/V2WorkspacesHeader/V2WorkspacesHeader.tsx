@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -210,7 +211,7 @@ export function V2WorkspacesHeader({
 								)}
 							>
 								<LuListFilter className="size-3.5" />
-								Filter
+								<Trans id="dashboard.workspaces.header.filter">Filter</Trans>
 								{activeFilterCount > 0 ? (
 									<span className="flex size-4 items-center justify-center rounded-full bg-accent text-[10px] font-medium text-accent-foreground">
 										{activeFilterCount}
@@ -223,7 +224,9 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuFolder className="size-3.5" />
-										Project
+										<Trans id="dashboard.workspaces.header.projectFilter">
+											Project
+										</Trans>
 									</span>
 									{projectFilters.length > 0 ? (
 										<SubmenuValue>{projectFilters.length}</SubmenuValue>
@@ -256,7 +259,9 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuGitPullRequest className="size-3.5" />
-										PR state
+										<Trans id="dashboard.workspaces.header.prStateFilter">
+											PR state
+										</Trans>
 									</span>
 									{prStateFilters.length > 0 ? (
 										<SubmenuValue>
@@ -294,7 +299,9 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuBot className="size-3.5" />
-										Agent
+										<Trans id="dashboard.workspaces.header.agentFilter">
+											Agent
+										</Trans>
 									</span>
 									{agentStatusFilters.length > 0 ? (
 										<SubmenuValue>
@@ -331,7 +338,9 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuPin className="size-3.5" />
-										Pinned
+										<Trans id="dashboard.workspaces.header.pinnedFilter">
+											Pinned
+										</Trans>
 									</span>
 									{pinFilter !== "all" ? (
 										<SubmenuValue>
@@ -359,7 +368,9 @@ export function V2WorkspacesHeader({
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
 										<LuMonitorSmartphone className="size-3.5" />
-										Device
+										<Trans id="dashboard.workspaces.header.deviceFilter">
+											Device
+										</Trans>
 									</span>
 									{deviceFilter !== DEVICE_FILTER_THIS_DEVICE ? (
 										<SubmenuValue>{deviceLabel}</SubmenuValue>
@@ -386,7 +397,9 @@ export function V2WorkspacesHeader({
 											<>
 												<DropdownMenuSeparator />
 												<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-													Other devices
+													<Trans id="dashboard.workspaces.header.otherDevices">
+														Other devices
+													</Trans>
 												</DropdownMenuLabel>
 												{remoteHosts.map((host) => (
 													<DropdownMenuRadioItem
@@ -413,7 +426,9 @@ export function V2WorkspacesHeader({
 										className="justify-center text-xs text-muted-foreground"
 										onSelect={clearFilters}
 									>
-										Clear filters
+										<Trans id="dashboard.workspaces.header.clearFilters">
+											Clear filters
+										</Trans>
 									</DropdownMenuItem>
 								</>
 							) : null}
@@ -430,12 +445,12 @@ export function V2WorkspacesHeader({
 								className="h-8 gap-1.5 font-normal text-muted-foreground"
 							>
 								<LuArrowDownUp className="size-3.5" />
-								Display
+								<Trans id="dashboard.workspaces.header.display">Display</Trans>
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="start" className="min-w-[12rem]">
 							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-								Sort by
+								<Trans id="dashboard.workspaces.header.sortBy">Sort by</Trans>
 							</DropdownMenuLabel>
 							<DropdownMenuRadioGroup
 								value={sortMode}
@@ -453,7 +468,9 @@ export function V2WorkspacesHeader({
 							<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
 								<span className="flex items-center gap-1.5">
 									<LuArchive className="size-3" />
-									Archived
+									<Trans id="dashboard.workspaces.header.archived">
+										Archived
+									</Trans>
 								</span>
 							</DropdownMenuLabel>
 							<DropdownMenuRadioGroup
@@ -476,7 +493,7 @@ export function V2WorkspacesHeader({
 								<>
 									<DropdownMenuSeparator />
 									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-										Lanes
+										<Trans id="dashboard.workspaces.header.lanes">Lanes</Trans>
 									</DropdownMenuLabel>
 									{V2_WORKSPACES_BOARD_LANES.map((lane) => (
 										<DropdownMenuCheckboxItem
@@ -517,7 +534,7 @@ export function V2WorkspacesHeader({
 							onClick={() => setViewMode("list")}
 						>
 							<LuList className="size-3.5" />
-							List
+							<Trans id="dashboard.workspaces.header.listView">List</Trans>
 						</button>
 						<button
 							type="button"
@@ -531,7 +548,7 @@ export function V2WorkspacesHeader({
 							onClick={() => setViewMode("board")}
 						>
 							<LuSquareKanban className="size-3.5" />
-							Board
+							<Trans id="dashboard.workspaces.header.boardView">Board</Trans>
 						</button>
 					</fieldset>
 

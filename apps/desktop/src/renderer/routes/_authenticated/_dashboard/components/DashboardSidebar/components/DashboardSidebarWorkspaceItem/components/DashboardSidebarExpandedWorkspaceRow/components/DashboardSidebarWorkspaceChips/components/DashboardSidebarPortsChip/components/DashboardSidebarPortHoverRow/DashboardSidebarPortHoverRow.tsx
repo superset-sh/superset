@@ -27,7 +27,8 @@ export function DashboardSidebarPortHoverRow({
 					<span className="min-w-0 truncate text-xs">{port.label}</span>
 				)}
 				<span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
-					localhost:{port.port}
+					{"localhost:"}
+					{port.port}
 				</span>
 			</button>
 			{/* Always in layout, shown via visibility so the row never changes

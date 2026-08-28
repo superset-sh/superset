@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -70,7 +71,12 @@ export function PageCard({
 						<VisibilityIcon className="size-3 shrink-0" />
 						<span aria-hidden="true">·</span>
 						<span className="truncate">
-							{wasEdited ? "Edited" : "Created"} {timestamp}
+							{wasEdited ? (
+								<Trans id="dashboard.pages.pageCard.edited">Edited</Trans>
+							) : (
+								<Trans id="dashboard.pages.pageCard.created">Created</Trans>
+							)}{" "}
+							{timestamp}
 						</span>
 					</span>
 				</div>
@@ -102,11 +108,15 @@ export function PageCard({
 						) : (
 							<Pin className="size-4" />
 						)}
-						{isPinned ? "Unpin" : "Pin"}
+						{isPinned ? (
+							<Trans id="dashboard.pages.pageCard.unpin">Unpin</Trans>
+						) : (
+							<Trans id="dashboard.pages.pageCard.pin">Pin</Trans>
+						)}
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => void copyLink()}>
 						<Link2 className="size-4" />
-						Copy link
+						<Trans id="dashboard.pages.pageCard.copyLink">Copy link</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

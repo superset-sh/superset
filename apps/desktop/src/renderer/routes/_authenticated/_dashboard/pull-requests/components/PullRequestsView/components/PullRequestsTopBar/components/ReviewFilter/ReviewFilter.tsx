@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
@@ -19,10 +20,17 @@ interface ReviewFilterProps {
 }
 
 export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
+	const { t } = useLingui();
 	const [open, setOpen] = useState(false);
 	const label = getPullRequestReviewFilterLabel(value);
 	const options = [
-		{ value: null, label: "All reviews" },
+		{
+			value: null,
+			label: t({
+				id: "dashboard.pullRequests.reviewFilter.allReviews",
+				message: "All reviews",
+			}),
+		},
 		...PULL_REQUEST_REVIEW_FILTERS,
 	] as const;
 
@@ -44,7 +52,9 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 			<PopoverContent align="start" className="w-80 p-1">
 				<div className="flex items-center gap-2 border-b border-border px-2 py-1.5">
 					<span className="min-w-0 flex-1 text-sm font-medium">
-						Filter by reviews
+						<Trans id="dashboard.pullRequests.reviewFilter.heading">
+							Filter by reviews
+						</Trans>
 					</span>
 					<Button
 						variant="ghost"

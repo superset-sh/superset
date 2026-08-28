@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildTaskAgentLaunchRequest } from "@superset/shared/agent-launch-request";
@@ -157,7 +158,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="text-xs text-muted-foreground">Open in workspace</span>
+			<span className="text-xs text-muted-foreground">
+				<Trans id="dashboard.tasks.openInWorkspace.title">
+					Open in workspace
+				</Trans>
+			</span>
 			<div className="flex gap-1.5">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -181,7 +186,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 										<span className="truncate">{selectedProject.name}</span>
 									</>
 								) : (
-									<span className="text-muted-foreground">Select project</span>
+									<span className="text-muted-foreground">
+										<Trans id="dashboard.tasks.openInWorkspace.selectProject">
+											Select project
+										</Trans>
+									</span>
 								)}
 							</span>
 							<HiChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -192,7 +201,11 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 						className="w-[--radix-dropdown-menu-trigger-width]"
 					>
 						{recentProjects.length === 0 ? (
-							<DropdownMenuItem disabled>No projects found</DropdownMenuItem>
+							<DropdownMenuItem disabled>
+								<Trans id="dashboard.tasks.openInWorkspace.noProjects">
+									No projects found
+								</Trans>
+							</DropdownMenuItem>
 						) : (
 							recentProjects
 								.filter((p) => p.id)
@@ -240,7 +253,9 @@ export function OpenInWorkspace({ task }: OpenInWorkspaceProps) {
 			/>
 			<div className="flex items-center justify-between">
 				<Label htmlFor="auto-run-toggle" className="text-xs font-normal">
-					Auto-run command
+					<Trans id="dashboard.tasks.openInWorkspace.autoRun">
+						Auto-run command
+					</Trans>
 				</Label>
 				<Switch
 					id="auto-run-toggle"

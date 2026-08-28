@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	CodeViewOptions,
@@ -987,7 +988,9 @@ export function PullRequestCodeTab({
 		return (
 			<div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
 				<div className="flex flex-1 items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
-					No changes to display.
+					<Trans id="dashboard.pullRequests.codeTab.noChanges">
+						No changes to display.
+					</Trans>
 				</div>
 			</div>
 		);
@@ -1037,7 +1040,9 @@ export function PullRequestCodeTab({
 								className="flex items-center gap-1.5 rounded-md bg-fill-hover px-1.5 py-1 text-muted-foreground transition-colors hover:bg-fill-selected hover:text-foreground"
 							>
 								<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
-								<span className="text-[11px] font-medium">Files</span>
+								<span className="text-[11px] font-medium">
+									<Trans id="dashboard.pullRequests.codeTab.files">Files</Trans>
+								</span>
 								<span className="text-[11px] tabular-nums text-muted-foreground/70">
 									{files.length}
 								</span>
@@ -1070,9 +1075,15 @@ export function PullRequestCodeTab({
 									</button>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									{areAllFilesCollapsed
-										? "Expand all files"
-										: "Collapse all files"}
+									{areAllFilesCollapsed ? (
+										<Trans id="dashboard.pullRequests.codeTab.expandAllFiles">
+											Expand all files
+										</Trans>
+									) : (
+										<Trans id="dashboard.pullRequests.codeTab.collapseAllFiles">
+											Collapse all files
+										</Trans>
+									)}
 								</TooltipContent>
 							</Tooltip>
 						</div>
@@ -1092,7 +1103,9 @@ export function PullRequestCodeTab({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="bottom">
-												Previous comment
+												<Trans id="dashboard.pullRequests.codeTab.previousComment">
+													Previous comment
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 										<span className="min-w-[3ch] text-center text-[11px] tabular-nums text-muted-foreground">
@@ -1116,7 +1129,9 @@ export function PullRequestCodeTab({
 												</button>
 											</TooltipTrigger>
 											<TooltipContent side="bottom">
-												Next comment
+												<Trans id="dashboard.pullRequests.codeTab.nextComment">
+													Next comment
+												</Trans>
 											</TooltipContent>
 										</Tooltip>
 									</div>
@@ -1135,7 +1150,11 @@ export function PullRequestCodeTab({
 										<LuRows2 className="size-3.5" />
 									</button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom">Unified view</TooltipContent>
+								<TooltipContent side="bottom">
+									<Trans id="dashboard.pullRequests.codeTab.unifiedView">
+										Unified view
+									</Trans>
+								</TooltipContent>
 							</Tooltip>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -1149,7 +1168,11 @@ export function PullRequestCodeTab({
 										<LuColumns2 className="size-3.5" />
 									</button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom">Split view</TooltipContent>
+								<TooltipContent side="bottom">
+									<Trans id="dashboard.pullRequests.codeTab.splitView">
+										Split view
+									</Trans>
+								</TooltipContent>
 							</Tooltip>
 						</div>
 					</div>

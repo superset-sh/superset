@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
@@ -75,7 +76,13 @@ export function SigningSecretChip({
 					>
 						<LuKeyRound className="size-3 shrink-0 opacity-50" />
 						<span className="truncate">
-							{secretPrefix ? `${secretPrefix}…` : "Signing secret"}
+							{secretPrefix ? (
+								`${secretPrefix}…`
+							) : (
+								<Trans id="dashboard.automations.signingSecretChip.signingSecret">
+									Signing secret
+								</Trans>
+							)}
 						</span>
 					</button>
 				</span>
@@ -102,13 +109,28 @@ export function SigningSecretChip({
 						disabled={!draft.trim() || save.isPending}
 						className="h-8 shrink-0 text-[13px]"
 					>
-						{save.isPending ? "Saving..." : "Save"}
+						{save.isPending ? (
+							<Trans id="dashboard.automations.signingSecretChip.saving">
+								Saving...
+							</Trans>
+						) : (
+							<Trans id="dashboard.automations.signingSecretChip.save">
+								Save
+							</Trans>
+						)}
 					</Button>
 				</div>
 				<p className="mt-1.5 px-1 text-[12px] text-muted-foreground">
-					{secretPrefix
-						? `${secretPrefix}… is set. Saving a new one replaces it.`
-						: "Circleback shows this when you paste the URL into its automation. Deliveries are rejected until it is set."}
+					{secretPrefix ? (
+						<Trans id="dashboard.automations.signingSecretChip.secretSetHint">
+							{secretPrefix}… is set. Saving a new one replaces it.
+						</Trans>
+					) : (
+						<Trans id="dashboard.automations.signingSecretChip.secretEmptyHint">
+							Circleback shows this when you paste the URL into its automation.
+							Deliveries are rejected until it is set.
+						</Trans>
+					)}
 				</p>
 			</PopoverContent>
 		</Popover>

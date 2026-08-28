@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
@@ -115,7 +116,11 @@ export const DashboardSidebarProjectRow = forwardRef<
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom">New workspace</TooltipContent>
+							<TooltipContent side="bottom">
+								<Trans id="dashboard.sidebar.projectRow.newWorkspace">
+									New workspace
+								</Trans>
+							</TooltipContent>
 						</Tooltip>
 					</div>
 				)}

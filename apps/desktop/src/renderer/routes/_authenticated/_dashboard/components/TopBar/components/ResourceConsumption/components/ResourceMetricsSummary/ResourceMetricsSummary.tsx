@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ResourceMetricsSnapshot } from "../../types";
@@ -78,7 +79,10 @@ export function ResourceMetricsSummary({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>
-					Superset uses {formatPercent(trackedMemorySharePercent)} of system RAM
+					<Trans id="dashboard.topBar.resourceSummary.systemRamShare">
+						Superset uses {formatPercent(trackedMemorySharePercent)} of system
+						RAM
+					</Trans>
 				</TooltipContent>
 			</Tooltip>
 		</>

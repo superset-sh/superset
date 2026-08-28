@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { XIcon } from "lucide-react";
 import {
@@ -43,7 +44,11 @@ export function LinkedGitHubIssuePill({
 					variant="ghost"
 				>
 					<XIcon />
-					<span className="sr-only">Remove</span>
+					<span className="sr-only">
+						<Trans id="dashboard.newWorkspaceModal.linkedGitHubIssuePill.remove">
+							Remove
+						</Trans>
+					</span>
 				</Button>
 			</div>
 			<div className="flex flex-col items-start leading-tight">
@@ -51,7 +56,11 @@ export function LinkedGitHubIssuePill({
 				<div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-widest">
 					<span>#{issueNumber}</span>
 					<span>·</span>
-					<span>GitHub</span>
+					<span>
+						<Trans id="dashboard.newWorkspaceModal.linkedGitHubIssuePill.source">
+							GitHub
+						</Trans>
+					</span>
 				</div>
 			</div>
 		</div>

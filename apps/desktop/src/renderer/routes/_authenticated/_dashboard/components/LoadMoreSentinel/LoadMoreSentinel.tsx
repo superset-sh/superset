@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RefObject } from "react";
 import { LuRefreshCw } from "react-icons/lu";
 
@@ -25,7 +26,11 @@ export function LoadMoreSentinel({
 			{isFetchingNextPage && (
 				<>
 					<LuRefreshCw className="size-3.5 animate-spin motion-reduce:animate-none" />
-					<span>Loading more…</span>
+					<span>
+						<Trans id="dashboard.loadMoreSentinel.loadingMore">
+							Loading more…
+						</Trans>
+					</span>
 				</>
 			)}
 		</div>

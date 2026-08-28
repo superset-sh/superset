@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -55,7 +56,6 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 	if (!scope) return children;
 
 	const count = selectedWorkspaces.length;
-	const workspaceLabel = count === 1 ? "Workspace" : "Workspaces";
 
 	return (
 		<>
@@ -67,12 +67,16 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 					<ContextMenuSub>
 						<ContextMenuSubTrigger>
 							<LuArrowRightLeft className="size-4 mr-2" />
-							Move {count} to Group
+							<Trans id="dashboard.sidebar.workspaceBulkMenu.moveToGroup">
+								Move {count} to Group
+							</Trans>
 						</ContextMenuSubTrigger>
 						<ContextMenuSubContent>
 							<ContextMenuItem onSelect={createGroupFromSelection}>
 								<LuFolderPlus className="size-4 mr-2" />
-								New group
+								<Trans id="dashboard.sidebar.workspaceBulkMenu.newGroup">
+									New group
+								</Trans>
 							</ContextMenuItem>
 							{sectionMenuState === "populated" && <ContextMenuSeparator />}
 							{sections?.map((section) => (
@@ -91,9 +95,15 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 							))}
 							{sectionMenuState !== "populated" && (
 								<ContextMenuItem disabled>
-									{sectionMenuState === "empty"
-										? "No groups yet"
-										: "Loading groups…"}
+									{sectionMenuState === "empty" ? (
+										<Trans id="dashboard.sidebar.workspaceBulkMenu.noGroupsYet">
+											No groups yet
+										</Trans>
+									) : (
+										<Trans id="dashboard.sidebar.workspaceBulkMenu.loadingGroups">
+											Loading groups…
+										</Trans>
+									)}
 								</ContextMenuItem>
 							)}
 						</ContextMenuSubContent>
@@ -101,7 +111,9 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 					{groupedWorkspaceIds.length > 0 && (
 						<ContextMenuItem onSelect={ungroupSelection}>
 							<LuArrowUp className="size-4 mr-2" />
-							Ungroup
+							<Trans id="dashboard.sidebar.workspaceBulkMenu.ungroup">
+								Ungroup
+							</Trans>
 						</ContextMenuItem>
 					)}
 					<ContextMenuSeparator />
@@ -110,12 +122,19 @@ export function DashboardSidebarWorkspaceBulkContextMenu({
 						className="text-destructive focus:text-destructive"
 					>
 						<LuTrash2 className="size-4 mr-2 text-destructive" />
-						Delete {count} {workspaceLabel}
+						<Plural
+							id="dashboard.sidebar.workspaceBulkMenu.deleteCount"
+							value={count}
+							one="Delete # Workspace"
+							other="Delete # Workspaces"
+						/>
 					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={clearSelection}>
 						<LuX className="size-4 mr-2" />
-						Clear Selection
+						<Trans id="dashboard.sidebar.workspaceBulkMenu.clearSelection">
+							Clear Selection
+						</Trans>
 					</ContextMenuItem>
 				</ContextMenuContent>
 			</ContextMenu>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	PromptInputButton,
 	usePromptInputAttachments,
@@ -31,7 +32,11 @@ export function AttachmentButtons({
 						<PaperclipIcon className="size-3.5" />
 					</PromptInputButton>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Add attachment</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="dashboard.newWorkspaceModal.attachmentButtons.addAttachment">
+						Add attachment
+					</Trans>
+				</TooltipContent>
 			</Tooltip>
 			{linearIssueTrigger}
 			{githubIssueTrigger}

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -123,9 +124,15 @@ export function SkillPreviewDialog({
 								variant="outline"
 								className="h-4 rounded px-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase"
 							>
-								Skill
+								<Trans id="dashboard.plugins.skillPreview.skillBadge">
+									Skill
+								</Trans>
 							</Badge>
-							<Badge variant="secondary">Managed</Badge>
+							<Badge variant="secondary">
+								<Trans id="dashboard.plugins.skillPreview.managedBadge">
+									Managed
+								</Trans>
+							</Badge>
 						</DialogTitle>
 						<DialogDescription>{skill?.description}</DialogDescription>
 					</DialogHeader>
@@ -149,7 +156,15 @@ export function SkillPreviewDialog({
 									</span>
 								</TooltipTrigger>
 								<TooltipContent side="bottom">
-									{isEnabled ? "Disable skill" : "Enable skill"}
+									{isEnabled ? (
+										<Trans id="dashboard.plugins.skillPreview.disableSkill">
+											Disable skill
+										</Trans>
+									) : (
+										<Trans id="dashboard.plugins.skillPreview.enableSkill">
+											Enable skill
+										</Trans>
+									)}
 								</TooltipContent>
 							</Tooltip>
 						)}
@@ -168,28 +183,34 @@ export function SkillPreviewDialog({
 								<DropdownMenuContent align="end">
 									<DropdownMenuItem onSelect={handleOpen} disabled={!path}>
 										<LuExternalLink className="size-4" />
-										Open
+										<Trans id="dashboard.plugins.skillPreview.open">Open</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onSelect={handleRevealInFinder}
 										disabled={!path}
 									>
 										<LuFolderOpen className="size-4" />
-										Reveal in Finder
+										<Trans id="dashboard.plugins.skillPreview.revealInFinder">
+											Reveal in Finder
+										</Trans>
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onSelect={handleCopyMarkdown}
 										disabled={document.content.kind !== "text"}
 									>
 										<LuCopy className="size-4" />
-										Copy Markdown
+										<Trans id="dashboard.plugins.skillPreview.copyMarkdown">
+											Copy Markdown
+										</Trans>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						)}
 						<DialogClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
 							<XIcon />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">
+								<Trans id="dashboard.plugins.skillPreview.close">Close</Trans>
+							</span>
 						</DialogClose>
 					</div>
 				</div>

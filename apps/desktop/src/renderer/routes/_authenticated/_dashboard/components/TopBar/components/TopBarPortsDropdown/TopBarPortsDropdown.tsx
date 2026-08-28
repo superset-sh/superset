@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
@@ -59,10 +60,15 @@ export function TopBarPortsDropdown({
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
 					<p className="text-xs">
-						{totalPortCount === 1 ? "1 port" : `${totalPortCount} ports`} across{" "}
-						{workspaceCount === 1
-							? "1 workspace"
-							: `${workspaceCount} workspaces`}
+						<Trans id="dashboard.topBar.ports.summary">
+							<Plural value={totalPortCount} one="# port" other="# ports" />{" "}
+							across{" "}
+							<Plural
+								value={workspaceCount}
+								one="# workspace"
+								other="# workspaces"
+							/>
+						</Trans>
 					</p>
 				</TooltipContent>
 			</Tooltip>
@@ -72,7 +78,9 @@ export function TopBarPortsDropdown({
 						className="size-3 text-muted-foreground"
 						strokeWidth={STROKE_WIDTH}
 					/>
-					<span className="font-medium text-foreground text-xs">Ports</span>
+					<span className="font-medium text-foreground text-xs">
+						<Trans id="dashboard.topBar.ports.title">Ports</Trans>
+					</span>
 				</div>
 				<div className="max-h-80 overflow-y-auto p-1">
 					{workspacePortGroups.map((group) => (

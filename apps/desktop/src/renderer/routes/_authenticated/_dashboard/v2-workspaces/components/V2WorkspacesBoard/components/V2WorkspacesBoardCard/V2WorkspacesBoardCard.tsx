@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import { LuGitBranch, LuLaptop, LuMonitor } from "react-icons/lu";
@@ -67,7 +68,9 @@ function BoardCardBody({
 						size="sm"
 					/>
 					<span className="min-w-0 truncate">
-						{workspace.projectName ?? "Session"}
+						{workspace.projectName ?? (
+							<Trans id="dashboard.workspaces.boardCard.session">Session</Trans>
+						)}
 					</span>
 				</span>
 				<span className="flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground">
@@ -103,7 +106,11 @@ function BoardCardBody({
 						variant="outline"
 						className="h-4 px-1.5 py-0 text-[10px] leading-none text-muted-foreground"
 					>
-						{workspace.archiveReason === "merged" ? "Merged" : "Deleted"}
+						{workspace.archiveReason === "merged" ? (
+							<Trans id="dashboard.workspaces.boardCard.merged">Merged</Trans>
+						) : (
+							<Trans id="dashboard.workspaces.boardCard.deleted">Deleted</Trans>
+						)}
 					</Badge>
 				) : null}
 				<span className="ml-auto text-[10px] tabular-nums text-muted-foreground">

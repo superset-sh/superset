@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -80,7 +81,7 @@ export function ResourceConsumption({
 					</PopoverTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={6}>
-					Resources
+					<Trans id="dashboard.topBar.resources.tooltip">Resources</Trans>
 				</TooltipContent>
 			</Tooltip>
 
@@ -161,7 +162,7 @@ function ResourceConsumptionContent({
 			<div className="px-3.5 pt-3 pb-3 border-b border-border/60">
 				<div className="flex items-center justify-between">
 					<h4 className="text-[13px] font-medium tracking-tight text-foreground">
-						Resources
+						<Trans id="dashboard.topBar.resources.title">Resources</Trans>
 					</h4>
 					<div className="flex items-center gap-0.5">
 						<DropdownMenu>
@@ -181,14 +182,20 @@ function ResourceConsumptionContent({
 									onValueChange={(value) => setSortOption(value as SortOption)}
 								>
 									<DropdownMenuRadioItem value="memory">
-										Memory
+										<Trans id="dashboard.topBar.resources.sortMemory">
+											Memory
+										</Trans>
 									</DropdownMenuRadioItem>
-									<DropdownMenuRadioItem value="cpu">CPU</DropdownMenuRadioItem>
+									<DropdownMenuRadioItem value="cpu">
+										<Trans id="dashboard.topBar.resources.sortCpu">CPU</Trans>
+									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="name">
-										Name
+										<Trans id="dashboard.topBar.resources.sortName">Name</Trans>
 									</DropdownMenuRadioItem>
 									<DropdownMenuRadioItem value="sidebar">
-										Sidebar order
+										<Trans id="dashboard.topBar.resources.sortSidebarOrder">
+											Sidebar order
+										</Trans>
 									</DropdownMenuRadioItem>
 								</DropdownMenuRadioGroup>
 							</DropdownMenuContent>
@@ -239,13 +246,15 @@ function ResourceConsumptionContent({
 
 				{normalizedSnapshot && normalizedSnapshot.workspaces.length === 0 && (
 					<div className="px-3.5 py-6 text-center text-[11px] text-muted-foreground">
-						No active terminal sessions
+						<Trans id="dashboard.topBar.resources.noActiveSessions">
+							No active terminal sessions
+						</Trans>
 					</div>
 				)}
 
 				{!normalizedSnapshot && (
 					<div className="px-3.5 py-6 text-center text-[11px] text-muted-foreground">
-						Loading…
+						<Trans id="dashboard.topBar.resources.loading">Loading…</Trans>
 					</div>
 				)}
 			</div>

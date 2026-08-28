@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { SelectAutomationRun } from "@superset/db/schema";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -43,7 +44,13 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 	const now = useNow();
 
 	if (runs.length === 0) {
-		return <p className="text-sm italic text-muted-foreground">No runs yet</p>;
+		return (
+			<p className="text-sm italic text-muted-foreground">
+				<Trans id="dashboard.automations.previousRuns.noRunsYet">
+					No runs yet
+				</Trans>
+			</p>
+		);
 	}
 
 	const handleOpenRun = (run: SelectAutomationRun) => {
@@ -82,7 +89,13 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 								STATUS_DOT[run.status],
 							)}
 						/>
-						<span className="truncate">{run.title || "Automation"}</span>
+						<span className="truncate">
+							{run.title || (
+								<Trans id="dashboard.automations.previousRuns.untitledRun">
+									Automation
+								</Trans>
+							)}
+						</span>
 						<span className="ml-auto shrink-0 truncate text-muted-foreground">
 							{run.scheduledFor
 								? formatAgo(new Date(run.scheduledFor), now)

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -68,15 +69,25 @@ export function SubmitPromptDialog({
 		<Dialog open={open} onOpenChange={handleOpenChange} modal>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Submit a prompt</DialogTitle>
+					<DialogTitle>
+						<Trans id="dashboard.topBar.submitPromptDialog.title">
+							Submit a prompt
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Prompt a coding agent to build what you want to see in Superset. If
-						we like your prompt, we'll run it and merge the result.
+						<Trans id="dashboard.topBar.submitPromptDialog.description">
+							Prompt a coding agent to build what you want to see in Superset.
+							If we like your prompt, we'll run it and merge the result.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-4 py-2">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor="submit-prompt-text">Prompt</Label>
+						<Label htmlFor="submit-prompt-text">
+							<Trans id="dashboard.topBar.submitPromptDialog.promptLabel">
+								Prompt
+							</Trans>
+						</Label>
 						<Textarea
 							id="submit-prompt-text"
 							value={promptText}
@@ -90,10 +101,12 @@ export function SubmitPromptDialog({
 					</div>
 					<div className="flex flex-col gap-2">
 						<Label htmlFor="submit-prompt-name">
-							Your name{" "}
-							<span className="font-normal text-muted-foreground">
-								(if we use your prompt, we'll credit you in the changelog)
-							</span>
+							<Trans id="dashboard.topBar.submitPromptDialog.nameLabel">
+								Your name{" "}
+								<span className="font-normal text-muted-foreground">
+									(if we use your prompt, we'll credit you in the changelog)
+								</span>
+							</Trans>
 						</Label>
 						<Input
 							id="submit-prompt-name"
@@ -106,7 +119,15 @@ export function SubmitPromptDialog({
 				</div>
 				<DialogFooter>
 					<Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
-						{isSubmitting ? "Submitting…" : "Submit prompt"}
+						{isSubmitting ? (
+							<Trans id="dashboard.topBar.submitPromptDialog.submitting">
+								Submitting…
+							</Trans>
+						) : (
+							<Trans id="dashboard.topBar.submitPromptDialog.submit">
+								Submit prompt
+							</Trans>
+						)}
 						<span className="ml-2 inline-flex items-center gap-1 text-base font-mono tabular-nums opacity-80">
 							<span>⌘</span>
 							<span>↵</span>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import {
 	formatDateTimeInTimezone,
@@ -103,7 +104,15 @@ export function TriggersCard({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<span>
-						{automation.enabled ? "Next run " : "Would run "}
+						{automation.enabled ? (
+							<Trans id="dashboard.automations.triggersCard.nextRun">
+								Next run
+							</Trans>
+						) : (
+							<Trans id="dashboard.automations.triggersCard.wouldRun">
+								Would run
+							</Trans>
+						)}{" "}
 						{formatDistanceStrict(run.at, new Date(), { addSuffix: true })}
 					</span>
 				</TooltipTrigger>
@@ -127,7 +136,9 @@ export function TriggersCard({
 				readOnly={readOnly}
 			/>
 			<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
-				<span>in</span>
+				<span>
+					<Trans id="dashboard.automations.triggersCard.inProject">in</Trans>
+				</span>
 				<ProjectPicker
 					className={SCOPE_CHIP}
 					selectedProject={selectedProject}
@@ -136,7 +147,9 @@ export function TriggersCard({
 					disabled={readOnly}
 					onSelectProject={(v2ProjectId) => onUpdate({ v2ProjectId })}
 				/>
-				<span>on</span>
+				<span>
+					<Trans id="dashboard.automations.triggersCard.onDevice">on</Trans>
+				</span>
 				<DevicePicker
 					className={SCOPE_CHIP}
 					hostId={hostId}
@@ -146,7 +159,11 @@ export function TriggersCard({
 						onUpdate({ targetHostId: nextHostId })
 					}
 				/>
-				<span>using</span>
+				<span>
+					<Trans id="dashboard.automations.triggersCard.usingWorkspace">
+						using
+					</Trans>
+				</span>
 				<WorkspacePicker
 					className={SCOPE_CHIP}
 					hostId={hostId}

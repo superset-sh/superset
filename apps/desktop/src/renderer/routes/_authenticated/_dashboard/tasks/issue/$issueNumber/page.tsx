@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -203,7 +204,11 @@ function IssueDetailPage() {
 						{data.author && (
 							<>
 								<span aria-hidden>·</span>
-								<span className="min-w-0 break-words">by {data.author}</span>
+								<span className="min-w-0 break-words">
+									<Trans id="dashboard.tasks.issueDetail.byAuthor">
+										by {data.author}
+									</Trans>
+								</span>
 							</>
 						)}
 					</div>
@@ -212,7 +217,9 @@ function IssueDetailPage() {
 						<MarkdownRenderer content={data.body} />
 					) : (
 						<p className="text-sm italic text-muted-foreground">
-							No description provided.
+							<Trans id="dashboard.tasks.issueDetail.noDescription">
+								No description provided.
+							</Trans>
 						</p>
 					)}
 				</div>

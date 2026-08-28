@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -128,12 +129,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 					{isPinned ? (
 						<>
 							<LuPinOff className="size-4 mr-2" />
-							Unpin
+							<Trans id="dashboard.sidebar.workspaceMenu.unpin">Unpin</Trans>
 						</>
 					) : (
 						<>
 							<LuPin className="size-4 mr-2" />
-							Pin
+							<Trans id="dashboard.sidebar.workspaceMenu.pin">Pin</Trans>
 						</>
 					)}
 				</ContextMenuItem>
@@ -141,7 +142,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 				{onRename && (
 					<ContextMenuItem onSelect={onRename}>
 						<LuPencil className="size-4 mr-2" />
-						Rename
+						<Trans id="dashboard.sidebar.workspaceMenu.rename">Rename</Trans>
 					</ContextMenuItem>
 				)}
 				{isLocalWorkspace && (
@@ -149,43 +150,57 @@ export function DashboardSidebarWorkspaceContextMenu({
 						{onRename && <ContextMenuSeparator />}
 						<ContextMenuItem onSelect={onOpenInFinder}>
 							<LuFolderOpen className="size-4 mr-2" />
-							Open in Finder
+							<Trans id="dashboard.sidebar.workspaceMenu.openInFinder">
+								Open in Finder
+							</Trans>
 						</ContextMenuItem>
 						<ContextMenuItem onSelect={onCopyPath}>
 							<LuCopy className="size-4 mr-2" />
-							Copy Path
+							<Trans id="dashboard.sidebar.workspaceMenu.copyPath">
+								Copy Path
+							</Trans>
 						</ContextMenuItem>
 					</>
 				)}
 				{!isLocalWorkspace && onRename && <ContextMenuSeparator />}
 				<ContextMenuItem onSelect={onCopyBranchName}>
 					<LuGitBranch className="size-4 mr-2" />
-					Copy Branch Name
+					<Trans id="dashboard.sidebar.workspaceMenu.copyBranchName">
+						Copy Branch Name
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onToggleUnread}>
 					{isUnread ? (
 						<>
 							<LuEye className="size-4 mr-2" />
-							Mark as Read
+							<Trans id="dashboard.sidebar.workspaceMenu.markAsRead">
+								Mark as Read
+							</Trans>
 						</>
 					) : (
 						<>
 							<LuEyeOff className="size-4 mr-2" />
-							Mark as Unread
+							<Trans id="dashboard.sidebar.workspaceMenu.markAsUnread">
+								Mark as Unread
+							</Trans>
 						</>
 					)}
 				</ContextMenuItem>
 				{hasStatus && (
 					<ContextMenuItem onSelect={onClearStatus}>
 						<LuBellOff className="size-4 mr-2" />
-						Clear Status
+						<Trans id="dashboard.sidebar.workspaceMenu.clearStatus">
+							Clear Status
+						</Trans>
 					</ContextMenuItem>
 				)}
 				{hasPullRequest && (
 					<ContextMenuItem onSelect={onRemovePullRequest}>
 						<LuUnlink className="size-4 mr-2" />
-						Remove PR Link
+						<Trans id="dashboard.sidebar.workspaceMenu.removePrLink">
+							Remove PR Link
+						</Trans>
 					</ContextMenuItem>
 				)}
 				{/* Group actions mutate placement (sectionId/tabOrder), which a pinned
@@ -195,14 +210,18 @@ export function DashboardSidebarWorkspaceContextMenu({
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onCreateSection}>
 							<LuFolderPlus className="size-4 mr-2" />
-							New group from workspace
+							<Trans id="dashboard.sidebar.workspaceMenu.newGroupFromWorkspace">
+								New group from workspace
+							</Trans>
 						</ContextMenuItem>
 						{(sections.length > 0 || isInSection) && <ContextMenuSeparator />}
 						{sections.length > 0 && (
 							<ContextMenuSub>
 								<ContextMenuSubTrigger>
 									<LuArrowRightLeft className="size-4 mr-2" />
-									Move to group
+									<Trans id="dashboard.sidebar.workspaceMenu.moveToGroup">
+										Move to group
+									</Trans>
 								</ContextMenuSubTrigger>
 								<ContextMenuSubContent>
 									{sections.map((section) => (
@@ -225,7 +244,9 @@ export function DashboardSidebarWorkspaceContextMenu({
 						{isInSection && (
 							<ContextMenuItem onSelect={() => onMoveToSection(null)}>
 								<LuArrowUp className="size-4 mr-2" />
-								Ungroup
+								<Trans id="dashboard.sidebar.workspaceMenu.ungroup">
+									Ungroup
+								</Trans>
 							</ContextMenuItem>
 						)}
 					</>
@@ -238,12 +259,16 @@ export function DashboardSidebarWorkspaceContextMenu({
 						variant="destructive"
 					>
 						<LuRadioTower className="size-4 mr-2" />
-						Close all ports
+						<Trans id="dashboard.sidebar.workspaceMenu.closeAllPorts">
+							Close all ports
+						</Trans>
 					</ContextMenuItem>
 				)}
 				<ContextMenuItem onSelect={onRemoveFromSidebar}>
 					<LuX className="size-4 mr-2" />
-					Remove from Sidebar
+					<Trans id="dashboard.sidebar.workspaceMenu.removeFromSidebar">
+						Remove from Sidebar
+					</Trans>
 				</ContextMenuItem>
 				{onDelete ? (
 					<ContextMenuItem
@@ -251,7 +276,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 						className="text-destructive focus:text-destructive"
 					>
 						<LuTrash2 className="size-4 mr-2 text-destructive" />
-						Delete
+						<Trans id="dashboard.sidebar.workspaceMenu.delete">Delete</Trans>
 						{showDeleteShortcut && (
 							<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
 						)}

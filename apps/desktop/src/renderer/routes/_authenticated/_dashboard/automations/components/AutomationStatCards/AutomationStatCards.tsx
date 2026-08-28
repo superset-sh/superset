@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 
 interface AutomationStatCardsProps {
@@ -31,7 +32,9 @@ export function AutomationStatCards({
 	return (
 		<div className="grid grid-cols-3 gap-2">
 			<div className={CARD}>
-				<p className={LABEL}>Active</p>
+				<p className={LABEL}>
+					<Trans id="dashboard.automations.statCards.active">Active</Trans>
+				</p>
 				<p className={VALUE}>{active}</p>
 			</div>
 			<div
@@ -39,7 +42,9 @@ export function AutomationStatCards({
 				title="Workspaces created by runs in the last 7 days"
 			>
 				<p className={LABEL}>
-					Created <span className="text-muted-foreground/60">· 7d</span>
+					<Trans id="dashboard.automations.statCards.created7d">
+						Created <span className="text-muted-foreground/60">· 7d</span>
+					</Trans>
 				</p>
 				<p className={VALUE}>
 					{created7d}
@@ -66,10 +71,14 @@ export function AutomationStatCards({
 				)}
 			>
 				<p className={LABEL}>
-					Failed <span className="text-muted-foreground/60">· 7d</span>
+					<Trans id="dashboard.automations.statCards.failed7d">
+						Failed <span className="text-muted-foreground/60">· 7d</span>
+					</Trans>
 					{failedFilter && (
 						<span className="ml-1.5 text-red-600 dark:text-red-400">
-							filtering
+							<Trans id="dashboard.automations.statCards.filtering">
+								filtering
+							</Trans>
 						</span>
 					)}
 				</p>
