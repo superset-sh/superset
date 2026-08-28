@@ -581,11 +581,6 @@ msgid "settings.terminal.quickAdd.addAgents"
 msgstr "Add agents…"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.addAttachment"
-msgstr "Add attachment"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/NewWorkspaceScreen/NewWorkspaceScreen.tsx
 msgid "dashboard.newWorkspaceModal.newWorkspaceScreen.addAttachment"
 msgstr "Add attachment"
@@ -593,6 +588,11 @@ msgstr "Add attachment"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/AttachmentButtons/AttachmentButtons.tsx
 msgid "dashboard.newWorkspaceModal.attachmentButtons.addAttachment"
+msgstr "Add attachment"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.addAttachment"
 msgstr "Add attachment"
 
 #. js-lingui-explicit-id
@@ -706,13 +706,13 @@ msgid "settings.models.advanced"
 msgstr "Advanced"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
-msgid "components.promptGroupAdvancedOptions.title"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
+msgid "dashboard.project.onboarding.advancedOptions"
 msgstr "Advanced options"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
-msgid "dashboard.project.onboarding.advancedOptions"
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
+msgid "components.promptGroupAdvancedOptions.title"
 msgstr "Advanced options"
 
 #. js-lingui-explicit-id
@@ -757,11 +757,6 @@ msgid "settings.terminal.v2Sessions.statusAlive"
 msgstr "Alive"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.branchFilterAll"
-msgstr "All"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker/CompareBaseBranchPicker.tsx
 msgid "dashboard.newWorkspaceModal.compareBaseBranchPicker.filterAll"
 msgstr "All"
@@ -784,6 +779,11 @@ msgstr "All"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter/OpenClosedFilter.tsx
 msgid "dashboard.openClosedFilter.all"
+msgstr "All"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.branchFilterAll"
 msgstr "All"
 
 #. js-lingui-explicit-id
@@ -965,11 +965,6 @@ msgid "dashboard.tasks.openInWorkspace.autoRun"
 msgstr "Auto-run command"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/commandPalette/ui/RecentlyViewed/RecentlyViewedFrame.tsx
-msgid "commandPalette.recentlyViewed.automationType"
-msgstr "Automation"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/NavigationControls/components/HistoryDropdown/HistoryDropdown.tsx
 msgid "dashboard.historyDropdown.automationKind"
 msgstr "Automation"
@@ -977,6 +972,11 @@ msgstr "Automation"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/PreviousRunsList/PreviousRunsList.tsx
 msgid "dashboard.automations.previousRuns.untitledRun"
+msgstr "Automation"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/commandPalette/ui/RecentlyViewed/RecentlyViewedFrame.tsx
+msgid "commandPalette.recentlyViewed.automationType"
 msgstr "Automation"
 
 #. js-lingui-explicit-id
@@ -1065,13 +1065,13 @@ msgid "settings.appearance.typography.cursorBar"
 msgstr "Bar"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
-msgid "components.promptGroupAdvancedOptions.baseBranch"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
+msgid "dashboard.project.onboarding.baseBranch"
 msgstr "Base branch"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
-msgid "dashboard.project.onboarding.baseBranch"
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
+msgid "components.promptGroupAdvancedOptions.baseBranch"
 msgstr "Base branch"
 
 #. js-lingui-explicit-id
@@ -1085,12 +1085,6 @@ msgid "settings.models.baseUrl"
 msgstr "Base URL"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: linkedPR.prNumber
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.basedOffPr"
-msgstr "based off PR #{0}"
-
-#. js-lingui-explicit-id
 #. placeholder {0}: draft.linkedPR.prNumber
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/NewWorkspaceScreen/NewWorkspaceScreen.tsx
 msgid "dashboard.newWorkspaceModal.newWorkspaceScreen.basedOffPr"
@@ -1100,6 +1094,12 @@ msgstr "based off PR #{0}"
 #. placeholder {0}: linkedPR.prNumber
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/PromptGroup.tsx
 msgid "dashboard.newWorkspaceModal.promptGroup.basedOffPr"
+msgstr "based off PR #{0}"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: linkedPR.prNumber
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.basedOffPr"
 msgstr "based off PR #{0}"
 
 #. js-lingui-explicit-id
@@ -1180,13 +1180,13 @@ msgid "settings.components.worktreeLocationPicker.browse"
 msgstr "Browse..."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/AddTabMenu/AddTabMenu.tsx
-msgid "workspace.addTabMenu.browser"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/browser/components/BrowserSettings/BrowserSettings.tsx
+msgid "settings.browser.title"
 msgstr "Browser"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/browser/components/BrowserSettings/BrowserSettings.tsx
-msgid "settings.browser.title"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/AddTabMenu/AddTabMenu.tsx
+msgid "workspace.addTabMenu.browser"
 msgstr "Browser"
 
 #. js-lingui-explicit-id
@@ -1237,63 +1237,13 @@ msgid "workspace.browserPane.clearDataCache"
 msgstr "Cached images and files"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/create-organization/page.tsx
-msgid "auth.createOrganization.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/ClearBrowsingDataDialog/ClearBrowsingDataDialog.tsx
-msgid "workspace.browserPane.clearDataCancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/AgentCommentComposer.tsx
-msgid "workspace.agentCommentComposer.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/CommitFilterDropdown/components/RangeModal/RangeModal.tsx
-msgid "workspace.rangeModal.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog/DiscardConfirmDialog.tsx
-msgid "workspace.discardConfirmDialog.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/react-query/projects/InitGitDialog.tsx
-msgid "app.initGitDialog.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
-msgid "components.remotePathPicker.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
-msgid "components.oauthDialog.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/Paywall.tsx
-msgid "components.paywall.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/LeaderboardJoinDialog/LeaderboardJoinDialog.tsx
-msgid "components.leaderboardJoinDialog.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
-msgid "components.importHistoryDialog.cancel"
-msgstr "Cancel"
-
-#. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
 msgid "common.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/create-organization/page.tsx
+msgid "auth.createOrganization.cancel"
 msgstr "Cancel"
 
 #. js-lingui-explicit-id
@@ -1422,6 +1372,26 @@ msgid "settings.account.leaderboard.leaveCancel"
 msgstr "Cancel"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/ClearBrowsingDataDialog/ClearBrowsingDataDialog.tsx
+msgid "workspace.browserPane.clearDataCancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/AgentCommentComposer.tsx
+msgid "workspace.agentCommentComposer.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/CommitFilterDropdown/components/RangeModal/RangeModal.tsx
+msgid "workspace.rangeModal.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog/DiscardConfirmDialog.tsx
+msgid "workspace.discardConfirmDialog.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/$prNumber/page.tsx
 msgid "dashboard.pullRequests.confirm.cancel"
 msgstr "Cancel"
@@ -1469,6 +1439,36 @@ msgstr "Cancel"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/HostOfflineRunDialog/HostOfflineRunDialog.tsx
 msgid "dashboard.automations.hostOfflineDialog.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/react-query/projects/InitGitDialog.tsx
+msgid "app.initGitDialog.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/RemotePathPicker/RemotePathPicker.tsx
+msgid "components.remotePathPicker.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
+msgid "components.oauthDialog.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/Paywall.tsx
+msgid "components.paywall.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/LeaderboardJoinDialog/LeaderboardJoinDialog.tsx
+msgid "components.leaderboardJoinDialog.cancel"
+msgstr "Cancel"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
+msgid "components.importHistoryDialog.cancel"
 msgstr "Cancel"
 
 #. js-lingui-explicit-id
@@ -1604,13 +1604,13 @@ msgid "auth.createOrganization.slugChecking"
 msgstr "Checking..."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/UpdateRequiredPage/UpdateRequiredPage.tsx
-msgid "components.updateRequiredPage.checking"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/organization/components/OrganizationSettings/components/SlugDialog/SlugDialog.tsx
+msgid "settings.organization.slugChecking"
 msgstr "Checking..."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/organization/components/OrganizationSettings/components/SlugDialog/SlugDialog.tsx
-msgid "settings.organization.slugChecking"
+#: ../../apps/desktop/src/renderer/components/UpdateRequiredPage/UpdateRequiredPage.tsx
+msgid "components.updateRequiredPage.checking"
 msgstr "Checking..."
 
 #. js-lingui-explicit-id
@@ -1679,13 +1679,13 @@ msgid "dashboard.workspaces.header.clearFilters"
 msgstr "Clear filters"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/HistoryDialog/HistoryDialog.tsx
-msgid "workspace.browserPane.clearHistory"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/SessionsSection.tsx
+msgid "settings.terminal.sessions.clearHistoryConfirm"
 msgstr "Clear history"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/SessionsSection.tsx
-msgid "settings.terminal.sessions.clearHistoryConfirm"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/HistoryDialog/HistoryDialog.tsx
+msgid "workspace.browserPane.clearHistory"
 msgstr "Clear history"
 
 #. js-lingui-explicit-id
@@ -2040,13 +2040,13 @@ msgid "dashboard.topBar.helpMenu.contactUs"
 msgstr "Contact Us"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
-msgid "components.oauthDialog.continue"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
+msgid "dashboard.project.onboarding.continue"
 msgstr "Continue"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
-msgid "dashboard.project.onboarding.continue"
+#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
+msgid "components.oauthDialog.continue"
 msgstr "Continue"
 
 #. js-lingui-explicit-id
@@ -2105,13 +2105,13 @@ msgid "settings.apiKeys.copiedNotice"
 msgstr "Copied to clipboard."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
-msgid "components.oauthDialog.copied"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/organization/components/OrganizationSettings/OrganizationSettings.tsx
+msgid "settings.organization.copiedTooltip"
 msgstr "Copied!"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/organization/components/OrganizationSettings/OrganizationSettings.tsx
-msgid "settings.organization.copiedTooltip"
+#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
+msgid "components.oauthDialog.copied"
 msgstr "Copied!"
 
 #. js-lingui-explicit-id
@@ -2120,23 +2120,23 @@ msgid "dashboard.automations.webhookSentence.copiesHeaderTooltip"
 msgstr "Copies the Authorization header. It is only shown now."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/CommentPane/CommentPane.tsx
-msgid "workspace.commentPane.copy"
-msgstr "Copy"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/MarkdownRenderer/components/SelectionContextMenu/SelectionContextMenu.tsx
-msgid "components.selectionContextMenu.copy"
-msgstr "Copy"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/organization/components/OrganizationSettings/OrganizationSettings.tsx
 msgid "settings.organization.copyTooltip"
 msgstr "Copy"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/CommentPane/CommentPane.tsx
+msgid "workspace.commentPane.copy"
+msgstr "Copy"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTableView/components/TaskContextMenu/TaskContextMenu.tsx
 msgid "dashboard.tasks.taskContextMenu.copy"
+msgstr "Copy"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/MarkdownRenderer/components/SelectionContextMenu/SelectionContextMenu.tsx
+msgid "components.selectionContextMenu.copy"
 msgstr "Copy"
 
 #. js-lingui-explicit-id
@@ -2422,6 +2422,11 @@ msgid "dashboard.topBar.resources.sortCpu"
 msgstr "CPU"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/teams/components/TeamsSettings/components/CreateTeamButton/CreateTeamButton.tsx
+msgid "settings.teams.createConfirm"
+msgstr "Create"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
 msgid "components.promptGroup.createAlongsideExisting"
 msgstr "Create"
@@ -2429,11 +2434,6 @@ msgstr "Create"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
 msgid "components.promptGroup.createWorkspace"
-msgstr "Create"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/teams/components/TeamsSettings/components/CreateTeamButton/CreateTeamButton.tsx
-msgid "settings.teams.createConfirm"
 msgstr "Create"
 
 #. js-lingui-explicit-id
@@ -2452,13 +2452,13 @@ msgid "dashboard.tasks.createTaskDialog.description"
 msgstr "Create a new task from the desktop tasks view."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModal.tsx
-msgid "components.newWorkspaceModal.description"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceModal.tsx
+msgid "dashboard.newWorkspaceModal.description"
 msgstr "Create a new workspace"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceModal.tsx
-msgid "dashboard.newWorkspaceModal.description"
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModal.tsx
+msgid "components.newWorkspaceModal.description"
 msgstr "Create a new workspace"
 
 #. js-lingui-explicit-id
@@ -2666,21 +2666,6 @@ msgid "settings.members.deactivatedBadge"
 msgstr "Deactivated"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.defaultBranchBadge"
-msgstr "default"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
-msgid "components.promptGroupAdvancedOptions.selectedDefaultBadge"
-msgstr "default"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
-msgid "components.promptGroupAdvancedOptions.defaultBranchBadge"
-msgstr "default"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker/CompareBaseBranchPicker.tsx
 msgid "dashboard.newWorkspaceModal.compareBaseBranchPicker.defaultBadge"
 msgstr "default"
@@ -2693,6 +2678,21 @@ msgstr "default"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
 msgid "dashboard.project.onboarding.defaultBranchOptionBadge"
+msgstr "default"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.defaultBranchBadge"
+msgstr "default"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
+msgid "components.promptGroupAdvancedOptions.selectedDefaultBadge"
+msgstr "default"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
+msgid "components.promptGroupAdvancedOptions.defaultBranchBadge"
 msgstr "default"
 
 #. js-lingui-explicit-id
@@ -2716,16 +2716,6 @@ msgid "settings.hosts.worktrees.hint"
 msgstr "Default location for new worktree workspaces on this host."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/FolderMenuItems/FolderMenuItems.tsx
-msgid "workspace.folderMenuItems.delete"
-msgstr "Delete"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/FileMenuItems/FileMenuItems.tsx
-msgid "workspace.fileMenuItems.delete"
-msgstr "Delete"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/v2-project/$projectId/components/V2ProjectSettings/components/DeleteProjectSection/DeleteProjectSection.tsx
 msgid "settings.project.delete.confirm"
 msgstr "Delete"
@@ -2743,6 +2733,16 @@ msgstr "Delete"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/FolderMenuItems/FolderMenuItems.tsx
+msgid "workspace.folderMenuItems.delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/FileMenuItems/FileMenuItems.tsx
+msgid "workspace.fileMenuItems.delete"
 msgstr "Delete"
 
 #. js-lingui-explicit-id
@@ -3272,13 +3272,13 @@ msgid "components.promptGroupAdvancedOptions.editPrefix"
 msgstr "Edit prefix"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2PresetsBar/components/V2PresetBarItem/V2PresetBarItem.tsx
-msgid "workspace.presetBarItem.editScript"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/PresetsSection/components/PresetEditorDialog/PresetEditorDialog.tsx
+msgid "settings.terminal.presetEditor.fallbackTitle"
 msgstr "Edit script"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/PresetsSection/components/PresetEditorDialog/PresetEditorDialog.tsx
-msgid "settings.terminal.presetEditor.fallbackTitle"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2PresetsBar/components/V2PresetBarItem/V2PresetBarItem.tsx
+msgid "workspace.presetBarItem.editScript"
 msgstr "Edit script"
 
 #. js-lingui-explicit-id
@@ -3548,16 +3548,6 @@ msgid "serverError.organization.failedToLeaveOrganization"
 msgstr "Failed to leave organization"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.branchesLoadFailed"
-msgstr "Failed to load branches"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
-msgid "components.promptGroupAdvancedOptions.branchesLoadFailed"
-msgstr "Failed to load branches"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker/CompareBaseBranchPicker.tsx
 msgid "dashboard.newWorkspaceModal.compareBaseBranchPicker.loadFailed"
 msgstr "Failed to load branches"
@@ -3565,6 +3555,16 @@ msgstr "Failed to load branches"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
 msgid "dashboard.project.onboarding.branchesError"
+msgstr "Failed to load branches"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.branchesLoadFailed"
+msgstr "Failed to load branches"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
+msgid "components.promptGroupAdvancedOptions.branchesLoadFailed"
 msgstr "Failed to load branches"
 
 #. js-lingui-explicit-id
@@ -3827,16 +3827,6 @@ msgid "settings.git.title"
 msgstr "Git & worktrees"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedPRPill/LinkedPRPill.tsx
-msgid "components.linkedPrPill.githubSource"
-msgstr "GitHub"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedGitHubIssuePill/LinkedGitHubIssuePill.tsx
-msgid "components.linkedGithubIssuePill.githubSource"
-msgstr "GitHub"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/LinkedPRPill/LinkedPRPill.tsx
 msgid "dashboard.newWorkspaceModal.linkedPRPill.source"
 msgstr "GitHub"
@@ -3849,6 +3839,16 @@ msgstr "GitHub"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown/components/HelpSubMenu/HelpSubMenu.tsx
 msgid "dashboard.topBar.helpMenu.github"
+msgstr "GitHub"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedPRPill/LinkedPRPill.tsx
+msgid "components.linkedPrPill.githubSource"
+msgstr "GitHub"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedGitHubIssuePill/LinkedGitHubIssuePill.tsx
+msgid "components.linkedGithubIssuePill.githubSource"
 msgstr "GitHub"
 
 #. js-lingui-explicit-id
@@ -4102,16 +4102,6 @@ msgid "components.safeImage.blocked"
 msgstr "Image blocked"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/ChromeImportBanner/ChromeImportBanner.tsx
-msgid "workspace.browserPane.importBannerAction"
-msgstr "Import"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
-msgid "components.importHistoryDialog.import"
-msgstr "Import"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/v2-project/$projectId/components/V2ProjectSettings/components/V2ScriptsEditor/components/ScriptField/ScriptField.tsx
 msgid "settings.project.scriptField.import"
 msgstr "Import"
@@ -4124,6 +4114,16 @@ msgstr "Import"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.customThemes.import"
+msgstr "Import"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/components/ChromeImportBanner/ChromeImportBanner.tsx
+msgid "workspace.browserPane.importBannerAction"
+msgstr "Import"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
+msgid "components.importHistoryDialog.import"
 msgstr "Import"
 
 #. js-lingui-explicit-id
@@ -4197,13 +4197,13 @@ msgid "dashboard.project.worktreesBanner.importing"
 msgstr "Importing..."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
-msgid "components.importHistoryDialog.importing"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/ImportWorktreesDialog/ImportWorktreesDialog.tsx
+msgid "dashboard.sidebar.importWorktrees.importing"
 msgstr "Importing…"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/ImportWorktreesDialog/ImportWorktreesDialog.tsx
-msgid "dashboard.sidebar.importWorktrees.importing"
+#: ../../apps/desktop/src/renderer/components/ImportHistoryDialog/ImportHistoryDialog.tsx
+msgid "components.importHistoryDialog.importing"
 msgstr "Importing…"
 
 #. js-lingui-explicit-id
@@ -4589,13 +4589,13 @@ msgid "settings.appearance.typography.lineHeight"
 msgstr "Line height"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/LinkedIssuePill/LinkedIssuePill.tsx
-msgid "components.linkedIssuePill.linearSource"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTopBar/TasksTopBar.tsx
+msgid "dashboard.tasks.topBar.sourceLinear"
 msgstr "Linear"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/TasksTopBar/TasksTopBar.tsx
-msgid "dashboard.tasks.topBar.sourceLinear"
+#: ../../apps/desktop/src/renderer/components/LinkedIssuePill/LinkedIssuePill.tsx
+msgid "components.linkedIssuePill.linearSource"
 msgstr "Linear"
 
 #. js-lingui-explicit-id
@@ -4784,11 +4784,6 @@ msgid "settings.usage.drilldown.loading"
 msgstr "Loading usage history…"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
-msgid "workspace.changesFileList.loading"
-msgstr "Loading..."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.prLink.loading"
 msgstr "Loading..."
@@ -4796,6 +4791,11 @@ msgstr "Loading..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.githubIssueLink.loading"
+msgstr "Loading..."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
+msgid "workspace.changesFileList.loading"
 msgstr "Loading..."
 
 #. js-lingui-explicit-id
@@ -5320,13 +5320,13 @@ msgid "dashboard.automations.workspacePicker.newSession"
 msgstr "New session"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/components/AgentPlacementToggle/AgentPlacementToggle.tsx
-msgid "workspace.agentCommentComposer.placementNewTab"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx
+msgid "settings.behavior.fileOpenMode.newTab"
 msgstr "New tab"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/behavior/components/BehaviorSettings/BehaviorSettings.tsx
-msgid "settings.behavior.fileOpenMode.newTab"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/AgentCommentComposer/components/AgentPlacementToggle/AgentPlacementToggle.tsx
+msgid "workspace.agentCommentComposer.placementNewTab"
 msgstr "New tab"
 
 #. js-lingui-explicit-id
@@ -5350,11 +5350,6 @@ msgid "dashboard.automations.workspacePicker.newWorkspace"
 msgstr "New workspace"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModal.tsx
-msgid "components.newWorkspaceModal.title"
-msgstr "New Workspace"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceModal.tsx
 msgid "dashboard.newWorkspaceModal.title"
 msgstr "New Workspace"
@@ -5362,6 +5357,11 @@ msgstr "New Workspace"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarHeader/DashboardSidebarHeader.tsx
 msgid "dashboard.sidebar.header.newWorkspace"
+msgstr "New Workspace"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/NewWorkspaceModal.tsx
+msgid "components.newWorkspaceModal.title"
 msgstr "New Workspace"
 
 #. js-lingui-explicit-id
@@ -5471,8 +5471,18 @@ msgid "workspace.backgroundTerminals.empty"
 msgstr "No background terminal sessions"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker/CompareBaseBranchPicker.tsx
+msgid "dashboard.newWorkspaceModal.compareBaseBranchPicker.empty"
+msgstr "No branches found"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/BaseBranchSelector/BaseBranchSelector.tsx
 msgid "workspace.baseBranchSelector.empty"
+msgstr "No branches found"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
+msgid "dashboard.project.onboarding.noBranchesFound"
 msgstr "No branches found"
 
 #. js-lingui-explicit-id
@@ -5483,16 +5493,6 @@ msgstr "No branches found"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
 msgid "components.promptGroupAdvancedOptions.noBranchesFound"
-msgstr "No branches found"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker/CompareBaseBranchPicker.tsx
-msgid "dashboard.newWorkspaceModal.compareBaseBranchPicker.empty"
-msgstr "No branches found"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
-msgid "dashboard.project.onboarding.noBranchesFound"
 msgstr "No branches found"
 
 #. js-lingui-explicit-id
@@ -5611,16 +5611,6 @@ msgid "settings.agents.iconPicker.noIconOption"
 msgstr "No icon"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
-msgid "components.githubIssueLinkCommand.noIssues"
-msgstr "No issues found."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/IssueLinkCommand/IssueLinkCommand.tsx
-msgid "components.issueLinkCommand.noIssues"
-msgstr "No issues found."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.githubIssueLink.noResultsAll"
 msgstr "No issues found."
@@ -5633,6 +5623,16 @@ msgstr "No issues found."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/GitHubIssuesContent/GitHubIssuesContent.tsx
 msgid "dashboard.tasks.githubIssues.emptyAll"
+msgstr "No issues found."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
+msgid "components.githubIssueLinkCommand.noIssues"
+msgstr "No issues found."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/IssueLinkCommand/IssueLinkCommand.tsx
+msgid "components.issueLinkCommand.noIssues"
 msgstr "No issues found."
 
 #. js-lingui-explicit-id
@@ -5701,16 +5701,6 @@ msgid "dashboard.pullRequests.list.noneMerged"
 msgstr "No merged pull requests."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
-msgid "components.githubIssueLinkCommand.noOpenIssues"
-msgstr "No open issues found."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/IssueLinkCommand/IssueLinkCommand.tsx
-msgid "components.issueLinkCommand.noOpenIssues"
-msgstr "No open issues found."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.githubIssueLink.noResultsOpen"
 msgstr "No open issues found."
@@ -5718,6 +5708,16 @@ msgstr "No open issues found."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.githubIssueLink.emptyOpen"
+msgstr "No open issues found."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
+msgid "components.githubIssueLinkCommand.noOpenIssues"
+msgstr "No open issues found."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/IssueLinkCommand/IssueLinkCommand.tsx
+msgid "components.issueLinkCommand.noOpenIssues"
 msgstr "No open issues found."
 
 #. js-lingui-explicit-id
@@ -5731,11 +5731,6 @@ msgid "dashboard.newWorkspaceModal.prLink.noResultsOpen"
 msgstr "No open pull requests found."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
-msgid "components.prLinkCommand.noOpenPullRequests"
-msgstr "No open pull requests."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.prLink.emptyOpen"
 msgstr "No open pull requests."
@@ -5743,6 +5738,11 @@ msgstr "No open pull requests."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestsView/components/PullRequestsContent/PullRequestsContent.tsx
 msgid "dashboard.pullRequests.list.noneOpen"
+msgstr "No open pull requests."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
+msgid "components.prLinkCommand.noOpenPullRequests"
 msgstr "No open pull requests."
 
 #. js-lingui-explicit-id
@@ -5847,11 +5847,6 @@ msgid "dashboard.tasks.openInWorkspace.noProjects"
 msgstr "No projects found"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.noProjectsFound"
-msgstr "No projects found."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/PresetsSection/components/PresetEditorDialog/components/ProjectTargetingField/ProjectTargetingField.tsx
 msgid "settings.terminal.projectTargeting.noProjectsFound"
 msgstr "No projects found."
@@ -5887,6 +5882,11 @@ msgid "dashboard.automations.projectPicker.noProjectsFound"
 msgstr "No projects found."
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.noProjectsFound"
+msgstr "No projects found."
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageWorkspacesPage/UsageWorkspacesPage.tsx
 msgid "settings.usage.workspacesPage.noProjectsMatch"
 msgstr "No projects match."
@@ -5895,16 +5895,6 @@ msgstr "No projects match."
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/projects/page.tsx
 msgid "settings.projects.empty"
 msgstr "No projects yet."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
-msgid "components.prLinkCommand.noResultsForSearch"
-msgstr "No pull requests found."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
-msgid "components.prLinkCommand.noPullRequests"
-msgstr "No pull requests found."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
@@ -5919,6 +5909,16 @@ msgstr "No pull requests found."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestsView/components/PullRequestsContent/PullRequestsContent.tsx
 msgid "dashboard.pullRequests.list.noneFound"
+msgstr "No pull requests found."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
+msgid "components.prLinkCommand.noResultsForSearch"
+msgstr "No pull requests found."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
+msgid "components.prLinkCommand.noPullRequests"
 msgstr "No pull requests found."
 
 #. js-lingui-explicit-id
@@ -6337,23 +6337,13 @@ msgid "serverError.pageComment.onlyTheThreadSAuthor"
 msgstr "Only the thread's author or the page's owner can delete it"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/FileMenuItems/FileMenuItems.tsx
-msgid "workspace.fileMenuItems.open"
-msgstr "Open"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/OpenInButton/OpenInButton.tsx
-msgid "components.openInButton.open"
-msgstr "Open"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.openWorkspace"
-msgstr "Open"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.open"
+msgstr "Open"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/FilesTab/components/FileMenuItems/FileMenuItems.tsx
+msgid "workspace.fileMenuItems.open"
 msgstr "Open"
 
 #. js-lingui-explicit-id
@@ -6374,6 +6364,16 @@ msgstr "Open"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter/OpenClosedFilter.tsx
 msgid "dashboard.openClosedFilter.open"
+msgstr "Open"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/OpenInButton/OpenInButton.tsx
+msgid "components.openInButton.open"
+msgstr "Open"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.openWorkspace"
 msgstr "Open"
 
 #. js-lingui-explicit-id
@@ -6588,11 +6588,6 @@ msgid "dashboard.sidebar.workspaceHoverCard.openPreviewOnly"
 msgstr "Open Preview"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.openProject"
-msgstr "Open project"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
 msgid "dashboard.sidebar.workspacesHeader.openProject"
 msgstr "Open project"
@@ -6600,6 +6595,11 @@ msgstr "Open project"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarHeader/DashboardSidebarHeader.tsx
 msgid "dashboard.sidebar.header.openProject"
+msgstr "Open project"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.openProject"
 msgstr "Open project"
 
 #. js-lingui-explicit-id
@@ -6860,13 +6860,13 @@ msgid "dashboard.pages.tabs.pinned"
 msgstr "Pinned"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Transcript/components/PlanRow/PlanRow.tsx
-msgid "workspace.chat.planLabel"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/components/BillingOverview/BillingOverview.tsx
+msgid "settings.billing.planSectionTitle"
 msgstr "Plan"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/billing/components/BillingOverview/BillingOverview.tsx
-msgid "settings.billing.planSectionTitle"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Transcript/components/PlanRow/PlanRow.tsx
+msgid "workspace.chat.planLabel"
 msgstr "Plan"
 
 #. js-lingui-explicit-id
@@ -7233,13 +7233,13 @@ msgid "dashboard.historyDropdown.menuLabel"
 msgstr "Recently Viewed"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalConnectionIndicator/TerminalConnectionIndicator.tsx
-msgid "workspace.terminalPane.reconnect"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/models/components/ModelsSettings/ModelsSettings.tsx
+msgid "settings.models.reconnect"
 msgstr "Reconnect"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/models/components/ModelsSettings/ModelsSettings.tsx
-msgid "settings.models.reconnect"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalConnectionIndicator/TerminalConnectionIndicator.tsx
+msgid "workspace.terminalPane.reconnect"
 msgstr "Reconnect"
 
 #. js-lingui-explicit-id
@@ -7253,13 +7253,13 @@ msgid "settings.billing.upgrade.redirectingButton"
 msgstr "Redirecting..."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceMissingWorktreeState/WorkspaceMissingWorktreeState.tsx
-msgid "workspace.missingWorktree.refresh"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/SessionsSection.tsx
+msgid "settings.terminal.sessions.refresh"
 msgstr "Refresh"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/components/SessionsSection.tsx
-msgid "settings.terminal.sessions.refresh"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceMissingWorktreeState/WorkspaceMissingWorktreeState.tsx
+msgid "workspace.missingWorktree.refresh"
 msgstr "Refresh"
 
 #. js-lingui-explicit-id
@@ -7348,29 +7348,14 @@ msgid "dashboard.sidebar.expandedWorkspaceRow.kindRemoteOffline"
 msgstr "Remote workspace — device offline"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
-msgid "components.remoteWorkspacesDemo.windowTitle"
-msgstr "Remote Workspaces"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/security/components/SecuritySettings/SecuritySettings.tsx
 msgid "settings.security.title"
 msgstr "Remote Workspaces"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedPRPill/LinkedPRPill.tsx
-msgid "components.linkedPrPill.remove"
-msgstr "Remove"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedGitHubIssuePill/LinkedGitHubIssuePill.tsx
-msgid "components.linkedGithubIssuePill.remove"
-msgstr "Remove"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/LinkedIssuePill/LinkedIssuePill.tsx
-msgid "components.linkedIssuePill.remove"
-msgstr "Remove"
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/RemoteWorkspacesDemo/RemoteWorkspacesDemo.tsx
+msgid "components.remoteWorkspacesDemo.windowTitle"
+msgstr "Remote Workspaces"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RemoveAccountDialog/RemoveAccountDialog.tsx
@@ -7385,6 +7370,21 @@ msgstr "Remove"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/LinkedGitHubIssuePill/LinkedGitHubIssuePill.tsx
 msgid "dashboard.newWorkspaceModal.linkedGitHubIssuePill.remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedPRPill/LinkedPRPill.tsx
+msgid "components.linkedPrPill.remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/LinkedGitHubIssuePill/LinkedGitHubIssuePill.tsx
+msgid "components.linkedGithubIssuePill.remove"
+msgstr "Remove"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/LinkedIssuePill/LinkedIssuePill.tsx
+msgid "components.linkedIssuePill.remove"
 msgstr "Remove"
 
 #. js-lingui-explicit-id
@@ -7966,11 +7966,6 @@ msgid "serverError.blaxel.sandboxPreviewHasNoUrl"
 msgstr "Sandbox preview has no URL"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/FileEditPane/FileEditPane.tsx
-msgid "components.fileEditPane.save"
-msgstr "Save"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/teams/$teamId/components/TeamDetailSettings/TeamDetailSettings.tsx
 msgid "settings.teams.detail.saveButton"
 msgstr "Save"
@@ -7983,6 +7978,11 @@ msgstr "Save"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
 msgid "dashboard.automations.signingSecretChip.save"
+msgstr "Save"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/FileEditPane/FileEditPane.tsx
+msgid "components.fileEditPane.save"
 msgstr "Save"
 
 #. js-lingui-explicit-id
@@ -8096,11 +8096,6 @@ msgid "workspace.filesTab.searchFiles"
 msgstr "Search files"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
-msgid "components.prLinkCommand.searching"
-msgstr "Searching..."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.prLink.searching"
 msgstr "Searching..."
@@ -8108,6 +8103,11 @@ msgstr "Searching..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
 msgid "dashboard.newWorkspaceModal.githubIssueLink.searching"
+msgstr "Searching..."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
+msgid "components.prLinkCommand.searching"
 msgstr "Searching..."
 
 #. js-lingui-explicit-id
@@ -8146,13 +8146,13 @@ msgid "dashboard.newWorkspaceModal.compareBaseBranchPicker.selectPlaceholder"
 msgstr "Select base branch…"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
-msgid "components.promptGroupAdvancedOptions.selectBranch"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
+msgid "dashboard.project.onboarding.selectBranch"
 msgstr "Select branch..."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/project/$projectId/page.tsx
-msgid "dashboard.project.onboarding.selectBranch"
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PromptGroupAdvancedOptions/PromptGroupAdvancedOptions.tsx
+msgid "components.promptGroupAdvancedOptions.selectBranch"
 msgstr "Select branch..."
 
 #. js-lingui-explicit-id
@@ -8164,11 +8164,6 @@ msgstr "Select commit range"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pull-requests/$prNumber/page.tsx
 msgid "dashboard.pullRequests.detail.selectMethod"
 msgstr "Select method"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
-msgid "components.promptGroup.selectProject"
-msgstr "Select project"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/ProjectPickerPill/ProjectPickerPill.tsx
@@ -8198,6 +8193,11 @@ msgstr "Select project"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/$taskId/components/PropertiesSidebar/components/OpenInWorkspace/OpenInWorkspace.tsx
 msgid "dashboard.tasks.openInWorkspace.selectProject"
+msgstr "Select project"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/PromptGroup.tsx
+msgid "components.promptGroup.selectProject"
 msgstr "Select project"
 
 #. js-lingui-explicit-id
@@ -8363,6 +8363,16 @@ msgid "workspace.diffPane.showAllLines"
 msgstr "Show all lines"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
+msgid "dashboard.newWorkspaceModal.prLink.showClosed"
+msgstr "Show closed"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
+msgid "dashboard.newWorkspaceModal.githubIssueLink.showClosed"
+msgstr "Show closed"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/NewWorkspaceModal/components/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
 msgid "components.prLinkCommand.showClosed"
 msgstr "Show closed"
@@ -8375,16 +8385,6 @@ msgstr "Show closed"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/components/IssueLinkCommand/IssueLinkCommand.tsx
 msgid "components.issueLinkCommand.showClosed"
-msgstr "Show closed"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand/PRLinkCommand.tsx
-msgid "dashboard.newWorkspaceModal.prLink.showClosed"
-msgstr "Show closed"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/components/GitHubIssueLinkCommand/GitHubIssueLinkCommand.tsx
-msgid "dashboard.newWorkspaceModal.githubIssueLink.showClosed"
 msgstr "Show closed"
 
 #. js-lingui-explicit-id
@@ -8855,11 +8855,6 @@ msgid "settings.usage.account.switchSignIn"
 msgstr "Switch sign-in…"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/commandPalette/ui/ThemeFrame/ThemeFrame.tsx
-msgid "commandPalette.themes.system"
-msgstr "System"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.theme.system"
 msgstr "System"
@@ -8867,6 +8862,11 @@ msgstr "System"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/ThemeSection/ThemeSection.tsx
 msgid "settings.appearance.theme.systemOption"
+msgstr "System"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/commandPalette/ui/ThemeFrame/ThemeFrame.tsx
+msgid "commandPalette.themes.system"
 msgstr "System"
 
 #. js-lingui-explicit-id
@@ -8950,11 +8950,6 @@ msgid "dashboard.sidebar.header.tasks"
 msgstr "Tasks"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/TeamCollaborationDemo/TeamCollaborationDemo.tsx
-msgid "components.teamCollaborationDemo.windowTitle"
-msgstr "Team"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesView/PagesView.tsx
 msgid "dashboard.pages.tabs.team"
 msgstr "Team"
@@ -8962,6 +8957,11 @@ msgstr "Team"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/page.tsx
 msgid "dashboard.automations.page.tabTeam"
+msgstr "Team"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/Paywall/components/FeaturePreview/components/TeamCollaborationDemo/TeamCollaborationDemo.tsx
+msgid "components.teamCollaborationDemo.windowTitle"
 msgstr "Team"
 
 #. js-lingui-explicit-id
@@ -8995,16 +8995,6 @@ msgid "dashboard.automations.page.cliHint"
 msgstr "Tell any agent to use the <0>superset</0> CLI to spin up workspaces, run tasks, or manage automations."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/AddTabMenu/AddTabMenu.tsx
-msgid "workspace.addTabMenu.terminal"
-msgstr "Terminal"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/OpenInExternalDropdown/OpenInExternalDropdownItems.tsx
-msgid "components.openInExternalDropdown.terminal"
-msgstr "Terminal"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/terminal/components/TerminalSettings/TerminalSettings.tsx
 msgid "settings.terminal.title"
 msgstr "Terminal"
@@ -9017,6 +9007,16 @@ msgstr "Terminal"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/appearance/components/AppearanceSettings/components/FontSettingSection/components/FontPreview/FontPreview.tsx
 msgid "settings.appearance.fontPreview.terminalTitle"
+msgstr "Terminal"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/AddTabMenu/AddTabMenu.tsx
+msgid "workspace.addTabMenu.terminal"
+msgstr "Terminal"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/OpenInExternalDropdown/OpenInExternalDropdownItems.tsx
+msgid "components.openInExternalDropdown.terminal"
 msgstr "Terminal"
 
 #. js-lingui-explicit-id
@@ -9422,11 +9422,6 @@ msgid "workspace.states.createErrorTryAgain"
 msgstr "Try again"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
-msgid "components.oauthDialog.tryAgain"
-msgstr "Try again"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/GitHubIssuesContent/GitHubIssuesContent.tsx
 msgid "dashboard.tasks.githubIssues.tryAgain"
 msgstr "Try again"
@@ -9444,6 +9439,11 @@ msgstr "Try again"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/page.tsx
 msgid "dashboard.automations.page.tryAgain"
+msgstr "Try again"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/components/ProviderAuth/components/OAuthDialog/OAuthDialog.tsx
+msgid "components.oauthDialog.tryAgain"
 msgstr "Try again"
 
 #. js-lingui-explicit-id
@@ -10034,11 +10034,6 @@ msgid "dashboard.historyDropdown.v2WorkspaceKind"
 msgstr "Workspace"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/components/WorkspaceNotFoundState/WorkspaceNotFoundState.tsx
-msgid "workspace.states.notFoundTitle"
-msgstr "Workspace not found"
-
-#. js-lingui-explicit-id
 #: src/server-errors.ts
 msgid "serverError.automation.workspaceNotFound"
 msgstr "Workspace not found"
@@ -10046,6 +10041,11 @@ msgstr "Workspace not found"
 #. js-lingui-explicit-id
 #: src/server-errors.ts
 msgid "serverError.page.workspaceNotFound"
+msgstr "Workspace not found"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/components/WorkspaceNotFoundState/WorkspaceNotFoundState.tsx
+msgid "workspace.states.notFoundTitle"
 msgstr "Workspace not found"
 
 #. js-lingui-explicit-id
