@@ -18,7 +18,9 @@ describe("resolveLocale", () => {
 	});
 
 	test("unsupported preferences fall back to the default locale", () => {
-		expect(resolveLocale(["de-DE", "fr"])).toBe(DEFAULT_LOCALE);
+		// Icelandic and Faroese: languages we deliberately do not ship, so this
+		// keeps testing the fallback rather than the current locale list.
+		expect(resolveLocale(["is-IS", "fo"])).toBe(DEFAULT_LOCALE);
 		expect(resolveLocale([])).toBe(DEFAULT_LOCALE);
 	});
 

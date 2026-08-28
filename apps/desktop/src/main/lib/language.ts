@@ -1,4 +1,8 @@
-import { initI18n, resolveLocale, type SupportedLocale } from "@superset/i18n";
+import {
+	initI18nAsync,
+	resolveLocale,
+	type SupportedLocale,
+} from "@superset/i18n";
 import { app } from "electron";
 import { createApplicationMenu } from "main/lib/menu";
 import { refreshTrayMenu } from "main/lib/tray";
@@ -16,8 +20,11 @@ export function resolveAppLocale(stored: string | null): SupportedLocale {
  * labels are resolved once at build time — the application menu and the tray
  * menu. Renderer windows re-render on their own via I18nProvider.
  */
-export function applyAppLanguage(stored: string | null): void {
-	initI18n(resolveAppLocale(stored));
+export async function applyAppLanguage(stored: string | null): Promise<void> {
+	// Await the catalog: non-English catalogs load on demand, and the menus
+	// below resolve their labels once, at build time. Rebuilding before the
+	// load resolves would render them in English.
+	await initI18nAsync(resolveAppLocale(stored));
 	createApplicationMenu();
 	refreshTrayMenu();
 }

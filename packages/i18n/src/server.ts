@@ -1,5 +1,5 @@
 import { setI18n } from "@lingui/react/server";
-import { i18n, initI18n } from "./index";
+import { i18n, initI18nAsync } from "./index";
 import type { SupportedLocale } from "./locales";
 
 export { i18n };
@@ -24,7 +24,7 @@ export { i18n };
  *
  * `packages/i18n/test/rsc-seeding.test.ts` enforces this for the marketing app.
  */
-export function initServerI18n(locale?: SupportedLocale): void {
-	initI18n(locale);
+export async function initServerI18n(locale?: SupportedLocale): Promise<void> {
+	await initI18nAsync(locale);
 	setI18n(i18n);
 }

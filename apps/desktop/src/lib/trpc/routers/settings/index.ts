@@ -625,7 +625,7 @@ export const createSettingsRouter = () => {
 
 		setLanguage: publicProcedure
 			.input(z.object({ language: z.string().nullable() }))
-			.mutation(({ input }) => {
+			.mutation(async ({ input }) => {
 				const value =
 					input.language === null || input.language === "auto"
 						? null
@@ -646,7 +646,8 @@ export const createSettingsRouter = () => {
 					.run();
 				// The application and tray menus resolve their labels when they are
 				// built, so they need an explicit rebuild on a language change.
-				applyAppLanguage(value);
+				// Awaited: the catalog for the new locale loads on demand.
+				await applyAppLanguage(value);
 			}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {

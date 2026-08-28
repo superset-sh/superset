@@ -6,7 +6,7 @@ import {
 	writeSharedDisabledAgentIds,
 	writeSharedDisabledSkillIds,
 } from "@superset/agent-setup";
-import { i18n, initI18n } from "@superset/i18n";
+import { i18n, initI18nAsync } from "@superset/i18n";
 import { settings } from "@superset/local-db";
 import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
@@ -424,7 +424,7 @@ if (!gotTheLock) {
 		// Persisted language setting wins; otherwise infer from OS preferences
 		// (plans/20260826-i18n-strategy.md). Menus are built later in
 		// initAppServices/initTray, so a plain activate is enough here.
-		initI18n(resolveAppLocale(getLanguageSetting()));
+		await initI18nAsync(resolveAppLocale(getLanguageSetting()));
 		registerWithMacOSNotificationCenter();
 		requestAppleEventsAccess();
 		requestLocalNetworkAccess();

@@ -4,7 +4,7 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = "en";
 
-// Native-language names. A user stuck in a language they can't read must be
+// Native-language names. A user stuck in a language they cannot read must be
 // able to recognize their own in the picker, so these are never translated.
 export const LOCALE_LABELS: Record<SupportedLocale, string> = {
 	en: "English",
@@ -12,8 +12,8 @@ export const LOCALE_LABELS: Record<SupportedLocale, string> = {
 	"zh-CN": "简体中文",
 };
 
-// Locales written right-to-left. Empty until RTL is in scope; kept here so
-// every surface asks the same source instead of hardcoding directionality.
+// Locales written right-to-left. Empty until RTL layout work is in scope; kept
+// here so every surface asks the same source instead of hardcoding direction.
 export const RTL_LOCALES: ReadonlySet<string> = new Set();
 
 export function isSupportedLocale(value: string): value is SupportedLocale {
@@ -28,8 +28,9 @@ export function resolveLocale(preferences: readonly string[]): SupportedLocale {
 		if (isSupportedLocale(tag)) return tag;
 
 		// Exact tag missed: try the base language, then any supported locale
-		// that shares it. "zh-Hans-CN" and plain "zh" both land on "zh-CN"
-		// rather than falling through to English.
+		// sharing it. "zh-Hans-CN" and bare "zh" land on "zh-CN" rather than
+		// falling through to English. Region-specific tags win over bare ones,
+		// so "pt" reaches "pt-BR".
 		const base = tag.split("-")[0];
 		if (!base) continue;
 		if (isSupportedLocale(base)) return base;
