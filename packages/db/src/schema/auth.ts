@@ -23,6 +23,11 @@ export const users = authSchema.table(
 		image: text("image"),
 		organizationIds: uuid("organization_ids").array().default([]).notNull(),
 		onboardedAt: timestamp("onboarded_at"),
+		// BCP 47 tag of the user's preferred UI language; null = auto-detect.
+		// Written by clients (desktop write-through, later web/mobile); read by
+		// web SSR and async surfaces like email, which cannot see a device
+		// setting. plans/20260826-i18n-strategy.md §4.
+		locale: text("locale"),
 		deletionRequestedAt: timestamp("deletion_requested_at"),
 		// Set when the account is deleted. The row is kept and its PII scrubbed
 		// rather than removed, because tasks, integrations and automations belong

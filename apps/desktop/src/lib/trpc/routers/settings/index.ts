@@ -3,6 +3,7 @@ import {
 	teardownSingleAgent,
 	writeSharedDisabledAgentIds,
 } from "@superset/agent-setup";
+import { isSupportedLocale } from "@superset/i18n/locales";
 import {
 	type AgentCustomDefinition,
 	type AgentPresetOverrideEnvelope,
@@ -612,6 +613,36 @@ export const createSettingsRouter = () => {
 			.query(({ input }) =>
 				getPresetsForTrigger("applyOnNewTab", input?.projectId ?? null),
 			),
+
+		// App display language: "auto"/null = follow the system language.
+		getLanguage: publicProcedure.query(() => {
+			const row = getSettings();
+			const stored = row.language;
+			return stored && isSupportedLocale(stored) ? stored : null;
+		}),
+
+		setLanguage: publicProcedure
+			.input(z.object({ language: z.string().nullable() }))
+			.mutation(({ input }) => {
+				const value =
+					input.language === null || input.language === "auto"
+						? null
+						: input.language;
+				if (value !== null && !isSupportedLocale(value)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Unsupported language: ${value}`,
+					});
+				}
+				localDb
+					.insert(settings)
+					.values({ id: 1, language: value })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { language: value },
+					})
+					.run();
+			}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();

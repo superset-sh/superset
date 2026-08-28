@@ -666,6 +666,13 @@
       "when": 1787720351737,
       "tag": "0094_add_leaderboard_and_tier_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1787876925405,
+      "tag": "0095_user_locale",
+      "breakpoints": true
     }
   ]
 }
