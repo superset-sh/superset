@@ -1,5 +1,5 @@
 import { setI18n } from "@lingui/react/server";
-import { i18n, initI18nAsync } from "./index";
+import { i18n, initI18n, loadLocale } from "./index";
 import type { SupportedLocale } from "./locales";
 
 export { i18n };
@@ -22,9 +22,26 @@ export { i18n };
  * pruned the same way. Lingui's own error says it exactly: "call `setI18n` in
  * the root of your page".
  *
+ * This is deliberately synchronous. Seeding the slot has to happen during the
+ * render pass that reads it, so an async version silently renders before
+ * `setI18n` lands and every server `<Trans>` throws. English is bundled and
+ * activates synchronously, which is what makes that possible; a non-default
+ * locale still needs `preloadServerLocale` first.
+ *
  * `packages/i18n/test/rsc-seeding.test.ts` enforces this for the marketing app.
  */
-export async function initServerI18n(locale?: SupportedLocale): Promise<void> {
-	await initI18nAsync(locale);
+export function initServerI18n(locale?: SupportedLocale): void {
+	initI18n(locale);
 	setI18n(i18n);
+}
+
+/**
+ * Loads a non-default catalog so a following `initServerI18n(locale)` activates
+ * it synchronously. Await this in a layout or route before rendering when the
+ * request resolves to a locale other than English.
+ */
+export async function preloadServerLocale(
+	locale: SupportedLocale,
+): Promise<void> {
+	await loadLocale(locale);
 }
