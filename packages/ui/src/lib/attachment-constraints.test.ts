@@ -80,13 +80,14 @@ describe("applyAttachmentConstraints", () => {
 		expect(codes).toEqual(["max_files"]);
 	});
 
-	it("drops oversized files but keeps the rest of the batch", () => {
+	it("drops oversized files, keeps the rest, and says so", () => {
+		// A partial drop must not be silent: the user picked those files too.
 		const { names, codes } = run(
 			[file("small.png", "image/png", 100), file("big.png", "image/png", 999)],
 			{ maxFileSize: 500 },
 		);
 		expect(names).toEqual(["small.png"]);
-		expect(codes).toEqual([]);
+		expect(codes).toEqual(["max_file_size"]);
 	});
 
 	it("reports max_file_size only when the whole batch is too big", () => {
@@ -97,15 +98,16 @@ describe("applyAttachmentConstraints", () => {
 		expect(codes).toEqual(["max_file_size"]);
 	});
 
-	it("reports accept only when nothing in the batch matches", () => {
+	it("reports accept whether the whole batch or only part of it is rejected", () => {
 		expect(
 			run([file("a.pdf", "application/pdf")], { accept: "image/*" }),
 		).toEqual({ names: [], codes: ["accept"] });
+		// Partial rejection is reported too, so a dropped file is never silent.
 		expect(
 			run([file("a.pdf", "application/pdf"), file("b.png", "image/png")], {
 				accept: "image/*",
 			}),
-		).toEqual({ names: ["b.png"], codes: [] });
+		).toEqual({ names: ["b.png"], codes: ["accept"] });
 	});
 
 	it("does not report accept for an empty batch", () => {

@@ -52,6 +52,14 @@ export function applyAttachmentConstraints(options: {
 		});
 		return [];
 	}
+	// A partial rejection is still a rejection: silently dropping files the user
+	// just chose is the worst of the options.
+	if (accepted.length < incoming.length) {
+		onError?.({
+			code: "accept",
+			message: "Some files are not an accepted type and were not added.",
+		});
+	}
 
 	const { maxFileSize } = constraints;
 	const sized = maxFileSize
@@ -63,6 +71,12 @@ export function applyAttachmentConstraints(options: {
 			message: "All files exceed the maximum size.",
 		});
 		return [];
+	}
+	if (sized.length < accepted.length) {
+		onError?.({
+			code: "max_file_size",
+			message: "Some files exceed the maximum size and were not added.",
+		});
 	}
 
 	if (typeof constraints.maxFiles !== "number") return sized;
