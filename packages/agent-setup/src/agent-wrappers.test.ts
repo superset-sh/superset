@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import * as realOs from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const TEST_ROOT = path.join(
 	realOs.tmpdir(),
@@ -78,6 +79,7 @@ const {
 	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	getOpenCodePluginContent,
 	getOmpExtensionContent,
 	getOmpExtensionPath,
 	OMP_EXTENSION_MARKER,
@@ -97,6 +99,90 @@ const managedClaudeHookCommand = getClaudeManagedHookCommand();
 const managedDroidHookCommand = getManagedNotifyHookCommand("droid");
 const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
 const managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
+
+describe("agent-wrappers opencode", () => {
+	const originalTerminalId = process.env.SUPERSET_TERMINAL_ID;
+	let pluginImportCounter = 0;
+
+	const loadOpenCodePlugin = async () => {
+		mkdirSync(TEST_ROOT, { recursive: true });
+		const pluginPath = path.join(
+			TEST_ROOT,
+			`opencode-notify-${pluginImportCounter++}.mjs`,
+		);
+		writeFileSync(pluginPath, getOpenCodePluginContent("/tmp/notify.sh"));
+		return import(pathToFileURL(pluginPath).href);
+	};
+
+	beforeEach(() => {
+		delete (
+			globalThis as typeof globalThis & {
+				__supersetOpencodeNotifyPluginV9?: boolean;
+			}
+		).__supersetOpencodeNotifyPluginV9;
+	});
+
+	afterEach(() => {
+		if (originalTerminalId === undefined) {
+			delete process.env.SUPERSET_TERMINAL_ID;
+		} else {
+			process.env.SUPERSET_TERMINAL_ID = originalTerminalId;
+		}
+	});
+
+	it.each([
+		"permission.asked",
+		"question.asked",
+	])("notifies for the current %s event", async (eventType) => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: string[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload).hook_event_name);
+			},
+			client: {
+				session: {
+					list: async () => ({
+						data: [{ id: "root-session" }],
+					}),
+				},
+			},
+		});
+
+		await hooks.event({
+			event: {
+				type: eventType,
+				properties: { sessionID: "root-session" },
+			},
+		});
+
+		expect(notifications).toEqual(["PermissionRequest"]);
+	});
+
+	it("retains the legacy permission.ask notification hook", async () => {
+		process.env.SUPERSET_TERMINAL_ID = "terminal-1";
+		const { SupersetNotifyPlugin } = await loadOpenCodePlugin();
+		const notifications: string[] = [];
+		const hooks = await SupersetNotifyPlugin({
+			$: (
+				_parts: TemplateStringsArray,
+				_notifyPath: string,
+				payload: string,
+			) => {
+				notifications.push(JSON.parse(payload).hook_event_name);
+			},
+		});
+
+		await hooks["permission.ask"]({}, { status: "ask" });
+
+		expect(notifications).toEqual(["PermissionRequest"]);
+	});
+});
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
