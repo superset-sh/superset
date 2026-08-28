@@ -1,4 +1,4 @@
-import { errorMessage } from "@superset/i18n/errors";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -122,12 +122,12 @@ export function EmptyProjectModal({
 			reset();
 			onOpenChange(false);
 		} catch (err) {
-			const raw = errorMessage(err);
+			const raw = rawErrorMessage(err);
 			const isLeakedSql = raw.startsWith("Failed query:");
 			if (isLeakedSql) console.error("[EmptyProjectModal] create failed", err);
 			const message = isLeakedSql
 				? "Could not create project. Please try a different name or check the logs."
-				: raw;
+				: errorMessage(err);
 			if (onError) {
 				onError(message);
 			} else {

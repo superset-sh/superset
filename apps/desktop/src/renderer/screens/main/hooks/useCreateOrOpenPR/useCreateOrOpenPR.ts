@@ -1,4 +1,4 @@
-import { errorMessage } from "@superset/i18n/errors";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -32,7 +32,8 @@ export function useCreateOrOpenPR({
 				return;
 			} catch (error) {
 				const message = errorMessage(error);
-				const isBehindUpstreamError = message.includes("behind upstream");
+				const isBehindUpstreamError =
+					rawErrorMessage(error).includes("behind upstream");
 				if (!isBehindUpstreamError) {
 					toast.error(`Failed: ${message}`);
 					return;

@@ -1,4 +1,4 @@
-import { errorMessage } from "@superset/i18n/errors";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -99,13 +99,13 @@ export function useWorkspaceRunCommand({
 				});
 				setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 			} catch (error) {
-				const message = errorMessage(error, "Unknown error");
-				if (message.includes("not found") || message.includes("not alive")) {
+				const raw = rawErrorMessage(error);
+				if (raw.includes("not found") || raw.includes("not alive")) {
 					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
 					return;
 				}
 				toast.error("Failed to stop workspace run command", {
-					description: message,
+					description: errorMessage(error, "Unknown error"),
 				});
 			} finally {
 				setIsPending(false);
@@ -227,13 +227,13 @@ export function useWorkspaceRunCommand({
 			});
 			setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 		} catch (error) {
-			const message = errorMessage(error, "Unknown error");
-			if (message.includes("not found") || message.includes("not alive")) {
+			const raw = rawErrorMessage(error);
+			if (raw.includes("not found") || raw.includes("not alive")) {
 				setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
 				return;
 			}
 			toast.error("Failed to force stop workspace run command", {
-				description: message,
+				description: errorMessage(error, "Unknown error"),
 			});
 		} finally {
 			setIsPending(false);

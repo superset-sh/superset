@@ -48,6 +48,31 @@ describe("errorMessage() stays display-only", () => {
 					}
 				}
 			}
+			// Alias tracking: `const x = errorMessage(...)` later string-matched.
+			const glob2 = new Bun.Glob("**/*.{ts,tsx}");
+			for await (const file of glob2.scan({ cwd: join(REPO_ROOT, dir) })) {
+				if (file.includes(".test.") || file.includes(".stories.")) continue;
+				const source = await Bun.file(join(REPO_ROOT, dir, file)).text();
+				if (!source.includes("errorMessage(")) continue;
+				const aliases = [
+					...source.matchAll(
+						/(?:const|let)\s+(\w+)\s*=\s*\n?\s*errorMessage\(/g,
+					),
+				].map((m) => m[1]);
+				for (const name of aliases) {
+					const use = source.match(
+						new RegExp(
+							`\\b${name}\\s*\\.\\s*(?:includes|toLowerCase|toUpperCase|match|startsWith|endsWith|indexOf)\\(`,
+						),
+					);
+					if (use) {
+						const line = source.slice(0, use.index).split("\n").length;
+						offenders.push(
+							`${dir}/${file}:${line} string-matching on aliased errorMessage() value (${name})`,
+						);
+					}
+				}
+			}
 			expect(
 				offenders,
 				`Translated display strings leaked into logs/telemetry/logic. Use rawErrorMessage() or the error object there. Offenders:\n${offenders.join("\n")}`,

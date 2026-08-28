@@ -1,4 +1,4 @@
-import { errorMessage } from "@superset/i18n/errors";
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Card } from "@superset/ui/card";
 import { Input } from "@superset/ui/input";
@@ -48,14 +48,15 @@ const GH_AUTH_FAILURE_PATTERNS = [
 
 function toCloneError(err: unknown): CloneError {
 	const message = errorMessage(err, "Failed to clone repository");
-	if (message.includes("Permission denied (publickey)")) {
+	const raw = rawErrorMessage(err);
+	if (raw.includes("Permission denied (publickey)")) {
 		return {
 			message:
 				"SSH authentication failed — sign in to GitHub CLI and use the HTTPS URL instead.",
 			needsGhAuth: true,
 		};
 	}
-	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => message.includes(pattern))) {
+	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => raw.includes(pattern))) {
 		return {
 			message:
 				"Couldn't access this repository — if it's private, sign in to GitHub CLI first.",
