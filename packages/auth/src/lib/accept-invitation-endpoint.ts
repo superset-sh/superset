@@ -260,6 +260,14 @@ export const acceptInvitationEndpoint = {
 					activeOrganizationId: invitation.organization.id,
 				});
 
+				// Accepting an invitation is a deliberate landing, so remember it
+				// the same way an explicit switch is remembered — otherwise the
+				// next session resumes whatever they were in before the invite.
+				await db
+					.update(users)
+					.set({ lastActiveOrganizationId: invitation.organization.id })
+					.where(eq(users.id, user.id));
+
 				// Set session cookie (follows Better Auth's setSessionCookie pattern)
 				await ctx.setSignedCookie(
 					ctx.context.authCookies.sessionToken.name,
