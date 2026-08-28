@@ -356,6 +356,10 @@ jobs:
           vercel alias $VERCEL_URL ${{ env.WEB_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
+      - name: Smoke test web routes
+        run: |
+          bun scripts/smoke-routes.ts "https://${{ env.WEB_ALIAS }}" /
+
       - name: Save web success status
         run: |
           cat > web-status.env << EOF
@@ -469,6 +473,17 @@ jobs:
             --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY)
           vercel alias $VERCEL_URL ${{ env.MARKETING_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      # Until now the pipeline deployed and never requested a page, so a build
+      # that returned 500 on every route still went green. MARKETING-67/68/69
+      # reached production that way.
+      - name: Smoke test marketing routes
+        run: |
+          bun scripts/smoke-routes.ts "https://${{ env.MARKETING_ALIAS }}" \
+            / /pricing /enterprise /download /join-us /community /contact \
+            /blog /changelog /compare /roadmap /leaderboard /marketplace \
+            /agent-orchestration /parallel-coding-agents /factory-2026 \
+            /mcp-install /stats /team /starchart
 
       - name: Save marketing success status
         run: |
@@ -588,6 +603,10 @@ jobs:
           vercel alias $VERCEL_URL ${{ env.ADMIN_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
+      - name: Smoke test admin routes
+        run: |
+          bun scripts/smoke-routes.ts "https://${{ env.ADMIN_ALIAS }}" /
+
       - name: Save admin success status
         run: |
           cat > admin-status.env << EOF
@@ -670,6 +689,10 @@ jobs:
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY)
           vercel alias $VERCEL_URL ${{ env.DOCS_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      - name: Smoke test docs routes
+        run: |
+          bun scripts/smoke-routes.ts "https://${{ env.DOCS_ALIAS }}" /
 
       - name: Save docs success status
         run: |
