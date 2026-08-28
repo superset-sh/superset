@@ -710,13 +710,13 @@ msgid "dashboard.automations.signingSecretChip.secretEmptyHint"
 msgstr "Circleback shows this when you paste the URL into its automation. Deliveries are rejected until it is set."
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx
-msgid "dashboard.workspaces.header.clearFilters"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesList/V2WorkspacesList.tsx
+msgid "dashboard.workspaces.empty.clearFilters"
 msgstr "Clear filters"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesList/V2WorkspacesList.tsx
-msgid "dashboard.workspaces.empty.clearFilters"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx
+msgid "dashboard.workspaces.header.clearFilters"
 msgstr "Clear filters"
 
 #. js-lingui-explicit-id
