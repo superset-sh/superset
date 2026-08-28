@@ -10,6 +10,10 @@ export default defineConfig({
 	// lineNumbers off: line-only churn in .po files would dirty every PR that
 	// moves code, and the CI drift check diffs this file.
 	format: formatter({ lineNumbers: false }),
+	// messageId ordering is total (ids are unique); the default text ordering
+	// tie-breaks identical strings by filesystem traversal order, which
+	// differs between macOS and Linux and dirties the CI drift check.
+	orderBy: "messageId",
 	compileNamespace: "ts",
 	catalogs: [
 		{
