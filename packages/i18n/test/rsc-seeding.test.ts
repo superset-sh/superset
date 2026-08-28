@@ -10,6 +10,11 @@ import { join, resolve } from "node:path";
 // Regression guard for MARKETING-67/68/69.
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const ROUTE_ENTRY = /(?:^|\/)(?:page|not-found)\.tsx$/;
+// Anchored to the start of a line so a mention inside a comment or a string
+// literal cannot satisfy the check; paired with the import so the call has to
+// resolve to the real helper.
+const SEEDS = /^\s*initServerI18n\(\);/m;
+const IMPORTS = /^import\s*\{[^}]*\binitServerI18n\b[^}]*\}\s*from\s*["']/m;
 
 describe("RSC route entries seed i18n", () => {
 	test("every marketing server route entry calls initServerI18n()", async () => {
@@ -22,7 +27,7 @@ describe("RSC route entries seed i18n", () => {
 			// Client components render on the client, where the I18nProvider
 			// supplies the instance through context instead.
 			if (/^\s*["']use client["']/m.test(source)) continue;
-			if (!source.includes("initServerI18n(")) {
+			if (!SEEDS.test(source) || !IMPORTS.test(source)) {
 				offenders.push(file);
 			}
 		}
