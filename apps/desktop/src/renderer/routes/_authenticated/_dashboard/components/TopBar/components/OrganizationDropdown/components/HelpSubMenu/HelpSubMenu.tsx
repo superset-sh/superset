@@ -88,7 +88,9 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 							<Trans id="dashboard.topBar.helpMenu.discord">Discord</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.X_URL)}>
-							<FaXTwitter className="h-4 w-4" />X
+							<FaXTwitter className="h-4 w-4" />
+							{/* Brand name — never translated (glossary). */}
+							{"X"}
 						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openExternal(COMPANY.MAIL_TO)}>
 							<HiOutlineEnvelope className="h-4 w-4" />
