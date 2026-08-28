@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 
 export type ErrorReason =
@@ -35,12 +36,12 @@ export function ErrorState({
 			</span>
 			{reason === "too-large" && onOpenAnyway && (
 				<Button variant="outline" size="sm" onClick={onOpenAnyway}>
-					Open anyway
+					<Trans id="workspace.filePane.openAnyway">Open anyway</Trans>
 				</Button>
 			)}
 			{reason === "load-failed" && onRetry && (
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					Retry
+					<Trans id="workspace.filePane.retryLoad">Retry</Trans>
 				</Button>
 			)}
 		</div>

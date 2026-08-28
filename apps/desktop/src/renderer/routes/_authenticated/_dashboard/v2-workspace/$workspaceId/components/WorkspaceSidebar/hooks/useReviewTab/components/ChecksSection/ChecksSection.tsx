@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -73,7 +74,9 @@ export function ChecksSection({
 							open && "rotate-90",
 						)}
 					/>
-					<span className="truncate text-xs font-medium">Checks</span>
+					<span className="truncate text-xs font-medium">
+						<Trans id="workspace.checksSection.title">Checks</Trans>
+					</span>
 					<span className="shrink-0 text-[10px] text-muted-foreground">
 						{relevantChecks.length}
 					</span>
@@ -98,7 +101,9 @@ export function ChecksSection({
 			<CollapsibleContent className="min-w-0 overflow-hidden px-0.5 pb-1">
 				{relevantChecks.length === 0 ? (
 					<div className="px-1.5 py-1 text-xs text-muted-foreground">
-						No checks reported.
+						<Trans id="workspace.checksSection.empty">
+							No checks reported.
+						</Trans>
 					</div>
 				) : (
 					relevantChecks.map((check, index) => (

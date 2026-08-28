@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -181,23 +182,41 @@ export function PRLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans id="components.prLinkCommand.showClosed">
+								Show closed
+							</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[280px]">
 						{pullRequests.length === 0 && (
 							<CommandEmpty>
-								{isLoading
-									? debouncedTrimmed
-										? "Searching..."
-										: "Loading pull requests..."
-									: isCrossRepositoryUrl
-										? `PR URL must match ${selectedRepositoryLabel}.`
-										: debouncedTrimmed
-											? "No pull requests found."
-											: showClosed
-												? "No pull requests found."
-												: "No open pull requests."}
+								{isLoading ? (
+									debouncedTrimmed ? (
+										<Trans id="components.prLinkCommand.searching">
+											Searching...
+										</Trans>
+									) : (
+										<Trans id="components.prLinkCommand.loadingPullRequests">
+											Loading pull requests...
+										</Trans>
+									)
+								) : isCrossRepositoryUrl ? (
+									<Trans id="components.prLinkCommand.crossRepositoryUrl">
+										PR URL must match {selectedRepositoryLabel}.
+									</Trans>
+								) : debouncedTrimmed ? (
+									<Trans id="components.prLinkCommand.noResultsForSearch">
+										No pull requests found.
+									</Trans>
+								) : showClosed ? (
+									<Trans id="components.prLinkCommand.noPullRequests">
+										No pull requests found.
+									</Trans>
+								) : (
+									<Trans id="components.prLinkCommand.noOpenPullRequests">
+										No open pull requests.
+									</Trans>
+								)}
 							</CommandEmpty>
 						)}
 						{pullRequests.length > 0 && (
@@ -228,7 +247,9 @@ export function PRLinkCommand({
 											{pr.title}
 										</span>
 										<span className="shrink-0 hidden text-xs text-muted-foreground group-data-[selected=true]:inline">
-											Link ↵
+											<Trans id="components.prLinkCommand.linkHint">
+												Link ↵
+											</Trans>
 										</span>
 									</CommandItem>
 								))}

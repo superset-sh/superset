@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
@@ -67,7 +68,9 @@ export function CloudWorkspaceProvisioningState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						Starting cloud workspace
+						<Trans id="workspace.states.cloudProvisioningTitle">
+							Starting cloud workspace
+						</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name || "Untitled workspace"}
@@ -105,8 +108,11 @@ export function CloudWorkspaceProvisioningState({
 				{elapsed >= STUCK_AFTER_SECONDS && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
-							This is taking longer than usual. The sandbox may still be pulling
-							its image — it keeps going whether this window is open or not.
+							<Trans id="workspace.states.cloudProvisioningStuckBody">
+								This is taking longer than usual. The sandbox may still be
+								pulling its image — it keeps going whether this window is open
+								or not.
+							</Trans>
 						</p>
 					</div>
 				)}
@@ -160,7 +166,9 @@ function CloudWorkspaceFailedState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						Couldn't start cloud workspace
+						<Trans id="workspace.states.cloudProvisioningFailedTitle">
+							Couldn't start cloud workspace
+						</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name || "Untitled workspace"}
@@ -182,9 +190,11 @@ function CloudWorkspaceFailedState({
 
 				<div className="w-full rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
 					<p className="select-text cursor-text text-[12px] leading-relaxed text-destructive/90">
-						Provisioning failed and the sandbox was torn down. Nothing is
-						running, and this workspace can't be opened — create a new one to
-						try again.
+						<Trans id="workspace.states.cloudProvisioningFailedBody">
+							Provisioning failed and the sandbox was torn down. Nothing is
+							running, and this workspace can't be opened — create a new one to
+							try again.
+						</Trans>
 					</p>
 				</div>
 

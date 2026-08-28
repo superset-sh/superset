@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { SelectDownload } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -76,12 +77,16 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Downloads</DialogTitle>
+					<DialogTitle>
+						<Trans id="workspace.browserPane.downloadsTitle">Downloads</Trans>
+					</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="h-80 min-w-0 -mx-1 px-1">
 					{rows.length === 0 ? (
 						<p className="py-8 text-center text-sm text-muted-foreground">
-							No downloads yet
+							<Trans id="workspace.browserPane.noDownloads">
+								No downloads yet
+							</Trans>
 						</p>
 					) : (
 						<div className="flex min-w-0 flex-col">
@@ -136,7 +141,9 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 						onClick={handleClear}
 						disabled={!hasFinished}
 					>
-						Clear list
+						<Trans id="workspace.browserPane.downloadsClearList">
+							Clear list
+						</Trans>
 					</Button>
 				</div>
 			</DialogContent>

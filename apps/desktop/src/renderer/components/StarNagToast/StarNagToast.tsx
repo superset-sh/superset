@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { X } from "lucide-react";
 import { useEffect } from "react";
@@ -39,7 +40,7 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 		<div className="w-[356px] rounded-lg border border-border bg-popover p-4 shadow-lg select-text">
 			<div className="flex items-start justify-between gap-2">
 				<p className="text-sm font-semibold text-popover-foreground">
-					You're all set!
+					<Trans id="components.starNagToast.title">You're all set!</Trans>
 				</p>
 				<button
 					type="button"
@@ -51,8 +52,10 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 				</button>
 			</div>
 			<p className="mt-1 text-xs text-muted-foreground">
-				If you're enjoying Superset so far, a GitHub star helps other developers
-				discover it.
+				<Trans id="components.starNagToast.body">
+					If you're enjoying Superset so far, a GitHub star helps other
+					developers discover it.
+				</Trans>
 			</p>
 			{/* A "loading" or "unknown" read isn't trustworthy enough to act on —
 			same rule as every other star-nag surface — so the button just doesn't

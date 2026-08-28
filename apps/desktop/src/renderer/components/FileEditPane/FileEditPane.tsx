@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { useCallback, useState } from "react";
@@ -91,7 +92,9 @@ export function FileEditPane({ document, filePath }: FileEditPaneProps) {
 			<div className="flex items-center justify-between gap-2 border-b border-border/60 px-2 py-1">
 				{showFrontMatterHint ? (
 					<span className="min-w-0 truncate text-xs text-muted-foreground">
-						Front matter hidden — switch to Markdown to edit it
+						<Trans id="components.fileEditPane.frontMatterHint">
+							Front matter hidden — switch to Markdown to edit it
+						</Trans>
 					</span>
 				) : (
 					<span />
@@ -113,7 +116,7 @@ export function FileEditPane({ document, filePath }: FileEditPaneProps) {
 							onClick={() => void document.save()}
 						>
 							{document.pendingSave && <Spinner className="size-3" />}
-							Save
+							<Trans id="components.fileEditPane.save">Save</Trans>
 						</Button>
 					)}
 				</div>

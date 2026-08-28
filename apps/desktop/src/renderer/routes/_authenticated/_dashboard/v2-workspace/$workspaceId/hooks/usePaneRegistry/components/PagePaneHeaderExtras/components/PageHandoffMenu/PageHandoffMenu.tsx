@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
@@ -96,11 +97,20 @@ export function PageHandoffMenu({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-64">
 				<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-					{open.length} open {open.length === 1 ? "comment" : "comments"}
+					<Plural
+						id="workspace.pagePane.openCommentCount"
+						value={open.length}
+						one="# open comment"
+						other="# open comments"
+					/>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />
 				{running.length === 0 ? (
-					<DropdownMenuItem disabled>No agents running here</DropdownMenuItem>
+					<DropdownMenuItem disabled>
+						<Trans id="workspace.pagePane.noAgentsRunning">
+							No agents running here
+						</Trans>
+					</DropdownMenuItem>
 				) : (
 					running.map((binding) => (
 						<DropdownMenuItem
@@ -114,10 +124,12 @@ export function PageHandoffMenu({
 									{binding.definitionId ?? binding.agentId}
 								</span>
 								<span className="text-muted-foreground text-xs">
-									active{" "}
-									{formatDistanceToNowStrict(binding.lastEventAt, {
-										addSuffix: true,
-									})}
+									<Trans id="workspace.pagePane.agentActiveSince">
+										active{" "}
+										{formatDistanceToNowStrict(binding.lastEventAt, {
+											addSuffix: true,
+										})}
+									</Trans>
 								</span>
 							</div>
 						</DropdownMenuItem>

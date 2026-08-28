@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
 	Command,
@@ -182,13 +183,23 @@ export function IssueLinkCommand({
 							htmlFor={showClosedId}
 							className="cursor-pointer select-none text-xs text-muted-foreground"
 						>
-							Show closed
+							<Trans id="components.issueLinkCommand.showClosed">
+								Show closed
+							</Trans>
 						</label>
 					</div>
 					<CommandList className="max-h-[420px]">
 						{filteredTasks.length === 0 && (
 							<CommandEmpty>
-								{showClosed ? "No issues found." : "No open issues found."}
+								{showClosed ? (
+									<Trans id="components.issueLinkCommand.noIssues">
+										No issues found.
+									</Trans>
+								) : (
+									<Trans id="components.issueLinkCommand.noOpenIssues">
+										No open issues found.
+									</Trans>
+								)}
 							</CommandEmpty>
 						)}
 						{filteredTasks.length > 0 && (

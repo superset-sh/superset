@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type {
 	FileTreeDirectoryHandle,
 	FileTreeRowDecoration,
@@ -388,7 +389,11 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 						<Undo2 className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="top">Discard changes</TooltipContent>
+				<TooltipContent side="top">
+					<Trans id="workspace.changesTreeView.discardChangesTooltip">
+						Discard changes
+					</Trans>
+				</TooltipContent>
 			</Tooltip>
 		);
 	};

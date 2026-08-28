@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -126,7 +127,9 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 
 	return (
 		<CommandList className="max-h-[400px]">
-			<CommandEmpty>No tasks found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.linkTask.empty">No tasks found.</Trans>
+			</CommandEmpty>
 			{filtered.length > 0 && (
 				<CommandGroup heading={deferredQuery ? "Results" : "Tasks"}>
 					{filtered.map((task) => {

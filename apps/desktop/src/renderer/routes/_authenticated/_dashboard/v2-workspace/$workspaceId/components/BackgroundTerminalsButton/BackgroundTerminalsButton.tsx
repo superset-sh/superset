@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { WorkspaceStore } from "@superset/panes";
 import { Button } from "@superset/ui/button";
 import {
@@ -224,18 +225,24 @@ export const BackgroundTerminalsButton = memo(
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-80">
 					<DropdownMenuLabel className="text-xs">
-						Background terminal sessions
+						<Trans id="workspace.backgroundTerminals.menuTitle">
+							Background terminal sessions
+						</Trans>
 					</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					<div className="max-h-80 overflow-y-auto">
 						{sessionsQuery.isLoading && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								Loading sessions…
+								<Trans id="workspace.backgroundTerminals.loading">
+									Loading sessions…
+								</Trans>
 							</div>
 						)}
 						{!sessionsQuery.isLoading && backgroundSessions.length === 0 && (
 							<div className="px-2 py-3 text-xs text-muted-foreground">
-								No background terminal sessions
+								<Trans id="workspace.backgroundTerminals.empty">
+									No background terminal sessions
+								</Trans>
 							</div>
 						)}
 						{backgroundSessions.map((session) => (

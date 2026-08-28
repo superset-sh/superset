@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import {
@@ -38,7 +39,9 @@ export function DiffPaneHeaderExtras() {
 						<TbScan className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Unified view</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="workspace.diffPane.unifiedView">Unified view</Trans>
+				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -52,7 +55,9 @@ export function DiffPaneHeaderExtras() {
 						<SquareSplitHorizontal className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Split view</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="workspace.diffPane.splitView">Split view</Trans>
+				</TooltipContent>
 			</Tooltip>
 			<div
 				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
@@ -79,7 +84,15 @@ export function DiffPaneHeaderExtras() {
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{showDiffComments ? "Hide review comments" : "Show review comments"}
+					{showDiffComments ? (
+						<Trans id="workspace.diffPane.hideReviewComments">
+							Hide review comments
+						</Trans>
+					) : (
+						<Trans id="workspace.diffPane.showReviewComments">
+							Show review comments
+						</Trans>
+					)}
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -101,7 +114,13 @@ export function DiffPaneHeaderExtras() {
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{expandUnchanged ? "Hide unchanged regions" : "Show all lines"}
+					{expandUnchanged ? (
+						<Trans id="workspace.diffPane.hideUnchangedRegions">
+							Hide unchanged regions
+						</Trans>
+					) : (
+						<Trans id="workspace.diffPane.showAllLines">Show all lines</Trans>
+					)}
 				</TooltipContent>
 			</Tooltip>
 			<div

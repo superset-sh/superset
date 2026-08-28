@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	usePromptInputAttachments,
 	usePromptInputController,
@@ -708,7 +709,9 @@ export function TiptapPromptEditor({
 					>
 						{focusShortcutText && !isFocused && (
 							<span className="pointer-events-none absolute top-0 right-3 flex h-full items-center text-xs text-muted-foreground/50">
-								{focusShortcutText} to focus
+								<Trans id="components.tiptapPromptEditor.toFocus">
+									{focusShortcutText} to focus
+								</Trans>
 							</span>
 						)}
 						<EditorContent editor={editor} />

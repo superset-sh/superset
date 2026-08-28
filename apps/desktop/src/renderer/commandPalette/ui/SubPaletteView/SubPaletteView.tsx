@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { CommandEmpty, CommandGroup, CommandList } from "@superset/ui/command";
 import { useMemo } from "react";
 import { useCommandContext } from "../../core/ContextProvider";
@@ -39,7 +40,9 @@ export function SubPaletteView({
 
 	return (
 		<CommandList>
-			<CommandEmpty>Nothing here.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.subPalette.empty">Nothing here.</Trans>
+			</CommandEmpty>
 			<CommandGroup heading={parent.title}>
 				{visible.map((command) => (
 					<CommandItemRow

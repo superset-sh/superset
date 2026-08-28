@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { Check, GitBranch, Loader2, RotateCw } from "lucide-react";
@@ -115,16 +116,28 @@ export function WorkspaceCreatingState({
 						<span className="font-mono tabular-nums">
 							{formatElapsed(elapsed)}
 						</span>
-						<span>~{totalSeconds}s typical</span>
+						<span>
+							<Trans id="workspace.states.creatingTypicalDuration">
+								~{totalSeconds}s typical
+							</Trans>
+						</span>
 					</div>
 				</div>
 
 				{stuck && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
 						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
-							This is taking longer than usual. The{" "}
-							{isSession ? "session" : "workspace"} may already be ready —
-							reloading can pick it up.
+							{isSession ? (
+								<Trans id="workspace.states.creatingStuckSessionBody">
+									This is taking longer than usual. The session may already be
+									ready — reloading can pick it up.
+								</Trans>
+							) : (
+								<Trans id="workspace.states.creatingStuckWorkspaceBody">
+									This is taking longer than usual. The workspace may already be
+									ready — reloading can pick it up.
+								</Trans>
+							)}
 						</p>
 						<Button
 							size="sm"
@@ -137,7 +150,9 @@ export function WorkspaceCreatingState({
 								strokeWidth={2}
 								aria-hidden="true"
 							/>
-							Reload window
+							<Trans id="workspace.states.creatingReloadWindow">
+								Reload window
+							</Trans>
 						</Button>
 					</div>
 				)}

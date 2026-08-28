@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { UserContent } from "@superset/chat/protocol";
 import { Button } from "@superset/ui/button";
 import type { ReactNode } from "react";
@@ -37,9 +38,13 @@ export function NewSessionView({
 				</div>
 			</div>
 			<div className="flex flex-1 flex-col items-center justify-center gap-1 text-center">
-				<span className="text-sm font-medium">New chat</span>
+				<span className="text-sm font-medium">
+					<Trans id="workspace.chat.newChat">New chat</Trans>
+				</span>
 				<span className="text-xs text-muted-foreground">
-					Send a message to start a {harness} session
+					<Trans id="workspace.chat.newChatHint">
+						Send a message to start a {harness} session
+					</Trans>
 				</span>
 			</div>
 			<Composer

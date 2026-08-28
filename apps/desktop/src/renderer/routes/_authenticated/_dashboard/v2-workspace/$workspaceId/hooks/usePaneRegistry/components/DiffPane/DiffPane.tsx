@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type {
 	CodeViewItem,
 	DiffLineAnnotation,
@@ -651,14 +652,18 @@ function BinaryDiffPlaceholder({
 	return (
 		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
 			<LuFileCode className="size-8" />
-			<p className="cursor-text select-text text-sm">Binary file hidden</p>
+			<p className="cursor-text select-text text-sm">
+				<Trans id="workspace.diffPane.binaryFileHidden">
+					Binary file hidden
+				</Trans>
+			</p>
 			{canOpen ? (
 				<Button
 					variant="outline"
 					size="sm"
 					onClick={() => onOpenFile(file.path)}
 				>
-					Open file
+					<Trans id="workspace.diffPane.openFile">Open file</Trans>
 				</Button>
 			) : null}
 		</div>

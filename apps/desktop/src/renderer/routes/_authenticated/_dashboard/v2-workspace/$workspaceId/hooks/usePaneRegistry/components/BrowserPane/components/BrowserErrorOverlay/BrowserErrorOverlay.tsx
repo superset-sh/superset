@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { GlobeIcon } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -82,7 +83,15 @@ export function BrowserErrorOverlay({
 							onClick={toggleDetails}
 							className="hover:text-muted-foreground/70 transition-colors"
 						>
-							{showDetails ? "Hide Details" : "Show Details"}
+							{showDetails ? (
+								<Trans id="workspace.browserPane.hideErrorDetails">
+									Hide Details
+								</Trans>
+							) : (
+								<Trans id="workspace.browserPane.showErrorDetails">
+									Show Details
+								</Trans>
+							)}
 						</button>
 					</p>
 				</div>
@@ -101,7 +110,9 @@ export function BrowserErrorOverlay({
 					</div>
 				)}
 				<Button variant="outline" size="sm" onClick={onRetry}>
-					Restart Browser
+					<Trans id="workspace.browserPane.restartBrowser">
+						Restart Browser
+					</Trans>
 				</Button>
 			</div>
 		</div>

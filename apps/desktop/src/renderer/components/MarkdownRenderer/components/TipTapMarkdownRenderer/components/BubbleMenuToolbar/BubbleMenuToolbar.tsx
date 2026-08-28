@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { Editor } from "@tiptap/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -112,7 +113,11 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
 				>
-					<title>dropdown</title>
+					<title>
+						<Trans id="components.bubbleMenuToolbar.textStyleDropdownCaret">
+							dropdown
+						</Trans>
+					</title>
 					<path
 						d="M3 5L6 8L9 5"
 						stroke="currentColor"
@@ -217,7 +222,11 @@ function ListDropdown({ editor }: { editor: Editor }) {
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
 				>
-					<title>dropdown</title>
+					<title>
+						<Trans id="components.bubbleMenuToolbar.listDropdownCaret">
+							dropdown
+						</Trans>
+					</title>
 					<path
 						d="M3 5L6 8L9 5"
 						stroke="currentColor"
@@ -237,7 +246,9 @@ function ListDropdown({ editor }: { editor: Editor }) {
 						onMouseDown={(e) => handleSelect("bullet", e)}
 					>
 						<HiOutlineListBullet className="size-4" />
-						Bullet list
+						<Trans id="components.bubbleMenuToolbar.bulletList">
+							Bullet list
+						</Trans>
 					</button>
 					<button
 						type="button"
@@ -247,7 +258,9 @@ function ListDropdown({ editor }: { editor: Editor }) {
 						onMouseDown={(e) => handleSelect("ordered", e)}
 					>
 						<HiOutlineNumberedList className="size-4" />
-						Numbered list
+						<Trans id="components.bubbleMenuToolbar.numberedList">
+							Numbered list
+						</Trans>
 					</button>
 					<button
 						type="button"
@@ -257,7 +270,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 						onMouseDown={(e) => handleSelect("task", e)}
 					>
 						<RiCheckboxCircleLine className="size-4" />
-						Checklist
+						<Trans id="components.bubbleMenuToolbar.checklist">Checklist</Trans>
 					</button>
 				</div>
 			)}

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildPromptAgentLaunchRequest } from "@superset/shared/agent-launch-request";
@@ -133,7 +134,11 @@ function AttachmentButtons({
 						<PaperclipIcon className="size-3.5" />
 					</PromptInputButton>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Add attachment</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="components.promptGroup.addAttachment">
+						Add attachment
+					</Trans>
+				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -144,7 +149,11 @@ function AttachmentButtons({
 						<GoIssueOpened className="size-3.5" />
 					</PromptInputButton>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Link GitHub issue</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="components.promptGroup.linkGithubIssue">
+						Link GitHub issue
+					</Trans>
+				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -155,7 +164,11 @@ function AttachmentButtons({
 						<LuGitPullRequest className="size-3.5" />
 					</PromptInputButton>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Link pull request</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="components.promptGroup.linkPullRequest">
+						Link pull request
+					</Trans>
+				</TooltipContent>
 			</Tooltip>
 		</div>
 	);
@@ -194,7 +207,11 @@ function ProjectPickerPill({
 						/>
 					)}
 					<span className="truncate">
-						{selectedProject?.name ?? "Select project"}
+						{selectedProject?.name ?? (
+							<Trans id="components.promptGroup.selectProject">
+								Select project
+							</Trans>
+						)}
 					</span>
 					<HiChevronUpDown className="size-3 shrink-0 text-muted-foreground" />
 				</PromptInputButton>
@@ -207,7 +224,11 @@ function ProjectPickerPill({
 				<Command>
 					<CommandInput placeholder="Search projects..." />
 					<CommandList>
-						<CommandEmpty>No projects found.</CommandEmpty>
+						<CommandEmpty>
+							<Trans id="components.promptGroup.noProjectsFound">
+								No projects found.
+							</Trans>
+						</CommandEmpty>
 						<CommandGroup>
 							{recentProjects.map((project) => (
 								<CommandItem
@@ -243,7 +264,9 @@ function ProjectPickerPill({
 								}}
 							>
 								<LuFolderOpen className="size-4" />
-								Open project
+								<Trans id="components.promptGroup.openProject">
+									Open project
+								</Trans>
 							</CommandItem>
 							<CommandItem
 								forceMount
@@ -253,7 +276,9 @@ function ProjectPickerPill({
 								}}
 							>
 								<LuFolderGit className="size-4" />
-								New project
+								<Trans id="components.promptGroup.newProject">
+									New project
+								</Trans>
 							</CommandItem>
 						</CommandGroup>
 					</CommandList>
@@ -312,7 +337,11 @@ function CompareBaseBranchPickerInline({
 
 	if (isBranchesError) {
 		return (
-			<span className="text-xs text-destructive">Failed to load branches</span>
+			<span className="text-xs text-destructive">
+				<Trans id="components.promptGroup.branchesLoadFailed">
+					Failed to load branches
+				</Trans>
+			</span>
 		);
 	}
 
@@ -368,7 +397,15 @@ function CompareBaseBranchPickerInline({
 											: "text-muted-foreground hover:text-foreground",
 									)}
 								>
-									{value === "all" ? "All" : "Worktrees"}
+									{value === "all" ? (
+										<Trans id="components.promptGroup.branchFilterAll">
+											All
+										</Trans>
+									) : (
+										<Trans id="components.promptGroup.branchFilterWorktrees">
+											Worktrees
+										</Trans>
+									)}
 									<span className="ml-1 text-foreground/40">{count}</span>
 								</button>
 							);
@@ -380,7 +417,11 @@ function CompareBaseBranchPickerInline({
 						onValueChange={setBranchSearch}
 					/>
 					<CommandList className="max-h-[400px]">
-						<CommandEmpty>No branches found</CommandEmpty>
+						<CommandEmpty>
+							<Trans id="components.promptGroup.noBranchesFound">
+								No branches found
+							</Trans>
+						</CommandEmpty>
 						{displayBranches.map((branch) => {
 							const openAction = openableWorktrees.get(branch.name);
 							const activeWorkspaceId = activeWorkspacesByBranch.get(
@@ -435,12 +476,16 @@ function CompareBaseBranchPickerInline({
 										<span className="flex items-center gap-1.5 shrink-0">
 											{branch.name === defaultBranch && (
 												<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-													default
+													<Trans id="components.promptGroup.defaultBranchBadge">
+														default
+													</Trans>
 												</span>
 											)}
 											{isExternal && !activeWorkspaceId && (
 												<span className="text-[10px] text-muted-foreground/60 bg-muted/60 px-1.5 py-0.5 rounded">
-													external
+													<Trans id="components.promptGroup.externalBranchBadge">
+														external
+													</Trans>
 												</span>
 											)}
 										</span>
@@ -478,7 +523,9 @@ function CompareBaseBranchPickerInline({
 													}}
 												>
 													<GoArrowUpRight className="size-3.5 mr-1" />
-													Open
+													<Trans id="components.promptGroup.openWorkspace">
+														Open
+													</Trans>
 													<span className="ml-1 text-[10px] opacity-60">↵</span>
 												</Button>
 											)}
@@ -494,14 +541,18 @@ function CompareBaseBranchPickerInline({
 												{hasExistingWorkspace ? (
 													<>
 														<PlusIcon className="size-3.5 mr-1" />
-														Create
+														<Trans id="components.promptGroup.createAlongsideExisting">
+															Create
+														</Trans>
 														<span className="ml-1 text-[10px] opacity-70">
 															{modKey}↵
 														</span>
 													</>
 												) : (
 													<>
-														Create
+														<Trans id="components.promptGroup.createWorkspace">
+															Create
+														</Trans>
 														<span className="ml-1 text-[10px] opacity-70">
 															↵
 														</span>
@@ -1351,7 +1402,9 @@ ${sanitizeText(truncatedBody)}`;
 								className="flex items-center gap-1 text-xs text-muted-foreground"
 							>
 								<LuGitPullRequest className="size-3 shrink-0" />
-								based off PR #{linkedPR.prNumber}
+								<Trans id="components.promptGroup.basedOffPr">
+									based off PR #{linkedPR.prNumber}
+								</Trans>
 							</motion.span>
 						) : (
 							<motion.div
@@ -1382,7 +1435,9 @@ ${sanitizeText(truncatedBody)}`;
 					</AnimatePresence>
 				</div>
 				<span className="text-[11px] text-muted-foreground/50">
-					{modKey}↵ to create
+					<Trans id="components.promptGroup.pressToCreate">
+						{modKey}↵ to create
+					</Trans>
 				</span>
 			</div>
 		</div>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenu,
@@ -168,7 +169,11 @@ export const FileRow = memo(function FileRow({
 								<Undo2 className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="top">Discard changes</TooltipContent>
+						<TooltipContent side="top">
+							<Trans id="workspace.fileRow.discardChangesTooltip">
+								Discard changes
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 				)}
 				<DropdownMenu>
@@ -187,13 +192,15 @@ export const FileRow = memo(function FileRow({
 							onSelect={() => onSelect?.(file.path, false, changeKey)}
 						>
 							<GitCompare />
-							Open Diff
+							<Trans id="workspace.fileRow.menuOpenDiff">Open Diff</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => onSelect?.(file.path, true, changeKey)}
 						>
 							<SquarePlus />
-							Open Diff in New Tab
+							<Trans id="workspace.fileRow.menuOpenDiffNewTab">
+								Open Diff in New Tab
+							</Trans>
 							{diffNewTabTier && (
 								<DropdownMenuShortcut>
 									{modifierLabel(diffNewTabTier)}
@@ -205,7 +212,7 @@ export const FileRow = memo(function FileRow({
 							disabled={!onOpenFile || !absolutePath}
 						>
 							<FileText />
-							Open File
+							<Trans id="workspace.fileRow.menuOpenFile">Open File</Trans>
 							{fileTier && (
 								<DropdownMenuShortcut>
 									{modifierLabel(fileTier)}
@@ -217,14 +224,18 @@ export const FileRow = memo(function FileRow({
 							disabled={!onOpenFile || !absolutePath}
 						>
 							<SquarePlus />
-							Open File in New Tab
+							<Trans id="workspace.fileRow.menuOpenFileNewTab">
+								Open File in New Tab
+							</Trans>
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => onOpenInEditor?.(file.path)}
 							disabled={!onOpenInEditor}
 						>
 							<ExternalLink />
-							Open in Editor
+							<Trans id="workspace.fileRow.menuOpenInEditor">
+								Open in Editor
+							</Trans>
 							{externalTier && (
 								<DropdownMenuShortcut>
 									{modifierLabel(externalTier)}
@@ -250,13 +261,15 @@ export const FileRow = memo(function FileRow({
 					onSelect={() => onSelect?.(file.path, false, changeKey)}
 				>
 					<GitCompare />
-					Open Diff
+					<Trans id="workspace.fileRow.contextOpenDiff">Open Diff</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={() => onSelect?.(file.path, true, changeKey)}
 				>
 					<SquarePlus />
-					Open Diff in New Tab
+					<Trans id="workspace.fileRow.contextOpenDiffNewTab">
+						Open Diff in New Tab
+					</Trans>
 					{diffNewTabTier && (
 						<ContextMenuShortcut>
 							{modifierLabel(diffNewTabTier)}
@@ -268,7 +281,7 @@ export const FileRow = memo(function FileRow({
 					disabled={!onOpenFile || !absolutePath}
 				>
 					<FileText />
-					Open File
+					<Trans id="workspace.fileRow.contextOpenFile">Open File</Trans>
 					{fileTier && (
 						<ContextMenuShortcut>{modifierLabel(fileTier)}</ContextMenuShortcut>
 					)}
@@ -278,14 +291,18 @@ export const FileRow = memo(function FileRow({
 					disabled={!onOpenFile || !absolutePath}
 				>
 					<SquarePlus />
-					Open File in New Tab
+					<Trans id="workspace.fileRow.contextOpenFileNewTab">
+						Open File in New Tab
+					</Trans>
 				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={() => onOpenInEditor?.(file.path)}
 					disabled={!onOpenInEditor}
 				>
 					<ExternalLink />
-					Open in Editor
+					<Trans id="workspace.fileRow.contextOpenInEditor">
+						Open in Editor
+					</Trans>
 					{externalTier && (
 						<ContextMenuShortcut>
 							{modifierLabel(externalTier)}

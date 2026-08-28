@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import type { ComponentType } from "react";
@@ -55,10 +56,14 @@ export function FeaturePreview({ selectedFeature }: FeaturePreviewProps) {
 					<span className="text-lg font-semibold text-foreground">
 						{selectedFeature.title}
 					</span>
-					<Badge variant="default">PRO</Badge>
+					<Badge variant="default">
+						<Trans id="components.featurePreview.proBadge">PRO</Trans>
+					</Badge>
 					{selectedFeature.comingSoon && (
 						<Badge variant="secondary" className="text-[10px]">
-							(Coming Soon)
+							<Trans id="components.featurePreview.comingSoon">
+								(Coming Soon)
+							</Trans>
 						</Badge>
 					)}
 				</div>

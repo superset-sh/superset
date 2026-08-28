@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -111,7 +112,9 @@ export function AgentCommentComposer({
 					{contextLabel}
 				</span>
 				<span className="text-[10px] tracking-tight text-muted-foreground/70">
-					esc to dismiss
+					<Trans id="workspace.agentCommentComposer.escToDismiss">
+						esc to dismiss
+					</Trans>
 				</span>
 			</div>
 
@@ -152,7 +155,7 @@ export function AgentCommentComposer({
 						disabled={submitting}
 						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
-						Cancel
+						<Trans id="workspace.agentCommentComposer.cancel">Cancel</Trans>
 					</Button>
 					<Button
 						type="submit"

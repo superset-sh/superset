@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	TbArrowLeft,
@@ -167,7 +168,9 @@ export function BrowserToolbar({
 					>
 						{isBlank ? (
 							<span className="min-w-0 truncate text-muted-foreground/40">
-								Enter URL or search...
+								<Trans id="workspace.browserPane.urlPlaceholder">
+									Enter URL or search...
+								</Trans>
 							</span>
 						) : (
 							<>

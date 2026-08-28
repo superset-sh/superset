@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import {
 	DropdownMenu,
@@ -303,7 +304,11 @@ export function TerminalSessionDropdown({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-96">
 				<DropdownMenuLabel className="flex items-center gap-2 text-xs">
-					<span className="min-w-0 flex-1 truncate">Terminal Sessions</span>
+					<span className="min-w-0 flex-1 truncate">
+						<Trans id="workspace.terminalPane.sessionsLabel">
+							Terminal Sessions
+						</Trans>
+					</span>
 					<button
 						type="button"
 						aria-label="New terminal"
@@ -381,7 +386,9 @@ export function TerminalSessionDropdown({
 						})
 					) : (
 						<div className="px-2 py-1.5 text-xs text-muted-foreground">
-							No live sessions
+							<Trans id="workspace.terminalPane.noLiveSessions">
+								No live sessions
+							</Trans>
 						</div>
 					)}
 				</div>

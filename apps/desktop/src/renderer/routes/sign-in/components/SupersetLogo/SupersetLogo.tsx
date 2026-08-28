@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useId } from "react";
 
@@ -23,7 +24,9 @@ export function SupersetLogo({
 			className={cn("text-foreground", className)}
 			aria-label="Superset"
 		>
-			<title>Superset</title>
+			<title>
+				<Trans id="auth.signIn.logoTitle">Superset</Trans>
+			</title>
 			{gradient && (
 				<defs>
 					<linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">

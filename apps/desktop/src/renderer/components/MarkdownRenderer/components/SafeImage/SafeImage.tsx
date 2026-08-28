@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { LuImageOff } from "react-icons/lu";
 
 /**
@@ -52,7 +53,9 @@ export function SafeImage({ src, alt, className }: SafeImageProps) {
 				title={`Image blocked: ${src ?? "(empty)"}`}
 			>
 				<LuImageOff className="w-4 h-4 flex-shrink-0" />
-				<span className="truncate max-w-[300px]">Image blocked</span>
+				<span className="truncate max-w-[300px]">
+					<Trans id="components.safeImage.blocked">Image blocked</Trans>
+				</span>
 			</div>
 		);
 	}

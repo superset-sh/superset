@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ToolContent } from "@superset/chat/protocol";
 import { Badge } from "@superset/ui/badge";
 
@@ -16,14 +17,18 @@ export function TerminalContent({ content }: { content: TerminalToolContent }) {
 			<div className="flex items-center gap-2 text-muted-foreground">
 				<span className="truncate">$ {content.command}</span>
 				{content.exitCode !== undefined && content.exitCode !== 0 && (
-					<Badge variant="destructive">exit {content.exitCode}</Badge>
+					<Badge variant="destructive">
+						<Trans id="workspace.chat.exitCode">exit {content.exitCode}</Trans>
+					</Badge>
 				)}
 			</div>
 			<pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-2">
 				{output}
 			</pre>
 			{clipped && (
-				<span className="text-muted-foreground">Output truncated</span>
+				<span className="text-muted-foreground">
+					<Trans id="workspace.chat.outputTruncated">Output truncated</Trans>
+				</span>
 			)}
 		</div>
 	);

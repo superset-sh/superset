@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, GitBranch } from "lucide-react";
@@ -57,7 +58,9 @@ export function WorkspaceCreateErrorState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						Couldn't create workspace
+						<Trans id="workspace.states.createErrorTitle">
+							Couldn't create workspace
+						</Trans>
 					</h1>
 					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
 						{name || "Untitled workspace"}
@@ -85,10 +88,10 @@ export function WorkspaceCreateErrorState({
 
 				<div className="flex items-center gap-2">
 					<Button size="sm" onClick={handleRetry}>
-						Try again
+						<Trans id="workspace.states.createErrorTryAgain">Try again</Trans>
 					</Button>
 					<Button size="sm" variant="ghost" onClick={handleDismiss}>
-						Dismiss
+						<Trans id="workspace.states.createErrorDismiss">Dismiss</Trans>
 					</Button>
 				</div>
 			</div>

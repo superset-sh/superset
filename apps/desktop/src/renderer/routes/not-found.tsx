@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Pixel404 } from "@superset/ui/pixel-404";
 import { Link } from "@tanstack/react-router";
 
@@ -11,16 +12,18 @@ export function NotFound() {
 					<div className="flex flex-col items-center text-center">
 						<Pixel404 className="max-w-[260px] text-foreground mb-6" />
 						<h2 className="text-xl font-semibold text-foreground mb-2">
-							Page Not Found
+							<Trans id="app.notFound.title">Page Not Found</Trans>
 						</h2>
 						<p className="text-sm text-muted-foreground mb-8">
-							The page you're looking for doesn't exist.
+							<Trans id="app.notFound.description">
+								The page you're looking for doesn't exist.
+							</Trans>
 						</p>
 						<Link
 							to="/"
 							className="text-sm text-primary hover:text-primary/80 underline transition-colors"
 						>
-							Go back home
+							<Trans id="app.notFound.goHome">Go back home</Trans>
 						</Link>
 					</div>
 				</div>

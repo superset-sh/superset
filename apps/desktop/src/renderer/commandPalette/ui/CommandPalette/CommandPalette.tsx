@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Command, CommandInput } from "@superset/ui/command";
 import {
 	Dialog,
@@ -125,9 +126,13 @@ export function CommandPalette() {
 				style={{ top: "max(16px, calc(50% - 278px))" }}
 			>
 				<DialogHeader className="sr-only">
-					<DialogTitle>Command Palette</DialogTitle>
+					<DialogTitle>
+						<Trans id="commandPalette.dialog.title">Command Palette</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Run commands and navigate the application.
+						<Trans id="commandPalette.dialog.description">
+							Run commands and navigate the application.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<Command

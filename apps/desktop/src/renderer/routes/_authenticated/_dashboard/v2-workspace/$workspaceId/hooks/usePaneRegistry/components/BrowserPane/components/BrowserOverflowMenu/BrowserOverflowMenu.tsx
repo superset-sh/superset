@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -146,10 +147,10 @@ export function BrowserOverflowMenu({
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-64">
 					<DropdownMenuItem onClick={onOpenFindBar} disabled={!hasPage}>
-						Find in page
+						<Trans id="workspace.browserPane.findInPage">Find in page</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handlePrint} disabled={!hasPage}>
-						Print
+						<Trans id="workspace.browserPane.print">Print</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					{/* A plain row of buttons here would be unreachable by arrow-key menu
@@ -173,7 +174,9 @@ export function BrowserOverflowMenu({
 						}}
 						className="justify-between gap-2"
 					>
-						<span>Zoom</span>
+						<span>
+							<Trans id="workspace.browserPane.zoom">Zoom</Trans>
+						</span>
 						<div className="flex items-center gap-0.5">
 							<button
 								type="button"
@@ -216,42 +219,58 @@ export function BrowserOverflowMenu({
 						disabled={!hasPage}
 						className="justify-between"
 					>
-						Show device toolbar
+						<Trans id="workspace.browserPane.showDeviceToolbar">
+							Show device toolbar
+						</Trans>
 						{isDeviceToolbarOpen && <CheckIcon className="size-3.5" />}
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleScreenshot} disabled={!hasPage}>
-						Take a screenshot
+						<Trans id="workspace.browserPane.takeScreenshot">
+							Take a screenshot
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onClick={handleHardReload} disabled={!hasPage}>
-						Hard reload
+						<Trans id="workspace.browserPane.hardReload">Hard reload</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleCopyUrl} disabled={!hasPage}>
-						Copy URL
+						<Trans id="workspace.browserPane.copyUrl">Copy URL</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleOpenExternal} disabled={!hasPage}>
-						Open in Browser
+						<Trans id="workspace.browserPane.openInBrowser">
+							Open in Browser
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onSelect={openAfterClose(setIsImportOpen)}>
-						Import cookies and passwords…
+						<Trans id="workspace.browserPane.importCookiesPasswords">
+							Import cookies and passwords…
+						</Trans>
 					</DropdownMenuItem>
 					<SignedInSitesSubmenu />
 					<DropdownMenuItem onSelect={openAfterClose(setIsDownloadsOpen)}>
-						Downloads
+						<Trans id="workspace.browserPane.downloadsMenuItem">
+							Downloads
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsScreenshotsOpen)}>
-						Screenshots
+						<Trans id="workspace.browserPane.screenshotsMenuItem">
+							Screenshots
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsHistoryOpen)}>
-						History
+						<Trans id="workspace.browserPane.historyMenuItem">History</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={openAfterClose(setIsClearDataOpen)}>
-						Clear browsing data
+						<Trans id="workspace.browserPane.clearBrowsingData">
+							Clear browsing data
+						</Trans>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem onClick={handleOpenSettings}>
-						Browser settings
+						<Trans id="workspace.browserPane.browserSettings">
+							Browser settings
+						</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

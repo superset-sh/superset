@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	Collapsible,
@@ -157,7 +158,9 @@ export function ChangesSection({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								Discard all {stagingActions.kind}
+								<Trans id="workspace.changesSection.discardAllTooltip">
+									Discard all {stagingActions.kind}
+								</Trans>
 							</TooltipContent>
 						</Tooltip>
 						<Tooltip>

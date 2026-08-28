@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import type {
 	ContextMenuActionConfig,
@@ -628,7 +629,9 @@ export function usePaneRegistry({
 					const data = ctx.pane.data as DevtoolsPaneData;
 					return (
 						<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-							Inspecting {data.targetTitle}
+							<Trans id="workspace.paneRegistry.inspecting">
+								Inspecting {data.targetTitle}
+							</Trans>
 						</div>
 					);
 				},

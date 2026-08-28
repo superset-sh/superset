@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenuItem,
 	DropdownMenuSub,
@@ -61,7 +62,9 @@ export function SignedInSitesSubmenu() {
 				else setQuery("");
 			}}
 		>
-			<DropdownMenuSubTrigger>Signed-in sites</DropdownMenuSubTrigger>
+			<DropdownMenuSubTrigger>
+				<Trans id="workspace.browserPane.signedInSites">Signed-in sites</Trans>
+			</DropdownMenuSubTrigger>
 			<DropdownMenuSubContent className="w-72 p-0">
 				<div className="p-1">
 					<Input
@@ -83,11 +86,21 @@ export function SignedInSitesSubmenu() {
 				<div className="max-h-72 overflow-y-auto px-1 pb-1">
 					{domains === null ? (
 						<div className="px-2 py-1.5 text-sm text-muted-foreground">
-							Loading…
+							<Trans id="workspace.browserPane.signedInSitesLoading">
+								Loading…
+							</Trans>
 						</div>
 					) : visible.length === 0 ? (
 						<div className="px-2 py-1.5 text-sm text-muted-foreground">
-							{domains.length === 0 ? "No sites are signed in" : "No matches"}
+							{domains.length === 0 ? (
+								<Trans id="workspace.browserPane.noSignedInSites">
+									No sites are signed in
+								</Trans>
+							) : (
+								<Trans id="workspace.browserPane.signedInSitesNoMatches">
+									No matches
+								</Trans>
+							)}
 						</div>
 					) : (
 						<>
@@ -119,7 +132,9 @@ export function SignedInSitesSubmenu() {
 							))}
 							{matches.length > VISIBLE_LIMIT && (
 								<div className="px-2 py-1.5 text-xs text-muted-foreground/60">
-									{matches.length - VISIBLE_LIMIT} more — refine your search
+									<Trans id="workspace.browserPane.signedInSitesMore">
+										{matches.length - VISIBLE_LIMIT} more — refine your search
+									</Trans>
 								</div>
 							)}
 						</>

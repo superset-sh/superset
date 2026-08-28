@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -218,7 +219,9 @@ export function DesignModePopover({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom">
-							Pick a different element (esc)
+							<Trans id="workspace.browserPane.designPickDifferentElement">
+								Pick a different element (esc)
+							</Trans>
 						</TooltipContent>
 					</Tooltip>
 					<AgentPickerSelect

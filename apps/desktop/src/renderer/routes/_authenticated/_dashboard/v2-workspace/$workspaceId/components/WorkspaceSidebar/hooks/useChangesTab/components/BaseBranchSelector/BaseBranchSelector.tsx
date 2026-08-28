@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { ScrollArea } from "@superset/ui/scroll-area";
@@ -74,7 +75,9 @@ export function BaseBranchSelector({
 						))}
 						{filtered.length === 0 && (
 							<div className="px-2 py-3 text-center text-sm text-muted-foreground">
-								No branches found
+								<Trans id="workspace.baseBranchSelector.empty">
+									No branches found
+								</Trans>
 							</div>
 						)}
 					</div>

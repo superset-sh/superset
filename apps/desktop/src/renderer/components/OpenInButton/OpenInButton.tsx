@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ExternalApp } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
@@ -120,7 +121,9 @@ export function OpenInButton({
 						className="gap-1"
 						disabled={!path}
 					>
-						<span>Open</span>
+						<span>
+							<Trans id="components.openInButton.open">Open</Trans>
+						</span>
 						<HiChevronDown className="size-3" />
 					</Button>
 				</DropdownMenuTrigger>

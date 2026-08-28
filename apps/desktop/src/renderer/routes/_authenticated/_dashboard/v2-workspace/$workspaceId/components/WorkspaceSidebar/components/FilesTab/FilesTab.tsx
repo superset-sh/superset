@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type {
 	FileTreeRenameEvent,
 	FileTreeRowDecoration,
@@ -311,7 +312,9 @@ export function FilesTab({
 				{workspaceQuery.isLoading ? (
 					<>
 						<Loader2 className="size-3.5 animate-spin" />
-						<span>Loading files...</span>
+						<span>
+							<Trans id="workspace.filesTab.loading">Loading files...</Trans>
+						</span>
 					</>
 				) : (
 					"Workspace worktree not available"
@@ -349,7 +352,11 @@ export function FilesTab({
 									className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								>
 									<Search className="size-3.5 shrink-0" />
-									<span className="truncate">Search files</span>
+									<span className="truncate">
+										<Trans id="workspace.filesTab.searchFiles">
+											Search files
+										</Trans>
+									</span>
 								</button>
 							)}
 							<div className="ml-auto flex items-center gap-0.5">

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	PromptInput,
 	PromptInputFooter,
@@ -174,7 +175,9 @@ function TerminalRichInputInner({
 				<div className="relative mx-auto w-full max-w-[680px] pt-2">
 					{hotkeyText !== "Unassigned" && (
 						<span className="pointer-events-none absolute top-5 right-3 z-10 text-xs text-muted-foreground/50">
-							{hotkeyText} to hide
+							<Trans id="workspace.terminalPane.richInputHotkeyHide">
+								{hotkeyText} to hide
+							</Trans>
 						</span>
 					)}
 					<PromptInput

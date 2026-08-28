@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { memo, useMemo } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
@@ -73,7 +74,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Loading...
+				<Trans id="workspace.changesFileList.loading">Loading...</Trans>
 			</div>
 		);
 	}
@@ -81,7 +82,7 @@ export const ChangesFileList = memo(function ChangesFileList({
 	if (files.length === 0) {
 		return (
 			<div className="px-3 py-6 text-center text-sm text-muted-foreground">
-				No changes
+				<Trans id="workspace.changesFileList.empty">No changes</Trans>
 			</div>
 		);
 	}

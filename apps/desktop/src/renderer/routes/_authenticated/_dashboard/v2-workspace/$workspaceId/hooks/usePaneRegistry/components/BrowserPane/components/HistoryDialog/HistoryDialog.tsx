@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -96,7 +97,9 @@ export function HistoryDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>History</DialogTitle>
+					<DialogTitle>
+						<Trans id="workspace.browserPane.historyTitle">History</Trans>
+					</DialogTitle>
 				</DialogHeader>
 				<Input
 					value={query}
@@ -107,7 +110,15 @@ export function HistoryDialog({
 				<ScrollArea className="h-80 min-w-0 -mx-1 px-1">
 					{filtered.length === 0 ? (
 						<p className="py-8 text-center text-sm text-muted-foreground">
-							{entries.length === 0 ? "No history yet" : "No matches"}
+							{entries.length === 0 ? (
+								<Trans id="workspace.browserPane.noHistory">
+									No history yet
+								</Trans>
+							) : (
+								<Trans id="workspace.browserPane.historyNoMatches">
+									No matches
+								</Trans>
+							)}
 						</p>
 					) : (
 						<div className="flex min-w-0 flex-col">
@@ -153,7 +164,7 @@ export function HistoryDialog({
 						onClick={handleClearHistory}
 						disabled={entries.length === 0}
 					>
-						Clear history
+						<Trans id="workspace.browserPane.clearHistory">Clear history</Trans>
 					</Button>
 				</div>
 			</DialogContent>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import type { ProFeature } from "../../constants";
@@ -29,7 +30,9 @@ export function FeatureSidebar({
 	return (
 		<div className="flex flex-col border-r bg-card">
 			<div className="px-5 pt-5 pb-2.5">
-				<h1 className="mb-0 text-lg font-bold text-foreground">Pro Features</h1>
+				<h1 className="mb-0 text-lg font-bold text-foreground">
+					<Trans id="components.featureSidebar.title">Pro Features</Trans>
+				</h1>
 			</div>
 
 			<div className="flex flex-col gap-2.5 px-5 py-2.5">
@@ -86,7 +89,9 @@ function FeatureButton({ feature, isSelected, onSelect }: FeatureButtonProps) {
 				</span>
 				{feature.comingSoon && (
 					<span className="text-[11px] text-muted-foreground font-normal">
-						(Coming Soon)
+						<Trans id="components.featureSidebar.comingSoon">
+							(Coming Soon)
+						</Trans>
 					</span>
 				)}
 			</span>

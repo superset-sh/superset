@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	Collapsible,
@@ -213,7 +214,11 @@ export function CommentsSection({
 								commentsOpen && "rotate-90",
 							)}
 						/>
-						<span className="truncate text-xs font-medium">Comments</span>
+						<span className="truncate text-xs font-medium">
+							<Trans id="workspace.commentsSection.commentsTitle">
+								Comments
+							</Trans>
+						</span>
 						<span className="shrink-0 text-[10px] text-muted-foreground">
 							{conversationCommentsCountLabel}
 						</span>
@@ -240,7 +245,9 @@ export function CommentsSection({
 						renderCommentSkeletons()
 					) : conversationComments.length === 0 ? (
 						<div className="px-1.5 py-1 text-xs text-muted-foreground">
-							No comments yet.
+							<Trans id="workspace.commentsSection.commentsEmpty">
+								No comments yet.
+							</Trans>
 						</div>
 					) : (
 						conversationComments.map((comment) => (
@@ -275,7 +282,9 @@ export function CommentsSection({
 								reviewOpen && "rotate-90",
 							)}
 						/>
-						<span className="truncate text-xs font-medium">Review</span>
+						<span className="truncate text-xs font-medium">
+							<Trans id="workspace.commentsSection.reviewTitle">Review</Trans>
+						</span>
 						<span className="shrink-0 text-[10px] text-muted-foreground">
 							{reviewCommentsCountLabel}
 						</span>
@@ -294,7 +303,11 @@ export function CommentsSection({
 									) : (
 										<CheckCheck className="size-3" />
 									)}
-									<span>Resolve all</span>
+									<span>
+										<Trans id="workspace.commentsSection.resolveAll">
+											Resolve all
+										</Trans>
+									</span>
 								</button>
 							)}
 							<button
@@ -317,7 +330,9 @@ export function CommentsSection({
 						renderCommentSkeletons()
 					) : openReviewComments.length === 0 ? (
 						<div className="px-1.5 py-1 text-xs text-muted-foreground">
-							No open review comments.
+							<Trans id="workspace.commentsSection.reviewEmpty">
+								No open review comments.
+							</Trans>
 						</div>
 					) : (
 						openReviewComments.map((comment) => (
@@ -352,7 +367,11 @@ export function CommentsSection({
 								resolvedOpen && "rotate-90",
 							)}
 						/>
-						<span className="truncate text-xs font-medium">Resolved</span>
+						<span className="truncate text-xs font-medium">
+							<Trans id="workspace.commentsSection.resolvedTitle">
+								Resolved
+							</Trans>
+						</span>
 						<span className="shrink-0 text-[10px] text-muted-foreground">
 							{resolvedComments.length}
 						</span>
@@ -494,7 +513,9 @@ function CommentRow({
 					</span>
 					{comment.kind === "review" && comment.isOutdated ? (
 						<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
-							Outdated
+							<Trans id="workspace.commentsSection.outdatedBadge">
+								Outdated
+							</Trans>
 						</span>
 					) : null}
 					<span className="flex-1" />
@@ -559,7 +580,9 @@ function CommentRow({
 									}
 								>
 									<GitCompare />
-									Open in diff
+									<Trans id="workspace.commentsSection.openInDiff">
+										Open in diff
+									</Trans>
 								</DropdownMenuItem>
 								<DropdownMenuItem
 									onSelect={() =>
@@ -572,7 +595,9 @@ function CommentRow({
 									}
 								>
 									<SquarePlus />
-									Open in diff in new tab
+									<Trans id="workspace.commentsSection.openInDiffNewTab">
+										Open in diff in new tab
+									</Trans>
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 							</>
@@ -592,7 +617,9 @@ function CommentRow({
 								}
 							>
 								<MessageSquare />
-								Open as comment pane
+								<Trans id="workspace.commentsSection.openAsCommentPane">
+									Open as comment pane
+								</Trans>
 							</DropdownMenuItem>
 						) : null}
 						<DropdownMenuItem onSelect={() => onCopy(comment)}>
@@ -604,7 +631,9 @@ function CommentRow({
 								onSelect={() => window.open(comment.url, "_blank", "noopener")}
 							>
 								<ExternalLink />
-								Open on GitHub
+								<Trans id="workspace.commentsSection.openOnGitHub">
+									Open on GitHub
+								</Trans>
 							</DropdownMenuItem>
 						) : null}
 					</DropdownMenuContent>

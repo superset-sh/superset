@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -86,9 +87,15 @@ export function ClearBrowsingDataDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Clear browsing data</DialogTitle>
+					<DialogTitle>
+						<Trans id="workspace.browserPane.clearDataTitle">
+							Clear browsing data
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Choose what to clear from the in-app browser.
+						<Trans id="workspace.browserPane.clearDataDescription">
+							Choose what to clear from the in-app browser.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3 py-1">
@@ -99,7 +106,9 @@ export function ClearBrowsingDataDialog({
 							onCheckedChange={(v) => setClearHistory(v === true)}
 						/>
 						<Label htmlFor="clear-history" className="font-normal">
-							Browsing history
+							<Trans id="workspace.browserPane.clearDataHistory">
+								Browsing history
+							</Trans>
 						</Label>
 					</div>
 					<div className="flex items-center gap-2">
@@ -109,7 +118,9 @@ export function ClearBrowsingDataDialog({
 							onCheckedChange={(v) => setClearCookies(v === true)}
 						/>
 						<Label htmlFor="clear-cookies" className="font-normal">
-							Cookies and site data — signs you out of most sites
+							<Trans id="workspace.browserPane.clearDataCookies">
+								Cookies and site data — signs you out of most sites
+							</Trans>
 						</Label>
 					</div>
 					<div className="flex items-center gap-2">
@@ -119,7 +130,9 @@ export function ClearBrowsingDataDialog({
 							onCheckedChange={(v) => setClearCache(v === true)}
 						/>
 						<Label htmlFor="clear-cache" className="font-normal">
-							Cached images and files
+							<Trans id="workspace.browserPane.clearDataCache">
+								Cached images and files
+							</Trans>
 						</Label>
 					</div>
 				</div>
@@ -129,14 +142,22 @@ export function ClearBrowsingDataDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isClearing}
 					>
-						Cancel
+						<Trans id="workspace.browserPane.clearDataCancel">Cancel</Trans>
 					</Button>
 					<Button
 						variant="destructive"
 						onClick={handleClear}
 						disabled={isClearing || !canClear}
 					>
-						{isClearing ? "Clearing…" : "Clear data"}
+						{isClearing ? (
+							<Trans id="workspace.browserPane.clearDataClearing">
+								Clearing…
+							</Trans>
+						) : (
+							<Trans id="workspace.browserPane.clearDataConfirm">
+								Clear data
+							</Trans>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

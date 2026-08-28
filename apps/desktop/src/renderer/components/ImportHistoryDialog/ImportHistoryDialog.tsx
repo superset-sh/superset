@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
 import {
@@ -182,31 +183,45 @@ export function ImportHistoryDialog({
 		>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Import settings from another browser</DialogTitle>
+					<DialogTitle>
+						<Trans id="components.importHistoryDialog.title">
+							Import settings from another browser
+						</Trans>
+					</DialogTitle>
 					<DialogDescription>
-						Copy your browsing history and logins from another browser into
-						Superset. Your original browser isn't changed.
+						<Trans id="components.importHistoryDialog.description">
+							Copy your browsing history and logins from another browser into
+							Superset. Your original browser isn't changed.
+						</Trans>
 					</DialogDescription>
 				</DialogHeader>
 
 				{loadState.status === "loading" && (
 					<p className="py-4 text-sm text-muted-foreground">
-						Looking for installed browsers…
+						<Trans id="components.importHistoryDialog.searchingBrowsers">
+							Looking for installed browsers…
+						</Trans>
 					</p>
 				)}
 
 				{loadState.status === "needs-full-disk-access" && (
 					<div className="flex flex-col gap-3 py-2 text-sm">
 						<p className="text-muted-foreground">
-							Superset needs Full Disk Access to read another browser's data.
-							Grant it in System Settings, then check again.
+							<Trans id="components.importHistoryDialog.needsFullDiskAccess">
+								Superset needs Full Disk Access to read another browser's data.
+								Grant it in System Settings, then check again.
+							</Trans>
 						</p>
 						<div className="flex gap-2">
 							<Button variant="outline" size="sm" onClick={handleOpenSettings}>
-								Open System Settings
+								<Trans id="components.importHistoryDialog.openSystemSettings">
+									Open System Settings
+								</Trans>
 							</Button>
 							<Button variant="ghost" size="sm" onClick={loadSources}>
-								Check again
+								<Trans id="components.importHistoryDialog.checkAgain">
+									Check again
+								</Trans>
 							</Button>
 						</div>
 					</div>
@@ -214,7 +229,9 @@ export function ImportHistoryDialog({
 
 				{loadState.status === "ready" && loadState.sources.length === 0 && (
 					<p className="py-4 text-sm text-muted-foreground">
-						No Chrome, Brave, Arc, or other Chromium browsers were found.
+						<Trans id="components.importHistoryDialog.noBrowsersFound">
+							No Chrome, Brave, Arc, or other Chromium browsers were found.
+						</Trans>
 					</p>
 				)}
 
@@ -269,7 +286,9 @@ export function ImportHistoryDialog({
 									onCheckedChange={(v) => setImportHistory(v === true)}
 								/>
 								<Label htmlFor="import-history" className="font-normal">
-									Browsing history
+									<Trans id="components.importHistoryDialog.browsingHistory">
+										Browsing history
+									</Trans>
 								</Label>
 							</div>
 							<div className="flex items-start gap-2">
@@ -281,12 +300,21 @@ export function ImportHistoryDialog({
 								/>
 								<div className="flex flex-col gap-0.5">
 									<Label htmlFor="import-logins" className="font-normal">
-										Logins (cookies)
+										<Trans id="components.importHistoryDialog.loginsCookies">
+											Logins (cookies)
+										</Trans>
 									</Label>
 									<span className="text-xs text-muted-foreground">
-										{isMac
-											? "Quit the source browser first so its logins are saved to disk. You'll be asked to allow Keychain access."
-											: "Only available on macOS."}
+										{isMac ? (
+											<Trans id="components.importHistoryDialog.loginsMacHint">
+												Quit the source browser first so its logins are saved to
+												disk. You'll be asked to allow Keychain access.
+											</Trans>
+										) : (
+											<Trans id="components.importHistoryDialog.loginsMacOnly">
+												Only available on macOS.
+											</Trans>
+										)}
 									</span>
 								</div>
 							</div>
@@ -300,10 +328,16 @@ export function ImportHistoryDialog({
 						onClick={() => onOpenChange(false)}
 						disabled={isImporting}
 					>
-						Cancel
+						<Trans id="components.importHistoryDialog.cancel">Cancel</Trans>
 					</Button>
 					<Button onClick={handleImport} disabled={isImporting || !canImport}>
-						{isImporting ? "Importing…" : "Import"}
+						{isImporting ? (
+							<Trans id="components.importHistoryDialog.importing">
+								Importing…
+							</Trans>
+						) : (
+							<Trans id="components.importHistoryDialog.import">Import</Trans>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

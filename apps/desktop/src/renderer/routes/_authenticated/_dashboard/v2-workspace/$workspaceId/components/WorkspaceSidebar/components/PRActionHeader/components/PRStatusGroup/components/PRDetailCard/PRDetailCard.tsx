@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -80,7 +81,9 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 
 			{updatedRelative && (
 				<div className="border-t border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
-					Updated {updatedRelative}
+					<Trans id="workspace.prDetailCard.updatedAt">
+						Updated {updatedRelative}
+					</Trans>
 				</div>
 			)}
 
@@ -90,7 +93,9 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 				rel="noopener noreferrer"
 				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 			>
-				<span>View on GitHub</span>
+				<span>
+					<Trans id="workspace.prDetailCard.viewOnGitHub">View on GitHub</Trans>
+				</span>
 				<LuArrowUpRight
 					aria-hidden="true"
 					className="size-3.5 text-muted-foreground/70 transition-transform group-hover:translate-x-px group-hover:-translate-y-px"

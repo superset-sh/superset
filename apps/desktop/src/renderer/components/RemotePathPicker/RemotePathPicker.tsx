@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	Breadcrumb,
 	BreadcrumbEllipsis,
@@ -272,7 +273,7 @@ export function RemotePathPicker({
 						variant="ghost"
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans id="components.remotePathPicker.cancel">Cancel</Trans>
 					</Button>
 					<Button
 						type="button"

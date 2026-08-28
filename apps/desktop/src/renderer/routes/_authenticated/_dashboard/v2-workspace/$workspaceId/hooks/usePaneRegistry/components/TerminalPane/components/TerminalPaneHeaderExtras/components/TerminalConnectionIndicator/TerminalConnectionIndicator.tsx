@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
@@ -236,12 +237,16 @@ export function TerminalConnectionIndicator({
 								{reconnecting ? (
 									<>
 										<Loader2 className="animate-spin" />
-										Reconnecting…
+										<Trans id="workspace.terminalPane.reconnecting">
+											Reconnecting…
+										</Trans>
 									</>
 								) : (
 									<>
 										<RotateCw />
-										Reconnect
+										<Trans id="workspace.terminalPane.reconnect">
+											Reconnect
+										</Trans>
 									</>
 								)}
 							</Button>
@@ -253,7 +258,7 @@ export function TerminalConnectionIndicator({
 								disabled={restartDaemon.isPending}
 								onClick={() => setConfirmRestartOpen(true)}
 							>
-								Restart
+								<Trans id="workspace.terminalPane.restartDaemon">Restart</Trans>
 							</Button>
 						)}
 					</div>
@@ -263,7 +268,11 @@ export function TerminalConnectionIndicator({
 							onClick={() => setShowLog((v) => !v)}
 							className="self-center text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
 						>
-							{showLog ? "Hide log" : "View log"}
+							{showLog ? (
+								<Trans id="workspace.terminalPane.hideLog">Hide log</Trans>
+							) : (
+								<Trans id="workspace.terminalPane.viewLog">View log</Trans>
+							)}
 						</button>
 					)}
 				</div>
@@ -307,7 +316,7 @@ export function TerminalConnectionIndicator({
 							}
 							className="self-start text-muted-foreground transition-colors hover:text-foreground"
 						>
-							Copy log
+							<Trans id="workspace.terminalPane.copyLog">Copy log</Trans>
 						</button>
 					</div>
 				)}
@@ -318,22 +327,34 @@ export function TerminalConnectionIndicator({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Restart all terminals?</AlertDialogTitle>
+						<AlertDialogTitle>
+							<Trans id="workspace.terminalPane.restartAllTitle">
+								Restart all terminals?
+							</Trans>
+						</AlertDialogTitle>
 						<AlertDialogDescription>
-							This closes every terminal session — in this workspace and any
-							others — and can't be undone. If they're only briefly stuck,
-							waiting usually brings them back.
+							<Trans id="workspace.terminalPane.restartAllDescription">
+								This closes every terminal session — in this workspace and any
+								others — and can't be undone. If they're only briefly stuck,
+								waiting usually brings them back.
+							</Trans>
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Keep waiting</AlertDialogCancel>
+						<AlertDialogCancel>
+							<Trans id="workspace.terminalPane.restartAllCancel">
+								Keep waiting
+							</Trans>
+						</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
 								setConfirmRestartOpen(false);
 								restartDaemon.mutate();
 							}}
 						>
-							Restart terminals
+							<Trans id="workspace.terminalPane.restartAllConfirm">
+								Restart terminals
+							</Trans>
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

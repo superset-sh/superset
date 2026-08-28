@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -81,7 +82,9 @@ export function ThemeFrame() {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No themes found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.themes.empty">No themes found.</Trans>
+			</CommandEmpty>
 
 			{showSystem && (
 				<CommandGroup>
@@ -93,7 +96,9 @@ export function ThemeFrame() {
 							<ThemeSwatch theme={systemLightTheme} />
 							<ThemeSwatch theme={systemDarkTheme} />
 						</div>
-						<span>System</span>
+						<span>
+							<Trans id="commandPalette.themes.system">System</Trans>
+						</span>
 						{activeThemeId === SYSTEM_THEME_ID ? (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						) : null}

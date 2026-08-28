@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -83,13 +84,17 @@ export function TerminalIdCopyMenu({
 			<DropdownMenuContent align="end" className="w-52">
 				<DropdownMenuItem onSelect={() => copyId(terminalId, "terminal ID")}>
 					<TerminalSquare />
-					Copy terminal ID
+					<Trans id="workspace.terminalPane.copyTerminalId">
+						Copy terminal ID
+					</Trans>
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onSelect={() => copyId(agentSessionId, "agent session ID")}
 				>
 					<Bot />
-					Copy agent session ID
+					<Trans id="workspace.terminalPane.copyAgentSessionId">
+						Copy agent session ID
+					</Trans>
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

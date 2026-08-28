@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -58,7 +59,11 @@ export function CommentPaneHeaderExtras({
 							<FaGithub className="size-3.5" />
 						</a>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Open on GitHub</TooltipContent>
+					<TooltipContent side="bottom">
+						<Trans id="workspace.commentPane.openOnGitHub">
+							Open on GitHub
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 			)}
 			<Tooltip>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
@@ -45,12 +46,16 @@ export function WorkspaceHostUnreachableState({
 
 				<div className="flex flex-col gap-1.5">
 					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
-						Host unreachable
+						<Trans id="workspace.states.hostUnreachableTitle">
+							Host unreachable
+						</Trans>
 					</h1>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
-						This workspace lives on a device Superset can't reach right now.
-						Terminals, files, and agents stay put — they come back as soon as
-						the connection does.
+						<Trans id="workspace.states.hostUnreachableBody">
+							This workspace lives on a device Superset can't reach right now.
+							Terminals, files, and agents stay put — they come back as soon as
+							the connection does.
+						</Trans>
 					</p>
 					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground/80">
 						{detail}
@@ -81,7 +86,9 @@ export function WorkspaceHostUnreachableState({
 					<div className="border-t border-border/60 px-3 py-2">
 						<div className="grid gap-1.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-3">
 							<span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground/70">
-								Host ID
+								<Trans id="workspace.states.hostUnreachableHostIdLabel">
+									Host ID
+								</Trans>
 							</span>
 							<div className="min-w-0 overflow-x-auto sm:text-right">
 								<code
@@ -121,7 +128,9 @@ export function WorkspaceHostUnreachableState({
 								strokeWidth={2}
 								aria-hidden="true"
 							/>
-							Host settings
+							<Trans id="workspace.states.hostUnreachableHostSettings">
+								Host settings
+							</Trans>
 						</Link>
 					</Button>
 				</div>

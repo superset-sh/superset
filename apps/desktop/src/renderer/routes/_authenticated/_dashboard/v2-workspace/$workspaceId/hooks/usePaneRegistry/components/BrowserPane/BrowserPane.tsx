@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext, Tab } from "@superset/panes";
 import { useParams } from "@tanstack/react-router";
 import { GlobeIcon, SquareDashedMousePointer, XIcon } from "lucide-react";
@@ -237,13 +238,23 @@ export function BrowserPane({
 				<div className="relative z-20 flex shrink-0 items-center gap-2 border-b border-border/60 bg-[#0d99ff]/10 px-3 py-1.5 text-xs text-foreground/90">
 					<SquareDashedMousePointer className="size-3.5 shrink-0 text-[#0d99ff]" />
 					<span className="min-w-0 flex-1 truncate">
-						{designMode.phase === "selecting"
-							? "Design mode — click any element in the page to send it to an agent."
-							: "Element captured — describe the change, or press esc to pick again."}
+						{designMode.phase === "selecting" ? (
+							<Trans id="workspace.browserPane.designModeSelecting">
+								Design mode — click any element in the page to send it to an
+								agent.
+							</Trans>
+						) : (
+							<Trans id="workspace.browserPane.designModeCaptured">
+								Element captured — describe the change, or press esc to pick
+								again.
+							</Trans>
+						)}
 					</span>
 					{designMode.phase === "selecting" && (
 						<span className="shrink-0 text-muted-foreground/70">
-							esc to exit
+							<Trans id="workspace.browserPane.designModeEscToExit">
+								esc to exit
+							</Trans>
 						</span>
 					)}
 					<button
@@ -338,10 +349,14 @@ export function BrowserPane({
 						</div>
 						<div className="text-center">
 							<p className="text-base font-medium text-foreground">
-								Start browsing
+								<Trans id="workspace.browserPane.startBrowsing">
+									Start browsing
+								</Trans>
 							</p>
 							<p className="mt-1.5 text-sm text-muted-foreground">
-								Enter a URL into the search bar above.
+								<Trans id="workspace.browserPane.startBrowsingHint">
+									Enter a URL into the search bar above.
+								</Trans>
 							</p>
 						</div>
 					</div>

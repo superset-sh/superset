@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import { Spinner } from "@superset/ui/spinner";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -96,7 +97,9 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
 				<Spinner className="size-3.5" />
-				<span>Loading changes...</span>
+				<span>
+					<Trans id="workspace.changesTab.loading">Loading changes...</Trans>
+				</span>
 			</div>
 		);
 	}
@@ -104,7 +107,9 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	if (!status.data) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Unable to load git status
+				<Trans id="workspace.changesTab.statusError">
+					Unable to load git status
+				</Trans>
 			</div>
 		);
 	}

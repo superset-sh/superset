@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -115,7 +116,11 @@ export function RecentlyViewedFrame() {
 
 	return (
 		<CommandList>
-			<CommandEmpty>Nothing here yet.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.recentlyViewed.empty">
+					Nothing here yet.
+				</Trans>
+			</CommandEmpty>
 			<CommandGroup heading="Recently Viewed">
 				{filteredEntries.map((entry) => {
 					const isCurrent = entry.path === currentPath;
@@ -268,7 +273,9 @@ function AutomationRow({
 			className={cn("gap-2.5", isCurrent && "bg-accent/50")}
 		>
 			<span className="text-muted-foreground text-xs shrink-0 w-24 text-left line-clamp-1">
-				Automation
+				<Trans id="commandPalette.recentlyViewed.automationType">
+					Automation
+				</Trans>
 			</span>
 			<span className="flex items-center justify-center w-4 shrink-0">
 				<LuCpu className="size-3 text-muted-foreground" strokeWidth={1.5} />

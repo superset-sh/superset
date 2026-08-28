@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
@@ -137,9 +138,11 @@ export const Paywall = () => {
 
 				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
 					<Button variant="outline" onClick={() => handleOpenChange(false)}>
-						Cancel
+						<Trans id="components.paywall.cancel">Cancel</Trans>
 					</Button>
-					<Button onClick={handleUpgrade}>Get Superset Pro</Button>
+					<Button onClick={handleUpgrade}>
+						<Trans id="components.paywall.upgradeCta">Get Superset Pro</Trans>
+					</Button>
 				</div>
 			</DialogContent>
 		</Dialog>

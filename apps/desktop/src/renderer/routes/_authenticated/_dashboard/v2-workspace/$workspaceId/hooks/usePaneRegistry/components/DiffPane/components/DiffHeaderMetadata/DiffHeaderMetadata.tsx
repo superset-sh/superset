@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -136,7 +137,9 @@ export function DiffHeaderMetadata({
 									<LuCheck className="size-3.5" />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom">Save edits (⌘S)</TooltipContent>
+							<TooltipContent side="bottom">
+								<Trans id="workspace.diffPane.saveEdits">Save edits (⌘S)</Trans>
+							</TooltipContent>
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -149,7 +152,9 @@ export function DiffHeaderMetadata({
 									<LuX className="size-3.5" />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom">Cancel edits</TooltipContent>
+							<TooltipContent side="bottom">
+								<Trans id="workspace.diffPane.cancelEdits">Cancel edits</Trans>
+							</TooltipContent>
 						</Tooltip>
 					</>
 				) : (
@@ -170,7 +175,11 @@ export function DiffHeaderMetadata({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom">
-								{copied ? "Copied" : "Copy path"}
+								{copied ? (
+									<Trans id="workspace.diffPane.pathCopied">Copied</Trans>
+								) : (
+									<Trans id="workspace.diffPane.copyPath">Copy path</Trans>
+								)}
 							</TooltipContent>
 						</Tooltip>
 						<Tooltip>
@@ -199,7 +208,11 @@ export function DiffHeaderMetadata({
 										<LuUndo2 className="size-3.5" />
 									</button>
 								</TooltipTrigger>
-								<TooltipContent side="bottom">Discard changes</TooltipContent>
+								<TooltipContent side="bottom">
+									<Trans id="workspace.diffPane.discardChanges">
+										Discard changes
+									</Trans>
+								</TooltipContent>
 							</Tooltip>
 						) : null}
 						<button
@@ -209,7 +222,15 @@ export function DiffHeaderMetadata({
 							className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						>
 							{viewed ? <LuCheck className="size-3.5" /> : null}
-							{viewed ? "Marked as viewed" : "Mark as viewed"}
+							{viewed ? (
+								<Trans id="workspace.diffPane.markedAsViewed">
+									Marked as viewed
+								</Trans>
+							) : (
+								<Trans id="workspace.diffPane.markAsViewed">
+									Mark as viewed
+								</Trans>
+							)}
 						</button>
 					</>
 				)}

@@ -46,4 +46,11 @@ export const ENFORCED_DIRS: readonly string[] = [
 	"apps/desktop/src/renderer/routes/_authenticated/settings/usage",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/utils",
 	"apps/desktop/src/renderer/routes/_authenticated/settings/v2-project",
+	// batch 3: v2-workspace, shared renderer components, palette, auth routes
+	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace",
+	"apps/desktop/src/renderer/commandPalette",
+	"apps/desktop/src/renderer/components",
+	"apps/desktop/src/renderer/react-query",
+	"apps/desktop/src/renderer/routes/create-organization",
+	"apps/desktop/src/renderer/routes/sign-in",
 ];

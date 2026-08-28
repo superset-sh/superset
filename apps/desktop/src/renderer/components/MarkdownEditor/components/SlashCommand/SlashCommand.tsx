@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import { type Editor, ReactRenderer } from "@tiptap/react";
@@ -142,7 +143,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 			return (
 				<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
 					<div className="px-2 py-1.5 text-sm text-muted-foreground">
-						No results
+						<Trans id="components.slashCommand.noResults">No results</Trans>
 					</div>
 				</div>
 			);

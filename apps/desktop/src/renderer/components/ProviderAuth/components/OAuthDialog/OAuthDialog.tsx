@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -91,7 +92,9 @@ export function OAuthDialog({
 									onClick={onOpenAuthUrl}
 									disabled={!authUrl || isPending}
 								>
-									Open browser again
+									<Trans id="components.oauthDialog.openBrowserAgain">
+										Open browser again
+									</Trans>
 								</Button>
 								<Button
 									type="button"
@@ -99,7 +102,11 @@ export function OAuthDialog({
 									onClick={handleCopy}
 									disabled={!authUrl || isPending}
 								>
-									{copied ? "Copied!" : "Copy URL"}
+									{copied ? (
+										<Trans id="components.oauthDialog.copied">Copied!</Trans>
+									) : (
+										<Trans id="components.oauthDialog.copyUrl">Copy URL</Trans>
+									)}
 								</Button>
 							</div>
 
@@ -146,11 +153,15 @@ export function OAuthDialog({
 							onClick={hasAuthUrl ? onSubmit : (onRetry ?? onSubmit)}
 							disabled={!canSubmit}
 						>
-							{isPending
-								? "Connecting..."
-								: hasAuthUrl
-									? "Continue"
-									: "Try again"}
+							{isPending ? (
+								<Trans id="components.oauthDialog.connecting">
+									Connecting...
+								</Trans>
+							) : hasAuthUrl ? (
+								<Trans id="components.oauthDialog.continue">Continue</Trans>
+							) : (
+								<Trans id="components.oauthDialog.tryAgain">Try again</Trans>
+							)}
 						</Button>
 						<div className="flex items-center justify-between gap-2">
 							<Button
@@ -159,7 +170,7 @@ export function OAuthDialog({
 								onClick={() => onOpenChange(false)}
 								disabled={isPending}
 							>
-								Cancel
+								<Trans id="components.oauthDialog.cancel">Cancel</Trans>
 							</Button>
 							{canDisconnect ? (
 								<Button
@@ -168,7 +179,9 @@ export function OAuthDialog({
 									onClick={onDisconnect}
 									disabled={isPending}
 								>
-									Disconnect
+									<Trans id="components.oauthDialog.disconnect">
+										Disconnect
+									</Trans>
 								</Button>
 							) : null}
 						</div>

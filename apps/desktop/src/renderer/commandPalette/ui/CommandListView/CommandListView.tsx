@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { CommandEmpty, CommandGroup, CommandList } from "@superset/ui/command";
 import { useMemo } from "react";
 import { useCommandContext } from "../../core/ContextProvider";
@@ -21,7 +22,9 @@ export function CommandListView({ query, onSelect }: CommandListViewProps) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No commands found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.commandList.empty">No commands found.</Trans>
+			</CommandEmpty>
 			{ranked.map((section) => (
 				<CommandGroup key={section.id} heading={section.label}>
 					{section.commands.map((command) => (

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -179,7 +180,7 @@ export function PRStatusGroup({
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end" className="w-44">
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-								Merge
+								<Trans id="workspace.prStatusGroup.mergeMenuLabel">Merge</Trans>
 							</DropdownMenuLabel>
 							<DropdownMenuItem
 								onClick={() => handleMerge("squash")}
@@ -187,7 +188,9 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 							>
 								<VscGitMerge className="size-3.5" />
-								Squash and merge
+								<Trans id="workspace.prStatusGroup.squashAndMerge">
+									Squash and merge
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => handleMerge("merge")}
@@ -195,7 +198,9 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 							>
 								<VscGitMerge className="size-3.5" />
-								Create merge commit
+								<Trans id="workspace.prStatusGroup.createMergeCommit">
+									Create merge commit
+								</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onClick={() => handleMerge("rebase")}
@@ -203,7 +208,9 @@ export function PRStatusGroup({
 								disabled={mergePRMutation.isPending}
 							>
 								<VscGitMerge className="size-3.5" />
-								Rebase and merge
+								<Trans id="workspace.prStatusGroup.rebaseAndMerge">
+									Rebase and merge
+								</Trans>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>

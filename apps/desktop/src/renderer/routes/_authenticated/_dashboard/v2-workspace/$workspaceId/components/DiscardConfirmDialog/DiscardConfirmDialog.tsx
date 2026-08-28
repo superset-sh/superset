@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -40,7 +41,7 @@ export function DiscardConfirmDialog({
 						className="h-7 px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
-						Cancel
+						<Trans id="workspace.discardConfirmDialog.cancel">Cancel</Trans>
 					</Button>
 					<AlertDialogAction
 						variant="destructive"

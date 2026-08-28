@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type {
 	OutboxEntry,
 	SessionSnapshot,
@@ -118,7 +119,9 @@ export function Transcript({
 			<div className="flex items-center gap-2">
 				{hasOlder && (
 					<Button onClick={onLoadOlder} size="sm" variant="ghost">
-						Load earlier messages
+						<Trans id="workspace.chat.loadEarlierMessages">
+							Load earlier messages
+						</Trans>
 					</Button>
 				)}
 				<Button
@@ -127,7 +130,7 @@ export function Transcript({
 					size="sm"
 					variant="ghost"
 				>
-					Expand all
+					<Trans id="workspace.chat.expandAll">Expand all</Trans>
 				</Button>
 			</div>
 			{groups.map((group) => (
@@ -153,7 +156,11 @@ export function Transcript({
 						<Badge
 							variant={entry.state === "failed" ? "destructive" : "outline"}
 						>
-							{entry.state === "failed" ? "Failed to send" : "Sending"}
+							{entry.state === "failed" ? (
+								<Trans id="workspace.chat.sendFailed">Failed to send</Trans>
+							) : (
+								<Trans id="workspace.chat.sending">Sending</Trans>
+							)}
 						</Badge>
 						{entry.state === "failed" && (
 							<>
@@ -162,14 +169,14 @@ export function Transcript({
 									size="sm"
 									variant="ghost"
 								>
-									Retry
+									<Trans id="workspace.chat.retrySend">Retry</Trans>
 								</Button>
 								<Button
 									onClick={() => onDiscardPrompt(entry.clientId)}
 									size="sm"
 									variant="ghost"
 								>
-									Discard
+									<Trans id="workspace.chat.discardSend">Discard</Trans>
 								</Button>
 							</>
 						)}

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { memo } from "react";
 import type { CommentPaneData, DiffFocusSide } from "../../../../../../types";
 import type { NormalizedComment, NormalizedPR } from "../../types";
@@ -34,7 +35,9 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (isError) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				Unable to load review status
+				<Trans id="workspace.reviewTab.loadError">
+					Unable to load review status
+				</Trans>
 			</div>
 		);
 	}
@@ -42,7 +45,7 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (isLoading && !pr) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-				Loading review...
+				<Trans id="workspace.reviewTab.loading">Loading review...</Trans>
 			</div>
 		);
 	}
@@ -50,7 +53,9 @@ export const ReviewTabContent = memo(function ReviewTabContent({
 	if (!pr) {
 		return (
 			<div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
-				Open a pull request to view review status, checks, and comments.
+				<Trans id="workspace.reviewTab.noPr">
+					Open a pull request to view review status, checks, and comments.
+				</Trans>
 			</div>
 		);
 	}

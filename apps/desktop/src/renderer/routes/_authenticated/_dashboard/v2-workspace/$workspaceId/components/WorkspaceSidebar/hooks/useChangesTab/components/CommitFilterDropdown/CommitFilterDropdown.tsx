@@ -1,3 +1,4 @@
+import { Plural, Trans } from "@lingui/react/macro";
 import type { AppRouter } from "@superset/host-service";
 import {
 	DropdownMenu,
@@ -58,7 +59,11 @@ export function CommitFilterDropdown({
 				<DropdownMenuContent align="start" className="w-72">
 					<DropdownMenuItem onSelect={() => onFilterChange({ kind: "all" })}>
 						<div className="flex flex-1 items-center justify-between">
-							<span>All changes</span>
+							<span>
+								<Trans id="workspace.commitFilter.allChanges">
+									All changes
+								</Trans>
+							</span>
 							{filter.kind === "all" && <Check className="size-3.5" />}
 						</div>
 					</DropdownMenuItem>
@@ -68,10 +73,19 @@ export function CommitFilterDropdown({
 					>
 						<div className="flex flex-1 items-center justify-between">
 							<div>
-								<div>Uncommitted changes</div>
+								<div>
+									<Trans id="workspace.commitFilter.uncommittedChanges">
+										Uncommitted changes
+									</Trans>
+								</div>
 								{uncommittedCount != null && (
 									<div className="text-[10px] text-muted-foreground">
-										{uncommittedCount} files changed
+										<Plural
+											id="workspace.commitFilter.filesChangedCount"
+											value={uncommittedCount}
+											one="# file changed"
+											other="# files changed"
+										/>
 									</div>
 								)}
 							</div>
@@ -84,7 +98,11 @@ export function CommitFilterDropdown({
 							<div className="flex flex-1 items-center justify-between">
 								<div className="flex items-center gap-2">
 									<ListFilter className="size-3.5 text-muted-foreground" />
-									<span>Select range...</span>
+									<span>
+										<Trans id="workspace.commitFilter.selectRange">
+											Select range...
+										</Trans>
+									</span>
 								</div>
 								{filter.kind === "range" && <Check className="size-3.5" />}
 							</div>

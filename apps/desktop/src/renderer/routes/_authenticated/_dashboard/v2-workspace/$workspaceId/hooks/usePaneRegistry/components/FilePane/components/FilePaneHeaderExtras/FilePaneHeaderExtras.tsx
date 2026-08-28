@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { RendererContext } from "@superset/panes";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback } from "react";
@@ -79,7 +80,11 @@ export function FilePaneHeaderExtras({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					{copied ? "Copied" : "Copy path"}
+					{copied ? (
+						<Trans id="workspace.filePane.pathCopied">Copied</Trans>
+					) : (
+						<Trans id="workspace.filePane.copyPath">Copy path</Trans>
+					)}
 				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
@@ -93,7 +98,9 @@ export function FilePaneHeaderExtras({
 						<TbFolderOpen className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Reveal in Finder</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="workspace.filePane.revealInFinder">Reveal in Finder</Trans>
+				</TooltipContent>
 			</Tooltip>
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -106,7 +113,9 @@ export function FilePaneHeaderExtras({
 						<TbExternalLink className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Open in editor</TooltipContent>
+				<TooltipContent side="bottom">
+					<Trans id="workspace.filePane.openInEditor">Open in editor</Trans>
+				</TooltipContent>
 			</Tooltip>
 		</div>
 	);

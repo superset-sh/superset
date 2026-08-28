@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -94,7 +95,11 @@ export function ChangesToolbar({
 								/>
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom">Refresh changes</TooltipContent>
+						<TooltipContent side="bottom">
+							<Trans id="workspace.changesToolbar.refreshTooltip">
+								Refresh changes
+							</Trans>
+						</TooltipContent>
 					</Tooltip>
 					<Tooltip>
 						<TooltipTrigger asChild>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { mergeAttributes, Node } from "@tiptap/core";
@@ -51,7 +52,11 @@ function FileMentionChip({ node, selected, deleteNode }: NodeViewProps) {
 							<LuX className="size-3" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="top">Remove mention</TooltipContent>
+					<TooltipContent side="top">
+						<Trans id="components.fileMentionNode.removeMention">
+							Remove mention
+						</Trans>
+					</TooltipContent>
 				</Tooltip>
 			</span>
 		</NodeViewWrapper>

@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -127,7 +128,7 @@ export function V2WorkspaceRunButton({
 								className="text-destructive focus:text-destructive"
 							>
 								<X className="mr-2 size-4 text-destructive" />
-								Force Stop
+								<Trans id="workspace.runButton.forceStop">Force Stop</Trans>
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						</>

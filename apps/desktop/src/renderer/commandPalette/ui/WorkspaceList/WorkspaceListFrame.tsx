@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import {
 	CommandEmpty,
 	CommandGroup,
@@ -99,7 +100,11 @@ function V1WorkspaceList({ query }: { query: string }) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No workspaces found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.workspaceList.empty">
+					No workspaces found.
+				</Trans>
+			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => (
@@ -172,7 +177,11 @@ function V2WorkspaceList({ query }: { query: string }) {
 
 	return (
 		<CommandList>
-			<CommandEmpty>No workspaces found.</CommandEmpty>
+			<CommandEmpty>
+				<Trans id="commandPalette.workspaceList.emptyV2">
+					No workspaces found.
+				</Trans>
+			</CommandEmpty>
 			{projectGroups.map((group) => (
 				<CommandGroup key={group.projectId} heading={group.projectName}>
 					{group.workspaces.map((workspace) => {

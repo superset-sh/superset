@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { getBrowserLogo } from "@superset/ui/icons/browser-icons";
 import { XIcon } from "lucide-react";
@@ -33,7 +34,9 @@ export function ChromeImportBanner({
 				<TbDownload className="size-3.5 shrink-0 text-muted-foreground" />
 			)}
 			<span className="min-w-0 flex-1 truncate">
-				Import your browsing history and logins from {browserName}
+				<Trans id="workspace.browserPane.importBannerPrompt">
+					Import your browsing history and logins from {browserName}
+				</Trans>
 			</span>
 			<Button
 				variant="outline"
@@ -41,7 +44,7 @@ export function ChromeImportBanner({
 				className="h-6 shrink-0 px-2 text-xs"
 				onClick={onImport}
 			>
-				Import
+				<Trans id="workspace.browserPane.importBannerAction">Import</Trans>
 			</Button>
 			<button
 				type="button"

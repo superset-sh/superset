@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { SelectScreenshot } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import {
@@ -67,12 +68,18 @@ export function ScreenshotsDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Screenshots</DialogTitle>
+					<DialogTitle>
+						<Trans id="workspace.browserPane.screenshotsTitle">
+							Screenshots
+						</Trans>
+					</DialogTitle>
 				</DialogHeader>
 				<ScrollArea className="h-80 min-w-0 -mx-1 px-1">
 					{rows.length === 0 ? (
 						<p className="py-8 text-center text-sm text-muted-foreground">
-							No screenshots yet
+							<Trans id="workspace.browserPane.noScreenshots">
+								No screenshots yet
+							</Trans>
 						</p>
 					) : (
 						<div className="flex min-w-0 flex-col">
@@ -133,7 +140,9 @@ export function ScreenshotsDialog({
 						onClick={handleClear}
 						disabled={rows.length === 0}
 					>
-						Clear list
+						<Trans id="workspace.browserPane.screenshotsClearList">
+							Clear list
+						</Trans>
 					</Button>
 				</div>
 			</DialogContent>

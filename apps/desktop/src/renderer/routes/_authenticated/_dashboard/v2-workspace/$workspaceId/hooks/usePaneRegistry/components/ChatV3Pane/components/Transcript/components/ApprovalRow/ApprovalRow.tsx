@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import type { ApprovalRequest, Decision } from "@superset/chat/protocol";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -39,7 +40,11 @@ export function ApprovalRow({
 		>
 			<div className="flex items-center gap-2">
 				<span className="text-sm font-medium">{item.title}</span>
-				{item.status === "stale" && <Badge variant="outline">Expired</Badge>}
+				{item.status === "stale" && (
+					<Badge variant="outline">
+						<Trans id="workspace.chat.approvalExpired">Expired</Trans>
+					</Badge>
+				)}
 				{item.status === "answered" && (
 					<Badge variant="secondary">{decisionLabel(item.decision)}</Badge>
 				)}
@@ -70,21 +75,23 @@ export function ApprovalRow({
 							onClick={() => onRespond(item.id, { type: "accept" })}
 							size="sm"
 						>
-							Allow
+							<Trans id="workspace.chat.approvalAllow">Allow</Trans>
 						</Button>
 						<Button
 							onClick={() => onRespond(item.id, { type: "accept_for_session" })}
 							size="sm"
 							variant="outline"
 						>
-							Allow for session
+							<Trans id="workspace.chat.approvalAllowForSession">
+								Allow for session
+							</Trans>
 						</Button>
 						<Button
 							onClick={() => onRespond(item.id, { type: "decline" })}
 							size="sm"
 							variant="outline"
 						>
-							Deny
+							<Trans id="workspace.chat.approvalDeny">Deny</Trans>
 						</Button>
 					</div>
 				))}

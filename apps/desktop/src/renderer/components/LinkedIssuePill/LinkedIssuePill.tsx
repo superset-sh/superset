@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -74,7 +75,9 @@ export function LinkedIssuePill({
 					variant="ghost"
 				>
 					<XIcon />
-					<span className="sr-only">Remove</span>
+					<span className="sr-only">
+						<Trans id="components.linkedIssuePill.remove">Remove</Trans>
+					</span>
 				</Button>
 			</div>
 			<div className="flex flex-col items-start leading-tight">
@@ -84,7 +87,9 @@ export function LinkedIssuePill({
 				<div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase tracking-widest">
 					<span className="max-w-[80px] truncate">{slug}</span>
 					<span>·</span>
-					<span>Linear</span>
+					<span>
+						<Trans id="components.linkedIssuePill.linearSource">Linear</Trans>
+					</span>
 				</div>
 			</div>
 		</div>
