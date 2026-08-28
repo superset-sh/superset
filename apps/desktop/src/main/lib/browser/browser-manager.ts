@@ -201,7 +201,27 @@ class BrowserManager extends EventEmitter {
 			// throttled+hidden guest stops presenting frames and CDP input and
 			// screenshots silently break.
 			this.applyThrottling(paneId, wc);
-			wc.setWindowOpenHandler(({ url }) => {
+			wc.setWindowOpenHandler(({ url, disposition, features }) => {
+				// Popup-shaped requests — a non-empty features string (the
+				// `width=…,height=…` shape OAuth "Sign in with …" buttons use) or
+				// Chromium's NEW_POPUP disposition, which Electron reports as
+				// "new-window" — must become a real child window. Denying them
+				// makes `window.open()` return null and severs `window.opener`, so
+				// postMessage/`popup.closed` handshakes never complete.
+				const isPopup = disposition === "new-window" || features !== "";
+				if (isPopup && isAllowedGuestUrl(url)) {
+					return {
+						action: "allow" as const,
+						overrideBrowserWindowOptions: {
+							// Share the pane's session so the popup sees the same
+							// cookies/storage as its opener.
+							webPreferences: { partition: "persist:superset" },
+						},
+					};
+				}
+				// Tab-shaped requests (target="_blank" links, featureless
+				// window.open) stay in-app: deny the native window and let the
+				// renderer open the URL as a new browser split.
 				if (url && url !== "about:blank") {
 					this.emit(`new-window:${paneId}`, url);
 				}

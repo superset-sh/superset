@@ -22,7 +22,8 @@ export interface BrowserRuntimeState {
 export interface PersistableBrowserState {
 	url: string;
 	pageTitle: string;
-	faviconUrl: string | null;
+	/** Omitted when the persist source has no fresh favicon; consumers keep the previous value. */
+	faviconUrl?: string | null;
 }
 
 interface RegistryEntry {
@@ -305,14 +306,6 @@ class BrowserRuntimeRegistryImpl {
 			lastUsedAt: 0,
 		};
 
-		const firePersist = () => {
-			entry.onPersist?.({
-				url: entry.state.currentUrl,
-				pageTitle: entry.state.pageTitle,
-				faviconUrl: entry.state.faviconUrl,
-			});
-		};
-
 		const handleDomReady = () => {
 			const webContentsId = webview.getWebContentsId();
 			if (entry.webContentsId !== webContentsId) {
@@ -350,7 +343,10 @@ class BrowserRuntimeRegistryImpl {
 						console.error("[browserRuntimeRegistry] upsert history:", err);
 					});
 			}
-			firePersist();
+			// No faviconUrl here: did-start-loading reset it to null and the real
+			// one arrives via page-favicon-updated, which persists it itself —
+			// including the null would clobber a good favicon on every navigation.
+			entry.onPersist?.({ url, pageTitle: title });
 		};
 
 		const handleDidNavigate = (e: Electron.DidNavigateEvent) => {
@@ -388,7 +384,11 @@ class BrowserRuntimeRegistryImpl {
 						console.error("[browserRuntimeRegistry] upsert favicon:", err);
 					});
 			}
-			firePersist();
+			entry.onPersist?.({
+				url: entry.state.currentUrl,
+				pageTitle: entry.state.pageTitle,
+				faviconUrl: favicon,
+			});
 		};
 
 		const handleDidFailLoad = (e: Electron.DidFailLoadEvent) => {

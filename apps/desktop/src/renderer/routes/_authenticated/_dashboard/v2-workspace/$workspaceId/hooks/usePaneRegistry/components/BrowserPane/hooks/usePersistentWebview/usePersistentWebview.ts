@@ -73,18 +73,26 @@ export function usePersistentWebview({
 			attachUrlRef.current,
 			workspaceId ?? "",
 			({ url, pageTitle, faviconUrl }) => {
+				// A detached pane keeps its onPersist so an in-flight navigation can
+				// still finish persisting, while this component instance may already
+				// be rendering a different pane (unkeyed tab reuse / replacePane).
+				// A late event from the old pane must not write through ctxRef into
+				// whichever pane is active now.
+				if (ctxRef.current.pane.id !== paneId) return;
 				const current = ctxRef.current.pane.data as BrowserPaneData;
+				const nextFaviconUrl =
+					faviconUrl === undefined ? current.faviconUrl : faviconUrl;
 				if (
 					current.url === url &&
 					current.pageTitle === pageTitle &&
-					current.faviconUrl === faviconUrl
+					current.faviconUrl === nextFaviconUrl
 				)
 					return;
 				ctxRef.current.actions.updateData({
 					...current,
 					url,
 					pageTitle,
-					faviconUrl,
+					faviconUrl: nextFaviconUrl,
 				});
 			},
 		);

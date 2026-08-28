@@ -182,6 +182,11 @@ export default defineConfig({
 			rollupOptions: {
 				input: {
 					index: resolve("src/preload/index.ts"),
+					// Browser-pane session preload — registered at runtime by
+					// src/main/lib/browser/user-agent.ts via registerPreloadScript.
+					"browser-client-hints": resolve(
+						"src/preload/browser-client-hints.ts",
+					),
 				},
 			},
 		},

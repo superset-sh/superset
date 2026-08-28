@@ -28,6 +28,7 @@ import { requestAppleEventsAccess } from "./lib/apple-events-permission";
 import { isUpdateReadyToInstall, setupAutoUpdater } from "./lib/auto-updater";
 import { startBrowserBridge } from "./lib/browser/browser-bridge";
 import { downloadManager } from "./lib/browser/download-manager";
+import { configureBrowserUserAgent } from "./lib/browser/user-agent";
 import { installBundledCliShim } from "./lib/bundled-cli";
 import { resolveDevWorkspaceName } from "./lib/dev-workspace-name";
 import { setWorkspaceDockIcon } from "./lib/dock-icon";
@@ -448,6 +449,11 @@ if (!gotTheLock) {
 		session
 			.fromPartition("persist:superset")
 			.protocol.handle(PAGE_SCHEME, pageProtocolHandler);
+
+		// Before any webview loads: replace Electron's default UA (which appends
+		// `Electron/x.y.z` + the product name) with real Chrome's, so browser-pane
+		// traffic doesn't trip bot detection.
+		configureBrowserUserAgent();
 
 		// Serve system fonts (e.g. SF Mono on macOS) via custom protocol
 		// so the renderer can use @font-face with font-src 'self' CSP
