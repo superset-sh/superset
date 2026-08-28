@@ -165,6 +165,139 @@ function countLeaves(node: LayoutNode): number {
 	return countLeaves(node.first) + countLeaves(node.second);
 }
 
+interface SplitGroupTrack {
+	path: SplitPath;
+	weight: number;
+}
+
+function flattenSplitGroupTracks(
+	node: LayoutNode,
+	direction: SplitDirection,
+	path: SplitPath = [],
+	weight = 1,
+): SplitGroupTrack[] {
+	if (node.type !== "split" || node.direction !== direction) {
+		return [{ path, weight }];
+	}
+
+	const firstWeight =
+		Math.min(100, Math.max(0, node.splitPercentage ?? 50)) / 100;
+	return [
+		...flattenSplitGroupTracks(
+			node.first,
+			direction,
+			[...path, "first"],
+			weight * firstWeight,
+		),
+		...flattenSplitGroupTracks(
+			node.second,
+			direction,
+			[...path, "second"],
+			weight * (1 - firstWeight),
+		),
+	];
+}
+
+function pathStartsWith(path: SplitPath, prefix: SplitPath): boolean {
+	return prefix.every((branch, index) => path[index] === branch);
+}
+
+function sumTrackWeights(tracks: SplitGroupTrack[], prefix: SplitPath): number {
+	return tracks.reduce(
+		(total, track) =>
+			pathStartsWith(track.path, prefix) ? total + track.weight : total,
+		0,
+	);
+}
+
+function applySplitGroupTrackWeights(
+	node: LayoutNode,
+	direction: SplitDirection,
+	tracks: SplitGroupTrack[],
+	path: SplitPath = [],
+): LayoutNode {
+	if (node.type !== "split" || node.direction !== direction) return node;
+
+	const firstPath: SplitPath = [...path, "first"];
+	const secondPath: SplitPath = [...path, "second"];
+	const firstWeight = sumTrackWeights(tracks, firstPath);
+	const secondWeight = sumTrackWeights(tracks, secondPath);
+	const totalWeight = firstWeight + secondWeight;
+
+	return {
+		...node,
+		splitPercentage: totalWeight === 0 ? 50 : (firstWeight / totalWeight) * 100,
+		first: applySplitGroupTrackWeights(
+			node.first,
+			direction,
+			tracks,
+			firstPath,
+		),
+		second: applySplitGroupTrackWeights(
+			node.second,
+			direction,
+			tracks,
+			secondPath,
+		),
+	};
+}
+
+/**
+ * Equalizes only the two tracks immediately adjacent to the sash at `path`.
+ *
+ * The persisted layout is binary, while editor grids such as VS Code flatten
+ * adjacent splits with the same direction into one sash group. Rebalance the
+ * two tracks on either side of the clicked boundary while preserving every
+ * other track and every perpendicular subtree.
+ */
+export function equalizeSplitBoundary(
+	node: LayoutNode,
+	path: SplitPath,
+): LayoutNode {
+	const target = getNodeAtPath(node, path);
+	if (target?.type !== "split") return node;
+
+	let groupPath = [...path];
+	while (groupPath.length > 0) {
+		const parentPath = groupPath.slice(0, -1);
+		const parent = getNodeAtPath(node, parentPath);
+		if (parent?.type !== "split" || parent.direction !== target.direction) {
+			break;
+		}
+		groupPath = parentPath;
+	}
+
+	return updateAtPath(node, groupPath, (group) => {
+		const tracks = flattenSplitGroupTracks(group, target.direction);
+		const targetPath = path.slice(groupPath.length);
+		const firstPrefix: SplitPath = [...targetPath, "first"];
+		const secondPrefix: SplitPath = [...targetPath, "second"];
+		let firstTrackIndex = -1;
+		for (const [index, track] of tracks.entries()) {
+			if (pathStartsWith(track.path, firstPrefix)) {
+				firstTrackIndex = index;
+			}
+		}
+		const secondTrackIndex = tracks.findIndex((track) =>
+			pathStartsWith(track.path, secondPrefix),
+		);
+
+		if (firstTrackIndex < 0 || secondTrackIndex !== firstTrackIndex + 1) {
+			return group;
+		}
+
+		const firstTrack = tracks[firstTrackIndex];
+		const secondTrack = tracks[secondTrackIndex];
+		if (!firstTrack || !secondTrack) return group;
+
+		const equalWeight = (firstTrack.weight + secondTrack.weight) / 2;
+		firstTrack.weight = equalWeight;
+		secondTrack.weight = equalWeight;
+
+		return applySplitGroupTrackWeights(group, target.direction, tracks);
+	});
+}
+
 export function equalizeAllSplits(node: LayoutNode): LayoutNode {
 	if (node.type === "pane") return node;
 

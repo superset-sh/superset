@@ -2,7 +2,12 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveEntryPath } from "./entryPath";
+import { resolveWorkspaceId } from "../workspaceRef";
+import {
+	EXTERNAL_ENTRY_PREFIX,
+	externalEntryPath,
+	resolveEntryPath,
+} from "./entryPath";
 
 const VISIBILITIES = ["just_me", "org"] as const;
 
@@ -18,6 +23,9 @@ export default command({
 		visibility: string().desc(`One of: ${VISIBILITIES.join(", ")}`),
 		page: string().desc(
 			"Publish a new version of this page id, instead of resolving by workspace",
+		),
+		workspace: string().desc(
+			"Workspace to publish into, by name or id (defaults to $SUPERSET_WORKSPACE_ID)",
 		),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -44,15 +52,28 @@ export default command({
 
 		const html = readFileSync(filePath, "utf8");
 
-		const entryPath = resolveEntryPath({
-			filePath,
-			workspacePath: process.env.SUPERSET_WORKSPACE_PATH,
-		});
-		const workspaceId = entryPath
-			? process.env.SUPERSET_WORKSPACE_ID
+		const entryPath =
+			resolveEntryPath({
+				filePath,
+				workspacePath: process.env.SUPERSET_WORKSPACE_PATH,
+			}) ?? externalEntryPath(filePath);
+
+		const workspaceRef = options.workspace ?? process.env.SUPERSET_WORKSPACE_ID;
+		if (!workspaceRef && !options.page) {
+			throw new CLIError(
+				"No workspace to publish into",
+				"Run this inside a Superset workspace, pass --workspace <name|id>, or pass --page <id> to add a version to an existing page",
+			);
+		}
+		const workspaceId = workspaceRef
+			? await resolveWorkspaceId({
+					value: workspaceRef,
+					organizationId: ctx.config.organizationId,
+					userJwt: ctx.bearer,
+					api: ctx.api,
+				})
 			: undefined;
-		const link =
-			entryPath && workspaceId ? { entryPath, workspaceId } : undefined;
+		const link = workspaceId ? { entryPath, workspaceId } : undefined;
 
 		const page = await ctx.api.page.publish.mutate({
 			content: Buffer.from(html, "utf8").toString("base64"),
@@ -68,14 +89,14 @@ export default command({
 				: {}),
 		});
 
-		const unlinked =
-			link || options.page
-				? ""
-				: "\nNot linked to a workspace; republish with --page to add a version";
+		const external =
+			link && entryPath.startsWith(EXTERNAL_ENTRY_PREFIX) && !options.page
+				? `\nOutside the workspace, so this page is keyed as "${entryPath}"`
+				: "";
 
 		return {
 			data: page,
-			message: `Published "${page.title}" v${page.version}\n${page.url}${unlinked}`,
+			message: `Published "${page.title}" v${page.version}\n${page.url}${external}`,
 		};
 	},
 });

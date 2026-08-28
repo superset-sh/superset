@@ -1,3 +1,4 @@
+import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import {
 	canRemoveMember,
 	getRoleSortPriority,
@@ -83,7 +84,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
-		return d.toLocaleDateString("en-US", {
+		return formatLocaleDate(d, {
 			month: "short",
 			day: "numeric",
 		});

@@ -1,3 +1,8 @@
+import {
+	formatCompactNumber,
+	formatCurrency,
+	formatPercent,
+} from "@superset/i18n/format";
 import { createContext, useContext, useMemo } from "react";
 import { View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
@@ -115,10 +120,7 @@ export type ContextTriggerProps = ButtonProps;
 export const ContextTrigger = ({ children, ...props }: ContextTriggerProps) => {
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = usedTokens / maxTokens;
-	const renderedPercent = new Intl.NumberFormat("en-US", {
-		maximumFractionDigits: 1,
-		style: "percent",
-	}).format(usedPercent);
+	const renderedPercent = formatPercent(usedPercent);
 
 	return (
 		<HoverCardTrigger asChild>
@@ -155,16 +157,9 @@ export const ContextContentHeader = ({
 }: ContextContentHeaderProps) => {
 	const { usedTokens, maxTokens } = useContextValue();
 	const usedPercent = usedTokens / maxTokens;
-	const displayPct = new Intl.NumberFormat("en-US", {
-		maximumFractionDigits: 1,
-		style: "percent",
-	}).format(usedPercent);
-	const used = new Intl.NumberFormat("en-US", {
-		notation: "compact",
-	}).format(usedTokens);
-	const total = new Intl.NumberFormat("en-US", {
-		notation: "compact",
-	}).format(maxTokens);
+	const displayPct = formatPercent(usedPercent);
+	const used = formatCompactNumber(usedTokens);
+	const total = formatCompactNumber(maxTokens);
 
 	return (
 		<View
@@ -217,10 +212,7 @@ export const ContextContentFooter = ({
 				},
 			}).costUSD?.totalUSD
 		: undefined;
-	const totalCost = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(costUSD ?? 0);
+	const totalCost = formatCurrency(costUSD ?? 0);
 
 	return (
 		<TextClassContext.Provider value="text-xs">
@@ -250,11 +242,7 @@ const TokensWithCost = ({
 	costText?: string;
 }) => (
 	<Text className="text-xs">
-		{tokens === undefined
-			? "—"
-			: new Intl.NumberFormat("en-US", {
-					notation: "compact",
-				}).format(tokens)}
+		{tokens === undefined ? "—" : formatCompactNumber(tokens)}
 		{costText ? (
 			<Text className="text-muted-foreground text-xs"> • {costText}</Text>
 		) : null}
@@ -285,10 +273,7 @@ export const ContextInputUsage = ({
 				usage: { input: inputTokens, output: 0 },
 			}).costUSD?.totalUSD
 		: undefined;
-	const inputCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(inputCost ?? 0);
+	const inputCostText = formatCurrency(inputCost ?? 0);
 
 	return (
 		<View
@@ -325,10 +310,7 @@ export const ContextOutputUsage = ({
 				usage: { input: 0, output: outputTokens },
 			}).costUSD?.totalUSD
 		: undefined;
-	const outputCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(outputCost ?? 0);
+	const outputCostText = formatCurrency(outputCost ?? 0);
 
 	return (
 		<View
@@ -365,10 +347,7 @@ export const ContextReasoningUsage = ({
 				usage: { reasoningTokens },
 			}).costUSD?.totalUSD
 		: undefined;
-	const reasoningCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(reasoningCost ?? 0);
+	const reasoningCostText = formatCurrency(reasoningCost ?? 0);
 
 	return (
 		<View
@@ -405,10 +384,7 @@ export const ContextCacheUsage = ({
 				usage: { cacheReads: cacheTokens, input: 0, output: 0 },
 			}).costUSD?.totalUSD
 		: undefined;
-	const cacheCostText = new Intl.NumberFormat("en-US", {
-		currency: "USD",
-		style: "currency",
-	}).format(cacheCost ?? 0);
+	const cacheCostText = formatCurrency(cacheCost ?? 0);
 
 	return (
 		<View

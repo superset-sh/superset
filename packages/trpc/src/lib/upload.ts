@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
+import { userError } from "../i18n-error";
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_SIZE_MB = 4.5;
@@ -16,9 +17,10 @@ export async function uploadImage({
 	existingUrl: string | null;
 }) {
 	if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
-		throw new TRPCError({
+		throw userError({
 			code: "BAD_REQUEST",
 			message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
+			i18nKey: "serverError.upload.invalidImageTypeOnlyPngJpeg",
 		});
 	}
 

@@ -47,6 +47,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	hermes: { light: hermesIcon, dark: hermesWhiteIcon },
 	kimi: { light: kimiIcon, dark: kimiWhiteIcon },
 	kiro: { light: kiroIcon, dark: kiroIcon },
+	omp: { light: piIcon, dark: piWhiteIcon },
 	pi: { light: piIcon, dark: piWhiteIcon },
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },

@@ -1,4 +1,4 @@
-import { TRPCError } from "@trpc/server";
+import { userError } from "../../i18n-error";
 import type { TRPCContext } from "../../trpc";
 
 // Split from the router so the unit tests can reach these without importing
@@ -44,9 +44,10 @@ export function assertActivatedForAgent(
 ): void {
 	if (!agentSession) return;
 	if (thread.agentActivatedAt !== null) return;
-	throw new TRPCError({
+	throw userError({
 		code: "FORBIDDEN",
 		message:
 			"This thread has not been handed to an agent. Someone has to hand it off from the page first.",
+		i18nKey: "serverError.pageComment.thisThreadHasNotBeenHanded",
 	});
 }

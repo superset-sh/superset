@@ -1,5 +1,31 @@
+import { wcagContrast } from "culori";
 import { type EditorTheme, getTerminalColors, type Theme } from "./types";
 import { withAlpha } from "./utils";
+
+/* Some themes use terminal brightBlack as a surface tone (kintsugi #2a221a on
+ * #0d0a08 is 1.26:1), not a dim-text tone. Below this ratio comments are
+ * illegible, so fall back to mutedForeground. Authentic low-contrast comment
+ * palettes (tokyo-night 1.91, one-dark 2.32, solarized 2.79) stay untouched. */
+const MIN_COMMENT_CONTRAST = 1.8;
+
+function deriveCommentColor(theme: Theme): string {
+	const brightBlack = theme.terminal?.brightBlack;
+	if (!brightBlack) {
+		return theme.ui.mutedForeground;
+	}
+	const background =
+		theme.editor?.colors?.background ??
+		theme.terminal?.background ??
+		theme.ui.background;
+	const brightBlackContrast = wcagContrast(brightBlack, background);
+	if (brightBlackContrast >= MIN_COMMENT_CONTRAST) {
+		return brightBlack;
+	}
+	const muted = theme.ui.mutedForeground;
+	return wcagContrast(muted, background) > brightBlackContrast
+		? muted
+		: brightBlack;
+}
 
 /**
  * Get editor colors from a theme, falling back to a derived palette if not defined.
@@ -53,7 +79,7 @@ export function getEditorTheme(theme: Theme): EditorTheme {
 		},
 		syntax: {
 			plainText: theme.ui.foreground,
-			comment: terminal?.brightBlack ?? theme.ui.mutedForeground,
+			comment: deriveCommentColor(theme),
 			keyword: terminal?.magenta ?? theme.ui.primary,
 			string: terminal?.green ?? theme.ui.chart2,
 			number: terminal?.yellow ?? theme.ui.chart4,

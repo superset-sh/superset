@@ -1,6 +1,7 @@
 import {
 	getAgentEffortSupport,
 	getAgentModelSupport,
+	getAgentModeSupport,
 } from "@superset/shared/agent-models";
 import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
@@ -35,6 +36,7 @@ import { useActiveOrganizationId } from "renderer/hooks/useActiveOrganizationId"
 import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
 import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
+import { useAgentModePreference } from "renderer/hooks/useAgentModePreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { PLATFORM } from "renderer/hotkeys";
@@ -66,6 +68,7 @@ import {
 import {
 	AGENT_STORAGE_KEY,
 	EFFORT_STORAGE_KEY,
+	MODE_STORAGE_KEY,
 	MODEL_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
 	type ProjectOption,
@@ -189,11 +192,12 @@ export function PromptGroup({
 		});
 
 	// ── Model picker (per agent preset) ──────────────────────────────
-	// `iconId` carries the presetId for v2 agents ("superset" for chat).
-	const selectedPresetId = useMemo(
-		() => v2Agents.find((agent) => agent.id === selectedAgent)?.iconId ?? null,
-		[v2Agents, selectedAgent],
-	);
+	// `launchPresetId` carries executable-aware capability metadata; Superset
+	// chat has no host config and falls back to its icon id.
+	const selectedPresetId = useMemo(() => {
+		const agent = v2Agents.find((candidate) => candidate.id === selectedAgent);
+		return agent?.launchPresetId ?? agent?.presetId ?? agent?.iconId ?? null;
+	}, [v2Agents, selectedAgent]);
 	const modelSupport = selectedPresetId
 		? getAgentModelSupport(selectedPresetId)
 		: undefined;
@@ -207,6 +211,13 @@ export function PromptGroup({
 	const { selectedEffort, setSelectedEffort } = useAgentEffortPreference(
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
+	);
+	const modeSupport = selectedPresetId
+		? getAgentModeSupport(selectedPresetId)
+		: undefined;
+	const { selectedMode, setSelectedMode } = useAgentModePreference(
+		MODE_STORAGE_KEY,
+		modeSupport ? selectedPresetId : null,
 	);
 
 	// Promote the placeholder "none" → first configured agent whenever the
@@ -346,6 +357,7 @@ export function PromptGroup({
 		selectedAgent,
 		modelSupport ? selectedModel : null,
 		effortSupport ? selectedEffort : null,
+		modeSupport ? selectedMode : null,
 		uploadAttachments,
 		promptContext,
 	);
@@ -590,6 +602,15 @@ export function PromptGroup({
 								value={selectedEffort}
 								onValueChange={setSelectedEffort}
 								defaultLabel="Default effort"
+								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
+							/>
+						)}
+						{modeSupport && (
+							<AgentModelSelect
+								models={modeSupport.modes}
+								value={selectedMode}
+								onValueChange={setSelectedMode}
+								defaultLabel="Direct mode"
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}

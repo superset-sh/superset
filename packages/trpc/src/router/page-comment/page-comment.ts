@@ -9,7 +9,7 @@ import {
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 import { assertPageReadable } from "../page/access";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { agentSessionFor, assertActivatedForAgent } from "./agent-access";
@@ -17,6 +17,7 @@ import {
 	activateAgentThreadsSchema,
 	createPageCommentThreadSchema,
 	deletePageCommentThreadSchema,
+	type ElementAnchor,
 	editPageCommentSchema,
 	listPageCommentsSchema,
 	replyPageCommentSchema,
@@ -39,7 +40,11 @@ async function loadReadablePage({
 		.limit(1);
 
 	if (!page) {
-		throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
+		throw userError({
+			code: "NOT_FOUND",
+			message: "Page not found",
+			i18nKey: "serverError.pageComment.pageNotFound",
+		});
 	}
 	assertPageReadable(page, userId);
 	return page;
@@ -67,7 +72,11 @@ async function loadThread({
 		.limit(1);
 
 	if (!row) {
-		throw new TRPCError({ code: "NOT_FOUND", message: "Thread not found" });
+		throw userError({
+			code: "NOT_FOUND",
+			message: "Thread not found",
+			i18nKey: "serverError.pageComment.threadNotFound",
+		});
 	}
 	assertPageReadable(row.page, userId);
 	return row;
@@ -146,7 +155,7 @@ export const pageCommentRouter = {
 			return threadRows.map((thread) => ({
 				id: thread.id,
 				anchorKind: thread.anchorKind,
-				anchor: thread.anchor as { path: string; tag: string } | null,
+				anchor: thread.anchor as ElementAnchor | null,
 				anchorText: thread.anchorText,
 				resolved: thread.resolvedAt !== null,
 				createdAt: thread.createdAt,
@@ -200,9 +209,10 @@ export const pageCommentRouter = {
 					.returning();
 
 				if (!thread) {
-					throw new TRPCError({
+					throw userError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: "Failed to create thread",
+						i18nKey: "serverError.pageComment.failedToCreateThread",
 					});
 				}
 
@@ -272,16 +282,18 @@ export const pageCommentRouter = {
 				.limit(1);
 
 			if (!existing) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Comment not found",
+					i18nKey: "serverError.pageComment.commentNotFound",
 				});
 			}
 			assertPageReadable(existing.page, userId);
 			if (existing.comment.authorUserId !== userId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only the author can edit a comment",
+					i18nKey: "serverError.pageComment.onlyTheAuthorCanEdit",
 				});
 			}
 
@@ -307,9 +319,10 @@ export const pageCommentRouter = {
 		.input(activateAgentThreadsSchema)
 		.mutation(async ({ ctx, input }) => {
 			if (ctx.agentCaller) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only a person can hand a thread to an agent",
+					i18nKey: "serverError.pageComment.onlyAPersonCanHand",
 				});
 			}
 
@@ -373,9 +386,10 @@ export const pageCommentRouter = {
 				thread.createdByUserId !== userId &&
 				page.createdByUserId !== userId
 			) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Only the thread's author or the page's owner can delete it",
+					i18nKey: "serverError.pageComment.onlyTheThreadSAuthor",
 				});
 			}
 

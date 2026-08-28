@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -38,9 +39,7 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 				`Imported ${result.imported} workspace${result.imported === 1 ? "" : "s"}`,
 			);
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to import worktrees",
-			);
+			toast.error(errorMessage(err, "Failed to import worktrees"));
 		}
 	};
 

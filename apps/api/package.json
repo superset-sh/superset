@@ -25,6 +25,7 @@
 		"@slack/web-api": "7.15.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/email": "workspace:*",
 		"@superset/mcp": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
@@ -45,6 +46,7 @@
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"require-in-the-middle": "8.0.1",
+		"resend": "6.18.0",
 		"rrule": "2.8.1",
 		"stripe": "20.4.1",
 		"zod": "4.4.3"

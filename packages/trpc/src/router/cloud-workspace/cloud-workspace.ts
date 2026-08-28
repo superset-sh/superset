@@ -12,7 +12,7 @@ import {
 	mintPreviewAccess,
 	repoForProject,
 } from "../../lib/blaxel";
-import { jwtProcedure } from "../../trpc";
+import { jwtProcedure, userError } from "../../trpc";
 import {
 	FALLBACK_NAME,
 	provisionCloudWorkspace,
@@ -39,18 +39,20 @@ const isLocalApi = /^https?:\/\/(localhost|127\.0\.0\.1)/.test(
  */
 function assertInternal(email: string): void {
 	if (!email.toLowerCase().endsWith("@superset.sh")) {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Cloud workspaces are not available yet",
+			i18nKey: "serverError.cloudWorkspace.cloudWorkspacesAreNotAvailableYet",
 		});
 	}
 }
 
 function assertMember(organizationIds: string[], organizationId: string): void {
 	if (!organizationIds.includes(organizationId)) {
-		throw new TRPCError({
+		throw userError({
 			code: "FORBIDDEN",
 			message: "Not a member of this organization",
+			i18nKey: "serverError.cloudWorkspace.notAMemberOfThisOrganization",
 		});
 	}
 }
@@ -133,9 +135,11 @@ export const cloudWorkspaceRouter = {
 				),
 			});
 			if (!project) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Project not found in this organization",
+					i18nKey:
+						"serverError.cloudWorkspace.projectNotFoundInThisOrganization",
 				});
 			}
 			return listRemoteBranches(input.projectId, input.query);
@@ -194,9 +198,11 @@ export const cloudWorkspaceRouter = {
 				),
 			});
 			if (!project) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Project not found in this organization",
+					i18nKey:
+						"serverError.cloudWorkspace.projectNotFoundInThisOrganization",
 				});
 			}
 
@@ -226,9 +232,10 @@ export const cloudWorkspaceRouter = {
 				})
 				.returning();
 			if (!row) {
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Could not record cloud workspace",
+					i18nKey: "serverError.cloudWorkspace.couldNotRecordCloudWorkspace",
 				});
 			}
 
@@ -270,9 +277,11 @@ export const cloudWorkspaceRouter = {
 					`[cloud-workspace] could not queue provisioning for ${row.id}`,
 					error,
 				);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Could not start cloud workspace provisioning",
+					i18nKey:
+						"serverError.cloudWorkspace.couldNotStartCloudWorkspaceProvisioning",
 				});
 			}
 
@@ -293,7 +302,11 @@ export const cloudWorkspaceRouter = {
 				where: eq(cloudWorkspaces.id, input.id),
 			});
 			if (!row) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Not found" });
+				throw userError({
+					code: "NOT_FOUND",
+					message: "Not found",
+					i18nKey: "serverError.cloudWorkspace.notFound",
+				});
 			}
 			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, row.organizationId);
@@ -322,7 +335,11 @@ export const cloudWorkspaceRouter = {
 				where: eq(cloudWorkspaces.id, input.id),
 			});
 			if (!row) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Not found" });
+				throw userError({
+					code: "NOT_FOUND",
+					message: "Not found",
+					i18nKey: "serverError.cloudWorkspace.notFound",
+				});
 			}
 			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, row.organizationId);

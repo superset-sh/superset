@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { track } from "renderer/lib/analytics";
 import type { Command, CommandContext } from "./types";
@@ -11,7 +12,7 @@ export async function executeCommand(
 	try {
 		await command.run(context);
 	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
+		const message = errorMessage(error);
 		toast.error(`Command "${command.title}" failed: ${message}`);
 	}
 }

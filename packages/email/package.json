@@ -11,6 +11,7 @@
 		"typescript": "6.0.3"
 	},
 	"exports": {
+		"./emails/marketing/DownloadLinkEmail": "./src/emails/marketing/DownloadLinkEmail/index.ts",
 		"./emails/*": "./src/emails/*.tsx"
 	},
 	"private": true,

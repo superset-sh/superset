@@ -9,9 +9,15 @@ import {
 	type HostMessageBody,
 	injectCommentRuntime,
 } from "../../utils/commentRuntime";
-import { CommentBubble } from "./components/CommentBubble";
+import { CommentBubble, pinClassName } from "./components/CommentBubble";
 import { CommentPopover, initialsOf } from "./components/CommentPopover";
 import { PageFrame } from "./components/PageFrame";
+import {
+	PIN_SIZE,
+	type PinPoint,
+	pinPointOf,
+	stackPins,
+} from "./utils/pinLayout";
 
 interface PageCommentsViewProps {
 	html: string;
@@ -30,7 +36,9 @@ export function PageCommentsView({
 	const [frameEpoch, setFrameEpoch] = useState(0);
 
 	const {
+		user,
 		enabled,
+		toggleEnabled,
 		submitting,
 		threads,
 		draft,
@@ -70,6 +78,39 @@ export function PageCommentsView({
 		};
 	}, [injected, serveHtml]);
 
+	/**
+	 * Escape peels one layer at a time: the draft you are composing, then an
+	 * open thread, then comment mode itself.
+	 */
+	const dismiss = useCallback(() => {
+		if (submitting) return;
+		if (draft) {
+			discardDraft();
+			return;
+		}
+		if (activeThreadId) {
+			setActiveThreadId(null);
+			return;
+		}
+		if (enabled) toggleEnabled();
+	}, [
+		activeThreadId,
+		discardDraft,
+		draft,
+		enabled,
+		setActiveThreadId,
+		submitting,
+		toggleEnabled,
+	]);
+
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape" && !event.defaultPrevented) dismiss();
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [dismiss]);
+
 	const send = useCallback((message: HostMessageBody) => {
 		frameRef.current?.contentWindow?.postMessage(
 			{ channel: HOST_CHANNEL, ...message },
@@ -105,6 +146,7 @@ export function PageCommentsView({
 					setActiveThreadId(null);
 				}
 			}
+			if (data.type === "escape") dismiss();
 			if (data.type === "rects") setRects(data.entries);
 			if (data.type === "pick") {
 				openDraft({ anchor: data.anchor, rect: data.rect });
@@ -115,6 +157,7 @@ export function PageCommentsView({
 		return () => window.removeEventListener("message", onMessage);
 	}, [
 		discardDraft,
+		dismiss,
 		notifyFramePointerDown,
 		openDraft,
 		setActiveThreadId,
@@ -139,19 +182,25 @@ export function PageCommentsView({
 		});
 	}, [frameEpoch, send, threads]);
 
-	const stackIndex = useMemo(() => {
-		const seen = new Map<string, number>();
-		const out: Record<string, number> = {};
+	const pins = useMemo(() => {
+		const out: { id: string; point: PinPoint }[] = [];
 		for (const thread of threads) {
-			const taken = seen.get(thread.anchor.path) ?? 0;
-			out[thread.id] = taken;
-			seen.set(thread.anchor.path, taken + 1);
+			const rect = rects[thread.id];
+			if (rect)
+				out.push({ id: thread.id, point: pinPointOf(rect, thread.anchor) });
 		}
 		return out;
-	}, [threads]);
+	}, [rects, threads]);
+
+	const pinPoints = useMemo(
+		() => new Map(pins.map((pin) => [pin.id, pin.point])),
+		[pins],
+	);
+	const stackIndex = useMemo(() => stackPins(pins), [pins]);
 
 	const activeThread = threads.find((thread) => thread.id === activeThreadId);
-	const activeRect = activeThread ? rects[activeThread.id] : null;
+	const activePoint = activeThread ? pinPoints.get(activeThread.id) : null;
+	const draftPoint = draft ? pinPointOf(draft.rect, draft.anchor) : null;
 
 	return (
 		<div ref={containerRef} className="relative h-full w-full">
@@ -172,18 +221,32 @@ export function PageCommentsView({
 							width: hoverRect.width,
 							height: hoverRect.height,
 						}}
-						className="absolute top-0 left-0 rounded-sm bg-primary/5 ring-2 ring-primary"
+						// Same reasoning as the pin: this outline sits on the reader's
+						// page, so it cannot borrow the app theme's colours.
+						className="absolute top-0 left-0 rounded-sm bg-blue-500/5 ring-1 ring-blue-500/70"
 					/>
 				) : null}
 
+				{draftPoint ? (
+					<div
+						aria-hidden
+						style={{
+							transform: `translate(${draftPoint.x - PIN_SIZE / 2}px, ${draftPoint.y - PIN_SIZE / 2}px)`,
+						}}
+						className={pinClassName({ resolved: false, active: false })}
+					>
+						{initialsOf(user.name)}
+					</div>
+				) : null}
+
 				{threads.map((thread) => {
-					const rect = rects[thread.id];
-					if (!rect) return null;
+					const point = pinPoints.get(thread.id);
+					if (!point) return null;
 					const first = thread.comments[0];
 					return (
 						<CommentBubble
 							key={thread.id}
-							rect={rect}
+							point={point}
 							stackIndex={stackIndex[thread.id] ?? 0}
 							initials={initialsOf(first?.authorName ?? "?")}
 							count={thread.comments.length}
@@ -201,9 +264,9 @@ export function PageCommentsView({
 			</div>
 
 			<div className="pointer-events-none absolute inset-0">
-				{draft ? (
+				{draft && draftPoint ? (
 					<CommentPopover
-						rect={draft.rect}
+						point={draftPoint}
 						container={container}
 						thread={null}
 						onDismiss={discardDraft}
@@ -217,10 +280,10 @@ export function PageCommentsView({
 					/>
 				) : null}
 
-				{activeThread && activeRect ? (
+				{activeThread && activePoint ? (
 					<CommentPopover
 						key={activeThread.id}
-						rect={activeRect}
+						point={activePoint}
 						container={container}
 						thread={activeThread}
 						onDismiss={() => setActiveThreadId(null)}

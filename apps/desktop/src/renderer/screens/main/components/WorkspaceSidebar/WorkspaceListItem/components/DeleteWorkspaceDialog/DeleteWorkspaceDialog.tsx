@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -101,8 +102,7 @@ export function DeleteWorkspaceDialog({
 				}
 				return "Workspace hidden";
 			},
-			error: (error) =>
-				error instanceof Error ? error.message : "Failed to hide",
+			error: (error) => errorMessage(error, "Failed to hide"),
 		});
 	}, [onOpenChange, closeWorkspace, workspaceId]);
 

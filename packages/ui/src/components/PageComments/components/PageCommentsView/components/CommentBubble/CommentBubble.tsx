@@ -1,12 +1,10 @@
 "use client";
 
-import { cn } from "../../../../../../lib/utils";
-import type { FrameRect } from "../../../../utils/commentRuntime";
-
-const STACK_OFFSET = 20;
+import { PIN_SIZE, type PinPoint, STACK_OFFSET } from "../../utils/pinLayout";
+import { pinClassName } from "./pinClassName";
 
 interface CommentBubbleProps {
-	rect: FrameRect;
+	point: PinPoint;
 	stackIndex?: number;
 	initials: string;
 	count: number;
@@ -16,7 +14,7 @@ interface CommentBubbleProps {
 }
 
 export function CommentBubble({
-	rect,
+	point,
 	stackIndex = 0,
 	initials,
 	count,
@@ -30,16 +28,10 @@ export function CommentBubble({
 			data-comment-ui=""
 			onClick={onClick}
 			style={{
-				transform: `translate(${rect.left - 12 + stackIndex * STACK_OFFSET}px, ${rect.top - 12}px)`,
+				transform: `translate(${point.x - PIN_SIZE / 2 + stackIndex * STACK_OFFSET}px, ${point.y - PIN_SIZE / 2}px)`,
 				zIndex: stackIndex,
 			}}
-			className={cn(
-				"pointer-events-auto absolute top-0 left-0 flex size-6 items-center justify-center rounded-full rounded-bl-sm border font-medium text-[10px] shadow-sm transition-colors",
-				resolved
-					? "border-border bg-muted text-muted-foreground hover:bg-muted/80"
-					: "border-primary/20 bg-primary text-primary-foreground hover:bg-primary/90",
-				active && "ring-2 ring-primary ring-offset-1 ring-offset-background",
-			)}
+			className={pinClassName({ resolved, active, interactive: true })}
 			aria-label={`${count} comment${count === 1 ? "" : "s"}`}
 		>
 			{count > 1 ? count : initials}

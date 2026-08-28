@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -86,7 +87,7 @@ export function CommentThread({
 			},
 			onError: (error) => {
 				toast.error("Couldn't update thread", {
-					description: error.message,
+					description: errorMessage(error),
 				});
 			},
 		},

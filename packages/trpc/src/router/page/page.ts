@@ -5,23 +5,27 @@ import {
 	pages,
 	pageVersions,
 	type SelectPage,
+	users,
 	workspacePages,
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { head } from "@vercel/blob";
+import { del, head } from "@vercel/blob";
 import { and, desc, eq, or, type SQL, sql } from "drizzle-orm";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { assertPageReadable, assertPageWritable } from "./access";
 import { pageUrl } from "./page-url";
 import { publishPage } from "./publish";
 import {
+	deletePageSchema,
 	listPagesSchema,
 	pageRefSchema,
 	publishPageSchema,
 	pullPageSchema,
 	setPageVisibilitySchema,
+	setSharedVersionSchema,
 } from "./schema";
+import { resolveSharedVersion, servedVersion } from "./shared-version";
 import { assertWorkspaceAccess } from "./workspace-access";
 
 function visibilityFilter(userId: string) {
@@ -47,7 +51,11 @@ async function pageNotFound(identity: SQL, userId: string): Promise<TRPCError> {
 		.limit(1);
 
 	if (!elsewhere) {
-		return new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
+		return userError({
+			code: "NOT_FOUND",
+			message: "Page not found",
+			i18nKey: "serverError.page.pageNotFound",
+		});
 	}
 	return new TRPCError({
 		code: "FORBIDDEN",
@@ -68,9 +76,10 @@ async function loadPage({
 }): Promise<SelectPage> {
 	const identity = id ? eq(pages.id, id) : slug ? eq(pages.slug, slug) : null;
 	if (!identity) {
-		throw new TRPCError({
+		throw userError({
 			code: "BAD_REQUEST",
 			message: "Provide either id or slug",
+			i18nKey: "serverError.page.provideEitherIdOrSlug",
 		});
 	}
 
@@ -85,6 +94,21 @@ async function loadPage({
 	}
 	assertPageReadable(page, userId);
 	return page;
+}
+
+async function loadOwner(userId: string | null) {
+	if (!userId) return null;
+	const [owner] = await db
+		.select({
+			id: users.id,
+			name: users.name,
+			email: users.email,
+			image: users.image,
+		})
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	return owner ?? null;
 }
 
 async function latestVersionNumber(pageId: string): Promise<number | null> {
@@ -189,7 +213,7 @@ export const pageRouter = {
 			...page,
 			url: pageUrl(page.slug),
 			latestVersion,
-			servedVersion: page.sharedVersion ?? latestVersion,
+			servedVersion: servedVersion(page.sharedVersion, latestVersion),
 		};
 	}),
 
@@ -208,9 +232,106 @@ export const pageRouter = {
 				.returning();
 
 			if (!updated) {
-				throw new TRPCError({ code: "NOT_FOUND", message: "Page not found" });
+				throw userError({
+					code: "NOT_FOUND",
+					message: "Page not found",
+					i18nKey: "serverError.page.pageNotFound",
+				});
 			}
 			return { id: updated.id, visibility: updated.visibility };
+		}),
+
+	access: protectedProcedure
+		.input(pageRefSchema)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const page = await loadPage({
+				id: input.id,
+				slug: input.slug,
+				organizationId,
+				userId: ctx.session.user.id,
+			});
+
+			return { owner: await loadOwner(page.createdByUserId) };
+		}),
+
+	setSharedVersion: protectedProcedure
+		.input(setSharedVersionSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const page = await loadPage({ id: input.id, organizationId, userId });
+			assertPageWritable(page, userId);
+
+			if (input.version !== null) {
+				const [row] = await db
+					.select({ version: pageVersions.version })
+					.from(pageVersions)
+					.where(
+						and(
+							eq(pageVersions.pageId, page.id),
+							eq(pageVersions.version, input.version),
+						),
+					)
+					.limit(1);
+				if (!row) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Version ${input.version} not found`,
+					});
+				}
+			}
+
+			const resolved = resolveSharedVersion(
+				input.version,
+				await latestVersionNumber(page.id),
+			);
+
+			const [updated] = await db
+				.update(pages)
+				.set({ sharedVersion: resolved })
+				.where(eq(pages.id, page.id))
+				.returning();
+
+			if (!updated) {
+				throw userError({
+					code: "NOT_FOUND",
+					message: "Page not found",
+					i18nKey: "serverError.page.pageNotFound",
+				});
+			}
+			return { id: updated.id, sharedVersion: updated.sharedVersion };
+		}),
+
+	delete: protectedProcedure
+		.input(deletePageSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const page = await loadPage({ id: input.id, organizationId, userId });
+			assertPageWritable(page, userId);
+
+			const rows = await db
+				.select({ blobPathname: pageVersions.blobPathname })
+				.from(pageVersions)
+				.where(eq(pageVersions.pageId, page.id));
+
+			await db.delete(pages).where(eq(pages.id, page.id));
+
+			const pathnames = rows.map((row) => row.blobPathname);
+			if (pathnames.length > 0) {
+				try {
+					await del(pathnames);
+				} catch (error) {
+					console.error("[pages] blob cleanup failed after delete", {
+						pageId: page.id,
+						pathnames,
+						error,
+					});
+				}
+			}
+
+			return { id: page.id };
 		}),
 
 	versions: protectedProcedure
@@ -250,14 +371,14 @@ export const pageRouter = {
 				userId: ctx.session.user.id,
 			});
 
+			const latestVersion = await latestVersionNumber(page.id);
 			const version =
-				input.version ??
-				page.sharedVersion ??
-				(await latestVersionNumber(page.id));
+				input.version ?? servedVersion(page.sharedVersion, latestVersion);
 			if (version === null) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Page has no versions",
+					i18nKey: "serverError.page.pageHasNoVersions",
 				});
 			}
 
@@ -288,9 +409,10 @@ export const pageRouter = {
 					version,
 					error,
 				});
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Page content is not available",
+					i18nKey: "serverError.page.pageContentIsNotAvailable",
 				});
 			}
 
@@ -302,6 +424,10 @@ export const pageRouter = {
 				description: page.description,
 				visibility: page.visibility,
 				createdByUserId: page.createdByUserId,
+				updatedAt: page.updatedAt,
+				sharedVersion: page.sharedVersion,
+				latestVersion,
+				servedVersion: servedVersion(page.sharedVersion, latestVersion),
 				version: row.version,
 				label: row.label,
 				contentType: row.contentType,

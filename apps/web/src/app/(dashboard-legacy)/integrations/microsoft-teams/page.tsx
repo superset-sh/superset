@@ -14,6 +14,7 @@ import {
 	type CallbackMessage,
 	IntegrationErrorHandler,
 } from "../components/IntegrationErrorHandler";
+import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
 
 // Graph's own words are the useful part of a refused subscription — they name
@@ -48,6 +49,7 @@ const CALLBACK_MESSAGES = {
 };
 
 export default async function MicrosoftTeamsIntegrationPage() {
+	await requireOfferedIntegration("microsoft_teams");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

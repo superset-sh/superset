@@ -11,6 +11,7 @@ import Link from "next/link";
 import { SiSentry } from "react-icons/si";
 import { api } from "@/trpc/server";
 import { IntegrationErrorHandler } from "../components/IntegrationErrorHandler";
+import { requireOfferedIntegration } from "../utils/requireOfferedIntegration";
 import { ConnectionControls } from "./components/ConnectionControls";
 
 const CALLBACK_MESSAGES = {
@@ -27,6 +28,7 @@ const CALLBACK_MESSAGES = {
 };
 
 export default async function SentryIntegrationPage() {
+	await requireOfferedIntegration("sentry");
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 

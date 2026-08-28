@@ -22,6 +22,8 @@ export interface AgentSelectAgent {
 	iconId?: string;
 	/** Host preset slug ("claude", "custom", …) — stable across hosts and DB re-seeds, unlike `id`. */
 	presetId?: string;
+	/** Executable-aware launch capability id; differs from presetId for OMP. */
+	launchPresetId?: string;
 }
 
 interface AgentSelectProps<T extends string> {

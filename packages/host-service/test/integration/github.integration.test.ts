@@ -19,13 +19,13 @@ describe("github router integration", () => {
 				repo: "hello-world",
 				pullNumber: 1,
 			}),
-		).rejects.toThrow(/no github token/i);
+		).rejects.toThrow(/no github login on this machine/i);
 	});
 
 	test("listPRs throws when no GitHub token is available", async () => {
 		await expect(
 			host.trpc.github.listPRs.query({ owner: "o", repo: "r" }),
-		).rejects.toThrow(/no github token/i);
+		).rejects.toThrow(/no github login on this machine/i);
 	});
 
 	test("getPR rejects unauthenticated callers before reaching handler", async () => {

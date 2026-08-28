@@ -45,11 +45,11 @@ export function ImportPresetsPage({ organizationId }: ImportPresetsPageProps) {
 
 	return (
 		<ImportPageShell
-			title="Bring over your terminal presets"
-			description="Import each v1 terminal preset into v2."
+			title="Bring over your terminal scripts"
+			description="Import each v1 terminal script into v2."
 			isLoading={isLoading}
 			itemCount={presets.length}
-			emptyMessage="No v1 terminal presets found."
+			emptyMessage="No v1 terminal scripts found."
 			onRefresh={refresh}
 			isRefreshing={isRefreshing}
 		>

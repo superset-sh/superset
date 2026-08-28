@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { ACCOUNT_DELETION_GRACE_DAYS } from "@superset/shared/constants";
 import {
 	AlertDialog,
@@ -30,6 +31,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { LeaderboardSection } from "./components/LeaderboardSection";
 import { ProfileSkeleton } from "./components/ProfileSkeleton";
 
 interface AccountSettingsProps {
@@ -47,6 +49,10 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 	);
 	const showDelete = isItemVisible(
 		SETTING_ITEM_ID.ACCOUNT_DELETE,
+		visibleItems,
+	);
+	const showLeaderboard = isItemVisible(
+		SETTING_ITEM_ID.ACCOUNT_LEADERBOARD,
 		visibleItems,
 	);
 
@@ -71,9 +77,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			await apiTrpcClient.user.deleteAccount.mutate();
 			await signOut();
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? error.message : "Failed to delete account",
-			);
+			toast.error(errorMessage(error, "Failed to delete account"));
 		} finally {
 			setIsDeleting(false);
 		}
@@ -198,6 +202,12 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								Sign out
 							</Button>
 						</SettingRow>
+					</div>
+				)}
+
+				{showLeaderboard && (
+					<div className="pt-5">
+						<LeaderboardSection />
 					</div>
 				)}
 

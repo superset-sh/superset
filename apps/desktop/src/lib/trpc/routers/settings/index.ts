@@ -3,6 +3,7 @@ import {
 	teardownSingleAgent,
 	writeSharedDisabledAgentIds,
 } from "@superset/agent-setup";
+import { isSupportedLocale } from "@superset/i18n/locales";
 import {
 	type AgentCustomDefinition,
 	type AgentPresetOverrideEnvelope,
@@ -78,6 +79,10 @@ import {
 	updateAgentPresetInputSchema,
 	updateCustomAgentInputSchema,
 } from "./agent-preset-router.utils";
+import {
+	clearImportedCliTerminalScripts,
+	isPendingCliTerminalScript,
+} from "./cli-terminal-script-import";
 import {
 	setFontSettingsSchema,
 	transformFontSettings,
@@ -278,6 +283,36 @@ export const createSettingsRouter = () => {
 			}
 			return getNormalizedTerminalPresets();
 		}),
+		getPendingCliTerminalScripts: publicProcedure
+			.input(z.object({ organizationId: z.string().min(1) }))
+			.query(({ input }) =>
+				getNormalizedTerminalPresets().filter((script) =>
+					isPendingCliTerminalScript(script, input.organizationId),
+				),
+			),
+		acknowledgeCliTerminalScripts: publicProcedure
+			.input(
+				z.object({
+					organizationId: z.string().min(1),
+					ids: z.array(z.string()).min(1),
+				}),
+			)
+			.mutation(({ input }) =>
+				// Immediate transaction: a concurrent `superset scripts add` must not
+				// land between this read and write or its row would be dropped.
+				localDb.transaction(
+					() => {
+						const result = clearImportedCliTerminalScripts({
+							scripts: getNormalizedTerminalPresets(),
+							organizationId: input.organizationId,
+							ids: input.ids,
+						});
+						if (result.changed) saveTerminalPresets(result.scripts);
+						return { acknowledged: result.changed };
+					},
+					{ behavior: "immediate" },
+				),
+			),
 		getAgentPresets: publicProcedure.query(() => getResolvedAgentPresets()),
 		createCustomAgent: publicProcedure
 			.input(createCustomAgentInputSchema)
@@ -459,7 +494,7 @@ export const createSettingsRouter = () => {
 				if (!preset) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: `Terminal preset ${input.id} not found`,
+						message: `Terminal script ${input.id} not found`,
 					});
 				}
 
@@ -578,6 +613,36 @@ export const createSettingsRouter = () => {
 			.query(({ input }) =>
 				getPresetsForTrigger("applyOnNewTab", input?.projectId ?? null),
 			),
+
+		// App display language: "auto"/null = follow the system language.
+		getLanguage: publicProcedure.query(() => {
+			const row = getSettings();
+			const stored = row.language;
+			return stored && isSupportedLocale(stored) ? stored : null;
+		}),
+
+		setLanguage: publicProcedure
+			.input(z.object({ language: z.string().nullable() }))
+			.mutation(({ input }) => {
+				const value =
+					input.language === null || input.language === "auto"
+						? null
+						: input.language;
+				if (value !== null && !isSupportedLocale(value)) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Unsupported language: ${value}`,
+					});
+				}
+				localDb
+					.insert(settings)
+					.values({ id: 1, language: value })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { language: value },
+					})
+					.run();
+			}),
 
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();

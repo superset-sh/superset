@@ -1,6 +1,7 @@
 import {
 	type DraftTrigger,
 	describeTriggerProblems,
+	enabledTriggerKinds,
 	summarizeTriggerProblems,
 } from "@superset/shared/automation-triggers";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
@@ -82,11 +83,7 @@ export function TriggersEditor({
 		FEATURE_FLAGS.AUTOMATION_EVENT_TRIGGERS,
 	);
 	const providers = useMemo(() => {
-		const kinds = new Set(
-			Array.isArray(enabledKinds)
-				? enabledKinds.filter((kind) => typeof kind === "string")
-				: [],
-		);
+		const kinds = enabledTriggerKinds(enabledKinds);
 		return TRIGGER_PROVIDERS.filter(
 			(provider) => provider.kind === "schedule" || kinds.has(provider.kind),
 		);

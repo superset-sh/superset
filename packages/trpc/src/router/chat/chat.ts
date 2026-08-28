@@ -3,10 +3,9 @@ import { chatSessions } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure } from "../../trpc";
+import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
@@ -68,9 +67,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -112,9 +112,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -150,9 +151,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -190,9 +192,10 @@ export const chatRouter = {
 			const organizationId = ctx.activeOrganizationId;
 
 			if (!organizationId) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "No active organization selected",
+					i18nKey: "serverError.chat.noActiveOrganizationSelected",
 				});
 			}
 
@@ -212,9 +215,10 @@ export const chatRouter = {
 				.limit(1);
 
 			if (!sessionRecord) {
-				throw new TRPCError({
+				throw userError({
 					code: "NOT_FOUND",
 					message: "Chat session not found",
+					i18nKey: "serverError.chat.chatSessionNotFound",
 				});
 			}
 

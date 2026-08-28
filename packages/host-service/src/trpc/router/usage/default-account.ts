@@ -10,9 +10,9 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
-import type { UsageProvider } from "./types.ts";
+import type { UsageAccountProvider } from "./types.ts";
 
-const POINTER_NAMES: Record<UsageProvider, string> = {
+const POINTER_NAMES: Record<UsageAccountProvider, string> = {
 	claude: "default-claude-config-dir",
 	codex: "default-codex-home",
 };
@@ -34,7 +34,7 @@ function supersetHomeDir(): string {
  * stays the source of truth and the wrapper falls back to the spawn-time env.
  */
 export function syncDefaultAccountPointer(
-	provider: UsageProvider,
+	provider: UsageAccountProvider,
 	selection: string | null,
 ): void {
 	try {
@@ -73,7 +73,7 @@ export function getDefaultAccountSelections(
 
 export function setDefaultAccountSelection(
 	db: HostDb,
-	provider: UsageProvider,
+	provider: UsageAccountProvider,
 	selection: string | null,
 ): void {
 	const values =

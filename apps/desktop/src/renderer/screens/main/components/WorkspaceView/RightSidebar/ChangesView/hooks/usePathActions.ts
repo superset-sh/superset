@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { ExternalApp } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
@@ -26,14 +27,14 @@ export function usePathActions({
 	const openInAppMutation = electronTrpc.external.openInApp.useMutation({
 		onError: (error) =>
 			toast.error("Failed to open in app", {
-				description: error.message,
+				description: errorMessage(error),
 			}),
 	});
 	const openFileInEditorMutation =
 		electronTrpc.external.openFileInEditor.useMutation({
 			onError: (error) =>
 				toast.error("Failed to open in editor", {
-					description: error.message,
+					description: errorMessage(error),
 				}),
 		});
 

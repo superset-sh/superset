@@ -1,6 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+	ANCHOR_MESSAGE,
 	hasCompleteWorkspaceLink,
+	isAnchoredPublish,
 	pageFields,
 	WORKSPACE_LINK_MESSAGE,
 } from "@superset/trpc/page-schema";
@@ -14,7 +16,7 @@ export function register(server: McpServer): void {
 		name: "pages_publish",
 		annotations: { destructiveHint: false },
 		description:
-			"Publish an HTML document as a page and return its public URL. ALWAYS read the `superset:page` skill before calling this, whenever that skill is available to you — pages render in a locked-down iframe (no `allow-same-origin`, so every storage API throws on access) and a document that ignores those constraints looks correct locally and breaks silently once published. A page is ONE self-contained file: inline every stylesheet and script, and embed images as data: URIs — external references will not resolve. Every call creates a new version; pass `pageId` to add a version to an existing page instead of creating a new one. Pass the document itself in `html`, not a file path.",
+			"Publish an HTML document as a page and return its public URL. ALWAYS read the `superset:page` skill before calling this, whenever that skill is available to you — pages render in a locked-down iframe (no `allow-same-origin`, so every storage API throws on access) and a document that ignores those constraints looks correct locally and breaks silently once published. A page is ONE self-contained file: inline every stylesheet and script, and embed images as data: URIs — external references will not resolve. Every call creates a new version; pass `pageId` to add a version to an existing page instead of creating a new one. Pass the document itself in `html`, not a file path. Every page belongs to a workspace: pass `workspaceId` (from `$SUPERSET_WORKSPACE_ID`, or `superset workspaces list`) plus an `entryPath` naming where the page lives in it.",
 		inputSchema: z
 			.object({
 				html: z
@@ -41,14 +43,15 @@ export function register(server: McpServer): void {
 				visibility: optionalish(pageFields.visibility).describe(
 					"`org` lets anyone in the organization open it; `just_me` keeps it private to the publisher.",
 				),
-				workspaceId: optionalish(pageFields.workspaceId).describe(
-					"Link the page to this workspace so it shows in that workspace's Pages tab. Requires `entryPath`.",
+				workspaceId: pageFields.workspaceId.describe(
+					"The workspace this page belongs to. Required: a page that names no workspace is listed by nothing and cannot be versioned later. Get it from the `SUPERSET_WORKSPACE_ID` environment variable, or by running `superset workspaces list`.",
 				),
 				entryPath: optionalish(pageFields.entryPath).describe(
-					"Path of the source file relative to the workspace root. Requires `workspaceId`; together they are the key a later publish reuses to add a version rather than a new page.",
+					"Where this page lives in the workspace, as a path relative to the workspace root, e.g. `reports/q3-pipeline.html`. Together with `workspaceId` it is the key a later publish reuses to add a version rather than minting a second page, so reuse the same value when updating. Required unless `pageId` is given.",
 				),
 			})
-			.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE),
+			.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE)
+			.refine(isAnchoredPublish, ANCHOR_MESSAGE),
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
 			const { html, filename, description, label, ...rest } = input;

@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useComments } from "../../providers/CommentProvider";
+import { FRAME_CHANNEL, type FrameMessage } from "../../utils/commentRuntime";
 
 export function useFramePointerDown(onPointerDown: () => void) {
-	const { framePointerDownAt } = useComments();
-	const seen = useRef(framePointerDownAt);
+	const handler = useRef(onPointerDown);
+	handler.current = onPointerDown;
 
 	useEffect(() => {
-		if (framePointerDownAt === seen.current) return;
-		seen.current = framePointerDownAt;
-		onPointerDown();
-	}, [framePointerDownAt, onPointerDown]);
+		const onMessage = (event: MessageEvent) => {
+			const data = event.data as FrameMessage | undefined;
+			if (!data || data.channel !== FRAME_CHANNEL) return;
+			if (data.type !== "pointer-down") return;
+			handler.current();
+		};
+		window.addEventListener("message", onMessage);
+		return () => window.removeEventListener("message", onMessage);
+	}, []);
 }

@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -129,7 +130,9 @@ export function TerminalConnectionIndicator({
 			void healthQuery.refetch();
 		},
 		onError: (error) => {
-			toast.error("Couldn't restart terminals", { description: error.message });
+			toast.error("Couldn't restart terminals", {
+				description: errorMessage(error),
+			});
 		},
 	});
 

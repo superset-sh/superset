@@ -5,37 +5,112 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
+import { CheckIcon, MinusIcon, PlusIcon, RotateCcwIcon } from "lucide-react";
 import { useState } from "react";
-import {
-	TbCamera,
-	TbClock,
-	TbCopy,
-	TbDots,
-	TbDownload,
-	TbExternalLink,
-	TbReload,
-	TbTrash,
-} from "react-icons/tb";
+import { TbDots } from "react-icons/tb";
 import { ImportHistoryDialog } from "renderer/components/ImportHistoryDialog";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
+import { ClearBrowsingDataDialog } from "../ClearBrowsingDataDialog";
+import { DownloadsDialog } from "../DownloadsDialog";
+import { HistoryDialog } from "../HistoryDialog";
+import { ScreenshotsDialog } from "../ScreenshotsDialog";
+import { SignedInSitesSubmenu } from "../SignedInSitesSubmenu";
 
 interface BrowserOverflowMenuProps {
 	paneId: string;
 	currentUrl: string;
 	hasPage: boolean;
+	zoomFactor: number;
+	isDeviceToolbarOpen: boolean;
+	onToggleDeviceToolbar: () => void;
+	onOpenFindBar: () => void;
+	onNavigateToUrl: (url: string) => void;
+}
+
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 5;
+const ZOOM_STEP = 0.1;
+
+/**
+ * A Dialog opened synchronously from the same click that's dismissing
+ * something else (a DropdownMenuItem select, a toast action) gets caught by
+ * that other element's own close cycle and immediately dismisses itself (a
+ * well-known Radix issue): the closing element's exit animation (~150ms) is
+ * still running, and its eventual focus-restore reads as a focus/pointer-
+ * outside on the just-opened dialog. Waiting out the exit animation before
+ * opening the dialog avoids the race.
+ */
+const MENU_CLOSE_ANIMATION_MS = 200;
+
+function openAfterClose(setOpen: (open: boolean) => void) {
+	return () => {
+		setTimeout(() => setOpen(true), MENU_CLOSE_ANIMATION_MS);
+	};
 }
 
 export function BrowserOverflowMenu({
 	paneId,
 	currentUrl,
 	hasPage,
+	zoomFactor,
+	isDeviceToolbarOpen,
+	onToggleDeviceToolbar,
+	onOpenFindBar,
+	onNavigateToUrl,
 }: BrowserOverflowMenuProps) {
 	const { copyToClipboard } = useCopyToClipboard();
+	const navigate = useNavigate();
 	const [isImportOpen, setIsImportOpen] = useState(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+	const [isDownloadsOpen, setIsDownloadsOpen] = useState(false);
+	const [isScreenshotsOpen, setIsScreenshotsOpen] = useState(false);
+	const [isClearDataOpen, setIsClearDataOpen] = useState(false);
+
+	const handlePrint = () => browserRuntimeRegistry.print(paneId);
+
+	const handleZoomOut = () =>
+		browserRuntimeRegistry.setZoomFactor(
+			paneId,
+			Math.max(MIN_ZOOM, zoomFactor - ZOOM_STEP),
+		);
+
+	const handleZoomIn = () =>
+		browserRuntimeRegistry.setZoomFactor(
+			paneId,
+			Math.min(MAX_ZOOM, zoomFactor + ZOOM_STEP),
+		);
+
+	const handleZoomReset = () => browserRuntimeRegistry.setZoomFactor(paneId, 1);
 
 	const handleScreenshot = () => {
-		electronTrpcClient.browser.screenshot.mutate({ paneId }).catch(() => {});
+		electronTrpcClient.browser.screenshot
+			.mutate({ paneId })
+			.then(({ base64 }) => {
+				toast.success("Screenshot copied to clipboard", {
+					description: (
+						<img
+							src={`data:image/png;base64,${base64}`}
+							alt="Screenshot preview"
+							className="mt-1 max-h-32 w-full rounded border border-border object-contain"
+						/>
+					),
+					action: {
+						label: "View all",
+						// Same Radix dismissable-layer race as the menu items below:
+						// opening the Dialog synchronously from this click lets Radix's
+						// newly-mounted outside-click detector see the tail of that same
+						// click and immediately close it.
+						onClick: openAfterClose(setIsScreenshotsOpen),
+					},
+				});
+			})
+			.catch(() => {
+				toast.error("Could not take a screenshot");
+			});
 	};
 
 	const handleHardReload = () => {
@@ -45,9 +120,7 @@ export function BrowserOverflowMenu({
 	};
 
 	const handleCopyUrl = () => {
-		if (currentUrl) {
-			copyToClipboard(currentUrl);
-		}
+		if (currentUrl) copyToClipboard(currentUrl);
 	};
 
 	const handleOpenExternal = () => {
@@ -56,20 +129,8 @@ export function BrowserOverflowMenu({
 		}
 	};
 
-	const handleClearCookies = () => {
-		electronTrpcClient.browser.clearBrowsingData
-			.mutate({ type: "cookies" })
-			.catch(() => {});
-	};
-
-	const handleClearHistory = () => {
-		electronTrpcClient.browserHistory.clear.mutate().catch(() => {});
-	};
-
-	const handleClearAllData = () => {
-		electronTrpcClient.browser.clearBrowsingData
-			.mutate({ type: "all" })
-			.catch(() => {});
+	const handleOpenSettings = () => {
+		void navigate({ to: "/settings/browser" });
 	};
 
 	return (
@@ -83,62 +144,135 @@ export function BrowserOverflowMenu({
 						<TbDots className="size-3.5" />
 					</button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end" className="w-48">
-					<DropdownMenuItem
-						onClick={handleScreenshot}
-						disabled={!hasPage}
-						className="gap-2"
-					>
-						<TbCamera className="size-4" />
-						Take Screenshot
+				<DropdownMenuContent align="end" className="w-64">
+					<DropdownMenuItem onClick={onOpenFindBar} disabled={!hasPage}>
+						Find in page
 					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={handleHardReload}
-						disabled={!hasPage}
-						className="gap-2"
-					>
-						<TbReload className="size-4" />
-						Hard Reload
+					<DropdownMenuItem onClick={handlePrint} disabled={!hasPage}>
+						Print
 					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					{/* A plain row of buttons here would be unreachable by arrow-key menu
+					    navigation (Radix only moves focus between registered items) and
+					    Tab closes the menu — so the whole row is one item, with
+					    Left/Right/Enter driving zoom while it's focused. */}
 					<DropdownMenuItem
-						onClick={handleCopyUrl}
 						disabled={!hasPage}
-						className="gap-2"
+						onSelect={(e) => e.preventDefault()}
+						onKeyDown={(e) => {
+							if (e.key === "ArrowLeft") {
+								e.preventDefault();
+								handleZoomOut();
+							} else if (e.key === "ArrowRight") {
+								e.preventDefault();
+								handleZoomIn();
+							} else if (e.key === "Enter" || e.key === "0") {
+								e.preventDefault();
+								handleZoomReset();
+							}
+						}}
+						className="justify-between gap-2"
 					>
-						<TbCopy className="size-4" />
-						Copy URL
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={handleOpenExternal}
-						disabled={!hasPage}
-						className="gap-2"
-					>
-						<TbExternalLink className="size-4" />
-						Open in Browser
+						<span>Zoom</span>
+						<div className="flex items-center gap-0.5">
+							<button
+								type="button"
+								tabIndex={-1}
+								onClick={handleZoomOut}
+								disabled={!hasPage || zoomFactor <= MIN_ZOOM}
+								aria-label="Zoom out"
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+							>
+								<MinusIcon className="size-3.5" />
+							</button>
+							<span className="w-10 text-center text-xs tabular-nums text-muted-foreground">
+								{Math.round(zoomFactor * 100)}%
+							</span>
+							<button
+								type="button"
+								tabIndex={-1}
+								onClick={handleZoomIn}
+								disabled={!hasPage || zoomFactor >= MAX_ZOOM}
+								aria-label="Zoom in"
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+							>
+								<PlusIcon className="size-3.5" />
+							</button>
+							<button
+								type="button"
+								tabIndex={-1}
+								onClick={handleZoomReset}
+								disabled={!hasPage || zoomFactor === 1}
+								aria-label="Reset zoom"
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+							>
+								<RotateCcwIcon className="size-3.5" />
+							</button>
+						</div>
 					</DropdownMenuItem>
 					<DropdownMenuSeparator />
 					<DropdownMenuItem
-						onClick={() => setIsImportOpen(true)}
-						className="gap-2"
+						onClick={onToggleDeviceToolbar}
+						disabled={!hasPage}
+						className="justify-between"
 					>
-						<TbDownload className="size-4" />
-						Import settings from another browser…
+						Show device toolbar
+						{isDeviceToolbarOpen && <CheckIcon className="size-3.5" />}
 					</DropdownMenuItem>
-					<DropdownMenuItem onClick={handleClearHistory} className="gap-2">
-						<TbClock className="size-4" />
-						Clear Browsing History
+					<DropdownMenuItem onClick={handleScreenshot} disabled={!hasPage}>
+						Take a screenshot
 					</DropdownMenuItem>
-					<DropdownMenuItem onClick={handleClearCookies} className="gap-2">
-						<TbTrash className="size-4" />
-						Clear Cookies
+					<DropdownMenuSeparator />
+					<DropdownMenuItem onClick={handleHardReload} disabled={!hasPage}>
+						Hard reload
 					</DropdownMenuItem>
-					<DropdownMenuItem onClick={handleClearAllData} className="gap-2">
-						<TbTrash className="size-4" />
-						Clear All Data
+					<DropdownMenuItem onClick={handleCopyUrl} disabled={!hasPage}>
+						Copy URL
+					</DropdownMenuItem>
+					<DropdownMenuItem onClick={handleOpenExternal} disabled={!hasPage}>
+						Open in Browser
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem onSelect={openAfterClose(setIsImportOpen)}>
+						Import cookies and passwords…
+					</DropdownMenuItem>
+					<SignedInSitesSubmenu />
+					<DropdownMenuItem onSelect={openAfterClose(setIsDownloadsOpen)}>
+						Downloads
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={openAfterClose(setIsScreenshotsOpen)}>
+						Screenshots
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={openAfterClose(setIsHistoryOpen)}>
+						History
+					</DropdownMenuItem>
+					<DropdownMenuItem onSelect={openAfterClose(setIsClearDataOpen)}>
+						Clear browsing data
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					<DropdownMenuItem onClick={handleOpenSettings}>
+						Browser settings
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<ImportHistoryDialog open={isImportOpen} onOpenChange={setIsImportOpen} />
+			<HistoryDialog
+				open={isHistoryOpen}
+				onOpenChange={setIsHistoryOpen}
+				onSelect={onNavigateToUrl}
+			/>
+			<DownloadsDialog
+				open={isDownloadsOpen}
+				onOpenChange={setIsDownloadsOpen}
+			/>
+			<ScreenshotsDialog
+				open={isScreenshotsOpen}
+				onOpenChange={setIsScreenshotsOpen}
+			/>
+			<ClearBrowsingDataDialog
+				open={isClearDataOpen}
+				onOpenChange={setIsClearDataOpen}
+			/>
 		</>
 	);
 }

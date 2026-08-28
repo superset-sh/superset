@@ -63,6 +63,28 @@ function extractIds(data: unknown): string {
 	return JSON.stringify(data);
 }
 
+const URL_CELL = /^https?:\/\/\S+$/;
+
+const supportsHyperlinks = () =>
+	process.stdout.isTTY === true && process.env.TERM !== "dumb";
+
+/**
+ * OSC 8 hyperlink. Terminals detect links from the text they can see, so a
+ * truncated URL becomes a truncated link — this carries the whole target
+ * while the cell stays narrow.
+ */
+function hyperlink(url: string, label: string): string {
+	if (!supportsHyperlinks()) return label;
+	return `\x1b]8;;${url}\x07${label}\x1b]8;;\x07`;
+}
+
+interface Cell {
+	/** What the reader sees, and what the column is measured against. */
+	text: string;
+	/** Full target when `text` is a possibly-truncated URL. */
+	link?: string;
+}
+
 // Table utility — commands can use this in their display function
 export function table(
 	data: Record<string, unknown>[],
@@ -77,11 +99,12 @@ export function table(
 	);
 	const hdrs = headers ?? columns.map((c) => c.toUpperCase());
 	const rows = data.map((row) =>
-		columns.map((col, i) => {
+		columns.map((col, i): Cell => {
 			const val = getNestedValue(row, col);
 			const str = val === null || val === undefined ? "—" : String(val);
 			const cap = caps[i]!;
-			return str.length > cap ? `${str.slice(0, cap - 1)}…` : str;
+			const text = str.length > cap ? `${str.slice(0, cap - 1)}…` : str;
+			return URL_CELL.test(str) ? { text, link: str } : { text };
 		}),
 	);
 
@@ -89,14 +112,21 @@ export function table(
 	const widths = hdrs.map((h, i) =>
 		Math.min(
 			caps[i]!,
-			Math.max(h.length, ...rows.map((r) => r[i]?.length ?? 0)),
+			Math.max(h.length, ...rows.map((r) => r[i]?.text.length ?? 0)),
 		),
 	);
 
-	// Render
+	// Render. Padding sits outside the escape sequence so the clickable region
+	// stops at the URL rather than running to the column edge.
 	const headerLine = hdrs.map((h, i) => h.padEnd(widths[i]!)).join("  ");
 	const bodyLines = rows.map((r) =>
-		r.map((cell, i) => cell.padEnd(widths[i]!)).join("  "),
+		r
+			.map((cell, i) => {
+				const padding = " ".repeat(Math.max(0, widths[i]! - cell.text.length));
+				const body = cell.link ? hyperlink(cell.link, cell.text) : cell.text;
+				return body + padding;
+			})
+			.join("  "),
 	);
 
 	return [headerLine, ...bodyLines].join("\n");

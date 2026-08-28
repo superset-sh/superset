@@ -11,6 +11,12 @@ export interface BrowserRuntimeState {
 	error: BrowserLoadError | null;
 	canGoBack: boolean;
 	canGoForward: boolean;
+	/**
+	 * 1 = 100%. Set through our own zoom controls (no pinch/ctrl-scroll
+	 * support) and re-read from the webview after navigations — Chromium zoom
+	 * is per-origin, so a navigation can land on a different actual factor.
+	 */
+	zoomFactor: number;
 }
 
 export interface PersistableBrowserState {
@@ -49,6 +55,7 @@ const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 	error: null,
 	canGoBack: false,
 	canGoForward: false,
+	zoomFactor: 1,
 });
 
 const ROOT_CONTAINER_ID = "browser-runtime-root";
@@ -56,6 +63,10 @@ const ROOT_CONTAINER_ID = "browser-runtime-root";
 class BrowserRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private listenersByPaneId = new Map<string, Set<() => void>>();
+	private foundInPageListenersByPaneId = new Map<
+		string,
+		Set<(result: Electron.FoundInPageResult) => void>
+	>();
 	private useSeq = 0;
 	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
 	private rootContainer: HTMLDivElement | null = null;
@@ -210,6 +221,15 @@ class BrowserRuntimeRegistryImpl {
 		for (const listener of listeners) listener();
 	}
 
+	private notifyFoundInPage(
+		paneId: string,
+		result: Electron.FoundInPageResult,
+	) {
+		const listeners = this.foundInPageListenersByPaneId.get(paneId);
+		if (!listeners) return;
+		for (const listener of listeners) listener(result);
+	}
+
 	private setState(paneId: string, patch: Partial<BrowserRuntimeState>) {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
@@ -236,6 +256,20 @@ class BrowserRuntimeRegistryImpl {
 			canGoForward = entry.webview.canGoForward();
 		} catch {}
 		this.setState(paneId, { canGoBack, canGoForward });
+	}
+
+	/**
+	 * Chromium zoom is per-origin, not per-webview: navigating can land on an
+	 * origin with a different (usually default) zoom while our state still
+	 * holds the previous page's factor. Read the truth back so the menu's
+	 * percentage matches what the page actually renders at.
+	 */
+	private refreshZoomState(paneId: string) {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		try {
+			this.setState(paneId, { zoomFactor: entry.webview.getZoomFactor() });
+		} catch {}
 	}
 
 	private createEntry(
@@ -308,6 +342,7 @@ class BrowserRuntimeRegistryImpl {
 				pageTitle: title,
 			});
 			this.refreshNavState(paneId);
+			this.refreshZoomState(paneId);
 			if (url && url !== "about:blank") {
 				electronTrpcClient.browserHistory.upsert
 					.mutate({ url, title, faviconUrl: entry.state.faviconUrl })
@@ -327,6 +362,7 @@ class BrowserRuntimeRegistryImpl {
 				isLoading: false,
 			});
 			this.refreshNavState(paneId);
+			this.refreshZoomState(paneId);
 		};
 
 		const handleDidNavigateInPage = (e: Electron.DidNavigateInPageEvent) => {
@@ -367,6 +403,10 @@ class BrowserRuntimeRegistryImpl {
 			});
 		};
 
+		const handleFoundInPage = (e: Electron.FoundInPageEvent) => {
+			this.notifyFoundInPage(paneId, e.result);
+		};
+
 		webview.addEventListener("dom-ready", handleDomReady);
 		webview.addEventListener("did-start-loading", handleDidStartLoading);
 		webview.addEventListener("did-stop-loading", handleDidStopLoading);
@@ -389,6 +429,10 @@ class BrowserRuntimeRegistryImpl {
 		webview.addEventListener(
 			"did-fail-load",
 			handleDidFailLoad as EventListener,
+		);
+		webview.addEventListener(
+			"found-in-page",
+			handleFoundInPage as EventListener,
 		);
 
 		entry.detachHandlers = () => {
@@ -414,6 +458,10 @@ class BrowserRuntimeRegistryImpl {
 			webview.removeEventListener(
 				"did-fail-load",
 				handleDidFailLoad as EventListener,
+			);
+			webview.removeEventListener(
+				"found-in-page",
+				handleFoundInPage as EventListener,
 			);
 		};
 
@@ -525,6 +573,7 @@ class BrowserRuntimeRegistryImpl {
 		entry.webview.remove();
 		this.entries.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
+		this.foundInPageListenersByPaneId.delete(paneId);
 		electronTrpcClient.browser.unregister.mutate({ paneId }).catch((err) => {
 			console.error(
 				`[browserRuntimeRegistry] unregister failed for ${paneId}:`,
@@ -566,6 +615,60 @@ class BrowserRuntimeRegistryImpl {
 		return () => {
 			listeners.delete(listener);
 		};
+	}
+
+	/** Starts (or continues) a find-in-page search; empty text clears it. */
+	findInPage(
+		paneId: string,
+		text: string,
+		options?: Electron.FindInPageOptions,
+	): void {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		if (!text) {
+			entry.webview.stopFindInPage("clearSelection");
+			return;
+		}
+		entry.webview.findInPage(text, options);
+	}
+
+	stopFindInPage(
+		paneId: string,
+		action: "clearSelection" | "keepSelection" | "activateSelection",
+	): void {
+		this.entries.get(paneId)?.webview.stopFindInPage(action);
+	}
+
+	onFoundInPage(
+		paneId: string,
+		listener: (result: Electron.FoundInPageResult) => void,
+	): () => void {
+		let set = this.foundInPageListenersByPaneId.get(paneId);
+		if (!set) {
+			set = new Set();
+			this.foundInPageListenersByPaneId.set(paneId, set);
+		}
+		set.add(listener);
+		return () => {
+			set.delete(listener);
+		};
+	}
+
+	print(paneId: string): void {
+		this.entries
+			.get(paneId)
+			?.webview.print({ printBackground: true })
+			.catch((err) => {
+				console.error("[browserRuntimeRegistry] print failed:", err);
+			});
+	}
+
+	setZoomFactor(paneId: string, factor: number): void {
+		const entry = this.entries.get(paneId);
+		if (!entry) return;
+		const clamped = Math.min(5, Math.max(0.25, factor));
+		entry.webview.setZoomFactor(clamped);
+		this.setState(paneId, { zoomFactor: clamped });
 	}
 }
 

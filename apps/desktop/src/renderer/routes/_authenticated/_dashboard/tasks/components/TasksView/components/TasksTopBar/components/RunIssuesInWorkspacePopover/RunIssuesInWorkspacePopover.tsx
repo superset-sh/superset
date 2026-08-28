@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Command,
@@ -244,7 +245,7 @@ export function RunIssuesInWorkspacePopover({
 		toast.promise(promise, {
 			loading: `Creating ${issues.length} workspace${issues.length === 1 ? "" : "s"}...`,
 			success: (count) => `Created ${count} workspace${count === 1 ? "" : "s"}`,
-			error: (err) => (err instanceof Error ? err.message : String(err)),
+			error: (err) => errorMessage(err),
 		});
 
 		setOpen(false);

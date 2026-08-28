@@ -133,7 +133,7 @@ export function DashboardSidebarCloudSection({
 	}
 
 	return (
-		<div className="mb-1">
+		<div className="mt-3 pb-1 first:mt-0">
 			<DashboardSidebarSectionHeader label="Cloud" section="cloud" />
 			{!isSectionCollapsed &&
 				rows.map((workspace) => (

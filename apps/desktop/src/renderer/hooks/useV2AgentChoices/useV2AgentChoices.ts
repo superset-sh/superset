@@ -1,3 +1,6 @@
+import { resolveAgentLaunchPresetId } from "@superset/shared/agent-models";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useMemo } from "react";
 import type { AgentSelectAgent } from "renderer/components/AgentSelect";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
@@ -14,12 +17,14 @@ const SUPERSET_AGENT: AgentSelectAgent = {
 };
 
 // Superset chat isn't in the host's `host_agent_configs` table — it's
-// routed by id inside `runAgentInWorkspace`. Append after the host's
-// terminal rows so the user's preferred terminal agents stay on top.
+// chat-v3's entry point, so it rides the same flag as the rest of chat-v3.
+// Append after the host's terminal rows so the user's preferred terminal
+// agents stay on top.
 export function useV2AgentChoices(
 	hostUrl: string | null,
 ): UseV2AgentChoicesResult {
 	const query = useV2AgentConfigs(hostUrl);
+	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 	const agents = useMemo<AgentSelectAgent[]>(() => {
 		const terminalAgents: AgentSelectAgent[] = (query.data ?? []).map(
 			(config) => ({
@@ -29,10 +34,16 @@ export function useV2AgentChoices(
 				// URI); fall back to the preset-implied icon.
 				iconId: config.iconId ?? config.presetId,
 				presetId: config.presetId,
+				launchPresetId: resolveAgentLaunchPresetId(
+					config.presetId,
+					config.command,
+				),
 			}),
 		);
-		return [...terminalAgents, SUPERSET_AGENT];
-	}, [query.data]);
+		return isChatV3Enabled
+			? [...terminalAgents, SUPERSET_AGENT]
+			: terminalAgents;
+	}, [query.data, isChatV3Enabled]);
 
 	return { agents, isFetched: query.isFetched };
 }

@@ -32,7 +32,7 @@ export function buildCompanyFactsSection(): string[] {
 	return [
 		"## Facts about Superset",
 		"",
-		`- **What it is**: a local-first desktop workspace for running many AI coding agents in parallel, each in an isolated Git worktree. It is the orchestration layer, not a coding agent itself.`,
+		`- **What it is**: a local-first desktop workspace for orchestrating any CLI-based coding agent. Each task runs in an isolated Git worktree, and Superset provides the stable workflow around the agents.`,
 		`- **Company**: built by ${COMPANY.NAME} in San Francisco, founded by three former YC CTOs (see ${baseUrl}/team).`,
 		`- **License**: source-available under Elastic License 2.0 (ELv2). The code is public on GitHub (${COMPANY.GITHUB_URL}); it is not OSI-approved open source.`,
 		`- **Not Apache Superset**: Superset (superset.sh) is unrelated to Apache Superset, the business-intelligence tool.`,
@@ -46,7 +46,7 @@ export function buildLlmsHeader(): string[] {
 	return [
 		`# ${COMPANY.NAME}`,
 		"",
-		"> Run 100+ parallel coding agents on your machine",
+		"> Bring any coding agent. Orchestrate them all.",
 		"",
 		PRODUCT_SUMMARY,
 	];

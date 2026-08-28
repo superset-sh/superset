@@ -13,6 +13,7 @@ import {
 } from "../../src/app";
 import type { HostDb } from "../../src/db";
 import * as schema from "../../src/db/schema";
+import type { TokenSource } from "../../src/providers/git/LocalGitCredentialProvider/credential-remedy";
 import type { AppRouter as HostAppRouter } from "../../src/trpc/router";
 import {
 	createFakeApiClient,
@@ -31,6 +32,7 @@ export interface TestHostOptions {
 	psk?: string;
 	apiOverrides?: FakeApiOverrides;
 	githubToken?: string | null;
+	githubTokenSource?: TokenSource | null;
 	/**
 	 * Fake-runtime overrides typed as `unknown` so tests only need to
 	 * implement the methods they exercise — the real surfaces (Octokit,
@@ -112,7 +114,10 @@ export async function createTestHost(
 		providers: {
 			auth: new FakeApiAuthProvider(),
 			hostAuth: new FakeHostAuthProvider(psk),
-			credentials: new MemoryGitCredentialProvider(options.githubToken ?? null),
+			credentials: new MemoryGitCredentialProvider(
+				options.githubToken ?? null,
+				options.githubTokenSource ?? null,
+			),
 		},
 		db: db as unknown as HostDb,
 		api: fakeApi.client,

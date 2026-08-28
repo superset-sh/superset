@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -44,9 +45,7 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 			}
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to generate token",
-			),
+			toast.error(errorMessage(error, "Failed to generate token")),
 	});
 
 	const copyHeader = () =>

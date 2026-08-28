@@ -8,6 +8,11 @@ import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { PaneViewerData } from "../../../../../../types";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { designModeStore, useDesignModeState } from "../../designModeStore";
+import {
+	deviceToolbarStore,
+	useDeviceToolbarState,
+} from "../../deviceToolbarStore";
+import { findBarStore } from "../../findBarStore";
 import { useBrowserState } from "../../hooks/useBrowserState";
 import { BrowserOverflowMenu } from "../BrowserOverflowMenu";
 import { BrowserToolbar } from "../BrowserToolbar";
@@ -20,6 +25,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 	const paneId = ctx.pane.id;
 	const state = useBrowserState(paneId);
 	const designMode = useDesignModeState(paneId);
+	const deviceToolbar = useDeviceToolbarState(paneId);
 
 	const handleToggleDesignMode = useCallback(() => {
 		designModeStore.toggle(paneId);
@@ -107,6 +113,11 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 					paneId={paneId}
 					currentUrl={state.currentUrl}
 					hasPage={!isBlankPage}
+					zoomFactor={state.zoomFactor}
+					isDeviceToolbarOpen={deviceToolbar.isOpen}
+					onToggleDeviceToolbar={() => deviceToolbarStore.toggle(paneId)}
+					onOpenFindBar={() => findBarStore.open(paneId)}
+					onNavigateToUrl={handleNavigate}
 				/>
 				<PaneHeaderActions />
 			</div>

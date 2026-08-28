@@ -85,3 +85,19 @@ describe("image attribute parsing", () => {
 		);
 	});
 });
+
+describe("table rendering", () => {
+	it("wraps tables in a dedicated horizontal scroll container", () => {
+		const editor = createEditor("| Name | Value |\n| --- | --- |\n| A | B |");
+		try {
+			const element = document.createElement("div");
+			element.innerHTML = editor.getHTML();
+			const wrapper = element.querySelector(".tableWrapper");
+
+			expect(wrapper).not.toBeNull();
+			expect(wrapper?.firstElementChild?.tagName).toBe("TABLE");
+		} finally {
+			editor.destroy();
+		}
+	});
+});

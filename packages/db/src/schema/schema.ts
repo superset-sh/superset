@@ -313,6 +313,46 @@ export const subscriptions = pgTable(
 export type InsertSubscription = typeof subscriptions.$inferInsert;
 export type SelectSubscription = typeof subscriptions.$inferSelect;
 
+// Partner-deal redemptions (currently the YC Bookface deal). One row per
+// redemption webhook delivery; the outcome is either an auto-granted
+// subscription or a single-use promotion code emailed to the redeemer.
+export const dealRedemptions = pgTable(
+	"deal_redemptions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		source: text().notNull(),
+		externalRedemptionId: text("external_redemption_id").notNull(),
+		dealId: integer("deal_id").notNull(),
+		email: text(),
+		name: text(),
+		companyName: text("company_name"),
+		companyBatch: text("company_batch"),
+		// granted | code_sent | pending
+		status: text().notNull(),
+		organizationId: uuid("organization_id").references(() => organizations.id, {
+			onDelete: "set null",
+		}),
+		stripeSubscriptionId: text("stripe_subscription_id"),
+		promotionCode: text("promotion_code"),
+		payload: jsonb(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex("deal_redemptions_source_external_id_unique").on(
+			table.source,
+			table.externalRedemptionId,
+		),
+		index("deal_redemptions_email_idx").on(table.email),
+	],
+);
+
+export type InsertDealRedemption = typeof dealRedemptions.$inferInsert;
+export type SelectDealRedemption = typeof dealRedemptions.$inferSelect;
+
 // Device presence — v1 concept. Tracks per-(user, machine) presence for
 // MCP ownership verification. Untouched by the v2 host consolidation; will
 // be retired when v1 is removed.

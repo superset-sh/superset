@@ -378,6 +378,66 @@ describe("split operations", () => {
 			}
 		}
 	});
+
+	it("equalizes only the tracks adjacent to a split boundary", () => {
+		const store = makeStore({
+			version: 1,
+			activeTabId: "t1",
+			tabs: [
+				{
+					id: "t1",
+					createdAt: 1,
+					activePaneId: "p3",
+					panes: {
+						p1: { id: "p1", kind: "test", data: { label: "p1" } },
+						p2: { id: "p2", kind: "test", data: { label: "p2" } },
+						p3: { id: "p3", kind: "test", data: { label: "p3" } },
+					},
+					layout: {
+						type: "split",
+						direction: "horizontal",
+						splitPercentage: 50,
+						first: { type: "pane", paneId: "p1" },
+						second: {
+							type: "split",
+							direction: "horizontal",
+							splitPercentage: 50,
+							first: { type: "pane", paneId: "p2" },
+							second: { type: "pane", paneId: "p3" },
+						},
+					},
+				},
+			],
+		});
+
+		store.getState().equalizeSplit({ tabId: "t1", path: [] });
+
+		const layout = store.getState().tabs[0]?.layout;
+		expect(layout?.type).toBe("split");
+		if (layout?.type === "split") {
+			expect(layout.splitPercentage).toBe(37.5);
+			if (layout.second.type === "split") {
+				expect(layout.second.splitPercentage).toBe(60);
+			}
+		}
+
+		store.getState().resizeSplit({
+			tabId: "t1",
+			path: ["second"],
+			splitPercentage: 85,
+		});
+		store.getState().equalizeSplit({ tabId: "t1", path: ["second"] });
+
+		const equalizedAgain = store.getState().tabs[0]?.layout;
+		expect(equalizedAgain?.type).toBe("split");
+		if (
+			equalizedAgain?.type === "split" &&
+			equalizedAgain.second.type === "split"
+		) {
+			expect(equalizedAgain.splitPercentage).toBe(37.5);
+			expect(equalizedAgain.second.splitPercentage).toBe(50);
+		}
+	});
 });
 
 describe("collapsing", () => {

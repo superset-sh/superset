@@ -97,20 +97,22 @@ export function PullRequestRow({
 				</div>
 			</div>
 			<div className="flex shrink-0 flex-col items-end gap-0.5 text-xs text-muted-foreground">
-				{updatedAtMs != null && <span>{formatRelativeTime(updatedAtMs)}</span>}
 				<div className="flex items-center gap-2">
 					<PullRequestChecksSummary checks={pr.checks} />
-					{hasDiffStat && (
-						<span className="flex items-center gap-1 tabular-nums">
-							<span className="text-emerald-600 dark:text-emerald-400">
-								+{pr.additions ?? 0}
-							</span>
-							<span className="text-red-600 dark:text-red-400">
-								-{pr.deletions ?? 0}
-							</span>
-						</span>
+					{updatedAtMs != null && (
+						<span>{formatRelativeTime(updatedAtMs)}</span>
 					)}
 				</div>
+				{hasDiffStat && (
+					<span className="flex items-center gap-1 tabular-nums">
+						<span className="text-emerald-600 [.dark_&]:text-[#34d399]">
+							+{pr.additions ?? 0}
+						</span>
+						<span className="text-red-600 [.dark_&]:text-[#f87171]">
+							-{pr.deletions ?? 0}
+						</span>
+					</span>
+				)}
 			</div>
 		</div>
 	);

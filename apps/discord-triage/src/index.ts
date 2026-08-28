@@ -8,16 +8,22 @@ import {
 	GatewayIntentBits,
 	type Message,
 	type ThreadChannel,
+	type User,
 } from "discord.js";
+import { applyBranding, brandedEmbed } from "./branding";
+import { handleResendWebhook, openBridgeThread, relayFollowUp } from "./bridge";
 import { enhanceIssue, mdEscape } from "./enhance";
-import { env } from "./env";
+import { bridgeEnabled, env, linearEnabled } from "./env";
 
-const linear = new LinearClient({ apiKey: env.LINEAR_API_KEY });
+const linear = linearEnabled
+	? new LinearClient({ apiKey: env.LINEAR_API_KEY })
+	: undefined;
 
 let teamId: string;
 let sourceLabelId: string | undefined;
 
 async function resolveLinearIds() {
+	if (!linear) return;
 	const teams = await linear.teams({
 		filter: { key: { eq: env.LINEAR_TEAM_KEY } },
 	});
@@ -62,6 +68,7 @@ async function fileIssue(opts: {
 			? `\n\nAttachments:\n${opts.attachments.map((a) => `- [${mdEscape(a.name)}](${a.url})`).join("\n")}`
 			: "";
 	const description = `${opts.content}${attachmentList}\n\n---\nReported by **${opts.authorTag}** in Discord: ${opts.messageUrl}`;
+	if (!linear) return undefined;
 	// No stateId: API-created issues default into Triage.
 	const payload = await linear.createIssue({
 		teamId,
@@ -89,39 +96,94 @@ const discord = new Client({
 	],
 });
 
+type Report = {
+	thread: ThreadChannel;
+	author: User;
+	title: string;
+	content: string;
+	messageUrl: string;
+	attachments: Attachment[];
+	channelName: string;
+};
+
+// Shared intake: file to Linear (when enabled), mirror to Plain (when enabled),
+// then acknowledge in the Discord thread.
+async function intake(report: Report) {
+	const issue = await fileIssue({
+		title: report.title,
+		content: report.content,
+		authorTag: report.author.tag,
+		messageUrl: report.messageUrl,
+		attachments: report.attachments,
+	}).catch((err) => {
+		console.error("linear filing failed", err);
+		return undefined;
+	});
+	let bridged = false;
+	if (bridgeEnabled) {
+		bridged = await openBridgeThread({
+			thread: report.thread,
+			author: report.author,
+			title: report.title,
+			content: report.content,
+			url: report.messageUrl,
+			attachments: report.attachments,
+		})
+			.then(() => true)
+			.catch((err) => {
+				console.error("plain bridge failed", err);
+				return false;
+			});
+	}
+	if (!issue && !bridged) return;
+
+	const embed = brandedEmbed().setTitle("Thanks, we're on it");
+	const lines: string[] = [];
+	if (bridged) {
+		lines.push(
+			"Your report reached the Superset support team. Replies show up right here in this thread, and you can add details by posting below.",
+		);
+	}
+	if (issue) {
+		lines.push(`Tracked in Linear as [${issue.identifier}](${issue.url}).`);
+	}
+	embed.setDescription(lines.join("\n\n"));
+	await report.thread.send({ embeds: [embed] });
+
+	if (issue && linear) {
+		enhanceIssue(linear, {
+			issueId: issue.id,
+			channelName: report.channelName,
+			title: report.title,
+			content: report.content,
+			authorTag: report.author.tag,
+			messageUrl: report.messageUrl,
+			attachments: report.attachments,
+			initialDescription: issue.description,
+		}).catch((err) =>
+			console.error(`enhance failed for ${issue.identifier}`, err),
+		);
+	}
+}
+
 async function handleChannelMessage(message: Message) {
-	const attachments = [...message.attachments.values()];
 	const title = issueTitle(
 		message.content,
 		`Discord report from ${message.author.tag}`,
 	);
-	const issue = await fileIssue({
+	const thread = await message.startThread({ name: title.slice(0, 100) });
+	await intake({
+		thread,
+		author: message.author,
 		title,
 		content: message.content,
-		authorTag: message.author.tag,
 		messageUrl: message.url,
-		attachments,
-	});
-	if (!issue) return;
-	const thread = await message.startThread({ name: issue.identifier });
-	await thread.send(
-		`Filed to Linear Triage as [${issue.identifier}](${issue.url})`,
-	);
-	enhanceIssue(linear, {
-		issueId: issue.id,
+		attachments: [...message.attachments.values()],
 		channelName:
 			"name" in message.channel && message.channel.name
 				? message.channel.name
 				: "support",
-		title,
-		content: message.content,
-		authorTag: message.author.tag,
-		messageUrl: message.url,
-		attachments,
-		initialDescription: issue.description,
-	}).catch((err) =>
-		console.error(`enhance failed for ${issue.identifier}`, err),
-	);
+	});
 }
 
 // Forum posts arrive as new threads; the starter message may lag thread creation.
@@ -131,38 +193,32 @@ async function handleForumPost(thread: ThreadChannel) {
 		await new Promise((r) => setTimeout(r, 2000));
 		starter = await thread.fetchStarterMessage().catch(() => null);
 	}
-	const content = starter?.content ?? "";
-	const attachments = starter ? [...starter.attachments.values()] : [];
-	const title = thread.name || issueTitle(content, "Discord forum post");
-	const authorTag = starter?.author.tag ?? "unknown";
-	const messageUrl = starter?.url ?? thread.url;
-	const issue = await fileIssue({
-		title,
+	if (!starter) {
+		console.warn(`no starter message for forum thread ${thread.id}`);
+		return;
+	}
+	const content = starter.content;
+	await intake({
+		thread,
+		author: starter.author,
+		title: thread.name || issueTitle(content, "Discord forum post"),
 		content,
-		authorTag,
-		messageUrl,
-		attachments,
-	});
-	if (!issue) return;
-	await thread.send(
-		`Filed to Linear Triage as [${issue.identifier}](${issue.url})`,
-	);
-	enhanceIssue(linear, {
-		issueId: issue.id,
+		messageUrl: starter.url,
+		attachments: [...starter.attachments.values()],
 		channelName: thread.parent?.name ?? "forum",
-		title,
-		content,
-		authorTag,
-		messageUrl,
-		attachments,
-		initialDescription: issue.description,
-	}).catch((err) =>
-		console.error(`enhance failed for ${issue.identifier}`, err),
-	);
+	});
 }
 
 discord.on(Events.MessageCreate, (message) => {
 	if (message.author.bot) return;
+	if (message.channel.isThread()) {
+		// The forum starter shares the thread's ID and is handled on ThreadCreate.
+		if (!bridgeEnabled || message.id === message.channel.id) return;
+		relayFollowUp(message).catch((err) =>
+			console.error("failed to relay follow-up", err),
+		);
+		return;
+	}
 	if (!env.DISCORD_CHANNEL_IDS.includes(message.channelId)) return;
 	if (message.channel.type !== ChannelType.GuildText) return;
 	// Replies are follow-up discussion, not new reports.
@@ -183,7 +239,10 @@ discord.on(Events.ThreadCreate, (thread) => {
 
 discord.once(Events.ClientReady, (client) => {
 	console.log(
-		`discord-triage ready as ${client.user.tag}, watching ${env.DISCORD_CHANNEL_IDS.join(", ")}`,
+		`discord-triage ready as ${client.user.tag}, watching ${env.DISCORD_CHANNEL_IDS.join(", ")} (linear: ${linearEnabled}, plain bridge: ${bridgeEnabled})`,
+	);
+	applyBranding(client).catch((err) =>
+		console.error("branding update failed", err),
 	);
 });
 
@@ -235,9 +294,12 @@ async function handleIssueClosed(payload: LinearWebhookPayload) {
 	}
 	if (candidateIds.size === 0) return;
 	const done = issue.state?.type === "completed";
-	const message = done
-		? `✅ Fixed — closed in Linear as **${issue.identifier}** (${issue.state?.name}).`
-		: `Closed in Linear as **${issue.identifier}** (${issue.state?.name}).`;
+	const embed = brandedEmbed()
+		.setTitle(done ? "Fixed" : "Closed")
+		.setDescription(
+			`Closed in Linear as **${issue.identifier}** (${issue.state?.name}).`,
+		)
+		.toJSON();
 	for (const threadId of candidateIds) {
 		const t = await discordRest(`/channels/${threadId}`);
 		if (!t.ok) continue;
@@ -251,7 +313,7 @@ async function handleIssueClosed(payload: LinearWebhookPayload) {
 		if (thread.thread_metadata?.archived) continue;
 		const post = await discordRest(`/channels/${threadId}/messages`, {
 			method: "POST",
-			body: JSON.stringify({ content: message }),
+			body: JSON.stringify({ embeds: [embed] }),
 		});
 		if (!post.ok) {
 			throw new Error(`post to thread ${threadId} failed: ${post.status}`);
@@ -324,6 +386,9 @@ Bun.serve({
 		}
 		if (path === "/linear-webhook" && req.method === "POST") {
 			return handleLinearWebhook(req);
+		}
+		if (path === "/resend-webhook" && req.method === "POST") {
+			return handleResendWebhook(discord, req);
 		}
 		return new Response("not found", { status: 404 });
 	},

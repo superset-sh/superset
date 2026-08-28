@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -79,9 +80,7 @@ function AutomationDetailPage() {
 			void utils.automation.list.invalidate();
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to update automation",
-			),
+			toast.error(errorMessage(error, "Failed to update automation")),
 	});
 
 	const runNowMutation = useMutation({

@@ -12,17 +12,16 @@ import { TypewriterText } from "./components/TypewriterText";
 
 const HERO_COPY = {
 	segments: [
-		{ text: "Run 100+ Coding Agents " },
+		{ text: "Bring Any Agent. " },
 		{
-			text: "in Parallel.",
+			text: "Orchestrate Them All.",
 			// Plain inline (not inline-block): vertical padding on inline boxes
 			// paints the brackets without affecting line height, so the line
 			// can't jump when this segment mounts mid-animation
 			className: "corner-brackets px-[0.2em] py-[0.06em] whitespace-nowrap",
 		},
 	],
-	subheadline:
-		"Claude Code, Codex, or any CLI agent, each in its own isolated workspace. Spend your time shipping, not waiting.",
+	subheadline: "One workspace for Claude Code, Codex, and any coding agent.",
 };
 
 export function HeroSection() {

@@ -20,6 +20,9 @@ export const env = createEnv({
 		// Gmail triggers are configured but never watched.
 		GOOGLE_PUBSUB_TOPIC: z.string().min(1).optional(),
 		GOOGLE_PUBSUB_PUSH_TOKEN: z.string().min(1).optional(),
+		// Static bearer token for the read-only support account lookup; the
+		// endpoint answers 404 while unset.
+		SUPPORT_LOOKUP_TOKEN: z.string().regex(/^\S+$/).optional(),
 		BETTER_AUTH_SECRET: z.string(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
@@ -59,6 +62,12 @@ export const env = createEnv({
 		STRIPE_WEBHOOK_SECRET: z.string(),
 		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
 		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
+		// YC Bookface deal redemption webhook (deal 13843). The route answers
+		// 503 while the secret is unset. The secret lives on the Bookface deal
+		// edit page, under the webhook documentation.
+		YC_DEALS_WEBHOOK_SECRET: z.string().min(1).optional(),
+		YC_BOOKFACE_DEAL_ID: z.coerce.number().default(13843),
+		YC_BOOKFACE_COUPON_ID: z.string().min(1).default("yc-bookface-6mo"),
 		SLACK_BILLING_WEBHOOK_URL: z.string().url(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 		// Public Sentry integration (OAuth app). Optional: unset where the app
@@ -73,6 +82,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_ADMIN_URL: z.string().url(),
+		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DESKTOP_URL: z.string().url().optional(),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
@@ -86,6 +96,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
+		NEXT_PUBLIC_MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL,
 		NEXT_PUBLIC_DESKTOP_URL: process.env.NEXT_PUBLIC_DESKTOP_URL,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,

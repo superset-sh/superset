@@ -1,3 +1,6 @@
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
+import { errorMessage } from "@superset/i18n/errors";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
@@ -141,6 +144,7 @@ function ThemeRow({
 }
 
 export function ThemeSection() {
+	const { t } = useLingui();
 	const searchQuery = useSettingsSearchQuery();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isImporting, setIsImporting] = useState(false);
@@ -206,9 +210,18 @@ export function ThemeSection() {
 		event.target.value = "";
 		if (!file) return;
 		if (file.size > MAX_THEME_FILE_SIZE) {
-			toast.error("Theme file too large", {
-				description: "Maximum size is 256 KB.",
-			});
+			toast.error(
+				t({
+					id: "settings.appearance.themeImport.tooLarge",
+					message: "Theme file too large",
+				}),
+				{
+					description: t({
+						id: "settings.appearance.themeImport.tooLargeHint",
+						message: "Maximum size is 256 KB.",
+					}),
+				},
+			);
 			return;
 		}
 
@@ -238,9 +251,13 @@ export function ThemeSection() {
 			}
 
 			toast.success(
-				totalImported === 1
-					? "Imported 1 custom theme"
-					: `Imported ${totalImported} custom themes`,
+				t({
+					id: "settings.appearance.themeImport.success",
+					message: plural(totalImported, {
+						one: "Imported # custom theme",
+						other: "Imported # custom themes",
+					}),
+				}),
 				{
 					description:
 						summary.updated > 0
@@ -256,8 +273,7 @@ export function ThemeSection() {
 			}
 		} catch (error) {
 			toast.error("Failed to import theme file", {
-				description:
-					error instanceof Error ? error.message : "Unable to read file",
+				description: errorMessage(error, "Unable to read file"),
 			});
 		} finally {
 			setIsImporting(false);
@@ -290,7 +306,7 @@ export function ThemeSection() {
 	};
 
 	return (
-		<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+		<>
 			<ThemeRow
 				label="Theme"
 				hint={
@@ -388,6 +404,6 @@ export function ThemeSection() {
 					</Button>
 				</div>
 			</div>
-		</div>
+		</>
 	);
 }

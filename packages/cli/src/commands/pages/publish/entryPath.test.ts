@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { resolveEntryPath } from "./entryPath";
+import { externalEntryPath, resolveEntryPath } from "./entryPath";
 
 const workspacePath = "/Users/dev/ws";
 
@@ -111,5 +111,30 @@ describe("resolveEntryPath", () => {
 				cwd: link,
 			}),
 		).toBe("dist/index.html");
+	});
+});
+
+describe("externalEntryPath", () => {
+	test("keys an out-of-workspace file by its basename", () => {
+		expect(externalEntryPath("/private/tmp/scratch/report.html")).toBe(
+			"/external/report.html",
+		);
+	});
+
+	test("gives one key to the same filename across agent sessions", () => {
+		expect(externalEntryPath("/private/tmp/claude/aaaa-1111/report.html")).toBe(
+			externalEntryPath("/private/tmp/claude/bbbb-2222/report.html"),
+		);
+	});
+
+	test("cannot collide with a workspace-relative key", () => {
+		expect(externalEntryPath("/tmp/index.html").startsWith("/")).toBe(true);
+		expect(
+			resolveEntryPath({
+				filePath: "/Users/dev/ws/external/index.html",
+				workspacePath,
+				cwd: workspacePath,
+			}),
+		).toBe("external/index.html");
 	});
 });

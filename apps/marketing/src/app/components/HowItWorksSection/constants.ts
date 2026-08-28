@@ -7,20 +7,20 @@ export interface HowItWorksStep {
 export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
 	{
 		number: "01",
-		title: "Start a task.",
+		title: "Start with the work.",
 		description:
-			"Describe what you want built. Superset spins up a workspace in an isolated Git worktree, so every task starts on a clean branch.",
+			"Describe what you need. Superset creates an isolated workspace and clean branch for the task.",
 	},
 	{
 		number: "02",
-		title: "Agents do the work.",
+		title: "Pick the best agent.",
 		description:
-			"Run Claude Code, Codex, or any CLI agent in parallel, each in its own workspace. No conflicts, no waiting on a single session.",
+			"Use Claude Code, Codex, or any coding agent. Choose per task or run several side by side.",
 	},
 	{
 		number: "03",
-		title: "Review and ship.",
+		title: "Review the result.",
 		description:
-			"Jump in when an agent needs you. Review the changes, open them in your IDE, and commit, push, and merge PRs without leaving the app.",
+			"See what changed, give feedback, and merge the work when it's ready.",
 	},
 ];

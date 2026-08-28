@@ -110,11 +110,11 @@ export function V2PresetBarItem({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={() => onExecutePreset(preset)}>
-					Run preset
+					Run script
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={() => onEdit(preset)}>
-					Edit preset
+					Edit script
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

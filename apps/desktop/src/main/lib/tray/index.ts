@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { i18n } from "@superset/i18n";
 import {
 	app,
 	Menu,
@@ -127,7 +128,13 @@ function buildHostServiceSubmenu(
 	const menuItems: MenuItemConstructorOptions[] = [];
 
 	if (orgIds.length === 0) {
-		menuItems.push({ label: "No active services", enabled: false });
+		menuItems.push({
+			label: i18n._({
+				id: "tray.noActiveServices",
+				message: "No active services",
+			}),
+			enabled: false,
+		});
 		return menuItems;
 	}
 
@@ -217,7 +224,7 @@ async function updateTrayMenu(): Promise<void> {
 		},
 		{ type: "separator" },
 		{
-			label: "Open Superset",
+			label: i18n._({ id: "tray.openApp", message: "Open Superset" }),
 			click: focusMainWindow,
 		},
 		{

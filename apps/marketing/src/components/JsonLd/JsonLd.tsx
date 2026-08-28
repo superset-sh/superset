@@ -37,7 +37,7 @@ export function OrganizationJsonLd() {
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
 		logo: `${COMPANY.MARKETING_URL}/apple-touch-icon.png`,
-		description: "Run 100+ parallel coding agents on your machine",
+		description: "One workspace for orchestrating any coding agent",
 		email: supportEmail,
 		contactPoint: {
 			"@type": "ContactPoint",
@@ -77,7 +77,7 @@ export function SoftwareApplicationJsonLd() {
 			price: "0",
 			priceCurrency: "USD",
 		},
-		description: "Run 100+ parallel coding agents on your machine",
+		description: "One workspace for orchestrating any coding agent",
 		url: COMPANY.MARKETING_URL,
 	};
 
@@ -216,7 +216,7 @@ export function HomeWebPageJsonLd() {
 		"@type": "WebPage",
 		"@id": COMPANY.MARKETING_URL,
 		url: COMPANY.MARKETING_URL,
-		name: `${COMPANY.NAME}: Run 100+ parallel coding agents on your machine`,
+		name: `${COMPANY.NAME}: Orchestrate any coding agent`,
 		isPartOf: {
 			"@type": "WebSite",
 			name: COMPANY.NAME,
@@ -238,7 +238,7 @@ export function ServiceJsonLd() {
 		name: `${COMPANY.NAME} agent orchestration`,
 		serviceType: "AI coding agent orchestration platform",
 		description:
-			"Run and orchestrate parallel AI coding agents (Claude Code, Codex, OpenCode, and any CLI agent) in isolated Git worktrees, with diff review, persistent terminals, scheduled automations, and an MCP server for programmatic control.",
+			"Bring Claude Code, Codex, OpenCode, or any CLI-based coding agent into one workspace. Run tasks in parallel with isolated Git worktrees, diff review, persistent terminals, scheduled automations, and an MCP server for programmatic control.",
 		provider: {
 			"@type": "Organization",
 			name: COMPANY.NAME,

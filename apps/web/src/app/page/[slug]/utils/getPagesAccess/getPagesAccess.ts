@@ -17,11 +17,12 @@ export const getPagesAccess = cache(async () => {
 	let hasPagesAccess = false;
 
 	try {
-		hasPagesAccess = Boolean(
-			await posthogServer.getFeatureFlag(FEATURE_FLAGS.PAGES, session.user.id, {
-				personProperties: { email: session.user.email },
-			}),
+		const flag = await posthogServer.getFeatureFlag(
+			FEATURE_FLAGS.PAGES,
+			session.user.id,
+			{ personProperties: { email: session.user.email } },
 		);
+		hasPagesAccess = Boolean(flag);
 	} catch (error) {
 		console.error("[pages] Failed to load the pages feature flag", error);
 	}

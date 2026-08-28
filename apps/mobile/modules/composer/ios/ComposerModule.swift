@@ -69,6 +69,15 @@ public final class ComposerModule: Module {
         }
       }
 
+      /// The active agent's slash commands, as data. The list arriving can
+      /// open the panel mid-draft, which resizes the cluster — same
+      /// transaction rule as the strip above.
+      Prop("slashCommands") { (view: ComposerAnchorView, commands: [ComposerSlashCommand]) in
+        withAnimation(ComposerMetrics.growth) {
+          view.overlay.model.slashCommands = commands
+        }
+      }
+
       Prop("showAttachments") { (view: ComposerAnchorView, shows: Bool) in
         withAnimation(ComposerMetrics.controlSwap) {
           view.overlay.model.showsAttachments = shows

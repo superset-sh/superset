@@ -2,6 +2,7 @@ import { db } from "@superset/db/client";
 import { chatAttachments } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
+import { userError } from "../../../../i18n-error";
 
 const ALLOWED_MEDIA_TYPES = new Set([
 	"image/png",
@@ -122,9 +123,10 @@ export async function uploadChatAttachment({
 				cleanupError,
 			});
 		});
-		throw new TRPCError({
+		throw userError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Failed to record chat attachment",
+			i18nKey: "serverError.chat.failedToRecordChatAttachment",
 		});
 	}
 

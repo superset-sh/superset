@@ -5,6 +5,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
+import { LanguageSection } from "./components/LanguageSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
 
@@ -49,6 +50,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showLanguage = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_LANGUAGE,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -61,8 +66,16 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			</div>
 
 			<SectionList>
-				{showThemeSection && <ThemeSection key="theme" />}
-				{showMarkdown && <MarkdownStyleSection key="markdown" />}
+				{(showThemeSection || showLanguage || showMarkdown) && (
+					<div
+						key="appearance-card"
+						className="rounded-lg border border-border overflow-hidden divide-y divide-border"
+					>
+						{showThemeSection && <ThemeSection />}
+						{showLanguage && <LanguageSection />}
+						{showMarkdown && <MarkdownStyleSection />}
+					</div>
+				)}
 				{(showEditorFont || showTerminalFont) && (
 					<FontSettingSection
 						key="typography"

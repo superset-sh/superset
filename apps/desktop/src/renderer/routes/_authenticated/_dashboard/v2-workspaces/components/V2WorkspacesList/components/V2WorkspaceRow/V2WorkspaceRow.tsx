@@ -1,13 +1,13 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
 import { CgLaptop } from "react-icons/cg";
+import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
+import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { V2WorkspaceContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import { workspaceActivityAt } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
-import { WorkspaceNameMarquee } from "./components/WorkspaceNameMarquee";
 import { WorkspaceStateGlyph } from "./components/WorkspaceStateGlyph";
 
 interface V2WorkspaceRowProps {
@@ -28,7 +28,11 @@ export function V2WorkspaceRow({
 	const isMainWorkspace = workspace.type === "main";
 	// Drives the name's hover-reveal for keyboard users: the row, not the
 	// name span, is what's actually tabbable.
-	const [isFocused, setIsFocused] = useState(false);
+	const {
+		isFocusVisible: isFocused,
+		onFocus: handleRowFocus,
+		onBlur: handleRowBlur,
+	} = useFocusVisible();
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
 		? "you"
@@ -83,8 +87,8 @@ export function V2WorkspaceRow({
 							actions.open();
 						}
 					}}
-					onFocus={() => setIsFocused(true)}
-					onBlur={() => setIsFocused(false)}
+					onFocus={handleRowFocus}
+					onBlur={handleRowBlur}
 					title={rowTitle}
 					className={cn(
 						"flex cursor-pointer items-center gap-3 border-b border-border/40 px-6 py-3 text-sm outline-none transition-colors",

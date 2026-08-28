@@ -6,8 +6,14 @@ export interface Feature {
 
 export const FEATURES: Feature[] = [
 	{
+		tag: "Agent Independence",
+		title: "Switch agents. Keep your workflow",
+		description:
+			"Use Claude Code, Codex, OpenCode, or any coding agent for each task. Your workspaces, branches, and review flow stay the same.",
+	},
+	{
 		tag: "Parallel Execution",
-		title: "Run 100+ agents without losing track",
+		title: "Scale from two agents to 100+",
 		description:
 			"Launch agents across features, bug fixes, and refactors, all in parallel. Status at a glance shows which agents are working, which are blocked, and which are waiting on you.",
 	},
@@ -18,19 +24,13 @@ export const FEATURES: Feature[] = [
 			"Turn chores into scheduled agents: issue triage, changelog drafts, dependency bumps. They run on their own and open PRs for you to review.",
 	},
 	{
-		tag: "Universal Compatibility",
-		title: "Works with any CLI agent",
-		description:
-			"Superset is agent-agnostic. Use Claude Code, OpenCode, Cursor, or any CLI-based coding tool. Switch agents whenever you want.",
-	},
-	{
 		tag: "Isolation",
 		title: "Changes are isolated",
 		description:
 			"Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready.",
 	},
 	{
-		tag: "Remote Workspaces",
+		tag: "Remote Access",
 		title: "Run workspaces anywhere",
 		description:
 			"Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are.",

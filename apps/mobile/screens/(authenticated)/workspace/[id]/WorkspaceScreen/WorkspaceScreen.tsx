@@ -13,7 +13,6 @@ import {
 	Keyboard,
 	LayoutAnimation,
 	Pressable,
-	StyleSheet,
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,12 +32,15 @@ import {
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useAppReviewPrompt } from "@/screens/(authenticated)/hooks/useAppReviewPrompt";
 import { useCreateTerminalWorkspace } from "@/screens/(authenticated)/hooks/useCreateTerminalWorkspace";
+import { useSlashCommands } from "@/screens/(authenticated)/hooks/useSlashCommands";
 import { usePendingWorkspaceCreatesStore } from "@/screens/(authenticated)/stores/pendingWorkspaceCreatesStore";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import { useTerminalTabOrderStore } from "@/screens/(authenticated)/stores/terminalTabOrderStore";
+import { useUnreadWorkspacesStore } from "@/screens/(authenticated)/stores/unreadWorkspacesStore";
 import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
 import { HeaderNotice } from "../components/HeaderNotice";
 import { PullRequestsButton } from "../components/PullRequestsButton";
+import { ScrollToBottomButton } from "../components/ScrollToBottomButton";
 import {
 	TerminalComposer,
 	type TerminalQuickKey,
@@ -60,11 +62,13 @@ import { WorkspacePlaceholder } from "./components/WorkspacePlaceholder";
 
 const NOTICE_MS = 1500;
 
+// No fullScreenGestureEnabled: false here. On iOS 26 the system's back swipe
+// IS the full-screen one, and react-native-screens reads that flag as "no back
+// gesture at all" rather than "edge only" — the old edge recognizer is gone.
 const headerOptions = {
 	headerShown: true,
 	headerBackButtonDisplayMode: "minimal",
 	headerShadowVisible: false,
-	fullScreenGestureEnabled: false,
 } as const;
 
 const PENDING_CREATE_POLL_MS = 2_000;
@@ -272,6 +276,15 @@ export function WorkspaceScreen() {
 		if (activeTerminalId) setPickedTerminalId(activeTerminalId);
 	}, [params.tab, rows, activeTerminalId]);
 
+	// Opening the workspace reads it, the way clicking a desktop sidebar row
+	// does — the mark is only there to bring you back here.
+	const clearManualUnread = useUnreadWorkspacesStore(
+		(state) => state.clearManualUnread,
+	);
+	useEffect(() => {
+		if (id) clearManualUnread(id);
+	}, [id, clearManualUnread]);
+
 	// Port of desktop's useClearActivePaneAttention: viewing the tab clears
 	// its `review` state by advancing the seen mark to the binding's last
 	// event (host clock — never the device clock).
@@ -280,6 +293,12 @@ export function WorkspaceScreen() {
 	);
 	const requestAppReview = useAppReviewPrompt();
 	const activeRow = rows.find((row) => row.terminalId === activeTerminalId);
+	const slashCommands = useSlashCommands({
+		machineId: host?.machineId ?? null,
+		hostUrl,
+		workspaceId: id ?? null,
+		agent: activeRow?.definitionId ?? activeRow?.agentId ?? null,
+	});
 	useEffect(() => {
 		if (activeRow?.attention !== "review") return;
 		if (activeRow.lastEventAt === null) return;
@@ -341,12 +360,18 @@ export function WorkspaceScreen() {
 		active: false,
 		hasSelection: false,
 	});
+	const [atBottom, setAtBottom] = useState(true);
 	// seq gives each notice its own identity: a repeat copy while "Copied" is
 	// still up remounts HeaderNotice, restarting its timer.
 	const [notice, setNotice] = useState<{ text: string; seq: number } | null>(
 		null,
 	);
 	const hideNotice = useCallback(() => setNotice(null), []);
+	const composerActiveRef = useRef(false);
+	composerActiveRef.current = composerActive;
+	const handleTerminalTap = useCallback(() => {
+		if (composerActiveRef.current) composerRef.current?.blur();
+	}, []);
 	const handleCopied = useCallback(
 		() => setNotice((prev) => ({ text: "Copied", seq: (prev?.seq ?? 0) + 1 })),
 		[],
@@ -570,17 +595,43 @@ export function WorkspaceScreen() {
 							onControl={handleControl}
 							onSelectChange={setSelect}
 							onCopied={handleCopied}
+							onScrollChange={setAtBottom}
+							// Tap-to-dismiss without an overlay: a Pressable stacked over
+							// the WebView also ate scroll drags, so the scrollback froze
+							// whenever the keyboard was up. The page reports plain taps
+							// instead, and drags stay with the terminal.
+							onTap={handleTerminalTap}
 						/>
-						{/* Tap-outside-to-dismiss, the terminal's answer to the home
-						    composer's backdrop. Transparent, not a scrim: the point of
-						    typing here is watching the output above. */}
-						{composerActive ? (
-							<Pressable
-								accessibilityLabel="Dismiss keyboard"
-								onPress={() => composerRef.current?.blur()}
-								style={StyleSheet.absoluteFill}
-							/>
-						) : null}
+						{/* The WebView swallows every touch that lands on it, so the back
+						    swipe never starts over the terminal. This strip keeps a
+						    finger's width of the left edge native, which is all UIKit
+						    needs. Dragging further right stays the terminal's — WebKit
+						    still owns those touches, so no drag over output can pop.
+						    A Pressable rather than a plain View because an undrawn View
+						    can be flattened away — leaving the edge to WebKit again. */}
+						<Pressable
+							// Silent to VoiceOver: it is always mounted, and a terminal
+							// tap already dismisses the keyboard.
+							accessible={false}
+							className="absolute bottom-0 left-0 top-0 w-5"
+							onPress={() => composerRef.current?.blur()}
+						/>
+						{/* After the dismiss target so it stays tappable with the
+						    keyboard up, and hidden in select mode: the frozen snapshot
+						    covers the viewport this would move. Always mounted — it
+						    fades itself, which it cannot do if the parent unmounts it. */}
+						<ScrollToBottomButton
+							visible={!atBottom && !select.active}
+							onPress={() => {
+								// The tap lands in SwiftUI, where RN autocapture cannot see
+								// it — this surface only exists if it is captured by hand.
+								posthog.capture("terminal_scrolled_to_bottom", {
+									workspace_id: id ?? null,
+									source: "button",
+								});
+								terminalRef.current?.scrollToBottom();
+							}}
+						/>
 					</>
 				) : cloud && !workspace ? (
 					<CloudWorkspaceProvisioningState cloud={cloud} />
@@ -658,6 +709,7 @@ export function WorkspaceScreen() {
 						<TerminalComposer
 							workspaceId={id}
 							allowAttachments={activeRow?.agentId != null}
+							slashCommands={slashCommands}
 							attachmentTarget={attachmentTarget}
 							onActiveChange={setComposerActive}
 							onHeightChange={setComposerHeight}

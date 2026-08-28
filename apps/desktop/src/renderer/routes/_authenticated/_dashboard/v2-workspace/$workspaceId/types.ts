@@ -53,9 +53,9 @@ export interface CommentPaneData {
 }
 
 export interface PagePaneData {
-	pageId: string;
 	slug: string;
-	title: string;
+	pageId?: string;
+	title?: string;
 }
 
 export interface ChatV3PaneData {

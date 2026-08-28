@@ -45,6 +45,7 @@ import {
 	REVIEW_THREADS_QUERY,
 } from "./utils/graphql";
 import { resolveWorktreePath } from "./utils/resolve-worktree";
+import { attachSpawnFailureDiagnostics } from "./utils/spawn-failure-diagnostics";
 
 // Front-door cap for commit-file diffs. Statuses are admitted by
 // gitStatusRefreshLimiter; without a cap here, a burst of distinct-commit
@@ -243,6 +244,10 @@ export const gitRouter = router({
 				// worktree can vanish between resolveWorktreePath's existsSync
 				// check and the git spawn.
 				rethrowEnvironmentalGitError(error);
+				// A spawn that never produced a process reports with no
+				// first-party frame and no reason; record the descriptor table
+				// while we are still standing in the failure.
+				attachSpawnFailureDiagnostics(error);
 				throw error;
 			}
 		}),

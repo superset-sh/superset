@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -38,7 +39,7 @@ export function useSetV2WorktreeBaseDir(hostUrl: string | null) {
 			);
 		},
 		onError: (err) => {
-			toast.error(err instanceof Error ? err.message : String(err));
+			toast.error(errorMessage(err));
 		},
 	});
 }

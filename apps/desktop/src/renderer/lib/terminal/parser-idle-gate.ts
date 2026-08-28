@@ -27,16 +27,30 @@ function flushQueued(gate: ParserIdleGate): void {
 export function wrapWrite(gate: ParserIdleGate, write: WriteFn): WriteFn {
 	return (data, callback) => {
 		gate.pending++;
-		write(data, () => {
-			try {
-				callback?.();
-			} finally {
-				gate.pending--;
-				if (gate.pending === 0 && gate.queued) {
-					queueMicrotask(() => flushQueued(gate));
-				}
+		let released = false;
+		const release = () => {
+			if (released) return;
+			released = true;
+			gate.pending--;
+			if (gate.pending === 0 && gate.queued) {
+				queueMicrotask(() => flushQueued(gate));
 			}
-		});
+		};
+		try {
+			write(data, () => {
+				try {
+					callback?.();
+				} finally {
+					release();
+				}
+			});
+		} catch (error) {
+			// xterm throws out of write() when its own pending-data ceiling is
+			// passed, and then never calls back. Release here or pending never
+			// returns to zero and queued work waits forever.
+			release();
+			throw error;
+		}
 	};
 }
 

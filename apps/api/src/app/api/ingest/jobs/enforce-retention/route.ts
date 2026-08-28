@@ -6,6 +6,13 @@ import { verifyQstashRequest } from "@/lib/verifyQstash";
 export const dynamic = "force-dynamic";
 
 /**
+ * Matches the other long-running job routes. Without it this route took the
+ * platform default, which is shorter than a single batch now takes, so a run
+ * was killed mid-loop rather than ending on its own time budget.
+ */
+export const maxDuration = 300;
+
+/**
  * How long an event record itself is worth keeping, separate from its body.
  *
  * The constraint is idempotency, not storage: the unique indexes on these
@@ -21,13 +28,25 @@ const BATCH_SIZE = 5_000;
 
 /**
  * Ceiling per table per run. Deleting leaves dead tuples, so this is what stops
- * a backlog drain outrunning autovacuum. Against a 5-minute schedule it is
- * ~14M rows/day, comfortably ahead of the ~1.2M/day these tables take on.
+ * a backlog drain outrunning autovacuum.
+ *
+ * It has never been the binding constraint. TIME_BUDGET_MS is, because a batch
+ * costs far more than this file originally assumed — see there.
  */
 const MAX_ROWS_PER_TABLE = 50_000;
 
-/** Well inside the function timeout, so a run ends by choice rather than by kill. */
-const TIME_BUDGET_MS = 20_000;
+/**
+ * Has to exceed the cost of a batch, or the loop can only ever run one.
+ *
+ * A batch is `ORDER BY received_at LIMIT 5000` off the left edge of
+ * webhook_events_received_at_idx, and every prior delete leaves dead index
+ * entries in exactly that prefix for the next batch to walk. Measured against
+ * production over 1226 batches: 35s mean, 582s worst. At the previous 20s the
+ * deadline check after batch one always failed, so a run deleted 5k rows rather
+ * than the 50k intended — an order of magnitude under what the ceiling implies,
+ * and roughly break-even against intake once the backlog is drained.
+ */
+const TIME_BUDGET_MS = 240_000;
 
 interface RetentionTarget {
 	label: string;

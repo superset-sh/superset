@@ -1,3 +1,4 @@
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import type { AgentLaunchRequest } from "@superset/shared/agent-launch";
 import { buildPromptAgentLaunchRequest } from "@superset/shared/agent-launch-request";
 import {
@@ -769,15 +770,16 @@ function PromptGroupInner({
 					} catch (error) {
 						if (timeoutId) clearTimeout(timeoutId);
 
-						const errorMessage =
-							error instanceof Error ? error.message : String(error);
-						if (errorMessage.includes("timeout")) {
+						// Classification needs the stable English message, never the
+						// translated display string.
+						const message = rawErrorMessage(error);
+						if (message.includes("timeout")) {
 							console.warn("[PromptGroup] AI generation timeout");
 							toast.info("Using random branch name (AI generation timed out)");
 						} else if (
-							errorMessage.toLowerCase().includes("auth") ||
-							errorMessage.includes("401") ||
-							errorMessage.includes("403")
+							message.toLowerCase().includes("auth") ||
+							message.includes("401") ||
+							message.includes("403")
 						) {
 							console.error("[PromptGroup] AI auth error:", error);
 							toast.error(
@@ -1000,8 +1002,7 @@ ${sanitizeText(truncatedBody)}`;
 					{
 						loading: "Creating workspace...",
 						success: "Workspace created",
-						error: (err) =>
-							err instanceof Error ? err.message : "Failed to create workspace",
+						error: (err) => errorMessage(err, "Failed to create workspace"),
 					},
 					{ closeAndReset: false },
 				).finally(() => {
@@ -1084,8 +1085,7 @@ ${sanitizeText(truncatedBody)}`;
 					{
 						loading: "Opening worktree...",
 						success: "Worktree opened",
-						error: (err) =>
-							err instanceof Error ? err.message : "Failed to open worktree",
+						error: (err) => errorMessage(err, "Failed to open worktree"),
 					},
 				);
 			} else {
@@ -1097,8 +1097,7 @@ ${sanitizeText(truncatedBody)}`;
 					{
 						loading: "Opening worktree...",
 						success: "Worktree opened",
-						error: (err) =>
-							err instanceof Error ? err.message : "Failed to open worktree",
+						error: (err) => errorMessage(err, "Failed to open worktree"),
 					},
 				);
 			}

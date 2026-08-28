@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import {
@@ -100,9 +101,7 @@ export function VersionHistorySheet({
 						try {
 							await restoreMutation.mutateAsync(versionId);
 						} catch (error) {
-							toast.error(
-								error instanceof Error ? error.message : "Failed to restore",
-							);
+							toast.error(errorMessage(error, "Failed to restore"));
 							throw error;
 						}
 					},

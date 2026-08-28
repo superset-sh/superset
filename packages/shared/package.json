@@ -16,6 +16,14 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./format-scaled": {
+			"types": "./src/format-scaled.ts",
+			"default": "./src/format-scaled.ts"
+		},
+		"./format-tokens": {
+			"types": "./src/format-tokens.ts",
+			"default": "./src/format-tokens.ts"
+		},
 		"./git-hook-tolerance": {
 			"types": "./src/git-hook-tolerance.ts",
 			"default": "./src/git-hook-tolerance.ts"
@@ -31,6 +39,10 @@
 		"./sentry": {
 			"types": "./src/sentry.ts",
 			"default": "./src/sentry.ts"
+		},
+		"./slash-commands": {
+			"types": "./src/slash-commands.ts",
+			"default": "./src/slash-commands.ts"
 		},
 		"./terminal-wheel-handler": {
 			"types": "./src/terminal-wheel-handler/index.ts",

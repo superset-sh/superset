@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { SquareTerminal } from "lucide-react-native";
 import { useMemo } from "react";
 import { Image, Pressable, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
@@ -43,6 +44,7 @@ export function AgentMark({
 export function AgentPickerScreen() {
 	const router = useRouter();
 	const theme = useTheme();
+	const insets = useSafeAreaInsets();
 	const agentId = useNewSessionPreferencesStore((state) => state.agentId);
 	const setAgentId = useNewSessionPreferencesStore((state) => state.setAgentId);
 	const { machineId } = useLocalSearchParams<{ machineId?: string }>();
@@ -100,7 +102,11 @@ export function AgentPickerScreen() {
 	return (
 		<ScrollView
 			className="bg-background flex-1 px-6"
-			contentContainerStyle={{ flexGrow: 1, paddingVertical: 8 }}
+			contentContainerStyle={{
+				flexGrow: 1,
+				paddingTop: 8,
+				paddingBottom: insets.bottom + 8,
+			}}
 		>
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />

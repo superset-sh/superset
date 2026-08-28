@@ -169,6 +169,22 @@ while IFS= read -r line; do
 done
 `;
 
+// Reports the PTY's size on demand. `stty size` is an ioctl on the slave fd,
+// so it answers with what the kernel actually holds — the host's own
+// bookkeeping could agree with itself and still never have resized anything.
+// SIGWINCH is ignored so the resizes under test can't interrupt `read`.
+const SIZE_SCRIPT = String.raw`
+trap '' WINCH
+stty -echo
+printf 'READY-SIZE\n'
+n=0
+while IFS= read -r line; do
+  n=$((n+1))
+  printf 'SIZE %03d %s\n' "$n" "$(stty size | tr ' ' 'x')"
+  case $line in *stop*) exit 0 ;; esac
+done
+`;
+
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -233,10 +249,12 @@ class SeqRenderer {
 	private ws: WebSocket | null = null;
 	private writeChain: Promise<void> = Promise.resolve();
 
-	constructor() {
+	constructor(
+		dims: { cols: number; rows: number } = { cols: COLS, rows: ROWS },
+	) {
 		this.term = new HeadlessTerminal({
-			cols: COLS,
-			rows: ROWS,
+			cols: dims.cols,
+			rows: dims.rows,
 			scrollback: 1000,
 			allowProposedApi: true,
 		});
@@ -310,6 +328,10 @@ class SeqRenderer {
 
 	sendResize(cols: number, rows: number): void {
 		this.ws?.send(JSON.stringify({ type: "resize", cols, rows }));
+	}
+
+	sendVisible(visible: boolean): void {
+		this.ws?.send(JSON.stringify({ type: "visible", visible }));
 	}
 
 	sendFocus(focused: boolean): void {
@@ -409,6 +431,7 @@ before(async () => {
 	fs.mkdirSync(worktreePath, { recursive: true });
 	fs.writeFileSync(path.join(TEST_HOME, "tui.sh"), TUI_SCRIPT);
 	fs.writeFileSync(path.join(TEST_HOME, "focus.sh"), FOCUS_SCRIPT);
+	fs.writeFileSync(path.join(TEST_HOME, "size.sh"), SIZE_SCRIPT);
 
 	server = new Server({
 		socketPath: SOCK,
@@ -983,5 +1006,100 @@ test(
 		};
 		await run("on");
 		await run("off");
+	},
+);
+
+test(
+	"the PTY runs at the smallest visible client, not whoever resized last",
+	{ timeout: 90_000 },
+	async () => {
+		const terminalId = `seq-dims-${randomUUID().slice(0, 8)}`;
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			cols: COLS,
+			rows: ROWS,
+			initialCommand: `exec bash '${path.join(TEST_HOME, "size.sh")}'`,
+		});
+		if ("error" in session) assert.fail(session.error);
+
+		// A desktop pane and a phone on the same session. Neither sends
+		// `visible` until asked to, which is also the back-compat case: a client
+		// that never speaks the message has to keep constraining the size.
+		const desktop = new SeqRenderer({ cols: 120, rows: 30 });
+		const phone = new SeqRenderer({ cols: 45, rows: 20 });
+		let probes = 0;
+		const probeSize = async (): Promise<string> => {
+			probes += 1;
+			const marker = `SIZE ${String(probes).padStart(3, "0")} `;
+			desktop.sendInput("size\n");
+			await desktop.waitVisible(marker);
+			await desktop.drain();
+			const line = visibleText(desktop.term)
+				.split("\n")
+				.find((text) => text.includes(marker));
+			assert.ok(line, `no size report for probe ${probes}`);
+			return line.slice(line.indexOf(marker) + marker.length).trim();
+		};
+
+		try {
+			await desktop.connect(terminalId);
+			await desktop.waitVisible("READY-SIZE");
+			assert.equal(
+				await probeSize(),
+				"30x120",
+				"the only attached client owns the size",
+			);
+
+			// The phone attaching used to stomp the PTY for the desktop too, and
+			// the desktop's next resize stomped it back — the ping-pong behind
+			// the smushed mobile terminal. Now the phone sets the floor.
+			await phone.connect(terminalId);
+			await phone.waitSynced();
+			assert.equal(
+				await probeSize(),
+				"20x45",
+				"the smallest visible client sets the size",
+			);
+
+			// Backgrounding is not detaching: the socket stays, the constraint
+			// goes. This is what stops a phone in a pocket holding every desktop
+			// pane at phone width.
+			phone.sendVisible(false);
+			// Separate sockets have no ordering between them; let the visibility
+			// write land before the probe rides the desktop's socket.
+			await sleep(400);
+			assert.equal(
+				await probeSize(),
+				"30x120",
+				"a hidden client must not constrain the size",
+			);
+
+			phone.sendVisible(true);
+			await sleep(400);
+			assert.equal(
+				await probeSize(),
+				"20x45",
+				"coming back on screen re-imposes the constraint",
+			);
+
+			// Closing the phone hands the desktop its width back with nobody
+			// touching a pane.
+			await phone.disconnect();
+			await sleep(400);
+			assert.equal(
+				await probeSize(),
+				"30x120",
+				"a departing client releases its size constraint",
+			);
+		} finally {
+			await phone.disconnect().catch(() => {});
+			phone.dispose();
+			await desktop.disconnect().catch(() => {});
+			desktop.dispose();
+			await disposeSessionAndWait(terminalId, db).catch(() => {});
+		}
 	},
 );

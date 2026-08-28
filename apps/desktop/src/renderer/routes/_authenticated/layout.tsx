@@ -28,6 +28,8 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
+import { LeaderboardAutoPublish } from "renderer/routes/_authenticated/components/LeaderboardAutoPublish";
+import { LeaderboardFirstRunDialog } from "renderer/routes/_authenticated/components/LeaderboardFirstRunDialog";
 import { PendingDeletionScreen } from "renderer/routes/_authenticated/components/PendingDeletionScreen";
 import { StarNagObserver } from "renderer/routes/_authenticated/components/StarNagObserver";
 import {
@@ -304,6 +306,8 @@ function AuthenticatedLayout() {
 								<V2NotificationController />
 								<DockBadgeController />
 								<StarNagObserver />
+								<LeaderboardAutoPublish />
+								<LeaderboardFirstRunDialog />
 								<DaemonAutoUpdateFailureDialog />
 								<Outlet />
 								<V1ImportModal />

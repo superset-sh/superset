@@ -1,3 +1,4 @@
+import { errorMessage, rawErrorMessage } from "@superset/i18n/errors";
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -98,14 +99,13 @@ export function useWorkspaceRunCommand({
 				});
 				setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Unknown error";
-				if (message.includes("not found") || message.includes("not alive")) {
+				const raw = rawErrorMessage(error);
+				if (raw.includes("not found") || raw.includes("not alive")) {
 					setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
 					return;
 				}
 				toast.error("Failed to stop workspace run command", {
-					description: message,
+					description: errorMessage(error, "Unknown error"),
 				});
 			} finally {
 				setIsPending(false);
@@ -126,7 +126,7 @@ export function useWorkspaceRunCommand({
 			if (!command) {
 				toast.error("No workspace run command configured", {
 					description:
-						"Add a run script in Project Settings or mark a preset as the workspace run.",
+						"Add a lifecycle run script in Project Settings or mark a terminal script as the workspace run.",
 				});
 				return;
 			}
@@ -163,8 +163,7 @@ export function useWorkspaceRunCommand({
 				} catch (error) {
 					setPaneWorkspaceRunState(livePane.id, "stopped-by-exit");
 					toast.error("Failed to run workspace command", {
-						description:
-							error instanceof Error ? error.message : "Unknown error",
+						description: errorMessage(error, "Unknown error"),
 					});
 				}
 				return;
@@ -194,12 +193,12 @@ export function useWorkspaceRunCommand({
 			} catch (error) {
 				setPaneWorkspaceRunState(paneId, "stopped-by-exit");
 				toast.error("Failed to run workspace command", {
-					description: error instanceof Error ? error.message : "Unknown error",
+					description: errorMessage(error, "Unknown error"),
 				});
 			}
 		} catch (error) {
 			toast.error("Failed to resolve workspace run command", {
-				description: error instanceof Error ? error.message : "Unknown error",
+				description: errorMessage(error, "Unknown error"),
 			});
 		} finally {
 			isStartingRef.current = false;
@@ -228,13 +227,13 @@ export function useWorkspaceRunCommand({
 			});
 			setPaneWorkspaceRunState(runPane.id, "stopped-by-user");
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "Unknown error";
-			if (message.includes("not found") || message.includes("not alive")) {
+			const raw = rawErrorMessage(error);
+			if (raw.includes("not found") || raw.includes("not alive")) {
 				setPaneWorkspaceRunState(runPane.id, "stopped-by-exit");
 				return;
 			}
 			toast.error("Failed to force stop workspace run command", {
-				description: message,
+				description: errorMessage(error, "Unknown error"),
 			});
 		} finally {
 			setIsPending(false);

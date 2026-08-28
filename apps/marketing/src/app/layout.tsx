@@ -36,12 +36,12 @@ const inter = Inter({
 });
 
 const siteDescription =
-	"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
+	"Bring Claude Code, Codex, OpenCode, or any coding agent into one workspace. Run tasks in parallel, isolate changes, and review everything in one place.";
 
 export const metadata: Metadata = {
 	metadataBase: new URL(COMPANY.MARKETING_URL),
 	title: {
-		default: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
+		default: `${COMPANY.NAME} - Orchestrate any coding agent`,
 		template: `%s | ${COMPANY.NAME}`,
 	},
 	description: siteDescription,
@@ -63,23 +63,21 @@ export const metadata: Metadata = {
 		locale: "en_US",
 		url: COMPANY.MARKETING_URL,
 		siteName: COMPANY.NAME,
-		title: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
-		description:
-			"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+		title: `${COMPANY.NAME} - Orchestrate any coding agent`,
+		description: siteDescription,
 		images: [
 			{
 				url: "/og-image.png",
 				width: 1200,
 				height: 630,
-				alt: `${COMPANY.NAME} - Run 100+ coding agents in parallel`,
+				alt: `${COMPANY.NAME} - Orchestrate any coding agent`,
 			},
 		],
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
-		description:
-			"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+		title: `${COMPANY.NAME} - Orchestrate any coding agent`,
+		description: siteDescription,
 		images: ["/og-image.png"],
 		creator: "@superset_sh",
 	},

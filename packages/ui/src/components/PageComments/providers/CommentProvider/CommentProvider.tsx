@@ -87,13 +87,28 @@ export function useComments(): CommentContextValue {
 export function CommentProvider({
 	user,
 	store,
+	enabled: controlledEnabled,
+	onEnabledChange,
 	children,
 }: {
 	user: PageCommentUser;
 	store: CommentStore;
+	enabled?: boolean;
+	onEnabledChange?: (enabled: boolean) => void;
 	children: ReactNode;
 }) {
-	const [enabled, setEnabled] = useState(false);
+	const [uncontrolledEnabled, setUncontrolledEnabled] = useState(false);
+	const enabled = controlledEnabled ?? uncontrolledEnabled;
+	const setEnabled = useCallback(
+		(update: (previous: boolean) => boolean) => {
+			if (controlledEnabled === undefined) {
+				setUncontrolledEnabled(update);
+				return;
+			}
+			onEnabledChange?.(update(controlledEnabled));
+		},
+		[controlledEnabled, onEnabledChange],
+	);
 	const [draft, setDraft] = useState<CommentDraft | null>(null);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
@@ -112,7 +127,7 @@ export function CommentProvider({
 			}
 			return !previous;
 		});
-	}, []);
+	}, [setEnabled]);
 
 	const openDraft = useCallback((next: CommentDraft) => {
 		setActiveThreadId(null);

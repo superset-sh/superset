@@ -8,7 +8,6 @@ import {
 import { FeedbackReportEmail } from "@superset/email/emails/feedback-report";
 import { ACTIVE_SUBSCRIPTION_STATUSES } from "@superset/shared/billing";
 import { COMPANY } from "@superset/shared/constants";
-import { TRPCError } from "@trpc/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { and, eq, inArray } from "drizzle-orm";
@@ -16,7 +15,7 @@ import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "../../env";
 import { posthog } from "../../lib/analytics";
-import { createTRPCRouter, protectedProcedure } from "../../trpc";
+import { createTRPCRouter, protectedProcedure, userError } from "../../trpc";
 
 const resend = new Resend(env.RESEND_API_KEY);
 const SUPPORT_EMAIL = COMPANY.MAIL_TO.replace(/^mailto:/, "");
@@ -65,9 +64,10 @@ async function assertSupportReportRateLimit({
 }) {
 	if (!supportReportRateLimit) {
 		if (env.NODE_ENV === "production") {
-			throw new TRPCError({
+			throw userError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Support rate limiting is not configured",
+				i18nKey: "serverError.support.supportRateLimitingIsNotConfigured",
 			});
 		}
 		console.warn(
@@ -80,9 +80,10 @@ async function assertSupportReportRateLimit({
 		`${organizationId ?? "no-org"}:${userId}`,
 	);
 	if (!success) {
-		throw new TRPCError({
+		throw userError({
 			code: "TOO_MANY_REQUESTS",
 			message: "Too many support reports. Try again later.",
+			i18nKey: "serverError.support.tooManySupportReportsTryAgain",
 		});
 	}
 }
@@ -96,9 +97,10 @@ async function assertSubmitPromptRateLimit({
 }) {
 	if (!submitPromptRateLimit) {
 		if (env.NODE_ENV === "production") {
-			throw new TRPCError({
+			throw userError({
 				code: "INTERNAL_SERVER_ERROR",
 				message: "Submit prompt rate limiting is not configured",
+				i18nKey: "serverError.support.submitPromptRateLimitingIsNot",
 			});
 		}
 		console.warn(
@@ -111,9 +113,10 @@ async function assertSubmitPromptRateLimit({
 		`${organizationId ?? "no-org"}:${userId}`,
 	);
 	if (!success) {
-		throw new TRPCError({
+		throw userError({
 			code: "TOO_MANY_REQUESTS",
 			message: "Too many prompt submissions. Try again later.",
+			i18nKey: "serverError.support.tooManyPromptSubmissionsTryAgain",
 		});
 	}
 }
@@ -157,9 +160,10 @@ export const supportRouter = createTRPCRouter({
 				if (error) throw error;
 			} catch (error) {
 				console.error("[support/sendMigrationReport] failed", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to send migration report",
+					i18nKey: "serverError.support.failedToSendMigrationReport",
 				});
 			}
 		}),
@@ -198,9 +202,10 @@ export const supportRouter = createTRPCRouter({
 
 			if (!submitFeedbackRateLimit) {
 				if (env.NODE_ENV === "production") {
-					throw new TRPCError({
+					throw userError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: "Feedback rate limiting is not configured",
+						i18nKey: "serverError.support.feedbackRateLimitingIsNotConfigured",
 					});
 				}
 				console.warn(
@@ -211,9 +216,10 @@ export const supportRouter = createTRPCRouter({
 					`${organizationId ?? "no-org"}:${user.id}`,
 				);
 				if (!success) {
-					throw new TRPCError({
+					throw userError({
 						code: "TOO_MANY_REQUESTS",
 						message: "Too many feedback submissions. Try again later.",
+						i18nKey: "serverError.support.tooManyFeedbackSubmissionsTryAgain",
 					});
 				}
 			}
@@ -290,9 +296,10 @@ export const supportRouter = createTRPCRouter({
 				if (error) throw error;
 			} catch (error) {
 				console.error("[support/submitFeedback] failed", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to send feedback",
+					i18nKey: "serverError.support.failedToSendFeedback",
 				});
 			}
 
@@ -331,9 +338,10 @@ export const supportRouter = createTRPCRouter({
 				});
 			} catch (error) {
 				console.error("[support/submitPrompt] failed", error);
-				throw new TRPCError({
+				throw userError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to save prompt",
+					i18nKey: "serverError.support.failedToSavePrompt",
 				});
 			}
 		}),

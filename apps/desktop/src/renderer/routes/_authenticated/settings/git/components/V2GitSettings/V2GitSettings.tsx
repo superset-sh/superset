@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	type BranchPrefixMode,
 	resolveBranchPrefix,
@@ -137,9 +138,7 @@ export function V2GitSettings({ hostId }: V2GitSettingsProps) {
 			});
 		},
 		onError: (err) =>
-			toast.error(
-				err instanceof Error ? err.message : "Failed to update branch prefix",
-			),
+			toast.error(errorMessage(err, "Failed to update branch prefix")),
 	});
 
 	const previewPrefix =

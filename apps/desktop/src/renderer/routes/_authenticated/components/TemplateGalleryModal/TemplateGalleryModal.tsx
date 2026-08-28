@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	Dialog,
 	DialogContent,
@@ -83,7 +84,7 @@ export function TemplateGalleryModal({
 				});
 			}
 		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
+			const message = errorMessage(err);
 			if (onError) onError(message);
 			else toast.error("Could not create project", { description: message });
 		} finally {

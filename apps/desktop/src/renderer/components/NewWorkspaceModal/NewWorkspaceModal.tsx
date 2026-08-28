@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	PromptInputProvider,
 	usePromptInputController,
@@ -60,8 +61,7 @@ export function NewWorkspaceModal() {
 			await openNew();
 		} catch (error) {
 			toast.error("Failed to open project", {
-				description:
-					error instanceof Error ? error.message : "An unknown error occurred",
+				description: errorMessage(error, "An unknown error occurred"),
 			});
 		}
 	};

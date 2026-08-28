@@ -1,3 +1,4 @@
+import { formatDate as formatLocaleDate } from "@superset/i18n/format";
 import type { OrganizationRole } from "@superset/shared/auth";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -51,7 +52,7 @@ export function PendingInvitations({
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
-		return d.toLocaleDateString("en-US", {
+		return formatLocaleDate(d, {
 			month: "short",
 			day: "numeric",
 			year: "numeric",

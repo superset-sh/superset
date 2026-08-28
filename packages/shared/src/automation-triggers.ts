@@ -412,6 +412,21 @@ export const draftTriggerSchema = z.object({
 export type DraftTrigger = z.infer<typeof draftTriggerSchema>;
 export type TriggerConfigInput = DraftTrigger["config"];
 
+/**
+ * The trigger kinds the AUTOMATION_EVENT_TRIGGERS flag payload enables. Off,
+ * unloaded, offline, or a payload that isn't an array all mean none — Scheduled
+ * is offered regardless and is then the only kind. Strings, not kinds: the
+ * payload is edited by hand in PostHog, and an unknown entry simply enables
+ * nothing.
+ */
+export function enabledTriggerKinds(payload: unknown): Set<string> {
+	return new Set(
+		Array.isArray(payload)
+			? payload.filter((kind): kind is string => typeof kind === "string")
+			: [],
+	);
+}
+
 /** One problem, addressed to a specific trigger so the form can mark that row. */
 export type TriggerProblem = {
 	index: number;

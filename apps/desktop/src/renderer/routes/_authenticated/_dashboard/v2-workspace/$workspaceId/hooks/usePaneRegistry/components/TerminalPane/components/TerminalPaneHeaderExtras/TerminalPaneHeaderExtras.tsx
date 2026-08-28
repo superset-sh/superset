@@ -7,8 +7,10 @@ import {
 	useTerminalRichInputOpen,
 } from "../../richInputOpenStore";
 import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndicator";
+import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
 
 interface TerminalPaneHeaderExtrasProps {
+	workspaceId: string;
 	terminalId: string;
 	terminalInstanceId: string;
 }
@@ -17,9 +19,10 @@ interface TerminalPaneHeaderExtrasProps {
  * Header affordance that opens the rich-input overlay, so the ⌘I composer is
  * discoverable without knowing the shortcut. Toggles the same shared open-state
  * the hotkey drives; the tooltip carries the shortcut as the teach path.
- * Also hosts the connection status indicator for the pane's WebSocket.
+ * Also hosts the connection indicator and identifier copy menu.
  */
 export function TerminalPaneHeaderExtras({
+	workspaceId,
 	terminalId,
 	terminalInstanceId,
 }: TerminalPaneHeaderExtrasProps) {
@@ -34,6 +37,7 @@ export function TerminalPaneHeaderExtras({
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}
 			/>
+			<TerminalIdCopyMenu workspaceId={workspaceId} terminalId={terminalId} />
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button
@@ -42,10 +46,10 @@ export function TerminalPaneHeaderExtras({
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
-							"flex size-5 items-center justify-center transition-colors",
+							"rounded p-0.5 transition-colors",
 							isOpen
 								? "bg-secondary text-foreground"
-								: "text-muted-foreground hover:text-foreground",
+								: "text-muted-foreground/60 hover:text-muted-foreground",
 						)}
 					>
 						<SquarePen className="size-3.5" />

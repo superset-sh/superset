@@ -1,5 +1,6 @@
 "use client";
 
+import { errorMessage } from "@superset/i18n/errors";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
@@ -36,7 +37,7 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 			},
 			onError: (error) => {
 				toast.error("Sync failed", {
-					description: error.message,
+					description: errorMessage(error),
 				});
 			},
 		}),

@@ -40,13 +40,13 @@ export function SidebarHeader({
 									compact,
 									inverted: true,
 								}),
-								"relative flex-1 justify-center",
+								"relative min-w-0 flex-1 justify-center",
 								// The resizable panel already draws the sidebar's left edge.
 								index === 0 && "border-l-transparent",
 							)}
 						>
-							{tab.icon && <tab.icon className="size-3" />}
-							{!compact && tab.label}
+							{tab.icon && <tab.icon className="size-3 shrink-0" />}
+							{!compact && <span className="truncate">{tab.label}</span>}
 							{badge && (
 								<span
 									aria-hidden="true"

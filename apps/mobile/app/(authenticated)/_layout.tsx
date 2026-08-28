@@ -28,11 +28,18 @@ export default function AuthenticatedLayout() {
 	const { data: session } = useSession();
 	const pathname = usePathname();
 
-	// Unpaid sessions may only see home (which renders the paywall) and
-	// settings — App Review requires sign-out, org switching, and account
-	// deletion to stay reachable behind a gate.
+	// Unpaid sessions may only see home (which renders the paywall), the
+	// organizations sheet, and settings — App Review requires sign-out, org
+	// switching, and account deletion to stay reachable behind a gate, and that
+	// sheet is the only route to all three. Leaving it out sealed unpaid
+	// accounts in: it mounted and was redirected away in the same frame.
 	const unpaid = !!session && !session.session.plan;
-	if (unpaid && pathname !== "/" && !pathname.startsWith("/settings")) {
+	if (
+		unpaid &&
+		pathname !== "/" &&
+		pathname !== "/organizations" &&
+		!pathname.startsWith("/settings")
+	) {
 		return <Redirect href="/(authenticated)/(home)" />;
 	}
 
@@ -61,7 +68,6 @@ export default function AuthenticatedLayout() {
 					headerBackButtonDisplayMode: "minimal",
 					headerShadowVisible: false,
 					title: "Workspace",
-					fullScreenGestureEnabled: false,
 				}}
 			/>
 			<Stack.Screen
@@ -71,16 +77,18 @@ export default function AuthenticatedLayout() {
 					headerBackButtonDisplayMode: "minimal",
 					headerShadowVisible: false,
 					title: "Files changed",
+					// The one screen that has to keep this. Its code panes scroll
+					// sideways on a PanResponder, and the system gesture beats a JS
+					// responder every time — with the swipe on, a drag across a diff
+					// pops the screen instead of scrolling it. The cost is that iOS 26
+					// leaves this screen with no back swipe at all; a real horizontal
+					// ScrollView would earn it back, since UIKit defers to those.
 					fullScreenGestureEnabled: false,
 				}}
 			/>
 			<Stack.Screen
 				name="workspace/[id]/file"
-				options={{
-					...glassHeaderOptions,
-					title: "",
-					fullScreenGestureEnabled: false,
-				}}
+				options={{ ...glassHeaderOptions, title: "" }}
 			/>
 			<Stack.Screen
 				name="workspace/[id]/commits"
@@ -155,11 +163,7 @@ export default function AuthenticatedLayout() {
 			/>
 			<Stack.Screen
 				name="workspace/[id]/pull-request/[pullRequestId]/index"
-				options={{
-					...glassHeaderOptions,
-					title: "Pull request",
-					fullScreenGestureEnabled: false,
-				}}
+				options={{ ...glassHeaderOptions, title: "Pull request" }}
 			/>
 			<Stack.Screen
 				name="workspace/[id]/pull-request/[pullRequestId]/checks"

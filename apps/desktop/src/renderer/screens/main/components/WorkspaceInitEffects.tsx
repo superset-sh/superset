@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	type AgentLaunchRequest,
 	buildSetupPaneLaunchRequest,
@@ -209,8 +210,10 @@ export function WorkspaceInitEffects() {
 								error,
 							);
 							toast.error("Failed to create terminal", {
-								description:
-									error.message || "Terminal setup failed. Please try again.",
+								description: errorMessage(
+									error,
+									"Terminal setup failed. Please try again.",
+								),
 							});
 							onComplete();
 						},
@@ -268,8 +271,10 @@ export function WorkspaceInitEffects() {
 								error,
 							);
 							toast.error("Failed to create terminal", {
-								description:
-									error.message || "Terminal setup failed. Please try again.",
+								description: errorMessage(
+									error,
+									"Terminal setup failed. Please try again.",
+								),
 								action: {
 									label: "Open Terminal",
 									onClick: () => {

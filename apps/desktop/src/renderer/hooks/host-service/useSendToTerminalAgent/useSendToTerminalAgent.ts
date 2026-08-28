@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
@@ -77,8 +78,7 @@ export function useSendToTerminalAgent(): UseSendToTerminalAgentResult {
 					data: normalizeTerminalCommand(sanitizePromptForPty(text)),
 				});
 			} catch (error) {
-				const message =
-					error instanceof Error ? error.message : "Unknown error";
+				const message = errorMessage(error, "Unknown error");
 				toast.error("Couldn't send to agent", { description: message });
 				throw error;
 			}

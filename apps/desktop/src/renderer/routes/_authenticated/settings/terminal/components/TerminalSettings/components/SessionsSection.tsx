@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -75,7 +76,7 @@ export function SessionsSection() {
 					);
 				}
 				toast.error("Failed to kill sessions", {
-					description: error.message,
+					description: errorMessage(error),
 				});
 			},
 			onSettled: () => {
@@ -93,7 +94,7 @@ export function SessionsSection() {
 			},
 			onError: (error) => {
 				toast.error("Failed to clear terminal history", {
-					description: error.message,
+					description: errorMessage(error),
 				});
 			},
 		});
@@ -105,7 +106,7 @@ export function SessionsSection() {
 		},
 		onError: (error) => {
 			toast.error("Failed to kill session", {
-				description: error.message,
+				description: errorMessage(error),
 			});
 		},
 	});
@@ -120,7 +121,7 @@ export function SessionsSection() {
 		},
 		onError: (error) => {
 			toast.error("Failed to restart daemon", {
-				description: error.message,
+				description: errorMessage(error),
 			});
 		},
 	});

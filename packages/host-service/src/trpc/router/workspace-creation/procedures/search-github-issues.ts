@@ -8,6 +8,7 @@ import {
 	chunkProjectRepos,
 	formatRepoList,
 	githubRateLimitError,
+	githubRequestError,
 	isGithubNotFoundError,
 	isGithubRateLimitError,
 	mergeByUpdatedAtDesc,
@@ -386,11 +387,10 @@ export const searchGitHubIssues = protectedProcedure
 				page,
 			};
 		} catch (err) {
-			if (isGithubRateLimitError(err)) throw githubRateLimitError(err);
 			console.warn(
 				"[workspaceCreation.searchGitHubIssues] octokit fallback failed",
 				err,
 			);
-			throw err;
+			throw githubRequestError(err, ctx.credentials);
 		}
 	});

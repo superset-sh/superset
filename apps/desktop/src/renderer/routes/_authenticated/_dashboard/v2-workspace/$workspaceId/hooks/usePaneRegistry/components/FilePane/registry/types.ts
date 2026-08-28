@@ -38,6 +38,14 @@ export interface ViewProps {
 	isActive: boolean;
 	onChangeView: (viewId: string) => void;
 	onForceView: (viewId: string) => void;
+	/**
+	 * MarkdownPreviewView-specific: whether it should render its own inline
+	 * "front matter hidden" notice. Defaults to true; hosts with their own
+	 * toolbar (e.g. the skill editor's FileEditPane) pass false and show an
+	 * equivalent hint there instead, so the two don't duplicate. Other views
+	 * ignore this.
+	 */
+	showFrontMatterNote?: boolean;
 }
 
 export function resolveViewLabel(view: FileView, filePath: string): string {

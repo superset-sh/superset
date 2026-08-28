@@ -40,19 +40,39 @@ const publishPageFieldsSchema = z.object({
  * model send half of it and get a runtime error back.
  */
 export const hasCompleteWorkspaceLink = (value: {
+	pageId?: string | undefined;
 	workspaceId?: string | undefined;
 	entryPath?: string | undefined;
-}) => Boolean(value.workspaceId) === Boolean(value.entryPath);
+}) =>
+	// `runPublish` ignores the link when `pageId` is set, so a workspace id sent
+	// alongside one is inert rather than half a key.
+	Boolean(value.pageId) ||
+	Boolean(value.workspaceId) === Boolean(value.entryPath);
 
 export const WORKSPACE_LINK_MESSAGE = {
 	message: "workspaceId and entryPath must be provided together",
 	path: ["entryPath"],
 };
 
-export const publishPageSchema = publishPageFieldsSchema.refine(
-	hasCompleteWorkspaceLink,
-	WORKSPACE_LINK_MESSAGE,
-);
+/**
+ * A publish with no anchor mints a page no workspace lists and no later publish
+ * can find — including the id needed to pass `pageId`.
+ */
+export const isAnchoredPublish = (value: {
+	pageId?: string | undefined;
+	workspaceId?: string | undefined;
+	entryPath?: string | undefined;
+}) => Boolean(value.pageId) || Boolean(value.workspaceId && value.entryPath);
+
+export const ANCHOR_MESSAGE = {
+	message:
+		"A publish must name where it lives: pass workspaceId and entryPath, or pageId to add a version to an existing page",
+	path: ["workspaceId"],
+};
+
+export const publishPageSchema = publishPageFieldsSchema
+	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE)
+	.refine(isAnchoredPublish, ANCHOR_MESSAGE);
 
 export type PublishPageInput = z.infer<typeof publishPageSchema>;
 
@@ -85,6 +105,13 @@ export const setPageVisibilitySchema = z.object({
 	id: pageFields.id,
 	visibility: pageFields.visibility,
 });
+
+export const setSharedVersionSchema = z.object({
+	id: pageFields.id,
+	version: pageFields.version.nullable(),
+});
+
+export const deletePageSchema = z.object({ id: pageFields.id });
 
 export const pullPageSchema = pageRefFieldsSchema
 	.extend({ version: pageFields.version.optional() })

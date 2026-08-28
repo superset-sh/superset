@@ -65,6 +65,7 @@ const {
 	createDroidSettingsJson,
 	createDroidWrapper,
 	createMastraWrapper,
+	createOmpExtension,
 	createPiExtension,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
@@ -77,6 +78,10 @@ const {
 	getAmpPluginContent,
 	getGeminiSettingsJsonContent,
 	getMastraHooksJsonContent,
+	getOmpExtensionContent,
+	getOmpExtensionPath,
+	OMP_EXTENSION_MARKER,
+	removeOmpExtension,
 	getPiExtensionContent,
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
@@ -155,7 +160,7 @@ describe("agent-wrappers copilot", () => {
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
 		expect(wrapper).toContain(
-			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks "$@"`,
+			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks \${_superset_bypass_hook_trust:+"$_superset_bypass_hook_trust"} "$@"`,
 		);
 		expect(wrapper).not.toContain("-c 'notify=");
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
@@ -244,6 +249,7 @@ exit 0
 				`projects={"${workspacePath}"={trust_level="trusted"}}`,
 				"--enable",
 				"hooks",
+				"--dangerously-bypass-hook-trust",
 			].join("\n")}\n`,
 		);
 	});
@@ -278,7 +284,87 @@ exit 0
 		});
 
 		expect(readFileSync(argsFile, "utf-8")).toBe(
-			`${["--enable", "hooks", "exec", "Reply with exactly OK."].join("\n")}\n`,
+			`${[
+				"--enable",
+				"hooks",
+				"--dangerously-bypass-hook-trust",
+				"exec",
+				"Reply with exactly OK.",
+			].join("\n")}\n`,
+		);
+	});
+
+	it("does not duplicate the hook-trust bypass when the launch command already passes it", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const argsFile = path.join(TEST_ROOT, "codex-bypass-args.txt");
+
+		mkdirSync(realBinDir, { recursive: true });
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+printf '%s\n' "$@" > "${argsFile}"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		// The builtin preset command already carries the flag; codex errors on a
+		// repeated boolean flag, so the wrapper must not append a second one.
+		execFileSync(
+			wrapperPath,
+			[
+				"--dangerously-bypass-approvals-and-sandbox",
+				"--dangerously-bypass-hook-trust",
+			],
+			{
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_WORKSPACE_PATH: "",
+					SUPERSET_TERMINAL_ID: "terminal-1",
+				},
+				encoding: "utf-8",
+			},
+		);
+
+		expect(readFileSync(argsFile, "utf-8")).toBe(
+			`${[
+				"--enable",
+				"hooks",
+				"--dangerously-bypass-approvals-and-sandbox",
+				"--dangerously-bypass-hook-trust",
+			].join("\n")}\n`,
+		);
+
+		// A prompt that merely mentions the flag after `--` is text, not a flag —
+		// the real bypass must still be appended.
+		execFileSync(
+			wrapperPath,
+			["--", "explain what --dangerously-bypass-hook-trust does"],
+			{
+				env: {
+					...process.env,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_WORKSPACE_PATH: "",
+					SUPERSET_TERMINAL_ID: "terminal-1",
+				},
+				encoding: "utf-8",
+			},
+		);
+
+		expect(readFileSync(argsFile, "utf-8")).toBe(
+			`${[
+				"--enable",
+				"hooks",
+				"--dangerously-bypass-hook-trust",
+				"--",
+				"explain what --dangerously-bypass-hook-trust does",
+			].join("\n")}\n`,
 		);
 	});
 
@@ -1914,11 +2000,6 @@ describe("agent-wrappers pi", () => {
 		expect(content).not.toContain("{{MARKER}}");
 	});
 
-	it("renders pi extension content as a valid extension default-export shape", () => {
-		const content = getPiExtensionContent();
-		expect(content).toContain("export default function");
-	});
-
 	it("installs the pi extension into the global ~/.pi/agent/extensions directory", () => {
 		const extensionPath = getPiExtensionPath();
 		expect(extensionPath).toBe(
@@ -2175,5 +2256,151 @@ describe("managed hooks junk tolerance", () => {
 			"junk-string",
 			{ hooks: [{ type: "command", command: "/opt/user-hook.sh" }] },
 		]);
+	});
+});
+
+describe("agent-wrappers omp", () => {
+	let originalOmpCodingAgentDir: string | undefined;
+	let originalPiCodingAgentDir: string | undefined;
+
+	beforeEach(() => {
+		originalOmpCodingAgentDir = process.env.OMP_CODING_AGENT_DIR;
+		originalPiCodingAgentDir = process.env.PI_CODING_AGENT_DIR;
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		delete process.env.OMP_CODING_AGENT_DIR;
+		delete process.env.PI_CODING_AGENT_DIR;
+	});
+
+	afterEach(() => {
+		if (originalOmpCodingAgentDir === undefined) {
+			delete process.env.OMP_CODING_AGENT_DIR;
+		} else {
+			process.env.OMP_CODING_AGENT_DIR = originalOmpCodingAgentDir;
+		}
+		if (originalPiCodingAgentDir === undefined) {
+			delete process.env.PI_CODING_AGENT_DIR;
+		} else {
+			process.env.PI_CODING_AGENT_DIR = originalPiCodingAgentDir;
+		}
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("renders Oh My Pi extension content with the marker substituted", () => {
+		const content = getOmpExtensionContent();
+		expect(content).toContain(OMP_EXTENSION_MARKER);
+		expect(content).not.toContain("{{MARKER}}");
+	});
+
+	it("renders Oh My Pi extension content as a valid extension default-export shape", () => {
+		const content = getOmpExtensionContent();
+		expect(content).toContain("export default function");
+	});
+
+	it("maps OMP lifecycle events to Superset lifecycle hooks", () => {
+		const content = getOmpExtensionContent();
+		expect(content).toContain('["session_start", "SessionStart"]');
+		expect(content).toContain('["agent_start", "UserPromptSubmit"]');
+		expect(content).toContain('["before_agent_start", "UserPromptSubmit"]');
+		expect(content).toContain('["tool_execution_end", "PostToolUse"]');
+		expect(content).toContain('["agent_end", "Stop"]');
+		expect(content).toContain('["session_end", "SessionEnd"]');
+		expect(content).toContain('["session_shutdown", "Stop"]');
+		expect(content).toContain(
+			"for (const [eventName, hookEventName] of lifecycleMappings)",
+		);
+		expect(content).toContain("pi.on(eventName");
+		expect(content).toContain("fire(hookEventName)");
+		expect(content).toContain('SUPERSET_AGENT_ID: "omp"');
+	});
+
+	it("installs the Oh My Pi extension into the global ~/.omp/agent/extensions directory", () => {
+		const extensionPath = getOmpExtensionPath();
+		expect(extensionPath).toBe(
+			path.join(
+				mockedHomeDir,
+				".omp",
+				"agent",
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+
+		createOmpExtension();
+
+		const installed = readFileSync(extensionPath, "utf-8");
+		expect(installed).toContain(OMP_EXTENSION_MARKER);
+		expect(installed).toContain("export default function");
+	});
+
+	it("honors OMP_CODING_AGENT_DIR when locating the Oh My Pi extension", () => {
+		const customAgentDir = path.join(mockedHomeDir, "custom-omp-agent");
+		process.env.OMP_CODING_AGENT_DIR = customAgentDir;
+
+		expect(getOmpExtensionPath()).toBe(
+			path.join(customAgentDir, "extensions", "superset-hooks.ts"),
+		);
+	});
+
+	it("expands leading tildes in OMP_CODING_AGENT_DIR", () => {
+		process.env.OMP_CODING_AGENT_DIR = "~/custom-omp-agent";
+		expect(getOmpExtensionPath()).toBe(
+			path.join(
+				mockedHomeDir,
+				"custom-omp-agent",
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+
+		process.env.OMP_CODING_AGENT_DIR = "~\\custom-omp-agent";
+		expect(getOmpExtensionPath()).toBe(
+			path.join(
+				`${mockedHomeDir}\\custom-omp-agent`,
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+	});
+
+	it("ignores PI_CODING_AGENT_DIR so pi and omp resolve to distinct extension trees", () => {
+		process.env.PI_CODING_AGENT_DIR = path.join(mockedHomeDir, ".pi", "agent");
+
+		expect(getOmpExtensionPath()).toBe(
+			path.join(
+				mockedHomeDir,
+				".omp",
+				"agent",
+				"extensions",
+				"superset-hooks.ts",
+			),
+		);
+		expect(getOmpExtensionPath()).not.toBe(getPiExtensionPath());
+	});
+
+	it("removes the Superset-owned Oh My Pi extension on teardown", () => {
+		createOmpExtension();
+		const extensionPath = getOmpExtensionPath();
+		expect(existsSync(extensionPath)).toBe(true);
+
+		removeOmpExtension();
+		expect(existsSync(extensionPath)).toBe(false);
+
+		// Second run is a no-op when nothing is installed.
+		removeOmpExtension();
+		expect(existsSync(extensionPath)).toBe(false);
+	});
+
+	it("leaves a user-authored extension file in place on teardown", () => {
+		const extensionPath = getOmpExtensionPath();
+		mkdirSync(path.dirname(extensionPath), { recursive: true });
+		writeFileSync(extensionPath, "export default function userExtension() {}");
+
+		removeOmpExtension();
+
+		expect(readFileSync(extensionPath, "utf-8")).toBe(
+			"export default function userExtension() {}",
+		);
 	});
 });

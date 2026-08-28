@@ -7,6 +7,7 @@ const mergeInputSchema = z.object({
 	projectId: z.string(),
 	prNumber: z.number().int().positive(),
 	mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
+	commitMessage: z.string().trim().min(1).optional(),
 });
 
 /**
@@ -25,6 +26,7 @@ export const mergePR = protectedProcedure
 				repo: repo.name,
 				pull_number: input.prNumber,
 				merge_method: input.mergeMethod,
+				...(input.commitMessage ? { commit_message: input.commitMessage } : {}),
 			});
 			return data;
 		} catch (error) {

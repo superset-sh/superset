@@ -2,7 +2,9 @@ import {
 	Composer,
 	type ComposerHandle,
 	type ComposerQuickKey,
+	type ComposerSlashCommand,
 } from "@superset/composer";
+import type { SlashCommand } from "@superset/shared/slash-commands";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -40,6 +42,12 @@ interface TerminalComposerProps {
 	 * .superset/attachments/IMG_0006.HEIC"), so it doesn't get the + button.
 	 */
 	allowAttachments: boolean;
+	/**
+	 * What the active agent can run behind `/` — the host's answer for this
+	 * workspace + agent. Empty for plain shells and old hosts, which is also
+	 * how the panel stays hidden there.
+	 */
+	slashCommands: SlashCommand[];
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
@@ -72,6 +80,7 @@ export const TerminalComposer = forwardRef<
 		onQuickKey,
 		attachmentTarget,
 		allowAttachments,
+		slashCommands,
 		onActiveChange,
 		onHeightChange,
 		selectActive,
@@ -173,6 +182,17 @@ export const TerminalComposer = forwardRef<
 				autocapitalization="never"
 				showAttachments={allowAttachments}
 				quickKeys={quickKeys}
+				slashCommands={slashCommands.map(
+					(command): ComposerSlashCommand => ({
+						id: `${command.trigger}${command.name}`,
+						name: command.name,
+						descriptionText: command.description || undefined,
+						trigger: command.trigger,
+						argumentHint: command.argumentHint || undefined,
+						isBuiltin: command.kind === "builtin" || undefined,
+						aliases: command.aliases.length > 0 ? command.aliases : undefined,
+					}),
+				)}
 				isSending={writeAttachments.isPending || isSubmitting}
 				// Hidden in a plain shell rather than shown and silently dropped: the
 				// draft is the workspace's, so a tray filled in an agent session is

@@ -1,3 +1,4 @@
+import { I18nProvider } from "@superset/i18n/react";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata } from "next";
 import "./global.css";
@@ -67,12 +68,14 @@ export default function Layout({ children }: LayoutProps<"/">) {
 			suppressHydrationWarning
 		>
 			<body className="flex flex-col min-h-screen overscroll-none">
-				<RootProvider>
-					<NavbarProvider>
-						<NavigationBar />
-						{children}
-					</NavbarProvider>
-				</RootProvider>
+				<I18nProvider>
+					<RootProvider>
+						<NavbarProvider>
+							<NavigationBar />
+							{children}
+						</NavbarProvider>
+					</RootProvider>
+				</I18nProvider>
 			</body>
 		</html>
 	);

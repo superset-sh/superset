@@ -52,6 +52,25 @@ final class ComposerModel {
   /// The terminal's quick keys, above the card. Empty on every other surface.
   var quickKeys: [ComposerQuickKey] = []
 
+  /// What the active agent can run behind `/` (or `$`). Empty hides the
+  /// suggestion panel entirely — a plain shell, an agent without discovery,
+  /// or a host too old to answer all land here the same way.
+  var slashCommands: [ComposerSlashCommand] = []
+
+  /// The panel's contents, derived from the draft. Nil while the draft is
+  /// anything other than a bare trigger token.
+  var slashSuggestions: ComposerSlashSuggestionState? {
+    ComposerSlashMatching.suggestions(draft: draft, commands: slashCommands)
+  }
+
+  /// Selection is textual: the draft becomes the committed token and the
+  /// caller hears about it through `onDraftChange` like any keystroke. The
+  /// trailing space is what lets an argument-taking command close the panel
+  /// and start its arguments in one motion.
+  func commitSlashCommand(_ command: ComposerSlashCommand) {
+    setDraft(command.trigger + command.name + " ")
+  }
+
   /// Whether the `+` button is offered. A plain shell would try to *execute* an
   /// attachment path, so only agent sessions get it.
   var showsAttachments = true

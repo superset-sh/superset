@@ -18,6 +18,7 @@ interface NativeComposerViewProps {
 	selectedModel?: ComposerMenuOption;
 	headerChips?: ComposerMenuOption[];
 	quickKeys?: ComposerQuickKey[];
+	slashCommands?: ComposerSlashCommand[];
 	showAttachments?: boolean;
 	autocapitalization?: "sentences" | "never";
 	isSending?: boolean;
@@ -103,6 +104,27 @@ export interface ComposerQuickKey {
 }
 
 /**
+ * One slash command or skill the active agent can run — the suggestion panel
+ * above the composer. Data only, like the quick keys: selection replaces the
+ * draft natively and reports back through `onDraftChange`.
+ */
+export interface ComposerSlashCommand {
+	id: string;
+	/** Full display name, namespace included (`agent-sdk-dev:new-sdk-app`). */
+	name: string;
+	descriptionText?: string;
+	/** The sigil that opens and commits this entry: `/`, or `$` for Codex skills. */
+	trigger: "/" | "$";
+	/** Non-empty when the command takes arguments; a fully typed command with
+	 *  arguments keeps the panel closed so they can be typed in peace. */
+	argumentHint?: string;
+	/** Harness-shipped commands sort after user-defined ones, like desktop. */
+	isBuiltin?: boolean;
+	/** Alternate names; matched after the canonical name, like desktop. */
+	aliases?: string[];
+}
+
+/**
  * A file or image pasted into the field, already written to disk by the native
  * side — the tray takes URIs, the same shape the pickers produce.
  */
@@ -154,6 +176,12 @@ export interface ComposerProps {
 	 * card grew.
 	 */
 	quickKeys?: ComposerQuickKey[];
+	/**
+	 * What the active agent can run behind `/` (or `$`). Empty or omitted
+	 * hides the suggestion panel — a plain shell, an agent without command
+	 * discovery, or a host too old to answer all look the same here.
+	 */
+	slashCommands?: ComposerSlashCommand[];
 	/**
 	 * Offer the `+` button. A plain shell would try to *execute* an attachment
 	 * path, so only agent sessions get it.
@@ -240,6 +268,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			selectedModel,
 			headerChips,
 			quickKeys,
+			slashCommands,
 			showAttachments = true,
 			autocapitalization = "sentences",
 			isSending = false,
@@ -277,6 +306,7 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				selectedModel={selectedModel}
 				headerChips={headerChips}
 				quickKeys={quickKeys}
+				slashCommands={slashCommands}
 				showAttachments={showAttachments}
 				autocapitalization={autocapitalization}
 				isSending={isSending}

@@ -106,13 +106,20 @@ superset pages publish report.html \
 spaces, so name the file well or pass the flag. `--label` is what shows in
 version history; write what changed, not "update".
 
-**Workspace linking is automatic and matters.** When the file lives inside a
-Superset workspace, the CLI records its path relative to the workspace root as
-the page's entry path. Publish the same path again and it becomes **version 2 of
-the same page** rather than a second page. Publish from outside a workspace and
-the output says so:
+**Every page belongs to a workspace.** The CLI records the file's path relative
+to the workspace root as the page's entry path, and that path is the key:
+publish the same path again and it becomes **version 2 of the same page** rather
+than a second page.
 
-> Not linked to a workspace; republish with `--page` to add a version
+Write the `.html` **inside the workspace**, not in `/tmp` or an agent
+scratchpad. A file outside the workspace has no relative path, so it falls back
+to being keyed by filename alone (`/external/report.html`), which means two
+unrelated files with the same name will version each other. Keeping it in the
+workspace also keeps the source next to the work it describes.
+
+Outside a workspace entirely, with no `$SUPERSET_WORKSPACE_ID` and no
+`--workspace`, the publish is refused rather than creating a page nothing can
+list. Pass `--page <id>` to add a version to a page you already have.
 
 Keep the source file. It is the only copy you can edit; the published version is
 derived from it.

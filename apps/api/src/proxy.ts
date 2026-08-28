@@ -17,6 +17,7 @@ function getAllowedOrigins(deploymentOrigin: string) {
 	return [
 		env.NEXT_PUBLIC_WEB_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
+		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_DESKTOP_URL,
 		...getTrustedVercelPreviewOrigins(deploymentOrigin),
 		...desktopDevOrigins,

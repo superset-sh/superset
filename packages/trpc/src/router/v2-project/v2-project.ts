@@ -2,10 +2,9 @@ import { dbWs } from "@superset/db/client";
 import { organizations, v2Projects } from "@superset/db/schema";
 import { parseGitHubRemote } from "@superset/shared/github-remote";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { jwtProcedure } from "../../trpc";
+import { jwtProcedure, userError } from "../../trpc";
 
 export const v2ProjectRouter = {
 	findByGitHubRemote: jwtProcedure
@@ -17,9 +16,10 @@ export const v2ProjectRouter = {
 		)
 		.query(async ({ ctx, input }) => {
 			if (!ctx.organizationIds.includes(input.organizationId)) {
-				throw new TRPCError({
+				throw userError({
 					code: "FORBIDDEN",
 					message: "Not a member of this organization",
+					i18nKey: "serverError.v2Project.notAMemberOfThisOrganization",
 				});
 			}
 			const parsed = parseGitHubRemote(input.repoCloneUrl);

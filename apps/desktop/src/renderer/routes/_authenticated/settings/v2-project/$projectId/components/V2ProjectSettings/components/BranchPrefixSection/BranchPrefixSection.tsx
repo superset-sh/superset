@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -31,9 +32,7 @@ export function BranchPrefixSection({
 			}),
 		onSuccess: () => onChanged(),
 		onError: (err) =>
-			toast.error(
-				err instanceof Error ? err.message : "Failed to update branch prefix",
-			),
+			toast.error(errorMessage(err, "Failed to update branch prefix")),
 	});
 
 	return (

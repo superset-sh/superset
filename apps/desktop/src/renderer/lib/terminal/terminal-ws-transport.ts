@@ -190,6 +190,14 @@ export interface TerminalTransport {
 	 * in-band \x1b[I/\x1b[O reports bypass that aggregation.
 	 */
 	_disposeFocusListeners: (() => void) | null;
+	/**
+	 * Whether this pane is on screen. The host sizes the PTY to the smallest
+	 * visible client, so a parked pane's dims must stop counting — otherwise a
+	 * hidden narrow split would squeeze the terminal the user is looking at.
+	 * Held here rather than read at send time because it has to be re-declared
+	 * on every attach: a reconnecting socket starts out assumed visible.
+	 */
+	_visible: boolean;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -380,6 +388,7 @@ export function createTransport(
 		_lastLivenessTick: 0,
 		_resumeListener: null,
 		_disposeFocusListeners: null,
+		_visible: true,
 	};
 }
 
@@ -550,6 +559,15 @@ export function connect(
 		return;
 	}
 
+	// Seq capability is a property of the endpoint, not the transport: a
+	// re-point can land on a different host-service generation, and a
+	// `_seqEverSynced` latched from the old endpoint would let park() close a
+	// socket the new (legacy) host cannot replay. The next `synced` re-latches
+	// it. `_hasReceivedBytes` deliberately stays: it guards a legacy host from
+	// double-painting its whole FIFO into an xterm that already has content.
+	if (transport.currentUrl && stripToken(transport.currentUrl) !== base) {
+		transport._seqEverSynced = false;
+	}
 	transport.currentUrl = wsUrl;
 	transport._localToken = extractToken(wsUrl);
 	transport._terminal = terminal;
@@ -574,8 +592,8 @@ export function connect(
 	// Recreate per connect so the coalescer always targets the current terminal;
 	// dispose flushes anything the previous socket left pending.
 	transport._writeCoalescer?.dispose();
-	transport._writeCoalescer = createWriteCoalescer((data) =>
-		terminal.write(data),
+	transport._writeCoalescer = createWriteCoalescer((data, done) =>
+		terminal.write(data, done),
 	);
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
@@ -661,11 +679,12 @@ function attachSocketListeners(
 		// channel; renderer treats them identically). Pipe straight into xterm.
 		if (data instanceof ArrayBuffer) {
 			// Queue PTY bytes; the coalescer batches them into one xterm.write per
-			// animation frame. There's no output ACK back to host-service:
-			// back-pressure lives entirely on the host side, which bounds this
-			// socket's send buffer and drops us (we reconnect and catch up by
-			// seq) if we fall hopelessly behind. A slow renderer can never wedge
-			// the shell.
+			// animation frame and holds the next batch until xterm reports the
+			// last one parsed. There's no output ACK back to host-service:
+			// socket-level back-pressure lives entirely on the host side, which
+			// bounds this socket's send buffer and drops us (we reconnect and
+			// catch up by seq) if we fall hopelessly behind. A slow renderer can
+			// never wedge the shell.
 			if (transport._seqCounting && transport.seqAnchor) {
 				transport.seqAnchor.seq += data.byteLength;
 			}
@@ -705,6 +724,7 @@ function attachSocketListeners(
 			transport._seqCounting = false;
 			transport._bytesSinceAttach = false;
 			setConnectionState(transport, "open");
+			sendVisibleState(transport);
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
 		}
@@ -809,6 +829,10 @@ function attachSocketListeners(
 		// Otherwise the anchor keeps its last-counted position and the next
 		// attach's `synced` re-arms counting.
 		transport._seqCounting = false;
+		// Consumed: the flag describes the connection that just ended. Leaving
+		// it set would make a later park() misread the ended connection's
+		// counted bytes as uncounted and drop a valid anchor.
+		transport._bytesSinceAttach = false;
 		setConnectionState(transport, "closed");
 		// Per-connection outcome flags; consumed once per close.
 		const connAttached = transport._connAttached;
@@ -888,6 +912,65 @@ function attachSocketListeners(
 }
 
 /**
+ * Park the transport while its pane is hidden: close the socket and stop the
+ * liveness/reconnect machinery, keeping everything needed to resume — stream
+ * position (seqAnchor), replay flags, title, logs, session-ended state.
+ *
+ * A parked pane must cost nothing. Before this, every parked terminal kept a
+ * live socket that (a) received and parsed the full output stream of hidden
+ * agents, and (b) on any endpoint failure re-dialed forever on capped backoff.
+ * N parked panes retrying together feed Chromium's per-renderer WebSocket
+ * handshake throttle, which then delays every NEW handshake by seconds — the
+ * visible pane's reconnect (typing dead until re-attach) and create-on-attach
+ * terminal opens (SUPER-2043).
+ *
+ * The next connect() dials fresh; a seq-aware host replays exactly the missed
+ * bytes (or reanchors past the 2 MB ring), so parking loses nothing.
+ */
+export function park(transport: TerminalTransport) {
+	// A pre-seq host (bytes delivered, `synced` never seen) cannot replay a
+	// parked gap: it ignores `?seq=` and `replay=0` suppresses its legacy
+	// FIFO replay, so closing this socket would silently drop everything
+	// produced while parked. Keep the legacy always-connected behavior for
+	// those hosts — a local host is always version-matched with the app, so
+	// this only preserves output on version-skewed remote hosts. Also covers
+	// a first-ever connection parked before its `synced` arrived.
+	if (transport._hasReceivedBytes && !transport._seqEverSynced) return;
+	teardownLiveness(transport);
+	const socket = transport._socket;
+	if (socket) {
+		// Null before close() so the close listener's stale-socket guard drops
+		// the event — a park must not count as a failed attempt or push a log.
+		transport._socket = null;
+		socket.close();
+	}
+	// The skipped close handler is also what consumes these per-connection
+	// flags. Left latched from an attached session, a post-remount connection
+	// that dies before attaching would read the stale `_connAttached` and skip
+	// the failed-attempt accounting, delaying the outage diagnosis by a dial.
+	transport._connAttached = false;
+	transport._connHadRetryableError = false;
+	// Mirror the close handler's anchor hygiene too: bytes without a `synced`
+	// came from a pre-seq host (or landed before this attach's sync) and
+	// advanced the xterm without advancing the anchor — a stale anchor kept
+	// across the park would let a later exact catch-up re-deliver painted
+	// bytes. Anchored-and-counted state survives untouched.
+	if (transport._bytesSinceAttach && !transport._seqCounting) {
+		transport.seqAnchor = null;
+	}
+	transport._seqCounting = false;
+	transport._bytesSinceAttach = false;
+
+	transport._onDataDisposable?.dispose();
+	transport._onDataDisposable = null;
+	transport._writeCoalescer?.dispose();
+	transport._writeCoalescer = null;
+	if (transport.connectionState !== "disconnected") {
+		setConnectionState(transport, "disconnected");
+	}
+}
+
+/**
  * Manually re-dial after the transport stopped trying (access denied, fatal
  * server error, PTY exit) or to force an immediate reconnect. Clears the
  * terminated flag and resets the attempt budget.
@@ -951,6 +1034,23 @@ function sendFocusState(transport: TerminalTransport) {
 		document.hasFocus() &&
 		document.activeElement === textarea;
 	socket.send(JSON.stringify({ type: "focus", focused }));
+}
+
+function sendVisibleState(transport: TerminalTransport) {
+	const socket = transport._socket;
+	if (!socket || socket.readyState !== WebSocket.OPEN) return;
+	socket.send(JSON.stringify({ type: "visible", visible: transport._visible }));
+}
+
+/**
+ * Tell the host whether this pane is on screen. Only visible clients constrain
+ * the PTY size, so parking a pane hands its width back to the other clients.
+ */
+export function setVisible(transport: TerminalTransport, visible: boolean) {
+	if (transport._visible === visible) return;
+	transport._visible = visible;
+	if (transport.connectionState !== "open") return;
+	sendVisibleState(transport);
 }
 
 export function sendResize(

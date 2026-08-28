@@ -132,7 +132,7 @@ export function CommandPalette() {
 				</DialogHeader>
 				<Command
 					onKeyDown={handleRootKeyDown}
-					shouldFilter={!currentFrame || !currentFrame.command.renderFrame}
+					shouldFilter={false}
 					className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-list]]:max-h-[min(500px,calc(80vh-3rem))]"
 				>
 					<CommandInput
@@ -147,10 +147,11 @@ export function CommandPalette() {
 						{currentFrame ? (
 							<SubPaletteView
 								parent={currentFrame.command}
+								query={query}
 								onSelect={handleSelect}
 							/>
 						) : (
-							<CommandListView onSelect={handleSelect} />
+							<CommandListView query={query} onSelect={handleSelect} />
 						)}
 					</QueryContext.Provider>
 				</Command>

@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/node";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { HostServiceContext } from "../types";
+import { readErrorDiagnostics } from "./error-diagnostics";
 import {
 	type DeleteInProgressCause,
 	isDeleteInProgressCause,
@@ -88,6 +89,9 @@ const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
 			},
 			extra: {
 				trpc_message: error.message,
+				// State a throw site measured at the moment of failure. Reporting
+				// is unchanged: this only fills in an event that is already going.
+				...readErrorDiagnostics(originalError),
 			},
 		});
 	}

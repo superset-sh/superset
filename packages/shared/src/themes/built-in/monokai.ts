@@ -30,6 +30,8 @@ export const monokaiTheme: Theme = {
 		tertiaryActive: "#3e3d32",
 		destructive: "#f92672",
 		destructiveForeground: "#f8f8f2",
+		warning: "#f4bf75",
+		warningForeground: "#000000",
 		border: "#49483e",
 		input: "#49483e",
 		ring: "#a6e22e",

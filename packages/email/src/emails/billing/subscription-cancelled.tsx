@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { Button, DetailRow, EmailLayout } from "../../components";
 
 interface SubscriptionCancelledEmailProps {
-	ownerName?: string | null;
+	recipientName?: string | null;
 	organizationName: string;
 	planName: string;
 	accessEndsAt: Date;
@@ -11,7 +11,7 @@ interface SubscriptionCancelledEmailProps {
 }
 
 export function SubscriptionCancelledEmail({
-	ownerName = "there",
+	recipientName = "there",
 	organizationName = "Acme Inc",
 	planName = "Pro",
 	accessEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -26,7 +26,7 @@ export function SubscriptionCancelledEmail({
 			</Heading>
 
 			<Text className="text-[15px] leading-6 text-foreground m-0 mb-4">
-				Hi {ownerName ?? "there"},
+				Hi {recipientName ?? "there"},
 			</Text>
 
 			<Text className="text-[15px] leading-6 text-foreground m-0 mb-2">

@@ -112,25 +112,28 @@ function buildTools(): ModelContextTool[] {
 	];
 }
 
+// A registration or unregistration the browser refuses is ignored; there is
+// nothing to recover. Refusal is signalled either by throwing synchronously or
+// by returning a rejected promise, so both have to be swallowed.
+function ignoreRefusal(call: () => unknown) {
+	try {
+		Promise.resolve(call()).catch(() => {});
+	} catch {
+		// Refused synchronously.
+	}
+}
+
 export function WebMcpTools() {
 	useEffect(() => {
 		const context = getModelContext();
 		if (!context) return;
 		const tools = buildTools();
 		for (const tool of tools) {
-			try {
-				context.registerTool(tool);
-			} catch {
-				// Browser rejected the registration; nothing to recover.
-			}
+			ignoreRefusal(() => context.registerTool(tool));
 		}
 		return () => {
 			for (const tool of tools) {
-				try {
-					context.unregisterTool?.(tool.name);
-				} catch {
-					// Already gone.
-				}
+				ignoreRefusal(() => context.unregisterTool?.(tool.name));
 			}
 		};
 	}, []);

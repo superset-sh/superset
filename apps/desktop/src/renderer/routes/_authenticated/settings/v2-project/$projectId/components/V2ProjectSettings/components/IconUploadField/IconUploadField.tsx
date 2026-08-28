@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
@@ -163,7 +164,7 @@ export function IconUploadField({
 				});
 				return true;
 			} catch (err) {
-				toast.error(err instanceof Error ? err.message : "Failed to set icon");
+				toast.error(errorMessage(err, "Failed to set icon"));
 				return false;
 			} finally {
 				setIsPending(false);
@@ -186,7 +187,7 @@ export function IconUploadField({
 				});
 				return true;
 			} catch (err) {
-				toast.error(err instanceof Error ? err.message : "Failed to set color");
+				toast.error(errorMessage(err, "Failed to set color"));
 				return false;
 			} finally {
 				setIsPending(false);
@@ -201,7 +202,7 @@ export function IconUploadField({
 			try {
 				dataUri = await glyphToDataUri(glyph, color);
 			} catch (err) {
-				toast.error(err instanceof Error ? err.message : "Could not set icon");
+				toast.error(errorMessage(err, "Could not set icon"));
 				return;
 			}
 			// Only a stored glyph may re-bake on later color picks.
@@ -248,9 +249,7 @@ export function IconUploadField({
 			try {
 				dataUri = await toIconDataUri(file);
 			} catch (err) {
-				toast.error(
-					err instanceof Error ? err.message : "Could not read selected file",
-				);
+				toast.error(errorMessage(err, "Could not read selected file"));
 				return;
 			}
 			setSessionGlyph(null);

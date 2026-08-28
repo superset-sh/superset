@@ -7,7 +7,8 @@
 		"dev": "bun run --env-file=../../.env --hot src/index.ts",
 		"start": "bun run src/index.ts",
 		"deploy": "./scripts/deploy.sh",
-		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",

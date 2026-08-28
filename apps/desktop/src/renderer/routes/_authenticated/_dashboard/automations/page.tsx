@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
 import type { RouterOutputs } from "@superset/trpc";
@@ -218,9 +219,7 @@ function AutomationsPage() {
 			toast.success(enabled ? `"${name}" resumed` : `"${name}" paused`);
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to update automation",
-			),
+			toast.error(errorMessage(error, "Failed to update automation")),
 	});
 
 	const deleteMutation = useMutation({
@@ -232,9 +231,7 @@ function AutomationsPage() {
 			toast.success(`"${name}" deleted`);
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to delete automation",
-			),
+			toast.error(errorMessage(error, "Failed to delete automation")),
 	});
 
 	const {

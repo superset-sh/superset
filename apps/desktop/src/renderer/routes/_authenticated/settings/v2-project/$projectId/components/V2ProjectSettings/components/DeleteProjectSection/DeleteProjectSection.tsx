@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -83,7 +84,7 @@ export function DeleteProjectSection({
 			setIsOpen(false);
 			navigate({ to: "/settings/projects" });
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : "Failed to delete");
+			toast.error(errorMessage(err, "Failed to delete"));
 		} finally {
 			setIsDeleting(false);
 		}

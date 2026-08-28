@@ -1,14 +1,11 @@
-import {
-	CommentModeToggle,
-	PageCommentsView,
-} from "@superset/ui/page-comments";
+import { PageCommentsView } from "@superset/ui/page-comments";
 import { TRPCClientError } from "@trpc/client";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { api } from "../../../trpc/server";
 import { PageCommentsShell } from "./components/PageCommentsShell";
-import { PageVisibilityMenu } from "./components/PageVisibilityMenu";
+import { PageHeaderBar } from "./components/PageHeaderBar";
 import { WrongOrganization } from "./components/WrongOrganization";
 import { getPageContent } from "./utils/getPageContent";
 import { getPagesAccess } from "./utils/getPagesAccess";
@@ -23,6 +20,16 @@ interface PageProps {
 const pullPage = cache(async (slug: string) => {
 	const trpc = await api();
 	return trpc.page.pull.query({ slug });
+});
+
+const pullVersions = cache(async (slug: string) => {
+	const trpc = await api();
+	return trpc.page.versions.query({ slug });
+});
+
+const pullAccess = cache(async (slug: string) => {
+	const trpc = await api();
+	return trpc.page.access.query({ slug });
 });
 
 export async function generateMetadata({
@@ -56,11 +63,15 @@ export default async function PublishedPage({ params }: PageProps) {
 		throw error;
 	}
 
-	const html = await getPageContent({
-		downloadUrl: page.downloadUrl,
-		slug,
-		version: page.version,
-	});
+	const [html, versions, access] = await Promise.all([
+		getPageContent({
+			downloadUrl: page.downloadUrl,
+			slug,
+			version: page.version,
+		}),
+		pullVersions(slug),
+		pullAccess(slug),
+	]);
 
 	return (
 		<PageCommentsShell
@@ -73,25 +84,22 @@ export default async function PublishedPage({ params }: PageProps) {
 			}}
 		>
 			<div className="flex h-dvh flex-col bg-background">
-				<header className="flex h-11 shrink-0 items-center gap-x-3 border-b px-3">
-					<div className="min-w-0 flex-1">
-						<h1 className="truncate font-medium text-sm">{page.title}</h1>
-						{page.description ? (
-							<p className="truncate text-muted-foreground text-xs">
-								{page.description}
-							</p>
-						) : null}
-					</div>
-					<span className="shrink-0 text-muted-foreground text-xs tabular-nums">
-						v{page.version}
-					</span>
-					<PageVisibilityMenu
-						pageId={page.id}
-						visibility={page.visibility === "just_me" ? "just_me" : "org"}
-						createdByUserId={page.createdByUserId}
-					/>
-					<CommentModeToggle />
-				</header>
+				<PageHeaderBar
+					page={{
+						id: page.id,
+						title: page.title,
+						url: page.url,
+						visibility: page.visibility === "just_me" ? "just_me" : "org",
+						createdByUserId: page.createdByUserId,
+						owner: access.owner,
+						updatedAt: page.updatedAt,
+						sharedVersion: page.sharedVersion,
+						latestVersion: page.latestVersion,
+						servedVersion: page.servedVersion,
+					}}
+					versions={versions}
+					currentUserId={session?.user.id}
+				/>
 
 				<main className="min-h-0 flex-1">
 					<PageCommentsView html={html} title={page.title} />

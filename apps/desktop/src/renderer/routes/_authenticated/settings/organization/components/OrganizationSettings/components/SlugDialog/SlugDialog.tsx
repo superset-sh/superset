@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -113,8 +114,7 @@ export function SlugDialog({
 			setSlugAvailable(null);
 			toast.success("Organization URL updated!");
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Failed to update URL";
+			const message = errorMessage(error, "Failed to update URL");
 			toast.error(message);
 		}
 	}

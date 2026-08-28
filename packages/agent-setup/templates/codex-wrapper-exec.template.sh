@@ -122,7 +122,26 @@ fi
 # Native hooks separate the main Stop event from SubagentStop. Do not inject
 # Codex's legacy notify callback: it reports both as agent-turn-complete without
 # parent metadata, so Superset cannot filter subagent completions.
-"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks "$@"
+#
+# Codex gates each hooks.json entry behind per-hook trust, and an untrusted
+# hook is silently skipped — losing the Stop hook, Superset's only completion
+# signal for Codex, while the session watcher above still reports Start. The
+# builtin launch commands pass the bypass themselves; append it for every
+# other launch (manual `codex`, stale host agent configs, custom presets)
+# unless the caller already did — codex rejects the flag when repeated. Hooks
+# the user explicitly disabled stay disabled; the bypass only skips the trust
+# gate.
+_superset_bypass_hook_trust="--dangerously-bypass-hook-trust"
+for _superset_arg in "$@"; do
+  # Tokens past `--` are prompt text, never flags — stop scanning there so a
+  # prompt that mentions the flag doesn't suppress the real one.
+  [ "$_superset_arg" = "--" ] && break
+  if [ "$_superset_arg" = "--dangerously-bypass-hook-trust" ]; then
+    _superset_bypass_hook_trust=""
+    break
+  fi
+done
+"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks ${_superset_bypass_hook_trust:+"$_superset_bypass_hook_trust"} "$@"
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 

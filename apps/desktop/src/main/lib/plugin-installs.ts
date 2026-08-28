@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { syncManagedMcpServers } from "@superset/agent-setup";
+import {
+	createManagedSkills,
+	resolveDisabledSkillIds,
+	syncManagedMcpServers,
+	writeSharedDisabledSkillIds,
+} from "@superset/agent-setup";
 import { getBundledPluginDir } from "@superset/agent-setup/config";
 import { settings } from "@superset/local-db";
 import {
@@ -85,26 +90,37 @@ export function uninstallPlugin(name: string): InstalledPlugin[] {
 }
 
 /**
- * SKILL.md body (frontmatter stripped) of a bundled managed skill, for the
- * preview modal. Allowlisted against the shipped skill set — the name never
- * touches the filesystem unless it's one of ours.
+ * Allowlisted against the shipped skill set — the name never touches the
+ * filesystem unless it's one of ours.
  */
-export function getBundledSkillContent(name: string): string | null {
+function resolveBundledSkillPath(name: string): string | null {
 	if (!SUPERSET_MANAGED_SKILLS.some((skill) => skill.name === name)) {
 		return null;
 	}
-	const skillPath = path.join(
-		getBundledPluginDir(),
-		"skills",
-		name,
-		"SKILL.md",
-	);
+	return path.join(getBundledPluginDir(), "skills", name, "SKILL.md");
+}
+
+/**
+ * Raw SKILL.md content (including frontmatter) of a bundled managed skill,
+ * for the preview modal. Frontmatter must stay in — the in-app editor's
+ * markdown view splits/reattaches it around edits, so a stripped read here
+ * would delete it on the next save.
+ */
+export function getBundledSkillContent(name: string): string | null {
+	const skillPath = resolveBundledSkillPath(name);
+	if (!skillPath) return null;
 	try {
-		const raw = fs.readFileSync(skillPath, "utf-8");
-		return raw.replace(/^---\n[\s\S]*?\n---\n*/, "");
+		return fs.readFileSync(skillPath, "utf-8");
 	} catch {
 		return null;
 	}
+}
+
+/** Absolute path to a bundled skill's SKILL.md, for Open/Reveal in Finder. */
+export function getBundledSkillPath(name: string): string | null {
+	const skillPath = resolveBundledSkillPath(name);
+	if (!skillPath || !fs.existsSync(skillPath)) return null;
+	return skillPath;
 }
 
 const SKILL_ICON_FILES = [
@@ -170,5 +186,72 @@ export function setPluginEnabled(
 			: installed;
 	saveInstalledPlugins(next);
 	syncInstalledPluginMcpServers();
+	return next;
+}
+
+export function getDisabledSkills(): string[] {
+	return localDb.select().from(settings).get()?.disabledSkills ?? [];
+}
+
+// Serializes the createManagedSkills resyncs triggered by setSkillEnabled and
+// writeBundledSkillContent so overlapping calls can't interleave:
+// createManagedSkills does multi-await fs work, and without this a second
+// call's resync could finish before the first's, leaving disk state
+// contradicting whichever write actually happened last.
+let managedSkillsSyncQueue: Promise<void> = Promise.resolve();
+function queueManagedSkillsSync(disabledSkills: readonly string[]): void {
+	managedSkillsSyncQueue = managedSkillsSyncQueue
+		.catch(() => {}) // a prior failure must not stall later syncs
+		.then(() => createManagedSkills({ disabledSkills }));
+}
+
+/**
+ * Overwrites a bundled skill's SKILL.md, then re-provisions it out to
+ * ~/.agents/skills, the Claude plugin mirror, and the slash-command file —
+ * same convention as setSkillEnabled below.
+ */
+export function writeBundledSkillContent(name: string, content: string): void {
+	const skillPath = resolveBundledSkillPath(name);
+	if (!skillPath) {
+		throw new Error(`Unknown skill: ${name}`);
+	}
+	fs.writeFileSync(skillPath, content, "utf-8");
+	queueManagedSkillsSync(resolveDisabledSkillIds(getDisabledSkills()));
+}
+
+/**
+ * Toggling re-syncs immediately: disable reaps the skill from every agent
+ * (and the Claude plugin mirror), enable rewrites it. Mirrored to the shared
+ * disabled-skills file so CLI-launched host-services on this machine honor
+ * the choice instead of re-provisioning a skill the user just disabled.
+ * Returns null for a name outside SUPERSET_MANAGED_SKILLS.
+ */
+export function setSkillEnabled(
+	name: string,
+	enabled: boolean,
+): string[] | null {
+	if (!SUPERSET_MANAGED_SKILLS.some((skill) => skill.name === name)) {
+		return null;
+	}
+	const current = new Set(getDisabledSkills());
+	if (enabled) {
+		current.delete(name);
+	} else {
+		current.add(name);
+	}
+	const next = [...current];
+	localDb
+		.insert(settings)
+		.values({ id: 1, disabledSkills: next })
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { disabledSkills: next },
+		})
+		.run();
+	writeSharedDisabledSkillIds(next);
+	// resolveDisabledSkillIds folds in SUPERSET_DISABLED_SKILLS — passing
+	// `next` straight through would silently re-enable an env-disabled skill
+	// on the next unrelated toggle.
+	queueManagedSkillsSync(resolveDisabledSkillIds(next));
 	return next;
 }

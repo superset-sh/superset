@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
@@ -53,9 +54,7 @@ export function SigningSecretChip({
 			}
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to save secret",
-			),
+			toast.error(errorMessage(error, "Failed to save secret")),
 	});
 
 	const submit = () => {

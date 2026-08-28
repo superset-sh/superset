@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -71,8 +72,7 @@ export function RenameBranchDialog({
 		toast.promise(renamePromise, {
 			loading: `Renaming branch to ${trimmed}...`,
 			success: `Branch renamed to ${trimmed}`,
-			error: (err) =>
-				err instanceof Error ? err.message : "Failed to rename branch",
+			error: (err) => errorMessage(err, "Failed to rename branch"),
 		});
 
 		setIsSubmitting(true);

@@ -49,6 +49,15 @@ enum ComposerMetrics {
   /// The quick-key strip, matching the gap the React Native composer used
   /// between its `above` cluster and the pill.
   static let quickKeyGap: CGFloat = 10
+  /// Air between the slash panel and the top of the overlay. The overlay is a
+  /// child of the screen's own view controller, so its top edge already sits
+  /// below the navigation header — this is a breathing gap, not a header
+  /// allowance. The panel fills everything from here to the quick keys.
+  static let composerTopReserve: CGFloat = 8
+  static let slashPanelRadius: CGFloat = 20
+  static let slashPanelInset: CGFloat = 6
+  static let slashRowVerticalPadding: CGFloat = 10
+  static let slashDescriptionFontSize: CGFloat = 12
   static let quickKeySpacing: CGFloat = 8
   /// Only the glyph and a floor for single-character keys are set; `.glass`
   /// owns the padding and the height.
@@ -143,6 +152,11 @@ struct ComposerRootView: View {
   /// view underneath cannot resign a SwiftUI first responder.
   @State private var surfaceFrame: CGRect = .zero
   @State private var rootFrame: CGRect = .zero
+  /// Global top of the quick-keys+card cluster, for sizing the slash panel:
+  /// its height is computed from real geometry rather than negotiated with
+  /// the stack — a Spacer and a ScrollView are both greedy, and every
+  /// priority arrangement still split the leftover between them.
+  @State private var clusterTopY: CGFloat = 0
   /// The attachment open full screen, if any.
   @State private var viewing: ComposerAttachment?
 
@@ -164,27 +178,57 @@ struct ComposerRootView: View {
     ZStack {
       backdrop
       VStack(spacing: 0) {
-        Spacer(minLength: 0)
+        // A floor, not a gap: the suggestion panel is the only thing that can
+        // grow the cluster toward the top, and this is what stops it there.
+        Spacer(minLength: ComposerMetrics.composerTopReserve)
         // The quick keys ride with the card rather than sitting beside it: one
         // stack, one spacing, one transaction. As a sibling laid out by React
         // Native the gap had to guess the card's height and drifted every time
         // it grew — see `ComposerQuickKeys`.
+        //
+        // Two stacks on purpose. The outer one reports the interactive frame
+        // and holds the slash panel, so taps on it pass the hit test; the
+        // inner one reports the height the terminal insets by. Folding them
+        // together would grow the terminal's margin every time the panel
+        // opens, reflowing the scrollback under a transient menu.
         VStack(spacing: ComposerMetrics.quickKeyGap) {
-          if !model.quickKeys.isEmpty {
-            ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
-          }
-          surface
+          if isExpanded, let suggestions = model.slashSuggestions {
+            ComposerSlashSuggestions(
+              state: suggestions,
+              // Everything between the header reserve and the cluster,
+              // measured off real frames. dragOffset is subtracted so the
+              // panel does not inflate while the card is being dragged away.
+              availableHeight: max(
+                0,
+                (clusterTopY - dragOffset) - rootFrame.minY
+                  - ComposerMetrics.composerTopReserve
+                  - ComposerMetrics.quickKeyGap
+              )
+            ) { command in
+              model.commitSlashCommand(command)
+            }
             .padding(.horizontal, ComposerMetrics.horizontalMargin)
+            .transition(.composerContent)
+          }
+          VStack(spacing: ComposerMetrics.quickKeyGap) {
+            if !model.quickKeys.isEmpty {
+              ComposerQuickKeys(keys: model.quickKeys) { model.onQuickKeyPress?($0) }
+            }
+            surface
+              .padding(.horizontal, ComposerMetrics.horizontalMargin)
+          }
+          .padding(.bottom, ComposerMetrics.bottomGap)
+          // Its own size, not its position — the keyboard moves this cluster
+          // but does not resize it, so the caller gets a value that only
+          // changes when the composer genuinely grows.
+          .onGeometryChange(for: CGFloat.self) { $0.size.height }
+            action: { model.onHeightChange?($0) }
+          .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY }
+            action: { clusterTopY = $0 }
         }
-        .padding(.bottom, ComposerMetrics.bottomGap)
         .offset(y: dragOffset)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) }
           action: { surfaceFrame = $0 }
-        // Its own size, not its position — the keyboard moves this cluster but
-        // does not resize it, so the caller gets a value that only changes when
-        // the composer genuinely grows.
-        .onGeometryChange(for: CGFloat.self) { $0.size.height }
-          action: { model.onHeightChange?($0) }
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)

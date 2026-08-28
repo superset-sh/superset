@@ -11,7 +11,7 @@ export const PRODUCT_LINKS: NavLink[] = [
 	{
 		href: "/",
 		label: "Overview",
-		description: "Run 100+ coding agents in parallel.",
+		description: "Orchestrate any coding agent.",
 	},
 	{
 		href: "/changelog",

@@ -67,7 +67,7 @@ export const PRICING_TIERS: PricingTier[] = [
 		features: [
 			"Everything in Free",
 			"Unlimited users",
-			"Remote workspaces",
+			"Remote access",
 			"Linear integration",
 			"Slack integration",
 			"Mobile (coming soon)",
@@ -92,6 +92,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			"Everything in Pro",
 			"SAML SSO & SCIM provisioning",
 			"Audit logs",
+			"SOC 2 Type II report",
 			"Uptime SLA & dedicated support",
 			"Custom integrations",
 		],
@@ -137,7 +138,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 			{ label: "Desktop app", values: [true, true, true] },
 			{ label: "Local workspaces", values: [true, true, true] },
 			{
-				label: "Remote workspaces",
+				label: "Remote access",
 				values: [null, true, true],
 				badge: { label: "Beta", variant: "default" },
 			},
@@ -168,6 +169,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 			{ label: "IP restrictions", values: [null, null, true] },
 			{ label: "SCIM provisioning", values: [null, null, true] },
 			{ label: "Audit log", values: [null, null, true] },
+			{ label: "SOC 2 Type II report", values: [null, null, true] },
 		],
 	},
 ];
@@ -192,6 +194,11 @@ export const PRICING_FAQ_ITEMS: FAQItem[] = [
 		question: "What's included in Enterprise?",
 		answer:
 			"Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, audit logs, a custom SLA, dedicated support, and custom contracts. Pricing is tailored to your organization. Get in touch and we'll scope something that fits.",
+	},
+	{
+		question: "Is Superset SOC 2 compliant?",
+		answer:
+			"Yes. Superset has completed a SOC 2 Type II audit with an independent auditor, covering our security controls in operation over time. Request the report and review our security documentation at trust.superset.sh.",
 	},
 	{
 		question: "Where does my code run?",

@@ -3,9 +3,9 @@ import {
 	BellIcon,
 	BookmarkIcon,
 	BuildingIcon,
+	ChartBarIcon,
 	CpuIcon,
 	CreditCardIcon,
-	FileTextIcon,
 	FolderIcon,
 	GitBranchIcon,
 	KeyboardIcon,
@@ -63,6 +63,7 @@ const TABS: SettingsTab[] = [
 		title: "Terminal",
 		path: "/settings/terminal",
 		icon: TerminalIcon,
+		keywords: ["terminal scripts", "scripts", "presets", "commands"],
 	},
 	{ id: "git", title: "Git", path: "/settings/git", icon: GitBranchIcon },
 	{
@@ -112,6 +113,13 @@ const TABS: SettingsTab[] = [
 		icon: BellIcon,
 	},
 	{
+		id: "usage",
+		title: "Usage",
+		path: "/settings/usage",
+		icon: ChartBarIcon,
+		keywords: ["tokens", "cost", "quota", "cpu", "memory", "resources"],
+	},
+	{
 		id: "billing",
 		title: "Billing",
 		path: "/settings/billing",
@@ -125,12 +133,6 @@ const TABS: SettingsTab[] = [
 		keywords: ["security", "relay"],
 	},
 	{ id: "agents", title: "Agents", path: "/settings/agents", icon: WrenchIcon },
-	{
-		id: "presets",
-		title: "Presets",
-		path: "/settings/presets",
-		icon: FileTextIcon,
-	},
 	{
 		id: "api-keys",
 		title: "API keys",

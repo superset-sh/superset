@@ -373,6 +373,23 @@ function getOrCreateConnection(
 	return state;
 }
 
+/**
+ * Dial the existing connection for `hostUrl` now, if there is one and it
+ * isn't open. For the moment a client learns the host's endpoint or
+ * credentials changed (a host-service restart handing out a fresh port or
+ * secret): the socket may be mid-backoff, or its last dial may have lost the
+ * race against the credential update and been auth-rejected — either way the
+ * next scheduled attempt is seconds out, and this collapses that wait.
+ * Deliberately never creates a connection: with no established consumers
+ * there is nothing to recover.
+ */
+export function reconnectEventBusIfDown(hostUrl: string): void {
+	const state = connections.get(hostUrl);
+	if (!state || state.status.state === "open") return;
+	state.socket.reconnect(1000, "endpoint or credentials refreshed");
+	setConnectionStatus(state, { state: "connecting" });
+}
+
 function maybeCleanupConnection(hostUrl: string): void {
 	const key = hostUrl;
 	const state = connections.get(key);

@@ -34,10 +34,12 @@ import {
 	createTransport,
 	disposeTransport,
 	getPersistableSeqAnchor,
+	park,
 	reconnect,
 	sendDispose,
 	sendInput,
 	sendResize,
+	setVisible,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -222,6 +224,7 @@ class TerminalRuntimeRegistryImpl {
 		}
 
 		const { runtime, transport } = entry;
+		setVisible(transport, true);
 		attachToContainer(
 			runtime,
 			container,
@@ -335,6 +338,9 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 
 		entry.lastUsedAt = ++this.useSeq;
+		// A parked pane keeps its socket, but it is no longer showing anything —
+		// stop its dims from constraining the clients that are.
+		setVisible(entry.transport, false);
 		// Land any frame-pending output in xterm before the buffer snapshot,
 		// so the persisted snapshot matches the persisted stream position.
 		entry.transport._writeCoalescer?.flushSync();
@@ -355,6 +361,10 @@ class TerminalRuntimeRegistryImpl {
 		if (entry.transport.sessionEnded) {
 			clearPersistedRuntimeState(terminalId);
 		}
+		// Snapshot and anchor are on disk — close the socket. A parked pane no
+		// longer parses hidden output or joins reconnect storms; remount's
+		// connect() re-dials and the host replays from the anchor.
+		park(entry.transport);
 		this.scheduleParkedEviction();
 	}
 

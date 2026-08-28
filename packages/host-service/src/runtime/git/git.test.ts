@@ -28,6 +28,7 @@ function createRecordingProvider(): GitCredentialProvider & {
 			return { env: {} };
 		},
 		getToken: async () => null,
+		credentialRemedy: () => "no credentials",
 	};
 }
 
@@ -83,7 +84,7 @@ describe("createGitEnvResolver", () => {
 		]);
 	});
 
-	test("sets GIT_OPTIONAL_LOCKS and merges provider env", async () => {
+	test("sets the git-invocation env and merges provider env", async () => {
 		const repo = await initRepoWithOrigin("https://github.com/acme/env.git");
 		const provider: GitCredentialProvider = {
 			getCredentials: async (remoteUrl: string | null) => {
@@ -93,6 +94,7 @@ describe("createGitEnvResolver", () => {
 				return { env };
 			},
 			getToken: async () => null,
+			credentialRemedy: () => "no credentials",
 		};
 
 		const env = await createGitEnvResolver(provider)(repo);
@@ -101,6 +103,7 @@ describe("createGitEnvResolver", () => {
 			BASE: "1",
 			GIT_ASKPASS: "/tmp/askpass",
 			GIT_OPTIONAL_LOCKS: "0",
+			LC_ALL: "C",
 		});
 	});
 });

@@ -1,9 +1,20 @@
 "use client";
 
-import { formatDistanceToNowStrict } from "date-fns";
-
-import { Check, Loader2, Pencil, RotateCcw, Trash2 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	Check,
+	Loader2,
+	Pencil,
+	RotateCcw,
+	SendHorizontal,
+	Trash2,
+} from "lucide-react";
+import {
+	type ReactNode,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { cn } from "../../../../../../lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
 import { Button } from "../../../../../ui/button";
@@ -13,11 +24,12 @@ import {
 	type PageComment,
 	useComments,
 } from "../../../../providers/CommentProvider";
-import type { FrameRect } from "../../../../utils/commentRuntime";
+import { relativeTime } from "../../../../utils/relativeTime";
+import type { PinPoint } from "../../utils/pinLayout";
+import { popoverPlacement } from "./utils/popoverLayout";
 
-const WIDTH = 340;
-const GAP = 10;
-const EDGE = 12;
+/** Stand-in until the card has rendered and can be measured. */
+const ESTIMATED_HEIGHT = 200;
 
 export function initialsOf(name: string): string {
 	const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -29,7 +41,12 @@ export function initialsOf(name: string): string {
 }
 
 interface CommentPopoverProps {
-	rect: FrameRect;
+	/**
+	 * The thread's pin. The card hangs off the pin rather than off the element,
+	 * so a pin dropped in the middle of a tall block — a chart, a long section —
+	 * does not open a card the height of that block away from it.
+	 */
+	point: PinPoint;
 	container: { width: number; height: number };
 	thread: CommentThread | null;
 	onSubmit: (body: string) => void | Promise<void>;
@@ -40,7 +57,7 @@ interface CommentPopoverProps {
 }
 
 export function CommentPopover({
-	rect,
+	point,
 	container,
 	thread,
 	onSubmit,
@@ -49,25 +66,34 @@ export function CommentPopover({
 	onDelete,
 	onDismiss,
 }: CommentPopoverProps) {
-	const { user, submitting, busyThreadId } = useComments();
+	const { submitting, busyThreadId } = useComments();
 	const threadBusy = thread !== null && busyThreadId === thread.id;
 	const [value, setValue] = useState("");
 	const [editingId, setEditingId] = useState<string | null>(null);
+	const [composerFocused, setComposerFocused] = useState(false);
+	const composerOpen = composerFocused || value.trim().length > 0;
 	const [editValue, setEditValue] = useState("");
 	const inputRef = useRef<HTMLTextAreaElement>(null);
 	const cardRef = useRef<HTMLDivElement>(null);
-
-	const name = user.name;
-	const image = user.image;
+	const [height, setHeight] = useState(ESTIMATED_HEIGHT);
 
 	useEffect(() => {
+		if (thread) return;
 		inputRef.current?.focus();
+	}, [thread]);
+
+	// A thread with replies is far taller than a fresh draft, and the height
+	// decides whether the card can hang below the pin or has to flip above it.
+	useLayoutEffect(() => {
+		const card = cardRef.current;
+		if (!card) return;
+		const observer = new ResizeObserver(() => setHeight(card.offsetHeight));
+		observer.observe(card);
+		setHeight(card.offsetHeight);
+		return () => observer.disconnect();
 	}, []);
 
 	useEffect(() => {
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape" && !submitting) onDismiss();
-		};
 		const onPointerDown = (event: PointerEvent) => {
 			if (submitting) return;
 			const target = event.target as HTMLElement | null;
@@ -75,22 +101,13 @@ export function CommentPopover({
 			if (target?.closest("[data-comment-ui]")) return;
 			onDismiss();
 		};
-		window.addEventListener("keydown", onKeyDown);
 		document.addEventListener("pointerdown", onPointerDown, true);
 		return () => {
-			window.removeEventListener("keydown", onKeyDown);
 			document.removeEventListener("pointerdown", onPointerDown, true);
 		};
 	}, [onDismiss, submitting]);
 
-	const below = rect.top + rect.height + GAP + 200 < container.height;
-	const top = below
-		? rect.top + rect.height + GAP
-		: Math.max(EDGE, rect.top - GAP - 200);
-	const left = Math.min(
-		Math.max(EDGE, rect.left),
-		Math.max(EDGE, container.width - WIDTH - EDGE),
-	);
+	const { left, top, width } = popoverPlacement({ point, container, height });
 
 	const submit = async () => {
 		const body = value.trim();
@@ -117,29 +134,36 @@ export function CommentPopover({
 		<div
 			ref={cardRef}
 			data-comment-ui=""
-			style={{ transform: `translate(${left}px, ${top}px)`, width: WIDTH }}
-			className="pointer-events-auto absolute top-0 left-0 overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-xl"
+			style={{ transform: `translate(${left}px, ${top}px)`, width }}
+			className="pointer-events-auto absolute top-0 left-0 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg"
 		>
 			{thread ? (
-				<div className="flex max-h-64 flex-col gap-3 overflow-y-auto p-3">
+				<div className="flex max-h-72 flex-col overflow-y-auto">
 					{thread.comments.map((comment) => (
-						<div key={comment.id} className="flex flex-col gap-1.5">
-							<div className="flex items-center gap-2">
-								<Avatar className="size-6">
+						<div
+							key={comment.id}
+							className={cn(
+								"group/comment flex flex-col gap-1 px-3.5 py-2 first:pt-3.5 last:pb-3.5",
+							)}
+						>
+							<div className="flex h-7 items-center gap-2.5">
+								<Avatar className="size-7">
 									<AvatarImage src={comment.authorImage ?? undefined} alt="" />
-									<AvatarFallback className="text-[10px]">
+									<AvatarFallback className="text-[11px]">
 										{initialsOf(comment.authorName)}
 									</AvatarFallback>
 								</Avatar>
-								<span className="font-medium text-sm">
-									{comment.authorName}
-								</span>
-								<span className="text-muted-foreground text-xs">
-									{formatDistanceToNowStrict(comment.createdAt, {
-										addSuffix: true,
-									})}
-								</span>
-								<div className="ml-auto flex items-center gap-0.5">
+								<div className="flex min-w-0 items-baseline gap-2">
+									<span className="truncate font-medium text-sm">
+										{comment.authorName}
+									</span>
+									<span className="truncate text-muted-foreground text-xs">
+										{relativeTime(comment.createdAt)}
+									</span>
+								</div>
+								{/* Actions stay out of the way until the comment is hovered
+								    or focused, so a thread reads as prose. */}
+								<div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/comment:opacity-100">
 									<IconButton
 										label="Edit comment"
 										onClick={() => {
@@ -180,11 +204,11 @@ export function CommentPopover({
 								</div>
 							</div>
 							{editingId === comment.id ? (
-								<div className="flex flex-col gap-2">
+								<div className="flex flex-col gap-2 pl-[38px]">
 									<Textarea
 										value={editValue}
 										onChange={(event) => setEditValue(event.target.value)}
-										className="min-h-16 text-sm"
+										className="min-h-16 resize-none rounded-[13px] border-[0.5px] bg-foreground/[0.02] p-2.5 text-sm shadow-none focus-visible:ring-0 dark:bg-foreground/[0.02]"
 									/>
 									<div className="flex gap-2">
 										<Button
@@ -212,67 +236,52 @@ export function CommentPopover({
 									</div>
 								</div>
 							) : (
-								<p className="whitespace-pre-wrap pl-8 text-sm">
+								<p className="whitespace-pre-wrap pl-[38px] text-sm">
 									{comment.body}
 								</p>
 							)}
 						</div>
 					))}
 				</div>
-			) : (
-				<div className="flex items-center gap-2 border-b px-3 py-2.5">
-					<Avatar className="size-6">
-						<AvatarImage src={image ?? undefined} alt="" />
-						<AvatarFallback className="text-[10px]">
-							{initialsOf(name)}
-						</AvatarFallback>
-					</Avatar>
-					<span className="font-medium text-sm">{name}</span>
-					<span className="text-muted-foreground text-xs">new comment</span>
-				</div>
-			)}
+			) : null}
 
-			<div className={cn("flex flex-col gap-2 p-3", thread && "border-t")}>
+			<div className={cn("flex flex-col", thread && "border-t")}>
 				<Textarea
 					ref={inputRef}
 					value={value}
 					onChange={(event) => setValue(event.target.value)}
+					onFocus={() => setComposerFocused(true)}
+					onBlur={() => setComposerFocused(false)}
 					onKeyDown={(event) => {
 						if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
 							event.preventDefault();
 							submit();
 						}
 					}}
-					placeholder={thread ? "Reply…" : "Add a comment…"}
-					className="min-h-16 resize-none text-sm"
+					placeholder={thread ? "Reply to thread…" : "Write a comment…"}
+					className={cn(
+						"resize-none rounded-none border-0 bg-transparent p-3.5 text-sm shadow-none focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent",
+						composerOpen ? "min-h-[68px]" : "min-h-11 py-3",
+					)}
 				/>
-				<div className="flex items-center gap-2">
-					<Button
-						size="sm"
-						onClick={submit}
-						disabled={submitting || value.trim().length === 0}
-					>
-						{submitting ? (
-							<>
-								<Loader2 className="size-3.5 animate-spin" />
-								{thread ? "Replying…" : "Posting…"}
-							</>
-						) : thread ? (
-							"Reply"
-						) : (
-							"Comment"
-						)}
-					</Button>
-					<Button
-						size="sm"
-						variant="ghost"
-						onClick={onDismiss}
-						disabled={submitting}
-					>
-						Cancel
-					</Button>
-					<span className="ml-auto text-muted-foreground text-xs">⌘↵</span>
-				</div>
+				{composerOpen ? (
+					<div className="flex items-center gap-2.5 px-3.5 pb-3.5">
+						<span className="text-muted-foreground text-xs">⌘↵ to send</span>
+						<Button
+							size="icon"
+							className="ml-auto size-8 rounded-lg"
+							onClick={submit}
+							aria-label={thread ? "Send reply" : "Post comment"}
+							disabled={submitting || value.trim().length === 0}
+						>
+							{submitting ? (
+								<Loader2 className="size-4 animate-spin" />
+							) : (
+								<SendHorizontal className="size-4" />
+							)}
+						</Button>
+					</div>
+				) : null}
 			</div>
 		</div>
 	);

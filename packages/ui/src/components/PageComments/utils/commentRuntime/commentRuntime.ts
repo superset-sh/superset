@@ -2,6 +2,14 @@ export interface CommentAnchor {
 	path: string;
 	tag: string;
 	text: string;
+	/**
+	 * Where inside the element the reader clicked, as a fraction of its box
+	 * (0..1). Fractions rather than pixels so a pin keeps its place when the
+	 * page reflows at a different width. Absent on threads written before pins
+	 * carried a click point; those fall back to the element's top-left corner.
+	 */
+	offsetX?: number;
+	offsetY?: number;
 }
 
 export interface FrameRect {
@@ -24,6 +32,7 @@ export type FrameMessage =
 	| { channel: typeof FRAME_CHANNEL; type: "ready" }
 	| { channel: typeof FRAME_CHANNEL; type: "hover"; rect: FrameRect | null }
 	| { channel: typeof FRAME_CHANNEL; type: "pointer-down" }
+	| { channel: typeof FRAME_CHANNEL; type: "escape" }
 	| {
 			channel: typeof FRAME_CHANNEL;
 			type: "pick";
@@ -80,6 +89,11 @@ const RUNTIME_SOURCE = `(() => {
 		return { top: r.top, left: r.left, width: r.width, height: r.height };
 	};
 
+	const fraction = (offset, extent) => {
+		if (!(extent > 0)) return 0;
+		return Math.min(Math.max(offset / extent, 0), 1);
+	};
+
 	const targetAt = (x, y) => {
 		const el = document.elementFromPoint(x, y);
 		if (!el || el === document.body || el === document.documentElement) return null;
@@ -123,6 +137,17 @@ const RUNTIME_SOURCE = `(() => {
 		post({ type: "hover", rect: null });
 	});
 
+	// Escape pressed while the frame has focus never reaches the host window,
+	// so the frame forwards it out.
+	document.addEventListener(
+		"keydown",
+		(event) => {
+			if (event.key !== "Escape") return;
+			post({ type: "escape" });
+		},
+		true,
+	);
+
 	document.addEventListener(
 		"mousedown",
 		() => {
@@ -147,6 +172,8 @@ const RUNTIME_SOURCE = `(() => {
 					path: pathOf(el),
 					tag: el.tagName.toLowerCase(),
 					text: (el.textContent || "").trim().slice(0, 140),
+					offsetX: fraction(event.clientX - rect.left, rect.width),
+					offsetY: fraction(event.clientY - rect.top, rect.height),
 				},
 				rect,
 			});

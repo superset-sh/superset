@@ -12,6 +12,7 @@ import type {
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
+import { openPagePaneInStore } from "../../utils/openPagePaneInStore";
 import { useDefaultBrowserUrl } from "../useDefaultBrowserUrl";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
 
@@ -193,19 +194,7 @@ export function useWorkspacePaneOpeners({
 
 	const openPagePane = useCallback(
 		(page: PagePaneData) => {
-			const state = store.getState();
-			for (const tab of state.tabs) {
-				for (const pane of Object.values(tab.panes)) {
-					if (pane.kind !== "page") continue;
-					if ((pane.data as PagePaneData).pageId !== page.pageId) continue;
-					state.setActiveTab(tab.id);
-					state.setActivePane({ tabId: tab.id, paneId: pane.id });
-					return;
-				}
-			}
-			state.addTab({
-				panes: [{ kind: "page", data: page as PaneViewerData }],
-			});
+			openPagePaneInStore(store, page);
 		},
 		[store],
 	);

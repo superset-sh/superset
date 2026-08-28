@@ -1,5 +1,5 @@
 import { realpathSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { basename, resolve, sep } from "node:path";
 
 function canonical(path: string): string {
 	try {
@@ -7,6 +7,18 @@ function canonical(path: string): string {
 	} catch {
 		return path;
 	}
+}
+
+/** Leading slash: a workspace-relative key never has one, so these cannot collide. */
+export const EXTERNAL_ENTRY_PREFIX = "/external/";
+
+/**
+ * Basename rather than absolute path: agent scratchpad paths carry a
+ * per-session UUID, so the full path mints a new page every session. The cost
+ * is that two unrelated files sharing a basename version each other.
+ */
+export function externalEntryPath(filePath: string): string {
+	return EXTERNAL_ENTRY_PREFIX + basename(filePath);
 }
 
 export function resolveEntryPath({

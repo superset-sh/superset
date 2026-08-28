@@ -24,6 +24,7 @@ export function useSubmitWorkspace(
 	selectedAgent: WorkspaceCreateAgent,
 	selectedModel: string | null,
 	selectedEffort: string | null,
+	selectedMode: string | null,
 	uploadAttachments: UseUploadAttachmentsApi,
 	promptContext: NewWorkspacePromptContextApi,
 ) {
@@ -157,6 +158,7 @@ export function useSubmitWorkspace(
 						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 						model: selectedModel ?? undefined,
 						effort: selectedEffort ?? undefined,
+						mode: selectedMode ?? undefined,
 					},
 				]
 			: undefined;
@@ -253,6 +255,7 @@ export function useSubmitWorkspace(
 		selectedAgent,
 		selectedModel,
 		selectedEffort,
+		selectedMode,
 		submit,
 		uploadAttachments,
 		utils,

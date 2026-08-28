@@ -1,10 +1,12 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import {
-	INTEGRATIONS,
 	type IntegrationProvider,
+	offeredIntegrations,
 } from "@superset/shared/integrations";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
-import { useCallback, useEffect, useState } from "react";
+import { useFeatureFlagPayload } from "posthog-js/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BsMicrosoftTeams } from "react-icons/bs";
 import { FaGithub, FaGoogle, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
@@ -58,6 +60,14 @@ export function IntegrationsSettings({
 	// window against the other one's organization.
 	const activeOrganizationId = useActiveOrganizationId();
 	const searchQuery = useSettingsSearchQuery();
+
+	const enabledTriggerKinds = useFeatureFlagPayload(
+		FEATURE_FLAGS.AUTOMATION_EVENT_TRIGGERS,
+	);
+	const offered = useMemo(
+		() => offeredIntegrations(enabledTriggerKinds),
+		[enabledTriggerKinds],
+	);
 
 	const { data: integrations, isPending: isIntegrationsPending } =
 		cloudTrpc.integration.list.useQuery(
@@ -189,7 +199,7 @@ export function IntegrationsSettings({
 			</div>
 
 			<div className="space-y-1">
-				{INTEGRATIONS.map((integration) => {
+				{offered.map((integration) => {
 					const itemId = integrationSettingItemId(integration.provider);
 					if (!isItemVisible(itemId, visibleItems)) return null;
 					const state = providerStates[integration.provider];

@@ -208,8 +208,39 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 	},
 ];
 
+/**
+ * Whether the subscription bills yearly, or null when there is nothing to read
+ * it from — no subscription yet, or a row predating `billingInterval`, where
+ * the period length is the only signal.
+ */
+function resolveSubscriptionIsYearly(activePlan: {
+	billingInterval?: string | null;
+	periodStart?: Date | null;
+	periodEnd?: Date | null;
+}): boolean | null {
+	const interval = activePlan.billingInterval;
+	if (interval === "year" || interval === "yearly") return true;
+	if (interval === "month" || interval === "monthly") return false;
+
+	if (activePlan.periodStart && activePlan.periodEnd) {
+		return (
+			differenceInDays(
+				new Date(activePlan.periodEnd),
+				new Date(activePlan.periodStart),
+			) > 60
+		);
+	}
+
+	return null;
+}
+
 function PlansPage() {
-	const [isYearly, setIsYearly] = useState(true);
+	// Seeded from the subscription, not hardcoded: showing Annual to a monthly
+	// subscriber turned the Pro column's "Current plan" into a live
+	// "Change to Annual" that bills a year up front. A manual toggle wins from
+	// then on, and Annual stays the default for free and enterprise, which have
+	// no interval to read.
+	const [manualIsYearly, setManualIsYearly] = useState<boolean | null>(null);
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
@@ -234,15 +265,17 @@ function PlansPage() {
 	});
 	const cancelAt = activePlan?.cancelAt;
 
-	const isCurrentlyYearly =
-		activePlan?.periodStart &&
-		activePlan?.periodEnd &&
-		differenceInDays(
-			new Date(activePlan.periodEnd),
-			new Date(activePlan.periodStart),
-		) > 60;
+	const subscriptionIsYearly = activePlan
+		? resolveSubscriptionIsYearly(activePlan)
+		: null;
+	const isYearly = manualIsYearly ?? subscriptionIsYearly ?? true;
+	const setIsYearly = setManualIsYearly;
 
-	const { data: membersData } = cloudTrpc.organization.listMembers.useQuery(undefined);
+	// Explicit, not defaulted: this list is what checkout bills, and it must be
+	// the same definition of a seat the subscription hooks use.
+	const { data: membersData } = cloudTrpc.organization.listMembers.useQuery({
+		includeDeactivated: false,
+	});
 	// Seats are billed from this — never derive it from an unresolved query.
 	const memberCount =
 		membersData && membersData.length > 0 ? membersData.length : undefined;
@@ -447,8 +480,10 @@ function PlansPage() {
 									} else if (isCurrent && plan.id === "pro") {
 										// Before the plan resolves the billing interval is unknown,
 										// so an interval-change action here would be a guess the
-										// user can act on. Hold at "Current plan" until it lands.
-										const intervalMatches = isYearly === !!isCurrentlyYearly;
+										// user can act on. Hold at "Current plan" until it lands — and
+										// equally when the row carries no readable interval.
+										const intervalMatches =
+											subscriptionIsYearly === null || isYearly === subscriptionIsYearly;
 										if (!planResolved || intervalMatches) {
 											planActions = [
 												{

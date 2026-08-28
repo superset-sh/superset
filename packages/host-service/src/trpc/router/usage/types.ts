@@ -1,4 +1,22 @@
-export type UsageProvider = "claude" | "codex";
+/**
+ * Providers that can appear in usage history/analytics. Quota accounts exist
+ * only for "claude" and "codex"; the rest surface transcript-derived token
+ * history. Agents whose CLIs record no usable local usage data (gemini, amp,
+ * kimi, vibe, kiro, droid, hermes, mastracode) are intentionally absent.
+ */
+export type UsageProvider =
+	| "claude"
+	| "codex"
+	| "grok"
+	| "cursor"
+	| "opencode"
+	| "copilot"
+	| "pi"
+	| "omp"
+	| "fx";
+
+/** The subset of providers with quota accounts and switchable logins. */
+export type UsageAccountProvider = "claude" | "codex";
 
 export type UsageAccountStatus =
 	/** Quota fetched successfully. */
@@ -25,7 +43,7 @@ export interface UsageQuotaWindow {
 }
 
 export interface UsageAccount {
-	provider: UsageProvider;
+	provider: UsageAccountProvider;
 	/** Stable key for the credential source (config path or keychain item),
 	 * used to dedupe and as a React key. */
 	accountKey: string;

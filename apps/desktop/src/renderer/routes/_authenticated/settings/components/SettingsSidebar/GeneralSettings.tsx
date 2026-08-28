@@ -5,6 +5,7 @@ import {
 	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
+	HiOutlineChartBar,
 	HiOutlineCommandLine,
 	HiOutlineComputerDesktop,
 	HiOutlineCpuChip,
@@ -26,6 +27,7 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { SettingsSection } from "renderer/stores/settings-state";
 import { getAllowedSectionsForVariant } from "../../utils/settings-search";
+import { settingsListItemClass } from "../SettingsListSidebar";
 
 interface GeneralSettingsProps {
 	matchCounts: Partial<Record<SettingsSection, number>> | null;
@@ -37,6 +39,7 @@ type SettingsRoute =
 	| "/settings/teams"
 	| "/settings/appearance"
 	| "/settings/ringtones"
+	| "/settings/usage"
 	| "/settings/keyboard"
 	| "/settings/behavior"
 	| "/settings/browser"
@@ -60,6 +63,8 @@ interface SectionItem {
 	label: string;
 	icon: React.ReactNode;
 	macOnly?: boolean;
+	/** Content wants the full pane width instead of the default centered max-w-4xl column. */
+	fullWidth?: boolean;
 }
 
 interface SectionGroup {
@@ -89,6 +94,13 @@ const SECTION_GROUPS: SectionGroup[] = [
 				label: "Notifications",
 				icon: <HiOutlineBell className="h-4 w-4" />,
 			},
+			{
+				id: "/settings/usage",
+				section: "usage",
+				label: "Usage",
+				icon: <HiOutlineChartBar className="h-4 w-4" />,
+				fullWidth: true,
+			},
 		],
 	},
 	{
@@ -117,6 +129,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "agents",
 				label: "Agents",
 				icon: <HiOutlineCpuChip className="h-4 w-4" />,
+				fullWidth: true,
 			},
 			{
 				id: "/settings/terminal",
@@ -164,12 +177,14 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "project",
 				label: "Projects",
 				icon: <HiOutlineFolder className="h-4 w-4" />,
+				fullWidth: true,
 			},
 			{
 				id: "/settings/hosts",
 				section: "hosts",
 				label: "Hosts",
 				icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+				fullWidth: true,
 			},
 			{
 				id: "/settings/integrations",
@@ -217,6 +232,17 @@ const SECTION_GROUPS: SectionGroup[] = [
 	},
 ];
 
+/**
+ * Settings sections whose content wants the full pane width instead of the
+ * default centered max-w-4xl column — read by the Settings layout so a new
+ * full-width section only needs to be marked here, not also in a second,
+ * disconnected path list.
+ */
+export const FULL_WIDTH_SECTION_PATHS: readonly string[] =
+	SECTION_GROUPS.flatMap((group) =>
+		group.items.filter((item) => item.fullWidth).map((item) => item.id),
+	);
+
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
@@ -242,7 +268,7 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 
 				return (
 					<div key={group.label} className={cn(groupIndex > 0 && "mt-4")}>
-						<h2 className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-[0.1em] px-3 mb-1">
+						<h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.075em] px-3 mb-1">
 							{group.label}
 						</h2>
 						<nav className="flex flex-col">
@@ -257,11 +283,9 @@ export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 									<Link
 										key={section.id}
 										to={section.id}
-										className={cn(
-											"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
-											isActive
-												? "bg-accent text-accent-foreground"
-												: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+										className={settingsListItemClass(
+											isActive,
+											"gap-2 px-3 text-left",
 										)}
 									>
 										{section.icon}

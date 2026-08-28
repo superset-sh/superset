@@ -5,7 +5,9 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
+import { WorkspaceNameMarquee } from "renderer/components/WorkspaceNameMarquee";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
+import { useFocusVisible } from "renderer/hooks/useFocusVisible";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHoverGitHubStatus } from "renderer/lib/githubQueryPolicy";
@@ -123,6 +125,13 @@ export function WorkspaceListItem({
 
 	const expandedItemRef = useRef<HTMLDivElement>(null);
 	const collapsedItemRef = useRef<HTMLButtonElement>(null);
+	// Drives the name's hover-reveal for keyboard users: the row, not the
+	// name span, is what's actually tabbable.
+	const {
+		isFocusVisible: isFocused,
+		onFocus: handleRowFocus,
+		onBlur: handleRowBlur,
+	} = useFocusVisible();
 
 	useEffect(() => {
 		if (isCollapsed) {
@@ -300,6 +309,8 @@ export function WorkspaceListItem({
 				}
 			}}
 			onMouseEnter={handleMouseEnter}
+			onFocus={handleRowFocus}
+			onBlur={handleRowBlur}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
 				"flex w-full pl-3 pr-2 text-sm",
@@ -373,16 +384,16 @@ export function WorkspaceListItem({
 				) : (
 					<div className="flex flex-col gap-0.5">
 						<div className="flex items-center gap-1.5">
-							<span
+							<WorkspaceNameMarquee
+								name={isBranchWorkspace ? "local" : name || branch}
+								forceActive={isFocused}
 								className={cn(
-									"truncate text-[13px] leading-tight transition-colors flex-1",
+									"text-[13px] leading-tight transition-colors flex-1",
 									isActive
 										? "text-foreground font-medium"
 										: "text-foreground/80",
 								)}
-							>
-								{isBranchWorkspace ? "local" : name || branch}
-							</span>
+							/>
 
 							{isBranchWorkspace && aheadBehind && (
 								<WorkspaceAheadBehind

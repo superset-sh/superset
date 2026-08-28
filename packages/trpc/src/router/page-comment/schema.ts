@@ -5,7 +5,16 @@ export const OFFERED_ANCHOR_KINDS = ["element", "page"] as const;
 export const elementAnchorSchema = z.object({
 	path: z.string().min(1).max(2000),
 	tag: z.string().min(1).max(40),
+	/**
+	 * Where inside the element the reader clicked, as a fraction of its box.
+	 * Optional because threads created before pins carried a click point have
+	 * no offsets, and those keep rendering on the element's top-left corner.
+	 */
+	offsetX: z.number().min(0).max(1).optional(),
+	offsetY: z.number().min(0).max(1).optional(),
 });
+
+export type ElementAnchor = z.infer<typeof elementAnchorSchema>;
 
 export const listPageCommentsSchema = z.object({
 	pageId: z.string().uuid(),

@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useLingui } from "@lingui/react/macro";
 import {
 	ACCOUNT_DELETION_GRACE_DAYS,
 	COMPANY,
@@ -37,6 +38,7 @@ function formatJoined(createdAt?: Date | string | null) {
 }
 
 export function SettingsScreen() {
+	const { t } = useLingui();
 	const router = useRouter();
 	const theme = useTheme();
 	const insets = useSafeAreaInsets();
@@ -51,14 +53,21 @@ export function SettingsScreen() {
 	const joined = formatJoined(user?.createdAt);
 
 	const handleSignOut = () => {
-		Alert.alert("Log out?", undefined, [
-			{ style: "cancel", text: "Cancel" },
-			{
-				onPress: () => void signOut(),
-				style: "destructive",
-				text: "Log out",
-			},
-		]);
+		Alert.alert(
+			t({ id: "mobile.settings.logOut.title", message: "Log out?" }),
+			undefined,
+			[
+				{
+					style: "cancel",
+					text: t({ id: "common.cancel", message: "Cancel" }),
+				},
+				{
+					onPress: () => void signOut(),
+					style: "destructive",
+					text: t({ id: "mobile.settings.logOut.confirm", message: "Log out" }),
+				},
+			],
+		);
 	};
 
 	// Informational only. Outside the US storefront, App Store guideline 3.1.1

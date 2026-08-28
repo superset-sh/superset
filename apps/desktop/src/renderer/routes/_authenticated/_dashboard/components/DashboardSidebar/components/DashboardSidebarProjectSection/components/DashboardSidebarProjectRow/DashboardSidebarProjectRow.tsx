@@ -63,14 +63,14 @@ export const DashboardSidebarProjectRow = forwardRef<
 							}
 				}
 				className={cn(
-					"group mx-2 flex min-h-8 items-center rounded-md pl-2 pr-1 py-1 text-[13px] font-medium",
+					"group mx-2 flex h-7 items-center rounded-md pl-2 pr-1 text-[13px] font-medium",
 					"hover:bg-fill-hover transition-colors",
 					className,
 				)}
 				{...props}
 			>
-				<div className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
-					<div className="flex size-5 shrink-0 items-center justify-center">
+				<div className="flex min-w-0 flex-1 items-center gap-2">
+					<div className="flex size-4 shrink-0 items-center justify-center">
 						<ProjectThumbnail
 							projectName={projectName}
 							iconUrl={iconUrl}

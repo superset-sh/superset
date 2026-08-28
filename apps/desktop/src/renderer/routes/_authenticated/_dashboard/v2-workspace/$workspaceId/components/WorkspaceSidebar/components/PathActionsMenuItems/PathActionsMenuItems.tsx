@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	ContextMenuItem,
 	ContextMenuSeparator,
@@ -28,7 +29,7 @@ export function PathActionsMenuItems({
 		toast.promise(copyToClipboard(path), {
 			success: successMessage,
 			error: (err: unknown) =>
-				`Failed to copy path: ${err instanceof Error ? err.message : "Unknown error"}`,
+				`Failed to copy path: ${errorMessage(err, "Unknown error")}`,
 		});
 	};
 
@@ -37,7 +38,7 @@ export function PathActionsMenuItems({
 			await electronTrpcClient.external.openInFinder.mutate(absolutePath);
 		} catch (error) {
 			toast.error(
-				`Failed to reveal in Finder: ${error instanceof Error ? error.message : "Unknown error"}`,
+				`Failed to reveal in Finder: ${errorMessage(error, "Unknown error")}`,
 			);
 		}
 	};

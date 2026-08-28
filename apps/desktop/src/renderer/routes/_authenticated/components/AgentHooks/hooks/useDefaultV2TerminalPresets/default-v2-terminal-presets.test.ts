@@ -57,19 +57,26 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					order: 2,
 				}),
 				createAgent({
+					id: "omp-config",
+					presetId: "omp",
+					label: "Oh My Pi",
+					command: "omp",
+					order: 3,
+				}),
+				createAgent({
 					id: "copilot-config",
 					presetId: "copilot",
 					label: "Copilot",
 					command: "copilot",
 					args: ["--allow-tool=write"],
-					order: 3,
+					order: 4,
 				}),
 				createAgent({
 					id: "kimi-config",
 					presetId: "kimi",
 					label: "Kimi Code",
 					command: "kimi",
-					order: 4,
+					order: 5,
 				}),
 				createAgent({
 					id: "grok-config",
@@ -77,9 +84,9 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					label: "Grok",
 					command: "grok",
 					args: ["--always-approve"],
-					order: 5,
+					order: 6,
 				}),
-				createAgent({ presetId: "amp", order: 6 }),
+				createAgent({ presetId: "amp", order: 7 }),
 			],
 			existingPresets: [],
 			createId: () =>
@@ -91,6 +98,7 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"claude-config",
 			"codex-config",
 			"opencode-config",
+			"omp-config",
 			"copilot-config",
 			"kimi-config",
 			"grok-config",
@@ -99,11 +107,12 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"Claude",
 			"Codex",
 			"OpenCode",
+			"Oh My Pi",
 			"Copilot",
 			"Kimi Code",
 			"Grok",
 		]);
-		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3, 4, 5]);
+		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3, 4, 5, 6]);
 		expect(rows[0]?.commands).toEqual([
 			"claude --dangerously-skip-permissions",
 		]);
@@ -111,9 +120,10 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
 		]);
 		expect(rows[2]?.commands).toEqual(["opencode"]);
-		expect(rows[3]?.commands).toEqual(["copilot --allow-tool=write"]);
-		expect(rows[4]?.commands).toEqual(["kimi"]);
-		expect(rows[5]?.commands).toEqual(["grok --always-approve"]);
+		expect(rows[3]?.commands).toEqual(["omp"]);
+		expect(rows[4]?.commands).toEqual(["copilot --allow-tool=write"]);
+		expect(rows[5]?.commands).toEqual(["kimi"]);
+		expect(rows[6]?.commands).toEqual(["grok --always-approve"]);
 	});
 
 	it("includes structured agent env in seeded preset command snapshots", () => {

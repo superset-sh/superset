@@ -41,6 +41,7 @@ import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
 import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
+import { usePagePaneIntentOpener } from "./hooks/usePagePaneIntentOpener";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
 import { useSlotElement } from "./hooks/useSlotElement";
@@ -207,6 +208,8 @@ function V2WorkspaceContent() {
 		newTabPresets,
 		executePreset,
 	});
+
+	usePagePaneIntentOpener({ workspaceId, isLayoutReady, openPagePane });
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 
 	const quickOpenOpen = useQuickOpenStore(
@@ -415,7 +418,6 @@ function V2WorkspaceContent() {
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}
-								onOpenPage={openPagePane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 								pendingReveal={pendingReveal}

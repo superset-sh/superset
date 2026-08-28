@@ -1,3 +1,4 @@
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	getPluginByName,
 	isPluginExternallyConfigured,
@@ -35,7 +36,7 @@ export function usePluginMutations() {
 			});
 		},
 		onError: (error) => {
-			toast.error("Install failed", { description: error.message });
+			toast.error("Install failed", { description: errorMessage(error) });
 		},
 	});
 	const uninstallMutation = electronTrpc.plugins.uninstall.useMutation({
@@ -54,7 +55,7 @@ export function usePluginMutations() {
 			);
 		},
 		onError: (error) => {
-			toast.error("Uninstall failed", { description: error.message });
+			toast.error("Uninstall failed", { description: errorMessage(error) });
 		},
 	});
 	const setEnabledMutation = electronTrpc.plugins.setEnabled.useMutation({
@@ -75,7 +76,9 @@ export function usePluginMutations() {
 			);
 		},
 		onError: (error) => {
-			toast.error("Could not update plugin", { description: error.message });
+			toast.error("Could not update plugin", {
+				description: errorMessage(error),
+			});
 		},
 	});
 

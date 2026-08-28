@@ -597,47 +597,47 @@ export const HOTKEYS_REGISTRY = {
 	},
 	OPEN_PRESET_1: {
 		key: { mac: L("ctrl+1"), windows: L("ctrl+1"), linux: L("ctrl+1") },
-		label: "Open Preset 1",
+		label: "Open Terminal Script 1",
 		category: "Terminal",
 	},
 	OPEN_PRESET_2: {
 		key: { mac: L("ctrl+2"), windows: L("ctrl+2"), linux: L("ctrl+2") },
-		label: "Open Preset 2",
+		label: "Open Terminal Script 2",
 		category: "Terminal",
 	},
 	OPEN_PRESET_3: {
 		key: { mac: L("ctrl+3"), windows: L("ctrl+3"), linux: L("ctrl+3") },
-		label: "Open Preset 3",
+		label: "Open Terminal Script 3",
 		category: "Terminal",
 	},
 	OPEN_PRESET_4: {
 		key: { mac: L("ctrl+4"), windows: L("ctrl+4"), linux: L("ctrl+4") },
-		label: "Open Preset 4",
+		label: "Open Terminal Script 4",
 		category: "Terminal",
 	},
 	OPEN_PRESET_5: {
 		key: { mac: L("ctrl+5"), windows: L("ctrl+5"), linux: L("ctrl+5") },
-		label: "Open Preset 5",
+		label: "Open Terminal Script 5",
 		category: "Terminal",
 	},
 	OPEN_PRESET_6: {
 		key: { mac: L("ctrl+6"), windows: L("ctrl+6"), linux: L("ctrl+6") },
-		label: "Open Preset 6",
+		label: "Open Terminal Script 6",
 		category: "Terminal",
 	},
 	OPEN_PRESET_7: {
 		key: { mac: L("ctrl+7"), windows: L("ctrl+7"), linux: L("ctrl+7") },
-		label: "Open Preset 7",
+		label: "Open Terminal Script 7",
 		category: "Terminal",
 	},
 	OPEN_PRESET_8: {
 		key: { mac: L("ctrl+8"), windows: L("ctrl+8"), linux: L("ctrl+8") },
-		label: "Open Preset 8",
+		label: "Open Terminal Script 8",
 		category: "Terminal",
 	},
 	OPEN_PRESET_9: {
 		key: { mac: L("ctrl+9"), windows: L("ctrl+9"), linux: L("ctrl+9") },
-		label: "Open Preset 9",
+		label: "Open Terminal Script 9",
 		category: "Terminal",
 	},
 

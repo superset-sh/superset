@@ -1,0 +1,133 @@
+/*!
+  highlight.js GitHub light/dark pair (from highlight.js@11.11.1
+  styles/github.css and styles/github-dark.css), merged into one
+  theme-aware stylesheet. The upstream files each hardcode a single
+  palette, but our code blocks sit on `bg-muted`, which follows the
+  active theme — importing either file directly leaves dark tokens on a
+  light background (or vice versa). Palette switches on the `.light` /
+  `.dark` class the theme store sets on <html>; the classless base is
+  dark to match the app palette fallback in globals.css.
+
+  The upstream `.hljs` background rules are intentionally dropped: every
+  consumer renders `code.hljs` with `!bg-transparent` inside a
+  `bg-muted` container, which owns the background.
+*/
+pre code.hljs {
+	display: block;
+	overflow-x: auto;
+	padding: 1em;
+}
+code.hljs {
+	padding: 3px 5px;
+}
+
+:root {
+	--hljs-foreground: #c9d1d9;
+	--hljs-keyword: #ff7b72;
+	--hljs-entity: #d2a8ff;
+	--hljs-constant: #79c0ff;
+	--hljs-string: #a5d6ff;
+	--hljs-variable: #ffa657;
+	--hljs-comment: #8b949e;
+	--hljs-entity-tag: #7ee787;
+	--hljs-section: #1f6feb;
+	--hljs-bullet: #f2cc60;
+	--hljs-addition-foreground: #aff5b4;
+	--hljs-addition-background: #033a16;
+	--hljs-deletion-foreground: #ffdcd7;
+	--hljs-deletion-background: #67060c;
+}
+
+.light {
+	--hljs-foreground: #24292e;
+	--hljs-keyword: #d73a49;
+	--hljs-entity: #6f42c1;
+	--hljs-constant: #005cc5;
+	--hljs-string: #032f62;
+	--hljs-variable: #e36209;
+	--hljs-comment: #6a737d;
+	--hljs-entity-tag: #22863a;
+	--hljs-section: #005cc5;
+	--hljs-bullet: #735c0f;
+	--hljs-addition-foreground: #22863a;
+	--hljs-addition-background: #f0fff4;
+	--hljs-deletion-foreground: #b31d28;
+	--hljs-deletion-background: #ffeef0;
+}
+
+.hljs {
+	color: var(--hljs-foreground);
+}
+.hljs-doctag,
+.hljs-keyword,
+.hljs-meta .hljs-keyword,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-variable.language_ {
+	color: var(--hljs-keyword);
+}
+.hljs-title,
+.hljs-title.class_,
+.hljs-title.class_.inherited__,
+.hljs-title.function_ {
+	color: var(--hljs-entity);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-literal,
+.hljs-meta,
+.hljs-number,
+.hljs-operator,
+.hljs-variable,
+.hljs-selector-attr,
+.hljs-selector-class,
+.hljs-selector-id {
+	color: var(--hljs-constant);
+}
+.hljs-regexp,
+.hljs-string,
+.hljs-meta .hljs-string {
+	color: var(--hljs-string);
+}
+.hljs-built_in,
+.hljs-symbol {
+	color: var(--hljs-variable);
+}
+.hljs-comment,
+.hljs-code,
+.hljs-formula {
+	color: var(--hljs-comment);
+}
+.hljs-name,
+.hljs-quote,
+.hljs-selector-tag,
+.hljs-selector-pseudo {
+	color: var(--hljs-entity-tag);
+}
+.hljs-subst {
+	color: var(--hljs-foreground);
+}
+.hljs-section {
+	color: var(--hljs-section);
+	font-weight: bold;
+}
+.hljs-bullet {
+	color: var(--hljs-bullet);
+}
+.hljs-emphasis {
+	color: var(--hljs-foreground);
+	font-style: italic;
+}
+.hljs-strong {
+	color: var(--hljs-foreground);
+	font-weight: bold;
+}
+.hljs-addition {
+	color: var(--hljs-addition-foreground);
+	background-color: var(--hljs-addition-background);
+}
+.hljs-deletion {
+	color: var(--hljs-deletion-foreground);
+	background-color: var(--hljs-deletion-background);
+}

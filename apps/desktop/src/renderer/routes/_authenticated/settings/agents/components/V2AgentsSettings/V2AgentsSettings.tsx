@@ -1,4 +1,5 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
+import { errorMessage } from "@superset/i18n/errors";
 import {
 	HOST_AGENT_PRESETS,
 	type HostAgentPreset,
@@ -160,8 +161,7 @@ export function V2AgentsSettings({
 				insertLinkedTerminalPreset(collections, added);
 			}
 		},
-		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
+		onError: (err) => toast.error(errorMessage(err, "Failed to add agent")),
 	});
 
 	const addCustomMutation = useMutation({
@@ -185,8 +185,7 @@ export function V2AgentsSettings({
 				insertLinkedTerminalPreset(collections, added);
 			}
 		},
-		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
+		onError: (err) => toast.error(errorMessage(err, "Failed to add agent")),
 	});
 
 	const reorderMutation = useMutation({
@@ -223,7 +222,7 @@ export function V2AgentsSettings({
 			if (ctx?.previous) {
 				queryClient.setQueryData(queryKey, ctx.previous);
 			}
-			toast.error(err instanceof Error ? err.message : "Failed to reorder");
+			toast.error(errorMessage(err, "Failed to reorder"));
 		},
 		onSettled: () => invalidate(),
 	});
@@ -247,8 +246,7 @@ export function V2AgentsSettings({
 			void navigate({ to: "/settings/agents" });
 			invalidate();
 		},
-		onError: (err) =>
-			toast.error(err instanceof Error ? err.message : "Failed to reset"),
+		onError: (err) => toast.error(errorMessage(err, "Failed to reset")),
 	});
 
 	const configs = configsQuery.data ?? [];

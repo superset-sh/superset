@@ -1,4 +1,5 @@
 import type { SelectAutomationRun } from "@superset/db/schema";
+import { errorMessage } from "@superset/i18n/errors";
 import type { RouterOutputs } from "@superset/trpc";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
@@ -60,9 +61,7 @@ export function AutomationBody({
 		// The pickers re-render from the Electric-synced row, so a rejected
 		// update silently snaps back without this.
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to update automation",
-			),
+			toast.error(errorMessage(error, "Failed to update automation")),
 	});
 
 	const setPromptMutation = useMutation({
@@ -77,9 +76,7 @@ export function AutomationBody({
 			});
 		},
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to update prompt",
-			),
+			toast.error(errorMessage(error, "Failed to update prompt")),
 	});
 
 	const searchFiles = useProjectFileSearch({
@@ -90,12 +87,15 @@ export function AutomationBody({
 	const { localHostId } = useWorkspaceHostOptions();
 	const hostId = automation.targetHostId ?? localHostId ?? null;
 	const hostUrl = useHostUrl(hostId);
-	const { agents: hostAgents } = useV2AgentChoices(hostUrl);
-	// Only warn once the host's terminal configs have loaded — the list always
-	// contains the built-in Superset chat entry, so length 1 means "not loaded
-	// yet / host unreachable", not "agent missing".
+	const { agents: hostAgents, isFetched: hostAgentsFetched } =
+		useV2AgentChoices(hostUrl);
+	// Only warn once the host's terminal configs have loaded — the Superset
+	// chat entry is flag-gated, so list length alone can't tell "not loaded
+	// yet / host unreachable" apart from "agent missing".
 	const agentMissing =
-		hostAgents.length > 1 && !matchAgentChoice(hostAgents, automation.agent);
+		hostAgentsFetched &&
+		hostAgents.length > 0 &&
+		!matchAgentChoice(hostAgents, automation.agent);
 
 	return (
 		<div className="flex-1 overflow-y-auto px-8 py-8">

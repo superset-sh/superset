@@ -12,6 +12,22 @@
 			"types": "./src/router/page/schema.ts",
 			"default": "./src/router/page/schema.ts"
 		},
+		"./leaderboard-queries": {
+			"types": "./src/router/leaderboard/queries.ts",
+			"default": "./src/router/leaderboard/queries.ts"
+		},
+		"./leaderboard-schema": {
+			"types": "./src/router/leaderboard/schema.ts",
+			"default": "./src/router/leaderboard/schema.ts"
+		},
+		"./leaderboard-periods": {
+			"types": "./src/router/leaderboard/periods.ts",
+			"default": "./src/router/leaderboard/periods.ts"
+		},
+		"./leaderboard-types": {
+			"types": "./src/router/leaderboard/types.ts",
+			"default": "./src/router/leaderboard/types.ts"
+		},
 		"./integrations/*": {
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
