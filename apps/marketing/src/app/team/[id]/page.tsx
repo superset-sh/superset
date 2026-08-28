@@ -13,6 +13,7 @@ import {
 } from "react-icons/ri";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { mdxComponents } from "@/app/blog/components/mdx-components";
+import { initServerI18n } from "@/app/i18n-server";
 import { BreadcrumbJsonLd, JsonLdScript } from "@/components/JsonLd";
 import { getAllPeople, getPersonById } from "@/lib/people";
 import { TeamBio } from "../components/TeamBio";
@@ -63,6 +64,8 @@ function PersonJsonLd({
 }
 
 export default async function TeamMemberPage({ params }: PageProps) {
+	initServerI18n();
+
 	const { id } = await params;
 	const person = getPersonById(id);
 

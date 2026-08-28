@@ -4,6 +4,7 @@ import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import { initServerI18n } from "@/app/i18n-server";
 import { getGitHubRepoSlug } from "@/lib/github";
 
 export const metadata: Metadata = {
@@ -112,6 +113,8 @@ const COMMUNITY_LINKS = [
 ];
 
 export default async function CommunityPage() {
+	initServerI18n();
+
 	const stars = await getGitHubStars();
 
 	return (

@@ -8,6 +8,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { initServerI18n } from "@/app/i18n-server";
 import { BreadcrumbJsonLd, JsonLdScript } from "@/components/JsonLd";
 import {
 	getAllThemeSlugs,
@@ -54,6 +55,8 @@ export async function generateMetadata({
 }
 
 export default async function ThemeDetailPage({ params }: PageProps) {
+	initServerI18n();
+
 	const { slug } = await params;
 	const theme = getThemeListing(slug);
 

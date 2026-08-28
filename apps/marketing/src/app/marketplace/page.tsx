@@ -3,6 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { initServerI18n } from "@/app/i18n-server";
 
 export const metadata: Metadata = {
 	title: "Marketplace",
@@ -35,6 +36,8 @@ const marketplaceLinks = [
 ] as const;
 
 export default function MarketplacePage() {
+	initServerI18n();
+
 	const { t } = useLingui();
 
 	return (

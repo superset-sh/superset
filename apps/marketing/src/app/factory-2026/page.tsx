@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { AttentionChart } from "./components/AttentionChart";
 import { ForecastChart } from "./components/ForecastChart";
 import { ForecastEntry } from "./components/ForecastEntry";
@@ -36,6 +37,8 @@ export const metadata: Metadata = {
 };
 
 export default function Factory2026Page() {
+	initServerI18n();
+
 	return (
 		<main className="relative min-h-screen">
 			{/* Vertical guide lines */}

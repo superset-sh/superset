@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { MCP_SERVER_URL } from "@/lib/api-url";
 import { McpCapabilities } from "./components/McpCapabilities";
 import { McpExamples } from "./components/McpExamples";
@@ -16,6 +17,8 @@ export const metadata: Metadata = {
 };
 
 export default function McpPage() {
+	initServerI18n();
+
 	return (
 		<main className="relative min-h-screen">
 			{/* Header + Install section */}

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
 import Link from "next/link";
 import { FactoryBackdrop } from "@/app/components/FactoryBackdrop";
+import { initServerI18n } from "@/app/i18n-server";
 import { fetchStats } from "@/app/utils/fetchLeaderboard";
 import { formatDayRange } from "@/app/utils/formatUsage";
 import { StatsBody } from "./components/StatsBody";
@@ -40,6 +41,8 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function StatsPage() {
+	initServerI18n();
+
 	const stats = await fetchStats({ period: "all" });
 	const range = stats?.range ? formatDayRange(stats.range) : null;
 

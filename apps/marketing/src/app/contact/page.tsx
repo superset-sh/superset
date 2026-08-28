@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { ContactForm } from "./components/ContactForm";
 
 export const metadata: Metadata = {
@@ -13,6 +14,8 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+	initServerI18n();
+
 	// Named locals so the paragraph extracts with `{supportEmail}` /
 	// `{foundersEmail}` instead of positional `{0}` / `{1}`.
 	const supportEmail = `support${COMPANY.EMAIL_DOMAIN}`;

@@ -3,6 +3,7 @@ import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
 import { StarChartSection } from "./components/StarChartSection";
 import { getStarHistory } from "./utils/getStarHistory";
@@ -44,6 +45,8 @@ function formatWeekDate(date: string): string {
 }
 
 export default async function StarChartPage() {
+	initServerI18n();
+
 	const { t } = useLingui();
 	const history = await getStarHistory();
 	const points = history?.points ?? [];

@@ -1,5 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
+import { initServerI18n } from "@/app/i18n-server";
 import { getBlogPosts } from "@/lib/blog";
 import { BlogCard } from "./components/BlogCard";
 import { GridCross } from "./components/GridCross";
@@ -31,6 +32,8 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
+	initServerI18n();
+
 	const posts = getBlogPosts();
 
 	return (

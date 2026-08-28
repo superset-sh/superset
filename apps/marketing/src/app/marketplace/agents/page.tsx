@@ -3,6 +3,7 @@ import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import { initServerI18n } from "@/app/i18n-server";
 import { marketplaceSubmissionLinks } from "@/lib/marketplace";
 
 export const metadata: Metadata = {
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default function MarketplaceAgentsPage() {
+	initServerI18n();
+
 	return (
 		<main className="min-h-screen">
 			<div className="mx-auto max-w-4xl px-6 py-10">

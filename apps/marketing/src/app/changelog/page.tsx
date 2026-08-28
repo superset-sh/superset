@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { FaGithub } from "react-icons/fa";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
 
@@ -34,6 +35,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ChangelogPage() {
+	initServerI18n();
+
 	const entries = getChangelogEntries();
 
 	return (

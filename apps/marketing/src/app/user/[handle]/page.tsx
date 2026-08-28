@@ -16,6 +16,7 @@ import { tierRgb } from "@/app/components/TierBadge";
 import { TierIcon } from "@/app/components/TierIcon";
 import { TierTube } from "@/app/components/TierTube";
 import { TokenSplitBar } from "@/app/components/TokenSplitBar";
+import { initServerI18n } from "@/app/i18n-server";
 import { avatarUrl } from "@/app/utils/avatarUrl";
 import { fetchParticipant } from "@/app/utils/fetchLeaderboard";
 import {
@@ -79,6 +80,8 @@ export async function generateMetadata({
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
+	initServerI18n();
+
 	const { t } = useLingui();
 	const { handle } = await params;
 	const profile = await fetchParticipant(handle, { period: "all" });

@@ -3,6 +3,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
 import { Soc2Badge } from "@/app/components/Soc2Badge";
+import { initServerI18n } from "@/app/i18n-server";
 import { EnterpriseContactForm } from "./components/EnterpriseContactForm";
 import { EnterpriseFAQ } from "./components/EnterpriseFAQ";
 
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
 };
 
 export default function EnterprisePage() {
+	initServerI18n();
+
 	const { t } = useLingui();
 
 	return (

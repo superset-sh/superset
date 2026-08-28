@@ -1,6 +1,7 @@
 import { Trans } from "@lingui/react/macro";
 import type { Metadata } from "next";
 import Script from "next/script";
+import { initServerI18n } from "@/app/i18n-server";
 
 declare global {
 	namespace React.JSX {
@@ -36,6 +37,8 @@ export const metadata: Metadata = {
 };
 
 export default function JoinUsPage() {
+	initServerI18n();
+
 	return (
 		<main className="relative min-h-screen bg-background">
 			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">

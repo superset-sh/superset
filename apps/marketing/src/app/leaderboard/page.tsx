@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
 import Link from "next/link";
 import { FactoryBackdrop } from "@/app/components/FactoryBackdrop";
+import { initServerI18n } from "@/app/i18n-server";
 import { fetchStandings, fetchStats } from "@/app/utils/fetchLeaderboard";
 import { LeaderboardBoard } from "./components/LeaderboardBoard";
 
@@ -40,6 +41,8 @@ export const revalidate = 300;
 const DEFAULT_PERIOD = "30d" as const;
 
 export default async function LeaderboardPage() {
+	initServerI18n();
+
 	const [standings, stats] = await Promise.all([
 		fetchStandings({ period: DEFAULT_PERIOD, metric: "tokens", limit: 50 }),
 		fetchStats({ period: DEFAULT_PERIOD }),

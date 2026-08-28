@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
+import { initServerI18n } from "@/app/i18n-server";
 import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
 
 interface PageProps {
@@ -18,6 +19,8 @@ function formatDate(date: string | Date): string {
 }
 
 export default async function LegalPage({ params }: PageProps) {
+	initServerI18n();
+
 	const { slug } = await params;
 	const page = getLegalPage(slug);
 

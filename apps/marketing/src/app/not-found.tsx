@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import Link from "next/link";
-
+import { initServerI18n } from "@/app/i18n-server";
 import { NotFoundGrid } from "./components/NotFoundGrid";
 import { Pixel404 } from "./components/Pixel404";
 
@@ -12,6 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default function NotFound() {
+	initServerI18n();
+
 	const { t } = useLingui();
 
 	return (

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { initServerI18n } from "@/app/i18n-server";
 import { DownloadInterstitial } from "./components/DownloadInterstitial";
 
 export const metadata: Metadata = {
@@ -8,5 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function DownloadPage() {
+	initServerI18n();
+
 	return <DownloadInterstitial />;
 }

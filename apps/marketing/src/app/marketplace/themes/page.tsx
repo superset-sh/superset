@@ -5,6 +5,7 @@ import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
 import { ArrowUpRight, Download } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { initServerI18n } from "@/app/i18n-server";
 import { themeListings } from "@/lib/marketplace";
 
 export const metadata: Metadata = {
@@ -17,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 export default function MarketplaceThemesPage() {
+	initServerI18n();
+
 	const { t } = useLingui();
 
 	return (

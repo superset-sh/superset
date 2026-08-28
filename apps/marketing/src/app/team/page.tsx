@@ -8,6 +8,7 @@ import {
 	RiLinkedinBoxFill,
 	RiTwitterXFill,
 } from "react-icons/ri";
+import { initServerI18n } from "@/app/i18n-server";
 import { getAllPeople } from "@/lib/people";
 import { CTASection } from "../components/CTASection";
 import { TeamBio } from "./components/TeamBio";
@@ -36,6 +37,8 @@ export const metadata: Metadata = {
 };
 
 export default function TeamPage() {
+	initServerI18n();
+
 	const { t } = useLingui();
 	const people = getAllPeople();
 

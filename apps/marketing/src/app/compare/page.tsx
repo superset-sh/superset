@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { getComparisonPages } from "@/lib/compare";
 import { formatCompareDate } from "@/lib/compare-utils";
 
@@ -30,6 +31,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ComparePage() {
+	initServerI18n();
+
 	const pages = getComparisonPages();
 
 	const oneVsOne = pages.filter((p) => p.type === "1v1");

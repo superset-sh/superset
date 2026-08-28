@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/blog/components/GridCross";
+import { initServerI18n } from "@/app/i18n-server";
 import { RoadmapBoard } from "./components/RoadmapBoard";
 
 export const metadata: Metadata = {
@@ -28,6 +29,8 @@ export const metadata: Metadata = {
 };
 
 export default function RoadmapPage() {
+	initServerI18n();
+
 	const company = COMPANY.NAME;
 
 	return (
