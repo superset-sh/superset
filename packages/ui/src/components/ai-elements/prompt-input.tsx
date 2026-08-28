@@ -381,8 +381,10 @@ export function PromptInputProvider({
 	);
 
 	const takeFiles = useCallback(() => {
-		const takenFiles = attachmentsRef.current;
-		attachmentsRef.current = [];
+		// The mirror, not the render-time ref: a submit in the same tick as an
+		// add would otherwise return the pre-add list and then clear the files
+		// it never handed back.
+		const takenFiles = attachmentFilesRef.current;
 		setAttachmentFiles(() => []);
 		if (fileInputRef.current) {
 			fileInputRef.current.value = "";
@@ -390,16 +392,12 @@ export function PromptInputProvider({
 		return takenFiles;
 	}, [setAttachmentFiles]);
 
-	// Keep a ref to attachments for cleanup on unmount (avoids stale closure)
-	const attachmentsRef = useRef(attachmentFiles);
-	attachmentsRef.current = attachmentFiles;
-
 	// Cleanup blob URLs on unmount to prevent memory leaks. With an external
 	// store the files outlive the provider, so their URLs must stay valid.
 	useEffect(() => {
 		if (attachmentsStore) return;
 		return () => {
-			for (const f of attachmentsRef.current) {
+			for (const f of attachmentFilesRef.current) {
 				if (f.url) {
 					URL.revokeObjectURL(f.url);
 				}
