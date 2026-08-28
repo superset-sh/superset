@@ -96,8 +96,8 @@ export function RelayOfflineNotice({
 						>
 							host settings
 						</Link>
-						, and make sure relay access is on in Settings &gt; Remote
-						Workspaces on that device.
+						, and make sure relay access is on in Settings &gt; Remote Access on
+						that device.
 					</Trans>
 				</span>
 			</div>

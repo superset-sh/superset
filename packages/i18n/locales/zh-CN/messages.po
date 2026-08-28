@@ -4413,7 +4413,7 @@ msgstr "此设备没有连接到Superset中继，自动化的运行会被跳过�
 #. placeholder {0}: remoteHost.name
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/RelayOfflineNotice/RelayOfflineNotice.tsx
 msgid "dashboard.automations.relayOfflineNotice.remoteBody"
-msgstr "<0>{0}</0>没有连接到Superset中继，它的运行会被跳过。请检查它的<1>主机设置</1>，并确认该设备的“设置>远程工作区”中开启了中继访问。"
+msgstr "<0>{0}</0>没有连接到Superset中继，它的运行会被跳过。请检查它的<1>主机设置</1>，并确认该设备的“设置>远程访问”中开启了中继访问。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx

@@ -1678,6 +1678,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"remote",
 			"remote access",
 			"workspace",
+			// The section was called Remote Workspaces until the rename; keep the
+			// old name searchable for anyone who still reaches for it.
+			"workspaces",
 			"expose",
 			"lockdown",
 			"network",

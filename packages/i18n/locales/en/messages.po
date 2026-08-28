@@ -4413,7 +4413,7 @@ msgstr "This device isn't connected to the Superset relay, so automation runs wi
 #. placeholder {0}: remoteHost.name
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/RelayOfflineNotice/RelayOfflineNotice.tsx
 msgid "dashboard.automations.relayOfflineNotice.remoteBody"
-msgstr "<0>{0}</0> isn't connected to the Superset relay, so its runs will be skipped. Check its <1>host settings</1>, and make sure relay access is on in Settings > Remote Workspaces on that device."
+msgstr "<0>{0}</0> isn't connected to the Superset relay, so its runs will be skipped. Check its <1>host settings</1>, and make sure relay access is on in Settings > Remote Access on that device."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx

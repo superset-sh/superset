@@ -4413,7 +4413,7 @@ msgstr "このデバイスはSupersetリレーに接続されていないため�
 #. placeholder {0}: remoteHost.name
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/RelayOfflineNotice/RelayOfflineNotice.tsx
 msgid "dashboard.automations.relayOfflineNotice.remoteBody"
-msgstr "<0>{0}</0>はSupersetリレーに接続されていないため、実行はスキップされます。<1>ホスト設定</1>を確認し、そのデバイスの「設定 > リモートワークスペース」でリレーアクセスが有効になっていることを確認してください。"
+msgstr "<0>{0}</0>はSupersetリレーに接続されていないため、実行はスキップされます。<1>ホスト設定</1>を確認し、そのデバイスの「設定 > リモートアクセス」でリレーアクセスが有効になっていることを確認してください。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationRow/AutomationRow.tsx
