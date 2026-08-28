@@ -3,9 +3,10 @@ import { isDayKey, LEADERBOARD_PERIODS } from "./periods";
 
 const dayKey = z.string().refine(isDayKey, "Expected a real YYYY-MM-DD date");
 
-// Per field, per (day, provider, model, host) row. Generous next to real usage,
-// but low enough that a full payload cannot overflow the bigint rollup on
-// leaderboard_participants.
+// Per field, per (day, provider, model, host) row: a plausibility bound on a
+// single row, generous next to real usage. Nothing prunes leaderboard_daily, so
+// the rollups it feeds are unbounded whatever this is set to; the read path
+// carries them as decimal strings instead of relying on a cap here.
 export const MAX_TOKENS_PER_ROW_FIELD = 50_000_000_000;
 
 const tokenCount = z.number().int().min(0).max(MAX_TOKENS_PER_ROW_FIELD);
@@ -30,7 +31,7 @@ export const joinSchema = z.object({
 	visibility: visibilitySchema.default("public"),
 });
 
-// Same reasoning as the token cap, against the numeric(14,6) usd rollup.
+// Same reasoning as the token cap: a plausibility bound on one row's spend.
 export const MAX_USD_PER_ROW = 10_000;
 
 export const publishDaySchema = z.object({

@@ -98,6 +98,13 @@ export function LeaderboardBoard({
 
 	const range = standings?.range ?? null;
 	const totals = stats?.totals;
+	const totalTokens = Number(totals?.tokens ?? 0);
+	const cacheShare =
+		totalTokens > 0
+			? Math.round(
+					(Number(stats?.tokenSplit.cachedInput ?? 0) / totalTokens) * 100,
+				)
+			: 0;
 
 	return (
 		<div className="space-y-8">
@@ -121,14 +128,7 @@ export function LeaderboardBoard({
 						},
 						{
 							label: "Cache read",
-							value: `${
-								totals.tokens > 0
-									? Math.round(
-											((stats?.tokenSplit.cachedInput ?? 0) / totals.tokens) *
-												100,
-										)
-									: 0
-							}%`,
+							value: `${cacheShare}%`,
 							hint: "of all tokens",
 						},
 					]}

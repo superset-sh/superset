@@ -7,9 +7,15 @@ const UNITS: readonly ScaleUnit[] = [
 	{ limit: 1e3, suffix: "K", digits: 0 },
 ];
 
-/** "1.24T", "13.9B", "4.2M", "850K", "312" */
-export function formatTokens(tokens: number): string {
-	return formatScaled(tokens, UNITS, (value) =>
+/**
+ * "1.24T", "13.9B", "4.2M", "850K", "312"
+ *
+ * Accepts the decimal strings and bigints that exact token sums travel as.
+ * Display rounds to three significant digits anyway, so widening to a double
+ * here costs nothing the output would have kept.
+ */
+export function formatTokens(tokens: number | bigint | string): string {
+	return formatScaled(Number(tokens), UNITS, (value) =>
 		Math.round(value).toLocaleString("en-US"),
 	);
 }

@@ -110,7 +110,7 @@ export function toSpendRows(
 		provider: string;
 		model: string;
 		usd: string;
-		tokens: number;
+		tokens: string;
 	}>,
 ): ModelBarRow[] {
 	return models.map((model) => ({
@@ -126,13 +126,13 @@ export function toTokenRows(
 		provider: string;
 		model: string;
 		usd: string;
-		tokens: number;
+		tokens: string;
 	}>,
 ): ModelBarRow[] {
 	return models.map((model) => ({
 		provider: model.provider,
 		model: model.model,
-		value: model.tokens,
+		value: Number(model.tokens),
 		display: formatTokens(model.tokens),
 	}));
 }

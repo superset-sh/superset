@@ -196,7 +196,10 @@ const HANDLE_CONSTRAINT = "leaderboard_participants_handle_unique";
 
 async function requireParticipant(userId: string) {
 	const [row] = await db
-		.select()
+		.select({
+			userId: leaderboardParticipants.userId,
+			revokedAt: leaderboardParticipants.revokedAt,
+		})
 		.from(leaderboardParticipants)
 		.where(eq(leaderboardParticipants.userId, userId))
 		.limit(1);
@@ -283,7 +286,7 @@ async function recomputeTier(userId: string): Promise<void> {
 		db
 			.select({
 				day: leaderboardDaily.day,
-				tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+				tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 			})
 			.from(leaderboardDaily)
 			.where(
@@ -330,7 +333,7 @@ async function recomputeTier(userId: string): Promise<void> {
 async function rankFor(
 	period: LeaderboardPeriod,
 	periodStart: string | undefined,
-	tokens: number,
+	tokens: number | string,
 	excludeUserId: string | null,
 ): Promise<{ rank: number; total: number }> {
 	const range = resolveDayRange(period, periodStart);
@@ -673,7 +676,16 @@ export const leaderboardRouter = createTRPCRouter({
 	me: protectedProcedure.input(meSchema).query(async ({ ctx, input }) => {
 		const userId = ctx.session.user.id;
 		const [row] = await db
-			.select()
+			.select({
+				handle: leaderboardParticipants.handle,
+				visibility: leaderboardParticipants.visibility,
+				revokedAt: leaderboardParticipants.revokedAt,
+				lastPublishedAt: leaderboardParticipants.lastPublishedAt,
+				tokens: sql<string>`${leaderboardParticipants.tokens}::text`,
+				usd: leaderboardParticipants.usd,
+				sessions: leaderboardParticipants.sessions,
+				approximate: leaderboardParticipants.approximate,
+			})
 			.from(leaderboardParticipants)
 			.where(eq(leaderboardParticipants.userId, userId))
 			.limit(1);
@@ -686,7 +698,7 @@ export const leaderboardRouter = createTRPCRouter({
 		if (range) {
 			const [agg] = await db
 				.select({
-					tokens: sql<number>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
+					tokens: sql<string>`coalesce(sum(${leaderboardDaily.tokens}), 0)::bigint`,
 				})
 				.from(leaderboardDaily)
 				.where(
@@ -696,7 +708,7 @@ export const leaderboardRouter = createTRPCRouter({
 						lte(leaderboardDaily.day, range.to),
 					),
 				);
-			tokens = Number(agg?.tokens ?? 0);
+			tokens = agg?.tokens ?? "0";
 		}
 
 		const { rank, total } = await rankFor(
