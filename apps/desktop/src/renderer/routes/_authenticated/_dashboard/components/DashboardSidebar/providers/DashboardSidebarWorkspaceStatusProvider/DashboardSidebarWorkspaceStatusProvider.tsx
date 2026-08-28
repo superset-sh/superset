@@ -170,7 +170,22 @@ export function DashboardSidebarWorkspaceStatusProvider({
 }) {
 	const [store] = useState(() => new SidebarWorkspaceStatusStore());
 	const queryClient = useQueryClient();
-	const { cache: hostWorkspacesCache } = useHostWorkspaces();
+	const { workspaces: hostWorkspaceItems, cache: hostWorkspacesCache } =
+		useHostWorkspaces();
+
+	// `hostReachable` reflects whether the host's last live fetch actually
+	// succeeded — unlike a host's self-reported `isOnline`, which stays true
+	// while the host itself is up even when the relay in between is flaky.
+	// A row whose host is currently unreachable gets no live subscription:
+	// holding a socket open to a host that's failing every attempt just adds
+	// reconnect churn (and the re-renders it drives) for a stream with
+	// nothing to report — the 30s workspace-list poll already re-adds the
+	// subscription the moment the host answers again.
+	const reachableByWorkspaceId = useMemo(() => {
+		const map = new Map<string, boolean>();
+		for (const item of hostWorkspaceItems) map.set(item.id, item.hostReachable);
+		return map;
+	}, [hostWorkspaceItems]);
 
 	const computedTargets = useMemo<WorkspaceStatusTarget[]>(
 		() =>
@@ -180,11 +195,13 @@ export function DashboardSidebarWorkspaceStatusProvider({
 				// a socket to it keeps its VM awake for as long as the app is open,
 				// and the sidebar is open all day. Its status goes live when the
 				// workspace itself is opened and its own subscribers connect.
-				hostUrl: hostWorkspacesCache.isSandboxHost(workspace.hostId)
-					? null
-					: hostWorkspacesCache.resolveHostUrl(workspace.hostId),
+				hostUrl:
+					hostWorkspacesCache.isSandboxHost(workspace.hostId) ||
+					reachableByWorkspaceId.get(workspace.id) === false
+						? null
+						: hostWorkspacesCache.resolveHostUrl(workspace.hostId),
 			})),
-		[workspaces, hostWorkspacesCache],
+		[workspaces, hostWorkspacesCache, reachableByWorkspaceId],
 	);
 	// Fingerprint-stabilized: the host-workspaces cache object churns identity
 	// on unrelated updates, and the subscription effect below must only re-run
