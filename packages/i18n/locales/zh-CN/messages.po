@@ -31070,6 +31070,41 @@ msgid "web.teamSelector.updateError"
 msgstr "更新团队失败。请重试。"
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.download"
+msgstr "下载 Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.fallback"
+msgstr "如果没有任何反应，可能是浏览器在等待你允许，或者这台电脑上没有安装 Superset。"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidBody"
+msgstr "工作区链接以工作区 ID 结尾。请检查你打开的链接，或在 Superset 应用中打开该工作区。"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidTitle"
+msgstr "这不是有效的工作区链接"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.openButton"
+msgstr "打开 Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.subtitle"
+msgstr "正在将该工作区交给桌面应用。"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.title"
+msgstr "正在打开 Superset"
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/page/[slug]/components/WrongOrganization/WrongOrganization.tsx
 msgid "web.wrongOrganization.switch"
 msgstr "切换组织"

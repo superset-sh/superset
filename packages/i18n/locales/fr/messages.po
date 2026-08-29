@@ -31070,6 +31070,41 @@ msgid "web.teamSelector.updateError"
 msgstr "Échec de la mise à jour de l'équipe. Veuillez réessayer."
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.download"
+msgstr "Télécharger Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.fallback"
+msgstr "Si rien ne s'ouvre, votre navigateur attend peut-être votre autorisation, ou Superset n'est pas installé sur cet ordinateur."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidBody"
+msgstr "Un lien d'espace de travail se termine par l'identifiant de l'espace de travail. Vérifiez le lien que vous avez suivi, ou ouvrez l'espace de travail depuis l'application Superset."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidTitle"
+msgstr "Ce lien d'espace de travail n'est pas valide"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.openButton"
+msgstr "Ouvrir Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.subtitle"
+msgstr "Transmission de cet espace de travail à l'application de bureau."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.title"
+msgstr "Ouverture de Superset"
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/page/[slug]/components/WrongOrganization/WrongOrganization.tsx
 msgid "web.wrongOrganization.switch"
 msgstr "Changer d'organisation"

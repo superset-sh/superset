@@ -31071,6 +31071,41 @@ msgid "web.teamSelector.updateError"
 msgstr "Nie udało się zaktualizować zespołu. Spróbuj ponownie."
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.download"
+msgstr "Pobierz Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.fallback"
+msgstr "Jeśli nic się nie otworzy, przeglądarka może czekać na Twoją zgodę albo Superset nie jest zainstalowany na tym komputerze."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidBody"
+msgstr "Link do obszaru roboczego kończy się identyfikatorem obszaru roboczego. Sprawdź link, który otworzyłeś, lub otwórz obszar roboczy w aplikacji Superset."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidTitle"
+msgstr "To nie jest prawidłowy link do obszaru roboczego"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.openButton"
+msgstr "Otwórz Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.subtitle"
+msgstr "Przekazywanie tego obszaru roboczego do aplikacji desktopowej."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.title"
+msgstr "Otwieranie Superset"
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/page/[slug]/components/WrongOrganization/WrongOrganization.tsx
 msgid "web.wrongOrganization.switch"
 msgstr "Przełącz organizację"

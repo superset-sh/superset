@@ -31071,6 +31071,41 @@ msgid "web.teamSelector.updateError"
 msgstr "Gagal memperbarui tim. Silakan coba lagi."
 
 #. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.download"
+msgstr "Unduh Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.fallback"
+msgstr "Kalau tidak ada yang terbuka, browser mungkin menunggu izin kamu atau Superset belum terpasang di komputer ini."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidBody"
+msgstr "Tautan workspace diakhiri dengan ID workspace. Periksa tautan yang kamu buka, atau buka workspace dari aplikasi Superset."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/page.tsx
+msgid "web.workspaceHandoff.invalidTitle"
+msgstr "Ini bukan tautan workspace yang valid"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.openButton"
+msgstr "Buka Superset"
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.subtitle"
+msgstr "Menyerahkan workspace ini ke aplikasi desktop."
+
+#. js-lingui-explicit-id
+#: ../../apps/web/src/app/open/v2-workspace/[workspaceId]/components/WorkspaceHandoff/WorkspaceHandoff.tsx
+msgid "web.workspaceHandoff.title"
+msgstr "Membuka Superset"
+
+#. js-lingui-explicit-id
 #: ../../apps/web/src/app/page/[slug]/components/WrongOrganization/WrongOrganization.tsx
 msgid "web.wrongOrganization.switch"
 msgstr "Ganti organisasi"

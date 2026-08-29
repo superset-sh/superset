@@ -5,6 +5,7 @@
 export const ENFORCED_DIRS: readonly string[] = [
 	"packages/i18n/src",
 	"apps/web/src/app/account-pending-deletion",
+	"apps/web/src/app/open",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/components",
 	"apps/desktop/src/renderer/routes/_authenticated/_dashboard/new-workspace",
