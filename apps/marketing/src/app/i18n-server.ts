@@ -1,8 +1,8 @@
+import { resolveLocale, type SupportedLocale } from "@superset/i18n";
 import {
 	initServerI18n as activateServerI18n,
 	preloadServerLocale,
 } from "@superset/i18n/server";
-import { resolveLocale, type SupportedLocale } from "@superset/i18n";
 import { headers } from "next/headers";
 
 // "ja,en-US;q=0.9,en;q=0.8" -> ["ja", "en-US", "en"], ordered by quality.
