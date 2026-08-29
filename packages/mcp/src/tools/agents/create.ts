@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 		name: "agents_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create (launch) an agent session inside an existing workspace on its host: runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use hosts_list / workspaces_list to find the hostId. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
+			"Create (launch) an agent session inside an existing workspace on its host: runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use hosts_list / workspaces_list to find the hostId. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead. Returns `terminalId` (the PTY) plus an `agent` block; the agent's own conversation id is not known until its first lifecycle hook lands, so read it later from the terminal's binding rather than storing `terminalId` as agent identity.",
 		inputSchema: {
 			hostId: z
 				.string()
@@ -35,7 +35,7 @@ export function register(server: McpServer): void {
 				.min(1)
 				.optional()
 				.describe(
-					"The agent CLI's own session id to restore instead of starting fresh (e.g. `claude --resume <id>`). NOT the `sessionId` this tool returns — that is a Superset terminal id. Use the id the agent reported (e.g. from the agent's own session list). Fails for agents without an id-based resume.",
+					"The agent CLI's own session id to restore instead of starting fresh (e.g. `claude --resume <id>`). NOT the `terminalId` this tool returns — that is a Superset PTY id. Get the right id from the terminal's agent binding (`superset agents get --workspace <id> --terminal <id>`, field `agent.sessionId`), which stays readable after the agent ended. Fails for agents without an id-based resume.",
 				),
 			attachmentIds: z
 				.array(z.string().uuid())
@@ -47,8 +47,27 @@ export function register(server: McpServer): void {
 		handler: async (input, ctx) => {
 			return hostServiceCall<{
 				kind: "terminal";
+				/** The PTY. No provider accepts it for resume. */
+				terminalId: string;
+				/** @deprecated Alias of `terminalId`. */
 				sessionId: string;
 				label: string;
+				/**
+				 * Provider identity so far. At launch no lifecycle hook has
+				 * landed, so `state` is "starting" and `sessionId` is null.
+				 */
+				agent: {
+					presetId: string | null;
+					sessionId: string | null;
+					resumable: boolean;
+					state: string;
+					lastEventType: string | null;
+					lastEventAt: string | null;
+					startedAt: string | null;
+					ended: boolean;
+					endedAt: string | null;
+					endReason: string | null;
+				};
 			}>(
 				{
 					relayUrl: ctx.relayUrl,

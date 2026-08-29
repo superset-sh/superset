@@ -34,6 +34,11 @@ export class Agents extends APIResource {
 	 * host: starts the named preset (or HostAgentConfig instance) in a fresh
 	 * terminal session there.
 	 *
+	 * Returns the Superset `terminalId`. The agent's own conversation id does
+	 * not exist yet — the agent has to report it through a lifecycle hook —
+	 * so `agent.state` is `"starting"` here and {@link Agents.get} is the
+	 * source of truth from then on.
+	 *
 	 * Mirrors `superset agents create --host <id>`.
 	 */
 	async create(params: AgentCreateParams): Promise<AgentCreateResult> {
@@ -48,6 +53,28 @@ export class Agents extends APIResource {
 				resumeSessionId: params.resumeSessionId,
 				effort: params.effort,
 				attachmentIds: params.attachmentIds,
+			},
+		);
+	}
+
+	/**
+	 * Read the agent session bound to a terminal — including one that has
+	 * already ended, whether the agent quit or its terminal died under it.
+	 *
+	 * This is how you recover `agent.sessionId`, the provider's own opaque
+	 * conversation id, to hand back to {@link Agents.create} as
+	 * `resumeSessionId` later. Never parse a provider's session files for it.
+	 *
+	 * Mirrors `superset agents get --host <id>`.
+	 */
+	async get(params: AgentGetParams): Promise<AgentGetResult> {
+		this._requireOrgId();
+		return this._client.hostQuery<AgentGetResult>(
+			params.hostId,
+			"terminalAgents.get",
+			{
+				workspaceId: params.workspaceId,
+				terminalId: params.terminalId,
 			},
 		);
 	}
@@ -105,8 +132,74 @@ export interface AgentCreateParams {
 
 export type AgentCreateResult = {
 	kind: "terminal";
+	/** The PTY this launch created. No provider accepts it for resume. */
+	terminalId: string;
+	/**
+	 * @deprecated Alias of `terminalId`. It has never been the provider's
+	 * conversation id — read `agent.sessionId` from {@link Agents.get}.
+	 */
 	sessionId: string;
 	label: string;
+	/** Identity as far as it is knowable at launch: `state: "starting"`. */
+	agent: AgentSessionIdentity;
+};
+
+/**
+ * What an agent conversation is doing, independent of its provider and of
+ * whether its terminal is still open. `ended` covers both a clean goodbye
+ * and a terminal that died under the agent — in neither case is the agent
+ * working, even when the shell is still open.
+ */
+export type AgentSessionState =
+	| "starting"
+	| "working"
+	| "awaiting-input"
+	| "idle"
+	| "failed"
+	| "ended";
+
+/** The provider-neutral agent identity carried by `create` and `get`. */
+export interface AgentSessionIdentity {
+	/** Which agent must resume this session (`claude`, `codex`, …). */
+	presetId: string | null;
+	/** The provider's opaque conversation id, passed through untouched. */
+	sessionId: string | null;
+	/**
+	 * Whether `sessionId` can be handed back as `resumeSessionId`. False when
+	 * the agent has no id-based resume, or no conversation was persisted.
+	 * Ending does not clear it — parking and resuming later is the point.
+	 */
+	resumable: boolean;
+	state: AgentSessionState;
+	lastEventType: string | null;
+	/** ISO 8601. */
+	lastEventAt: string | null;
+	/** ISO 8601. */
+	startedAt: string | null;
+	ended: boolean;
+	/** ISO 8601. */
+	endedAt: string | null;
+	/** Why it ended, e.g. `detached`, `terminal-exited`, `disposed`. */
+	endReason: string | null;
+}
+
+export interface AgentGetParams {
+	/** The host machineId the workspace lives on (see `hosts.list()`). */
+	hostId: string;
+	/** Workspace UUID the terminal belongs to. */
+	workspaceId: string;
+	/** Superset terminal id, e.g. `terminalId` from `create()`. */
+	terminalId: string;
+}
+
+export type AgentGetResult = {
+	kind: "terminal";
+	terminalId: string;
+	workspaceId: string;
+	/** The PTY's own state (`active`, `exited`, `disposed`), not the agent's. */
+	terminalStatus: string | null;
+	/** Null when no agent has ever bound to this terminal. */
+	agent: AgentSessionIdentity | null;
 };
 
 export declare namespace Agents {
@@ -116,6 +209,10 @@ export declare namespace Agents {
 		AgentListParams,
 		AgentCreateParams,
 		AgentCreateResult,
+		AgentGetParams,
+		AgentGetResult,
+		AgentSessionIdentity,
+		AgentSessionState,
 		PromptTransport,
 	};
 }

@@ -25,9 +25,13 @@ export { toFile, type Uploadable } from "./core/uploads";
 export {
 	type AgentCreateParams,
 	type AgentCreateResult,
+	type AgentGetParams,
+	type AgentGetResult,
 	type AgentListParams,
 	type AgentListResponse,
 	Agents,
+	type AgentSessionIdentity,
+	type AgentSessionState,
 	type Automation,
 	type AutomationCreateParams,
 	type AutomationListResponse,
