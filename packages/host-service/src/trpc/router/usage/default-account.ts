@@ -8,10 +8,11 @@
 import { randomUUID } from "node:crypto";
 import {
 	existsSync,
+	linkSync,
 	mkdirSync,
 	readFileSync,
 	renameSync,
-	rmSync,
+	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -34,6 +35,14 @@ function supersetHomeDir(): string {
 	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
 }
 
+function defaultAccountPointerPath(provider: UsageAccountProvider): string {
+	return join(supersetHomeDir(), "state", POINTER_NAMES[provider]);
+}
+
+function temporaryPointerPath(pointerPath: string): string {
+	return `${pointerPath}.${process.pid}.${randomUUID()}.tmp`;
+}
+
 /**
  * Publishes a selection where the agent wrappers can re-read it on every
  * launch (buildDefaultAccountResolver in agent-setup), so switching accounts
@@ -50,13 +59,48 @@ export function syncDefaultAccountPointer(
 	try {
 		const dir = join(supersetHomeDir(), "state");
 		mkdirSync(dir, { recursive: true });
-		const pointerPath = join(dir, POINTER_NAMES[provider]);
-		temporaryPath = `${pointerPath}.${process.pid}.${randomUUID()}.tmp`;
+		const pointerPath = defaultAccountPointerPath(provider);
+		temporaryPath = temporaryPointerPath(pointerPath);
 		writeFileSync(temporaryPath, selection ?? "");
 		renameSync(temporaryPath, pointerPath);
 		temporaryPath = null;
 	} finally {
-		if (temporaryPath) rmSync(temporaryPath, { force: true });
+		if (temporaryPath) {
+			try {
+				unlinkSync(temporaryPath);
+			} catch {
+				// Best-effort cleanup after a failed write or rename.
+			}
+		}
+	}
+}
+
+/**
+ * Publishes a fully written legacy value only if no host-wide pointer exists.
+ * Linking the temporary file is an atomic create-if-absent claim, so two org
+ * services migrating concurrently cannot replace each other's selection.
+ */
+function migrateDefaultAccountPointer(
+	provider: UsageAccountProvider,
+	selection: string,
+): void {
+	const dir = join(supersetHomeDir(), "state");
+	mkdirSync(dir, { recursive: true });
+	const pointerPath = defaultAccountPointerPath(provider);
+	const temporaryPath = temporaryPointerPath(pointerPath);
+	try {
+		writeFileSync(temporaryPath, selection);
+		try {
+			linkSync(temporaryPath, pointerPath);
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+		}
+	} finally {
+		try {
+			unlinkSync(temporaryPath);
+		} catch {
+			// Best-effort cleanup after a failed write or link.
+		}
 	}
 }
 
@@ -65,12 +109,10 @@ function readDefaultAccountPointer(provider: UsageAccountProvider): {
 	selection: string | null;
 } {
 	try {
-		const value = readFileSync(
-			join(supersetHomeDir(), "state", POINTER_NAMES[provider]),
-			"utf8",
-		);
+		const value = readFileSync(defaultAccountPointerPath(provider), "utf8");
 		return { exists: true, selection: value || null };
-	} catch {
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 		return { exists: false, selection: null };
 	}
 }
@@ -106,24 +148,35 @@ export function getDefaultAccountSelections(
 	// unrelated org reset the selected account merely by starting up.
 	if (!claudePointer.exists && legacyClaudeConfigDir) {
 		try {
-			syncDefaultAccountPointer("claude", legacyClaudeConfigDir);
+			migrateDefaultAccountPointer("claude", legacyClaudeConfigDir);
 		} catch {
 			// Migration is best-effort; the legacy DB value remains usable.
 		}
 	}
 	if (!codexPointer.exists && legacyCodexHome) {
 		try {
-			syncDefaultAccountPointer("codex", legacyCodexHome);
+			migrateDefaultAccountPointer("codex", legacyCodexHome);
 		} catch {
 			// Migration is best-effort; the legacy DB value remains usable.
 		}
 	}
+	// Re-read after migration: if another org won the atomic claim, this call
+	// must immediately use the winning host-wide value rather than its own
+	// losing legacy DB value.
+	const resolvedClaudePointer = claudePointer.exists
+		? claudePointer
+		: readDefaultAccountPointer("claude");
+	const resolvedCodexPointer = codexPointer.exists
+		? codexPointer
+		: readDefaultAccountPointer("codex");
 
 	return {
-		claudeConfigDir: claudePointer.exists
-			? claudePointer.selection
+		claudeConfigDir: resolvedClaudePointer.exists
+			? resolvedClaudePointer.selection
 			: legacyClaudeConfigDir,
-		codexHome: codexPointer.exists ? codexPointer.selection : legacyCodexHome,
+		codexHome: resolvedCodexPointer.exists
+			? resolvedCodexPointer.selection
+			: legacyCodexHome,
 	};
 }
 

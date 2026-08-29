@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
@@ -60,5 +66,26 @@ describe("host-wide default account pointers", () => {
 		expect(existsSync(join(home, "state", "default-claude-config-dir"))).toBe(
 			true,
 		);
+	});
+
+	it("keeps the first legacy selection when org migrations race", () => {
+		const first = "/Users/kietho/.claude-work";
+		const second = "/Users/kietho/.claude-personal";
+
+		syncDefaultAccountPointers(mockDb(first));
+		syncDefaultAccountPointers(mockDb(second));
+
+		expect(getDefaultAccountSelections(mockDb(second)).claudeConfigDir).toBe(
+			first,
+		);
+	});
+
+	it("propagates pointer I/O failures instead of treating them as absent", () => {
+		const pointerPath = join(home, "state", "default-claude-config-dir");
+		mkdirSync(pointerPath, { recursive: true });
+
+		expect(() =>
+			getDefaultAccountSelections(mockDb("/Users/kietho/.claude-work")),
+		).toThrow();
 	});
 });
