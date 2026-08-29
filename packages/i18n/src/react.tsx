@@ -10,10 +10,16 @@ import {
 	type SupportedLocale,
 } from "./locales";
 
-// Activate at module scope so the first render is already localized;
-// activation notifies Lingui subscribers, so it must not run inside a render
-// pass (React can repeat or abandon renders).
-initI18n(inferLocale());
+// Activate the DEFAULT locale at module scope — deterministically the same
+// on the server and on the client's first render. Inferring the real locale
+// here localized the client's first render while the server had rendered
+// English, which threw a hydration mismatch on every translated client
+// string for every non-English user ("Search docs..." vs "Tìm trong tài
+// liệu..."). The provider switches to the inferred or chosen locale after
+// mount instead; the brief default-language flash on client chrome is the
+// price of hydration correctness, and server-component content (marketing
+// pages) is localized in the HTML itself and never hydrates.
+initI18n();
 
 export function I18nProvider({
 	children,
