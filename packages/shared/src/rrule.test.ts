@@ -89,10 +89,12 @@ describe("describeSchedule / WEEKLY", () => {
 		expect(describeSchedule("FREQ=WEEKLY;BYDAY=SA,SU", US)).toBe("Weekends");
 	});
 
-	it("single day pluralized", () => {
+	it("single day reads as a full sentence", () => {
+		// "Mondays" pluralized the weekday by appending an s, which only
+		// English can do; the message is now a whole translatable sentence.
 		expect(
 			describeSchedule("FREQ=WEEKLY;BYDAY=MO;BYHOUR=10;BYMINUTE=0", US),
-		).toBe("Mondays at 10:00 AM");
+		).toBe("Every Monday at 10:00 AM");
 	});
 
 	it("multi-day list keeps canonical order", () => {
