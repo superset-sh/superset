@@ -152,6 +152,10 @@
 			"types": "./src/agent-launch-request.ts",
 			"default": "./src/agent-launch-request.ts"
 		},
+		"./workspace-tags": {
+			"types": "./src/workspace-tags.ts",
+			"default": "./src/workspace-tags.ts"
+		},
 		"./workspace-attachments": {
 			"types": "./src/workspace-attachments.ts",
 			"default": "./src/workspace-attachments.ts"
