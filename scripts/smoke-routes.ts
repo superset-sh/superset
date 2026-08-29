@@ -34,7 +34,9 @@ async function waitForReady(timeoutMs = 90_000) {
 	while (Date.now() < deadline) {
 		try {
 			const res = await fetch(base, { redirect: "manual" });
-			if (res.status < 500) return;
+			// A fresh alias serves 404 until it propagates, so anything except
+			// a real page (2xx) or an auth redirect (3xx) means "not yet".
+			if (res.status < 400) return;
 			lastDetail = `HTTP ${res.status}`;
 		} catch (error) {
 			lastDetail = String(error);
@@ -50,8 +52,7 @@ async function hit(route: string, mode: "document" | "rsc") {
 		mode === "document"
 			? `${base}${route}`
 			: `${base}${route}${route.includes("?") ? "&" : "?"}_rsc=smoke`;
-	const headers: Record<string, string> =
-		mode === "rsc" ? { RSC: "1" } : {};
+	const headers: Record<string, string> = mode === "rsc" ? { RSC: "1" } : {};
 	let res: Response;
 	try {
 		res = await fetch(url, { headers, redirect: "manual" });
@@ -93,7 +94,7 @@ for (const route of routes) {
 	await hit(route, "rsc");
 	const bad = failures.filter((f) => f.route === route);
 	console.log(
-		`${bad.length === 0 ? "ok  " : "FAIL"} ${route}${bad.length ? "  " + bad.map((b) => `${b.mode}: ${b.detail}`).join("; ") : ""}`,
+		`${bad.length === 0 ? "ok  " : "FAIL"} ${route}${bad.length ? `  ${bad.map((b) => `${b.mode}: ${b.detail}`).join("; ")}` : ""}`,
 	);
 }
 
