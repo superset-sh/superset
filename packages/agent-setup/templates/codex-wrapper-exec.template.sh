@@ -147,10 +147,12 @@ _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 
 _superset_cleanup_session_watcher
 
-# Codex has no SessionEnd hook, so the wrapper reports it. Only on a normal
-# exit (status < 128): a signal death (SIGHUP from a killed pty/daemon) must
-# stay unreported so the session remains a resume candidate. The signal traps
-# above bypass this line entirely.
+# Current Codex releases have a native SessionEnd hook. Keep this wrapper
+# report as a compatibility fallback for older releases that do not: v2
+# binding teardown is idempotent, so a duplicate from a current release is
+# harmless. Only report a normal exit (status < 128); a signal death (SIGHUP
+# from a killed pty/daemon) must stay unreported so the session remains a
+# resume candidate. The signal traps above bypass this line entirely.
 if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" ] && [ "$SUPERSET_CODEX_STATUS" -lt 128 ]; then
   _superset_debug "emitting SessionEnd status=$SUPERSET_CODEX_STATUS"
   bash "$_superset_notify_path" '{"hook_event_name":"SessionEnd"}' >/dev/null 2>&1 || true

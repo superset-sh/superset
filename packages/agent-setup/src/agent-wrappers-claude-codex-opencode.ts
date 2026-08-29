@@ -156,8 +156,10 @@ export function getCodexGlobalHooksJsonPath(): string {
 
 const CODEX_MANAGED_EVENTS: Record<string, { matcher?: string }> = {
 	SessionStart: {},
+	SessionEnd: {},
 	UserPromptSubmit: {},
 	Stop: {},
+	Interrupt: {},
 };
 
 function codexHooksSpec(

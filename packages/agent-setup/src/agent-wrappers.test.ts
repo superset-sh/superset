@@ -1415,8 +1415,10 @@ describe("agent-wrappers codex hooks.json", () => {
 		const expectedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
+			"SessionEnd",
 			"UserPromptSubmit",
 			"Stop",
+			"Interrupt",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
@@ -1528,8 +1530,14 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(true);
 
 		const expectedManagedCommand = managedCodexHookCommand;
-		// Adds managed hooks for SessionStart, UserPromptSubmit, Stop
-		for (const eventName of ["SessionStart", "UserPromptSubmit", "Stop"]) {
+		// Adds managed hooks for session, prompt, completion, and interruption lifecycle events.
+		for (const eventName of [
+			"SessionStart",
+			"SessionEnd",
+			"UserPromptSubmit",
+			"Stop",
+			"Interrupt",
+		]) {
 			expect(
 				parsed.hooks[eventName].some(
 					(def: { hooks: Array<{ command: string }> }) =>
@@ -1614,8 +1622,10 @@ describe("agent-wrappers codex hooks.json", () => {
 		const expectedManagedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
+			"SessionEnd",
 			"UserPromptSubmit",
 			"Stop",
+			"Interrupt",
 		] as const) {
 			const hooks = parsed.hooks[eventName];
 			expect(Array.isArray(hooks)).toBe(true);
