@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ["en", "ja", "zh-CN"] as const;
+export const SUPPORTED_LOCALES = ["en", "ja", "zh-CN", "fr"] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -10,6 +10,7 @@ export const LOCALE_LABELS: Record<SupportedLocale, string> = {
 	en: "English",
 	ja: "日本語",
 	"zh-CN": "简体中文",
+	fr: "Français",
 };
 
 // Locales written right-to-left. Empty until RTL layout work is in scope; kept
