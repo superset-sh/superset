@@ -34,7 +34,14 @@ function makeCollections(args: {
 }): Collections {
 	return {
 		v2SidebarProjects: fakeCollection(
-			[{ projectId: PROJECT_ID, createdAt: DATE, tabOrder: 1, isCollapsed: false }],
+			[
+				{
+					projectId: PROJECT_ID,
+					createdAt: DATE,
+					tabOrder: 1,
+					isCollapsed: false,
+				},
+			],
 			(row) => row.projectId,
 		),
 		v2SidebarSections: fakeCollection(

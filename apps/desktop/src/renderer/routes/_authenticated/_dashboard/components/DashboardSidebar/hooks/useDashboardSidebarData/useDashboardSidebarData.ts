@@ -13,9 +13,9 @@ import {
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import { deriveTagFolders } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
+import { deriveTagFolders } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarPinnedWorkspace,

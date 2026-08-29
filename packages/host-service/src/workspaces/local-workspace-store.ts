@@ -6,7 +6,7 @@ import { getHostId } from "@superset/shared/host-info";
 import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { workspaceTags, workspaces } from "../db/schema";
+import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 import type { ApiClient } from "../types";
@@ -233,7 +233,8 @@ export function updateLocalWorkspace(
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
 	const { tags, ...columns } = patch;
-	const normalizedTags = tags === undefined ? undefined : normalizeWorkspaceTags(tags);
+	const normalizedTags =
+		tags === undefined ? undefined : normalizeWorkspaceTags(tags);
 	// Tag replacement is delete-then-insert; the transaction keeps a throw
 	// between them from losing the whole set.
 	ctx.db.transaction((tx) => {
@@ -250,7 +251,11 @@ export function updateLocalWorkspace(
 				const now = Date.now();
 				tx.insert(workspaceTags)
 					.values(
-						normalizedTags.map((tag) => ({ workspaceId: id, tag, createdAt: now })),
+						normalizedTags.map((tag) => ({
+							workspaceId: id,
+							tag,
+							createdAt: now,
+						})),
 					)
 					.run();
 			}

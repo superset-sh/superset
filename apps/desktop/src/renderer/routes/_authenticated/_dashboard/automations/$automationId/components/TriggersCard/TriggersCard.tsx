@@ -182,8 +182,7 @@ export function TriggersCard({
 									: {}),
 							})
 						}
-					/>
-					{" "}
+					/>{" "}
 					<span>tagged</span>{" "}
 					<AutomationTagsPicker
 						className={SCOPE_CHIP}
@@ -193,7 +192,6 @@ export function TriggersCard({
 						onChange={(tags) => onUpdate({ tags })}
 					/>
 				</Trans>
-
 			</div>
 			<RelayOfflineNotice hostId={hostId} className="mt-1" />
 		</div>

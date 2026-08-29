@@ -1,4 +1,8 @@
 import type { Pane } from "@superset/panes";
+import {
+	normalizeWorkspaceTag,
+	normalizeWorkspaceTags,
+} from "@superset/shared/workspace-tags";
 import { useCallback } from "react";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { browserRuntimeRegistry } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/BrowserPane/browserRuntimeRegistry";
@@ -6,6 +10,7 @@ import {
 	extractPaneIds,
 	type PaneLifecycleRow,
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import {
@@ -13,11 +18,6 @@ import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
-import {
-	normalizeWorkspaceTag,
-	normalizeWorkspaceTags,
-} from "@superset/shared/workspace-tags";
-import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -145,7 +145,10 @@ function getHostWorkspaceTags(
 function getEffectiveSectionId(
 	collections: Pick<AppCollections, "v2SidebarSections">,
 	hostWorkspaces: readonly TagFolderWorkspaceInput[],
-	row: { workspaceId: string; sidebarState: { projectId: string | null; sectionId: string | null } },
+	row: {
+		workspaceId: string;
+		sidebarState: { projectId: string | null; sectionId: string | null };
+	},
 ): string | null {
 	return resolveWorkspaceSectionId({
 		tags: getHostWorkspaceTags(hostWorkspaces, row.workspaceId),
@@ -314,7 +317,11 @@ export function useDashboardSidebarState() {
 				tag: parsed.tag,
 				createdAt: new Date(),
 				tabOrder: getNextTabOrder(
-					getProjectTopLevelItems(collections, hostWorkspaces, parsed.projectId),
+					getProjectTopLevelItems(
+						collections,
+						hostWorkspaces,
+						parsed.projectId,
+					),
 				),
 				isCollapsed: false,
 				color: null,
@@ -538,7 +545,8 @@ export function useDashboardSidebarState() {
 			if (!trimmed) return;
 			const existing = collections.v2SidebarSections.get(sectionId);
 			const parsed = parseSidebarFolderKey(sectionId);
-			const currentTag = normalizeWorkspaceTag(existing?.tag) ?? parsed?.tag ?? null;
+			const currentTag =
+				normalizeWorkspaceTag(existing?.tag) ?? parsed?.tag ?? null;
 			if (currentTag === null) {
 				// Unconverted legacy row: label-only rename; the migration pass
 				// converts it (with this name) once its host is reachable.
@@ -743,7 +751,8 @@ export function useDashboardSidebarState() {
 			if (!section && !parsed) return;
 			const projectId = section?.projectId ?? parsed?.projectId;
 			if (!projectId) return;
-			const folderTag = normalizeWorkspaceTag(section?.tag) ?? parsed?.tag ?? null;
+			const folderTag =
+				normalizeWorkspaceTag(section?.tag) ?? parsed?.tag ?? null;
 
 			// Groups interleave with ungrouped rows, so replace the deleted
 			// section's own slot with its members instead of dumping them

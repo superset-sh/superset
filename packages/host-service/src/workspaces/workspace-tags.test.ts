@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../db";
 import * as schema from "../db/schema";
-import { workspaceTags, workspaces } from "../db/schema";
+import { workspaces, workspaceTags } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceChangedMessage } from "../events/types";
 import {
@@ -49,7 +49,14 @@ function seedWorkspace(
 ) {
 	return insertLocalWorkspace(
 		{ db, eventBus },
-		{ id, projectId: null, worktreePath: `/tmp/${id}`, branch: id, name: id, tags },
+		{
+			id,
+			projectId: null,
+			worktreePath: `/tmp/${id}`,
+			branch: id,
+			name: id,
+			tags,
+		},
 	);
 }
 

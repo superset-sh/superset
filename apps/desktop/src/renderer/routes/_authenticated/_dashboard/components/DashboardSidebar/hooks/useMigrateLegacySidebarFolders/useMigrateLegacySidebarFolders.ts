@@ -4,8 +4,8 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
-	migrateLegacySidebarFolders,
 	type MigrationHostRow,
+	migrateLegacySidebarFolders,
 } from "./migrateLegacySidebarFolders";
 
 // Session-scoped: a folder whose host REJECTED a write is parked until the

@@ -140,10 +140,7 @@ export async function migrateLegacySidebarFolders(
 			const tags = normalizeWorkspaceTags(hostRow.tags);
 			if (tags.includes(tag)) continue;
 			try {
-				await io.writeTags(
-					hostRow.id,
-					normalizeWorkspaceTags([...tags, tag]),
-				);
+				await io.writeTags(hostRow.id, normalizeWorkspaceTags([...tags, tag]));
 			} catch {
 				rejected = true;
 				break;

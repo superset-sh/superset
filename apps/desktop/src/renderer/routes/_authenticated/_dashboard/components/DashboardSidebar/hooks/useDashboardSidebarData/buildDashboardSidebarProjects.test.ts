@@ -357,15 +357,14 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 		if (folder.type !== "section") throw new Error("expected section");
 		expect(folder.section.id).toBe(buildSidebarFolderKey("project-1", "perf"));
 		expect(folder.section.name).toBe("perf");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
-			["w-1", "w-2"],
-		);
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
+			"w-1",
+			"w-2",
+		]);
 
 		const topLevelIds = project.children
 			.filter((child) => child.type === "workspace")
-			.map((child) =>
-				child.type === "workspace" ? child.workspace.id : null,
-			);
+			.map((child) => (child.type === "workspace" ? child.workspace.id : null));
 		expect(topLevelIds).toEqual(["w-3"]);
 	});
 
@@ -384,14 +383,12 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 
 		const folder = project.children.find((child) => child.type === "section");
 		if (folder?.type !== "section") throw new Error("expected section");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
-			["w-tagged"],
-		);
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
+			"w-tagged",
+		]);
 		const topLevelIds = project.children
 			.filter((child) => child.type === "workspace")
-			.map((child) =>
-				child.type === "workspace" ? child.workspace.id : null,
-			);
+			.map((child) => (child.type === "workspace" ? child.workspace.id : null));
 		expect(topLevelIds).toEqual(["w-stale"]);
 	});
 
@@ -407,9 +404,9 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 		const folder = project.children.find((child) => child.type === "section");
 		if (folder?.type !== "section") throw new Error("expected section");
 		expect(folder.section.id).toBe("section-1");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
-			["w-legacy"],
-		);
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
+			"w-legacy",
+		]);
 	});
 
 	it("a workspace row with the tags field ABSENT renders exactly like an untagged one", () => {
@@ -446,9 +443,9 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 		const [folder] = sections;
 		if (folder.type !== "section") throw new Error("expected section");
 		expect(folder.section.color).toBe("#ff0000");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
-			["w-1"],
-		);
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
+			"w-1",
+		]);
 		// Members inherit the customised folder colour.
 		expect(folder.section.workspaces[0]?.accentColor).toBe("#ff0000");
 	});

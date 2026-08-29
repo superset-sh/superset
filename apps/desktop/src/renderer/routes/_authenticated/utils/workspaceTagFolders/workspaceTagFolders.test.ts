@@ -148,7 +148,10 @@ describe("deriveTagFolders", () => {
 	it("a workspace row with the tags field ABSENT derives nothing and does not crash", () => {
 		// Rows served by an older host (or an old IndexedDB snapshot) carry
 		// the field absent, not null — the earlier attempt crashed here.
-		const legacyRow = { id: "w1", projectId: PROJECT_A } as TagFolderWorkspaceInput;
+		const legacyRow = {
+			id: "w1",
+			projectId: PROJECT_A,
+		} as TagFolderWorkspaceInput;
 		expect(deriveTagFolders([], [legacyRow])).toEqual([]);
 	});
 
@@ -268,7 +271,12 @@ describe("resolveWorkspaceFolder", () => {
 
 describe("resolveWorkspaceSectionId", () => {
 	const index = getProjectFolderTagIndex(
-		[makeSection({ sectionId: buildSidebarFolderKey(PROJECT_A, "perf"), tag: "perf" })],
+		[
+			makeSection({
+				sectionId: buildSidebarFolderKey(PROJECT_A, "perf"),
+				tag: "perf",
+			}),
+		],
 		PROJECT_A,
 	);
 
@@ -321,9 +329,9 @@ describe("applyFolderTagChange", () => {
 	const folderTags = ["perf", "infra"];
 
 	it("replaces the project's folder tags with the target tag", () => {
-		expect(applyFolderTagChange(["perf", "scratch"], folderTags, "infra")).toEqual(
-			["infra", "scratch"],
-		);
+		expect(
+			applyFolderTagChange(["perf", "scratch"], folderTags, "infra"),
+		).toEqual(["infra", "scratch"]);
 	});
 
 	it("only touches tags the project has a folder for", () => {
@@ -335,9 +343,9 @@ describe("applyFolderTagChange", () => {
 	});
 
 	it("null target strips folder membership only", () => {
-		expect(applyFolderTagChange(["perf", "scratch"], folderTags, null)).toEqual([
-			"scratch",
-		]);
+		expect(applyFolderTagChange(["perf", "scratch"], folderTags, null)).toEqual(
+			["scratch"],
+		);
 	});
 
 	it("normalizes both sides of the comparison", () => {

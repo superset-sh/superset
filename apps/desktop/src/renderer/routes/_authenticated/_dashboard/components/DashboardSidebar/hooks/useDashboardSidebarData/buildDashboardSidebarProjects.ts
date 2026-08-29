@@ -1,9 +1,9 @@
-import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
 import {
 	getProjectFolderTagIndex,
 	resolveWorkspaceSectionId,
 	type TagFolderRef,
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
 import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type {
 	DashboardSidebarPinnedWorkspace,
@@ -298,7 +298,8 @@ export function buildDashboardSidebarProjects({
 		const effectiveSectionId = resolveWorkspaceSectionId({
 			tags: workspace.tags,
 			localSectionId: workspace.sectionId,
-			index: folderIndexByProjectId.get(workspace.projectId) ?? emptyFolderIndex,
+			index:
+				folderIndexByProjectId.get(workspace.projectId) ?? emptyFolderIndex,
 		});
 
 		if (effectiveSectionId) {

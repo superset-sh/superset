@@ -225,7 +225,12 @@ describe("withQuotaGuard", () => {
 describe("cross-window storage events", () => {
 	type Listener = (event: { key: string | null; storageArea: unknown }) => void;
 
-	function withWindowShim<T>(run: (fire: (key: string, area: unknown) => void, shimLocalStorage: unknown) => T): T {
+	function withWindowShim<T>(
+		run: (
+			fire: (key: string, area: unknown) => void,
+			shimLocalStorage: unknown,
+		) => T,
+	): T {
 		const listeners = new Set<Listener>();
 		const shimLocalStorage = {
 			getItem: () => null,
@@ -246,7 +251,8 @@ describe("cross-window storage events", () => {
 		(globalThis as { window?: unknown }).window = shimWindow;
 		try {
 			return run((key, area) => {
-				for (const listener of [...listeners]) listener({ key, storageArea: area });
+				for (const listener of [...listeners])
+					listener({ key, storageArea: area });
 			}, shimLocalStorage);
 		} finally {
 			if (hadWindow) (globalThis as { window?: unknown }).window = previous;
@@ -294,7 +300,11 @@ describe("cross-window storage events", () => {
 			const custom = withQuotaGuard(
 				{
 					storageKey: "k",
-					storage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+					storage: {
+						getItem: () => null,
+						setItem: () => {},
+						removeItem: () => {},
+					},
 				},
 				{ reclaim: () => 0, onPersistFailed: () => {} },
 			) as { storageEventApi?: unknown };

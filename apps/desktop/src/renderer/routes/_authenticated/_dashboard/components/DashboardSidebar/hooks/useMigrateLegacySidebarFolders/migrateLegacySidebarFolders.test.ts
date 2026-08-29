@@ -2,10 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { buildSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import {
 	type LegacyFolderMigrationIo,
-	migrateLegacySidebarFolders,
 	type MigrationHostRow,
 	type MigrationLocalRow,
 	type MigrationSectionRow,
+	migrateLegacySidebarFolders,
 } from "./migrateLegacySidebarFolders";
 
 const PROJECT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -31,7 +31,9 @@ function makeLegacySection(
 function makeHarness(args: {
 	sections: MigrationSectionRow[];
 	localRows?: MigrationLocalRow[];
-	hostRows?: Array<Omit<MigrationHostRow, "projectId"> & { projectId?: string | null }>;
+	hostRows?: Array<
+		Omit<MigrationHostRow, "projectId"> & { projectId?: string | null }
+	>;
 	rejectWritesFor?: Set<string>;
 }) {
 	const writes: Array<{ workspaceId: string; tags: string[] }> = [];

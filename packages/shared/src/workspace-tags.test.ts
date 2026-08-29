@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import {
-	WORKSPACE_TAG_MAX_LENGTH,
-	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
+	WORKSPACE_TAG_MAX_LENGTH,
+	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
 	workspaceTagsInputSchema,
 } from "./workspace-tags";
 
@@ -19,9 +19,9 @@ describe("normalizeWorkspaceTag", () => {
 	});
 
 	test("returns null for over-length", () => {
-		expect(
-			normalizeWorkspaceTag("a".repeat(WORKSPACE_TAG_MAX_LENGTH)),
-		).toBe("a".repeat(WORKSPACE_TAG_MAX_LENGTH));
+		expect(normalizeWorkspaceTag("a".repeat(WORKSPACE_TAG_MAX_LENGTH))).toBe(
+			"a".repeat(WORKSPACE_TAG_MAX_LENGTH),
+		);
 		expect(
 			normalizeWorkspaceTag("a".repeat(WORKSPACE_TAG_MAX_LENGTH + 1)),
 		).toBeNull();
@@ -63,9 +63,10 @@ describe("normalizeWorkspaceTags", () => {
 
 describe("workspaceTagsInputSchema", () => {
 	test("parses to normalized, deduped, sorted set", () => {
-		expect(
-			workspaceTagsInputSchema.parse(["Perf", " perf", "Alpha"]),
-		).toEqual(["alpha", "perf"]);
+		expect(workspaceTagsInputSchema.parse(["Perf", " perf", "Alpha"])).toEqual([
+			"alpha",
+			"perf",
+		]);
 	});
 
 	test("rejects empty tags instead of dropping them", () => {

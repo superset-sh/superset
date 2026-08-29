@@ -99,7 +99,10 @@ export interface QuotaGuardStorageEventApi {
 function crossWindowStorageEventApi(
 	guarded: QuotaGuardStorage,
 ): QuotaGuardStorageEventApi {
-	const wrappedByListener = new Map<StorageEventListener, StorageEventListener>();
+	const wrappedByListener = new Map<
+		StorageEventListener,
+		StorageEventListener
+	>();
 	return {
 		addEventListener: (type, listener) => {
 			if (type !== "storage" || wrappedByListener.has(listener)) return;

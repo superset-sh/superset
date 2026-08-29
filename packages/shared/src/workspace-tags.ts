@@ -19,10 +19,7 @@ export function normalizeWorkspaceTag(
 		return null;
 	}
 	const normalized = tag.trim().toLowerCase();
-	if (
-		normalized.length === 0 ||
-		normalized.length > WORKSPACE_TAG_MAX_LENGTH
-	) {
+	if (normalized.length === 0 || normalized.length > WORKSPACE_TAG_MAX_LENGTH) {
 		return null;
 	}
 	return normalized;

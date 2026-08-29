@@ -835,7 +835,7 @@ export const workspacesRouter = router({
 					baseBranch: input.baseBranch,
 					idempotencyId: input.id,
 					taskId: input.taskId,
-								tags: input.tags,
+					tags: input.tags,
 				});
 				workspaceRow = result.workspace;
 				alreadyExists = result.alreadyExists;
@@ -956,7 +956,7 @@ export const workspacesRouter = router({
 							baseBranch: baseShortName,
 							idempotencyId: input.id,
 							taskId: input.taskId,
-								tags: input.tags,
+							tags: input.tags,
 						});
 						workspaceRow = result.workspace;
 						alreadyExists = result.alreadyExists;
@@ -1021,7 +1021,7 @@ export const workspacesRouter = router({
 										baseBranch: baseShortName,
 										idempotencyId: input.id,
 										taskId: input.taskId,
-								tags: input.tags,
+										tags: input.tags,
 									});
 									adoptedRow = result.workspace;
 									alreadyExists = result.alreadyExists;

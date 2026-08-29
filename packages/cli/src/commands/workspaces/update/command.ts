@@ -51,7 +51,11 @@ export default command({
 				? options.tag
 				: undefined;
 
-		if (options.name === undefined && taskId === undefined && tags === undefined) {
+		if (
+			options.name === undefined &&
+			taskId === undefined &&
+			tags === undefined
+		) {
 			throw new CLIError(
 				"No fields to update",
 				"Pass --name, --task-id, --clear-task, --tag, or --clear-tags",
