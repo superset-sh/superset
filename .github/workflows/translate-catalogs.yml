@@ -98,10 +98,10 @@ jobs:
           bunx lingui compile --strict
           bun scripts/check-stale-translations.ts
 
-      - name: Commit and push fills
+      # Commit carries no token: earlier PR-controlled steps can write
+      # .git/hooks, and a hook run by git commit inherits the step env.
+      - name: Commit fills
         if: steps.missing.outputs.count != '0'
-        env:
-          APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config user.name "superset-i18n[bot]"
           git config user.email "i18n-bot@superset.sh"
@@ -110,5 +110,17 @@ jobs:
             echo "Translator produced no accepted fills; leaving the PR red for a human."
             exit 1
           fi
-          git commit -m "chore(i18n): translate new strings across enabled locales"
-          git push "https://x-access-token:${APP_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:${{ github.event.pull_request.head.ref }}"
+          git -c core.hooksPath=/dev/null commit -m "chore(i18n): translate new strings across enabled locales"
+
+      - name: Push fills
+        if: steps.missing.outputs.count != '0'
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+          # The head ref is attacker-named text; it reaches the shell only as
+          # a quoted variable, never by template interpolation.
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REPO: ${{ github.repository }}
+        run: |
+          git -c core.hooksPath=/dev/null push \
+            "https://x-access-token:${APP_TOKEN}@github.com/${REPO}.git" \
+            "HEAD:refs/heads/${HEAD_REF}"
