@@ -13,6 +13,7 @@ export const PRICING_TABLE_UPDATED = "2026-08-16";
 export interface ModelRate {
 	inputPerM: number;
 	outputPerM: number;
+	longContext?: ModelRate;
 }
 
 /** Cache multipliers applied against the model's input rate. */
@@ -62,9 +63,17 @@ const GROK_RATES: Record<string, ModelRate> = {
 const AGY_RATES: Record<string, ModelRate> = {
 	...CLAUDE_RATES,
 	...CODEX_RATES,
-	"gemini-3.1-pro": { inputPerM: 2, outputPerM: 12 },
+	"gemini-3.1-pro": {
+		inputPerM: 2,
+		outputPerM: 12,
+		longContext: { inputPerM: 4, outputPerM: 18 },
+	},
 	"gemini-3-flash": { inputPerM: 0.5, outputPerM: 3 },
-	"gemini-2.5-pro": { inputPerM: 1.25, outputPerM: 10 },
+	"gemini-2.5-pro": {
+		inputPerM: 1.25,
+		outputPerM: 10,
+		longContext: { inputPerM: 2.5, outputPerM: 15 },
+	},
 	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
 };
 
@@ -119,7 +128,11 @@ export interface MatchedRate extends ModelRate {
 	approximate: boolean;
 }
 
-export function matchModelRate(agent: UsageAgent, model: string): MatchedRate {
+export function matchModelRate(
+	agent: UsageAgent,
+	model: string,
+	promptTokens = 0,
+): MatchedRate {
 	const rates = RATES_BY_AGENT[agent];
 	const normalized = model.toLowerCase();
 	// Multi-model harnesses vendor-qualify ids ("anthropic/claude-sonnet-4");
@@ -141,7 +154,13 @@ export function matchModelRate(agent: UsageAgent, model: string): MatchedRate {
 			}
 		}
 	}
-	if (best) return { ...best.rate, approximate: false };
+	if (best) {
+		const rate =
+			promptTokens > 200_000 && best.rate.longContext
+				? best.rate.longContext
+				: best.rate;
+		return { ...rate, approximate: false };
+	}
 	return { ...cheapestRate(agent), approximate: true };
 }
 

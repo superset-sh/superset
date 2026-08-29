@@ -74,7 +74,11 @@ export function groupEntriesByDay(entries: UsageLogEntry[]): LeaderboardDay[] {
 			buckets.set(key, bucket);
 		}
 
-		const rate = matchModelRate(entry.agent, entry.model);
+		const rate = matchModelRate(
+			entry.agent,
+			entry.model,
+			entry.uncachedInput + entry.cachedInput,
+		);
 		bucket.uncachedInput += entry.uncachedInput;
 		bucket.cachedInput += entry.cachedInput;
 		bucket.cacheWrite5m += entry.cacheWrite5m;

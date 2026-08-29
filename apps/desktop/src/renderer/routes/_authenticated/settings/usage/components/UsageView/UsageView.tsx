@@ -135,7 +135,7 @@ function AccountCard({
 	hideEmails,
 }: {
 	account: UsageAccount;
-	onMakeDefault: () => void;
+	onMakeDefault: (() => void) | null;
 	onSwitchSignIn: (() => void) | null;
 	/** Null on the system-default card — the main login is never removable. */
 	onRemove: (() => void) | null;
@@ -188,7 +188,7 @@ function AccountCard({
 								message:
 									"Make default — launch new terminals and agents on this account.",
 							})}
-							onClick={onMakeDefault}
+							onClick={onMakeDefault ?? undefined}
 						>
 							<LuCircle className="size-3.5" />
 						</button>
@@ -313,7 +313,9 @@ function AccountCard({
 			)}
 			{/* The radio + accent border already mark the default when the cards
 			    read as a group; the footer label only carries it for a lone card. */}
-			{(!account.isDefault || !selectable || credits) && (
+			{((!account.isDefault && onMakeDefault !== null) ||
+				(!selectable && account.isDefault) ||
+				credits) && (
 				<div className="mt-2 flex items-center gap-2 border-t pt-1.5">
 					{account.isDefault ? (
 						!selectable && (
@@ -327,7 +329,7 @@ function AccountCard({
 								</Trans>
 							</span>
 						)
-					) : (
+					) : onMakeDefault ? (
 						<Button
 							variant="outline"
 							size="sm"
@@ -340,7 +342,7 @@ function AccountCard({
 								Make default
 							</Trans>
 						</Button>
-					)}
+					) : null}
 					{credits && (
 						<span className="ml-auto text-[10px] text-muted-foreground tabular-nums">
 							{credits}
@@ -582,16 +584,21 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 										<AccountCard
 											key={account.accountKey}
 											account={account}
-											onMakeDefault={() => makeDefaultAccount(account)}
+											onMakeDefault={
+												isManagedAgent(account.agent)
+													? () => makeDefaultAccount(account)
+													: null
+											}
 											onSwitchSignIn={
 												isManagedAgent(account.agent)
 													? () => openSwitchSignIn(account)
 													: null
 											}
 											onRemove={
-												account.selection === null
-													? null
-													: () => setRemoveTarget(account)
+												isManagedAgent(account.agent) &&
+												account.selection !== null
+													? () => setRemoveTarget(account)
+													: null
 											}
 											isSwitching={setDefault.isPending}
 											selectable={

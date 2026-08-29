@@ -1,6 +1,6 @@
 /** Antigravity CLI transcript usage (`~/.gemini/antigravity-cli/brain`). */
 import { createReadStream } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
@@ -130,6 +130,11 @@ export async function collectAgyEntries(
 			"logs",
 			"transcript_full.jsonl",
 		);
+		try {
+			if ((await stat(path)).mtimeMs < cutoffMs) continue;
+		} catch {
+			continue;
+		}
 		let stream: ReturnType<typeof createReadStream>;
 		try {
 			stream = createReadStream(path, { encoding: "utf8" });

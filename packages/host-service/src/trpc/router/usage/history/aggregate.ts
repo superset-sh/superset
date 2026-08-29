@@ -234,7 +234,11 @@ export async function computeUsageHistory(
 	};
 
 	for (const entry of entries) {
-		const rate = matchModelRate(entry.agent, entry.model);
+		const rate = matchModelRate(
+			entry.agent,
+			entry.model,
+			entry.uncachedInput + entry.cachedInput,
+		);
 		// A harness-reported real cost beats the API-list-rate estimate, and an
 		// entry priced by its own harness is never "approximate".
 		const estimated = entry.costUsd === undefined;

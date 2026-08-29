@@ -175,13 +175,16 @@ export function parseGrokQuotaPayload(
 
 export async function fetchGrokAccounts(): Promise<UsageAccount[]> {
 	const authPath = join(homedir(), ".grok", "auth.json");
-	let parsed: Record<string, GrokAuthEntry>;
+	let parsed: unknown;
 	try {
 		parsed = JSON.parse(await readFile(authPath, "utf8"));
 	} catch {
 		return [];
 	}
-	const credential = Object.values(parsed).find((entry) => entry?.key);
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+	const credential = Object.values(
+		parsed as Record<string, GrokAuthEntry>,
+	).find((entry) => entry?.key);
 	if (!credential?.key) return [];
 	const base = {
 		agent: "grok" as const,
