@@ -4,7 +4,6 @@ import { I18nProvider as LinguiI18nProvider } from "@lingui/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { i18n, inferLocale, initI18n } from "./index";
 import {
-	isSupportedLocale,
 	LOCALE_COOKIE,
 	LOCALE_LABELS,
 	SUPPORTED_LOCALES,
