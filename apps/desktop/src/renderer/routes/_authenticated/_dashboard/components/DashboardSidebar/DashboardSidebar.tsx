@@ -36,6 +36,7 @@ import { SectionDragSpacer } from "./components/SectionDragSpacer";
 import { useV2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
+import { useMigrateLegacySidebarFolders } from "./hooks/useMigrateLegacySidebarFolders";
 import { useDashboardSidebarDnd } from "./hooks/useSidebarDnd";
 import { DashboardSidebarDndProvider } from "./providers/DashboardSidebarDndProvider";
 import { DashboardSidebarHoverProvider } from "./providers/DashboardSidebarHoverProvider";
@@ -134,6 +135,9 @@ export function DashboardSidebar({
 		toggleProjectCollapsed,
 	} = useDashboardSidebarData();
 	const { reorderProjects } = useDashboardSidebarState();
+	// Converts legacy uuid-keyed folders to tag-backed folders in the
+	// background; retries whenever the workspace cache changes.
+	useMigrateLegacySidebarFolders();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const settingsHotkey = useHotkeyDisplay("OPEN_SETTINGS").text;

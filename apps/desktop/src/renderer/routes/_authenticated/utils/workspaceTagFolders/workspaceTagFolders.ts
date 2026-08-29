@@ -224,6 +224,27 @@ export function resolveWorkspaceSectionId(args: {
 }
 
 /**
+ * Mint a tag for a folder from its display name: normalize (trim+lowercase —
+ * tags allow spaces, no further slugging), fall back to "group" for a name
+ * that can't be a tag, and suffix `-2`, `-3`, … while the tag is taken.
+ */
+export function mintFolderTag(
+	name: string | null | undefined,
+	takenTags: Iterable<string>,
+): string {
+	const taken = new Set<string>();
+	for (const tag of takenTags) {
+		const normalized = normalizeWorkspaceTag(tag);
+		if (normalized != null) taken.add(normalized);
+	}
+	const base = normalizeWorkspaceTag(name) ?? "group";
+	if (!taken.has(base)) return base;
+	let counter = 2;
+	while (taken.has(`${base}-${counter}`)) counter += 1;
+	return `${base}-${counter}`;
+}
+
+/**
  * Retarget a workspace's tags from one folder to another, touching ONLY tags
  * the project has a folder for. `folderTags` is the project's folder tag set
  * (the keys of {@link getProjectFolderTagIndex}); anything outside it — an

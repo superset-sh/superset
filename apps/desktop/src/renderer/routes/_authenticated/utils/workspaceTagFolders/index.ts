@@ -4,6 +4,7 @@ export {
 	DERIVED_TAG_FOLDER_TAB_ORDER_BASE,
 	deriveTagFolders,
 	getProjectFolderTagIndex,
+	mintFolderTag,
 	parseSidebarFolderKey,
 	resolveWorkspaceFolder,
 	resolveWorkspaceSectionId,

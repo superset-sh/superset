@@ -5,6 +5,7 @@ import {
 	DERIVED_TAG_FOLDER_TAB_ORDER_BASE,
 	deriveTagFolders,
 	getProjectFolderTagIndex,
+	mintFolderTag,
 	parseSidebarFolderKey,
 	resolveWorkspaceFolder,
 	resolveWorkspaceSectionId,
@@ -350,5 +351,26 @@ describe("applyFolderTagChange", () => {
 		expect(applyFolderTagChange(legacyRow.tags, folderTags, "perf")).toEqual([
 			"perf",
 		]);
+	});
+});
+
+describe("mintFolderTag", () => {
+	it("normalizes the name into a tag", () => {
+		expect(mintFolderTag("  Perf Work ", [])).toBe("perf work");
+	});
+
+	it("falls back to `group` for a name that can't be a tag", () => {
+		expect(mintFolderTag("   ", [])).toBe("group");
+		expect(mintFolderTag(null, [])).toBe("group");
+		expect(mintFolderTag(undefined, [])).toBe("group");
+	});
+
+	it("suffixes -2, -3 on collisions", () => {
+		expect(mintFolderTag("Perf", ["perf"])).toBe("perf-2");
+		expect(mintFolderTag("Perf", ["perf", "perf-2"])).toBe("perf-3");
+	});
+
+	it("normalizes taken tags before comparing", () => {
+		expect(mintFolderTag("perf", [" PERF "])).toBe("perf-2");
 	});
 });
