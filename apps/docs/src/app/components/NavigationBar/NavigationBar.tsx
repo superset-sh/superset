@@ -1,8 +1,9 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import { LanguageSwitcher } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
-import { Menu } from "lucide-react";
+import { Globe, Menu } from "lucide-react";
 import Link from "next/link";
 import { MobileSearchIcon } from "@/app/(docs)/[[...slug]]/components/DocsPageLayout/components/PageClient/components/MobileSearchIcon";
 import {
@@ -67,6 +68,14 @@ export default function NavigationBar() {
 					<MobileSearchIcon />
 					<SidebarTrigger />
 					<ul className="navbar:flex items-center gap-2 hidden shrink-0">
+						<li className="flex items-center gap-1.5 px-2 text-sm text-muted-foreground transition-colors focus-within:text-foreground hover:text-foreground">
+							<Globe aria-hidden className="size-4 shrink-0" />
+							<LanguageSwitcher
+								label={t({ id: "docs.nav.languageLabel", message: "Language" })}
+								autoLabel={t({ id: "docs.nav.languageAuto", message: "Auto" })}
+								className="cursor-pointer appearance-none bg-transparent outline-none [&>option]:bg-background [&>option]:text-foreground"
+							/>
+						</li>
 						<NavLink href={COMPANY.CHANGELOG_URL} external>
 							<Trans id="docs.nav.changelog">Changelog</Trans>
 						</NavLink>
