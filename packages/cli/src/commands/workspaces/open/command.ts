@@ -1,5 +1,10 @@
 import { spawn } from "node:child_process";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import {
+	buildPublicWorkspaceHandoffUrl,
+	buildWorkspaceDeepLink,
+} from "@superset/shared/workspace-links";
+import { getWebUrl } from "../../../lib/auth";
 import { command } from "../../../lib/command";
 import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
 
@@ -53,7 +58,11 @@ export default command({
 			);
 		}
 
-		const url = `superset://v2-workspace/${workspace.id}`;
+		const url = buildWorkspaceDeepLink(workspace.id);
+		// The HTTPS twin, for handing the workspace to something that only
+		// takes web links. Published here so integrations consume a supported
+		// field instead of reconstructing the route.
+		const webUrl = buildPublicWorkspaceHandoffUrl(workspace.id, getWebUrl());
 
 		if (!options.print) {
 			try {
@@ -67,7 +76,7 @@ export default command({
 		}
 
 		return {
-			data: { id: workspace.id, name: workspace.name, url },
+			data: { id: workspace.id, name: workspace.name, url, webUrl },
 			message: options.print
 				? url
 				: `Opening "${workspace.name}" in Superset desktop`,

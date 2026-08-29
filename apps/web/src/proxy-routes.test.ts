@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
+import { PUBLIC_WORKSPACE_HANDOFF_PATH } from "@superset/shared/workspace-links";
+
 import {
 	isAuthPageRoute,
 	isInternalRoute,
@@ -19,6 +21,10 @@ describe("isPublicRoute", () => {
 		"/accept-invitation/invitation-123",
 		"/cli/auth/code",
 		"/cli/auth/code/success",
+		// The workspace handoff hands a native link to someone who is not
+		// signed in on the web; gating it behind sign-in defeats the point.
+		"/open/v2-workspace",
+		"/open/v2-workspace/b502bf30-8693-4815-be65-795035e0ce5f",
 	])("allows the exact public route or its children: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(true);
 	});
@@ -33,6 +39,11 @@ describe("isPublicRoute", () => {
 		"/api/auth/desktopish",
 		"/accept-invitation-list",
 		"/cli/auth/codegen",
+		// Only the workspace handoff is public under /open, not /open itself
+		// nor a future sibling handoff.
+		"/open",
+		"/open/v2-workspaces",
+		"/open/task",
 	])("keeps sibling routes protected: %s", (pathname: string) => {
 		expect(isPublicRoute(pathname)).toBe(false);
 	});
@@ -73,5 +84,11 @@ describe("isInternalRoute", () => {
 		"/dashboard",
 	])("keeps sibling routes out of the internal gate: %s", (pathname: string) => {
 		expect(isInternalRoute(pathname)).toBe(false);
+	});
+});
+
+describe("public route declaration", () => {
+	test("matches the handoff path the canonical link builder emits", () => {
+		expect(isPublicRoute(PUBLIC_WORKSPACE_HANDOFF_PATH)).toBe(true);
 	});
 });

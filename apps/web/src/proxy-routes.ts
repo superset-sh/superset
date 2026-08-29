@@ -1,3 +1,5 @@
+import { PUBLIC_WORKSPACE_HANDOFF_PATH } from "@superset/shared/workspace-links";
+
 const authPageRoutes = ["/sign-in", "/sign-up"] as const;
 
 const otherPublicRoutes = [
@@ -5,6 +7,10 @@ const otherPublicRoutes = [
 	"/api/auth/desktop",
 	"/accept-invitation",
 	"/cli/auth/code",
+	// Hands a workspace link off to the desktop app. The link is published by
+	// external systems (Linear, GitHub) to people who are not signed in on the
+	// web, and the page resolves nothing: sign-in would only get in the way.
+	PUBLIC_WORKSPACE_HANDOFF_PATH,
 ] as const;
 
 const publicRoutes = [...authPageRoutes, ...otherPublicRoutes] as const;

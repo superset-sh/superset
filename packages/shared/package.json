@@ -144,6 +144,10 @@
 			"types": "./src/workspace-launch/index.ts",
 			"default": "./src/workspace-launch/index.ts"
 		},
+		"./workspace-links": {
+			"types": "./src/workspace-links.ts",
+			"default": "./src/workspace-links.ts"
+		},
 		"./agent-settings": {
 			"types": "./src/agent-settings.ts",
 			"default": "./src/agent-settings.ts"
