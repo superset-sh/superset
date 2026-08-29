@@ -2,9 +2,9 @@ import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
 import { getPresetById } from "@superset/shared/host-agent-presets";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
-import { eq } from "drizzle-orm";
 import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
 import {
@@ -130,168 +130,167 @@ const PROVIDERS: Array<{
 	},
 ];
 
-describe.each(PROVIDERS)(
-	"$presetId agent session identity round trip",
-	({ presetId, providerSessionId, resumeFlag }) => {
-		const terminalId = `term-${presetId}`;
+describe.each(PROVIDERS)("$presetId agent session identity round trip", ({
+	presetId,
+	providerSessionId,
+	resumeFlag,
+}) => {
+	const terminalId = `term-${presetId}`;
 
-		function boot(): Harness {
-			const harness = createHarness();
-			seedPreset(harness.db, presetId, 0);
-			seedTerminal(harness.db, terminalId);
-			return harness;
-		}
+	function boot(): Harness {
+		const harness = createHarness();
+		seedPreset(harness.db, presetId, 0);
+		seedTerminal(harness.db, terminalId);
+		return harness;
+	}
 
-		it("reports the terminal with no agent before any hook lands", () => {
-			const { db } = boot();
-			expect(get(db, terminalId)).toEqual({
-				kind: "terminal",
-				terminalId,
-				workspaceId: WORKSPACE_ID,
-				terminalStatus: "active",
-				agent: null,
-			});
+	it("reports the terminal with no agent before any hook lands", () => {
+		const { db } = boot();
+		expect(get(db, terminalId)).toEqual({
+			kind: "terminal",
+			terminalId,
+			workspaceId: WORKSPACE_ID,
+			terminalStatus: "active",
+			agent: null,
+		});
+	});
+
+	it("is not resumable on attach alone — no conversation exists yet", async () => {
+		const harness = boot();
+		await harness.hook({
+			terminalId,
+			eventType: "SessionStart",
+			agentId: presetId,
+			sessionId: providerSessionId,
 		});
 
-		it("is not resumable on attach alone — no conversation exists yet", async () => {
-			const harness = boot();
-			await harness.hook({
-				terminalId,
-				eventType: "SessionStart",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
+		const session = get(harness.db, terminalId);
+		expect(session?.agent).toMatchObject({
+			presetId,
+			sessionId: providerSessionId,
+			state: "idle",
+			resumable: false,
+			ended: false,
+		});
+	});
 
-			const session = get(harness.db, terminalId);
-			expect(session?.agent).toMatchObject({
-				presetId,
-				sessionId: providerSessionId,
-				state: "idle",
-				resumable: false,
-				ended: false,
-			});
+	it("separates terminal identity from the provider conversation id", async () => {
+		const harness = boot();
+		await harness.hook({
+			terminalId,
+			eventType: "UserPromptSubmit",
+			agentId: presetId,
+			sessionId: providerSessionId,
 		});
 
-		it("separates terminal identity from the provider conversation id", async () => {
-			const harness = boot();
-			await harness.hook({
-				terminalId,
-				eventType: "UserPromptSubmit",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
+		const session = get(harness.db, terminalId);
+		expect(session?.terminalId).toBe(terminalId);
+		expect(session?.agent?.sessionId).toBe(providerSessionId);
+		expect(session?.agent?.sessionId).not.toBe(session?.terminalId);
+		expect(session?.agent).toMatchObject({
+			presetId,
+			state: "working",
+			resumable: true,
+		});
+		expect(session?.agent?.lastEventAt).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/);
+	});
 
-			const session = get(harness.db, terminalId);
-			expect(session?.terminalId).toBe(terminalId);
-			expect(session?.agent?.sessionId).toBe(providerSessionId);
-			expect(session?.agent?.sessionId).not.toBe(session?.terminalId);
-			expect(session?.agent).toMatchObject({
-				presetId,
-				state: "working",
-				resumable: true,
-			});
-			expect(session?.agent?.lastEventAt).toMatch(
-				/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/,
-			);
+	it("does not report a working agent once the provider exits under an open PTY", async () => {
+		const harness = boot();
+		await harness.hook({
+			terminalId,
+			eventType: "UserPromptSubmit",
+			agentId: presetId,
+			sessionId: providerSessionId,
+		});
+		expect(get(harness.db, terminalId)?.agent?.state).toBe("working");
+
+		// The provider says goodbye; nobody closed the shell.
+		await harness.hook({
+			terminalId,
+			eventType: "SessionEnd",
+			agentId: presetId,
+			sessionId: providerSessionId,
 		});
 
-		it("does not report a working agent once the provider exits under an open PTY", async () => {
-			const harness = boot();
-			await harness.hook({
-				terminalId,
-				eventType: "UserPromptSubmit",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
-			expect(get(harness.db, terminalId)?.agent?.state).toBe("working");
+		const session = get(harness.db, terminalId);
+		expect(session?.terminalStatus).toBe("active");
+		expect(session?.agent).toMatchObject({
+			state: "ended",
+			ended: true,
+			endReason: "detached",
+		});
+		expect(session?.agent?.endedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+	});
 
-			// The provider says goodbye; nobody closed the shell.
-			await harness.hook({
-				terminalId,
-				eventType: "SessionEnd",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
+	it("still serves the binding after the terminal itself died", async () => {
+		const harness = boot();
+		await harness.hook({
+			terminalId,
+			eventType: "Stop",
+			agentId: presetId,
+			sessionId: providerSessionId,
+		});
+		harness.store.markTerminalExited(terminalId);
+		harness.db
+			.update(terminalSessions)
+			.set({ status: "exited" })
+			.where(eq(terminalSessions.id, terminalId))
+			.run();
 
-			const session = get(harness.db, terminalId);
-			expect(session?.terminalStatus).toBe("active");
-			expect(session?.agent).toMatchObject({
-				state: "ended",
-				ended: true,
-				endReason: "detached",
-			});
-			expect(session?.agent?.endedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+		const session = get(harness.db, terminalId);
+		expect(session?.terminalStatus).toBe("exited");
+		expect(session?.agent).toMatchObject({
+			sessionId: providerSessionId,
+			state: "ended",
+			ended: true,
+			endReason: "terminal-exited",
+			resumable: true,
+		});
+	});
+
+	it("round-trips the reported id back through a resume launch", async () => {
+		const harness = boot();
+		await harness.hook({
+			terminalId,
+			eventType: "Stop",
+			agentId: presetId,
+			sessionId: providerSessionId,
+		});
+		await harness.hook({
+			terminalId,
+			eventType: "SessionEnd",
+			agentId: presetId,
+			sessionId: providerSessionId,
 		});
 
-		it("still serves the binding after the terminal itself died", async () => {
-			const harness = boot();
-			await harness.hook({
-				terminalId,
-				eventType: "Stop",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
-			harness.store.markTerminalExited(terminalId);
-			harness.db
-				.update(terminalSessions)
-				.set({ status: "exited" })
-				.where(eq(terminalSessions.id, terminalId))
-				.run();
+		const parked = get(harness.db, terminalId)?.agent;
+		expect(parked?.resumable).toBe(true);
 
-			const session = get(harness.db, terminalId);
-			expect(session?.terminalStatus).toBe("exited");
-			expect(session?.agent).toMatchObject({
-				sessionId: providerSessionId,
-				state: "ended",
-				ended: true,
-				endReason: "terminal-exited",
-				resumable: true,
-			});
+		// Exactly what `agents create --resume-session <id>` does with it.
+		const launch = buildTerminalAgentLaunch(harness.db, {
+			workspaceId: WORKSPACE_ID,
+			agent: parked?.presetId ?? "",
+			prompt: "",
+			resumeSessionId: parked?.sessionId ?? "",
 		});
+		expect(launch.presetId).toBe(presetId);
+		expect(launch.fullCommand).toContain(
+			`${resumeFlag} '${providerSessionId}'`,
+		);
+	});
 
-		it("round-trips the reported id back through a resume launch", async () => {
-			const harness = boot();
-			await harness.hook({
-				terminalId,
-				eventType: "Stop",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
-			await harness.hook({
-				terminalId,
-				eventType: "SessionEnd",
-				agentId: presetId,
-				sessionId: providerSessionId,
-			});
-
-			const parked = get(harness.db, terminalId)?.agent;
-			expect(parked?.resumable).toBe(true);
-
-			// Exactly what `agents create --resume-session <id>` does with it.
-			const launch = buildTerminalAgentLaunch(harness.db, {
-				workspaceId: WORKSPACE_ID,
-				agent: parked?.presetId ?? "",
-				prompt: "",
-				resumeSessionId: parked?.sessionId ?? "",
-			});
-			expect(launch.presetId).toBe(presetId);
-			expect(launch.fullCommand).toContain(
-				`${resumeFlag} '${providerSessionId}'`,
-			);
+	it("describes a launch whose binding has not landed yet as starting", () => {
+		const { db } = boot();
+		const launch = buildTerminalAgentLaunch(db, {
+			workspaceId: WORKSPACE_ID,
+			agent: presetId,
+			prompt: "go",
 		});
-
-		it("describes a launch whose binding has not landed yet as starting", () => {
-			const { db } = boot();
-			const launch = buildTerminalAgentLaunch(db, {
-				workspaceId: WORKSPACE_ID,
-				agent: presetId,
-				prompt: "go",
-			});
-			expect(launch.presetId).toBe(presetId);
-			expect(launch.resumeArgs.length).toBeGreaterThan(0);
-		});
-	},
-);
+		expect(launch.presetId).toBe(presetId);
+		expect(launch.resumeArgs.length).toBeGreaterThan(0);
+	});
+});
 
 describe("getTerminalAgentSession", () => {
 	it("reports resumable false for a provider with no resume contract", async () => {

@@ -23,9 +23,9 @@ function identity(overrides: AgentSessionIdentityInput = {}) {
 describe("deriveAgentSessionState", () => {
 	it("maps the lifecycle event types to provider-neutral states", () => {
 		expect(deriveAgentSessionState({ lastEventType: "Start" })).toBe("working");
-		expect(deriveAgentSessionState({ lastEventType: "PermissionRequest" })).toBe(
-			"awaiting-input",
-		);
+		expect(
+			deriveAgentSessionState({ lastEventType: "PermissionRequest" }),
+		).toBe("awaiting-input");
 		expect(deriveAgentSessionState({ lastEventType: "Failed" })).toBe("failed");
 		expect(deriveAgentSessionState({ lastEventType: "Stop" })).toBe("idle");
 		expect(deriveAgentSessionState({ lastEventType: "Attached" })).toBe("idle");
