@@ -121,6 +121,25 @@ export interface TerminalSummary {
 	exitCode: number;
 	attached: boolean;
 	title: string | null;
+	/** Present when Superset has identified a live agent in this terminal. */
+	agentStatus?: TerminalAgentStatus;
+}
+
+export type TerminalAgentLifecycleEventType =
+	| "Start"
+	| "Stop"
+	| "PermissionRequest"
+	| "Failed"
+	| "Attached"
+	| "Detached";
+
+export interface TerminalAgentStatus {
+	agentId: string;
+	sessionId?: string;
+	definitionId?: string;
+	startedAt: number;
+	lastEventAt: number;
+	lastEventType: TerminalAgentLifecycleEventType;
 }
 
 export interface TerminalListResult {
@@ -185,6 +204,8 @@ export declare namespace Terminals {
 		TerminalListParams,
 		TerminalListResult,
 		TerminalSummary,
+		TerminalAgentStatus,
+		TerminalAgentLifecycleEventType,
 		TerminalSendParams,
 		TerminalSendResult,
 		TerminalReadParams,

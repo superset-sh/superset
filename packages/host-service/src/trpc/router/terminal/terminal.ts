@@ -133,11 +133,38 @@ export const terminalRouter = router({
 				})
 				.optional(),
 		)
-		.query(async ({ ctx, input }) => ({
-			sessions: await listLiveTerminalSessions(ctx.db, {
+		.query(async ({ ctx, input }) => {
+			const sessions = await listLiveTerminalSessions(ctx.db, {
 				workspaceId: input?.workspaceId,
-			}),
-		})),
+			});
+			const agentsByTerminal = new Map(
+				ctx.terminalAgentStore
+					.list()
+					.map((binding) => [binding.terminalId, binding] as const),
+			);
+
+			return {
+				sessions: sessions.map((session) => {
+					const binding = agentsByTerminal.get(session.terminalId);
+					if (!binding) return session;
+					return {
+						...session,
+						agentStatus: {
+							agentId: binding.agentId,
+							...(binding.agentSessionId
+								? { sessionId: binding.agentSessionId }
+								: {}),
+							...(binding.definitionId
+								? { definitionId: binding.definitionId }
+								: {}),
+							startedAt: binding.startedAt,
+							lastEventAt: binding.lastEventAt,
+							lastEventType: binding.lastEventType,
+						},
+					};
+				}),
+			};
+		}),
 
 	hasRunningProcess: protectedProcedure
 		.input(

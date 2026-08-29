@@ -947,12 +947,23 @@ superset terminals create --workspace ws_…
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 	]}
-	output={`{
-  sessions: Array<TerminalSession>;
+output={`{
+  sessions: Array<TerminalSession & {
+    agentStatus?: {
+      agentId: string;
+      sessionId?: string;
+      definitionId?: string;
+      startedAt: number;
+      lastEventType: "Start" | "Stop" | "PermissionRequest" | "Failed" | "Attached" | "Detached";
+      lastEventAt: number;
+    };
+  }>;
 }`}
 >
 List the live terminal sessions in a workspace. Presence in the list means the
-PTY exists, not that an agent inside it is working or idle.
+PTY exists. When Superset has identified a live agent inside it, `agentStatus`
+reports the same normalized lifecycle state used by the workspace board;
+`PermissionRequest` means the agent needs attention.
 </Command>
 
 <Command

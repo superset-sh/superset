@@ -265,6 +265,26 @@ const { terminalId } = await client.terminals.create({
 });
 ```
 
+### `terminals.list({ hostId, workspaceId })`
+
+List the live terminal sessions in a workspace. When Superset has identified
+an agent in a terminal, its row includes `agentStatus` with the agent and
+session identity and the latest normalized lifecycle event. A
+`PermissionRequest` event means the agent is waiting for input or approval.
+
+```ts
+const { sessions } = await client.terminals.list({
+  hostId: '<machineId>',
+  workspaceId: '<uuid>',
+});
+
+for (const terminal of sessions) {
+  if (terminal.agentStatus?.lastEventType === 'PermissionRequest') {
+    console.log(`${terminal.agentStatus.agentId} needs attention`);
+  }
+}
+```
+
 ---
 
 ## automations
