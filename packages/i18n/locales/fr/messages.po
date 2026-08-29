@@ -26703,13 +26703,13 @@ msgstr "Mensuelle le {day} à {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinal"
-msgstr "Mensuelle le {day}"
+msgid "shared.schedule.monthlyOnDayOfMonth"
+msgstr "Tous les mois le {day, selectordinal, one {#er} other {#e}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinalAt"
-msgstr "Mensuelle le {day} à {time}"
+msgid "shared.schedule.monthlyOnDayOfMonthAt"
+msgstr "Tous les mois le {day, selectordinal, one {#er} other {#e}} à {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32072,6 +32072,11 @@ msgstr "Tout réduire"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.expandAll"
 msgstr "Tout développer"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
+msgid "workspace.changesToolbar.fileCount"
+msgstr "{totalFiles, plural, one {# fichier} other {# fichiers}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

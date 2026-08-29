@@ -26703,13 +26703,13 @@ msgstr "毎月{day} {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinal"
-msgstr "毎月{day}"
+msgid "shared.schedule.monthlyOnDayOfMonth"
+msgstr "毎月{day, selectordinal, one {#日} two {#日} few {#日} other {#日}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinalAt"
-msgstr "毎月{day} {time}"
+msgid "shared.schedule.monthlyOnDayOfMonthAt"
+msgstr "毎月{day, selectordinal, one {#日} two {#日} few {#日} other {#日}} {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32072,6 +32072,11 @@ msgstr "すべて折りたたむ"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.expandAll"
 msgstr "すべて展開"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
+msgid "workspace.changesToolbar.fileCount"
+msgstr "{totalFiles, plural, one {#個のファイル} other {#個のファイル}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

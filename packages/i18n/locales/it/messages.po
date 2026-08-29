@@ -26704,13 +26704,13 @@ msgstr "Ogni mese il {day} alle {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinal"
-msgstr "Ogni mese il {day}"
+msgid "shared.schedule.monthlyOnDayOfMonth"
+msgstr "Ogni mese il {day, selectordinal, other {#º}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinalAt"
-msgstr "Ogni mese il {day} alle {time}"
+msgid "shared.schedule.monthlyOnDayOfMonthAt"
+msgstr "Ogni mese il {day, selectordinal, other {#º}} alle {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32073,6 +32073,11 @@ msgstr "Comprimi tutto"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.expandAll"
 msgstr "Espandi tutto"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
+msgid "workspace.changesToolbar.fileCount"
+msgstr "{totalFiles, plural, one {# file} other {# file}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

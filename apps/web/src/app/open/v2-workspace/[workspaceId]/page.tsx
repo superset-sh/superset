@@ -32,6 +32,11 @@ interface OpenWorkspacePageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+/**
+ * Validates the public workspace id, narrows the query string to supported
+ * handoff parameters, and renders either the native handoff or a clear invalid
+ * link state without looking up private workspace data.
+ */
 export default async function OpenWorkspacePage({
 	params,
 	searchParams,

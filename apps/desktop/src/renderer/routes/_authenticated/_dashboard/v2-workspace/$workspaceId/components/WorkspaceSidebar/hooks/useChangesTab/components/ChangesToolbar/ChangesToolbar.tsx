@@ -1,4 +1,4 @@
-import { Trans, useLingui } from "@lingui/react/macro";
+import { Plural, Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
@@ -69,7 +69,12 @@ export function ChangesToolbar({
 					uncommittedCount={uncommittedCount}
 				/>
 				<span className="whitespace-nowrap">
-					{totalFiles} {totalFiles === 1 ? "file" : "files"}
+					<Plural
+						id="workspace.changesToolbar.fileCount"
+						value={totalFiles}
+						one="# file"
+						other="# files"
+					/>
 				</span>
 				{(totalAdditions > 0 || totalDeletions > 0) && (
 					<span className="whitespace-nowrap">

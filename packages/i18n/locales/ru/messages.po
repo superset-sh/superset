@@ -26704,13 +26704,13 @@ msgstr "Ежемесячно {day} числа в {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinal"
-msgstr "Ежемесячно: {day}"
+msgid "shared.schedule.monthlyOnDayOfMonth"
+msgstr "Ежемесячно {day, selectordinal, other {#-го}} числа"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.monthlyOnOrdinalAt"
-msgstr "Ежемесячно: {day} в {time}"
+msgid "shared.schedule.monthlyOnDayOfMonthAt"
+msgstr "Ежемесячно {day, selectordinal, other {#-го}} числа в {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32073,6 +32073,11 @@ msgstr "Свернуть всё"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.expandAll"
 msgstr "Развернуть всё"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
+msgid "workspace.changesToolbar.fileCount"
+msgstr "{totalFiles, plural, one {# файл} few {# файла} many {# файлов} other {# файла}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

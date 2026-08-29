@@ -87,22 +87,6 @@ function parseIntOrNull(value: string | undefined): number | null {
 	return Number.isFinite(n) ? n : null;
 }
 
-function ordinal(n: number): string {
-	const absolute = Math.abs(n);
-	const lastTwo = absolute % 100;
-	if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
-	switch (absolute % 10) {
-		case 1:
-			return `${n}st`;
-		case 2:
-			return `${n}nd`;
-		case 3:
-			return `${n}rd`;
-		default:
-			return `${n}th`;
-	}
-}
-
 function sortDays(days: string[]): string[] {
 	return [...days].sort(
 		(a, b) => DAY_ORDER.indexOf(a as never) - DAY_ORDER.indexOf(b as never),
@@ -398,17 +382,21 @@ export function describeSchedule(
 						});
 			}
 			if (byMonthDay !== null && byMonthDay >= 1 && byMonthDay <= 31) {
-				const day = ordinal(byMonthDay);
+				// The ordinal suffix is part of the message, not computed in code:
+				// a hardcoded st/nd/rd/th leaked English into every locale
+				// ("毎月1st"). ICU selectordinal gives each language its own system.
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.monthlyOnOrdinalAt",
-							message: "Monthly on the {day} at {time}",
-							values: { day, time },
+							id: "shared.schedule.monthlyOnDayOfMonthAt",
+							message:
+								"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} at {time}",
+							values: { day: byMonthDay, time },
 						})
 					: i18n._({
-							id: "shared.schedule.monthlyOnOrdinal",
-							message: "Monthly on the {day}",
-							values: { day },
+							id: "shared.schedule.monthlyOnDayOfMonth",
+							message:
+								"Monthly on the {day, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+							values: { day: byMonthDay },
 						});
 			}
 			if (byDay.length === 1) {

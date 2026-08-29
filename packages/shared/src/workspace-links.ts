@@ -42,6 +42,10 @@ export function isWorkspaceId(value: unknown): value is string {
 	return typeof value === "string" && WORKSPACE_ID.test(value);
 }
 
+/**
+ * Stops every link builder from emitting a deep link for a malformed workspace
+ * id. Callers that only need a boolean use `isWorkspaceId` instead.
+ */
 function assertWorkspaceId(value: string): void {
 	if (!isWorkspaceId(value)) {
 		throw new TypeError(`Not a workspace id: ${value}`);
@@ -70,6 +74,10 @@ export function pickWorkspaceHandoffParams(
 	return picked;
 }
 
+/**
+ * Serializes the supported handoff params in their declared canonical order so
+ * native and HTTPS links remain stable and equivalent.
+ */
 function handoffQuery(params: WorkspaceHandoffParams): string {
 	const search = new URLSearchParams();
 	for (const name of WORKSPACE_HANDOFF_PARAMS) {
