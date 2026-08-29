@@ -11347,6 +11347,16 @@ msgstr "View Superset repository on GitHub"
 
 #. js-lingui-explicit-id
 #: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
+msgid "docs.nav.languageAuto"
+msgstr "Auto"
+
+#. js-lingui-explicit-id
+#: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
+msgid "docs.nav.languageLabel"
+msgstr "Language"
+
+#. js-lingui-explicit-id
+#: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
 msgid "docs.nav.toggleSidebar"
 msgstr "Toggle sidebar"
 
@@ -14247,6 +14257,16 @@ msgstr "Status"
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx
 msgid "marketing.footer.copyright"
 msgstr "© {year} Superset Inc."
+
+#. js-lingui-explicit-id
+#: ../../apps/marketing/src/app/components/Footer/Footer.tsx
+msgid "marketing.footer.languageAuto"
+msgstr "Auto"
+
+#. js-lingui-explicit-id
+#: ../../apps/marketing/src/app/components/Footer/Footer.tsx
+msgid "marketing.footer.languageLabel"
+msgstr "Language"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx

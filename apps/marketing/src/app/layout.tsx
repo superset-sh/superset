@@ -143,7 +143,7 @@ export default async function RootLayout({
 				</Script>
 			</head>
 			<body className="overscroll-none font-sans">
-				<Providers>
+				<Providers locale={locale}>
 					<Header
 						ctaButtons={<CTAButtons />}
 						starCounter={<GitHubStarCounter />}

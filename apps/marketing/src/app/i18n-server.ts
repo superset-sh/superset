@@ -1,9 +1,14 @@
-import { resolveLocale, type SupportedLocale } from "@superset/i18n";
+import {
+	isSupportedLocale,
+	LOCALE_COOKIE,
+	resolveLocale,
+	type SupportedLocale,
+} from "@superset/i18n";
 import {
 	initServerI18n as activateServerI18n,
 	preloadServerLocale,
 } from "@superset/i18n/server";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 // "ja,en-US;q=0.9,en;q=0.8" -> ["ja", "en-US", "en"], ordered by quality.
 function parseAcceptLanguage(header: string | null): string[] {
@@ -39,8 +44,14 @@ function parseAcceptLanguage(header: string | null): string[] {
  * per request), so reading headers() adds no new rendering cost.
  */
 export async function initServerI18n(): Promise<SupportedLocale> {
-	const acceptLanguage = (await headers()).get("accept-language");
-	const locale = resolveLocale(parseAcceptLanguage(acceptLanguage));
+	// An explicit choice from the language switcher outranks Accept-Language.
+	const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+	const locale =
+		chosen && isSupportedLocale(chosen)
+			? chosen
+			: resolveLocale(
+					parseAcceptLanguage((await headers()).get("accept-language")),
+				);
 	await preloadServerLocale(locale);
 	activateServerI18n(locale);
 	return locale;

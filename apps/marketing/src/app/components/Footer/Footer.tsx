@@ -1,9 +1,10 @@
 "use client";
 
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { LanguageSwitcher } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import { m } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Globe } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -184,6 +185,7 @@ export function Footer() {
 								© {year} Superset Inc.
 							</Trans>
 						</p>
+						<FooterLanguageSwitcher />
 					</div>
 
 					<FooterColumn
@@ -251,5 +253,22 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 		<Link href={link.href} className={className}>
 			{link.label}
 		</Link>
+	);
+}
+
+function FooterLanguageSwitcher() {
+	const { t } = useLingui();
+	return (
+		<div className="flex w-max items-center gap-2 text-sm text-muted-foreground transition-colors focus-within:text-foreground hover:text-foreground">
+			<Globe aria-hidden className="size-4 shrink-0" />
+			<LanguageSwitcher
+				label={t({
+					id: "marketing.footer.languageLabel",
+					message: "Language",
+				})}
+				autoLabel={t({ id: "marketing.footer.languageAuto", message: "Auto" })}
+				className="cursor-pointer appearance-none bg-transparent pr-1 outline-none [&>option]:text-foreground [&>option]:bg-background"
+			/>
+		</div>
 	);
 }
