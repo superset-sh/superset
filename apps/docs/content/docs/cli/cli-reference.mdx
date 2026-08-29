@@ -770,6 +770,7 @@ superset workspaces update ws_… --clear-task
   id: string;
   name: string;
   url: string;
+  webUrl: string;
 }`}
 >
 Open a workspace in the Superset desktop app.
@@ -778,7 +779,31 @@ Open a workspace in the Superset desktop app.
 superset workspaces open ws_…
 superset workspaces open ws_… --print
 ```
+
+`url` is the native deep link (`superset://v2-workspace/<id>`) and is what
+`--print` prints and what the command opens. `webUrl` is the public HTTPS
+handoff for the same workspace — see below.
 </Command>
+
+#### Sharing a workspace link over HTTPS
+
+Many systems (Linear, GitHub, email) only accept HTTP(S) links and reject
+`superset://`. `webUrl` is the supported link to publish in those places:
+
+```bash
+superset workspaces open ws_… --print --json | jq -r '.webUrl'
+# https://app.superset.sh/open/v2-workspace/<workspace-id>
+```
+
+That page needs no sign-in. It hands off to the native link above, offers an
+**Open Superset** button when the browser blocks the automatic attempt, and
+points at the download when the app isn't installed. It resolves nothing on its
+own: the desktop app still finds the workspace on the right host and still owns
+the missing-or-inaccessible workspace state.
+
+It carries the same session query params as the native link (`chatSessionId`,
+`terminalId`, `focusRequestId`) and drops anything else. Read `webUrl` rather
+than building the URL by hand, so integrations keep working if the route moves.
 
 #### Opening a specific session
 

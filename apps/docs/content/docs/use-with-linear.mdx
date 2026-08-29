@@ -149,3 +149,19 @@ In any macOS file dialog, press **⌘⇧.** to reveal hidden dot-folders, or
   accordingly. The `env` array in `coding-tools.json` is an allowlist: any
   `LINEAR_*` variable you read in the script must also be added there, or it
   won't be present in the script's environment.
+
+## Linking the workspace back into the issue
+
+Linear only accepts HTTP(S) links, so a `superset://` deep link can't be pasted
+into an issue or a comment. `workspaces open` returns a public HTTPS handoff
+URL as `webUrl` for exactly this:
+
+```bash
+link="$(superset workspaces open "$id" --print --json | jq -r '.webUrl')"
+# https://app.superset.sh/open/v2-workspace/<workspace-id>
+```
+
+Post that link on the issue and anyone who clicks it gets handed to their own
+desktop app. The page requires no sign-in and looks nothing up — it just hands
+off the workspace ID — so it also works from an email or a GitHub comment. Use
+`webUrl` rather than assembling the URL yourself.
