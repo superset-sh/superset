@@ -8,6 +8,7 @@ export const SUPPORTED_LOCALES = [
 	"es",
 	"de",
 	"pt-BR",
+	"it",
 ] as const;
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
@@ -26,6 +27,7 @@ export const LOCALE_LABELS: Record<SupportedLocale, string> = {
 	es: "Español",
 	de: "Deutsch",
 	"pt-BR": "Português (Brasil)",
+	it: "Italiano",
 };
 
 // Locales written right-to-left. Empty until RTL layout work is in scope; kept
