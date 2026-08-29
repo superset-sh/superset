@@ -21,6 +21,15 @@ if (!baseArg || routes.length === 0) {
 	process.exit(2);
 }
 const base = baseArg.replace(/\/$/, "");
+// Vercel Deployment Protection walls previews behind SSO, which this script
+// would otherwise sail past — a redirect is a legitimate pass for auth-gated
+// routes, so an SSO wall makes every check vacuous. When the bypass secret is
+// present, send it; when protection is on and no secret is available, an SSO
+// redirect at the root fails loudly instead of pretending to test.
+const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+const bypassHeaders: Record<string, string> = bypassSecret
+	? { "x-vercel-protection-bypass": bypassSecret }
+	: {};
 // --localized: also verify each route serves Japanese to a ja Accept-Language
 // request. Only meaningful for apps whose pages are translated server-side.
 const localized = routes.includes("--localized");
@@ -37,9 +46,25 @@ async function waitForReady(timeoutMs = 90_000) {
 	let lastDetail = "no attempt made";
 	while (Date.now() < deadline) {
 		try {
-			const res = await fetch(base, { redirect: "manual" });
+			const res = await fetch(base, {
+				headers: bypassHeaders,
+				redirect: "manual",
+			});
 			// A fresh alias serves 404 until it propagates, so anything except
-			// a real page (2xx) or an auth redirect (3xx) means "not yet".
+			// a real page (2xx) or an auth redirect (3xx) means "not yet". A
+			// Vercel SSO redirect is not an app auth redirect: it means every
+			// later check would be vacuous, so refuse to pretend to test.
+			if (
+				res.status >= 300 &&
+				res.status < 400 &&
+				res.headers.get("location")?.includes("vercel.com/sso-api")
+			) {
+				console.error(
+					`${base} is behind Vercel Deployment Protection and no ` +
+						"VERCEL_AUTOMATION_BYPASS_SECRET is set — checks would be vacuous.",
+				);
+				process.exit(1);
+			}
 			if (res.status < 400) return;
 			lastDetail = `HTTP ${res.status}`;
 		} catch (error) {
@@ -64,7 +89,7 @@ async function hitLocalized(route: string) {
 	let res: Response;
 	try {
 		res = await fetch(url, {
-			headers: { "Accept-Language": "ja" },
+			headers: { ...bypassHeaders, "Accept-Language": "ja" },
 			redirect: "manual",
 		});
 	} catch (error) {

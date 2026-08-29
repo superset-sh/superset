@@ -357,6 +357,8 @@ jobs:
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
       - name: Smoke test web routes
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           bun scripts/smoke-routes.ts "https://${{ env.WEB_ALIAS }}" /
 
@@ -478,6 +480,8 @@ jobs:
       # that returned 500 on every route still went green. MARKETING-67/68/69
       # reached production that way.
       - name: Smoke test marketing routes
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           bun scripts/smoke-routes.ts "https://${{ env.MARKETING_ALIAS }}" --localized \
             / /pricing /enterprise /download /join-us /community /contact \
@@ -604,6 +608,8 @@ jobs:
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
       - name: Smoke test admin routes
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           bun scripts/smoke-routes.ts "https://${{ env.ADMIN_ALIAS }}" /
 
@@ -691,6 +697,8 @@ jobs:
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
       - name: Smoke test docs routes
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           bun scripts/smoke-routes.ts "https://${{ env.DOCS_ALIAS }}" /
 
