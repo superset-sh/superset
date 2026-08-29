@@ -58,7 +58,9 @@ export function WorkspaceHandoff({
 				</a>
 			</div>
 
-			<code className="text-muted-foreground/70 bg-muted/50 max-w-full overflow-x-auto rounded-md px-3 py-2 font-mono text-xs whitespace-nowrap">
+			{/* Shown in full, not clipped: copying it by hand is the last resort
+			    when the button and the automatic attempt both fail. */}
+			<code className="text-muted-foreground/70 bg-muted/50 max-w-full rounded-md px-3 py-2 font-mono text-xs break-all">
 				{deepLink}
 			</code>
 		</div>
