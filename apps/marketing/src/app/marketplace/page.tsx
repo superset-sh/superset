@@ -35,8 +35,8 @@ const marketplaceLinks = [
 	},
 ] as const;
 
-export default function MarketplacePage() {
-	initServerI18n();
+export default async function MarketplacePage() {
+	await initServerI18n();
 
 	const { t } = useLingui();
 

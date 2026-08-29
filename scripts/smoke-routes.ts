@@ -21,6 +21,10 @@ if (!baseArg || routes.length === 0) {
 	process.exit(2);
 }
 const base = baseArg.replace(/\/$/, "");
+// --localized: also verify each route serves Japanese to a ja Accept-Language
+// request. Only meaningful for apps whose pages are translated server-side.
+const localized = routes.includes("--localized");
+if (localized) routes.splice(routes.indexOf("--localized"), 1);
 
 type Failure = { route: string; mode: string; detail: string };
 const failures: Failure[] = [];
@@ -45,6 +49,46 @@ async function waitForReady(timeoutMs = 90_000) {
 	}
 	console.error(`${base} never became reachable: ${lastDetail}`);
 	process.exit(1);
+}
+
+// Served-locale check: request the document as a Japanese browser would and
+// verify the server actually localized it. Two signals, both read from the
+// raw served HTML so client-side patch-up cannot mask a server regression:
+// the html lang attribute must be the resolved locale, and the page must
+// contain CJK text. Guards the failure mode where RSC seeding activates the
+// default locale and every visitor gets English (found in production
+// 2026-08-29 on 25 pages, invisible to status-code checks).
+const CJK = /[\u3040-\u30ff\u3400-\u9fff]/g;
+async function hitLocalized(route: string) {
+	const url = `${base}${route}`;
+	let res: Response;
+	try {
+		res = await fetch(url, {
+			headers: { "Accept-Language": "ja" },
+			redirect: "manual",
+		});
+	} catch (error) {
+		failures.push({
+			route,
+			mode: "ja",
+			detail: `request failed: ${String(error)}`,
+		});
+		return;
+	}
+	if (res.status >= 300) return; // redirects and errors are the plain pass's job
+	const body = await res.text();
+	const lang = body.match(/<html[^>]*\slang="([^"]*)"/)?.[1];
+	if (lang !== undefined && lang !== "ja") {
+		failures.push({ route, mode: "ja", detail: `served lang="${lang}"` });
+		return;
+	}
+	if ((body.match(CJK)?.length ?? 0) < 10) {
+		failures.push({
+			route,
+			mode: "ja",
+			detail: "no Japanese text in served HTML",
+		});
+	}
 }
 
 async function hit(route: string, mode: "document" | "rsc") {
@@ -88,6 +132,7 @@ await waitForReady();
 for (const route of routes) {
 	await hit(route, "document");
 	await hit(route, "rsc");
+	if (localized) await hitLocalized(route);
 	const bad = failures.filter((f) => f.route === route);
 	console.log(
 		`${bad.length === 0 ? "ok  " : "FAIL"} ${route}${bad.length ? `  ${bad.map((b) => `${b.mode}: ${b.detail}`).join("; ")}` : ""}`,

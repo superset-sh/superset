@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function StatsPage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const stats = await fetchStats({ period: "all" });
 	const range = stats?.range ? formatDayRange(stats.range) : null;

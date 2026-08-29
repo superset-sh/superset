@@ -45,7 +45,7 @@ function formatWeekDate(date: string): string {
 }
 
 export default async function StarChartPage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const { t } = useLingui();
 	const history = await getStarHistory();

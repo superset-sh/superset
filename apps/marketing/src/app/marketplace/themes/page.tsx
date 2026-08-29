@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function MarketplaceThemesPage() {
-	initServerI18n();
+export default async function MarketplaceThemesPage() {
+	await initServerI18n();
 
 	const { t } = useLingui();
 

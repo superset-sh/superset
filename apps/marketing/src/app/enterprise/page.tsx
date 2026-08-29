@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function EnterprisePage() {
-	initServerI18n();
+export default async function EnterprisePage() {
+	await initServerI18n();
 
 	const { t } = useLingui();
 

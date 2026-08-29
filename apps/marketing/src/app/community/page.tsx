@@ -113,7 +113,7 @@ const COMMUNITY_LINKS = [
 ];
 
 export default async function CommunityPage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const stars = await getGitHubStars();
 

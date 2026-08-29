@@ -25,7 +25,7 @@ interface PageProps {
 }
 
 export default async function ComparePageRoute({ params }: PageProps) {
-	initServerI18n();
+	await initServerI18n();
 
 	const { slug } = await params;
 	const page = getComparisonPage(slug);

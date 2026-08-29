@@ -28,8 +28,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function RoadmapPage() {
-	initServerI18n();
+export default async function RoadmapPage() {
+	await initServerI18n();
 
 	const company = COMPANY.NAME;
 

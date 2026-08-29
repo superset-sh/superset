@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogPage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const posts = getBlogPosts();
 

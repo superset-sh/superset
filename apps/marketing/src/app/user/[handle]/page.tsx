@@ -80,7 +80,7 @@ export async function generateMetadata({
 }
 
 export default async function UserProfilePage({ params }: PageProps) {
-	initServerI18n();
+	await initServerI18n();
 
 	const { t } = useLingui();
 	const { handle } = await params;

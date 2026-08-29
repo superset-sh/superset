@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function MarketplaceAgentsPage() {
-	initServerI18n();
+export default async function MarketplaceAgentsPage() {
+	await initServerI18n();
 
 	return (
 		<main className="min-h-screen">

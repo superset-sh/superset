@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function McpPage() {
-	initServerI18n();
+export default async function McpPage() {
+	await initServerI18n();
 
 	return (
 		<main className="relative min-h-screen">

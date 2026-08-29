@@ -7,8 +7,8 @@ import { getCategoryPage } from "@/lib/category";
 
 const SLUG = "parallel-coding-agents";
 
-export default function ParallelCodingAgentsPage() {
-	initServerI18n();
+export default async function ParallelCodingAgentsPage() {
+	await initServerI18n();
 
 	const page = getCategoryPage(SLUG);
 

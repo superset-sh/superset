@@ -18,8 +18,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function PricingPage() {
-	initServerI18n();
+export default async function PricingPage() {
+	await initServerI18n();
 
 	// JSON-LD is machine-facing, so it gets rendered strings rather than the
 	// message descriptors the UI components resolve through Lingui.

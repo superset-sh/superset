@@ -36,8 +36,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function Factory2026Page() {
-	initServerI18n();
+export default async function Factory2026Page() {
+	await initServerI18n();
 
 	return (
 		<main className="relative min-h-screen">
