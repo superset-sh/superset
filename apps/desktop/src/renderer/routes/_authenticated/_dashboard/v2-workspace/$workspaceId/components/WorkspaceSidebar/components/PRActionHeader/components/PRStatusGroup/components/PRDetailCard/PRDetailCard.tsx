@@ -1,7 +1,7 @@
 import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { formatRelativeTime } from "@superset/i18n/format";
 import { cn } from "@superset/ui/utils";
-import { formatDistanceToNow } from "date-fns";
 import {
 	LuArrowUpRight,
 	LuCircleCheck,
@@ -39,7 +39,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 	const statePillClass = stateLabelToPillClass(linkState);
 
 	const updatedRelative = pr.updatedAt
-		? formatDistanceToNow(new Date(pr.updatedAt), { addSuffix: true })
+		? formatRelativeTime(new Date(pr.updatedAt))
 		: null;
 
 	return (
