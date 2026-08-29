@@ -103,16 +103,16 @@ export const metadata: Metadata = {
 	manifest: "/manifest.json",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	initServerI18n();
+	const locale = await initServerI18n();
 
 	return (
 		<html
-			lang="en"
+			lang={locale}
 			className={`dark overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
 			suppressHydrationWarning
 		>

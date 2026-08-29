@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 	robots: { index: false },
 };
 
-export default function NotFound() {
-	initServerI18n();
+export default async function NotFound() {
+	await initServerI18n();
 
 	const { t } = useLingui();
 

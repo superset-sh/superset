@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
-import { CLIError, positional, string } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
@@ -8,6 +8,7 @@ import {
 	externalEntryPath,
 	resolveEntryPath,
 } from "./entryPath";
+import { registerWatch, watchTerminalId } from "./registerWatch";
 
 const VISIBILITIES = ["just_me", "org"] as const;
 
@@ -26,6 +27,9 @@ export default command({
 		),
 		workspace: string().desc(
 			"Workspace to publish into, by name or id (defaults to $SUPERSET_WORKSPACE_ID)",
+		),
+		noWatch: boolean().desc(
+			"Do not watch this page for new comments from this session",
 		),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -94,9 +98,41 @@ export default command({
 				? `\nOutside the workspace, so this page is keyed as "${entryPath}"`
 				: "";
 
+		const terminalId = watchTerminalId();
+		const organizationId = ctx.config.organizationId;
+		let watching = false;
+		let watchNote = "";
+
+		if (
+			!options.noWatch &&
+			workspaceId !== undefined &&
+			terminalId !== undefined &&
+			organizationId !== undefined
+		) {
+			try {
+				await registerWatch({
+					pageId: page.id,
+					slug: page.slug,
+					title: page.title,
+					workspaceId,
+					terminalId,
+					organizationId,
+					userJwt: ctx.bearer,
+					api: ctx.api,
+				});
+				watching = true;
+				watchNote =
+					"\nWatching for comments — they will be sent to this session";
+			} catch (error) {
+				watchNote = `\nNot watching for comments: ${
+					error instanceof Error ? error.message : "could not reach the host"
+				}`;
+			}
+		}
+
 		return {
-			data: page,
-			message: `Published "${page.title}" v${page.version}\n${page.url}${external}`,
+			data: { ...page, watching },
+			message: `Published "${page.title}" v${page.version}\n${page.url}${external}${watchNote}`,
 		};
 	},
 });

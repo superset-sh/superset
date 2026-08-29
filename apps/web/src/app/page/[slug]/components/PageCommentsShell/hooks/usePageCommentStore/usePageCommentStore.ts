@@ -24,11 +24,13 @@ function toThreads(rows: ServerThread[]): CommentThread[] {
 							offsetY: row.anchor.offsetY,
 						},
 						resolved: row.resolved,
+						version: row.version,
 						comments: row.comments.map((comment) => ({
 							id: comment.id,
 							body: comment.body,
 							authorName: comment.authorName,
 							authorImage: comment.authorImage,
+							authorKind: comment.authorKind,
 							createdAt: comment.createdAt.getTime(),
 						})),
 					},
@@ -46,7 +48,7 @@ export function usePageCommentStore({
 }): CommentStore {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const listOptions = trpc.pageComment.list.queryOptions({ pageId, version });
+	const listOptions = trpc.pageComment.list.queryOptions({ pageId });
 	const list = useQuery(listOptions);
 
 	const invalidate = useCallback(

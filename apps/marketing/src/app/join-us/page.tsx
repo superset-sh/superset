@@ -36,8 +36,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function JoinUsPage() {
-	initServerI18n();
+export default async function JoinUsPage() {
+	await initServerI18n();
 
 	return (
 		<main className="relative min-h-screen bg-background">

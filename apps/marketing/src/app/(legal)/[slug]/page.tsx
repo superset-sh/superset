@@ -19,7 +19,7 @@ function formatDate(date: string | Date): string {
 }
 
 export default async function LegalPage({ params }: PageProps) {
-	initServerI18n();
+	await initServerI18n();
 
 	const { slug } = await params;
 	const page = getLegalPage(slug);

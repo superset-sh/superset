@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function ContactPage() {
-	initServerI18n();
+export default async function ContactPage() {
+	await initServerI18n();
 
 	// Named locals so the paragraph extracts with `{supportEmail}` /
 	// `{foundersEmail}` instead of positional `{0}` / `{1}`.

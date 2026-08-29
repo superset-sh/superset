@@ -55,7 +55,7 @@ export async function generateMetadata({
 }
 
 export default async function ThemeDetailPage({ params }: PageProps) {
-	initServerI18n();
+	await initServerI18n();
 
 	const { slug } = await params;
 	const theme = getThemeListing(slug);

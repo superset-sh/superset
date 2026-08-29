@@ -1,7 +1,7 @@
 import { quoteShellToken } from "renderer/lib/argv";
 
 interface SwitchSignInLogin {
-	provider: "claude" | "codex";
+	agent: "claude" | "codex";
 	/** Config dir the login lives in; null for the system-default login. */
 	selection: string | null;
 }
@@ -17,7 +17,7 @@ interface SwitchSignInLogin {
  * `$()`, backticks, or `"` must not be interpreted as shell syntax.
  */
 export function switchSignInCommand(login: SwitchSignInLogin): string {
-	if (login.provider === "claude") {
+	if (login.agent === "claude") {
 		return login.selection === null
 			? "claude auth login"
 			: `CLAUDE_CONFIG_DIR=${quoteShellToken(login.selection)} claude auth login`;

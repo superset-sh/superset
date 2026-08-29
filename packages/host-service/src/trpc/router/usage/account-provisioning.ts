@@ -1,5 +1,5 @@
 /**
- * Keeps the selected provider accounts provisioned — see
+ * Keeps the selected agent accounts provisioned — see
  * packages/agent-setup/src/provider-profiles.ts for what that means. Split
  * from default-account.ts so the terminal's env-resolution path (loaded by
  * node --test) doesn't pull the whole agent-setup surface in.

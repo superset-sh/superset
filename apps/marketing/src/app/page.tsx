@@ -40,8 +40,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function Home() {
-	initServerI18n();
+export default async function Home() {
+	await initServerI18n();
 
 	return (
 		<main className="flex flex-col bg-background">

@@ -1,5 +1,5 @@
 {
-  "id": "f6761a06-4f43-4bed-8257-f69d0d950ece",
+  "id": "af0c54c2-a6d6-409f-af84-317b1fb8db8b",
   "prevId": "3110bfed-3a04-4e68-9f61-602c18362f26",
   "version": "7",
   "dialect": "postgresql",
@@ -4483,13 +4483,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tags": {
-          "name": "tags",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[\"automation\"]'::jsonb"
-        },
         "enabled": {
           "name": "enabled",
           "type": "boolean",
@@ -6096,6 +6089,18 @@
         "shared_version": {
           "name": "shared_version",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "watched_by_agent": {
+          "name": "watched_by_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "watch_heartbeat_at": {
+          "name": "watch_heartbeat_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },

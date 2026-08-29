@@ -54,7 +54,7 @@ describe("collectPiEntries", () => {
 		expect(scanned).toBe(1);
 		expect(out).toHaveLength(1);
 		expect(out[0]).toMatchObject({
-			provider: "omp",
+			agent: "omp",
 			model: "gpt-5.6",
 			cwd: "/tmp/proj",
 			sessionId: "abc",

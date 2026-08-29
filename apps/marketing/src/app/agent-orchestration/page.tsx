@@ -7,8 +7,8 @@ import { getCategoryPage } from "@/lib/category";
 
 const SLUG = "agent-orchestration";
 
-export default function AgentOrchestrationPage() {
-	initServerI18n();
+export default async function AgentOrchestrationPage() {
+	await initServerI18n();
 
 	const page = getCategoryPage(SLUG);
 

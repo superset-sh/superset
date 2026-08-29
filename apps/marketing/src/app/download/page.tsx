@@ -8,8 +8,8 @@ export const metadata: Metadata = {
 	robots: { index: false, follow: true },
 };
 
-export default function DownloadPage() {
-	initServerI18n();
+export default async function DownloadPage() {
+	await initServerI18n();
 
 	return <DownloadInterstitial />;
 }

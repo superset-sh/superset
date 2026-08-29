@@ -2,6 +2,7 @@ import { realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { discoverClaudeProfiles, discoverCodexHomes } from "../profiles";
+import { collectAgyEntries } from "./agy";
 import { collectCopilotEntries } from "./copilot";
 import { collectCursorEntries } from "./cursor";
 import { collectFxEntries } from "./fx";
@@ -103,13 +104,17 @@ export async function collectUsageEntries(
 		await parseCodexLogFile(file, cutoffMs, entries, sessionLabels);
 	}
 
-	// The remaining providers are independent of each other and of the two
+	// The remaining agents are independent of each other and of the two
 	// above; each contributes into its own array so concurrent pushes can't
-	// interleave, and one provider's failure never takes down the rest.
+	// interleave, and one agent's failure never takes down the rest.
 	let extraScannedFiles = 0;
 	const collectors: Array<{
 		run: (out: UsageLogEntry[]) => Promise<number | undefined>;
 	}> = [
+		{
+			run: (out: UsageLogEntry[]) =>
+				collectAgyEntries(cutoffMs, out, sessionLabels),
+		},
 		...grokHomes().map((grokHome) => ({
 			run: (out: UsageLogEntry[]) =>
 				collectGrokEntries(grokHome, cutoffMs, out, sessionLabels),

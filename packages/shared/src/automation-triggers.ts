@@ -462,59 +462,6 @@ type ScopeRequirement = {
 	when?: (config: TriggerConfigInput) => boolean;
 };
 
-// Display-only: the nouns and wide-open choices the "Specify at least one …"
-// sentence is built from. Keyed rather than inlined so the sentence stays one
-// catalog message with placeholders instead of a per-provider copy.
-function scopeNounLabel(noun: ScopeNoun): string {
-	switch (noun) {
-		case "repository":
-			return i18n._({
-				id: "shared.automationTriggers.noun.repository",
-				message: "repository",
-			});
-		case "person":
-			return i18n._({
-				id: "shared.automationTriggers.noun.person",
-				message: "person",
-			});
-		case "channel":
-			return i18n._({
-				id: "shared.automationTriggers.noun.channel",
-				message: "channel",
-			});
-		case "reaction":
-			return i18n._({
-				id: "shared.automationTriggers.noun.reaction",
-				message: "reaction",
-			});
-		case "dataSource":
-			return i18n._({
-				id: "shared.automationTriggers.noun.dataSource",
-				message: "data source",
-			});
-		case "team":
-			return i18n._({
-				id: "shared.automationTriggers.noun.team",
-				message: "team",
-			});
-		case "project":
-			return i18n._({
-				id: "shared.automationTriggers.noun.project",
-				message: "project",
-			});
-		case "calendar":
-			return i18n._({
-				id: "shared.automationTriggers.noun.calendar",
-				message: "calendar",
-			});
-		case "sender":
-			return i18n._({
-				id: "shared.automationTriggers.noun.sender",
-				message: "sender",
-			});
-	}
-}
-
 function scopeChoiceLabel(choice: ScopeChoice): string {
 	switch (choice) {
 		case "anyone":
@@ -621,19 +568,25 @@ export function describeTriggerProblems(
 			problems.push({
 				index,
 				field: rule.field,
+				// The noun travels as a select key, not an interpolated label:
+				// "at least one {noun}" needs an article and case that agree with
+				// the noun, which no language with grammatical gender can produce
+				// from a placeholder. Each locale inflects every branch itself.
 				message: rule.orChoose
 					? i18n._({
-							id: "shared.automationTriggers.specifyScopeOrChoose",
-							message: "Specify at least one {noun}, or choose {choice}.",
+							id: "shared.automationTriggers.scopeRequiredOrChoose",
+							message:
+								"{noun, select, person {Specify at least one person, or choose {choice}.} sender {Specify at least one sender, or choose {choice}.} other {Specify at least one entry, or choose {choice}.}}",
 							values: {
-								noun: scopeNounLabel(rule.noun),
+								noun: rule.noun,
 								choice: scopeChoiceLabel(rule.orChoose),
 							},
 						})
 					: i18n._({
-							id: "shared.automationTriggers.specifyScope",
-							message: "Specify at least one {noun}.",
-							values: { noun: scopeNounLabel(rule.noun) },
+							id: "shared.automationTriggers.scopeRequired",
+							message:
+								"{noun, select, repository {Specify at least one repository.} channel {Specify at least one channel.} reaction {Specify at least one reaction.} dataSource {Specify at least one data source.} team {Specify at least one team.} project {Specify at least one project.} calendar {Specify at least one calendar.} other {Specify at least one entry.}}",
+							values: { noun: rule.noun },
 						}),
 			});
 		}

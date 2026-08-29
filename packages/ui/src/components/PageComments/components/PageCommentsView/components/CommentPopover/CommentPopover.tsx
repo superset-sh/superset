@@ -2,6 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
+	Bot,
 	Check,
 	Loader2,
 	Pencil,
@@ -25,6 +26,7 @@ import {
 	type PageComment,
 	useComments,
 } from "../../../../providers/CommentProvider";
+import { commentAuthor } from "../../../../utils/commentAuthor";
 import { relativeTime } from "../../../../utils/relativeTime";
 import type { PinPoint } from "../../utils/pinLayout";
 import { popoverPlacement } from "./utils/popoverLayout";
@@ -150,14 +152,21 @@ export function CommentPopover({
 						>
 							<div className="flex h-7 items-center gap-2.5">
 								<Avatar className="size-7">
-									<AvatarImage src={comment.authorImage ?? undefined} alt="" />
+									<AvatarImage
+										src={commentAuthor(comment).image ?? undefined}
+										alt=""
+									/>
 									<AvatarFallback className="text-[11px]">
-										{initialsOf(comment.authorName)}
+										{commentAuthor(comment).isAgent ? (
+											<Bot className="size-3.5" />
+										) : (
+											initialsOf(commentAuthor(comment).name)
+										)}
 									</AvatarFallback>
 								</Avatar>
 								<div className="flex min-w-0 items-baseline gap-2">
 									<span className="truncate font-medium text-sm">
-										{comment.authorName}
+										{commentAuthor(comment).name}
 									</span>
 									<span className="truncate text-muted-foreground text-xs">
 										{relativeTime(comment.createdAt)}

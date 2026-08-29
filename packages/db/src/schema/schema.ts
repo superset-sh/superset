@@ -1234,6 +1234,8 @@ export const pages = pgTable(
 		description: text(),
 		visibility: pageVisibility().notNull().default("just_me"),
 		sharedVersion: integer("shared_version"),
+		watchedByAgent: text("watched_by_agent"),
+		watchHeartbeatAt: timestamp("watch_heartbeat_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),

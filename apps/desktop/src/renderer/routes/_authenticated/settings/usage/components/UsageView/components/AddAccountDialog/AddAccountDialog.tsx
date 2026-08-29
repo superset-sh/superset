@@ -20,9 +20,9 @@ import { useHostUsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useSetDefaultUsageAccount } from "../../../../hooks/useSetDefaultUsageAccount";
 import { switchSignInCommand } from "../../utils/switchSignInCommand";
 
-type Provider = "claude" | "codex";
+type Agent = "claude" | "codex";
 
-const PROVIDER_LABELS: Record<Provider, string> = {
+const AGENT_LABELS: Record<Agent, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 };
@@ -30,7 +30,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
 /** The login being re-signed by "Switch sign-in": a profile dir, or the
  * system default when selection is null. */
 export interface SwitchSignInTarget {
-	provider: Provider;
+	agent: Agent;
 	selection: string | null;
 	/** Display name for the dialog copy ("~/.claude-2", an email, …). */
 	label: string;
@@ -47,8 +47,8 @@ function slugify(name: string): string {
 
 // $HOME stays unexpanded on purpose — the user's shell resolves it, so the
 // same command works over SSH to a remote host.
-function addAccountCommand(provider: Provider, slug: string): string {
-	if (provider === "claude") {
+function addAccountCommand(agent: Agent, slug: string): string {
+	if (agent === "claude") {
 		return `CLAUDE_CONFIG_DIR="$HOME/.claude-${slug}" claude auth login`;
 	}
 	return `mkdir -p "$HOME/.codex-${slug}" && CODEX_HOME="$HOME/.codex-${slug}" codex login`;
@@ -56,11 +56,11 @@ function addAccountCommand(provider: Provider, slug: string): string {
 
 /** The sign-in that landed after the dialog opened, if any. */
 function findNewLogin(
-	provider: Provider,
+	agent: Agent,
 	baseline: UsageLogins,
 	current: UsageLogins,
 ): { selection: string; label: string } | null {
-	if (provider === "claude") {
+	if (agent === "claude") {
 		const known = new Set(baseline.claude.map((entry) => entry.configDir));
 		const fresh = current.claude.find((entry) => !known.has(entry.configDir));
 		return fresh
@@ -78,7 +78,7 @@ function findSignInChange(
 	baseline: UsageLogins,
 	current: UsageLogins,
 ): { label: string } | null {
-	if (target.provider === "claude") {
+	if (target.agent === "claude") {
 		if (target.selection === null) {
 			return current.claudeDefaultEmail &&
 				current.claudeDefaultEmail !== baseline.claudeDefaultEmail
@@ -115,19 +115,22 @@ interface AddAccountDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	hostUrl: string | null;
-	/** Provider being added; the per-provider Add buttons preselect it. */
-	provider: Provider;
+	/** Agent being added; the per-agent Add buttons preselect it. */
+	agent: Agent;
 	/** Called once when the new sign-in is detected, to refresh quota. */
 	onAccountAdded: () => void;
+	/** Called after "Use for new agents" makes the added account the default;
+	 * the owner toasts, or offers to restart running agents onto it. */
+	onDefaultSwitched: (agent: Agent, accountLabel: string) => void;
 	/** When set, the dialog re-signs this existing login instead of adding a
 	 * separate profile. */
 	switchTarget?: SwitchSignInTarget | null;
 }
 
 /**
- * Two credential-free sign-in flows: adding another provider account as a
+ * Two credential-free sign-in flows: adding another agent account as a
  * separate profile dir, or re-signing an existing login (a profile, or the
- * system default). Either way the user runs the provider's own login in a
+ * system default). Either way the user runs the agent's own login in a
  * terminal and we only watch local state for the result — Superset never
  * handles the credentials (see usage/default-account.ts).
  */
@@ -135,12 +138,13 @@ export function AddAccountDialog({
 	open,
 	onOpenChange,
 	hostUrl,
-	provider: addProvider,
+	agent: addAgent,
 	onAccountAdded,
+	onDefaultSwitched,
 	switchTarget = null,
 }: AddAccountDialogProps) {
 	const { t } = useLingui();
-	const provider = switchTarget?.provider ?? addProvider;
+	const agent = switchTarget?.agent ?? addAgent;
 	const [name, setName] = useState("work");
 	const [copied, setCopied] = useState(false);
 	const [found, setFound] = useState<{
@@ -176,7 +180,7 @@ export function AddAccountDialog({
 			// wizard).
 			if (!hostUrl) return;
 			void getHostServiceClientByUrl(hostUrl)
-				.usage.prepareAccount.mutate({ provider, selection })
+				.usage.prepareAccount.mutate({ agent, selection })
 				.catch(() => {});
 		};
 
@@ -194,7 +198,7 @@ export function AddAccountDialog({
 			}
 			return;
 		}
-		const fresh = findNewLogin(provider, baselineRef.current, logins);
+		const fresh = findNewLogin(agent, baselineRef.current, logins);
 		if (fresh) {
 			setFound(fresh);
 			onAccountAdded();
@@ -203,7 +207,7 @@ export function AddAccountDialog({
 	}, [
 		open,
 		loginsQuery.data,
-		provider,
+		agent,
 		switchTarget,
 		found,
 		onAccountAdded,
@@ -213,7 +217,7 @@ export function AddAccountDialog({
 	const slug = slugify(name);
 	const command = switchTarget
 		? switchSignInCommand(switchTarget)
-		: addAccountCommand(provider, slug);
+		: addAccountCommand(agent, slug);
 
 	const copyCommand = () => {
 		void navigator.clipboard.writeText(command).then(() => {
@@ -226,7 +230,7 @@ export function AddAccountDialog({
 		? switchTarget.selection === null
 			? t({
 					id: "settings.usage.addAccount.switchDefaultDescription",
-					message: `Sign the system-default ${PROVIDER_LABELS[switchTarget.provider]} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected.`,
+					message: `Sign the system-default ${AGENT_LABELS[switchTarget.agent]} login into a different account. It replaces the current default sign-in on this machine; profiles and running agents are unaffected.`,
 				})
 			: t({
 					id: "settings.usage.addAccount.switchProfileDescription",
@@ -245,7 +249,7 @@ export function AddAccountDialog({
 							</Trans>
 						) : (
 							<Trans id="settings.usage.addAccount.addTitle">
-								Add {PROVIDER_LABELS[provider]} account
+								Add {AGENT_LABELS[agent]} account
 							</Trans>
 						)}
 					</DialogTitle>
@@ -283,23 +287,10 @@ export function AddAccountDialog({
 									disabled={setDefault.isPending}
 									onClick={() => {
 										setDefault.mutate(
-											{ provider, selection: found.selection },
+											{ agent, selection: found.selection },
 											{
 												onSuccess: () => {
-													const foundLabel = found.label;
-													toast.success(
-														t({
-															id: "settings.usage.addAccount.defaultSetToast",
-															message: `New agents will use ${foundLabel}.`,
-														}),
-														{
-															description: t({
-																id: "settings.usage.addAccount.defaultSetDescription",
-																message:
-																	"Running sessions keep their current account — restart them to switch.",
-															}),
-														},
-													);
+													onDefaultSwitched(agent, found.label);
 													onOpenChange(false);
 												},
 												onError: (error) => toast.error(errorMessage(error)),

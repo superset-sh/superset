@@ -14,22 +14,20 @@ import { UsageModelTable } from "./components/UsageModelTable";
 import { UsageProjectBars } from "./components/UsageProjectBars";
 import type { HistoryMetric } from "./constants";
 import {
-	PROVIDER_CHART_CONFIG,
-	PROVIDER_ICON_KEY,
-	PROVIDER_ORDER,
+	AGENT_CHART_CONFIG,
+	AGENT_ICON_KEY,
+	AGENT_ORDER,
 	RANGE_OPTIONS,
 } from "./constants";
 import { formatDayLabel, formatTokens, formatUsd } from "./utils/formatUsage";
 
-type Provider = (typeof PROVIDER_ORDER)[number];
+type Agent = (typeof AGENT_ORDER)[number];
 
 export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 	const { t } = useLingui();
 	const [days, setDays] = useState<number>(30);
 	const [metric, setMetric] = useState<HistoryMetric>("usd");
-	const [hiddenProviders, setHiddenProviders] = useState<Set<Provider>>(
-		new Set(),
-	);
+	const [hiddenAgents, setHiddenAgents] = useState<Set<Agent>>(new Set());
 	const [selectedDay, setSelectedDay] = useState<string | null>(null);
 	const historyQuery = useHostUsageHistory(hostUrl, days);
 	const history = historyQuery.data ?? null;
@@ -42,37 +40,35 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 			? (history.buckets.find((bucket) => bucket.day === selectedDay) ?? null)
 			: null;
 
-	// Only providers with usage in range get a share row — nine zero rows
+	// Only agents with usage in range get a share row — nine zero rows
 	// would drown the two that matter. No usage at all: show the classic two.
-	const activeProviders = (() => {
-		const withUsage = PROVIDER_ORDER.filter((provider) =>
-			history?.buckets.some((bucket) => bucket.providers[provider]),
+	const activeAgents = (() => {
+		const withUsage = AGENT_ORDER.filter((agent) =>
+			history?.buckets.some((bucket) => bucket.agents[agent]),
 		);
 		return withUsage.length > 0
 			? withUsage
-			: (["claude", "codex"] satisfies Provider[]);
+			: (["claude", "codex"] satisfies Agent[]);
 	})();
 
 	// A range switch can leave every active series hidden by stale toggles —
 	// ignore the stored hides then, rather than render an empty chart.
-	const effectiveHidden = activeProviders.some(
-		(provider) => !hiddenProviders.has(provider),
-	)
-		? hiddenProviders
-		: new Set<Provider>();
+	const effectiveHidden = activeAgents.some((agent) => !hiddenAgents.has(agent))
+		? hiddenAgents
+		: new Set<Agent>();
 
-	const toggleProvider = (provider: Provider) => {
-		setHiddenProviders((previous) => {
+	const toggleAgent = (agent: Agent) => {
+		setHiddenAgents((previous) => {
 			const next = new Set(previous);
-			if (next.has(provider)) {
-				next.delete(provider);
+			if (next.has(agent)) {
+				next.delete(agent);
 			} else {
 				// Never hide the last visible series — an empty chart reads as
-				// broken. Count only active providers; hidden inactive ones don't.
-				const visibleActive = activeProviders.filter(
+				// broken. Count only active agents; hidden inactive ones don't.
+				const visibleActive = activeAgents.filter(
 					(active) => !next.has(active),
 				).length;
-				if (visibleActive > 1) next.add(provider);
+				if (visibleActive > 1) next.add(agent);
 			}
 			return next;
 		});
@@ -172,10 +168,10 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 								)}
 							</div>
 							<div className="flex flex-col gap-1.5">
-								{activeProviders.map((provider) => {
+								{activeAgents.map((agent) => {
 									const totalsFor = history.buckets.reduce(
 										(acc, bucket) => {
-											const slot = bucket.providers[provider];
+											const slot = bucket.agents[agent];
 											acc.usd += slot?.usd ?? 0;
 											acc.tokens += slot?.tokens ?? 0;
 											return acc;
@@ -191,16 +187,13 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											? (metric === "usd" ? totalsFor.usd : totalsFor.tokens) /
 												denominator
 											: 0;
-									const hidden = effectiveHidden.has(provider);
-									const icon = getPresetIcon(
-										PROVIDER_ICON_KEY[provider],
-										isDark,
-									);
+									const hidden = effectiveHidden.has(agent);
+									const icon = getPresetIcon(AGENT_ICON_KEY[agent], isDark);
 									return (
 										<button
-											key={provider}
+											key={agent}
 											type="button"
-											onClick={() => toggleProvider(provider)}
+											onClick={() => toggleAgent(agent)}
 											title={
 												hidden
 													? t({
@@ -223,14 +216,14 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 													hidden && "opacity-40",
 												)}
 												style={{
-													background: PROVIDER_CHART_CONFIG[provider].color,
+													background: AGENT_CHART_CONFIG[agent].color,
 												}}
 											/>
 											{icon && (
 												<img src={icon} alt="" className="size-3.5 shrink-0" />
 											)}
 											<span className="min-w-0 truncate">
-												{PROVIDER_CHART_CONFIG[provider].label}
+												{AGENT_CHART_CONFIG[agent].label}
 											</span>
 											<span className="ml-auto shrink-0 tabular-nums">
 												{metric === "usd"
@@ -262,29 +255,26 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 											<LuX className="size-3" />
 										</button>
 									</div>
-									{activeProviders.map((provider) => {
-										const slot = selectedBucket.providers[provider];
+									{activeAgents.map((agent) => {
+										const slot = selectedBucket.agents[agent];
 										if (!slot) return null;
-										const icon = getPresetIcon(
-											PROVIDER_ICON_KEY[provider],
-											isDark,
-										);
+										const icon = getPresetIcon(AGENT_ICON_KEY[agent], isDark);
 										return (
 											<div
-												key={provider}
+												key={agent}
 												className="flex items-center gap-1.5 tabular-nums"
 											>
 												<span
 													className="size-1.5 rounded-[2px]"
 													style={{
-														background: PROVIDER_CHART_CONFIG[provider].color,
+														background: AGENT_CHART_CONFIG[agent].color,
 													}}
 												/>
 												{icon && (
 													<img src={icon} alt="" className="size-3 shrink-0" />
 												)}
 												<span className="text-muted-foreground">
-													{PROVIDER_CHART_CONFIG[provider].label}
+													{AGENT_CHART_CONFIG[agent].label}
 												</span>
 												<span className="ml-auto">
 													{formatUsd(slot.usd)} · {formatTokens(slot.tokens)}
@@ -302,7 +292,7 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 						<UsageAreaChart
 							history={history}
 							metric={metric}
-							hiddenProviders={effectiveHidden}
+							hiddenAgents={effectiveHidden}
 							selectedDay={selectedDay}
 							onSelectDay={setSelectedDay}
 						/>

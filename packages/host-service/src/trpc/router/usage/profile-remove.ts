@@ -1,5 +1,5 @@
 /**
- * Deletes a secondary provider profile: its dir and (Claude, macOS) its
+ * Deletes a secondary agent profile: its dir and (Claude, macOS) its
  * scoped keychain items, so no orphaned credentials linger. The system
  * default homes are never removable — the guards here are belt to the
  * router's braces (which only accepts currently discovered profiles).

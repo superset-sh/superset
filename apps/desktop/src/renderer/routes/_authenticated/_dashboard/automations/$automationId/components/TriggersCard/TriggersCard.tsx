@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro";
+import { formatRelativeTime } from "@superset/i18n/format";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import {
 	formatDateTimeInTimezone,
@@ -6,7 +7,6 @@ import {
 } from "@superset/shared/rrule";
 import type { RouterOutputs } from "@superset/trpc";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { formatDistanceStrict } from "date-fns";
 import { useMemo } from "react";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import type { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -114,7 +114,7 @@ export function TriggersCard({
 								Would run
 							</Trans>
 						)}{" "}
-						{formatDistanceStrict(run.at, new Date(), { addSuffix: true })}
+						{formatRelativeTime(run.at)}
 					</span>
 				</TooltipTrigger>
 				<TooltipContent side="right">
@@ -137,68 +137,63 @@ export function TriggersCard({
 				readOnly={readOnly}
 			/>
 			<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
-				<span>
-					<Trans id="dashboard.automations.triggersCard.inProject">in</Trans>
-				</span>
-				<ProjectPicker
-					className={SCOPE_CHIP}
-					selectedProject={selectedProject}
-					sessionSelected={automation.v2ProjectId === null}
-					recentProjects={recentProjects}
-					disabled={readOnly}
-					onSelectProject={(v2ProjectId) => onUpdate({ v2ProjectId })}
-				/>
-				<span>
-					<Trans id="dashboard.automations.triggersCard.onDevice">on</Trans>
-				</span>
-				<DevicePicker
-					className={SCOPE_CHIP}
-					hostId={hostId}
-					showLocalOnlineState
-					disabled={readOnly}
-					onSelectHostId={(nextHostId) =>
-						onUpdate({ targetHostId: nextHostId })
-					}
-				/>
-				<span>
-					<Trans id="dashboard.automations.triggersCard.usingWorkspace">
-						using
-					</Trans>
-				</span>
-				<WorkspacePicker
-					className={SCOPE_CHIP}
-					hostId={hostId}
-					projectId={automation.v2ProjectId}
-					value={automation.v2WorkspaceId}
-					disabled={readOnly}
-					onChange={(v2WorkspaceId) =>
-						onUpdate({
-							v2WorkspaceId,
-							// Denormalized pin: the picker is scoped to this host/project,
-							// so send both — the cloud stores them without a
-							// workspace-registry lookup. A null project means the pin is a
-							// session workspace.
-							...(v2WorkspaceId && hostId
-								? {
-										targetHostId: hostId,
-										v2ProjectId: automation.v2ProjectId,
-									}
-								: {}),
-						})
-					}
-				/>
-				<span>
-					<Trans id="dashboard.automations.triggersCard.taggedWith">
-						tagged
-					</Trans>
-				</span>
-				<AutomationTagsPicker
-					className={SCOPE_CHIP}
-					tags={automation.tags}
-					projectId={automation.v2ProjectId}
-					disabled={readOnly}
-					onChange={(tags) => onUpdate({ tags })}
-				/>
+				{/* One message, pickers as placeholders: bare "in"/"on"/"using"
+				    fragments cannot be translated into case-marking or verb-final
+				    languages; a whole sentence lets each locale reorder the chips. */}
+				<Trans id="dashboard.automations.triggersCard.scopeSentence">
+					<span>in</span>{" "}
+					<ProjectPicker
+						className={SCOPE_CHIP}
+						selectedProject={selectedProject}
+						sessionSelected={automation.v2ProjectId === null}
+						recentProjects={recentProjects}
+						disabled={readOnly}
+						onSelectProject={(v2ProjectId) => onUpdate({ v2ProjectId })}
+					/>{" "}
+					<span>on</span>{" "}
+					<DevicePicker
+						className={SCOPE_CHIP}
+						hostId={hostId}
+						showLocalOnlineState
+						disabled={readOnly}
+						onSelectHostId={(nextHostId) =>
+							onUpdate({ targetHostId: nextHostId })
+						}
+					/>{" "}
+					<span>using</span>{" "}
+					<WorkspacePicker
+						className={SCOPE_CHIP}
+						hostId={hostId}
+						projectId={automation.v2ProjectId}
+						value={automation.v2WorkspaceId}
+						disabled={readOnly}
+						onChange={(v2WorkspaceId) =>
+							onUpdate({
+								v2WorkspaceId,
+								// Denormalized pin: the picker is scoped to this host/project,
+								// so send both — the cloud stores them without a
+								// workspace-registry lookup. A null project means the pin is a
+								// session workspace.
+								...(v2WorkspaceId && hostId
+									? {
+											targetHostId: hostId,
+											v2ProjectId: automation.v2ProjectId,
+										}
+									: {}),
+							})
+						}
+					/>
+					{" "}
+					<span>tagged</span>{" "}
+					<AutomationTagsPicker
+						className={SCOPE_CHIP}
+						tags={automation.tags}
+						projectId={automation.v2ProjectId}
+						disabled={readOnly}
+						onChange={(tags) => onUpdate({ tags })}
+					/>
+				</Trans>
+
 			</div>
 			<RelayOfflineNotice hostId={hostId} className="mt-1" />
 		</div>

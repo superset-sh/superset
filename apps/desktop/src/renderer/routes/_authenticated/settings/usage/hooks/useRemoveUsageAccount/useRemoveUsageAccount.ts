@@ -3,14 +3,14 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { HOST_USAGE_QUOTA_QUERY_KEY } from "../useHostUsageQuota";
 
 /**
- * Deletes a secondary provider profile (dir + scoped keychain items on the
+ * Deletes a secondary agent profile (dir + scoped keychain items on the
  * host). The system default is never removable — the host rejects it.
  */
 export function useRemoveUsageAccount(hostUrl: string | null) {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: async (input: {
-			provider: "claude" | "codex";
+			agent: "claude" | "codex";
 			selection: string;
 		}) => {
 			if (!hostUrl) throw new Error("No host connection.");

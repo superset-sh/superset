@@ -36,8 +36,8 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function TeamPage() {
-	initServerI18n();
+export default async function TeamPage() {
+	await initServerI18n();
 
 	const { t } = useLingui();
 	const people = getAllPeople();

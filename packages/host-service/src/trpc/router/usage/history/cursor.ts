@@ -162,7 +162,7 @@ export function cursorEventsToEntries(
 				? cents / 100
 				: undefined;
 		entries.push({
-			provider: "cursor",
+			agent: "cursor",
 			model: event.model || "unknown",
 			timestampMs,
 			cwd: null,
@@ -247,7 +247,7 @@ function readChatTitle(dbPath: string): string | null {
 
 /**
  * Fetches and appends cursor entries. Network/auth failures are the caller's
- * to swallow — cursor must never take the local providers down with it.
+ * to swallow — cursor must never take the local agents down with it.
  */
 export async function collectCursorEntries(
 	cutoffMs: number,

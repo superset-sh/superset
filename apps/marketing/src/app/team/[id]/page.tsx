@@ -64,7 +64,7 @@ function PersonJsonLd({
 }
 
 export default async function TeamMemberPage({ params }: PageProps) {
-	initServerI18n();
+	await initServerI18n();
 
 	const { id } = await params;
 	const person = getPersonById(id);

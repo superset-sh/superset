@@ -50,7 +50,7 @@ export function copilotRowsToEntries(
 			sessionLabels.set(sessionId, row.summary);
 		}
 		out.push({
-			provider: "copilot",
+			agent: "copilot",
 			model: row.model || "unknown",
 			timestampMs,
 			cwd: row.cwd ?? null,

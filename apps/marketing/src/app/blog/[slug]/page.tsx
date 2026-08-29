@@ -22,7 +22,7 @@ interface PageProps {
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-	initServerI18n();
+	await initServerI18n();
 
 	const { slug } = await params;
 	const post = getBlogPost(slug);

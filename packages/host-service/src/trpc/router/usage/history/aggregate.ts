@@ -1,6 +1,7 @@
 import { basename } from "node:path";
-import type { UsageProvider } from "../types";
+import type { ModelProvider, UsageAgent } from "../types";
 import { collectUsageEntries } from "./entries";
+import { inferModelProvider } from "./model-provider";
 import type { UsageLogEntry } from "./parse";
 import {
 	cacheSavingsUsd,
@@ -12,13 +13,14 @@ import {
 export interface UsageDailyBucket {
 	/** Local calendar day, `YYYY-MM-DD` in the host's timezone. */
 	day: string;
-	providers: Partial<Record<UsageProvider, { usd: number; tokens: number }>>;
+	agents: Partial<Record<UsageAgent, { usd: number; tokens: number }>>;
 	usd: number;
 	tokens: number;
 }
 
 export interface UsageModelBreakdown {
-	provider: UsageProvider;
+	agent: UsageAgent;
+	modelProvider: ModelProvider;
 	model: string;
 	usd: number;
 	tokens: number;
@@ -49,7 +51,7 @@ export interface UsageSessionBreakdown {
 	id: string;
 	/** First user prompt of the session, when one was found. */
 	label: string | null;
-	provider: UsageProvider;
+	agent: UsageAgent;
 	usd: number;
 	tokens: number;
 	lastMs: number;
@@ -67,7 +69,7 @@ export interface UsageDrilldownEntry {
 	/** Cross-breakdown: models for a workspace, workspaces for a model. */
 	breakdown: Array<{
 		label: string;
-		provider: UsageProvider;
+		agent: UsageAgent;
 		usd: number;
 		tokens: number;
 	}>;
@@ -82,7 +84,7 @@ export interface UsageHistory {
 	buckets: UsageDailyBucket[];
 	models: UsageModelBreakdown[];
 	projects: UsageProjectBreakdown[];
-	/** Drilldown cubes, keyed by project label / `provider|model`. Bounded to
+	/** Drilldown cubes, keyed by project label / `agent|model`. Bounded to
 	 * the top projects by cost so the payload stays small. */
 	projectDetails: Record<string, UsageDrilldownEntry>;
 	modelDetails: Record<string, UsageDrilldownEntry>;
@@ -185,16 +187,16 @@ export async function computeUsageHistory(
 	const projectDays = new Map<string, Map<string, Slice>>();
 	const projectModels = new Map<
 		string,
-		Map<string, Slice & { provider: UsageProvider }>
+		Map<string, Slice & { agent: UsageAgent }>
 	>();
 	const modelDays = new Map<string, Map<string, Slice>>();
 	const modelProjects = new Map<
 		string,
-		Map<string, Slice & { provider: UsageProvider }>
+		Map<string, Slice & { agent: UsageAgent }>
 	>();
 	const projectSessions = new Map<
 		string,
-		Map<string, Slice & { provider: UsageProvider; lastMs: number }>
+		Map<string, Slice & { agent: UsageAgent; lastMs: number }>
 	>();
 	const bump = <K>(
 		map: Map<K, Slice>,
@@ -232,7 +234,11 @@ export async function computeUsageHistory(
 	};
 
 	for (const entry of entries) {
-		const rate = matchModelRate(entry.provider, entry.model);
+		const rate = matchModelRate(
+			entry.agent,
+			entry.model,
+			entry.uncachedInput + entry.cachedInput,
+		);
 		// A harness-reported real cost beats the API-list-rate estimate, and an
 		// entry priced by its own harness is never "approximate".
 		const estimated = entry.costUsd === undefined;
@@ -242,24 +248,25 @@ export async function computeUsageHistory(
 		const day = dayKey(entry.timestampMs);
 		let bucket = bucketsByDay.get(day);
 		if (!bucket) {
-			bucket = { day, providers: {}, usd: 0, tokens: 0 };
+			bucket = { day, agents: {}, usd: 0, tokens: 0 };
 			bucketsByDay.set(day, bucket);
 		}
-		let providerSlot = bucket.providers[entry.provider];
-		if (!providerSlot) {
-			providerSlot = { usd: 0, tokens: 0 };
-			bucket.providers[entry.provider] = providerSlot;
+		let agentSlot = bucket.agents[entry.agent];
+		if (!agentSlot) {
+			agentSlot = { usd: 0, tokens: 0 };
+			bucket.agents[entry.agent] = agentSlot;
 		}
-		providerSlot.usd += usd;
-		providerSlot.tokens += tokens;
+		agentSlot.usd += usd;
+		agentSlot.tokens += tokens;
 		bucket.usd += usd;
 		bucket.tokens += tokens;
 
-		const modelKey = `${entry.provider}|${entry.model}`;
+		const modelKey = `${entry.agent}|${entry.model}`;
 		let model = modelsByKey.get(modelKey);
 		if (!model) {
 			model = {
-				provider: entry.provider,
+				agent: entry.agent,
+				modelProvider: inferModelProvider(entry.agent, entry.model),
 				model: entry.model,
 				usd: 0,
 				tokens: 0,
@@ -289,22 +296,22 @@ export async function computeUsageHistory(
 				modelKey,
 				usd,
 				tokens,
-			) as Slice & { provider: UsageProvider };
-			modelSlice.provider = entry.provider;
+			) as Slice & { agent: UsageAgent };
+			modelSlice.agent = entry.agent;
 			const projectSlice = bump(
 				nested(modelProjects, modelKey),
 				label,
 				usd,
 				tokens,
-			) as Slice & { provider: UsageProvider };
-			projectSlice.provider = entry.provider;
+			) as Slice & { agent: UsageAgent };
+			projectSlice.agent = entry.agent;
 			const sessionSlice = bump(
 				nested(projectSessions, label),
 				entry.sessionId,
 				usd,
 				tokens,
-			) as Slice & { provider: UsageProvider; lastMs: number };
-			sessionSlice.provider = entry.provider;
+			) as Slice & { agent: UsageAgent; lastMs: number };
+			sessionSlice.agent = entry.agent;
 			sessionSlice.lastMs = Math.max(
 				sessionSlice.lastMs ?? 0,
 				entry.timestampMs,
@@ -334,7 +341,7 @@ export async function computeUsageHistory(
 		date.setDate(date.getDate() + i);
 		const key = dayKey(date.getTime());
 		buckets.push(
-			bucketsByDay.get(key) ?? { day: key, providers: {}, usd: 0, tokens: 0 },
+			bucketsByDay.get(key) ?? { day: key, agents: {}, usd: 0, tokens: 0 },
 		);
 	}
 
@@ -348,19 +355,19 @@ export async function computeUsageHistory(
 	const TOP_PROJECT_DETAILS = 24;
 	const buildDetail = (
 		dayMap: Map<string, Slice> | undefined,
-		crossMap: Map<string, Slice & { provider: UsageProvider }> | undefined,
+		crossMap: Map<string, Slice & { agent: UsageAgent }> | undefined,
 	): UsageDrilldownEntry => {
 		const daySlices = [...(dayMap ?? new Map<string, Slice>()).entries()]
 			.map(([day, slice]) => ({ day, usd: slice.usd, tokens: slice.tokens }))
 			.sort((a, b) => a.day.localeCompare(b.day));
 		const breakdown = [
 			...(
-				crossMap ?? new Map<string, Slice & { provider: UsageProvider }>()
+				crossMap ?? new Map<string, Slice & { agent: UsageAgent }>()
 			).entries(),
 		]
 			.map(([label, slice]) => ({
 				label,
-				provider: slice.provider,
+				agent: slice.agent,
 				usd: slice.usd,
 				tokens: slice.tokens,
 			}))
@@ -384,7 +391,7 @@ export async function computeUsageHistory(
 			.map(([id, slice]) => ({
 				id,
 				label: sessionLabels.get(id) ?? null,
-				provider: slice.provider,
+				agent: slice.agent,
 				usd: slice.usd,
 				tokens: slice.tokens,
 				lastMs: slice.lastMs,
@@ -395,7 +402,7 @@ export async function computeUsageHistory(
 	}
 	const modelDetails: Record<string, UsageDrilldownEntry> = {};
 	for (const row of sortedModels) {
-		const key = `${row.provider}|${row.model}`;
+		const key = `${row.agent}|${row.model}`;
 		modelDetails[key] = buildDetail(modelDays.get(key), modelProjects.get(key));
 	}
 

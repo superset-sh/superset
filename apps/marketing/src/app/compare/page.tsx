@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ComparePage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const pages = getComparisonPages();
 

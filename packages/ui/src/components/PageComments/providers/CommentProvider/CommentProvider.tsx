@@ -21,6 +21,7 @@ export interface PageComment {
 	id: string;
 	authorName: string;
 	authorImage: string | null;
+	authorKind: "human" | "agent";
 	body: string;
 	createdAt: number;
 }
@@ -30,6 +31,7 @@ export interface CommentThread {
 	anchor: CommentAnchor;
 	comments: PageComment[];
 	resolved: boolean;
+	version: number;
 }
 
 export interface CommentDraft {
@@ -71,6 +73,7 @@ interface CommentContextValue extends CommentStore {
 	hoverRect: FrameRect | null;
 	setHoverRect: (rect: FrameRect | null) => void;
 	rects: Record<string, FrameRect | null>;
+	rectsReady: boolean;
 	setRects: (entries: { id: string; rect: FrameRect | null }[]) => void;
 }
 
@@ -127,6 +130,7 @@ export function CommentProvider({
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
 	const [rects, setRectState] = useState<Record<string, FrameRect | null>>({});
+	const [rectsReady, setRectsReady] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [busyThreadId, setBusyThreadId] = useState<string | null>(null);
 	const [framePointerDownAt, setFramePointerDownAt] = useState(0);
@@ -168,6 +172,7 @@ export function CommentProvider({
 					? previous
 					: next;
 			});
+			setRectsReady(true);
 		},
 		[],
 	);
@@ -257,6 +262,7 @@ export function CommentProvider({
 			hoverRect,
 			setHoverRect,
 			rects,
+			rectsReady,
 			setRects,
 		}),
 		[
@@ -280,6 +286,7 @@ export function CommentProvider({
 			activeThreadId,
 			hoverRect,
 			rects,
+			rectsReady,
 			setRects,
 		],
 	);

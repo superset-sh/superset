@@ -18,6 +18,18 @@ const CATALOGS: Record<string, () => Promise<{ messages: typeof enMessages }>> =
 		"zh-CN": () => import("../locales/zh-CN/messages"),
 		fr: () => import("../locales/fr/messages"),
 		ko: () => import("../locales/ko/messages"),
+		"zh-TW": () => import("../locales/zh-TW/messages"),
+		es: () => import("../locales/es/messages"),
+		de: () => import("../locales/de/messages"),
+		"pt-BR": () => import("../locales/pt-BR/messages"),
+		it: () => import("../locales/it/messages"),
+		ru: () => import("../locales/ru/messages"),
+		tr: () => import("../locales/tr/messages"),
+		pl: () => import("../locales/pl/messages"),
+		nl: () => import("../locales/nl/messages"),
+		id: () => import("../locales/id/messages"),
+		cs: () => import("../locales/cs/messages"),
+		vi: () => import("../locales/vi/messages"),
 	};
 
 const loaded = new Set<string>([DEFAULT_LOCALE]);

@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ChangelogPage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const entries = getChangelogEntries();
 

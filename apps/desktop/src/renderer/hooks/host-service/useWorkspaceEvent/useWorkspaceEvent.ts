@@ -1,6 +1,7 @@
 import type {
 	AgentLifecyclePayload,
 	GitChangedPayload,
+	PageWatchChangedPayload,
 	PortChangedPayload,
 	TerminalLifecyclePayload,
 } from "@superset/workspace-client";
@@ -44,19 +45,27 @@ export function useWorkspaceEvent(
 	enabled?: boolean,
 ): void;
 export function useWorkspaceEvent(
+	type: "page-watch:changed",
+	workspaceId: string,
+	callback: (payload: PageWatchChangedPayload) => void,
+	enabled?: boolean,
+): void;
+export function useWorkspaceEvent(
 	type:
 		| "git:changed"
 		| "fs:events"
 		| "agent:lifecycle"
 		| "terminal:lifecycle"
-		| "port:changed",
+		| "port:changed"
+		| "page-watch:changed",
 	workspaceId: string,
 	callback:
 		| ((event: FsWatchEvent) => void)
 		| ((payload: GitChangedPayload) => void)
 		| ((payload: AgentLifecyclePayload) => void)
 		| ((payload: TerminalLifecyclePayload) => void)
-		| ((payload: PortChangedPayload) => void),
+		| ((payload: PortChangedPayload) => void)
+		| ((payload: PageWatchChangedPayload) => void),
 	enabled = true,
 ): void {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
@@ -104,6 +113,15 @@ export function useWorkspaceEvent(
 				workspaceId,
 				(_wid, payload) => {
 					(handler as (payload: PortChangedPayload) => void)(payload);
+				},
+			);
+			cleanups.push(removeListener);
+		} else if (type === "page-watch:changed") {
+			const removeListener = bus.on(
+				"page-watch:changed",
+				workspaceId,
+				(_wid, payload) => {
+					(handler as (payload: PageWatchChangedPayload) => void)(payload);
 				},
 			);
 			cleanups.push(removeListener);

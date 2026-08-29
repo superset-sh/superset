@@ -35,6 +35,12 @@ export function I18nProvider({
 		if (i18n.locale !== next) {
 			initI18n(next);
 		}
+		// Keep the document's language attribute truthful: CSS text-transform
+		// and screen readers key off it, and a stale "en" breaks locale-aware
+		// casing — Turkish uppercases i to İ, not I.
+		if (typeof document !== "undefined") {
+			document.documentElement.lang = next;
+		}
 	}, [locale]);
 	return (
 		<LinguiI18nProvider key={activeLocale} i18n={i18n}>

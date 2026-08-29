@@ -37,7 +37,7 @@ export function usePageHeaderData(data: PageHeaderTarget): PageHeaderData {
 
 	const version = pull.data?.version ?? 0;
 	const comments = cloudTrpc.pageComment.list.useQuery(
-		{ pageId: pageId ?? "", version },
+		{ pageId: pageId ?? "" },
 		{ enabled: Boolean(pageId) && version > 0 },
 	);
 

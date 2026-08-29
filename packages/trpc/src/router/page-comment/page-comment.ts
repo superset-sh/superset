@@ -8,13 +8,16 @@ import {
 	users,
 } from "@superset/db/schema";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
 import { protectedProcedure, userError } from "../../trpc";
 import { assertPageReadable } from "../page/access";
 import { requireActiveOrgMembership } from "../utils/active-org";
-import { agentSessionFor, assertActivatedForAgent } from "./agent-access";
 import {
-	activateAgentThreadsSchema,
+	agentSessionFor,
+	assertActivatedForAgent,
+	shouldActivateOnWrite,
+} from "./agent-access";
+import {
 	createPageCommentThreadSchema,
 	deletePageCommentThreadSchema,
 	type ElementAnchor,
@@ -90,35 +93,23 @@ export const pageCommentRouter = {
 			const userId = ctx.session.user.id;
 			await loadReadablePage({ pageId: input.pageId, organizationId, userId });
 
-			// Forced on for MCP: an agent sees what it was handed, never the whole
-			// page. A human can opt in, which only ever narrows their own view.
 			const activatedOnly = ctx.agentCaller
 				? true
 				: (input.activatedOnly ?? false);
 
 			const threadRows = await db
-				.select()
+				.select({ thread: pageCommentThreads, version: pageVersions.version })
 				.from(pageCommentThreads)
+				.innerJoin(
+					pageVersions,
+					eq(pageVersions.id, pageCommentThreads.pageVersionId),
+				)
 				.where(
 					and(
 						eq(pageCommentThreads.pageId, input.pageId),
 						activatedOnly
 							? isNotNull(pageCommentThreads.agentActivatedAt)
 							: undefined,
-						input.version === undefined
-							? undefined
-							: inArray(
-									pageCommentThreads.pageVersionId,
-									db
-										.select({ id: pageVersions.id })
-										.from(pageVersions)
-										.where(
-											and(
-												eq(pageVersions.pageId, input.pageId),
-												eq(pageVersions.version, input.version),
-											),
-										),
-								),
 					),
 				)
 				.orderBy(asc(pageCommentThreads.createdAt));
@@ -152,13 +143,14 @@ export const pageCommentRouter = {
 				else byThread.set(row.comment.threadId, [row]);
 			}
 
-			return threadRows.map((thread) => ({
+			return threadRows.map(({ thread, version }) => ({
 				id: thread.id,
 				anchorKind: thread.anchorKind,
 				anchor: thread.anchor as ElementAnchor | null,
 				anchorText: thread.anchorText,
 				resolved: thread.resolvedAt !== null,
 				createdAt: thread.createdAt,
+				version,
 				comments: (byThread.get(thread.id) ?? []).map((row) => ({
 					id: row.comment.id,
 					body: row.comment.body,
@@ -205,6 +197,8 @@ export const pageCommentRouter = {
 						anchor: input.anchor,
 						anchorText: input.anchorText,
 						createdByUserId: userId,
+						agentActivatedAt: new Date(),
+						agentActivatedByUserId: userId,
 					})
 					.returning();
 
@@ -255,6 +249,13 @@ export const pageCommentRouter = {
 				})
 				.returning();
 
+			if (shouldActivateOnWrite(thread, agentSession)) {
+				await db
+					.update(pageCommentThreads)
+					.set({ agentActivatedAt: new Date(), agentActivatedByUserId: userId })
+					.where(eq(pageCommentThreads.id, input.threadId));
+			}
+
 			return { id: comment?.id };
 		}),
 
@@ -303,47 +304,6 @@ export const pageCommentRouter = {
 				.where(eq(pageComments.id, input.commentId));
 
 			return { id: input.commentId };
-		}),
-
-	/**
-	 * Hand threads to an agent. This is the only thing that lifts the gate in
-	 * `assertActivatedForAgent`, so it must stay a human action — an agent that
-	 * could activate its own threads would make the gate decorative.
-	 *
-	 * MCP callers are refused outright. That is the enforceable half: a CLI
-	 * agent shares its user's credential and so cannot be refused here, which is
-	 * why this is deliberately not exposed as a CLI command or an MCP tool. The
-	 * desktop hand-off menu is the intended and only caller.
-	 */
-	activate: protectedProcedure
-		.input(activateAgentThreadsSchema)
-		.mutation(async ({ ctx, input }) => {
-			if (ctx.agentCaller) {
-				throw userError({
-					code: "FORBIDDEN",
-					message: "Only a person can hand a thread to an agent",
-					i18nKey: "serverError.pageComment.onlyAPersonCanHand",
-				});
-			}
-
-			const organizationId = await requireActiveOrgMembership(ctx);
-			const userId = ctx.session.user.id;
-
-			// Load every thread first so one unreadable id fails the whole call
-			// rather than activating a prefix of the list.
-			for (const threadId of input.threadIds) {
-				await loadThread({ threadId, organizationId, userId });
-			}
-
-			await db
-				.update(pageCommentThreads)
-				.set({
-					agentActivatedAt: new Date(),
-					agentActivatedByUserId: userId,
-				})
-				.where(inArray(pageCommentThreads.id, input.threadIds));
-
-			return { threadIds: input.threadIds };
 		}),
 
 	resolve: protectedProcedure

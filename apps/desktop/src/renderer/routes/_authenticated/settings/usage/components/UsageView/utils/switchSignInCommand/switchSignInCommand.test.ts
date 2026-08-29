@@ -3,7 +3,7 @@ import { switchSignInCommand } from "./switchSignInCommand";
 
 describe("switchSignInCommand", () => {
 	it("runs the CLI bare for the default claude login", () => {
-		expect(switchSignInCommand({ provider: "claude", selection: null })).toBe(
+		expect(switchSignInCommand({ agent: "claude", selection: null })).toBe(
 			"claude auth login",
 		);
 	});
@@ -11,7 +11,7 @@ describe("switchSignInCommand", () => {
 	it("quotes the absolute config dir for a claude profile", () => {
 		expect(
 			switchSignInCommand({
-				provider: "claude",
+				agent: "claude",
 				selection: "/Users/kietho/.claude-work",
 			}),
 		).toBe("CLAUDE_CONFIG_DIR=/Users/kietho/.claude-work claude auth login");
@@ -20,7 +20,7 @@ describe("switchSignInCommand", () => {
 	it("keeps dirs with spaces pasteable", () => {
 		expect(
 			switchSignInCommand({
-				provider: "claude",
+				agent: "claude",
 				selection: "/Users/kietho/.config/claude work",
 			}),
 		).toBe(
@@ -29,12 +29,12 @@ describe("switchSignInCommand", () => {
 	});
 
 	it("uses codex login with a CODEX_HOME override for non-default homes", () => {
-		expect(switchSignInCommand({ provider: "codex", selection: null })).toBe(
+		expect(switchSignInCommand({ agent: "codex", selection: null })).toBe(
 			"codex login",
 		);
 		expect(
 			switchSignInCommand({
-				provider: "codex",
+				agent: "codex",
 				selection: "/Users/kietho/.codex-work",
 			}),
 		).toBe("CODEX_HOME=/Users/kietho/.codex-work codex login");
@@ -43,7 +43,7 @@ describe("switchSignInCommand", () => {
 	it("neutralizes command substitution in the config dir", () => {
 		expect(
 			switchSignInCommand({
-				provider: "claude",
+				agent: "claude",
 				selection: "/tmp/$(rm -rf ~)",
 			}),
 		).toBe("CLAUDE_CONFIG_DIR='/tmp/$(rm -rf ~)' claude auth login");
@@ -52,7 +52,7 @@ describe("switchSignInCommand", () => {
 	it("neutralizes backticks in the config dir", () => {
 		expect(
 			switchSignInCommand({
-				provider: "codex",
+				agent: "codex",
 				selection: "/tmp/`whoami`",
 			}),
 		).toBe("CODEX_HOME='/tmp/`whoami`' codex login");
@@ -61,7 +61,7 @@ describe("switchSignInCommand", () => {
 	it("escapes an embedded single quote in the config dir", () => {
 		expect(
 			switchSignInCommand({
-				provider: "claude",
+				agent: "claude",
 				selection: "/tmp/it's-a-dir",
 			}),
 		).toBe("CLAUDE_CONFIG_DIR='/tmp/it'\\''s-a-dir' claude auth login");
@@ -70,7 +70,7 @@ describe("switchSignInCommand", () => {
 	it("neutralizes a double quote in the config dir", () => {
 		expect(
 			switchSignInCommand({
-				provider: "claude",
+				agent: "claude",
 				selection: '/tmp/"; rm -rf ~; echo "',
 			}),
 		).toBe(`CLAUDE_CONFIG_DIR='/tmp/"; rm -rf ~; echo "' claude auth login`);

@@ -148,6 +148,12 @@ export interface EventBusErrorMessage {
 	message: string;
 }
 
+export interface PageWatchChangedMessage {
+	type: "page-watch:changed";
+	workspaceId: string;
+	occurredAt: number;
+}
+
 export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
@@ -157,6 +163,7 @@ export type ServerMessage =
 	| WorkspaceChangedMessage
 	| WorkspaceCreateSettledMessage
 	| ProjectChangedMessage
+	| PageWatchChangedMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

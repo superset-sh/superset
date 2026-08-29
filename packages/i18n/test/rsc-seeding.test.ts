@@ -17,7 +17,11 @@ const ROUTE_ENTRY = /(?:^|\/)(?:page|not-found)\.tsx$/;
 // Anchored to the start of a line so a mention inside a comment or a string
 // literal cannot satisfy the check; paired with the import so the call has to
 // resolve to the real helper.
-const SEEDS = /^\s*initServerI18n\(\);/m;
+// The call must be awaited: a bare initServerI18n() activates the default
+// locale and served every visitor English heroes above localized bodies —
+// request-locale resolution is async, so an un-awaited call cannot have
+// worked. (Regression guard for the 2026-08-29 production finding.)
+const SEEDS = /^\s*(?:const\s+\w+\s*=\s*)?await initServerI18n\(\);/m;
 const IMPORTS = /^import\s*\{[^}]*\binitServerI18n\b[^}]*\}\s*from\s*["']/m;
 const USES_I18N = /<Trans\b|useLingui\(/;
 const CLIENT_COMPONENT = /^\s*["']use client["']/m;

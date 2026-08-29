@@ -36,7 +36,7 @@ export function RemoveAccountDialog({
 						</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						{account?.provider === "codex" ? (
+						{account?.agent === "codex" ? (
 							<Trans id="settings.usage.removeAccount.bodyCodex">
 								Deletes the {account.sourceLabel} profile, its saved sign-in on
 								this machine, and its local Codex session history. The account

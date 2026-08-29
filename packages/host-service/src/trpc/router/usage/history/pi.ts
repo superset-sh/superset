@@ -10,7 +10,7 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 import type { LogFile } from "./logs";
 import { collectLogFiles } from "./logs";
 import type { UsageLogEntry } from "./parse";
@@ -22,8 +22,8 @@ import {
 	toSessionLabel,
 } from "./parse";
 
-export function piSessionsRoot(provider: "pi" | "omp"): string {
-	return join(homedir(), `.${provider}`, "agent", "sessions");
+export function piSessionsRoot(agent: "pi" | "omp"): string {
+	return join(homedir(), `.${agent}`, "agent", "sessions");
 }
 
 interface PiLine {
@@ -46,7 +46,7 @@ interface PiLine {
 }
 
 async function parsePiLogFile(
-	provider: UsageProvider,
+	agent: UsageAgent,
 	file: LogFile,
 	cutoffMs: number,
 	out: UsageLogEntry[],
@@ -99,12 +99,12 @@ async function parsePiLogFile(
 
 		const cost = num(usage.cost?.total);
 		out.push({
-			provider,
+			agent,
 			model: message.model,
 			timestampMs,
 			cwd: sessionCwd,
 			sessionId,
-			// Pi stores the provider-reported input count, which excludes the
+			// Pi stores the agent-reported input count, which excludes the
 			// cache fields it tracks separately.
 			uncachedInput: num(usage.input),
 			cachedInput: num(usage.cacheRead),
@@ -119,16 +119,16 @@ async function parsePiLogFile(
 
 /** Returns the number of session files scanned. */
 export async function collectPiEntries(
-	provider: "pi" | "omp",
+	agent: "pi" | "omp",
 	days: number,
 	cutoffMs: number,
 	out: UsageLogEntry[],
 	sessionLabels?: Map<string, string>,
-	root: string = piSessionsRoot(provider),
+	root: string = piSessionsRoot(agent),
 ): Promise<number> {
 	const files = await collectLogFiles(root, days + 1);
 	for (const file of files) {
-		await parsePiLogFile(provider, file, cutoffMs, out, sessionLabels);
+		await parsePiLogFile(agent, file, cutoffMs, out, sessionLabels);
 	}
 	return files.length;
 }

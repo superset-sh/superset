@@ -29,7 +29,7 @@ describe("copilotRowsToEntries", () => {
 		copilotRowsToEntries([row()], 0, out, labels);
 		expect(out).toHaveLength(1);
 		expect(out[0]).toMatchObject({
-			provider: "copilot",
+			agent: "copilot",
 			model: "claude-sonnet-4.5",
 			cwd: "/tmp/proj",
 			sessionId: "sess-1",

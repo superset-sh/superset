@@ -1,8 +1,8 @@
 /**
- * Host-wide default provider account for newly launched agents. "Switching"
+ * Host-wide default agent account for newly launched agents. "Switching"
  * an account never touches credential stores — it only records which profile
  * dir to inject (CLAUDE_CONFIG_DIR / CODEX_HOME) when an agent starts, so the
- * provider CLI itself keeps owning every login end to end.
+ * agent CLI itself keeps owning every login end to end.
  */
 
 import { randomUUID } from "node:crypto";
@@ -19,9 +19,10 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
-import type { UsageAccountProvider } from "./types.ts";
 
-const POINTER_NAMES: Record<UsageAccountProvider, string> = {
+type SwitchableAccountAgent = "claude" | "codex";
+
+const POINTER_NAMES: Record<SwitchableAccountAgent, string> = {
 	claude: "default-claude-config-dir",
 	codex: "default-codex-home",
 };
@@ -35,8 +36,8 @@ function supersetHomeDir(): string {
 	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
 }
 
-function defaultAccountPointerPath(provider: UsageAccountProvider): string {
-	return join(supersetHomeDir(), "state", POINTER_NAMES[provider]);
+function defaultAccountPointerPath(agent: SwitchableAccountAgent): string {
+	return join(supersetHomeDir(), "state", POINTER_NAMES[agent]);
 }
 
 function temporaryPointerPath(pointerPath: string): string {
@@ -52,14 +53,14 @@ function temporaryPointerPath(pointerPath: string): string {
  * that agent launches would not observe.
  */
 export function syncDefaultAccountPointer(
-	provider: UsageAccountProvider,
+	agent: SwitchableAccountAgent,
 	selection: string | null,
 ): void {
 	let temporaryPath: string | null = null;
 	try {
 		const dir = join(supersetHomeDir(), "state");
 		mkdirSync(dir, { recursive: true });
-		const pointerPath = defaultAccountPointerPath(provider);
+		const pointerPath = defaultAccountPointerPath(agent);
 		temporaryPath = temporaryPointerPath(pointerPath);
 		writeFileSync(temporaryPath, selection ?? "");
 		renameSync(temporaryPath, pointerPath);
@@ -81,12 +82,12 @@ export function syncDefaultAccountPointer(
  * services migrating concurrently cannot replace each other's selection.
  */
 function migrateDefaultAccountPointer(
-	provider: UsageAccountProvider,
+	agent: SwitchableAccountAgent,
 	selection: string,
 ): void {
 	const dir = join(supersetHomeDir(), "state");
 	mkdirSync(dir, { recursive: true });
-	const pointerPath = defaultAccountPointerPath(provider);
+	const pointerPath = defaultAccountPointerPath(agent);
 	const temporaryPath = temporaryPointerPath(pointerPath);
 	try {
 		writeFileSync(temporaryPath, selection);
@@ -104,12 +105,12 @@ function migrateDefaultAccountPointer(
 	}
 }
 
-function readDefaultAccountPointer(provider: UsageAccountProvider): {
+function readDefaultAccountPointer(agent: SwitchableAccountAgent): {
 	exists: boolean;
 	selection: string | null;
 } {
 	try {
-		const value = readFileSync(defaultAccountPointerPath(provider), "utf8");
+		const value = readFileSync(defaultAccountPointerPath(agent), "utf8");
 		return { exists: true, selection: value || null };
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -182,23 +183,23 @@ export function getDefaultAccountSelections(
 
 export function setDefaultAccountSelection(
 	db: HostDb,
-	provider: UsageAccountProvider,
+	agent: SwitchableAccountAgent,
 	selection: string | null,
 ): void {
 	const values =
-		provider === "claude"
+		agent === "claude"
 			? { defaultClaudeConfigDir: selection }
 			: { defaultCodexHome: selection };
 	db.insert(hostSettings)
 		.values({ id: 1, ...values })
 		.onConflictDoUpdate({ target: hostSettings.id, set: values })
 		.run();
-	syncDefaultAccountPointer(provider, selection);
+	syncDefaultAccountPointer(agent, selection);
 }
 
 /**
- * Env for a new terminal so provider CLIs typed or launched in it run on the
- * host-default accounts. Both providers' vars — a shell can run either CLI.
+ * Env for a new terminal so agent CLIs typed or launched in it run on the
+ * host-default accounts. Both agents' vars — a shell can run either CLI.
  * Baked at PTY spawn as the fast path; the agent wrappers re-resolve from the
  * pointer files at every launch, so a later switch still reaches this
  * terminal when the agent is relaunched.

@@ -60,7 +60,7 @@ describe("collectGrokEntries", () => {
 		expect(scanned).toBe(1);
 		expect(out).toHaveLength(1);
 		expect(out[0]).toMatchObject({
-			provider: "grok",
+			agent: "grok",
 			model: "grok-4.6",
 			cwd: "/tmp/proj",
 			sessionId: "sid-1",

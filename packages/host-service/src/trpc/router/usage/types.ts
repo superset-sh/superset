@@ -1,13 +1,14 @@
 /**
- * Providers that can appear in usage history/analytics. Quota accounts exist
- * only for "claude" and "codex"; the rest surface transcript-derived token
+ * Agents that can appear in usage history/analytics. Quota accounts exist
+ * only for agents listed by QuotaCapableAgent; the rest surface transcript-derived token
  * history. Agents whose CLIs record no usable local usage data (gemini, amp,
  * kimi, vibe, kiro, droid, hermes, mastracode) are intentionally absent.
  */
-export type UsageProvider =
+export type UsageAgent =
 	| "claude"
 	| "codex"
 	| "grok"
+	| "agy"
 	| "cursor"
 	| "opencode"
 	| "copilot"
@@ -15,8 +16,19 @@ export type UsageProvider =
 	| "omp"
 	| "fx";
 
-/** The subset of providers with quota accounts and switchable logins. */
-export type UsageAccountProvider = "claude" | "codex";
+/** The subset of agents with quota accounts and switchable logins. */
+export type QuotaCapableAgent = "claude" | "codex" | "grok" | "agy";
+
+/** The upstream company/service serving a model. This is deliberately
+ * separate from UsageAgent: multi-model agents can route to several of these. */
+export type ModelProvider =
+	| "anthropic"
+	| "openai"
+	| "google"
+	| "xai"
+	| "cursor"
+	| "github"
+	| "other";
 
 export type UsageAccountStatus =
 	/** Quota fetched successfully. */
@@ -43,7 +55,7 @@ export interface UsageQuotaWindow {
 }
 
 export interface UsageAccount {
-	provider: UsageAccountProvider;
+	agent: QuotaCapableAgent;
 	/** Stable key for the credential source (config path or keychain item),
 	 * used to dedupe and as a React key. */
 	accountKey: string;

@@ -41,7 +41,7 @@ export const revalidate = 300;
 const DEFAULT_PERIOD = "30d" as const;
 
 export default async function LeaderboardPage() {
-	initServerI18n();
+	await initServerI18n();
 
 	const [standings, stats] = await Promise.all([
 		fetchStandings({ period: DEFAULT_PERIOD, metric: "tokens", limit: 50 }),
