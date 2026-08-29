@@ -12,26 +12,41 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { ChipButton } from "../../../../../components/TriggerSentence/components/ChipButton";
 
 /**
  * The automation's workspace-tag set: every run's created workspace carries
  * these tags, filing it into the matching sidebar folders. Unchecking a tag
- * removes it; the field adds one (normalized like every tag surface).
+ * removes it; the field adds one (normalized like every tag surface), and
+ * the project's existing workspace tags are offered as suggestions so runs
+ * can join folders that already exist.
  */
 export function AutomationTagsPicker({
 	tags,
+	projectId,
 	disabled,
 	onChange,
 	className,
 }: {
 	tags: string[];
+	/** Scope for tag suggestions; null (session mode) suggests nothing. */
+	projectId: string | null;
 	disabled?: boolean;
 	onChange: (tags: string[]) => void;
 	className?: string;
 }) {
 	const [draft, setDraft] = useState("");
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const suggestions = useMemo(() => {
+		if (projectId === null) return [];
+		return normalizeWorkspaceTags(
+			hostWorkspaces
+				.filter((workspace) => workspace.projectId === projectId)
+				.flatMap((workspace) => workspace.tags ?? []),
+		).filter((tag) => !tags.includes(tag));
+	}, [hostWorkspaces, projectId, tags]);
 
 	const addDraft = () => {
 		const tag = normalizeWorkspaceTag(draft);
@@ -74,7 +89,20 @@ export function AutomationTagsPicker({
 						{tag}
 					</DropdownMenuCheckboxItem>
 				))}
-				{tags.length > 0 && <DropdownMenuSeparator />}
+				{suggestions.map((tag) => (
+					<DropdownMenuCheckboxItem
+						key={tag}
+						checked={false}
+						onCheckedChange={() =>
+							onChange(normalizeWorkspaceTags([...tags, tag]))
+						}
+					>
+						{tag}
+					</DropdownMenuCheckboxItem>
+				))}
+				{(tags.length > 0 || suggestions.length > 0) && (
+					<DropdownMenuSeparator />
+				)}
 				<div className="p-1">
 					<Input
 						value={draft}

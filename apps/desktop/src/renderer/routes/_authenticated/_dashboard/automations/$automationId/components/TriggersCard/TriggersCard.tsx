@@ -195,6 +195,7 @@ export function TriggersCard({
 				<AutomationTagsPicker
 					className={SCOPE_CHIP}
 					tags={automation.tags}
+					projectId={automation.v2ProjectId}
 					disabled={readOnly}
 					onChange={(tags) => onUpdate({ tags })}
 				/>
