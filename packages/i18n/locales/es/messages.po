@@ -25697,16 +25697,6 @@ msgstr "La sesión de Codex"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetDescription"
-msgstr "Las sesiones en marcha conservan su cuenta actual: reinícialas para cambiarla."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetToast"
-msgstr "Los agentes nuevos usarán {foundLabel}."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.done"
 msgstr "Listo"
 
@@ -26291,6 +26281,42 @@ msgstr "App de Superset"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageResourcesPage/components/ResourceSparkline/ResourceSparkline.tsx
 msgid "settings.usage.resourceSparkline.collecting"
 msgstr "Recopilando…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.confirm"
+msgstr "Reiniciar y retomar"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: shown?.count ?? 0
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.count"
+msgstr "{0, plural, one {Un agente en marcha sigue usando la cuenta anterior; el cambio solo se aplica a los nuevos lanzamientos.} other {# agentes en marcha siguen usando la cuenta anterior; el cambio solo se aplica a los nuevos lanzamientos.}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.decline"
+msgstr "Ahora no"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.move"
+msgstr "Reinícialos ahora para pasarlos a {accountLabel}; cada sesión retoma su conversación donde la dejó."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedDescription"
+msgstr "Cada sesión retoma donde la dejó."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedToast"
+msgstr "Reiniciando agentes en {accountLabel}."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.title"
+msgstr "¿Reiniciar los agentes de {providerLabel} en marcha?"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageSectionToggle/UsageSectionToggle.tsx

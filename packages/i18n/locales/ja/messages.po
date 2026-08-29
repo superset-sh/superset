@@ -25696,16 +25696,6 @@ msgstr "Codexのサインイン"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetDescription"
-msgstr "実行中のセッションは現在のアカウントのままです — 切り替えるには再起動してください。"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetToast"
-msgstr "新規エージェントは{foundLabel}を使用します。"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.done"
 msgstr "完了"
 
@@ -26290,6 +26280,42 @@ msgstr "Supersetアプリ"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageResourcesPage/components/ResourceSparkline/ResourceSparkline.tsx
 msgid "settings.usage.resourceSparkline.collecting"
 msgstr "収集中…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.confirm"
+msgstr "再起動して再開"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: shown?.count ?? 0
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.count"
+msgstr "{0, plural, one {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。} other {実行中の#件のエージェントはまだ以前のアカウントを使用しています。切り替えが適用されるのは新規起動のみです。}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.decline"
+msgstr "あとで"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.move"
+msgstr "今すぐ再起動すると{accountLabel}に移行し、各セッションは会話を中断したところから再開します。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedDescription"
+msgstr "各セッションは中断したところから再開します。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedToast"
+msgstr "{accountLabel}でエージェントを再起動しています。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.title"
+msgstr "実行中の{providerLabel}エージェントを再起動しますか？"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageSectionToggle/UsageSectionToggle.tsx

@@ -25697,16 +25697,6 @@ msgstr "Codex 로그인"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetDescription"
-msgstr "실행 중인 세션은 현재 계정을 유지합니다 — 바꾸려면 다시 시작하세요."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetToast"
-msgstr "새 에이전트는 {foundLabel}을(를) 사용합니다."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.done"
 msgstr "완료"
 
@@ -26291,6 +26281,42 @@ msgstr "Superset 앱"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageResourcesPage/components/ResourceSparkline/ResourceSparkline.tsx
 msgid "settings.usage.resourceSparkline.collecting"
 msgstr "수집하는 중…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.confirm"
+msgstr "다시 시작하고 이어가기"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: shown?.count ?? 0
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.count"
+msgstr "{0, plural, one {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.} other {실행 중인 에이전트 #개가 아직 이전 계정을 사용하고 있습니다. 전환은 새 실행에만 적용됩니다.}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.decline"
+msgstr "나중에"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.move"
+msgstr "지금 다시 시작하면 {accountLabel}(으)로 이동하며, 각 세션은 중단된 대화를 이어서 진행합니다."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedDescription"
+msgstr "각 세션은 중단된 지점부터 이어집니다."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedToast"
+msgstr "{accountLabel}에서 에이전트를 다시 시작하는 중입니다."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.title"
+msgstr "실행 중인 {providerLabel} 에이전트를 다시 시작할까요?"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageSectionToggle/UsageSectionToggle.tsx

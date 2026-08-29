@@ -25697,16 +25697,6 @@ msgstr "Codex登入"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetDescription"
-msgstr "執行中的會話保持目前帳戶——重啟才能切換。"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetToast"
-msgstr "新代理程式將使用{foundLabel}。"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.done"
 msgstr "完成"
 
@@ -26291,6 +26281,42 @@ msgstr "Superset應用程式"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageResourcesPage/components/ResourceSparkline/ResourceSparkline.tsx
 msgid "settings.usage.resourceSparkline.collecting"
 msgstr "正在收集…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.confirm"
+msgstr "重新啟動並繼續"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: shown?.count ?? 0
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.count"
+msgstr "{0, plural, one {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。} other {#個執行中的代理程式仍在使用先前的帳戶。切換只對新啟動生效。}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.decline"
+msgstr "暫不"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.move"
+msgstr "立即重新啟動即可移至{accountLabel}；每個會話都會從中斷處繼續對話。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedDescription"
+msgstr "每個會話都會從中斷處繼續。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedToast"
+msgstr "正在{accountLabel}上重新啟動代理程式。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.title"
+msgstr "要重新啟動執行中的{providerLabel}代理程式嗎？"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageSectionToggle/UsageSectionToggle.tsx

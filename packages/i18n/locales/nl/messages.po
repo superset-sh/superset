@@ -25697,16 +25697,6 @@ msgstr "De Codex-login"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetDescription"
-msgstr "Draaiende sessies houden hun huidige account — herstart ze om te wisselen."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
-msgid "settings.usage.addAccount.defaultSetToast"
-msgstr "Nieuwe agents gebruiken {foundLabel}."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.done"
 msgstr "Klaar"
 
@@ -26291,6 +26281,42 @@ msgstr "Superset-app"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageResourcesPage/components/ResourceSparkline/ResourceSparkline.tsx
 msgid "settings.usage.resourceSparkline.collecting"
 msgstr "Verzamelen…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.confirm"
+msgstr "Herstarten en hervatten"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: shown?.count ?? 0
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.count"
+msgstr "{0, plural, one {Eén draaiende agent gebruikt nog het vorige account — de wissel geldt alleen voor nieuwe starts.} other {# draaiende agents gebruiken nog het vorige account — de wissel geldt alleen voor nieuwe starts.}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.decline"
+msgstr "Niet nu"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.move"
+msgstr "Herstart ze nu om ze naar {accountLabel} te verplaatsen; elke sessie pakt het gesprek op waar het gebleven was."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedDescription"
+msgstr "Elke sessie gaat verder waar die gebleven was."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.restartAgents.startedToast"
+msgstr "Agents worden herstart op {accountLabel}."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/RestartSessionsDialog/RestartSessionsDialog.tsx
+msgid "settings.usage.restartAgents.title"
+msgstr "Draaiende {providerLabel}-agents herstarten?"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageSectionToggle/UsageSectionToggle.tsx
