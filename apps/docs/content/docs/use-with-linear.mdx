@@ -161,7 +161,10 @@ link="$(superset workspaces open "$id" --print --json | jq -r '.webUrl')"
 # https://app.superset.sh/open/v2-workspace/<workspace-id>
 ```
 
-Post that link on the issue and anyone who clicks it gets handed to their own
-desktop app. The page requires no sign-in and looks nothing up — it just hands
-off the workspace ID — so it also works from an email or a GitHub comment. Use
-`webUrl` rather than assembling the URL yourself.
+Post that link on the issue. Opening it attempts the native handoff to the
+reader's own desktop app, and leaves an **Open Superset** retry plus a download
+link when the app isn't available. The page requires no sign-in and looks
+nothing up — it only hands off the workspace ID, so the desktop app is still
+what resolves the workspace and what shows a missing or inaccessible one. That
+also makes the link safe to use from an email or a GitHub comment. Use `webUrl`
+rather than assembling the URL yourself.

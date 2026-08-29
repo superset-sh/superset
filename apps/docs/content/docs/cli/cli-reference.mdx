@@ -795,9 +795,9 @@ superset workspaces open ws_… --print --json | jq -r '.webUrl'
 # https://app.superset.sh/open/v2-workspace/<workspace-id>
 ```
 
-That page needs no sign-in. It hands off to the native link above, offers an
-**Open Superset** button when the browser blocks the automatic attempt, and
-points at the download when the app isn't installed. It resolves nothing on its
+That page needs no sign-in. It attempts the native link above, offers an
+**Open Superset** button when that attempt is blocked or ignored, and points at
+the download when the app isn't installed. It resolves nothing on its
 own: the desktop app still finds the workspace on the right host and still owns
 the missing-or-inaccessible workspace state.
 
