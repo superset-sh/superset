@@ -4589,11 +4589,6 @@ msgstr "計劃"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.atTime"
-msgstr "於"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
 msgid "dashboard.automations.scheduleSentence.exhaustedRrule"
 msgstr "沒有後續執行，改動未儲存"
 
@@ -4604,8 +4599,13 @@ msgstr "重複規則無效，改動未儲存"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.onDay"
-msgstr "在"
+msgid "dashboard.automations.scheduleSentence.kindAtTime"
+msgstr "{kindChip} {timeInput}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
+msgid "dashboard.automations.scheduleSentence.kindOnDayAtTime"
+msgstr "{kindChip} {daySelect} {timeInput}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
@@ -4750,23 +4750,13 @@ msgstr "分類新議題"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.inProject"
-msgstr "在"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.nextRun"
 msgstr "下次執行"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.onDevice"
-msgstr "在"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.usingWorkspace"
-msgstr "使用"
+msgid "dashboard.automations.triggersCard.scopeSentence"
+msgstr "<0>專案：</0><1/> <2>裝置：</2><3/> <4>工作區：</4><5/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
@@ -26504,58 +26494,13 @@ msgstr "部分觸發器需要額外配置"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.calendar"
-msgstr "日曆"
+msgid "shared.automationTriggers.scopeRequired"
+msgstr "{noun, select, repository {請至少指定一個倉庫。} channel {請至少指定一個頻道。} reaction {請至少指定一個回應。} dataSource {請至少指定一個資料來源。} team {請至少指定一個團隊。} project {請至少指定一個專案。} calendar {請至少指定一個日曆。} other {請至少指定一個項目。}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.channel"
-msgstr "頻道"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.dataSource"
-msgstr "資料來源"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.person"
-msgstr "人"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.project"
-msgstr "專案"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.reaction"
-msgstr "表情回應"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.repository"
-msgstr "儲存庫"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.sender"
-msgstr "傳送者"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.team"
-msgstr "團隊"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScope"
-msgstr "請至少指定一個{noun}。"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScopeOrChoose"
-msgstr "請至少指定一個{noun}，或選擇{choice}。"
+msgid "shared.automationTriggers.scopeRequiredOrChoose"
+msgstr "{noun, select, person {請至少指定一個人員，或選擇{choice}。} sender {請至少指定一個寄件者，或選擇{choice}。} other {請至少指定一個項目，或選擇{choice}。}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/integrations.ts
@@ -26679,13 +26624,13 @@ msgstr "{days}{time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeek"
+msgid "shared.schedule.eachDayOfWeek"
 msgstr "每{day}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeekAt"
-msgstr "每{day}{time}"
+msgid "shared.schedule.eachDayOfWeekAt"
+msgstr "每{day} {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -31955,8 +31900,8 @@ msgstr "根路徑"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesHeader/ChangesHeader.tsx
-msgid "workspace.changesHeader.fromBaseBranch"
-msgstr "來自"
+msgid "workspace.changesHeader.fromBase"
+msgstr "<0>基於</0> <1/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
@@ -34068,13 +34013,8 @@ msgstr "重新載入拉取請求"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedMany"
-msgstr "全部{total}項檢查已通過"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedOne"
-msgstr "全部{total}項檢查已通過"
+msgid "workspace.prDetailCard.allChecksPassed"
+msgstr "{total, plural, one {#項檢查全部通過} other {#項檢查全部通過}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx

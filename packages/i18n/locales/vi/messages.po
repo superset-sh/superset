@@ -4589,11 +4589,6 @@ msgstr "Lịch"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.atTime"
-msgstr "lúc"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
 msgid "dashboard.automations.scheduleSentence.exhaustedRrule"
 msgstr "Không có lần chạy sắp tới — thay đổi chưa được lưu"
 
@@ -4604,8 +4599,13 @@ msgstr "Quy tắc lặp không hợp lệ — thay đổi chưa được lưu"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.onDay"
-msgstr "vào"
+msgid "dashboard.automations.scheduleSentence.kindAtTime"
+msgstr "{kindChip} <0>lúc</0> {timeInput}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
+msgid "dashboard.automations.scheduleSentence.kindOnDayAtTime"
+msgstr "{kindChip} <0>vào</0> {daySelect} <1>lúc</1> {timeInput}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
@@ -4750,23 +4750,13 @@ msgstr "Phân loại issue mới"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.inProject"
-msgstr "trong"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.nextRun"
 msgstr "Lần chạy tiếp theo"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.onDevice"
-msgstr "trên"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.usingWorkspace"
-msgstr "dùng"
+msgid "dashboard.automations.triggersCard.scopeSentence"
+msgstr "<0>dự án:</0> <1/> <2>thiết bị:</2> <3/> <4>workspace:</4> <5/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
@@ -26504,58 +26494,13 @@ msgstr "Một số trigger cần cấu hình thêm"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.calendar"
-msgstr "lịch"
+msgid "shared.automationTriggers.scopeRequired"
+msgstr "{noun, select, repository {Hãy chỉ định ít nhất một repo.} channel {Hãy chỉ định ít nhất một kênh.} reaction {Hãy chỉ định ít nhất một reaction.} dataSource {Hãy chỉ định ít nhất một nguồn dữ liệu.} team {Hãy chỉ định ít nhất một nhóm.} project {Hãy chỉ định ít nhất một dự án.} calendar {Hãy chỉ định ít nhất một lịch.} other {Hãy chỉ định ít nhất một mục.}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.channel"
-msgstr "kênh"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.dataSource"
-msgstr "nguồn dữ liệu"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.person"
-msgstr "người"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.project"
-msgstr "dự án"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.reaction"
-msgstr "biểu cảm"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.repository"
-msgstr "repository"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.sender"
-msgstr "người gửi"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.team"
-msgstr "nhóm"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScope"
-msgstr "Hãy chỉ định ít nhất một {noun}."
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScopeOrChoose"
-msgstr "Hãy chỉ định ít nhất một {noun}, hoặc chọn {choice}."
+msgid "shared.automationTriggers.scopeRequiredOrChoose"
+msgstr "{noun, select, person {Hãy chỉ định ít nhất một người, hoặc chọn {choice}.} sender {Hãy chỉ định ít nhất một người gửi, hoặc chọn {choice}.} other {Hãy chỉ định ít nhất một mục, hoặc chọn {choice}.}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/integrations.ts
@@ -26679,13 +26624,13 @@ msgstr "{days} lúc {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeek"
-msgstr "Mỗi {day}"
+msgid "shared.schedule.eachDayOfWeek"
+msgstr "{day} hằng tuần"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeekAt"
-msgstr "Mỗi {day} lúc {time}"
+msgid "shared.schedule.eachDayOfWeekAt"
+msgstr "{day} hằng tuần, lúc {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -31955,8 +31900,8 @@ msgstr "Đường dẫn gốc"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesHeader/ChangesHeader.tsx
-msgid "workspace.changesHeader.fromBaseBranch"
-msgstr "từ"
+msgid "workspace.changesHeader.fromBase"
+msgstr "<0>so với</0> <1/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
@@ -34068,13 +34013,8 @@ msgstr "Thử tải lại pull request"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedMany"
-msgstr "Tất cả {total} check đã qua"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedOne"
-msgstr "Tất cả {total} check đã qua"
+msgid "workspace.prDetailCard.allChecksPassed"
+msgstr "{total, plural, one {Cả # check đều đạt} other {Cả # check đều đạt}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx

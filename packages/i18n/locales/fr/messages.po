@@ -4589,11 +4589,6 @@ msgstr "Planification"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.atTime"
-msgstr "à"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
 msgid "dashboard.automations.scheduleSentence.exhaustedRrule"
 msgstr "Aucune exécution à venir — les modifications ne sont pas enregistrées"
 
@@ -4604,8 +4599,13 @@ msgstr "Règle de récurrence invalide — les modifications ne sont pas enregis
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.onDay"
-msgstr "le"
+msgid "dashboard.automations.scheduleSentence.kindAtTime"
+msgstr "{kindChip} <0>à</0> {timeInput}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
+msgid "dashboard.automations.scheduleSentence.kindOnDayAtTime"
+msgstr "{kindChip} <0>le</0> {daySelect} <1>à</1> {timeInput}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
@@ -4750,23 +4750,13 @@ msgstr "Trier les nouvelles issues"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.inProject"
-msgstr "dans"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.nextRun"
 msgstr "Prochaine exécution"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.onDevice"
-msgstr "sur"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.usingWorkspace"
-msgstr "avec"
+msgid "dashboard.automations.triggersCard.scopeSentence"
+msgstr "<0>dans</0> <1/> <2>sur</2> <3/> <4>avec</4> <5/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
@@ -26503,58 +26493,13 @@ msgstr "Certains déclencheurs nécessitent une configuration supplémentaire"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.calendar"
-msgstr "calendrier"
+msgid "shared.automationTriggers.scopeRequired"
+msgstr "{noun, select, repository {Indiquez au moins un dépôt.} channel {Indiquez au moins un canal.} reaction {Indiquez au moins une réaction.} dataSource {Indiquez au moins une source de données.} team {Indiquez au moins une équipe.} project {Indiquez au moins un projet.} calendar {Indiquez au moins un calendrier.} other {Indiquez au moins un élément.}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.channel"
-msgstr "canal"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.dataSource"
-msgstr "source de données"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.person"
-msgstr "personne"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.project"
-msgstr "projet"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.reaction"
-msgstr "réaction"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.repository"
-msgstr "dépôt"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.sender"
-msgstr "expéditeur"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.team"
-msgstr "équipe"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScope"
-msgstr "Indiquez au moins un {noun}."
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScopeOrChoose"
-msgstr "Indiquez au moins un {noun}, ou choisissez {choice}."
+msgid "shared.automationTriggers.scopeRequiredOrChoose"
+msgstr "{noun, select, person {Indiquez au moins une personne, ou choisissez {choice}.} sender {Indiquez au moins un expéditeur, ou choisissez {choice}.} other {Indiquez au moins un élément, ou choisissez {choice}.}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/integrations.ts
@@ -26678,13 +26623,13 @@ msgstr "{days} à {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeek"
-msgstr "Les {day}s"
+msgid "shared.schedule.eachDayOfWeek"
+msgstr "Chaque {day}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeekAt"
-msgstr "Les {day}s à {time}"
+msgid "shared.schedule.eachDayOfWeekAt"
+msgstr "Chaque {day} à {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -31954,8 +31899,8 @@ msgstr "Chemin racine"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesHeader/ChangesHeader.tsx
-msgid "workspace.changesHeader.fromBaseBranch"
-msgstr "depuis"
+msgid "workspace.changesHeader.fromBase"
+msgstr "<0>depuis</0> <1/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
@@ -34067,13 +34012,8 @@ msgstr "Réessayer de charger la pull request"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedMany"
-msgstr "Les {total} vérifications ont réussi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedOne"
-msgstr "{total} vérification a réussi"
+msgid "workspace.prDetailCard.allChecksPassed"
+msgstr "{total, plural, one {La vérification a réussi} other {Les # vérifications ont toutes réussi}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx

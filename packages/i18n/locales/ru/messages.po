@@ -4589,11 +4589,6 @@ msgstr "Расписание"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.atTime"
-msgstr "в"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
 msgid "dashboard.automations.scheduleSentence.exhaustedRrule"
 msgstr "Нет предстоящих запусков — изменения не сохранены"
 
@@ -4604,8 +4599,13 @@ msgstr "Неверное правило повторения — изменен�
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.onDay"
-msgstr "в"
+msgid "dashboard.automations.scheduleSentence.kindAtTime"
+msgstr "{kindChip} <0>в</0> {timeInput}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
+msgid "dashboard.automations.scheduleSentence.kindOnDayAtTime"
+msgstr "{kindChip}: {daySelect}, <1>в</1> {timeInput}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
@@ -4750,23 +4750,13 @@ msgstr "Разбирать новые задачи"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.inProject"
-msgstr "в"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.nextRun"
 msgstr "Следующий запуск"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.onDevice"
-msgstr "на"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.usingWorkspace"
-msgstr "используя"
+msgid "dashboard.automations.triggersCard.scopeSentence"
+msgstr "<0>проект:</0> <1/> <2>устройство:</2> <3/> <4>рабочая область:</4> <5/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
@@ -26504,58 +26494,13 @@ msgstr "Некоторым триггерам нужна дополнитель�
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.calendar"
-msgstr "календарь"
+msgid "shared.automationTriggers.scopeRequired"
+msgstr "{noun, select, repository {Укажите хотя бы один репозиторий.} channel {Укажите хотя бы один канал.} reaction {Укажите хотя бы одну реакцию.} dataSource {Укажите хотя бы один источник данных.} team {Укажите хотя бы одну команду.} project {Укажите хотя бы один проект.} calendar {Укажите хотя бы один календарь.} other {Укажите хотя бы одно значение.}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.channel"
-msgstr "канал"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.dataSource"
-msgstr "источник данных"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.person"
-msgstr "человек"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.project"
-msgstr "проект"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.reaction"
-msgstr "реакция"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.repository"
-msgstr "репозиторий"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.sender"
-msgstr "отправитель"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.noun.team"
-msgstr "команда"
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScope"
-msgstr "Укажите хотя бы одно значение: {noun}."
-
-#. js-lingui-explicit-id
-#: ../shared/src/automation-triggers.ts
-msgid "shared.automationTriggers.specifyScopeOrChoose"
-msgstr "Укажите хотя бы одно значение: {noun} — или выберите {choice}."
+msgid "shared.automationTriggers.scopeRequiredOrChoose"
+msgstr "{noun, select, person {Укажите хотя бы одного человека или выберите {choice}.} sender {Укажите хотя бы одного отправителя или выберите {choice}.} other {Укажите хотя бы одно значение или выберите {choice}.}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/integrations.ts
@@ -26679,13 +26624,13 @@ msgstr "{days} в {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeek"
+msgid "shared.schedule.eachDayOfWeek"
 msgstr "Каждую неделю: {day}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
-msgid "shared.schedule.everyDayOfWeekAt"
-msgstr "Каждую неделю: {day} в {time}"
+msgid "shared.schedule.eachDayOfWeekAt"
+msgstr "Каждую неделю: {day}, в {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -31955,8 +31900,8 @@ msgstr "Корневой путь"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesHeader/ChangesHeader.tsx
-msgid "workspace.changesHeader.fromBaseBranch"
-msgstr "от"
+msgid "workspace.changesHeader.fromBase"
+msgstr "<0>от</0> <1/>"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesFileList/ChangesFileList.tsx
@@ -34068,13 +34013,8 @@ msgstr "Повторить загрузку пул-реквеста"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedMany"
-msgstr "Все {total} проверок пройдены"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
-msgid "workspace.prDetailCard.allChecksPassedOne"
-msgstr "{total} проверка пройдена"
+msgid "workspace.prDetailCard.allChecksPassed"
+msgstr "{total, plural, one {Проверка пройдена} few {Все # проверки пройдены} many {Все # проверок пройдены} other {Все # проверки пройдены}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
