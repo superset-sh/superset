@@ -25675,7 +25675,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "is ingelogd en toont hier zijn quotum."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "{0}-account toevoegen"
@@ -25701,7 +25701,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "Voer dit uit in een terminal op deze host en rond de login daarna af in je browser:"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "Log de systeemstandaard {0}-login in op een ander account. Die vervangt de huidige standaardlogin op deze machine; profielen en draaiende agents blijven ongemoeid."
@@ -25992,7 +25992,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "E-mails verbergen"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "Geen {0}-logins op deze host — log in en het gebruik verschijnt hier."

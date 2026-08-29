@@ -25675,7 +25675,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "je přihlášen a zobrazí zde svou kvótu."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "Přidat účet {0}"
@@ -25701,7 +25701,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "Spusťte to v libovolném terminálu na tomto hostu a pak dokončete přihlášení v prohlížeči:"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "Přihlaste systémově výchozí přihlášení {0} k jinému účtu. Nahradí to současné výchozí přihlášení na tomto počítači; profilů ani běžících agentů se to nedotkne."
@@ -25992,7 +25992,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "Skrýt e-maily"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "Na tomto hostu nejsou žádná přihlášení {0} — přihlaste se a využití se objeví tady."

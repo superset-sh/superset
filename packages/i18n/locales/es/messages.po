@@ -25675,7 +25675,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "tiene la sesión iniciada y mostrará aquí su cuota."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "Añadir una cuenta de {0}"
@@ -25701,7 +25701,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "Ejecuta esto en cualquier terminal de este host y luego termina el inicio de sesión en tu navegador:"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "Inicia la sesión predeterminada del sistema de {0} en otra cuenta. Reemplaza el inicio de sesión predeterminado de esta máquina; los perfiles y los agentes en marcha no se ven afectados."
@@ -25992,7 +25992,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "Ocultar los correos"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "No hay sesiones de {0} en este host: inicia sesión y el uso aparecerá aquí."

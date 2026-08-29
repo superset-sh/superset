@@ -13,7 +13,7 @@ import { useRef } from "react";
 export interface RestartSessionsPrompt {
 	agent: "claude" | "codex";
 	/** "Claude Code" / "Codex". */
-	agentLabel: string;
+	providerLabel: string;
 	/** The account just made default, as shown on its card. */
 	accountLabel: string;
 	/** Running agent sessions the restart would relaunch. */
@@ -45,7 +45,7 @@ export function RestartSessionsDialog({
 	const lastPromptRef = useRef(prompt);
 	if (prompt !== null) lastPromptRef.current = prompt;
 	const shown = prompt ?? lastPromptRef.current;
-	const agentLabel = shown?.agentLabel ?? "";
+	const providerLabel = shown?.providerLabel ?? "";
 	const accountLabel = shown?.accountLabel ?? "";
 	return (
 		<AlertDialog
@@ -58,7 +58,7 @@ export function RestartSessionsDialog({
 				<AlertDialogHeader className="px-4 pt-4 pb-2">
 					<AlertDialogTitle className="font-medium">
 						<Trans id="settings.usage.restartAgents.title">
-							Restart running {agentLabel} agents?
+							Restart running {providerLabel} agents?
 						</Trans>
 					</AlertDialogTitle>
 					<AlertDialogDescription>

@@ -25674,7 +25674,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "がサインインしており、クォータがここに表示されます。"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "{0}アカウントを追加"
@@ -25700,7 +25700,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "このホストの任意のターミナルで実行し、ブラウザでサインインを完了してください:"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "システムデフォルトの{0}ログインを別のアカウントにサインインし直します。このマシンの現在のデフォルトサインインが置き換わります。プロファイルと実行中のエージェントは影響を受けません。"
@@ -25991,7 +25991,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "メールを隠す"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "このホストに{0}のログインがありません — サインインすると使用量が表示されます。"

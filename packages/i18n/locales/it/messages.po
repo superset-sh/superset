@@ -25675,7 +25675,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "ha effettuato l'accesso e mostrerà qui la sua quota."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "Aggiungi un account {0}"
@@ -25701,7 +25701,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "Esegui questo in un qualsiasi terminale su questo host, poi completa l'accesso nel browser:"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "Fai accedere l'accesso {0} predefinito di sistema a un altro account. Sostituisce l'accesso predefinito attuale su questa macchina; i profili e gli agenti in esecuzione non vengono toccati."
@@ -25992,7 +25992,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "Nascondi le email"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "Nessun accesso {0} su questo host — accedi e l'utilizzo comparirà qui."

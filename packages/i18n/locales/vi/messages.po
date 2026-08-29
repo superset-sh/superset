@@ -25675,7 +25675,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "đã đăng nhập và sẽ hiện hạn mức ở đây."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "Thêm tài khoản {0}"
@@ -25701,7 +25701,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "Chạy lệnh này trong bất kỳ terminal nào trên host này, rồi hoàn tất đăng nhập trong trình duyệt:"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "Đăng nhập lần đăng nhập {0} mặc định của hệ thống bằng một tài khoản khác. Nó thay cho lần đăng nhập mặc định hiện tại trên máy này; các hồ sơ và agent đang chạy không bị ảnh hưởng."
@@ -25992,7 +25992,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "Ẩn email"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "Chưa có lần đăng nhập {0} nào trên host này — hãy đăng nhập và mức sử dụng sẽ hiện ở đây."

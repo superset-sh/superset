@@ -25674,7 +25674,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "已登录，其配额会显示在这里。"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "添加{0}账户"
@@ -25700,7 +25700,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "在此主机的任意终端中运行以下命令，然后在浏览器中完成登录："
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "将系统默认的{0}登录切换到另一个账户。它会替换本机当前的默认登录；配置文件和运行中的智能体不受影响。"
@@ -25991,7 +25991,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "隐藏邮箱"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"

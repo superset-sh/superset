@@ -374,11 +374,11 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const accounts = quotaQuery.data ?? [];
 	const isBusy = quotaQuery.isFetching || isRefreshing;
 
-	const showMadeDefaultToast = (agentLabel: string, accountLabel: string) => {
+	const showMadeDefaultToast = (providerLabel: string, accountLabel: string) => {
 		toast.success(
 			t({
 				id: "settings.usage.account.madeDefaultToast",
-				message: `New ${agentLabel} agents will use ${accountLabel}.`,
+				message: `New ${providerLabel} agents will use ${accountLabel}.`,
 			}),
 			{
 				description: t({
@@ -396,7 +396,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		agent: ManagedAgent,
 		accountLabel: string,
 	) => {
-		const agentLabel = AGENT_LABELS[agent];
+		const providerLabel = AGENT_LABELS[agent];
 		let candidateCount = 0;
 		try {
 			candidateCount = await countRestartCandidates(agent);
@@ -406,13 +406,13 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		if (candidateCount > 0) {
 			setRestartPrompt({
 				agent,
-				agentLabel,
+				providerLabel,
 				accountLabel,
 				count: candidateCount,
 			});
 			return;
 		}
-		showMadeDefaultToast(agentLabel, accountLabel);
+		showMadeDefaultToast(providerLabel, accountLabel);
 	};
 
 	const makeDefaultAccount = (account: UsageAccount) => {
@@ -434,9 +434,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 
 	const declineRestartSessions = () => {
 		if (!restartPrompt) return;
-		const { agentLabel, accountLabel } = restartPrompt;
+		const { providerLabel, accountLabel } = restartPrompt;
 		setRestartPrompt(null);
-		showMadeDefaultToast(agentLabel, accountLabel);
+		showMadeDefaultToast(providerLabel, accountLabel);
 	};
 
 	const confirmRestartSessions = () => {

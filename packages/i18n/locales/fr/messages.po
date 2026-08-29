@@ -25674,7 +25674,7 @@ msgid "settings.usage.addAccount.addedSuffix"
 msgstr "est connecté et affichera son quota ici."
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "Ajouter un compte {0}"
@@ -25700,7 +25700,7 @@ msgid "settings.usage.addAccount.runCommandHint"
 msgstr "Exécutez ceci dans n'importe quel terminal sur cet hôte, puis terminez la connexion dans votre navigateur :"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
+#. placeholder {0}: AGENT_LABELS[switchTarget.agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.switchDefaultDescription"
 msgstr "Connectez la connexion {0} par défaut du système à un autre compte. Elle remplace la connexion par défaut actuelle sur cette machine ; les profils et les agents en cours ne sont pas affectés."
@@ -25991,7 +25991,7 @@ msgid "settings.usage.quota.hideEmails"
 msgstr "Masquer les e-mails"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: PROVIDER_LABELS[provider]
+#. placeholder {0}: AGENT_LABELS[agent]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
 msgstr "Aucune connexion {0} sur cet hôte — connectez-vous et l'utilisation apparaîtra ici."
