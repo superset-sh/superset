@@ -1,20 +1,31 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { MCP_SERVER_URL } from "@/lib/api-url";
 import { McpCapabilities } from "./components/McpCapabilities";
 import { McpExamples } from "./components/McpExamples";
 import { McpInstall } from "./components/McpInstall";
 
-export const metadata: Metadata = {
-	title: "MCP Server",
-	description: `Connect Claude, Codex, Cursor, or any MCP client to ${COMPANY.NAME}. Create tasks, spin up workspaces, launch agents, and run automations straight from your AI agent.`,
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/mcp-install`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.mcpInstall.title",
+			message: "MCP Server",
+		}),
+		description: i18n._({
+			id: "marketing.meta.mcpInstall.description",
+			message:
+				"Connect Claude, Codex, Cursor, or any MCP client to {companyName}. Create tasks, spin up workspaces, launch agents, and run automations straight from your AI agent.",
+			values: { companyName: COMPANY.NAME },
+		}),
+		alternates: localizedAlternates(lang, "/mcp-install"),
+	};
+}
 
 export default async function McpPage() {
 	await initServerI18n();

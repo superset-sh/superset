@@ -8,6 +8,7 @@ import { ArrowLeft, Download } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { BreadcrumbJsonLd, JsonLdScript } from "@/components/JsonLd";
 import {
@@ -27,6 +28,7 @@ export function generateStaticParams() {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { slug } = await params;
 	const theme = getThemeListing(slug);
 
@@ -37,7 +39,7 @@ export async function generateMetadata({
 	const kind = theme.type === "dark" ? "Dark" : "Light";
 	const title = `${theme.name}: ${kind} Theme for Superset`;
 	const description = `${theme.description} Download the ${theme.name} ${kind.toLowerCase()} theme for Superset, the local-first AI coding workspace.`;
-	const url = `${COMPANY.MARKETING_URL}/marketplace/themes/${theme.slug}`;
+	const url = localeUrl(lang, `/marketplace/themes/${theme.slug}`);
 
 	return {
 		title,
@@ -48,7 +50,7 @@ export async function generateMetadata({
 			`superset ${theme.type} theme`,
 			...theme.tags,
 		],
-		alternates: { canonical: url },
+		alternates: localizedAlternates(lang, `/marketplace/themes/${theme.slug}`),
 		openGraph: { title, description, url, type: "website" },
 		twitter: { card: "summary", title, description },
 	};

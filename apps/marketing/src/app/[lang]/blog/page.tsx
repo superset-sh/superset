@@ -1,35 +1,47 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { getBlogPosts } from "@/lib/blog";
 import { BlogCard } from "./components/BlogCard";
 import { GridCross } from "./components/GridCross";
 
-export const metadata: Metadata = {
-	title: "Blog",
-	description:
-		"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
-	alternates: {
-		canonical: "/blog",
-		types: {
-			"application/rss+xml": "/feed.xml",
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.blog.title",
+		message: "Blog",
+	});
+	const description = i18n._({
+		id: "marketing.meta.blog.description",
+		message:
+			"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
+	});
+	return {
+		title,
+		description,
+		alternates: {
+			canonical: localeUrl(lang, "/blog"),
+			types: {
+				"application/rss+xml": "/feed.xml",
+			},
+			languages: localizedAlternates(lang, "/blog").languages,
 		},
-	},
-	openGraph: {
-		title: "Blog | Superset",
-		description:
-			"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
-		url: "/blog",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Blog | Superset",
-		description:
-			"News, updates, and insights from the Superset team about parallel coding agents and developer productivity.",
-		images: ["/opengraph-image"],
-	},
-};
+		openGraph: {
+			title: `${title} | Superset`,
+			description: description,
+			url: localeUrl(lang, "/blog"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | Superset`,
+			description: description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function BlogPage() {
 	await initServerI18n();

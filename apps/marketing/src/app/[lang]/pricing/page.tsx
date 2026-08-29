@@ -1,6 +1,7 @@
 import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { FAQPageJsonLd } from "@/components/JsonLd";
 import { ComparisonTable } from "./components/ComparisonTable";
@@ -10,13 +11,22 @@ import { PricingTiers } from "./components/PricingTiers";
 import { TrustStrip } from "./components/TrustStrip";
 import { PRICING_FAQ_ITEMS } from "./constants";
 
-export const metadata: Metadata = {
-	title: "Pricing",
-	description: `Simple pricing for every team. Free for individuals, $15/user/month for teams, custom for enterprise. Run 100+ parallel coding agents with ${COMPANY.NAME}.`,
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/pricing`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.pricing.title",
+			message: "Pricing",
+		}),
+		description: i18n._({
+			id: "marketing.meta.pricing.description",
+			message:
+				"Simple pricing for every team. Free for individuals, $15/user/month for teams, custom for enterprise. Run 100+ parallel coding agents with {companyName}.",
+			values: { companyName: COMPANY.NAME },
+		}),
+		alternates: localizedAlternates(lang, "/pricing"),
+	};
+}
 
 export default async function PricingPage() {
 	await initServerI18n();

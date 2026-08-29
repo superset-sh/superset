@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
 import { mdxComponents } from "@/app/[lang]/blog/components/mdx-components";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import {
 	BreadcrumbJsonLd,
@@ -89,6 +90,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { slug } = await params;
 	const page = getComparisonPage(slug);
 
@@ -96,15 +98,13 @@ export async function generateMetadata({
 		return {};
 	}
 
-	const url = `${COMPANY.MARKETING_URL}/compare/${slug}`;
+	const url = localeUrl(lang, `/compare/${slug}`);
 
 	return {
 		title: `${page.title} | ${COMPANY.NAME}`,
 		description: page.description,
 		...(page.keywords.length > 0 && { keywords: page.keywords }),
-		alternates: {
-			canonical: url,
-		},
+		alternates: localizedAlternates(lang, `/compare/${slug}`),
 		openGraph: {
 			title: page.title,
 			description: page.description,

@@ -1,17 +1,26 @@
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 
-export const metadata: Metadata = {
-	title: "Marketplace",
-	description: "Browse shared themes and future agent configs for Superset.",
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/marketplace`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.marketplace.title",
+			message: "Marketplace",
+		}),
+		description: i18n._({
+			id: "marketing.meta.marketplace.description",
+			message: "Browse shared themes and future agent configs for Superset.",
+		}),
+		alternates: localizedAlternates(lang, "/marketplace"),
+	};
+}
 
 const marketplaceLinks = [
 	{

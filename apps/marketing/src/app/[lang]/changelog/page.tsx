@@ -1,38 +1,49 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 import { FaGithub } from "react-icons/fa";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { getChangelogEntries } from "@/lib/changelog";
 import { ChangelogEntry } from "./components/ChangelogEntry";
 
-export const metadata: Metadata = {
-	title: "Changelog",
-	description:
-		"The latest updates, improvements, and new features in Superset.",
-	alternates: {
-		canonical: "/changelog",
-		types: {
-			"application/rss+xml": "/changelog.xml",
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.changelog.title",
+		message: "Changelog",
+	});
+	const description = i18n._({
+		id: "marketing.meta.changelog.description",
+		message: "The latest updates, improvements, and new features in Superset.",
+	});
+	return {
+		title,
+		description,
+		alternates: {
+			canonical: localeUrl(lang, "/changelog"),
+			types: {
+				"application/rss+xml": "/changelog.xml",
+			},
+			languages: localizedAlternates(lang, "/changelog").languages,
 		},
-	},
-	openGraph: {
-		title: "Changelog | Superset",
-		description:
-			"The latest updates, improvements, and new features in Superset.",
-		url: "/changelog",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Changelog | Superset",
-		description:
-			"The latest updates, improvements, and new features in Superset.",
-		images: ["/opengraph-image"],
-	},
-};
+		openGraph: {
+			title: `${title} | Superset`,
+			description: description,
+			url: localeUrl(lang, "/changelog"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | Superset`,
+			description: description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function ChangelogPage() {
 	await initServerI18n();

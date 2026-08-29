@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import remarkGfm from "remark-gfm";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { getAllLegalSlugs, getLegalPage } from "@/lib/legal";
 
@@ -66,6 +67,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { slug } = await params;
 	const page = getLegalPage(slug);
 
@@ -76,5 +78,6 @@ export async function generateMetadata({
 	return {
 		title: `${page.title} - Superset`,
 		description: page.description,
+		alternates: localizedAlternates(lang, `/${slug}`),
 	};
 }

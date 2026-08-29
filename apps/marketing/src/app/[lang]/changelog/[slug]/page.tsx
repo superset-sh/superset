@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { ArticleJsonLd, BreadcrumbJsonLd } from "@/components/JsonLd";
 import { getAllChangelogSlugs, getChangelogEntry } from "@/lib/changelog";
@@ -22,7 +23,7 @@ export default async function ChangelogEntryPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const url = `${COMPANY.MARKETING_URL}/changelog/${slug}`;
+	const url = localeUrl(lang, `/changelog/${slug}`);
 
 	return (
 		<main>
@@ -55,6 +56,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { slug } = await params;
 	const entry = getChangelogEntry(slug);
 
@@ -67,9 +69,7 @@ export async function generateMetadata({
 	return {
 		title: entry.title,
 		description: entry.description,
-		alternates: {
-			canonical: url,
-		},
+		alternates: localizedAlternates(lang, `/changelog/${slug}`),
 		openGraph: {
 			title: entry.title,
 			description: entry.description,

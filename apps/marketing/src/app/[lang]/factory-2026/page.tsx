@@ -1,7 +1,9 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { AttentionChart } from "./components/AttentionChart";
 import { ForecastChart } from "./components/ForecastChart";
@@ -13,28 +15,41 @@ import { LevelCard } from "./components/LevelCard";
 import { ProgressSidebar } from "./components/ProgressSidebar";
 import { FACTORY_LEVELS, FORECAST_PERIODS, GATE_SCORECARD } from "./constants";
 
-const DESCRIPTION =
-	"A falsifiable rubric for the self-driving software factory: six levels of autonomy, the measurable gates between them, and a forecast for how far 2026 gets us.";
-
-export const metadata: Metadata = {
-	title: "Factory 2026",
-	description: DESCRIPTION,
-	alternates: {
-		canonical: "/factory-2026",
-	},
-	openGraph: {
-		title: "Factory 2026 | Superset",
-		description: DESCRIPTION,
-		url: "/factory-2026",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Factory 2026 | Superset",
-		description: DESCRIPTION,
-		images: ["/opengraph-image"],
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.factory2026.title",
+		message: "Factory 2026",
+	});
+	const description = i18n._({
+		id: "marketing.meta.factory2026.description",
+		message:
+			"A falsifiable rubric for the self-driving software factory: six levels of autonomy, the measurable gates between them, and a forecast for how far 2026 gets us.",
+	});
+	return {
+		title,
+		description,
+		alternates: localizedAlternates(lang, "/factory-2026"),
+		openGraph: {
+			title: i18n._({
+				id: "marketing.meta.factory2026.ogTitle",
+				message: "Factory 2026 | Superset",
+			}),
+			description,
+			url: localeUrl(lang, "/factory-2026"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: i18n._({
+				id: "marketing.meta.factory2026.ogTitle",
+				message: "Factory 2026 | Superset",
+			}),
+			description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function Factory2026Page() {
 	await initServerI18n();

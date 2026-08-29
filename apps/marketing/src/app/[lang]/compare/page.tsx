@@ -1,34 +1,46 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { getComparisonPages } from "@/lib/compare";
 import { formatCompareDate } from "@/lib/compare-utils";
 
-export const metadata: Metadata = {
-	title: "Compare Superset | AI Coding Comparisons and Guides",
-	description:
-		"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
-	alternates: {
-		canonical: "/compare",
-	},
-	openGraph: {
-		title: "Compare Superset | AI Coding Comparisons and Guides",
-		description:
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.compare.title",
+		message: "Compare Superset | AI Coding Comparisons and Guides",
+	});
+	const description = i18n._({
+		id: "marketing.meta.compare.description",
+		message:
 			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
-		url: "/compare",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Compare Superset | AI Coding Comparisons and Guides",
-		description:
-			"Compare Superset with Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot, and more. Browse side-by-side comparisons, roundups, and workflow guides.",
-		images: ["/opengraph-image"],
-	},
-};
+	});
+	return {
+		title,
+		description,
+		alternates: {
+			canonical: localeUrl(lang, "/compare"),
+			languages: localizedAlternates(lang, "/compare").languages,
+		},
+		openGraph: {
+			title: `${title} | Superset`,
+			description: description,
+			url: localeUrl(lang, "/compare"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | Superset`,
+			description: description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function ComparePage() {
 	await initServerI18n();

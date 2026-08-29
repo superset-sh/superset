@@ -1,9 +1,11 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
 import Link from "next/link";
 import { FactoryBackdrop } from "@/app/[lang]/components/FactoryBackdrop";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { fetchStats } from "@/app/[lang]/utils/fetchLeaderboard";
 import { formatDayRange } from "@/app/[lang]/utils/formatUsage";
 import { initServerI18n } from "@/app/i18n-server";
@@ -16,27 +18,35 @@ const pixel = Silkscreen({
 	display: "swap",
 });
 
-const TITLE = "Stats";
-const DESCRIPTION =
-	"Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for.";
-
-export const metadata: Metadata = {
-	title: TITLE,
-	description: DESCRIPTION,
-	alternates: { canonical: "/stats" },
-	openGraph: {
-		title: `${TITLE} | ${COMPANY.NAME}`,
-		description: DESCRIPTION,
-		url: "/stats",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: `${TITLE} | ${COMPANY.NAME}`,
-		description: DESCRIPTION,
-		images: ["/opengraph-image"],
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.stats.title",
+		message: "Stats",
+	});
+	const description = i18n._({
+		id: "marketing.meta.stats.description",
+		message:
+			"Aggregate agent usage across every developer on the Superset leaderboard — tokens, cost, cache behaviour and which models people actually reach for.",
+	});
+	return {
+		title,
+		description,
+		alternates: localizedAlternates(lang, "/stats"),
+		openGraph: {
+			title: `${title} | ${COMPANY.NAME}`,
+			description,
+			url: localeUrl(lang, "/stats"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | ${COMPANY.NAME}`,
+			description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export const revalidate = 3600;
 

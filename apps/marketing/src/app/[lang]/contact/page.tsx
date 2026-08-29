@@ -1,17 +1,27 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { ContactForm } from "./components/ContactForm";
 
-export const metadata: Metadata = {
-	title: "Contact",
-	description: `Get in touch with the ${COMPANY.NAME} team.`,
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/contact`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.contact.title",
+			message: "Contact",
+		}),
+		description: i18n._({
+			id: "marketing.meta.contact.description",
+			message: "Get in touch with the {companyName} team.",
+			values: { companyName: COMPANY.NAME },
+		}),
+		alternates: localizedAlternates(lang, "/contact"),
+	};
+}
 
 export default async function ContactPage() {
 	await initServerI18n();

@@ -1,19 +1,30 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
 import { Soc2Badge } from "@/app/[lang]/components/Soc2Badge";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { EnterpriseContactForm } from "./components/EnterpriseContactForm";
 import { EnterpriseFAQ } from "./components/EnterpriseFAQ";
 
-export const metadata: Metadata = {
-	title: "Enterprise",
-	description: `Bring ${COMPANY.NAME} to your team. Get in touch to learn more about enterprise plans and deployment options.`,
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/enterprise`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.enterprise.title",
+			message: "Enterprise",
+		}),
+		description: i18n._({
+			id: "marketing.meta.enterprise.description",
+			message:
+				"Bring {companyName} to your team. Get in touch to learn more about enterprise plans and deployment options.",
+			values: { companyName: COMPANY.NAME },
+		}),
+		alternates: localizedAlternates(lang, "/enterprise"),
+	};
+}
 
 export default async function EnterprisePage() {
 	await initServerI18n();

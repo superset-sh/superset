@@ -16,6 +16,7 @@ import { tierRgb } from "@/app/[lang]/components/TierBadge";
 import { TierIcon } from "@/app/[lang]/components/TierIcon";
 import { TierTube } from "@/app/[lang]/components/TierTube";
 import { TokenSplitBar } from "@/app/[lang]/components/TokenSplitBar";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { avatarUrl } from "@/app/[lang]/utils/avatarUrl";
 import { fetchParticipant } from "@/app/[lang]/utils/fetchLeaderboard";
 import {
@@ -43,6 +44,7 @@ interface PageProps {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { handle } = await params;
 	const profile = await fetchParticipant(handle, { period: "all" });
 
@@ -57,12 +59,12 @@ export async function generateMetadata({
 	)} of API-equivalent agent usage across ${formatCount(
 		profile.models.length,
 	)} models.`;
-	const url = `/user/${profile.handle}`;
+	const url = localeUrl(lang, `/user/${profile.handle}`);
 
 	return {
 		title,
 		description,
-		alternates: { canonical: url },
+		alternates: localizedAlternates(lang, `/user/${profile.handle}`),
 
 		openGraph: {
 			title,

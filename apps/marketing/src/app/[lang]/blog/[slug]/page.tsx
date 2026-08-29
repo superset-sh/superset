@@ -2,6 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXRemote } from "next-mdx-remote/rsc";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import {
 	ArticleJsonLd,
@@ -38,7 +39,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 	});
 	const { author } = post;
 
-	const url = `${COMPANY.MARKETING_URL}/blog/${slug}`;
+	const url = localeUrl(lang, `/blog/${slug}`);
 
 	const sameAs: string[] = [];
 	if (author.twitter) {
@@ -87,6 +88,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { slug } = await params;
 	const post = getBlogPost(slug);
 
@@ -101,9 +103,7 @@ export async function generateMetadata({
 		description: post.description,
 		...(post.keywords &&
 			post.keywords.length > 0 && { keywords: post.keywords }),
-		alternates: {
-			canonical: url,
-		},
+		alternates: localizedAlternates(lang, `/blog/${slug}`),
 		openGraph: {
 			title: post.title,
 			description: post.description,

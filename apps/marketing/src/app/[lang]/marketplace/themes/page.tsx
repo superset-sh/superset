@@ -1,21 +1,30 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
 import { ArrowUpRight, Download } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { themeListings } from "@/lib/marketplace";
 
-export const metadata: Metadata = {
-	title: "Themes",
-	description:
-		"Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro.",
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/marketplace/themes`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.marketplace.themes.title",
+			message: "Themes",
+		}),
+		description: i18n._({
+			id: "marketing.meta.marketplace.themes.description",
+			message:
+				"Browse Superset theme files shared by the community, including GitHub Dark Colorblind, Catppuccin, Ember, and One Dark Pro.",
+		}),
+		alternates: localizedAlternates(lang, "/marketplace/themes"),
+	};
+}
 
 export default async function MarketplaceThemesPage() {
 	await initServerI18n();

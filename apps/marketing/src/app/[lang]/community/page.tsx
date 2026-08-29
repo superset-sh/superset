@@ -4,17 +4,25 @@ import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { getGitHubRepoSlug } from "@/lib/github";
 
-export const metadata: Metadata = {
-	title: "Community",
-	description:
-		"Join the Superset community to get help, share ideas, and stay up to date with the latest news and updates.",
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/community`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.community.title",
+			message: "Community",
+		}),
+		description: i18n._({
+			id: "marketing.meta.community.description",
+			message:
+				"Join the Superset community to get help, share ideas, and stay up to date with the latest news and updates.",
+		}),
+		alternates: localizedAlternates(lang, "/community"),
+	};
+}
 
 interface GitHubRepoResponse {
 	stargazers_count: number;

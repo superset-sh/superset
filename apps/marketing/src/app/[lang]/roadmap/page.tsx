@@ -1,32 +1,44 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { RoadmapBoard } from "./components/RoadmapBoard";
 
-export const metadata: Metadata = {
-	title: "Roadmap",
-	description:
-		"See what we're building now, what's coming next, and where Superset is headed.",
-	alternates: {
-		canonical: "/roadmap",
-	},
-	openGraph: {
-		title: "Roadmap | Superset",
-		description:
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.roadmap.title",
+		message: "Roadmap",
+	});
+	const description = i18n._({
+		id: "marketing.meta.roadmap.description",
+		message:
 			"See what we're building now, what's coming next, and where Superset is headed.",
-		url: "/roadmap",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Roadmap | Superset",
-		description:
-			"See what we're building now, what's coming next, and where Superset is headed.",
-		images: ["/opengraph-image"],
-	},
-};
+	});
+	return {
+		title,
+		description,
+		alternates: {
+			canonical: localeUrl(lang, "/roadmap"),
+			languages: localizedAlternates(lang, "/roadmap").languages,
+		},
+		openGraph: {
+			title: `${title} | Superset`,
+			description: description,
+			url: localeUrl(lang, "/roadmap"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | Superset`,
+			description: description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function RoadmapPage() {
 	await initServerI18n();

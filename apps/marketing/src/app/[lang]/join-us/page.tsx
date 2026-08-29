@@ -1,6 +1,8 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import type { Metadata } from "next";
 import Script from "next/script";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 
 declare global {
@@ -14,27 +16,41 @@ declare global {
 	}
 }
 
-const DESCRIPTION =
-	"We're hiring engineers in San Francisco. Help us build the first software factory platform.";
-
-export const metadata: Metadata = {
-	title: "Join us",
-	alternates: {
-		canonical: "/join-us",
-	},
-	openGraph: {
-		title: "Join us at Superset",
-		description: DESCRIPTION,
-		url: "/join-us",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "Join us at Superset",
-		description: DESCRIPTION,
-		images: ["/opengraph-image"],
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.joinUs.title",
+		message: "Join us",
+	});
+	const description = i18n._({
+		id: "marketing.meta.joinUs.description",
+		message:
+			"We're hiring engineers in San Francisco. Help us build the first software factory platform.",
+	});
+	return {
+		title,
+		description,
+		alternates: localizedAlternates(lang, "/join-us"),
+		openGraph: {
+			title: i18n._({
+				id: "marketing.meta.joinUs.ogTitle",
+				message: "Join us at Superset",
+			}),
+			description,
+			url: localeUrl(lang, "/join-us"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: i18n._({
+				id: "marketing.meta.joinUs.ogTitle",
+				message: "Join us at Superset",
+			}),
+			description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function JoinUsPage() {
 	await initServerI18n();

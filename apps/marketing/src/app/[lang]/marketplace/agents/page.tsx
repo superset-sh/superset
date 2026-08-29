@@ -1,19 +1,28 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { marketplaceSubmissionLinks } from "@/lib/marketplace";
 
-export const metadata: Metadata = {
-	title: "Agent Configs",
-	description:
-		"The future home for reusable Superset agent configs, prompts, and setup guides.",
-	alternates: {
-		canonical: `${COMPANY.MARKETING_URL}/marketplace/agents`,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		title: i18n._({
+			id: "marketing.meta.marketplace.agents.title",
+			message: "Agent Configs",
+		}),
+		description: i18n._({
+			id: "marketing.meta.marketplace.agents.description",
+			message:
+				"The future home for reusable Superset agent configs, prompts, and setup guides.",
+		}),
+		alternates: localizedAlternates(lang, "/marketplace/agents"),
+	};
+}
 
 export default async function MarketplaceAgentsPage() {
 	await initServerI18n();

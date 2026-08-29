@@ -1,8 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import type { Metadata } from "next";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { formatStarCount, getGitHubRepoSlug } from "@/lib/github";
 import { StarChartSection } from "./components/StarChartSection";
@@ -14,28 +16,35 @@ import {
 	formatUTCDate,
 } from "./utils/starPace";
 
-const TITLE = "Star History";
-const DESCRIPTION = `See how ${COMPANY.NAME}'s GitHub stars have grown over time.`;
-
-export const metadata: Metadata = {
-	title: TITLE,
-	description: DESCRIPTION,
-	alternates: {
-		canonical: "/starchart",
-	},
-	openGraph: {
-		title: `${TITLE} | ${COMPANY.NAME}`,
-		description: DESCRIPTION,
-		url: "/starchart",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: `${TITLE} | ${COMPANY.NAME}`,
-		description: DESCRIPTION,
-		images: ["/opengraph-image"],
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.starchart.title",
+		message: "Star History",
+	});
+	const description = i18n._({
+		id: "marketing.meta.starchart.description",
+		message: "See how {companyName}'s GitHub stars have grown over time.",
+		values: { companyName: COMPANY.NAME },
+	});
+	return {
+		title,
+		description,
+		alternates: localizedAlternates(lang, "/starchart"),
+		openGraph: {
+			title: `${title} | ${COMPANY.NAME}`,
+			description,
+			url: localeUrl(lang, "/starchart"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | ${COMPANY.NAME}`,
+			description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 function formatWeekDate(date: string): string {
 	return formatUTCDate(new Date(date).getTime(), {

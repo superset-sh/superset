@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
+import { localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import {
 	FAQPageJsonLd,
@@ -34,11 +35,12 @@ const CTASection = dynamic(() =>
 	import("./components/CTASection").then((mod) => mod.CTASection),
 );
 
-export const metadata: Metadata = {
-	alternates: {
-		canonical: COMPANY.MARKETING_URL,
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	return {
+		alternates: localizedAlternates(lang, "/"),
+	};
+}
 
 export default async function Home() {
 	await initServerI18n();

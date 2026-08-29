@@ -1,9 +1,11 @@
 import { Trans } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { Silkscreen } from "next/font/google";
 import Link from "next/link";
 import { FactoryBackdrop } from "@/app/[lang]/components/FactoryBackdrop";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import {
 	fetchStandings,
 	fetchStats,
@@ -17,27 +19,35 @@ const pixel = Silkscreen({
 	display: "swap",
 });
 
-const TITLE = "Leaderboard";
-const DESCRIPTION =
-	"How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in.";
-
-export const metadata: Metadata = {
-	title: TITLE,
-	description: DESCRIPTION,
-	alternates: { canonical: "/leaderboard" },
-	openGraph: {
-		title: `${TITLE} | ${COMPANY.NAME}`,
-		description: DESCRIPTION,
-		url: "/leaderboard",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: `${TITLE} | ${COMPANY.NAME}`,
-		description: DESCRIPTION,
-		images: ["/opengraph-image"],
-	},
-};
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.leaderboard.title",
+		message: "Leaderboard",
+	});
+	const description = i18n._({
+		id: "marketing.meta.leaderboard.description",
+		message:
+			"How much agent work engineers are actually running — tokens, cost, models and sessions, published by people who opted in.",
+	});
+	return {
+		title,
+		description,
+		alternates: localizedAlternates(lang, "/leaderboard"),
+		openGraph: {
+			title: `${title} | ${COMPANY.NAME}`,
+			description,
+			url: localeUrl(lang, "/leaderboard"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | ${COMPANY.NAME}`,
+			description,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export const revalidate = 300;
 

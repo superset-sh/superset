@@ -13,6 +13,7 @@ import {
 } from "react-icons/ri";
 import { GridCross } from "@/app/[lang]/blog/components/GridCross";
 import { mdxComponents } from "@/app/[lang]/blog/components/mdx-components";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { BreadcrumbJsonLd, JsonLdScript } from "@/components/JsonLd";
 import { getAllPeople, getPersonById } from "@/lib/people";
@@ -300,6 +301,7 @@ export function generateStaticParams() {
 export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
 	const { id } = await params;
 	const person = getPersonById(id);
 
@@ -307,7 +309,7 @@ export async function generateMetadata({
 		return {};
 	}
 
-	const url = `${COMPANY.MARKETING_URL}/team/${id}`;
+	const url = localeUrl(lang, `/team/${id}`);
 	const description = person.bio
 		? getTeamBioText(person.bio)
 		: `${person.name}, ${person.role} at Superset`;
@@ -315,9 +317,7 @@ export async function generateMetadata({
 	return {
 		title: `${person.name} - ${person.role}`,
 		description,
-		alternates: {
-			canonical: url,
-		},
+		alternates: localizedAlternates(lang, `/team/${id}`),
 		openGraph: {
 			title: `${person.name} - ${person.role} at Superset`,
 			description,

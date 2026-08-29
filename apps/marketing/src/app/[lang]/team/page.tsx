@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
+import { i18n } from "@superset/i18n";
 import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -8,33 +9,49 @@ import {
 	RiLinkedinBoxFill,
 	RiTwitterXFill,
 } from "react-icons/ri";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
 import { initServerI18n } from "@/app/i18n-server";
 import { getAllPeople } from "@/lib/people";
 import { CTASection } from "../components/CTASection";
 import { TeamBio } from "./components/TeamBio";
 
-export const metadata: Metadata = {
-	title: "About",
-	description:
-		"What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents.",
-	alternates: {
-		canonical: "/team",
-	},
-	openGraph: {
-		title: "About | Superset",
-		description:
+export async function generateMetadata(): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const title = i18n._({
+		id: "marketing.meta.team.title",
+		message: "About",
+	});
+	const description = i18n._({
+		id: "marketing.meta.team.description",
+		message:
+			"What Superset is, who builds it, and who it's for. A San Francisco team of three ex-YC CTOs building the workspace for parallel coding agents.",
+	});
+	const ogDescription = i18n._({
+		id: "marketing.meta.team.ogDescription",
+		message:
 			"Meet the team behind Superset, building parallel coding agents for developers.",
-		url: "/team",
-		images: ["/opengraph-image"],
-	},
-	twitter: {
-		card: "summary_large_image",
-		title: "About | Superset",
-		description:
-			"Meet the team behind Superset, building parallel coding agents for developers.",
-		images: ["/opengraph-image"],
-	},
-};
+	});
+	return {
+		title,
+		description,
+		alternates: {
+			canonical: localeUrl(lang, "/team"),
+			languages: localizedAlternates(lang, "/team").languages,
+		},
+		openGraph: {
+			title: `${title} | Superset`,
+			description: ogDescription,
+			url: localeUrl(lang, "/team"),
+			images: ["/opengraph-image"],
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: `${title} | Superset`,
+			description: ogDescription,
+			images: ["/opengraph-image"],
+		},
+	};
+}
 
 export default async function TeamPage() {
 	await initServerI18n();
