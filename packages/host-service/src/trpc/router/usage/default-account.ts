@@ -5,7 +5,15 @@
  * provider CLI itself keeps owning every login end to end.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
@@ -30,28 +38,50 @@ function supersetHomeDir(): string {
  * Publishes a selection where the agent wrappers can re-read it on every
  * launch (buildDefaultAccountResolver in agent-setup), so switching accounts
  * reaches existing terminals the next time the agent starts — the PTY env
- * alone is frozen at spawn. Empty file = system default. Best-effort: the DB
- * stays the source of truth and the wrapper falls back to the spawn-time env.
+ * alone is frozen at spawn. Empty file = system default. The host-wide pointer
+ * is authoritative; write failures propagate so the UI cannot report a switch
+ * that agent launches would not observe.
  */
 export function syncDefaultAccountPointer(
 	provider: UsageAccountProvider,
 	selection: string | null,
 ): void {
+	let temporaryPath: string | null = null;
 	try {
 		const dir = join(supersetHomeDir(), "state");
 		mkdirSync(dir, { recursive: true });
-		writeFileSync(join(dir, POINTER_NAMES[provider]), selection ?? "");
-	} catch {
-		// Wrapper keeps using the spawn-time env until the next successful sync.
+		const pointerPath = join(dir, POINTER_NAMES[provider]);
+		temporaryPath = `${pointerPath}.${process.pid}.${randomUUID()}.tmp`;
+		writeFileSync(temporaryPath, selection ?? "");
+		renameSync(temporaryPath, pointerPath);
+		temporaryPath = null;
+	} finally {
+		if (temporaryPath) rmSync(temporaryPath, { force: true });
 	}
 }
 
-/** Reconciles both pointer files from the DB — run at host boot so files
- * from an older build (or a crashed switch) heal. */
+function readDefaultAccountPointer(provider: UsageAccountProvider): {
+	exists: boolean;
+	selection: string | null;
+} {
+	try {
+		const value = readFileSync(
+			join(supersetHomeDir(), "state", POINTER_NAMES[provider]),
+			"utf8",
+		);
+		return { exists: true, selection: value || null };
+	} catch {
+		return { exists: false, selection: null };
+	}
+}
+
+/**
+ * Migrates legacy org-scoped selections into the host-wide pointer files.
+ * Existing pointers are authoritative and are never overwritten at boot:
+ * more than one org-specific host-service can share the same Superset home.
+ */
 export function syncDefaultAccountPointers(db: HostDb): void {
-	const selections = getDefaultAccountSelections(db);
-	syncDefaultAccountPointer("claude", selections.claudeConfigDir);
-	syncDefaultAccountPointer("codex", selections.codexHome);
+	getDefaultAccountSelections(db);
 }
 
 export interface DefaultAccountSelections {
@@ -65,9 +95,35 @@ export function getDefaultAccountSelections(
 	db: HostDb,
 ): DefaultAccountSelections {
 	const row = db.select().from(hostSettings).get();
+	const claudePointer = readDefaultAccountPointer("claude");
+	const codexPointer = readDefaultAccountPointer("codex");
+	const legacyClaudeConfigDir = row?.defaultClaudeConfigDir ?? null;
+	const legacyCodexHome = row?.defaultCodexHome ?? null;
+
+	// Before pointer files existed, these values lived only in each org DB.
+	// Migrate a concrete legacy selection only when no host-wide pointer exists.
+	// A missing/null row must not publish an empty pointer: doing so lets an
+	// unrelated org reset the selected account merely by starting up.
+	if (!claudePointer.exists && legacyClaudeConfigDir) {
+		try {
+			syncDefaultAccountPointer("claude", legacyClaudeConfigDir);
+		} catch {
+			// Migration is best-effort; the legacy DB value remains usable.
+		}
+	}
+	if (!codexPointer.exists && legacyCodexHome) {
+		try {
+			syncDefaultAccountPointer("codex", legacyCodexHome);
+		} catch {
+			// Migration is best-effort; the legacy DB value remains usable.
+		}
+	}
+
 	return {
-		claudeConfigDir: row?.defaultClaudeConfigDir ?? null,
-		codexHome: row?.defaultCodexHome ?? null,
+		claudeConfigDir: claudePointer.exists
+			? claudePointer.selection
+			: legacyClaudeConfigDir,
+		codexHome: codexPointer.exists ? codexPointer.selection : legacyCodexHome,
 	};
 }
 
