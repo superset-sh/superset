@@ -133,6 +133,81 @@ export async function resumeTerminalAgentSession(
 	}
 }
 
+/**
+ * Live agent sessions a default-account switch cannot reach: their PTY env
+ * was frozen at spawn, so they keep the old login until relaunched. A
+ * session qualifies when its binding captured a resumable conversation
+ * (session id present, progressed past attach) and its config both belongs
+ * to `provider` — the presetId keying resolveDefaultAccountEnv — and knows
+ * how to resume. Sessions that fail the bar are left running rather than
+ * killed without a way back.
+ */
+export function listAccountRestartCandidates(
+	db: HostDb,
+	store: TerminalAgentStore,
+	provider: "claude" | "codex",
+): Array<{ binding: TerminalAgentBinding; agentLabel: string }> {
+	const out: Array<{ binding: TerminalAgentBinding; agentLabel: string }> = [];
+	for (const binding of store.list()) {
+		if (!binding.agentSessionId || binding.lastEventType === "Attached") {
+			continue;
+		}
+		const config = resolveHostAgentConfig(
+			db,
+			binding.definitionId ?? binding.agentId,
+		);
+		if (!config || config.presetId !== provider) continue;
+		if (config.resumeArgs.length === 0) continue;
+		out.push({ binding, agentLabel: config.label });
+	}
+	return out;
+}
+
+export interface RestartAccountSessionsDeps {
+	db: HostDb;
+	terminalAgentStore: TerminalAgentStore;
+	disposeSession: (terminalId: string) => Promise<unknown>;
+}
+
+/**
+ * Relaunch every live `provider` agent onto the current default account.
+ * Each candidate terminal is killed the way a crash would kill it — the
+ * binding is marked "terminal-exited", never "disposed" — so the standard
+ * auto-resume path relaunches the agent with its saved session id, and the
+ * agent wrapper re-resolves the account pointer at launch: same
+ * conversation, new account. Marking ended precedes the dispose because the
+ * renderer re-checks for a resume candidate on the socket close the dispose
+ * causes; the store's own "change" event never reaches it. Panes that are
+ * not open resume when their workspace is next viewed, like any other
+ * dead-terminal candidate.
+ */
+export async function restartAccountSessions(
+	deps: RestartAccountSessionsDeps,
+	provider: "claude" | "codex",
+): Promise<{ restartedTerminalIds: string[] }> {
+	const candidates = listAccountRestartCandidates(
+		deps.db,
+		deps.terminalAgentStore,
+		provider,
+	);
+	const restartedTerminalIds: string[] = [];
+	for (const { binding } of candidates) {
+		deps.terminalAgentStore.markTerminalExited(binding.terminalId);
+		try {
+			await deps.disposeSession(binding.terminalId);
+		} catch (error) {
+			// The reaper retries the kill; the binding stays a valid candidate.
+			console.warn(
+				"[terminal-agents] account-switch restart failed to dispose terminal",
+				{ terminalId: binding.terminalId, error },
+			);
+			continue;
+		}
+		restartedTerminalIds.push(binding.terminalId);
+	}
+	return { restartedTerminalIds };
+}
+
 function inflightKey(
 	workspaceId: string,
 	agentId: TerminalAgentId,
@@ -235,6 +310,39 @@ export const terminalAgentsRouter = router({
 						disposeSessionAndWait(terminalId, ctx.db),
 				},
 				input,
+			),
+		),
+
+	/**
+	 * The sessions {@link restartAccountSessions} would relaunch — exposed
+	 * separately so the Usage tab can ask before restarting anything.
+	 */
+	accountRestartCandidates: protectedProcedure
+		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.query(({ ctx, input }) =>
+			listAccountRestartCandidates(
+				ctx.db,
+				ctx.terminalAgentStore,
+				input.provider,
+			).map(({ binding, agentLabel }) => ({
+				terminalId: binding.terminalId,
+				workspaceId: binding.workspaceId,
+				agentLabel,
+			})),
+		),
+
+	/** See {@link restartAccountSessions}. */
+	restartAccountSessions: protectedProcedure
+		.input(z.object({ provider: z.enum(["claude", "codex"]) }))
+		.mutation(({ ctx, input }) =>
+			restartAccountSessions(
+				{
+					db: ctx.db,
+					terminalAgentStore: ctx.terminalAgentStore,
+					disposeSession: (terminalId) =>
+						disposeSessionAndWait(terminalId, ctx.db),
+				},
+				input.provider,
 			),
 		),
 
