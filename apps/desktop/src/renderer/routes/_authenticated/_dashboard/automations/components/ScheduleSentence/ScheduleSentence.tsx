@@ -96,59 +96,64 @@ export function ScheduleSentence({
 		state.kind === "weekdays" ||
 		state.kind === "weekly";
 
+	// The sentence is one catalog message with the controls as placeholders,
+	// not fragments joined by the component: a bare "on"/"at" cannot be
+	// translated into verb-final or case-marking languages, while a whole
+	// message lets each locale reorder the chips and reword the connectives.
+	const kindChip = (
+		<SelectChip
+			value={state.kind}
+			disabled={disabled}
+			options={PRESET_OPTIONS.map((option) => ({
+				value: option.value,
+				label: i18n._(option.label),
+			}))}
+			onChange={(value) => update({ kind: value as PresetKind })}
+		/>
+	);
+	const daySelect = (
+		<SelectChip
+			value={state.day}
+			disabled={disabled}
+			options={DAY_OPTIONS.map((option) => ({
+				value: option.value,
+				label: i18n._(option.label),
+			}))}
+			onChange={(value) => update({ day: value as Weekday })}
+		/>
+	);
+	const timeInput = (
+		<input
+			type="time"
+			disabled={disabled}
+			className={cn(
+				CHIP,
+				"px-2 disabled:opacity-50 dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden",
+			)}
+			value={formatTimeInputValue(state.hour, state.minute)}
+			onChange={(event) => {
+				const parsed = parseTimeInputValue(event.target.value);
+				if (parsed) update(parsed);
+			}}
+		/>
+	);
+
 	return (
 		<div className={cn("flex flex-col gap-1.5", className)}>
 			<div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px]">
-				<SelectChip
-					value={state.kind}
-					disabled={disabled}
-					options={PRESET_OPTIONS.map((option) => ({
-						value: option.value,
-						label: i18n._(option.label),
-					}))}
-					onChange={(value) => update({ kind: value as PresetKind })}
-				/>
-
-				{showsDay && (
-					<>
-						<span className="text-muted-foreground">
-							<Trans id="dashboard.automations.scheduleSentence.onDay">
-								on
-							</Trans>
-						</span>
-						<SelectChip
-							value={state.day}
-							disabled={disabled}
-							options={DAY_OPTIONS.map((option) => ({
-								value: option.value,
-								label: i18n._(option.label),
-							}))}
-							onChange={(value) => update({ day: value as Weekday })}
-						/>
-					</>
-				)}
-
-				{showsTime && (
-					<>
-						<span className="text-muted-foreground">
-							<Trans id="dashboard.automations.scheduleSentence.atTime">
-								at
-							</Trans>
-						</span>
-						<input
-							type="time"
-							disabled={disabled}
-							className={cn(
-								CHIP,
-								"px-2 disabled:opacity-50 dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:hidden",
-							)}
-							value={formatTimeInputValue(state.hour, state.minute)}
-							onChange={(event) => {
-								const parsed = parseTimeInputValue(event.target.value);
-								if (parsed) update(parsed);
-							}}
-						/>
-					</>
+				{showsDay ? (
+					<Trans id="dashboard.automations.scheduleSentence.kindOnDayAtTime">
+						{kindChip} <span className="text-muted-foreground">on</span>{" "}
+						{daySelect} <span className="text-muted-foreground">at</span>{" "}
+						{timeInput}
+					</Trans>
+				) : showsTime ? (
+					<Trans id="dashboard.automations.scheduleSentence.kindAtTime">
+						{kindChip} <span className="text-muted-foreground">at</span>{" "}
+						{timeInput}
+					</Trans>
+				) : (
+					kindChip
 				)}
 
 				{/* Read-only: the zone is captured from the browser when the trigger
