@@ -18,7 +18,6 @@ export type ElementAnchor = z.infer<typeof elementAnchorSchema>;
 
 export const listPageCommentsSchema = z.object({
 	pageId: z.string().uuid(),
-	version: z.number().int().positive().optional(),
 	// Narrowing only — it can never widen what a caller sees, so it is safe to
 	// let the caller ask for it. MCP callers get it forced on regardless.
 	activatedOnly: z.boolean().optional(),
@@ -66,8 +65,4 @@ export const resolvePageCommentThreadSchema = z.object({
 
 export const deletePageCommentThreadSchema = z.object({
 	threadId: z.string().uuid(),
-});
-
-export const activateAgentThreadsSchema = z.object({
-	threadIds: z.array(z.string().uuid()).min(1).max(100),
 });

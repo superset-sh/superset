@@ -1,5 +1,5 @@
-import type { CliContext } from "../../../lib/command";
-import { pageRefFromArg } from "../pageRef";
+import type { CliContext } from "../../lib/command";
+import { pageRefFromArg } from "./pageRef";
 
 export async function resolvePageId(
 	ctx: CliContext,

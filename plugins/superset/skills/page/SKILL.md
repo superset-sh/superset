@@ -44,8 +44,14 @@ local browser and fatal once published:
   access you cannot avoid in `try`/`catch`.
 - **`navigator.serviceWorker` is unavailable** for the same reason.
 - **`fetch`/`XHR`/WebSocket send `Origin: null`**, which almost every API and
-  CORS policy rejects. Write pages that need no network at all: bake the data
+  CORS policy rejects. Write pages that need no network for their data: bake it
   into the document as a literal.
+- **`fetch("data:...")` is blocked as well.** `connect-src` permits no `data:`
+  on either viewer, so a page cannot read its own inlined data URIs back out.
+  That is counterintuitive when the rule next to it says to inline everything,
+  and it is exactly the workaround people reach for. Decode base64 in
+  JavaScript instead (`atob`, then `Uint8Array.from`), or emit the value as a
+  JavaScript literal so nothing has to be decoded at all.
 - **No parent access.** Reading `window.parent.document`, `window.top.location`
   or `window.frameElement` throws a `SecurityError`. `postMessage` to the parent
   is the exception; it does not throw, it simply has nothing listening, so
@@ -62,17 +68,31 @@ everything they need is already in the file.
 ## The other hard limits
 
 1. **`.html` only.** Any other extension is rejected at the CLI.
-2. **One file.** There is no asset upload. Inline all CSS and JS, and embed
-   images as `data:` URIs. No CDN links, no external stylesheets, no web fonts
-   from a remote host; the opaque origin can't fetch them anyway.
-3. **3 MB maximum**, and base64 `data:` URIs count toward it at ~1.37× their
+2. **One file.** There is no asset upload. Inline all CSS and JS. No CDN
+   links, no external stylesheets, and no web fonts from a remote host:
+   scripts and stylesheets are refused outright, and a remote font fails CORS
+   from an opaque origin.
+3. **No compiling code at runtime.** `script-src` carries no `'unsafe-eval'`,
+   so `eval()` and `new Function()` both raise an `EvalError`. This rules out
+   inlining any library that builds functions at runtime, which includes
+   several chart and templating libraries and a number of date and expression
+   helpers. Check for it before you reach for a dependency: the page renders
+   nothing and gives no visible reason why.
+4. **Remote images do load,** on both viewers, so `<img src="https://...">`
+   works. Prefer a `data:` URI anyway. A remote image makes every reader's
+   browser call that host directly, which hands a third party the IP address
+   of everyone who opens the page, and it breaks the moment the host does.
+5. **3 MB maximum**, and base64 `data:` URIs count toward it at ~1.37× their
    raw size. A few small SVGs or PNGs are fine; a photo gallery is not.
-4. **Full-bleed frame with a white default background.** Set your own `body`
+6. **Full-bleed frame with a white default background.** Set your own `body`
    background explicitly rather than inheriting.
 
-Check before publishing: no `http://` or `https://` resource URLs, no bare
-`localStorage`, page fits in 3 MB, opens correctly from `file://` with the
-network disabled.
+Check before publishing: no remote script, stylesheet, or font URLs, no `eval`
+or `new Function` anywhere in the file or in anything you inlined, no `fetch`
+of any kind including of a `data:` URI, no bare `localStorage`, and the page
+fits in 3 MB. Opened from `file://` with the network disabled it should still
+render, with remote images the one permitted exception: they go blank offline,
+which is the price of not inlining them.
 
 ## Design
 
@@ -139,10 +159,15 @@ quietly creates a *new* page, and the reader's link keeps showing the old one.
 
 ## Visibility
 
-`just_me` (the default) or `org`, set with `--visibility`. Anything wider is not
-settable from the CLI. A page shared for feedback needs `--visibility org`. If
-the user says "send this to the team", set it, or they'll get a 404 and no
-explanation.
+`org` (the default) or `just_me`, set with `--visibility`. Anything wider is not
+settable from the CLI. A new page is readable by the org, because that is what a
+page is usually for; pass `--visibility just_me` when the user wants a draft only
+they can open.
+
+Visibility belongs to the page, not to the publish. Republishing never changes
+it, so a page someone narrowed to `just_me` stays that way through every later
+version, and a page created before `org` became the default is still `just_me`
+until someone widens it.
 
 ## Read a page back
 
@@ -198,6 +223,7 @@ Reopen with `superset pages comments resolve --thread <id> --reopen`.
 | `Only .html files can be published as a page` | Wrong extension, or you pointed at a directory |
 | Publish rejected on size | Over 3 MB; the `data:` URIs are almost always why |
 | A new page appeared instead of a version | Published from outside the workspace, or the path changed; use `--page <id>` |
-| Reader gets a 404 | Page is still `just_me`; republish with `--visibility org` |
-| Page is blank once published, fine locally | A script threw, nearly always `localStorage`, or a fetch to a remote host |
-| Fonts or images missing when published | External URLs; inline them or embed as `data:` URIs |
+| Reader gets a 404 | Page is `just_me`, either set that way or created before `org` became the default; widen it with `--visibility org` |
+| Page is blank once published, fine locally | A script threw: usually `localStorage`, or a fetch of any kind |
+| A chart or widget renders nothing and logs no error | The library compiles code with `new Function` or `eval`, which the sandbox refuses; pick one that does not |
+| Fonts missing when published | Remote font URLs; a font fails CORS from an opaque origin, so inline it as a `data:` URI |

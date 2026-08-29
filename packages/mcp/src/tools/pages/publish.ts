@@ -41,7 +41,7 @@ export function register(server: McpServer): void {
 					"What changed in this version, shown in the version history. Display-only.",
 				),
 				visibility: optionalish(pageFields.visibility).describe(
-					"`org` lets anyone in the organization open it; `just_me` keeps it private to the publisher.",
+					"`org` (the default) lets anyone in the organization open it; `just_me` keeps it private to the publisher.",
 				),
 				workspaceId: pageFields.workspaceId.describe(
 					"The workspace this page belongs to. Required: a page that names no workspace is listed by nothing and cannot be versioned later. Get it from the `SUPERSET_WORKSPACE_ID` environment variable, or by running `superset workspaces list`.",

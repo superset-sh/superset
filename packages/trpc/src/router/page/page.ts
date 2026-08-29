@@ -17,15 +17,18 @@ import { assertPageReadable, assertPageWritable } from "./access";
 import { pageUrl } from "./page-url";
 import { publishPage } from "./publish";
 import {
+	clearPageWatchSchema,
 	deletePageSchema,
 	listPagesSchema,
 	pageRefSchema,
 	publishPageSchema,
 	pullPageSchema,
 	setPageVisibilitySchema,
+	setPageWatchSchema,
 	setSharedVersionSchema,
 } from "./schema";
 import { resolveSharedVersion, servedVersion } from "./shared-version";
+import { watchState } from "./watch";
 import { assertWorkspaceAccess } from "./workspace-access";
 
 function visibilityFilter(userId: string) {
@@ -170,12 +173,15 @@ export const pageRouter = {
 					sharedVersion: pages.sharedVersion,
 					createdAt: pages.createdAt,
 					updatedAt: pages.updatedAt,
+					createdByUserId: pages.createdByUserId,
+					ownerName: users.name,
 					latestVersion: latest.version,
 					contentType: latest.contentType,
 					sizeBytes: latest.sizeBytes,
 					publishedAt: latest.publishedAt,
 				})
 				.from(pages)
+				.leftJoin(users, eq(users.id, pages.createdByUserId))
 				.leftJoinLateral(latest, sql`true`);
 
 			const scoped = input?.workspaceId
@@ -214,6 +220,7 @@ export const pageRouter = {
 			url: pageUrl(page.slug),
 			latestVersion,
 			servedVersion: servedVersion(page.sharedVersion, latestVersion),
+			watch: watchState(page, Date.now()),
 		};
 	}),
 
@@ -239,6 +246,41 @@ export const pageRouter = {
 				});
 			}
 			return { id: updated.id, visibility: updated.visibility };
+		}),
+
+	setWatch: protectedProcedure
+		.input(setPageWatchSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const page = await loadPage({ id: input.id, organizationId, userId });
+			assertPageWritable(page, userId);
+
+			await db
+				.update(pages)
+				.set({
+					watchedByAgent: input.agentId,
+					watchHeartbeatAt: new Date(),
+				})
+				.where(eq(pages.id, page.id));
+
+			return { id: page.id };
+		}),
+
+	clearWatch: protectedProcedure
+		.input(clearPageWatchSchema)
+		.mutation(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const userId = ctx.session.user.id;
+			const page = await loadPage({ id: input.id, organizationId, userId });
+			assertPageWritable(page, userId);
+
+			await db
+				.update(pages)
+				.set({ watchedByAgent: null, watchHeartbeatAt: null })
+				.where(eq(pages.id, page.id));
+
+			return { id: page.id };
 		}),
 
 	access: protectedProcedure
@@ -428,6 +470,7 @@ export const pageRouter = {
 				sharedVersion: page.sharedVersion,
 				latestVersion,
 				servedVersion: servedVersion(page.sharedVersion, latestVersion),
+				watch: watchState(page, Date.now()),
 				version: row.version,
 				label: row.label,
 				contentType: row.contentType,

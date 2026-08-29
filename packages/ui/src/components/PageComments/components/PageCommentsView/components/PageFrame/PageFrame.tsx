@@ -29,7 +29,7 @@ export function PageFrame({ html, src, title, ref, onLoad }: PageFrameProps) {
 				referrerPolicy="no-referrer"
 				allow="fullscreen"
 				className={cn(
-					"h-full w-full border-0 bg-white",
+					"h-full w-full border-0 bg-background",
 					loaded ? "opacity-100" : "opacity-0",
 				)}
 			/>

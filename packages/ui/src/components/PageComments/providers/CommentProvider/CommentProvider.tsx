@@ -21,6 +21,7 @@ export interface PageComment {
 	id: string;
 	authorName: string;
 	authorImage: string | null;
+	authorKind: "human" | "agent";
 	body: string;
 	createdAt: number;
 }
@@ -30,6 +31,7 @@ export interface CommentThread {
 	anchor: CommentAnchor;
 	comments: PageComment[];
 	resolved: boolean;
+	version: number;
 }
 
 export interface CommentDraft {
@@ -71,6 +73,7 @@ interface CommentContextValue extends CommentStore {
 	hoverRect: FrameRect | null;
 	setHoverRect: (rect: FrameRect | null) => void;
 	rects: Record<string, FrameRect | null>;
+	rectsReady: boolean;
 	setRects: (entries: { id: string; rect: FrameRect | null }[]) => void;
 }
 
@@ -82,6 +85,20 @@ export function useComments(): CommentContextValue {
 		throw new Error("useComments must be used inside CommentProvider");
 	}
 	return value;
+}
+
+function sameRect(
+	a: FrameRect | null | undefined,
+	b: FrameRect | null | undefined,
+): boolean {
+	if (a === b) return true;
+	if (!a || !b) return false;
+	return (
+		a.top === b.top &&
+		a.left === b.left &&
+		a.width === b.width &&
+		a.height === b.height
+	);
 }
 
 export function CommentProvider({
@@ -113,6 +130,7 @@ export function CommentProvider({
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 	const [hoverRect, setHoverRect] = useState<FrameRect | null>(null);
 	const [rects, setRectState] = useState<Record<string, FrameRect | null>>({});
+	const [rectsReady, setRectsReady] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [busyThreadId, setBusyThreadId] = useState<string | null>(null);
 	const [framePointerDownAt, setFramePointerDownAt] = useState(0);
@@ -146,7 +164,15 @@ export function CommentProvider({
 
 	const setRects = useCallback(
 		(entries: { id: string; rect: FrameRect | null }[]) => {
-			setRectState(Object.fromEntries(entries.map((e) => [e.id, e.rect])));
+			setRectState((previous) => {
+				const next = Object.fromEntries(entries.map((e) => [e.id, e.rect]));
+				const keys = Object.keys(next);
+				if (keys.length !== Object.keys(previous).length) return next;
+				return keys.every((key) => sameRect(previous[key], next[key]))
+					? previous
+					: next;
+			});
+			setRectsReady(true);
 		},
 		[],
 	);
@@ -236,6 +262,7 @@ export function CommentProvider({
 			hoverRect,
 			setHoverRect,
 			rects,
+			rectsReady,
 			setRects,
 		}),
 		[
@@ -259,6 +286,7 @@ export function CommentProvider({
 			activeThreadId,
 			hoverRect,
 			rects,
+			rectsReady,
 			setRects,
 		],
 	);

@@ -14,13 +14,13 @@ export function usePageCommentStore({
 }): CommentStore {
 	const utils = cloudTrpc.useUtils();
 	const list = cloudTrpc.pageComment.list.useQuery(
-		{ pageId, version },
+		{ pageId },
 		{ enabled: version > 0 },
 	);
 
 	const invalidate = useCallback(
-		() => utils.pageComment.list.invalidate({ pageId, version }),
-		[utils, pageId, version],
+		() => utils.pageComment.list.invalidate({ pageId }),
+		[utils, pageId],
 	);
 
 	const handlers = useMemo(

@@ -88,6 +88,11 @@ export function PageHeader({
 						void pickVersion(version);
 					}}
 				/>
+				{!isOwner && page.owner ? (
+					<span className="ml-2 min-w-0 truncate text-muted-foreground text-xs">
+						{page.owner.name}
+					</span>
+				) : null}
 			</div>
 
 			<div className="no-drag ml-auto flex shrink-0 items-center gap-1">

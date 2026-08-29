@@ -9,6 +9,7 @@ import {
 } from "../../richInputOpenStore";
 import { TerminalConnectionIndicator } from "./components/TerminalConnectionIndicator";
 import { TerminalIdCopyMenu } from "./components/TerminalIdCopyMenu";
+import { TerminalPageWatchChip } from "./components/TerminalPageWatchChip";
 
 interface TerminalPaneHeaderExtrasProps {
 	workspaceId: string;
@@ -46,6 +47,10 @@ export function TerminalPaneHeaderExtras({
 			<TerminalConnectionIndicator
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}
+			/>
+			<TerminalPageWatchChip
+				workspaceId={workspaceId}
+				terminalId={terminalId}
 			/>
 			<TerminalIdCopyMenu workspaceId={workspaceId} terminalId={terminalId} />
 			<Tooltip>

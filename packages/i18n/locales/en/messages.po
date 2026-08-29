@@ -6086,6 +6086,11 @@ msgstr "Created"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/PageCard.tsx
+msgid "dashboard.pages.pageCard.delete"
+msgstr "Delete"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/PageCard.tsx
 msgid "dashboard.pages.pageCard.edited"
 msgstr "Edited"
 
@@ -6103,6 +6108,11 @@ msgstr "Pin"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/PageCard.tsx
 msgid "dashboard.pages.pageCard.unpin"
 msgstr "Unpin"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesView/PagesView.tsx
+msgid "dashboard.pages.pageDeleted"
+msgstr "Page deleted"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesView/PagesView.tsx
@@ -19555,11 +19565,6 @@ msgstr "Failed to create thread"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts
-msgid "serverError.pageComment.onlyAPersonCanHand"
-msgstr "Only a person can hand a thread to an agent"
-
-#. js-lingui-explicit-id
-#: src/server-errors.ts
 msgid "serverError.pageComment.onlyTheAuthorCanEdit"
 msgstr "Only the author can edit a comment"
 
@@ -19576,7 +19581,7 @@ msgstr "Page not found"
 #. js-lingui-explicit-id
 #: src/server-errors.ts
 msgid "serverError.pageComment.thisThreadHasNotBeenHanded"
-msgstr "This thread has not been handed to an agent. Someone has to hand it off from the page first."
+msgstr "This thread is not open to agents. A person has to comment on it before an agent can reply."
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts
@@ -33665,45 +33670,19 @@ msgstr "Worktree missing"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.agentActiveSince"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.agentActiveSinceWatch"
 msgstr "active {0}"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.agentUnreachableToast"
-msgstr "Could not reach that agent"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.handoffAria"
-msgstr "Hand off to an agent"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.handoffFailedToast"
-msgstr "Could not hand off these comments"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.handoffTitle"
-msgstr "Hand off to an agent"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.noAgentsRunning"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.noAgentsRunningWatch"
 msgstr "No agents running here"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: open.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.openCommentCount"
-msgstr "{0, plural, one {# open comment} other {# open comments}}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.sentToAgentToast"
-msgstr "Sent to agent"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.notWatchingLabel"
+msgstr "Nothing is watching this page"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/PagePaneHeaderExtras.tsx
@@ -33716,9 +33695,34 @@ msgid "workspace.pagePane.sharePageTitle"
 msgstr "Share page"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.stopWatchFailedToast"
+msgstr "Could not stop watching"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.stopWatching"
+msgstr "Stop watching"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/utils/pagePaneLabel/pagePaneLabel.ts
 msgid "workspace.pagePane.untitledPage"
 msgstr "Untitled Page"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.watcherAria"
+msgstr "Choose which agent watches this page for comments"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.watchFailedToast"
+msgstr "Could not watch this page"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.watchingLabel"
+msgstr "Comments go to this agent"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useDefaultPaneActions/useDefaultPaneActions.tsx
@@ -34909,6 +34913,17 @@ msgstr "Terminal removed"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalConnectionIndicator/TerminalConnectionIndicator.tsx
 msgid "workspace.terminalPane.viewLog"
 msgstr "View log"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalPageWatchChip/TerminalPageWatchChip.tsx
+msgid "workspace.terminalPane.watchingAria"
+msgstr "Pages this agent is watching for comments"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: mine.length
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalPageWatchChip/TerminalPageWatchChip.tsx
+msgid "workspace.terminalPane.watchingPageCount"
+msgstr "{0, plural, one {Watching # page for comments} other {Watching # pages for comments}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalSessionDropdown/TerminalSessionDropdown.tsx

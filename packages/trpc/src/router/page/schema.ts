@@ -19,6 +19,7 @@ export const pageFields = {
 	description: z.string().max(2000),
 	label: z.string().max(200),
 	visibility: z.enum(OFFERED_VISIBILITIES),
+	agentId: z.string().min(1).max(200),
 } as const;
 
 const publishPageFieldsSchema = z.object({
@@ -116,3 +117,10 @@ export const deletePageSchema = z.object({ id: pageFields.id });
 export const pullPageSchema = pageRefFieldsSchema
 	.extend({ version: pageFields.version.optional() })
 	.refine(hasPageRef, PAGE_REF_MESSAGE);
+
+export const setPageWatchSchema = z.object({
+	id: pageFields.id,
+	agentId: pageFields.agentId.nullable().default(null),
+});
+
+export const clearPageWatchSchema = z.object({ id: pageFields.id });

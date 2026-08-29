@@ -1,6 +1,5 @@
 import { dbWs } from "@superset/db/client";
 import {
-	pageCommentThreads,
 	pages,
 	pageVersions,
 	type SelectPage,
@@ -158,14 +157,6 @@ async function runPublish({
 				});
 			}
 
-			// A new version is not what anyone handed off, so agent activation does
-			// not carry over to it. Someone has to look at the page again and hand
-			// off the threads that still apply.
-			await tx
-				.update(pageCommentThreads)
-				.set({ agentActivatedAt: null, agentActivatedByUserId: null })
-				.where(eq(pageCommentThreads.pageId, page.id));
-
 			bodyCompleted = true;
 			return {
 				id: page.id,
@@ -294,7 +285,7 @@ async function createPage({
 			createdByUserId: userId,
 			title,
 			description: input.description ?? null,
-			visibility: input.visibility ?? "just_me",
+			visibility: input.visibility ?? "org",
 		})
 		.returning();
 

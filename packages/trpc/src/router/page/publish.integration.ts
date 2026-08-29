@@ -110,8 +110,7 @@ describe("publish", () => {
 		expect(result.url).toBe(
 			`${process.env.NEXT_PUBLIC_WEB_URL}/page/${result.slug}`,
 		);
-		// Narrowest audience by default; widening is always a deliberate act.
-		expect(result.visibility).toBe("just_me");
+		expect(result.visibility).toBe("org");
 	});
 
 	test("republishing the same entry_path adds v2 to the same page", async () => {

@@ -2,7 +2,7 @@
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Building2, Check, Link2, Lock } from "lucide-react";
-import { type ReactNode, useCallback, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../../ui/avatar";
 import { Button } from "../../../../../ui/button";
 import { Label } from "../../../../../ui/label";
@@ -64,6 +64,18 @@ export function PageSharePopover({
 	const { t } = useLingui();
 	const [busy, setBusy] = useState(false);
 	const [copied, setCopied] = useState(false);
+	const [pending, setPending] = useState<{
+		pageId: string;
+		value: PageVisibility;
+	} | null>(null);
+	const pendingValue = pending?.pageId === page.id ? pending.value : null;
+	const visibility = pendingValue ?? page.visibility;
+
+	useEffect(() => {
+		if (pendingValue !== null && page.visibility === pendingValue) {
+			setPending(null);
+		}
+	}, [page.visibility, pendingValue]);
 
 	useFramePointerDown(useCallback(() => onOpenChange(false), [onOpenChange]));
 
@@ -79,6 +91,28 @@ export function PageSharePopover({
 					message: "Could not copy the link",
 				}),
 			);
+		}
+	};
+
+	const changeVisibility = async (next: PageVisibility) => {
+		if (next === visibility) return;
+		setPending({ pageId: page.id, value: next });
+		if (next !== "just_me") void copyLink();
+		setBusy(true);
+		try {
+			await onSetVisibility(next);
+		} catch (error) {
+			setPending(null);
+			toast.error(
+				error instanceof Error
+					? error.message
+					: t({
+							id: "ui.pageShare.visibilityFailed",
+							message: "Could not change who can see this page",
+						}),
+			);
+		} finally {
+			setBusy(false);
 		}
 	};
 
@@ -169,16 +203,10 @@ export function PageSharePopover({
 						</p>
 					</div>
 					<Select
-						value={page.visibility}
+						value={visibility}
 						disabled={!editable || busy}
 						onValueChange={(value) =>
-							void run(
-								() => onSetVisibility(value as PageVisibility),
-								t({
-									id: "ui.pageShare.visibilityFailed",
-									message: "Could not change who can see this page",
-								}),
-							)
+							void changeVisibility(value as PageVisibility)
 						}
 					>
 						<SelectTrigger size="sm" className="w-full">

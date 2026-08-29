@@ -680,6 +680,13 @@
       "when": 1787954887157,
       "tag": "0096_user_last_active_organization",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1787960672440,
+      "tag": "0097_add_page_watch_columns",
+      "breakpoints": true
     }
   ]
 }
