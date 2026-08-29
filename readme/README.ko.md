@@ -4,7 +4,13 @@
 
 ### 100개 이상의 코딩 에이전트를 병렬로 실행
 
+<details>
+<summary>🌐 다른 언어로 보기</summary>
+<br />
+
 [English](../README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Português](README.pt-BR.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [Türkçe](README.tr.md) | [Polski](README.pl.md) | [Nederlands](README.nl.md) | [Bahasa Indonesia](README.id.md) | [Čeština](README.cs.md) | [Tiếng Việt](README.vi.md)
+
+</details>
 
 *이 문서는 영어 README의 번역본이며, 영어 원문이 우선합니다.*
 

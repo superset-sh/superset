@@ -4,7 +4,13 @@
 
 ### 平行執行 100+ 個編碼代理程式
 
+<details>
+<summary>🌐 其他語言版本</summary>
+<br />
+
 [English](../README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Português](README.pt-BR.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [Türkçe](README.tr.md) | [Polski](README.pl.md) | [Nederlands](README.nl.md) | [Bahasa Indonesia](README.id.md) | [Čeština](README.cs.md) | [Tiếng Việt](README.vi.md)
+
+</details>
 
 *本文件為英文版 README 的翻譯,內容以英文版為準。*
 

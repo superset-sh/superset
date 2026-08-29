@@ -4,7 +4,13 @@
 
 ### Esegui più di 100 agenti di coding in parallelo
 
+<details>
+<summary>🌐 Leggi in altre lingue</summary>
+<br />
+
 [English](../README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Português](README.pt-BR.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [Türkçe](README.tr.md) | [Polski](README.pl.md) | [Nederlands](README.nl.md) | [Bahasa Indonesia](README.id.md) | [Čeština](README.cs.md) | [Tiếng Việt](README.vi.md)
+
+</details>
 
 *Traduzione del README in inglese, che resta la versione di riferimento.*
 

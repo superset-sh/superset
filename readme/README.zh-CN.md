@@ -4,7 +4,13 @@
 
 ### 并行运行 100+ 个编码智能体
 
+<details>
+<summary>🌐 其他语言版本</summary>
+<br />
+
 [English](../README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Português](README.pt-BR.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [Türkçe](README.tr.md) | [Polski](README.pl.md) | [Nederlands](README.nl.md) | [Bahasa Indonesia](README.id.md) | [Čeština](README.cs.md) | [Tiếng Việt](README.vi.md)
+
+</details>
 
 *本文档是英文版 README 的翻译,内容以英文版为准。*
 

@@ -4,7 +4,13 @@
 
 ### Ejecuta más de 100 agentes de código en paralelo
 
+<details>
+<summary>🌐 Leer en otros idiomas</summary>
+<br />
+
 [English](../README.md) | [日本語](README.ja.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Português](README.pt-BR.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [Türkçe](README.tr.md) | [Polski](README.pl.md) | [Nederlands](README.nl.md) | [Bahasa Indonesia](README.id.md) | [Čeština](README.cs.md) | [Tiếng Việt](README.vi.md)
+
+</details>
 
 *Esta es una traducción del [README en inglés](../README.md), que es la versión canónica.*
 
