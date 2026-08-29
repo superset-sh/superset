@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { AgentSessionIdentity } from "@superset/shared/agent-session-identity";
 import { z } from "zod";
 import { defineTool } from "../../define-tool";
 import { hostServiceCall } from "../../host-service-client";
@@ -56,18 +57,7 @@ export function register(server: McpServer): void {
 				 * Provider identity so far. At launch no lifecycle hook has
 				 * landed, so `state` is "starting" and `sessionId` is null.
 				 */
-				agent: {
-					presetId: string | null;
-					sessionId: string | null;
-					resumable: boolean;
-					state: string;
-					lastEventType: string | null;
-					lastEventAt: string | null;
-					startedAt: string | null;
-					ended: boolean;
-					endedAt: string | null;
-					endReason: string | null;
-				};
+				agent: AgentSessionIdentity;
 			}>(
 				{
 					relayUrl: ctx.relayUrl,

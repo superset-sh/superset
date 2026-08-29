@@ -11,10 +11,10 @@ export type TerminalAgentId = AgentIdentityId;
  * This decides *auto-resume eligibility* — whether Superset may bring the
  * session back into a pane on its own — and nothing more. It is not a claim
  * about the provider conversation: `agentSessionId` survives every reason
- * here, and an orchestrator holding that id can always relaunch the
- * conversation deliberately with `agents create --resume-session`. See
- * `@superset/shared/agent-session-identity` for that second, broader
- * question.
+ * here, so none of them on its own bars a deliberate
+ * `agents create --resume-session`. That relaunch still needs the agent to
+ * have a resume contract, which is why the decision belongs to `resumable`
+ * in `@superset/shared/agent-session-identity` rather than to this type.
  *
  * "detached" means the agent reported its own end (SessionEnd hook / wrapper
  * exit report) — the user closed it, so nothing should reappear unasked.

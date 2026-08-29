@@ -64,9 +64,11 @@ export const terminalAgentBindings = sqliteTable(
 		// (kill, crash, reboot), the one case auto-resume acts on; "resumed" =
 		// that candidate was already consumed; "disposed" = deliberately killed
 		// (pane close, CLI kill), which must never come back on its own.
-		// `agentSessionId` outlives every one of them, so an orchestrator that
-		// deliberately parked a conversation can always resume it by id —
-		// see @superset/shared/agent-session-identity.
+		// `agentSessionId` outlives every one of them, so no end reason on its
+		// own rules out a deliberate resume-by-id. Whether one will actually
+		// work is a separate question — the agent still needs a resume
+		// contract — answered by `resumable` in
+		// @superset/shared/agent-session-identity.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
 	},
