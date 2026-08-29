@@ -386,10 +386,29 @@ export function useDashboardSidebarState() {
 			projectId: string | null,
 			orderedItems: Array<{ type: "workspace" | "section"; id: string }>,
 		) => {
+			// A workspace item in the lane list is EXPLICITLY top-level. Local
+			// sectionId writes alone can't deliver that for a tag-filed row —
+			// the tag would keep it in its folder and a drag out of a folder
+			// would silently snap back — so strip the project's folder tags on
+			// its host too (folder tags only; unrelated tags survive).
+			const folderIndex = getProjectFolderIndex(
+				collections,
+				hostWorkspaces,
+				projectId,
+			);
 			orderedItems.forEach((item, index) => {
 				const tabOrder = index + 1;
 				if (item.type === "workspace") {
 					if (!collections.v2WorkspaceLocalState.get(item.id)) return;
+					const currentTags = getHostWorkspaceTags(hostWorkspaces, item.id);
+					const strippedTags = applyFolderTagChange(
+						currentTags,
+						folderIndex.keys(),
+						null,
+					);
+					if (strippedTags.join("\n") !== currentTags.join("\n")) {
+						writeWorkspaceTags(item.id, strippedTags);
+					}
 					collections.v2WorkspaceLocalState.update(item.id, (draft) => {
 						draft.sidebarState.tabOrder = tabOrder;
 						draft.sidebarState.sectionId = null;
@@ -406,7 +425,7 @@ export function useDashboardSidebarState() {
 				}
 			});
 		},
-		[collections, ensureSectionRow],
+		[collections, ensureSectionRow, hostWorkspaces, writeWorkspaceTags],
 	);
 
 	const moveWorkspaceToSectionAtIndex = useCallback(
