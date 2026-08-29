@@ -26704,12 +26704,12 @@ msgstr "每月{day}{time}"
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonth"
-msgstr ""
+msgstr "每月{day, selectordinal, one {#} two {#} few {#} other {#}}日"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonthAt"
-msgstr ""
+msgstr "每月{day, selectordinal, one {#} two {#} few {#} other {#}}日 {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32041,7 +32041,7 @@ msgstr "全部展开"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.fileCount"
-msgstr ""
+msgstr "{totalFiles, plural, one {# 个文件} other {# 个文件}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

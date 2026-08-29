@@ -26705,12 +26705,12 @@ msgstr "Měsíčně {day} v {time}"
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonth"
-msgstr ""
+msgstr "Měsíčně {day, selectordinal, other {#.}} den v měsíci"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonthAt"
-msgstr ""
+msgstr "Měsíčně {day, selectordinal, other {#.}} den v {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32042,7 +32042,7 @@ msgstr "Rozbalit vše"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.fileCount"
-msgstr ""
+msgstr "{totalFiles, plural, one {# soubor} few {# soubory} many {# souboru} other {# souborů}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

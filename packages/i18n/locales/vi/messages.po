@@ -26705,12 +26705,12 @@ msgstr "Hằng tháng vào {day} lúc {time}"
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonth"
-msgstr ""
+msgstr "Hàng tháng vào ngày {day, selectordinal, one {#} two {#} few {#} other {#}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonthAt"
-msgstr ""
+msgstr "Hàng tháng vào ngày {day, selectordinal, one {#} two {#} few {#} other {#}} lúc {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32042,7 +32042,7 @@ msgstr "Mở rộng tất cả"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.fileCount"
-msgstr ""
+msgstr "{totalFiles, plural, one {# tệp} other {# tệp}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

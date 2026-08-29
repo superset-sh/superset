@@ -26705,12 +26705,12 @@ msgstr "Co miesiąc {day} o {time}"
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonth"
-msgstr ""
+msgstr "Co miesiąc {day, selectordinal, other {#.}} dnia"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonthAt"
-msgstr ""
+msgstr "Co miesiąc {day, selectordinal, other {#.}} dnia o {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32042,7 +32042,7 @@ msgstr "Rozwiń wszystko"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.fileCount"
-msgstr ""
+msgstr "{totalFiles, plural, one {# plik} few {# pliki} many {# plików} other {# pliku}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx

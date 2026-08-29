@@ -26705,12 +26705,12 @@ msgstr "Bulanan pada tanggal {day} pukul {time}"
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonth"
-msgstr ""
+msgstr "Bulanan pada tanggal {day, selectordinal, one {#} two {#} few {#} other {#}}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
 msgid "shared.schedule.monthlyOnDayOfMonthAt"
-msgstr ""
+msgstr "Bulanan pada tanggal {day, selectordinal, one {#} two {#} few {#} other {#}} pukul {time}"
 
 #. js-lingui-explicit-id
 #: ../shared/src/rrule.ts
@@ -32042,7 +32042,7 @@ msgstr "Bentangkan semua"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
 msgid "workspace.changesToolbar.fileCount"
-msgstr ""
+msgstr "{totalFiles, plural, one {# file} other {# file}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx
