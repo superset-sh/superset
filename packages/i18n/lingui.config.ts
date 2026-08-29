@@ -6,7 +6,7 @@ import { formatter } from "@lingui/format-po";
 // and `lingui compile --strict` gates CI via the `check` script.
 export default defineConfig({
 	sourceLocale: "en",
-	locales: ["en", "ja", "zh-CN", "fr"],
+	locales: ["en", "ja", "zh-CN", "fr", "ko"],
 	// lineNumbers off: line-only churn in .po files would dirty every PR that
 	// moves code, and the CI drift check diffs this file.
 	format: formatter({ lineNumbers: false }),
