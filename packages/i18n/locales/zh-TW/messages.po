@@ -15237,207 +15237,207 @@ msgstr "選擇你的代理程式獲取一行安裝命令，或者手動複製配
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/blog/page.tsx
 msgid "marketing.meta.blog.description"
-msgstr ""
+msgstr "來自 Superset 團隊的新聞、更新與洞察，涵蓋平行編碼代理與開發者生產力。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/blog/page.tsx
 msgid "marketing.meta.blog.title"
-msgstr ""
+msgstr "部落格"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/changelog/page.tsx
 msgid "marketing.meta.changelog.description"
-msgstr ""
+msgstr "Superset 的最新更新、改進與新功能。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/changelog/page.tsx
 msgid "marketing.meta.changelog.title"
-msgstr ""
+msgstr "更新日誌"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/community/page.tsx
 msgid "marketing.meta.community.description"
-msgstr ""
+msgstr "加入 Superset 社群以獲得協助、分享想法，並掌握最新消息與更新。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/community/page.tsx
 msgid "marketing.meta.community.title"
-msgstr ""
+msgstr "社群"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/compare/page.tsx
 msgid "marketing.meta.compare.description"
-msgstr ""
+msgstr "將 Superset 與 Cursor、Claude Code、Codex、Windsurf、Devin、GitHub Copilot 等進行比較。瀏覽並列對照、彙整與工作流程指南。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/compare/page.tsx
 msgid "marketing.meta.compare.title"
-msgstr ""
+msgstr "比較 Superset | AI 編碼對照與指南"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/contact/page.tsx
 msgid "marketing.meta.contact.description"
-msgstr ""
+msgstr "與 {companyName} 團隊聯繫。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/contact/page.tsx
 msgid "marketing.meta.contact.title"
-msgstr ""
+msgstr "聯絡我們"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/download/page.tsx
 msgid "marketing.meta.download.description"
-msgstr ""
+msgstr "您的 Superset 下載即將開始。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/download/page.tsx
 msgid "marketing.meta.download.title"
-msgstr ""
+msgstr "下載 Superset"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/enterprise/page.tsx
 msgid "marketing.meta.enterprise.description"
-msgstr ""
+msgstr "將 {companyName} 引入您的團隊。與我們聯繫以進一步瞭解企業方案與部署選項。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/enterprise/page.tsx
 msgid "marketing.meta.enterprise.title"
-msgstr ""
+msgstr "企業版"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/factory-2026/page.tsx
 msgid "marketing.meta.factory2026.description"
-msgstr ""
+msgstr "一套可證偽的自動化軟體工廠評量標準：六個自主層級、層級之間可衡量的門檻，以及對 2026 年進展程度的預測。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/factory-2026/page.tsx
 msgid "marketing.meta.factory2026.ogTitle"
-msgstr ""
+msgstr "Factory 2026 | Superset"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/factory-2026/page.tsx
 msgid "marketing.meta.factory2026.title"
-msgstr ""
+msgstr "Factory 2026"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/join-us/page.tsx
 msgid "marketing.meta.joinUs.description"
-msgstr ""
+msgstr "我們正在舊金山招募工程師。與我們一起打造第一個軟體工廠平台。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/join-us/page.tsx
 msgid "marketing.meta.joinUs.ogTitle"
-msgstr ""
+msgstr "加入 Superset"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/join-us/page.tsx
 msgid "marketing.meta.joinUs.title"
-msgstr ""
+msgstr "加入我們"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/leaderboard/page.tsx
 msgid "marketing.meta.leaderboard.description"
-msgstr ""
+msgstr "工程師實際執行的代理工作量 — tokens、成本、模型與工作階段，由選擇公開的使用者提供。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/leaderboard/page.tsx
 msgid "marketing.meta.leaderboard.title"
-msgstr ""
+msgstr "排行榜"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/agents/page.tsx
 msgid "marketing.meta.marketplace.agents.description"
-msgstr ""
+msgstr "未來可重複使用的 Superset 代理設定、提示詞與設定指南的集散地。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/agents/page.tsx
 msgid "marketing.meta.marketplace.agents.title"
-msgstr ""
+msgstr "代理設定"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/page.tsx
 msgid "marketing.meta.marketplace.description"
-msgstr ""
+msgstr "瀏覽 Superset 的共享佈景主題與未來的代理設定。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/themes/page.tsx
 msgid "marketing.meta.marketplace.themes.description"
-msgstr ""
+msgstr "瀏覽社群分享的 Superset 佈景主題檔案，包含 GitHub Dark Colorblind、Catppuccin、Ember 與 One Dark Pro。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/themes/page.tsx
 msgid "marketing.meta.marketplace.themes.title"
-msgstr ""
+msgstr "佈景主題"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/page.tsx
 msgid "marketing.meta.marketplace.title"
-msgstr ""
+msgstr "市集"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/mcp-install/page.tsx
 msgid "marketing.meta.mcpInstall.description"
-msgstr ""
+msgstr "將 Claude、Codex、Cursor 或任何 MCP 用戶端連接至 {companyName}。直接從您的 AI 代理建立任務、啟動工作區、執行代理與自動化流程。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/mcp-install/page.tsx
 msgid "marketing.meta.mcpInstall.title"
-msgstr ""
+msgstr "MCP 伺服器"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/pricing/page.tsx
 msgid "marketing.meta.pricing.description"
-msgstr ""
+msgstr "適合各種團隊的簡單定價。個人免費，團隊每位使用者每月 $15，企業可客製。使用 {companyName} 執行 100+ 個平行編碼代理。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/pricing/page.tsx
 msgid "marketing.meta.pricing.title"
-msgstr ""
+msgstr "定價"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/roadmap/page.tsx
 msgid "marketing.meta.roadmap.description"
-msgstr ""
+msgstr "瞭解我們正在打造什麼、接下來會推出什麼，以及 Superset 的發展方向。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/roadmap/page.tsx
 msgid "marketing.meta.roadmap.title"
-msgstr ""
+msgstr "產品藍圖"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/starchart/page.tsx
 msgid "marketing.meta.starchart.description"
-msgstr ""
+msgstr "瞭解 {companyName} 的 GitHub 星標隨時間的成長情況。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/starchart/page.tsx
 msgid "marketing.meta.starchart.title"
-msgstr ""
+msgstr "星標歷史"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/stats/page.tsx
 msgid "marketing.meta.stats.description"
-msgstr ""
+msgstr "Superset 排行榜上所有開發者的彙總代理使用量 — tokens、成本、快取行為，以及大家實際選用的模型。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/stats/page.tsx
 msgid "marketing.meta.stats.title"
-msgstr ""
+msgstr "統計"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/team/page.tsx
 msgid "marketing.meta.team.description"
-msgstr ""
+msgstr "Superset 是什麼、由誰打造、為誰而做。一支由三位前 YC CTO 組成的舊金山團隊，正在打造平行編碼代理的工作區。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/team/page.tsx
 msgid "marketing.meta.team.ogDescription"
-msgstr ""
+msgstr "認識 Superset 背後的團隊，為開發者打造平行編碼代理。"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/team/page.tsx
 msgid "marketing.meta.team.title"
-msgstr ""
+msgstr "關於我們"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/components/ModelBars/ModelBars.tsx

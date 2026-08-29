@@ -15237,207 +15237,207 @@ msgstr "Wähle deinen Agenten für eine Installation in einer Zeile oder kopiere
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/blog/page.tsx
 msgid "marketing.meta.blog.description"
-msgstr ""
+msgstr "Neuigkeiten, Updates und Einblicke vom Superset-Team zu parallelen Coding-Agents und Entwicklerproduktivität."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/blog/page.tsx
 msgid "marketing.meta.blog.title"
-msgstr ""
+msgstr "Blog"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/changelog/page.tsx
 msgid "marketing.meta.changelog.description"
-msgstr ""
+msgstr "Die neuesten Updates, Verbesserungen und Funktionen in Superset."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/changelog/page.tsx
 msgid "marketing.meta.changelog.title"
-msgstr ""
+msgstr "Changelog"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/community/page.tsx
 msgid "marketing.meta.community.description"
-msgstr ""
+msgstr "Tritt der Superset-Community bei, um Hilfe zu bekommen, Ideen zu teilen und über Neuigkeiten und Updates auf dem Laufenden zu bleiben."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/community/page.tsx
 msgid "marketing.meta.community.title"
-msgstr ""
+msgstr "Community"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/compare/page.tsx
 msgid "marketing.meta.compare.description"
-msgstr ""
+msgstr "Vergleiche Superset mit Cursor, Claude Code, Codex, Windsurf, Devin, GitHub Copilot und mehr. Direktvergleiche, Übersichten und Workflow-Guides zum Durchstöbern."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/compare/page.tsx
 msgid "marketing.meta.compare.title"
-msgstr ""
+msgstr "Superset vergleichen | KI-Coding-Vergleiche und Guides"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/contact/page.tsx
 msgid "marketing.meta.contact.description"
-msgstr ""
+msgstr "Nimm Kontakt mit dem {companyName}-Team auf."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/contact/page.tsx
 msgid "marketing.meta.contact.title"
-msgstr ""
+msgstr "Kontakt"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/download/page.tsx
 msgid "marketing.meta.download.description"
-msgstr ""
+msgstr "Dein Superset-Download startet."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/download/page.tsx
 msgid "marketing.meta.download.title"
-msgstr ""
+msgstr "Superset herunterladen"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/enterprise/page.tsx
 msgid "marketing.meta.enterprise.description"
-msgstr ""
+msgstr "Hol {companyName} in dein Team. Kontaktiere uns, um mehr über Enterprise-Pläne und Deployment-Optionen zu erfahren."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/enterprise/page.tsx
 msgid "marketing.meta.enterprise.title"
-msgstr ""
+msgstr "Enterprise"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/factory-2026/page.tsx
 msgid "marketing.meta.factory2026.description"
-msgstr ""
+msgstr "Ein falsifizierbares Bewertungsraster für die selbstfahrende Softwarefabrik: sechs Autonomiestufen, die messbaren Schwellen dazwischen und eine Prognose, wie weit uns 2026 bringt."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/factory-2026/page.tsx
 msgid "marketing.meta.factory2026.ogTitle"
-msgstr ""
+msgstr "Factory 2026 | Superset"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/factory-2026/page.tsx
 msgid "marketing.meta.factory2026.title"
-msgstr ""
+msgstr "Factory 2026"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/join-us/page.tsx
 msgid "marketing.meta.joinUs.description"
-msgstr ""
+msgstr "Wir stellen Engineers in San Francisco ein. Hilf uns, die erste Software-Factory-Plattform zu bauen."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/join-us/page.tsx
 msgid "marketing.meta.joinUs.ogTitle"
-msgstr ""
+msgstr "Mach mit bei Superset"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/join-us/page.tsx
 msgid "marketing.meta.joinUs.title"
-msgstr ""
+msgstr "Mach mit"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/leaderboard/page.tsx
 msgid "marketing.meta.leaderboard.description"
-msgstr ""
+msgstr "Wie viel Agent-Arbeit Engineers tatsächlich laufen lassen — Tokens, Kosten, Modelle und Sessions, veröffentlicht von Personen, die sich dafür entschieden haben."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/leaderboard/page.tsx
 msgid "marketing.meta.leaderboard.title"
-msgstr ""
+msgstr "Leaderboard"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/agents/page.tsx
 msgid "marketing.meta.marketplace.agents.description"
-msgstr ""
+msgstr "Der künftige Ort für wiederverwendbare Superset-Agent-Konfigurationen, Prompts und Setup-Anleitungen."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/agents/page.tsx
 msgid "marketing.meta.marketplace.agents.title"
-msgstr ""
+msgstr "Agent-Konfigurationen"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/page.tsx
 msgid "marketing.meta.marketplace.description"
-msgstr ""
+msgstr "Durchstöbere geteilte Themes und künftige Agent-Konfigurationen für Superset."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/themes/page.tsx
 msgid "marketing.meta.marketplace.themes.description"
-msgstr ""
+msgstr "Durchstöbere Superset-Theme-Dateien aus der Community, darunter GitHub Dark Colorblind, Catppuccin, Ember und One Dark Pro."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/themes/page.tsx
 msgid "marketing.meta.marketplace.themes.title"
-msgstr ""
+msgstr "Themes"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/marketplace/page.tsx
 msgid "marketing.meta.marketplace.title"
-msgstr ""
+msgstr "Marketplace"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/mcp-install/page.tsx
 msgid "marketing.meta.mcpInstall.description"
-msgstr ""
+msgstr "Verbinde Claude, Codex, Cursor oder einen beliebigen MCP-Client mit {companyName}. Erstelle Aufgaben, fahre Arbeitsbereiche hoch, starte Agents und führe Automatisierungen direkt aus deinem KI-Agenten aus."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/mcp-install/page.tsx
 msgid "marketing.meta.mcpInstall.title"
-msgstr ""
+msgstr "MCP-Server"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/pricing/page.tsx
 msgid "marketing.meta.pricing.description"
-msgstr ""
+msgstr "Einfache Preise für jedes Team. Kostenlos für Einzelpersonen, 15 $/Nutzer/Monat für Teams, individuell für Enterprise. Betreibe 100+ parallele Coding-Agents mit {companyName}."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/pricing/page.tsx
 msgid "marketing.meta.pricing.title"
-msgstr ""
+msgstr "Preise"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/roadmap/page.tsx
 msgid "marketing.meta.roadmap.description"
-msgstr ""
+msgstr "Sieh, woran wir gerade bauen, was als Nächstes kommt und wohin sich Superset entwickelt."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/roadmap/page.tsx
 msgid "marketing.meta.roadmap.title"
-msgstr ""
+msgstr "Roadmap"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/starchart/page.tsx
 msgid "marketing.meta.starchart.description"
-msgstr ""
+msgstr "Sieh, wie die GitHub-Stars von {companyName} im Lauf der Zeit gewachsen sind."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/starchart/page.tsx
 msgid "marketing.meta.starchart.title"
-msgstr ""
+msgstr "Star-Verlauf"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/stats/page.tsx
 msgid "marketing.meta.stats.description"
-msgstr ""
+msgstr "Aggregierte Agent-Nutzung über alle Entwickler im Superset-Leaderboard — Tokens, Kosten, Cache-Verhalten und welche Modelle tatsächlich genutzt werden."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/stats/page.tsx
 msgid "marketing.meta.stats.title"
-msgstr ""
+msgstr "Statistiken"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/team/page.tsx
 msgid "marketing.meta.team.description"
-msgstr ""
+msgstr "Was Superset ist, wer es baut und für wen es gedacht ist. Ein Team aus San Francisco mit drei ehemaligen YC-CTOs, das den Arbeitsbereich für parallele Coding-Agents baut."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/team/page.tsx
 msgid "marketing.meta.team.ogDescription"
-msgstr ""
+msgstr "Lerne das Team hinter Superset kennen, das parallele Coding-Agents für Entwickler baut."
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/team/page.tsx
 msgid "marketing.meta.team.title"
-msgstr ""
+msgstr "Über uns"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/[lang]/components/ModelBars/ModelBars.tsx

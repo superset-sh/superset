@@ -22,16 +22,24 @@ To see it working after implementation: `curl -s https://superset.sh/ja/pricing 
 
 ## Progress
 
-- [ ] M1: `[lang]` route tree with bare-path English rewrite; `/ja/pricing` renders Japanese end-to-end locally.
-- [ ] M2: Per-page localized metadata + hreflang + canonical; bot fills the new strings.
-- [ ] M3: Localized sitemap; switcher navigates instead of reloading; deploy smoke gate covers `/ja/` URLs.
-- [ ] M4: Full-matrix verification, PR, gated merge.
+- [x] (2026-08-29) M1: `[lang]` route tree, proxy rewrite/redirect, root-params locale, generateStaticParams; verified: bare=en, /ja=ja hero, /en→308, /xx→404, /llms.txt untouched.
+- [x] (2026-08-29) M2: all 20 static pages -> generateMetadata with catalog messages + localizedAlternates; all 9 dynamic pages carry per-locale canonical + hreflang; 41 new ids left for the Translate Catalogs bot.
+- [x] (2026-08-29) M3: sitemap emits every page x 17 locales with alternates (2,754 locs locally); switcher navigates to the locale URL via onSelect; smoke --localized is URL-based (bare must serve en even under a ja header).
+- [ ] M4: PR opened; first CI round red on the catalog audit by design until the bot fills; gated merge after. Remaining: production verification + Search Console sitemap submission (Kiet).
 
 ## Surprises & Discoveries
 
-- (to be filled during implementation)
+- Observation: `next/root-params` is gated behind `experimental.rootParams` on Next 16.2.11; without it every page 500s with "Invalid import".
+  Evidence: dev log "'next/root-params' can only be imported when `experimental.rootParams` is enabled"; flag added to next.config.ts where swcPlugins already lives.
+- Observation: Python's glob treats `[lang]` as a character class, silently matching nothing — file transforms must use os.walk.
+- Observation: React SSR renders the attribute as `hrefLang` (camelCase); a case-sensitive grep reports zero alternates that are in fact present. Crawlers parse attributes case-insensitively.
+- Observation: the hardcoded-strings ratchet's ENFORCED_DIRS carries absolute app paths; the tree move required updating six marketing entries to the [lang] locations.
 
 ## Decision Log
+
+- Decision 5: Enable `experimental.rootParams` in apps/marketing/next.config.ts.
+  Rationale: `next/root-params` is the documented mechanism for reading the [lang] segment anywhere server-side and is gated by this flag on 16.2.11; marketing already runs experimental options (swcPlugins). The fallback (threading params through 31 signatures) costs far more.
+  Date/Author: 2026-08-29 / agent.
 
 - Decision 1: English stays at bare paths (`/pricing`); other locales get a path prefix (`/ja/pricing`). Implemented by keeping one route tree under `app/[lang]/` and using proxy rewrites so bare paths render with `lang=en`.
   Rationale: preserves every existing URL and inbound backlink — the SEO-safest scheme; `x-default` and `en` hreflang point at the bare URL. Redirecting `/pricing → /en/pricing` would put all accumulated link equity behind a redirect for no benefit.
