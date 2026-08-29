@@ -466,7 +466,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					</Trans>
 				</div>
 			) : (
-				PROVIDERS.map((provider) => {
+				PROVIDERS.filter((provider) =>
+					accounts.some((account) => account.provider === provider),
+				).map((provider) => {
 					const providerAccounts = accounts.filter(
 						(account) => account.provider === provider,
 					);
