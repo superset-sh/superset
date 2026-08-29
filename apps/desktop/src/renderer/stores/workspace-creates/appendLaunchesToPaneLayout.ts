@@ -10,7 +10,12 @@ const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 	activeTabId: null,
 };
 
-type AgentLaunchResult =
+/**
+ * The launch fields the pane layout actually reads. `sessionId` is the
+ * launch's Superset terminal id (the host also returns it as `terminalId`);
+ * the agent's own conversation id plays no part in pane placement.
+ */
+export type AgentLaunchResult =
 	| { ok: true; kind: "terminal"; sessionId: string; label: string }
 	| { ok: false; error: string };
 
