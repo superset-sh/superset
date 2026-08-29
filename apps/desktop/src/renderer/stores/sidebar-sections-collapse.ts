@@ -3,6 +3,9 @@ import { devtools, persist } from "zustand/middleware";
 
 export type SidebarSectionKey = "cloud" | "pinned" | "sessions" | "workspaces";
 
+export const SIDEBAR_SECTIONS_COLLAPSE_STORAGE_KEY =
+	"sidebar-workspaces-collapse";
+
 interface SidebarSectionsCollapseState {
 	collapsed: Record<SidebarSectionKey, boolean>;
 	toggle: (section: SidebarSectionKey) => void;
@@ -30,7 +33,7 @@ export const useSidebarSectionsCollapseStore =
 				{
 					// Legacy key: v0 held only the workspaces-list flag as
 					// { isCollapsed }, before Pinned/Sessions became collapsible.
-					name: "sidebar-workspaces-collapse",
+					name: SIDEBAR_SECTIONS_COLLAPSE_STORAGE_KEY,
 					version: 1,
 					migrate: (persisted, version) => {
 						if (version === 0) {

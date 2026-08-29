@@ -6,7 +6,7 @@ import {
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
 import { Redirect } from "renderer/components/Redirect";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
@@ -25,6 +25,8 @@ import { DeleteWorkspaceDialog } from "renderer/screens/main/components/Workspac
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
+import { syncPersistedStoreAcrossWindows } from "renderer/stores/syncPersistedStoreAcrossWindows";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
@@ -58,6 +60,19 @@ function DashboardLayout() {
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const quickCreateWorkspace = useQuickCreateWorkspace();
 	useDevSeedV2Sidebar();
+	useEffect(() => {
+		const stopWorkspaceSidebarSync = syncPersistedStoreAcrossWindows(
+			useWorkspaceSidebarStore,
+		);
+		const stopSectionCollapseSync = syncPersistedStoreAcrossWindows(
+			useSidebarSectionsCollapseStore,
+		);
+
+		return () => {
+			stopWorkspaceSidebarSync();
+			stopSectionCollapseSync();
+		};
+	}, []);
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
