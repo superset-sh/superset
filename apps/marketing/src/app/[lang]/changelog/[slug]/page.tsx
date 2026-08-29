@@ -14,7 +14,7 @@ interface PageProps {
 }
 
 export default async function ChangelogEntryPage({ params }: PageProps) {
-	await initServerI18n();
+	const lang = await initServerI18n();
 
 	const { slug } = await params;
 	const entry = getChangelogEntry(slug);
