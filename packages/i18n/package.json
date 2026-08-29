@@ -40,7 +40,8 @@
 		"pretypecheck": "lingui extract --clean --overwrite && bun scripts/sort-po-references.ts && lingui compile --strict",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"clean": "git clean -xdf .cache .turbo node_modules"
+		"clean": "git clean -xdf .cache .turbo node_modules",
+		"translate": "bun scripts/translate-missing.ts && bun scripts/sort-po-references.ts && lingui compile --strict"
 	},
 	"dependencies": {
 		"@lingui/core": "6.6.0",
@@ -54,6 +55,7 @@
 		"@types/react": "19.2.14",
 		"bun-types": "1.3.14",
 		"react": "19.2.3",
-		"typescript": "6.0.3"
+		"typescript": "6.0.3",
+		"@anthropic-ai/sdk": "^0.78.0"
 	}
 }
