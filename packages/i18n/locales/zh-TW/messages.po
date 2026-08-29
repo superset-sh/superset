@@ -6086,6 +6086,11 @@ msgstr "創建於"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/PageCard.tsx
+msgid "dashboard.pages.pageCard.delete"
+msgstr "刪除"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/PageCard.tsx
 msgid "dashboard.pages.pageCard.edited"
 msgstr "編輯於"
 
@@ -6103,6 +6108,11 @@ msgstr "置頂"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesGrid/components/PageCard/PageCard.tsx
 msgid "dashboard.pages.pageCard.unpin"
 msgstr "取消置頂"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesView/PagesView.tsx
+msgid "dashboard.pages.pageDeleted"
+msgstr "頁面已刪除"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/pages/components/PagesView/PagesView.tsx
@@ -19552,11 +19562,6 @@ msgstr "未找到評論"
 #: src/server-errors.ts
 msgid "serverError.pageComment.failedToCreateThread"
 msgstr "建立討論串失敗"
-
-#. js-lingui-explicit-id
-#: src/server-errors.ts
-msgid "serverError.pageComment.onlyAPersonCanHand"
-msgstr "只有真人才能將討論串移交給代理程式"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts
@@ -33665,45 +33670,19 @@ msgstr "worktree缺失"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: formatDistanceToNowStrict(binding.lastEventAt, { addSuffix: true, })
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.agentActiveSince"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.agentActiveSinceWatch"
 msgstr "活躍{0}"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.agentUnreachableToast"
-msgstr "無法連線到該代理程式"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.handoffAria"
-msgstr "移交給代理程式"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.handoffFailedToast"
-msgstr "無法移交這些評論"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.handoffTitle"
-msgstr "移交給代理程式"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.noAgentsRunning"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.noAgentsRunningWatch"
 msgstr "這裡沒有執行中的代理程式"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: open.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.openCommentCount"
-msgstr "{0, plural, one {#條未解決評論} other {#條未解決評論}}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageHandoffMenu/PageHandoffMenu.tsx
-msgid "workspace.pagePane.sentToAgentToast"
-msgstr "已傳送給代理程式"
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.notWatchingLabel"
+msgstr "沒有代理程式在關注此頁面"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/PagePaneHeaderExtras.tsx
@@ -33716,9 +33695,34 @@ msgid "workspace.pagePane.sharePageTitle"
 msgstr "分享頁面"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.stopWatchFailedToast"
+msgstr "無法停止關注"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.stopWatching"
+msgstr "停止關注"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/utils/pagePaneLabel/pagePaneLabel.ts
 msgid "workspace.pagePane.untitledPage"
 msgstr "未命名頁面"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.watcherAria"
+msgstr "選擇由哪個代理程式關注此頁面的評論"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.watchFailedToast"
+msgstr "無法關注此頁面"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/PagePaneHeaderExtras/components/PageWatcherMenu/PageWatcherMenu.tsx
+msgid "workspace.pagePane.watchingLabel"
+msgstr "評論將傳送給此代理程式"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useDefaultPaneActions/useDefaultPaneActions.tsx
@@ -34909,6 +34913,17 @@ msgstr "終端已移除"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalConnectionIndicator/TerminalConnectionIndicator.tsx
 msgid "workspace.terminalPane.viewLog"
 msgstr "檢視日誌"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalPageWatchChip/TerminalPageWatchChip.tsx
+msgid "workspace.terminalPane.watchingAria"
+msgstr "此代理程式正在關注這些頁面的評論"
+
+#. js-lingui-explicit-id
+#. placeholder {0}: mine.length
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneHeaderExtras/components/TerminalPageWatchChip/TerminalPageWatchChip.tsx
+msgid "workspace.terminalPane.watchingPageCount"
+msgstr "{0, plural, one {正在關注#個頁面的評論} other {正在關注#個頁面的評論}}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/components/TerminalSessionDropdown/TerminalSessionDropdown.tsx
