@@ -60,15 +60,11 @@ async function hit(route: string, mode: "document" | "rsc") {
 		failures.push({ route, mode, detail: `request failed: ${String(error)}` });
 		return;
 	}
-	if (res.status >= 500) {
+	// Any 4xx or 5xx on a listed route is a failure: 404 means the page is
+	// gone, 401/403 mean a public route got gated, 5xx is the app breaking.
+	// Redirects are fine — auth-gated routes legitimately send you to sign-in.
+	if (res.status >= 400) {
 		failures.push({ route, mode, detail: `HTTP ${res.status}` });
-		return;
-	}
-	// A route we listed should exist. A 404 here means the page is gone or
-	// failed to render into one, which is exactly what we are watching for.
-	// Redirects are fine: auth-gated routes legitimately send you to sign-in.
-	if (res.status === 404) {
-		failures.push({ route, mode, detail: "HTTP 404" });
 		return;
 	}
 	const body = await res.text();
