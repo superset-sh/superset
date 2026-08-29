@@ -21,5 +21,10 @@
  *
  * 0.8.0 — v2 terminal creation moved to `terminal.createSession`; the
  * WebSocket route is attach-only by `terminalId`.
+ *
+ * 1.21.0 — session listing consolidated into `terminal.list` (#6341), which
+ * every current caller uses; hosts without it render a blank terminal pane
+ * with no error (#6525). Host-service versions were unified with the app's
+ * at that point, so the jump from the old 0.8.x line is intentional.
  */
-export const MIN_HOST_SERVICE_VERSION = "0.8.0";
+export const MIN_HOST_SERVICE_VERSION = "1.21.0";
