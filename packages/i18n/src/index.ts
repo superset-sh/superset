@@ -52,8 +52,11 @@ function ensureEnglish(): void {
 // resolveLocale/initI18n instead. A persisted user setting takes precedence.
 export function inferLocale(): SupportedLocale {
 	// An explicit choice from a language switcher outranks browser preferences.
-	if (typeof document !== "undefined") {
-		const match = document.cookie.match(
+	// Accessed through globalThis so this file typechecks under Node-only lib
+	// settings, where the document global does not exist.
+	const doc = (globalThis as { document?: { cookie: string } }).document;
+	if (doc) {
+		const match = doc.cookie.match(
 			new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`),
 		);
 		const chosen = match?.[1];
