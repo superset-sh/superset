@@ -116,6 +116,10 @@
 			"types": "./src/agent-identity.ts",
 			"default": "./src/agent-identity.ts"
 		},
+		"./agent-session-identity": {
+			"types": "./src/agent-session-identity.ts",
+			"default": "./src/agent-session-identity.ts"
+		},
 		"./host-agent-presets": {
 			"types": "./src/host-agent-presets.ts",
 			"default": "./src/host-agent-presets.ts"
