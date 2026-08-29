@@ -21,6 +21,7 @@ const CATALOGS: Record<string, () => Promise<{ messages: typeof enMessages }>> =
 		"zh-TW": () => import("../locales/zh-TW/messages"),
 		es: () => import("../locales/es/messages"),
 		de: () => import("../locales/de/messages"),
+		"pt-BR": () => import("../locales/pt-BR/messages"),
 	};
 
 const loaded = new Set<string>([DEFAULT_LOCALE]);
