@@ -60,6 +60,7 @@ Aliases:
 ```text
 agents
   create
+  get
   list
 auth
   login

@@ -1,9 +1,13 @@
 export {
 	type AgentCreateParams,
 	type AgentCreateResult,
+	type AgentGetParams,
+	type AgentGetResult,
 	type AgentListParams,
 	type AgentListResponse,
 	Agents,
+	type AgentSessionIdentity,
+	type AgentSessionState,
 	type HostAgentConfig,
 	type PromptTransport,
 } from "./agents";

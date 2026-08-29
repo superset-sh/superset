@@ -805,13 +805,13 @@ from the session `kind` returned by `agents create`:
 | `kind` | Example agents | Query param |
 | --- | --- | --- |
 | `chat` | `superset` | `?chatSessionId=<sessionId>` |
-| `terminal` | `claude`, `codex` | `?terminalId=<sessionId>` |
+| `terminal` | `claude`, `codex` | `?terminalId=<terminalId>` |
 
 ```bash
-# Run the agent with --json, then pull kind + sessionId out of the payload:
+# Run the agent with --json, then pull kind + the session's id out of the payload:
 session=$(superset agents create --workspace ws_… --agent claude --prompt "…" --json)
-kind=$(echo "$session" | jq -r '.kind')           # "chat" or "terminal"
-sessionId=$(echo "$session" | jq -r '.sessionId')
+kind=$(echo "$session" | jq -r '.kind')             # "chat" or "terminal"
+sessionId=$(echo "$session" | jq -r '.terminalId // .sessionId')
 
 # Open the session using the query param that matches its kind:
 # chat session (kind: "chat")
@@ -820,6 +820,10 @@ open "superset://v2-workspace/<workspaceId>?chatSessionId=$sessionId"
 # terminal session (kind: "terminal")
 open "superset://v2-workspace/<workspaceId>?terminalId=$sessionId"
 ```
+
+This is the Superset session id in both cases, never the agent's own
+conversation id — see
+[terminal session ID vs agent session ID](#terminal-session-id-vs-agent-session-id).
 
 Append `&focusRequestId=<unique>` to force a re-focus when opening the same link
 more than once. The session must belong to the workspace in the URL. On
@@ -849,6 +853,7 @@ terminal session inside a workspace.
   args: string[];
   promptTransport: "argv" | "stdin";
   promptArgs: string[];
+  resumeArgs: string[];
   env: Record<string, string>;
   order: number;
 }>`}
@@ -857,6 +862,11 @@ terminal session inside a workspace.
 >
 List agents configured on a host. First call on a fresh host seeds the
 bundled defaults.
+
+`resumeArgs` is the agent's resume contract — the args spliced before a
+session id, e.g. `["--resume"]` for Claude and `["resume"]` for Codex. Empty
+means the agent has no id-based resume, which is what makes `agents get`
+report `resumable: false`.
 
 ```bash
 superset agents list --local
@@ -878,18 +888,37 @@ superset agents list --host host_…
 	]}
 	output={`{
   kind: "terminal" | "chat";
-  sessionId: string;
+  terminalId: string;
+  sessionId: string;   // deprecated alias of terminalId
   label: string;
+  agent: {
+    presetId: string | null;
+    sessionId: string | null;   // null at launch
+    resumable: boolean;
+    state: "starting" | "working" | "awaiting-input" | "idle" | "failed" | "ended";
+    lastEventType: string | null;
+    lastEventAt: string | null;
+    startedAt: string | null;
+    ended: boolean;
+    endedAt: string | null;
+    endReason: string | null;
+  };
 }`}
 >
 Create an agent session in an existing workspace on its host (default: this
 machine): starts the named preset (or HostAgentConfig instance) in a fresh
 terminal session there.
 
+`terminalId` is the PTY. The agent's own conversation id does not exist yet at
+launch — the agent reports it through a lifecycle hook moments later — so
+`agent.state` is `"starting"` and `agent.sessionId` is `null`. Read it
+afterward with [`agents get`](#superset-agents-get). See
+[terminal session ID vs agent session ID](#terminal-session-id-vs-agent-session-id).
+
 ```bash
 superset agents create --workspace ws_… --agent claude --effort high --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
-# Restore a killed agent session by the agent's own session id
+# Restore a parked agent session by the agent's own session id
 superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
 ```
 
@@ -911,6 +940,82 @@ The host rejects unsupported values before launching the agent.
 Other agents, including Superset chat, currently use their own default and
 reject an explicit effort override.
 </Command>
+
+<Command
+	name="superset agents get"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID the terminal belongs to." },
+		{ flag: "--terminal <id>", required: true, description: "Superset terminal ID to inspect." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  kind: "terminal";
+  terminalId: string;
+  workspaceId: string;
+  terminalStatus: string | null;   // "active" | "exited" | "disposed"
+  agent: {
+    presetId: string | null;
+    sessionId: string | null;
+    resumable: boolean;
+    state: "starting" | "working" | "awaiting-input" | "idle" | "failed" | "ended";
+    lastEventType: string | null;
+    lastEventAt: string | null;   // ISO 8601
+    startedAt: string | null;     // ISO 8601
+    ended: boolean;
+    endedAt: string | null;       // ISO 8601
+    endReason: string | null;
+  } | null;
+}`}
+>
+Show the agent session bound to a terminal — live, or already ended. This is
+the supported way to recover an agent's own conversation id; never read a
+provider's private session files for it.
+
+```bash
+# Park the conversation: keep the id, release the terminal
+sid=$(superset agents get --workspace ws_… --terminal term_… --json | jq -r '.agent.sessionId')
+superset terminals close --workspace ws_… --terminal term_…
+
+# Pick it up later, in a fresh terminal
+superset agents create --workspace ws_… --agent codex --resume-session "$sid"
+```
+
+`agent` is `null` when no agent has ever bound to the terminal — a bare shell,
+or a launch whose first hook has not landed yet.
+
+`state` comes from the agent's hook lifecycle, not from the PTY, so an agent
+that exited while its shell stayed open reads as `ended` in an `active`
+terminal rather than as `working`. `resumable` is `false` when the agent has
+no id-based resume, or when no conversation was persisted (a session that
+never got past attach). Ending does **not** clear `resumable` — parking a
+conversation and resuming it later is the point.
+
+`endReason` records why Superset stopped tracking the session (`detached` when
+the agent quit, `terminal-exited` when the terminal died under it, `disposed`
+when it was deliberately killed, `resumed` when the desktop already restored
+it). It governs whether Superset restores a pane *by itself*; it never means
+the provider conversation stopped working.
+</Command>
+
+#### Terminal session ID vs agent session ID
+
+Two different ids, and mixing them up is the usual cause of a failed resume:
+
+| | What it names | Where it comes from | Where it is used |
+| --- | --- | --- | --- |
+| **Terminal session ID** | The Superset PTY | `terminalId` from `agents create` / `terminals list` | `terminals read`, `terminals send`, `terminals close`, `agents get --terminal` |
+| **Agent session ID** | The provider's own conversation | `agent.sessionId` from `agents get` | `agents create --resume-session` |
+
+Passing a terminal id to `--resume-session` fails: `claude --resume`,
+`codex resume` and the rest expect their own id, and Superset passes the value
+through untouched rather than interpreting or normalizing it.
+
+The two also have different lifetimes. A terminal disappears when it is closed;
+the agent binding is kept after `endedAt` is stamped, so `agents get` still
+answers for a recently ended terminal and the conversation id survives.
+
+Presence in `terminals list` means a PTY exists — not that an agent is running
+inside it. Ask `agents get` for that.
 
 ---
 
@@ -952,7 +1057,8 @@ superset terminals create --workspace ws_…
 }`}
 >
 List the live terminal sessions in a workspace. Presence in the list means the
-PTY exists, not that an agent inside it is working or idle.
+PTY exists, not that an agent inside it is working or idle — ask
+[`agents get`](#superset-agents-get) for that.
 </Command>
 
 <Command

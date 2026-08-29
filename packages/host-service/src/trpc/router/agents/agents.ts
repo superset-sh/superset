@@ -14,6 +14,10 @@ import {
 	envOverlayPrefix,
 	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
+import {
+	type AgentSessionIdentity,
+	buildAgentSessionIdentity,
+} from "@superset/shared/agent-session-identity";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -190,8 +194,22 @@ export interface AgentRunInput {
 
 export type AgentRunResult = {
 	kind: "terminal";
+	/** The PTY this launch created. Not accepted by any provider's resume. */
+	terminalId: string;
+	/**
+	 * @deprecated Alias of {@link AgentRunResult.terminalId}, kept so existing
+	 * callers keep working. It has never been the provider's conversation id —
+	 * read `agent.sessionId` for that, from `terminalAgents.get` once the
+	 * agent's first lifecycle hook has landed.
+	 */
 	sessionId: string;
 	label: string;
+	/**
+	 * The provider conversation, as far as it is knowable at launch. Hooks
+	 * arrive asynchronously, so this is `state: "starting"` with a null
+	 * `sessionId`; `terminalAgents.get` is the source of truth afterwards.
+	 */
+	agent: AgentSessionIdentity;
 };
 
 /**
@@ -341,7 +359,14 @@ export function validateAgentLaunchOptions(
 export function buildTerminalAgentLaunch(
 	db: HostDb,
 	input: AgentRunInput,
-): { fullCommand: string; label: string } {
+): {
+	fullCommand: string;
+	label: string;
+	/** Which agent this launch runs — the value `--resume-session` needs later. */
+	presetId: string;
+	/** The preset's resume contract; empty means no id-based resume exists. */
+	resumeArgs: string[];
+} {
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
 		// Worded for end users (automation run errors show this verbatim), but
@@ -390,6 +415,8 @@ export function buildTerminalAgentLaunch(
 	return {
 		fullCommand: `${envOverlayPrefix({ ...accountEnv, ...config.env, ...modelEnv })}${command}`,
 		label: config.label,
+		presetId: config.presetId,
+		resumeArgs: config.resumeArgs,
 	};
 }
 
@@ -397,7 +424,10 @@ async function runTerminalAgent(
 	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
-	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
+	const { fullCommand, label, presetId, resumeArgs } = buildTerminalAgentLaunch(
+		ctx.db,
+		input,
+	);
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -414,8 +444,10 @@ async function runTerminalAgent(
 
 	return {
 		kind: "terminal",
+		terminalId: result.terminalId,
 		sessionId: result.terminalId,
 		label,
+		agent: buildAgentSessionIdentity({ presetId, resumeArgs }),
 	};
 }
 

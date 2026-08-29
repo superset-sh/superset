@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { buildAgentSessionIdentity } from "@superset/shared/agent-session-identity";
 import {
 	generateFriendlyBranchName,
 	sanitizeUserBranchName,
@@ -1127,7 +1128,7 @@ export const workspacesRouter = router({
 			// command up-front; if it fails (unknown agent, missing attachment) fall
 			// back to the parallel dispatch, which surfaces the error in the agents
 			// result.
-			let chainAgent: { fullCommand: string; label: string } | null = null;
+			let chainAgent: ReturnType<typeof buildTerminalAgentLaunch> | null = null;
 			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
 			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
 				try {
@@ -1169,8 +1170,15 @@ export const workspacesRouter = router({
 					chainedAgentResult = {
 						ok: true,
 						kind: "terminal",
+						terminalId: terminal.id,
 						sessionId: terminal.id,
 						label: chainAgent.label,
+						// The agent is chained behind setup, so it has not even
+						// been launched yet — no conversation id can exist.
+						agent: buildAgentSessionIdentity({
+							presetId: chainAgent.presetId,
+							resumeArgs: chainAgent.resumeArgs,
+						}),
 					};
 				}
 			}

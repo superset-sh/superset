@@ -20,8 +20,21 @@ mock.module("../../../lib/host-target", () => ({
 						runInput = input;
 						return {
 							kind: "terminal",
+							terminalId: "terminal-1",
 							sessionId: "terminal-1",
 							label: "Codex",
+							agent: {
+								presetId: "codex",
+								sessionId: null,
+								resumable: false,
+								state: "starting",
+								lastEventType: null,
+								lastEventAt: null,
+								startedAt: null,
+								ended: false,
+								endedAt: null,
+								endReason: null,
+							},
 						};
 					},
 				},
@@ -102,5 +115,14 @@ describe("agents create", () => {
 	test("rejects a launch with neither prompt nor resume session", async () => {
 		await expect(invoke(undefined, {})).rejects.toThrow(/Missing --prompt/);
 		expect(runInput).toBeUndefined();
+	});
+
+	test("names the launched id a terminal, and points at the read command", async () => {
+		const { message } = (await invoke()) as { message: string };
+
+		expect(message).toContain("terminal terminal-1");
+		// The provider conversation id is not knowable yet — say where it will be.
+		expect(message).toContain("superset agents get");
+		expect(message).toContain("--terminal terminal-1");
 	});
 });

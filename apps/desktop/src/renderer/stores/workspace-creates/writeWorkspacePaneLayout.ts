@@ -8,7 +8,10 @@ import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
-import { appendLaunchesToPaneLayout } from "./appendLaunchesToPaneLayout";
+import {
+	type AgentLaunchResult,
+	appendLaunchesToPaneLayout,
+} from "./appendLaunchesToPaneLayout";
 
 type HostWorkspacesCreateResult = NonNullable<
 	WorkspaceCreateMutationMetadata["result"]
@@ -25,7 +28,10 @@ export function writeWorkspacePaneLayout(
 	// projectId null = project-less "session" workspace.
 	workspace: { id: string; projectId: string | null },
 	terminals: HostWorkspacesCreateResult["terminals"],
-	agents: HostWorkspacesCreateResult["agents"],
+	// Only what pane layout consumes, so both the host result and the
+	// create pipeline's own outcome type fit without either restating the
+	// agent identity block the layout never reads.
+	agents: AgentLaunchResult[],
 ): void {
 	const existing = collections.v2WorkspaceLocalState.get(workspace.id);
 	const paneLayout = appendLaunchesToPaneLayout({

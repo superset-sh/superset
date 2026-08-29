@@ -79,9 +79,15 @@ export default command({
 			attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 		});
 
+		// `terminalId` names the PTY. The agent's own conversation id only
+		// exists once its first lifecycle hook lands, so point at the read
+		// command rather than implying this id can resume anything.
 		return {
 			data: result,
-			message: `Launched ${result.label} (terminal ${result.sessionId}) in workspace ${options.workspace}`,
+			message: [
+				`Launched ${result.label} (terminal ${result.terminalId}) in workspace ${options.workspace}`,
+				`Agent session id pending — read it with: superset agents get --workspace ${options.workspace} --terminal ${result.terminalId}`,
+			].join("\n"),
 		};
 	},
 });
