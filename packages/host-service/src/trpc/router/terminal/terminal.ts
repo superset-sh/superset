@@ -138,9 +138,10 @@ export const terminalRouter = router({
 				workspaceId: input?.workspaceId,
 			});
 			const agentsByTerminal = new Map(
-				ctx.terminalAgentStore
-					.list()
-					.map((binding) => [binding.terminalId, binding] as const),
+				(input?.workspaceId
+					? ctx.terminalAgentStore.listByWorkspace(input.workspaceId)
+					: []
+				).map((binding) => [binding.terminalId, binding] as const),
 			);
 
 			return {
