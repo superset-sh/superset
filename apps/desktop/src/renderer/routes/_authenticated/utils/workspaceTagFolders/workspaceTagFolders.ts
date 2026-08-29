@@ -59,6 +59,33 @@ export interface TagFolderWorkspaceInput {
 	tags?: readonly string[] | null;
 }
 
+/** One tag folder's host-side presentation (workspace_tag_settings). */
+export interface TagFolderSettingInput {
+	projectId: string;
+	tag: string;
+	displayName?: string | null;
+	color?: string | null;
+	tabOrder?: number | null;
+}
+
+/**
+ * Cross-cutting presentation context for the union: host-side settings
+ * (display name, color, order that follow the user across devices) and the
+ * per-project hidden-tag list (a hidden folder leaves the union entirely —
+ * members render top-level — without touching anyone's tags). REQUIRED so
+ * every membership pass applies the same view; two passes disagreeing on
+ * hidden is the same bug class as two membership derivations.
+ */
+export interface TagFolderContext {
+	tagSettings: readonly TagFolderSettingInput[];
+	hiddenTagsByProject: ReadonlyMap<string, ReadonlySet<string>>;
+}
+
+export const EMPTY_TAG_FOLDER_CONTEXT: TagFolderContext = {
+	tagSettings: [],
+	hiddenTagsByProject: new Map(),
+};
+
 export interface TagFolderSection extends TagFolderSectionInput {
 	tag: string | null;
 	/** True when no stored presentation row exists — the tag alone made it. */
@@ -98,7 +125,33 @@ export function parseSidebarFolderKey(
 export function deriveTagFolders(
 	sections: readonly TagFolderSectionInput[],
 	workspaces: readonly TagFolderWorkspaceInput[],
+	context: TagFolderContext,
 ): TagFolderSection[] {
+	const settingsByKey = new Map<string, TagFolderSettingInput>();
+	for (const setting of context.tagSettings) {
+		const tag = normalizeWorkspaceTag(setting.tag);
+		if (tag == null) continue;
+		settingsByKey.set(`${setting.projectId}\u0000${tag}`, setting);
+	}
+	// Host settings win over the local row for what they define — they are
+	// the cross-device authority; the local row keeps only what the host
+	// doesn't know (isCollapsed, and legacy fields until customised).
+	const applySettings = (folder: TagFolderSection): TagFolderSection => {
+		if (folder.tag == null) return folder;
+		const setting = settingsByKey.get(`${folder.projectId}\u0000${folder.tag}`);
+		if (!setting) return folder;
+		return {
+			...folder,
+			name: setting.displayName ?? folder.name,
+			color: setting.color ?? folder.color,
+			tabOrder: setting.tabOrder ?? folder.tabOrder,
+		};
+	};
+	const isHidden = (folder: TagFolderSection): boolean =>
+		folder.tag != null &&
+		(context.hiddenTagsByProject.get(folder.projectId)?.has(folder.tag) ??
+			false);
+
 	const result: TagFolderSection[] = sections.map((section) => ({
 		...section,
 		tag: normalizeWorkspaceTag(section.tag),
@@ -147,7 +200,7 @@ export function deriveTagFolders(
 		});
 	}
 
-	return result;
+	return result.map(applySettings).filter((folder) => !isHidden(folder));
 }
 
 /**

@@ -409,6 +409,10 @@ export const v2UserPreferencesSchema = z.object({
 	// KNOWN_BUILTIN_PRESET_IDS at heal time so retired ids can't persist.
 	hiddenBuiltinPresetIds: z.array(z.string()).default([]),
 	favoritePageIds: z.array(z.string()).default([]),
+	// Per-project tags whose folders the user hid ("Hide folder" — hides the
+	// grouping without untagging anyone). Bounded by tags a user has ever
+	// hidden; entries for tags no longer in use are harmless and cheap.
+	hiddenTagFolders: z.record(z.string(), z.array(z.string())).default({}),
 });
 
 // The fixed set of built-in preset ids. Consumers derive their id constants
@@ -437,6 +441,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	showPresetsBar: true,
 	hiddenBuiltinPresetIds: [],
 	favoritePageIds: [],
+	hiddenTagFolders: {},
 };
 
 /**

@@ -2,7 +2,10 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
-import { deriveTagFolders } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import {
+	deriveTagFolders,
+	useTagFolderContext,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 
 export interface ProjectTagFolderSection {
 	id: string;
@@ -23,6 +26,7 @@ export function useProjectTagFolderSections(projectId: string | null): {
 	const collections = useCollections();
 	const { workspaces: hostWorkspaces, isReady: hostWorkspacesReady } =
 		useHostWorkspaces();
+	const tagFolderContext = useTagFolderContext();
 	const { data: storedSections = [], isReady } = useLiveQuery(
 		(q) =>
 			q
@@ -41,7 +45,7 @@ export function useProjectTagFolderSections(projectId: string | null): {
 	);
 	const sections = useMemo(() => {
 		if (projectId === null) return [];
-		return deriveTagFolders(storedSections, hostWorkspaces)
+		return deriveTagFolders(storedSections, hostWorkspaces, tagFolderContext)
 			.filter((section) => section.projectId === projectId)
 			.sort(
 				(left, right) =>
@@ -53,7 +57,7 @@ export function useProjectTagFolderSections(projectId: string | null): {
 				name: section.name,
 				color: section.color,
 			}));
-	}, [projectId, storedSections, hostWorkspaces]);
+	}, [projectId, storedSections, hostWorkspaces, tagFolderContext]);
 	// Derived folders come from host rows, so "ready" needs the host fan-out
 	// too — otherwise the menu claims a complete list before tags arrive.
 	return { sections, areSectionsReady: isReady && hostWorkspacesReady };

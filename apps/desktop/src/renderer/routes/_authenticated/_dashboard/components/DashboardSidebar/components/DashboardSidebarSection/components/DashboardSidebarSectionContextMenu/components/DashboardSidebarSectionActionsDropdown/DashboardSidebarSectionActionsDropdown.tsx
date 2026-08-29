@@ -13,6 +13,7 @@ export function DashboardSidebarSectionActionsDropdown({
 	onRename,
 	onSetColor,
 	onDelete,
+	onHide,
 }: DashboardSidebarSectionActionsProps) {
 	const { t } = useLingui();
 	return (
@@ -44,6 +45,7 @@ export function DashboardSidebarSectionActionsDropdown({
 					kind="dropdown"
 					onRename={onRename}
 					onSetColor={onSetColor}
+					onHide={onHide}
 					onDelete={onDelete}
 				/>
 			</DropdownMenuContent>

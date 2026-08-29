@@ -83,6 +83,14 @@ export interface WorkspaceChangedMessage {
 	occurredAt: number;
 }
 
+/** One tag folder's host-side presentation (see workspace_tag_settings). */
+export interface TagSettingSnapshot {
+	tag: string;
+	displayName: string | null;
+	color: string | null;
+	tabOrder: number | null;
+}
+
 /**
  * Snapshot of a host-owned project row as carried on the event bus.
  * Structural (not the drizzle inferred type) so workspace-client consumers
@@ -102,6 +110,12 @@ export interface ProjectSnapshot {
 	color: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/**
+	 * Tag-folder presentation rows. Optional: absent on snapshots built where
+	 * the emitter had no settings at hand (and from older hosts) — consumers
+	 * keep their last known set rather than clearing.
+	 */
+	tagSettings?: TagSettingSnapshot[];
 }
 
 export interface ProjectChangedMessage {

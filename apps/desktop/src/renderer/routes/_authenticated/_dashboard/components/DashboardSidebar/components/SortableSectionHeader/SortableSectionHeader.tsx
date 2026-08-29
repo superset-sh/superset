@@ -1,8 +1,10 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useCallback, useEffect, useState } from "react";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import type { DashboardSidebarSection } from "../../types";
 import {
@@ -32,6 +34,11 @@ export function SortableSectionHeader({
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(section.name);
 
+	const { setTagFolderHidden } = useV2UserPreferences();
+	const folderKey = parseSidebarFolderKey(section.id);
+	const onHide = folderKey
+		? () => setTagFolderHidden(folderKey.projectId, folderKey.tag, true)
+		: undefined;
 	const {
 		attributes,
 		listeners,
@@ -87,6 +94,7 @@ export function SortableSectionHeader({
 				onRename={startRename}
 				onSetColor={(color) => setSectionColor(section.id, color)}
 				onDelete={() => onDelete(section.id)}
+				onHide={onHide}
 			>
 				<DashboardSidebarSectionHeader
 					section={section}
@@ -105,6 +113,7 @@ export function SortableSectionHeader({
 							onRename={startRename}
 							onSetColor={(color) => setSectionColor(section.id, color)}
 							onDelete={() => onDelete(section.id)}
+							onHide={onHide}
 						/>
 					}
 					{...attributes}

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
-import { buildSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import {
+	buildSidebarFolderKey,
+	EMPTY_TAG_FOLDER_CONTEXT,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { getFlattenedV2WorkspaceIds } from "./getFlattenedV2WorkspaceIds";
 
 const PROJECT_ID = "22222222-2222-4222-8222-222222222222";
@@ -82,11 +85,13 @@ describe("getFlattenedV2WorkspaceIds with tag folders", () => {
 
 		// Derived folders order at the synthetic tabOrder floor (bottom of the
 		// lane); members order by their own local tabOrder within the folder.
-		expect(getFlattenedV2WorkspaceIds(collections, hostWorkspaces)).toEqual([
-			"w-top",
-			"w-tagged-early",
-			"w-tagged-late",
-		]);
+		expect(
+			getFlattenedV2WorkspaceIds(
+				collections,
+				hostWorkspaces,
+				EMPTY_TAG_FOLDER_CONTEXT,
+			),
+		).toEqual(["w-top", "w-tagged-early", "w-tagged-late"]);
 	});
 
 	it("matches the builder's resolver: stale pointer at a tag-backed folder goes top-level", () => {
@@ -102,10 +107,13 @@ describe("getFlattenedV2WorkspaceIds with tag folders", () => {
 			{ id: "w-tagged", projectId: PROJECT_ID, tags: ["perf"] },
 		];
 
-		expect(getFlattenedV2WorkspaceIds(collections, hostWorkspaces)).toEqual([
-			"w-stale",
-			"w-tagged",
-		]);
+		expect(
+			getFlattenedV2WorkspaceIds(
+				collections,
+				hostWorkspaces,
+				EMPTY_TAG_FOLDER_CONTEXT,
+			),
+		).toEqual(["w-stale", "w-tagged"]);
 	});
 
 	it("legacy sections keep flattening by sectionId when no tags are involved", () => {
@@ -137,9 +145,12 @@ describe("getFlattenedV2WorkspaceIds with tag folders", () => {
 			{ id: "w-below", projectId: PROJECT_ID },
 		];
 
-		expect(getFlattenedV2WorkspaceIds(collections, hostWorkspaces)).toEqual([
-			"w-member",
-			"w-below",
-		]);
+		expect(
+			getFlattenedV2WorkspaceIds(
+				collections,
+				hostWorkspaces,
+				EMPTY_TAG_FOLDER_CONTEXT,
+			),
+		).toEqual(["w-member", "w-below"]);
 	});
 });

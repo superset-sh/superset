@@ -268,6 +268,30 @@ export const workspaces = sqliteTable(
 );
 
 /**
+ * Presentation for a tag folder, host-side so it follows the user across
+ * devices: a row exists only once someone customises the folder (same
+ * lifecycle as the old local row). `tag` stays the stable slug agents
+ * target; `display_name` is what the sidebar shows — which is what makes
+ * rename a one-row update instead of retagging every member.
+ */
+export const workspaceTagSettings = sqliteTable(
+	"workspace_tag_settings",
+	{
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		tag: text().notNull(),
+		displayName: text("display_name"),
+		color: text(),
+		tabOrder: integer("tab_order"),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [primaryKey({ columns: [table.projectId, table.tag] })],
+);
+
+/**
  * Plain-string tags on workspaces — no tag entity, no tag ids. `tag` is
  * stored already-normalized (trimmed + lowercased, see
  * `@superset/shared/workspace-tags`); sidebar folders derive from these

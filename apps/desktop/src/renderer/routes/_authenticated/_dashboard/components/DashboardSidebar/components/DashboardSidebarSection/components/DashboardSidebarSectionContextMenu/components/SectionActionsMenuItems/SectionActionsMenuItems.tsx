@@ -14,7 +14,7 @@ import {
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
 import { HiCheck } from "react-icons/hi2";
-import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuEyeOff, LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
@@ -35,6 +35,7 @@ export function SectionActionsMenuItems({
 	onRename,
 	onSetColor,
 	onDelete,
+	onHide,
 }: SectionActionsMenuItemsProps) {
 	const { t } = useLingui();
 	const selectedValue = color ?? PROJECT_COLOR_DEFAULT;
@@ -159,6 +160,19 @@ export function SectionActionsMenuItems({
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 			)}
+			{onHide
+				? renderItem({
+						onSelect: onHide,
+						children: (
+							<>
+								<LuEyeOff className={iconClassName} />
+								<Trans id="dashboard.sidebar.sectionMenu.hideFolder">
+									Hide folder
+								</Trans>
+							</>
+						),
+					})
+				: null}
 			{kind === "context" ? (
 				<ContextMenuSeparator />
 			) : (

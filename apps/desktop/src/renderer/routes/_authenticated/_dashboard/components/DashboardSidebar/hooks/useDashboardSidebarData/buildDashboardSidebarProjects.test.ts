@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildSidebarFolderKey,
 	deriveTagFolders,
+	EMPTY_TAG_FOLDER_CONTEXT,
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import {
 	buildDashboardSidebarPinnedWorkspaces,
@@ -326,6 +327,7 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 				tag: section.tag,
 			})),
 			workspaces,
+			EMPTY_TAG_FOLDER_CONTEXT,
 		).map((section) => ({
 			id: section.sectionId,
 			projectId: section.projectId,

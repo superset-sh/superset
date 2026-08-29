@@ -4,6 +4,7 @@ import {
 	buildSidebarFolderKey,
 	DERIVED_TAG_FOLDER_TAB_ORDER_BASE,
 	deriveTagFolders,
+	EMPTY_TAG_FOLDER_CONTEXT,
 	getProjectFolderTagIndex,
 	mintFolderTag,
 	parseSidebarFolderKey,
@@ -83,6 +84,8 @@ describe("deriveTagFolders", () => {
 		const folders = deriveTagFolders(
 			[],
 			[makeWorkspace({ id: "w1", tags: ["perf"] })],
+
+			EMPTY_TAG_FOLDER_CONTEXT,
 		);
 		expect(folders).toHaveLength(1);
 		expect(folders[0]).toMatchObject({
@@ -105,6 +108,8 @@ describe("deriveTagFolders", () => {
 		const folders = deriveTagFolders(
 			[stored],
 			[makeWorkspace({ id: "w1", tags: ["perf", "extra"] })],
+
+			EMPTY_TAG_FOLDER_CONTEXT,
 		);
 		expect(folders).toHaveLength(2);
 		expect(folders[0]).toMatchObject({
@@ -124,6 +129,8 @@ describe("deriveTagFolders", () => {
 				makeWorkspace({ id: "w1", tags: ["zeta", "alpha"] }),
 				makeWorkspace({ id: "w2", projectId: PROJECT_B, tags: ["alpha"] }),
 			],
+
+			EMPTY_TAG_FOLDER_CONTEXT,
 		);
 		const projectAFolders = folders.filter((f) => f.projectId === PROJECT_A);
 		expect(projectAFolders.map((f) => f.tag)).toEqual(["alpha", "zeta"]);
@@ -141,6 +148,8 @@ describe("deriveTagFolders", () => {
 			deriveTagFolders(
 				[],
 				[makeWorkspace({ id: "w1", projectId: null, tags: ["perf"] })],
+
+				EMPTY_TAG_FOLDER_CONTEXT,
 			),
 		).toEqual([]);
 	});
@@ -152,7 +161,9 @@ describe("deriveTagFolders", () => {
 			id: "w1",
 			projectId: PROJECT_A,
 		} as TagFolderWorkspaceInput;
-		expect(deriveTagFolders([], [legacyRow])).toEqual([]);
+		expect(deriveTagFolders([], [legacyRow], EMPTY_TAG_FOLDER_CONTEXT)).toEqual(
+			[],
+		);
 	});
 
 	it("a section row with the tag field ABSENT is a legacy folder, not tag-backed", () => {
@@ -168,6 +179,8 @@ describe("deriveTagFolders", () => {
 		const folders = deriveTagFolders(
 			[legacySection],
 			[makeWorkspace({ id: "w1", tags: ["perf"] })],
+
+			EMPTY_TAG_FOLDER_CONTEXT,
 		);
 		expect(folders[0]).toMatchObject({
 			sectionId: legacySection.sectionId,
@@ -186,6 +199,8 @@ describe("deriveTagFolders", () => {
 				}),
 			],
 			[makeWorkspace({ id: "w1", tags: [" PERF "] })],
+
+			EMPTY_TAG_FOLDER_CONTEXT,
 		);
 		expect(folders).toHaveLength(1);
 		expect(folders[0]?.tag).toBe("perf");
@@ -209,6 +224,8 @@ describe("getProjectFolderTagIndex", () => {
 				}),
 			],
 			[],
+
+			EMPTY_TAG_FOLDER_CONTEXT,
 		);
 		const index = getProjectFolderTagIndex(sections, PROJECT_A);
 		expect([...index.keys()]).toEqual(["perf"]);
@@ -387,5 +404,123 @@ describe("mintFolderTag", () => {
 		const minted = mintFolderTag(base, [base]);
 		expect(minted.length).toBeLessThanOrEqual(64);
 		expect(minted.endsWith("-2")).toBe(true);
+	});
+});
+
+describe("deriveTagFolders with host settings and hidden folders", () => {
+	it("host settings override name, color, and order on derived folders", () => {
+		const folders = deriveTagFolders(
+			[],
+			[makeWorkspace({ id: "w1", tags: ["perf"] })],
+			{
+				tagSettings: [
+					{
+						projectId: PROJECT_A,
+						tag: "Perf",
+						displayName: "Perf Work",
+						color: "#ff0000",
+						tabOrder: 4,
+					},
+				],
+				hiddenTagsByProject: new Map(),
+			},
+		);
+		expect(folders[0]).toMatchObject({
+			tag: "perf",
+			name: "Perf Work",
+			color: "#ff0000",
+			tabOrder: 4,
+		});
+	});
+
+	it("host settings beat the local row for what they define; the row keeps the rest", () => {
+		const stored = makeSection({
+			sectionId: buildSidebarFolderKey(PROJECT_A, "perf"),
+			tag: "perf",
+			name: "old label",
+			color: "#00ff00",
+			tabOrder: 2,
+			isCollapsed: true,
+		});
+		const folders = deriveTagFolders([stored], [], {
+			tagSettings: [
+				{ projectId: PROJECT_A, tag: "perf", displayName: "New Label" },
+			],
+			hiddenTagsByProject: new Map(),
+		});
+		expect(folders[0]).toMatchObject({
+			name: "New Label",
+			color: "#00ff00",
+			tabOrder: 2,
+			isCollapsed: true,
+		});
+	});
+
+	it("settings with absent optional fields change nothing they don't define", () => {
+		const folders = deriveTagFolders(
+			[],
+			[makeWorkspace({ id: "w1", tags: ["perf"] })],
+			{
+				tagSettings: [{ projectId: PROJECT_A, tag: "perf" }],
+				hiddenTagsByProject: new Map(),
+			},
+		);
+		expect(folders[0]).toMatchObject({ name: "perf", color: null });
+	});
+
+	it("hidden tags leave the union entirely, stored row or not", () => {
+		const stored = makeSection({
+			sectionId: buildSidebarFolderKey(PROJECT_A, "perf"),
+			tag: "perf",
+		});
+		const folders = deriveTagFolders(
+			[stored],
+			[makeWorkspace({ id: "w1", tags: ["perf", "infra"] })],
+			{
+				tagSettings: [],
+				hiddenTagsByProject: new Map([[PROJECT_A, new Set(["perf"])]]),
+			},
+		);
+		expect(folders.map((folder) => folder.tag)).toEqual(["infra"]);
+	});
+
+	it("a hidden folder's members resolve to top level", () => {
+		const folders = deriveTagFolders(
+			[],
+			[makeWorkspace({ id: "w1", tags: ["perf"] })],
+			{
+				tagSettings: [],
+				hiddenTagsByProject: new Map([[PROJECT_A, new Set(["perf"])]]),
+			},
+		);
+		const index = getProjectFolderTagIndex(folders, PROJECT_A);
+		expect(
+			resolveWorkspaceSectionId({
+				tags: ["perf"],
+				localSectionId: null,
+				index,
+			}),
+		).toBeNull();
+	});
+
+	it("hiding in one project does not hide the tag elsewhere; legacy rows are never hidden", () => {
+		const legacy = makeSection({ sectionId: "legacy-row", tag: null });
+		const folders = deriveTagFolders(
+			[legacy],
+			[
+				makeWorkspace({ id: "w1", tags: ["perf"] }),
+				makeWorkspace({ id: "w2", projectId: PROJECT_B, tags: ["perf"] }),
+			],
+			{
+				tagSettings: [],
+				hiddenTagsByProject: new Map([[PROJECT_A, new Set(["perf"])]]),
+			},
+		);
+		expect(
+			folders.map(
+				(folder) =>
+					`${folder.projectId === PROJECT_B ? "B" : "A"}:${folder.tag}`,
+			),
+		).toEqual(["A:null", "B:perf"]);
 	});
 });

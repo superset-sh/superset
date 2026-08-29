@@ -4,6 +4,7 @@ import {
 	deriveTagFolders,
 	getProjectFolderTagIndex,
 	resolveWorkspaceSectionId,
+	type TagFolderContext,
 	type TagFolderWorkspaceInput,
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 
@@ -20,6 +21,7 @@ export function getFlattenedV2WorkspaceIds(
 	// required so this pass can never fall out of sync with the sidebar
 	// builder's resolver (workspaceTagFolders).
 	hostWorkspaces: readonly TagFolderWorkspaceInput[],
+	tagFolderContext: TagFolderContext,
 ): string[] {
 	const projects = Array.from(
 		collections.v2SidebarProjects.state.values(),
@@ -27,6 +29,7 @@ export function getFlattenedV2WorkspaceIds(
 	const allSections = deriveTagFolders(
 		Array.from(collections.v2SidebarSections.state.values()),
 		hostWorkspaces,
+		tagFolderContext,
 	);
 	const allWorkspaces = Array.from(
 		collections.v2WorkspaceLocalState.state.values(),

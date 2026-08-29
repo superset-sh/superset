@@ -3,6 +3,14 @@ import type { ProjectSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
 /** A project row as served by a host (`project.list`). */
+/** One tag folder's host-side presentation row. */
+export interface HostTagSetting {
+	tag: string;
+	displayName: string | null;
+	color: string | null;
+	tabOrder: number | null;
+}
+
 export interface HostProjectRow {
 	id: string;
 	name: string;
@@ -17,6 +25,8 @@ export interface HostProjectRow {
 	color: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/** Absent when served by an older host. */
+	tagSettings?: HostTagSetting[];
 }
 
 /**
@@ -44,6 +54,8 @@ export interface HostProjectItem {
 	hostReachable: boolean;
 	createdAt: number;
 	updatedAt: number;
+	/** Tag-folder presentation (host-side); absent from older hosts. */
+	tagSettings?: HostTagSetting[];
 }
 
 export interface HostProjectsQueryTarget {
@@ -249,6 +261,9 @@ export function applyProjectChangedEvent(
 		color: snapshot.color ?? null,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
+		// Optional on the wire: an emitter without settings at hand (or an
+		// older host) omits it — keep the row's last known set.
+		tagSettings: snapshot.tagSettings ?? existing?.tagSettings,
 	};
 	if (!rows) return [nextRow];
 	return existing
@@ -293,6 +308,7 @@ export function mergeHostProjects({
 					hostReachable: result.reachable,
 					createdAt: row.createdAt,
 					updatedAt: row.updatedAt,
+					tagSettings: row.tagSettings,
 				});
 				continue;
 			}
@@ -314,6 +330,16 @@ export function mergeHostProjects({
 				existing.repoName = row.repoName;
 				existing.icon = row.icon;
 				existing.color = row.color;
+			}
+			// Tag settings: a replica that has them beats one that doesn't
+			// (older host); among replicas that do, the local host wins, same
+			// as icon/color. Mutations write to every serving host, so
+			// replicas stay aligned in practice.
+			if (
+				row.tagSettings !== undefined &&
+				(existing.tagSettings === undefined || result.target.isLocal)
+			) {
+				existing.tagSettings = row.tagSettings;
 			}
 		}
 	}

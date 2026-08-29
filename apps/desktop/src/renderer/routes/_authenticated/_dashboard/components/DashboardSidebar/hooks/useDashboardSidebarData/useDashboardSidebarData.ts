@@ -15,7 +15,10 @@ import {
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
-import { deriveTagFolders } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import {
+	deriveTagFolders,
+	useTagFolderContext,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarPinnedWorkspace,
@@ -264,21 +267,24 @@ export function useDashboardSidebarData() {
 	// stored presentation rows PLUS folders that exist only because some
 	// workspace carries the tag. A folder must exist because a workspace
 	// carries the tag, not because a local row does.
+	const tagFolderContext = useTagFolderContext();
 	const sidebarSections = useMemo(
 		() =>
-			deriveTagFolders(storedSidebarSections, hostWorkspaces).map(
-				(section) => ({
-					id: section.sectionId,
-					projectId: section.projectId,
-					name: section.name,
-					createdAt: section.createdAt,
-					isCollapsed: section.isCollapsed,
-					tabOrder: section.tabOrder,
-					color: section.color,
-					tag: section.tag,
-				}),
-			),
-		[hostWorkspaces, storedSidebarSections],
+			deriveTagFolders(
+				storedSidebarSections,
+				hostWorkspaces,
+				tagFolderContext,
+			).map((section) => ({
+				id: section.sectionId,
+				projectId: section.projectId,
+				name: section.name,
+				createdAt: section.createdAt,
+				isCollapsed: section.isCollapsed,
+				tabOrder: section.tabOrder,
+				color: section.color,
+				tag: section.tag,
+			})),
+		[hostWorkspaces, storedSidebarSections, tagFolderContext],
 	);
 
 	const { data: sidebarLocalStateRows = [] } = useLiveQuery(
