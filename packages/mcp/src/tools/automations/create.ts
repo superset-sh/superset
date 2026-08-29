@@ -73,7 +73,7 @@ export function register(server: McpServer): void {
 				.max(WORKSPACE_TAGS_MAX_PER_WORKSPACE)
 				.optional()
 				.describe(
-					"Workspace tags applied to each run's created workspace; each tag files it into a sidebar folder of the same name. Update replaces the whole set.",
+					"Workspace tags applied to each run's created workspace; each tag files it into a sidebar folder of the same name. Defaults to ['automation'] so runs group out of the box.",
 				),
 		},
 		handler: async (input, ctx) => {

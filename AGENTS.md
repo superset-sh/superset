@@ -109,6 +109,12 @@ superset ws delete WORKSPACE_ID
 In order: an isolated workspace with an agent already working in it, another agent in an existing
 workspace, what's running, what an agent is doing right now, and cleanup when you're done.
 
+Spawning several related workspaces? Add `--tag SOME_TAG` (repeatable) to `ws create` — tagged
+workspaces group into a sidebar folder of that name automatically, so a batch files itself instead
+of scattering across the project. `ws list --tag SOME_TAG` filters to them, and
+`ws update WORKSPACE_ID --tag ...` retags (`--clear-tags` ungroups). Automation-created workspaces
+are tagged `automation` by default and collect in an "automation" folder.
+
 `superset <command> --help` covers the rest (tasks, automations, hosts, settings). Pass `--json` for
 parsable output; it's on by default under agent environments.
 

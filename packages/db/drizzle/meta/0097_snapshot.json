@@ -1,5 +1,5 @@
 {
-  "id": "3b53188e-905b-42c0-aefa-08f4c4fd7868",
+  "id": "f6761a06-4f43-4bed-8257-f69d0d950ece",
   "prevId": "3110bfed-3a04-4e68-9f61-602c18362f26",
   "version": "7",
   "dialect": "postgresql",
@@ -4488,7 +4488,7 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
-          "default": "'[]'::jsonb"
+          "default": "'[\"automation\"]'::jsonb"
         },
         "enabled": {
           "name": "enabled",

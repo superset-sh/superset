@@ -245,7 +245,8 @@ export interface AutomationCreateParams {
 	dtstart?: string;
 	/**
 	 * Workspace tags applied to each run's created workspace; each tag files
-	 * it into a sidebar folder of the same name.
+	 * it into a sidebar folder of the same name. Defaults to ["automation"]
+	 * so runs group out of the box; pass [] to opt out.
 	 */
 	tags?: string[];
 }

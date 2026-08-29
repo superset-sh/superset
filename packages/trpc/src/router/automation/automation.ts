@@ -372,7 +372,9 @@ export const automationRouter = {
 						targetHostId,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
-						tags: input.tags ?? [],
+						// Every automation groups its runs out of the box; explicit
+						// tags (including []) override the default.
+						tags: input.tags ?? ["automation"],
 					})
 					.returning();
 
