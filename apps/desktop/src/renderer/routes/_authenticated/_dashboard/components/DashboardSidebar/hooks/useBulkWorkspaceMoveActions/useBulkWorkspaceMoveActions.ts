@@ -1,11 +1,9 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { workspaceIdsForSectionMove } from "../../utils/bulkWorkspaceActions";
+import { useProjectTagFolderSections } from "../useProjectTagFolderSections";
 import { resolveBulkWorkspaceSectionMenuState } from "./bulkWorkspaceMoveActions";
 
 interface UseBulkWorkspaceMoveActionsOptions {
@@ -23,26 +21,13 @@ export function useBulkWorkspaceMoveActions({
 	workspacesById,
 	sectionIdByWorkspaceId,
 }: UseBulkWorkspaceMoveActionsOptions) {
-	const collections = useCollections();
 	const { createSection, moveWorkspaceToSection } = useDashboardSidebarState();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
 	const { clearSelection, selectedWorkspaceIds } =
 		useDashboardSidebarSelection();
-	const { data: sections, isReady: areSectionsReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId ?? ""),
-				)
-				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
-				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
-					name: sidebarSections.name,
-					color: sidebarSections.color,
-				})),
-		[collections, projectId],
-	);
+	// The derived union — tag-only folders with no stored row are valid
+	// bulk-move targets too.
+	const { sections, areSectionsReady } = useProjectTagFolderSections(projectId);
 	const sectionMenuState = resolveBulkWorkspaceSectionMenuState(
 		sections,
 		areSectionsReady,
