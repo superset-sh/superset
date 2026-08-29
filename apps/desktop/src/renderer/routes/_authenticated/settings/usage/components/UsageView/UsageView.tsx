@@ -191,6 +191,11 @@ function AccountCard({
 						{account.plan}
 					</span>
 				)}
+				{account.credentialKind === "api_key" && (
+					<span className="rounded bg-sky-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-sky-500">
+						<Trans id="settings.usage.account.apiBilling">API billing</Trans>
+					</span>
+				)}
 				{account.status !== "ok" && (
 					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
 						{account.status === "token_expired" ? (
@@ -237,7 +242,14 @@ function AccountCard({
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
-			{account.status === "ok" ? (
+			{account.credentialKind === "api_key" ? (
+				<div className="mt-1.5 text-[11px] text-muted-foreground">
+					<Trans id="settings.usage.account.apiBillingDetail">
+						Usage is billed through the provider API account. Subscription quota
+						windows do not apply.
+					</Trans>
+				</div>
+			) : account.status === "ok" ? (
 				<div className="mt-2 flex flex-col gap-1.5">
 					{account.windows.map((window) => (
 						<QuotaWindowRow key={window.id} window={window} />
@@ -382,6 +394,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		setDialogProvider(account.provider);
 		setSwitchTarget({
 			provider: account.provider,
+			credentialKind: account.credentialKind,
 			selection: account.selection,
 			label:
 				account.selection === null
@@ -436,69 +449,65 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				</Button>
 			</div>
 
-			{quotaQuery.isPending ? (
-				<div className="py-4 text-center text-xs text-muted-foreground">
-					<Trans id="settings.usage.quota.reading">
-						Reading subscription usage…
-					</Trans>
-				</div>
-			) : (
-				PROVIDERS.map((provider) => {
-					const providerAccounts = accounts.filter(
-						(account) => account.provider === provider,
-					);
-					const icon = getPresetIcon(provider, isDark);
-					return (
-						<section key={provider} className="flex flex-col gap-1.5">
-							<div className="flex items-center gap-1.5">
-								{icon && <img src={icon} alt="" className="size-3.5" />}
-								<span className="text-xs font-medium">
-									{PROVIDER_LABELS[provider]}
-								</span>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
-									disabled={!hostUrl}
-									onClick={() => openAddAccount(provider)}
-								>
-									<LuPlus className="size-3" />
-									<Trans id="settings.usage.quota.addAccount">
-										Add account
-									</Trans>
-								</Button>
+			{PROVIDERS.map((provider) => {
+				const providerAccounts = accounts.filter(
+					(account) => account.provider === provider,
+				);
+				const icon = getPresetIcon(provider, isDark);
+				return (
+					<section key={provider} className="flex flex-col gap-1.5">
+						<div className="flex items-center gap-1.5">
+							{icon && <img src={icon} alt="" className="size-3.5" />}
+							<span className="text-xs font-medium">
+								{PROVIDER_LABELS[provider]}
+							</span>
+							<Button
+								variant="ghost"
+								size="sm"
+								className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
+								disabled={!hostUrl}
+								onClick={() => openAddAccount(provider)}
+							>
+								<LuPlus className="size-3" />
+								<Trans id="settings.usage.quota.addAccount">Add account</Trans>
+							</Button>
+						</div>
+						{quotaQuery.isPending ? (
+							<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+								<Trans id="settings.usage.quota.reading">
+									Reading account usage…
+								</Trans>
 							</div>
-							{providerAccounts.length === 0 ? (
-								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
-									<Trans id="settings.usage.quota.noLogins">
-										No {PROVIDER_LABELS[provider]} logins on this host — sign in
-										and usage appears here.
-									</Trans>
-								</div>
-							) : (
-								<div className="grid gap-2 md:grid-cols-2">
-									{providerAccounts.map((account) => (
-										<AccountCard
-											key={account.accountKey}
-											account={account}
-											onMakeDefault={() => makeDefaultAccount(account)}
-											onSwitchSignIn={() => openSwitchSignIn(account)}
-											onRemove={
-												account.selection === null
-													? null
-													: () => setRemoveTarget(account)
-											}
-											isSwitching={setDefault.isPending}
-											selectable={providerAccounts.length > 1}
-											hideEmails={hideEmails}
-										/>
-									))}
-								</div>
-							)}
-						</section>
-					);
-				})
-			)}
+						) : providerAccounts.length === 0 ? (
+							<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
+								<Trans id="settings.usage.quota.noLogins">
+									No {PROVIDER_LABELS[provider]} profiles on this host — add a
+									subscription or API-billed account here.
+								</Trans>
+							</div>
+						) : (
+							<div className="grid gap-2 md:grid-cols-2">
+								{providerAccounts.map((account) => (
+									<AccountCard
+										key={account.accountKey}
+										account={account}
+										onMakeDefault={() => makeDefaultAccount(account)}
+										onSwitchSignIn={() => openSwitchSignIn(account)}
+										onRemove={
+											account.selection === null
+												? null
+												: () => setRemoveTarget(account)
+										}
+										isSwitching={setDefault.isPending}
+										selectable={providerAccounts.length > 1}
+										hideEmails={hideEmails}
+									/>
+								))}
+							</div>
+						)}
+					</section>
+				);
+			})}
 
 			<RemoveAccountDialog
 				account={removeTarget}

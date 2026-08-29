@@ -12,12 +12,17 @@ import {
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
+import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { useEffect, useRef, useState } from "react";
 import { LuCheck, LuCopy, LuLoaderCircle } from "react-icons/lu";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import type { UsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useHostUsageLogins } from "../../../../hooks/useHostUsageLogins";
 import { useSetDefaultUsageAccount } from "../../../../hooks/useSetDefaultUsageAccount";
+import {
+	type AccountCredentialKind,
+	accountLoginCommand,
+} from "../../utils/accountLoginCommand";
 import { switchSignInCommand } from "../../utils/switchSignInCommand";
 
 type Provider = "claude" | "codex";
@@ -31,6 +36,7 @@ const PROVIDER_LABELS: Record<Provider, string> = {
  * system default when selection is null. */
 export interface SwitchSignInTarget {
 	provider: Provider;
+	credentialKind: AccountCredentialKind;
 	selection: string | null;
 	/** Display name for the dialog copy ("~/.claude-2", an email, …). */
 	label: string;
@@ -45,31 +51,43 @@ function slugify(name: string): string {
 	);
 }
 
-// $HOME stays unexpanded on purpose — the user's shell resolves it, so the
-// same command works over SSH to a remote host.
-function addAccountCommand(provider: Provider, slug: string): string {
-	if (provider === "claude") {
-		return `CLAUDE_CONFIG_DIR="$HOME/.claude-${slug}" claude auth login`;
-	}
-	return `mkdir -p "$HOME/.codex-${slug}" && CODEX_HOME="$HOME/.codex-${slug}" codex login`;
-}
-
 /** The sign-in that landed after the dialog opened, if any. */
 function findNewLogin(
 	provider: Provider,
+	credentialKind: AccountCredentialKind,
 	baseline: UsageLogins,
 	current: UsageLogins,
-): { selection: string; label: string } | null {
+): {
+	selection: string;
+	label: string;
+	credentialKind: AccountCredentialKind;
+} | null {
 	if (provider === "claude") {
 		const known = new Set(baseline.claude.map((entry) => entry.configDir));
-		const fresh = current.claude.find((entry) => !known.has(entry.configDir));
+		const fresh = current.claude.find(
+			(entry) =>
+				entry.credentialKind === credentialKind && !known.has(entry.configDir),
+		);
 		return fresh
-			? { selection: fresh.configDir, label: fresh.email ?? fresh.configDir }
+			? {
+					selection: fresh.configDir,
+					label: fresh.email ?? fresh.configDir,
+					credentialKind: fresh.credentialKind,
+				}
 			: null;
 	}
 	const known = new Set(baseline.codex.map((entry) => entry.home));
-	const fresh = current.codex.find((entry) => !known.has(entry.home));
-	return fresh ? { selection: fresh.home, label: fresh.home } : null;
+	const fresh = current.codex.find(
+		(entry) =>
+			entry.credentialKind === credentialKind && !known.has(entry.home),
+	);
+	return fresh
+		? {
+				selection: fresh.home,
+				label: fresh.home,
+				credentialKind: fresh.credentialKind,
+			}
+		: null;
 }
 
 /** A change of identity in the target login, if any. */
@@ -79,6 +97,15 @@ function findSignInChange(
 	current: UsageLogins,
 ): { label: string } | null {
 	if (target.provider === "claude") {
+		if (target.credentialKind === "api_key" && target.selection !== null) {
+			const before =
+				baseline.claude.find((entry) => entry.configDir === target.selection)
+					?.fingerprint ?? null;
+			const after =
+				current.claude.find((entry) => entry.configDir === target.selection)
+					?.fingerprint ?? null;
+			return after && after !== before ? { label: target.label } : null;
+		}
 		if (target.selection === null) {
 			return current.claudeDefaultEmail &&
 				current.claudeDefaultEmail !== baseline.claudeDefaultEmail
@@ -142,10 +169,13 @@ export function AddAccountDialog({
 	const { t } = useLingui();
 	const provider = switchTarget?.provider ?? addProvider;
 	const [name, setName] = useState("work");
+	const [credentialKind, setCredentialKind] =
+		useState<AccountCredentialKind>("subscription");
 	const [copied, setCopied] = useState(false);
 	const [found, setFound] = useState<{
 		selection: string | null;
 		label: string;
+		credentialKind: AccountCredentialKind;
 	} | null>(null);
 	const baselineRef = useRef<UsageLogins | null>(null);
 
@@ -159,6 +189,7 @@ export function AddAccountDialog({
 			baselineRef.current = null;
 			setFound(null);
 			setCopied(false);
+			setCredentialKind("subscription");
 			return;
 		}
 		const logins = loginsQuery.data;
@@ -187,14 +218,23 @@ export function AddAccountDialog({
 				logins,
 			);
 			if (change) {
-				setFound({ selection: null, label: change.label });
+				setFound({
+					selection: null,
+					label: change.label,
+					credentialKind: switchTarget.credentialKind,
+				});
 				onAccountAdded();
 				// The system default (null) is the share's source, not a target.
 				if (switchTarget.selection) provisionProfile(switchTarget.selection);
 			}
 			return;
 		}
-		const fresh = findNewLogin(provider, baselineRef.current, logins);
+		const fresh = findNewLogin(
+			provider,
+			credentialKind,
+			baselineRef.current,
+			logins,
+		);
 		if (fresh) {
 			setFound(fresh);
 			onAccountAdded();
@@ -204,6 +244,7 @@ export function AddAccountDialog({
 		open,
 		loginsQuery.data,
 		provider,
+		credentialKind,
 		switchTarget,
 		found,
 		onAccountAdded,
@@ -213,7 +254,7 @@ export function AddAccountDialog({
 	const slug = slugify(name);
 	const command = switchTarget
 		? switchSignInCommand(switchTarget)
-		: addAccountCommand(provider, slug);
+		: accountLoginCommand(provider, slug, credentialKind);
 
 	const copyCommand = () => {
 		void navigator.clipboard.writeText(command).then(() => {
@@ -250,13 +291,19 @@ export function AddAccountDialog({
 						)}
 					</DialogTitle>
 					<DialogDescription>
-						{switchDescription ?? (
-							<Trans id="settings.usage.addAccount.addDescription">
-								Sign in to a second subscription as a separate profile. Your
-								current login is untouched, and the new profile shares your
-								skills, plugins, MCP servers, and settings.
-							</Trans>
-						)}
+						{switchDescription ??
+							(credentialKind === "api_key" ? (
+								<Trans id="settings.usage.addAccount.apiDescription">
+									Add an API-billed profile. Authentication stays in the
+									provider CLI; Superset never receives or stores the API key.
+								</Trans>
+							) : (
+								<Trans id="settings.usage.addAccount.addDescription">
+									Sign in to another subscription as a separate profile. Your
+									current login is untouched, and the new profile shares your
+									skills, plugins, MCP servers, and settings.
+								</Trans>
+							))}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -267,6 +314,10 @@ export function AddAccountDialog({
 							{switchTarget ? (
 								<Trans id="settings.usage.addAccount.switchedSuffix">
 									is now signed in here.
+								</Trans>
+							) : found.credentialKind === "api_key" ? (
+								<Trans id="settings.usage.addAccount.apiAddedSuffix">
+									is ready and will use API billing.
 								</Trans>
 							) : (
 								<Trans id="settings.usage.addAccount.addedSuffix">
@@ -317,26 +368,47 @@ export function AddAccountDialog({
 				) : (
 					<div className="flex flex-col gap-3">
 						{!switchTarget && (
-							<div className="flex items-center gap-2">
-								<span className="text-xs text-muted-foreground">
-									<Trans id="settings.usage.addAccount.profileName">
-										Profile name
-									</Trans>
-								</span>
-								<Input
-									value={name}
-									onChange={(event) => setName(event.target.value)}
-									className="h-7 flex-1 text-xs"
-									placeholder="work"
-								/>
+							<div className="flex flex-col gap-3">
+								<Tabs
+									value={credentialKind}
+									onValueChange={(value) =>
+										setCredentialKind(value as AccountCredentialKind)
+									}
+								>
+									<TabsList className="grid h-8 w-full grid-cols-2">
+										<TabsTrigger value="subscription" className="text-xs">
+											<Trans id="settings.usage.addAccount.subscription">
+												Subscription
+											</Trans>
+										</TabsTrigger>
+										<TabsTrigger value="api_key" className="text-xs">
+											<Trans id="settings.usage.addAccount.apiBilling">
+												API billing
+											</Trans>
+										</TabsTrigger>
+									</TabsList>
+								</Tabs>
+								<div className="flex items-center gap-2">
+									<span className="text-xs text-muted-foreground">
+										<Trans id="settings.usage.addAccount.profileName">
+											Profile name
+										</Trans>
+									</span>
+									<Input
+										value={name}
+										onChange={(event) => setName(event.target.value)}
+										className="h-7 flex-1 text-xs"
+										placeholder="work"
+									/>
+								</div>
 							</div>
 						)}
 
 						<div className="flex flex-col gap-1">
 							<span className="text-xs text-muted-foreground">
 								<Trans id="settings.usage.addAccount.runCommandHint">
-									Run this in any terminal on this host, then finish the sign-in
-									in your browser:
+									Run this in any terminal on this host, then complete the
+									provider sign-in:
 								</Trans>
 							</span>
 							<div className="flex items-start gap-1.5 rounded-md border bg-muted/40 p-2">

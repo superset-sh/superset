@@ -25575,6 +25575,16 @@ msgstr "{0} → {1}待更新"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.account.apiBilling"
+msgstr "API 计费"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.account.apiBillingDetail"
+msgstr "使用量通过提供商 API 账户计费。订阅配额周期不适用。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.account.copyFailed"
 msgstr "复制失败"
 
@@ -25671,7 +25681,7 @@ msgstr "无法获取用量。"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addDescription"
-msgstr "以独立配置文件登录第二个订阅。你当前的登录不受影响，新配置文件共享你的技能、插件、MCP服务器和设置。"
+msgstr "以独立配置文件登录另一个订阅。你当前的登录不受影响，新配置文件共享你的技能、插件、MCP服务器和设置。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
@@ -25683,6 +25693,21 @@ msgstr "已登录，其配额会显示在这里。"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "添加{0}账户"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiAddedSuffix"
+msgstr "已就绪，将使用 API 计费。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiBilling"
+msgstr "API 计费"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiDescription"
+msgstr "添加一个 API 计费配置文件。身份验证由提供商 CLI 完成；Superset 不会接收或存储 API 密钥。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
@@ -25712,7 +25737,12 @@ msgstr "配置文件名称"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.runCommandHint"
-msgstr "在此主机的任意终端中运行以下命令，然后在浏览器中完成登录："
+msgstr "在此主机的任意终端中运行以下命令，然后完成提供商登录："
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.subscription"
+msgstr "订阅"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
@@ -26009,12 +26039,12 @@ msgstr "隐藏邮箱"
 #. placeholder {0}: PROVIDER_LABELS[provider]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
-msgstr "此主机上没有{0}登录——登录后用量会显示在这里。"
+msgstr "此主机上没有{0}配置文件——请在此添加订阅或 API 计费账户。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.reading"
-msgstr "正在读取订阅用量…"
+msgstr "正在读取账户用量…"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx

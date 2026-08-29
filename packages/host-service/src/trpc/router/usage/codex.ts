@@ -7,7 +7,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { discoverCodexHomes } from "./profiles";
+import { type CodexHome, discoverCodexHomes } from "./profiles";
 import type { UsageAccount, UsageQuotaWindow } from "./types";
 
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
@@ -105,7 +105,7 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 	const defaultHome = homes[0]?.home ?? null;
 	const accounts = await Promise.all(
 		homes.map((home) =>
-			fetchCodexAccountForHome(home.home, home.home === defaultHome),
+			fetchCodexAccountForHome(home, home.home === defaultHome),
 		),
 	);
 	// Dedupe by account email — one login used from several homes is one
@@ -120,10 +120,37 @@ export async function fetchCodexAccounts(): Promise<UsageAccount[]> {
 }
 
 async function fetchCodexAccountForHome(
-	codexHome: string,
+	home: CodexHome,
 	isDefaultHome: boolean,
 ): Promise<UsageAccount[]> {
+	const codexHome = home.home;
 	const authPath = join(codexHome, "auth.json");
+	const base = {
+		provider: "codex" as const,
+		credentialKind: home.credentialKind,
+		accountKey: authPath,
+		sourceLabel: codexHome.replace(homedir(), "~"),
+		extraUsage: null,
+		selection: isDefaultHome ? null : codexHome,
+		// Decorated per-query from host settings; the quota cache outlives it.
+		isDefault: false,
+		fetchedAt: new Date(),
+	};
+
+	if (home.credentialKind === "api_key") {
+		return [
+			{
+				...base,
+				email: null,
+				plan: null,
+				status: "ok",
+				statusDetail:
+					"Usage is billed through the OpenAI API account. Quota windows are not available.",
+				windows: [],
+				creditsBalance: null,
+			},
+		];
+	}
 
 	let auth: CodexAuthFile;
 	try {
@@ -133,17 +160,6 @@ async function fetchCodexAccountForHome(
 	}
 	const accessToken = auth.tokens?.access_token;
 	if (!accessToken) return [];
-
-	const base = {
-		provider: "codex" as const,
-		accountKey: authPath,
-		sourceLabel: codexHome.replace(homedir(), "~"),
-		extraUsage: null,
-		selection: isDefaultHome ? null : codexHome,
-		// Decorated per-query from host settings; the quota cache outlives it.
-		isDefault: false,
-		fetchedAt: new Date(),
-	};
 
 	try {
 		const headers: Record<string, string> = {

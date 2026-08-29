@@ -96,22 +96,26 @@ export const usageRouter = router({
 		// (its email is only knowable via the network). The first home is the
 		// system default.
 		const codex = await Promise.all(
-			codexHomes.map(async ({ home }) => {
-				let fingerprint: string | null = null;
-				try {
-					fingerprint = createHash("sha256")
-						.update(await readFile(join(home, "auth.json")))
-						.digest("hex");
-				} catch {
-					// No readable auth.json — fingerprint stays null.
+			codexHomes.map(async ({ home, credentialKind, loginFingerprint }) => {
+				let fingerprint = loginFingerprint;
+				if (credentialKind === "subscription") {
+					try {
+						fingerprint = createHash("sha256")
+							.update(await readFile(join(home, "auth.json")))
+							.digest("hex");
+					} catch {
+						// No readable auth.json — fingerprint stays null.
+					}
 				}
-				return { home, fingerprint };
+				return { home, fingerprint, credentialKind };
 			}),
 		);
 		return {
 			claude: profiles.map((profile) => ({
 				configDir: profile.configDir,
 				email: profile.email,
+				credentialKind: profile.credentialKind,
+				fingerprint: profile.loginFingerprint,
 			})),
 			codex,
 			claudeDefaultEmail,
@@ -349,4 +353,9 @@ export type {
 	LeaderboardDay,
 	LeaderboardPayload,
 } from "./history/leaderboard-days";
-export type { UsageAccount, UsageProvider, UsageQuotaWindow } from "./types";
+export type {
+	UsageAccount,
+	UsageAccountCredentialKind,
+	UsageProvider,
+	UsageQuotaWindow,
+} from "./types";

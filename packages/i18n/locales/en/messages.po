@@ -25576,6 +25576,16 @@ msgstr "{0} → {1} pending"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.account.apiBilling"
+msgstr "API billing"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.account.apiBillingDetail"
+msgstr "Usage is billed through the provider API account. Subscription quota windows do not apply."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.account.copyFailed"
 msgstr "Copy failed"
 
@@ -25672,7 +25682,7 @@ msgstr "Usage unavailable."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addDescription"
-msgstr "Sign in to a second subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
+msgstr "Sign in to another subscription as a separate profile. Your current login is untouched, and the new profile shares your skills, plugins, MCP servers, and settings."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
@@ -25684,6 +25694,21 @@ msgstr "is signed in and will show its quota here."
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "Add {0} account"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiAddedSuffix"
+msgstr "is ready and will use API billing."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiBilling"
+msgstr "API billing"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiDescription"
+msgstr "Add an API-billed profile. Authentication stays in the provider CLI; Superset never receives or stores the API key."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
@@ -25713,7 +25738,12 @@ msgstr "Profile name"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.runCommandHint"
-msgstr "Run this in any terminal on this host, then finish the sign-in in your browser:"
+msgstr "Run this in any terminal on this host, then complete the provider sign-in:"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.subscription"
+msgstr "Subscription"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
@@ -26010,12 +26040,12 @@ msgstr "Hide emails"
 #. placeholder {0}: PROVIDER_LABELS[provider]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
-msgstr "No {0} logins on this host — sign in and usage appears here."
+msgstr "No {0} profiles on this host — add a subscription or API-billed account here."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.reading"
-msgstr "Reading subscription usage…"
+msgstr "Reading account usage…"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx

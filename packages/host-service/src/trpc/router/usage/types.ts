@@ -18,6 +18,9 @@ export type UsageProvider =
 /** The subset of providers with quota accounts and switchable logins. */
 export type UsageAccountProvider = "claude" | "codex";
 
+/** How the provider charges work launched from this profile. */
+export type UsageAccountCredentialKind = "subscription" | "api_key";
+
 export type UsageAccountStatus =
 	/** Quota fetched successfully. */
 	| "ok"
@@ -44,6 +47,7 @@ export interface UsageQuotaWindow {
 
 export interface UsageAccount {
 	provider: UsageAccountProvider;
+	credentialKind: UsageAccountCredentialKind;
 	/** Stable key for the credential source (config path or keychain item),
 	 * used to dedupe and as a React key. */
 	accountKey: string;

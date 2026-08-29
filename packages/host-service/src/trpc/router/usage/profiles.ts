@@ -5,10 +5,10 @@
  *
  * - Candidates are dot-dirs at `~` plus dirs under `~/.config` — bounded,
  *   never temp dirs or project trees.
- * - A Claude candidate counts only when its own `.claude.json` names an
- *   OAuth account ("identity-extraction-is-validation" — keeps forks and
- *   sandbox homes out). Custom config dirs keep state INSIDE the dir; only
- *   the default `~/.claude` keeps it next door at `~/.claude.json`.
+ * - A Claude candidate counts when its own `.claude.json` names an OAuth
+ *   account, or when Superset's provider-owned API login completed and left
+ *   a marker. Custom config dirs keep state INSIDE the dir; only the default
+ *   `~/.claude` keeps it next door at `~/.claude.json`.
  * - Credentials come from the dir's `.credentials.json` or its per-profile
  *   Keychain item: Claude Code hashes the literal CLAUDE_CONFIG_DIR string,
  *   so the service is `Claude Code-credentials-<sha256(literal)[0..8)>` and
@@ -26,6 +26,9 @@ const execFileAsync = promisify(execFile);
 
 const SCAN_TIME_BUDGET_MS = 1_500;
 const MAX_STATE_FILE_BYTES = 50 * 1024 * 1024;
+export const API_BILLING_MARKER = ".superset-api-billing";
+
+export type ProfileCredentialKind = "subscription" | "api_key";
 
 export interface ClaudeProfile {
 	/** Absolute config dir path (the CLAUDE_CONFIG_DIR value's expansion). */
@@ -33,6 +36,9 @@ export interface ClaudeProfile {
 	/** `~`-relative label for display. */
 	sourceLabel: string;
 	email: string | null;
+	credentialKind: ProfileCredentialKind;
+	/** Changes when Superset's API-login command completes successfully. */
+	loginFingerprint: string | null;
 	credentialsPath: string;
 	/** Keychain service names to probe when the file has no token. */
 	keychainServices: string[];
@@ -41,6 +47,9 @@ export interface ClaudeProfile {
 export interface CodexHome {
 	home: string;
 	sourceLabel: string;
+	credentialKind: ProfileCredentialKind;
+	/** Present only for API profiles; derived from the marker, not auth.json. */
+	loginFingerprint: string | null;
 }
 
 function tildeLabel(path: string): string {
@@ -111,6 +120,17 @@ async function readClaudeIdentity(
 	}
 }
 
+async function readApiMarkerFingerprint(
+	configDir: string,
+): Promise<string | null> {
+	try {
+		const info = await stat(join(configDir, API_BILLING_MARKER));
+		return info.isFile() ? `${info.mtimeMs}:${info.ctimeMs}` : null;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Extra Claude profile dirs beyond the defaults. Default homes are excluded —
  * callers already cover `~/.claude` and `~/.config/claude`.
@@ -127,12 +147,17 @@ export async function discoverClaudeProfiles(): Promise<ClaudeProfile[]> {
 	for (const candidate of await candidateDirectories()) {
 		if (Date.now() - started > SCAN_TIME_BUDGET_MS) break;
 		if (excluded.has(candidate)) continue;
-		const identity = await readClaudeIdentity(candidate);
-		if (!identity) continue;
+		const [identity, apiMarkerFingerprint] = await Promise.all([
+			readClaudeIdentity(candidate),
+			readApiMarkerFingerprint(candidate),
+		]);
+		if (!identity && !apiMarkerFingerprint) continue;
 		profiles.push({
 			configDir: candidate,
 			sourceLabel: tildeLabel(candidate),
-			email: identity.email,
+			email: identity?.email ?? null,
+			credentialKind: apiMarkerFingerprint ? "api_key" : "subscription",
+			loginFingerprint: apiMarkerFingerprint,
 			credentialsPath: join(candidate, ".credentials.json"),
 			keychainServices: keychainServicesForConfigDir(candidate),
 		});
@@ -161,16 +186,59 @@ interface CodexAuthShape {
 	tokens?: { access_token?: string };
 }
 
+function hasCodexOauthToken(raw: string): boolean {
+	try {
+		const parsed: CodexAuthShape = JSON.parse(raw);
+		return Boolean(parsed.tokens?.access_token);
+	} catch {
+		return false;
+	}
+}
+
+export async function readCodexProfileKind(codexHome: string): Promise<{
+	credentialKind: ProfileCredentialKind;
+	loginFingerprint: string | null;
+} | null> {
+	const markerFingerprint = await readApiMarkerFingerprint(codexHome);
+	if (markerFingerprint) {
+		return {
+			credentialKind: "api_key",
+			loginFingerprint: markerFingerprint,
+		};
+	}
+	try {
+		return hasCodexOauthToken(
+			await readFile(join(codexHome, "auth.json"), "utf-8"),
+		)
+			? { credentialKind: "subscription", loginFingerprint: null }
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Codex homes: `$CODEX_HOME` (default `~/.codex`) plus any `~/.codex*`
- * dot-dir carrying an `auth.json` with a token — the common multi-account
- * convention is one CODEX_HOME dir per account.
+ * dot-dir carrying an OAuth token or Superset's post-login API marker — the
+ * common multi-account convention is one CODEX_HOME dir per account. API
+ * auth.json files are deliberately never opened by discovery.
  */
 export async function discoverCodexHomes(): Promise<CodexHome[]> {
 	const home = homedir();
 	const defaultHome = process.env.CODEX_HOME ?? join(home, ".codex");
+	const defaultProfile = (await readCodexProfileKind(defaultHome)) ?? {
+		credentialKind: "subscription" as const,
+		loginFingerprint: null,
+	};
 	const homes = new Map<string, CodexHome>([
-		[defaultHome, { home: defaultHome, sourceLabel: tildeLabel(defaultHome) }],
+		[
+			defaultHome,
+			{
+				home: defaultHome,
+				sourceLabel: tildeLabel(defaultHome),
+				...defaultProfile,
+			},
+		],
 	]);
 
 	const candidates = (await listSubdirectories(home)).filter((path) =>
@@ -178,18 +246,13 @@ export async function discoverCodexHomes(): Promise<CodexHome[]> {
 	);
 	for (const candidate of candidates) {
 		if (homes.has(candidate)) continue;
-		try {
-			const parsed: CodexAuthShape = JSON.parse(
-				await readFile(join(candidate, "auth.json"), "utf-8"),
-			);
-			if (!parsed.tokens?.access_token) continue;
-			homes.set(candidate, {
-				home: candidate,
-				sourceLabel: tildeLabel(candidate),
-			});
-		} catch {
-			// No parsable auth.json — not a Codex home.
-		}
+		const profile = await readCodexProfileKind(candidate);
+		if (!profile) continue;
+		homes.set(candidate, {
+			home: candidate,
+			sourceLabel: tildeLabel(candidate),
+			...profile,
+		});
 	}
 	return [...homes.values()];
 }

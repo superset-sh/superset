@@ -3,15 +3,20 @@ import { switchSignInCommand } from "./switchSignInCommand";
 
 describe("switchSignInCommand", () => {
 	it("runs the CLI bare for the default claude login", () => {
-		expect(switchSignInCommand({ provider: "claude", selection: null })).toBe(
-			"claude auth login",
-		);
+		expect(
+			switchSignInCommand({
+				provider: "claude",
+				credentialKind: "subscription",
+				selection: null,
+			}),
+		).toBe("claude auth login");
 	});
 
 	it("quotes the absolute config dir for a claude profile", () => {
 		expect(
 			switchSignInCommand({
 				provider: "claude",
+				credentialKind: "subscription",
 				selection: "/Users/kietho/.claude-work",
 			}),
 		).toBe("CLAUDE_CONFIG_DIR=/Users/kietho/.claude-work claude auth login");
@@ -21,6 +26,7 @@ describe("switchSignInCommand", () => {
 		expect(
 			switchSignInCommand({
 				provider: "claude",
+				credentialKind: "subscription",
 				selection: "/Users/kietho/.config/claude work",
 			}),
 		).toBe(
@@ -29,12 +35,17 @@ describe("switchSignInCommand", () => {
 	});
 
 	it("uses codex login with a CODEX_HOME override for non-default homes", () => {
-		expect(switchSignInCommand({ provider: "codex", selection: null })).toBe(
-			"codex login",
-		);
 		expect(
 			switchSignInCommand({
 				provider: "codex",
+				credentialKind: "subscription",
+				selection: null,
+			}),
+		).toBe("codex login");
+		expect(
+			switchSignInCommand({
+				provider: "codex",
+				credentialKind: "subscription",
 				selection: "/Users/kietho/.codex-work",
 			}),
 		).toBe("CODEX_HOME=/Users/kietho/.codex-work codex login");
@@ -44,6 +55,7 @@ describe("switchSignInCommand", () => {
 		expect(
 			switchSignInCommand({
 				provider: "claude",
+				credentialKind: "subscription",
 				selection: "/tmp/$(rm -rf ~)",
 			}),
 		).toBe("CLAUDE_CONFIG_DIR='/tmp/$(rm -rf ~)' claude auth login");
@@ -53,6 +65,7 @@ describe("switchSignInCommand", () => {
 		expect(
 			switchSignInCommand({
 				provider: "codex",
+				credentialKind: "subscription",
 				selection: "/tmp/`whoami`",
 			}),
 		).toBe("CODEX_HOME='/tmp/`whoami`' codex login");
@@ -62,6 +75,7 @@ describe("switchSignInCommand", () => {
 		expect(
 			switchSignInCommand({
 				provider: "claude",
+				credentialKind: "subscription",
 				selection: "/tmp/it's-a-dir",
 			}),
 		).toBe("CLAUDE_CONFIG_DIR='/tmp/it'\\''s-a-dir' claude auth login");
@@ -71,8 +85,33 @@ describe("switchSignInCommand", () => {
 		expect(
 			switchSignInCommand({
 				provider: "claude",
+				credentialKind: "subscription",
 				selection: '/tmp/"; rm -rf ~; echo "',
 			}),
 		).toBe(`CLAUDE_CONFIG_DIR='/tmp/"; rm -rf ~; echo "' claude auth login`);
+	});
+
+	it("keeps API re-authentication in the same billing mode", () => {
+		expect(
+			switchSignInCommand({
+				provider: "claude",
+				credentialKind: "api_key",
+				selection: "/Users/kietho/.claude-api",
+			}),
+		).toBe(
+			"CLAUDE_CONFIG_DIR=/Users/kietho/.claude-api claude auth login --console && touch /Users/kietho/.claude-api/.superset-api-billing",
+		);
+
+		const codex = switchSignInCommand({
+			provider: "codex",
+			credentialKind: "api_key",
+			selection: "/Users/kietho/.codex-api",
+		});
+		expect(codex).toContain("CODEX_HOME=/Users/kietho/.codex-api");
+		expect(codex).toContain("codex login --with-api-key");
+		expect(codex).toContain("stty -echo");
+		expect(codex).toEndWith(
+			"touch /Users/kietho/.codex-api/.superset-api-billing",
+		);
 	});
 });

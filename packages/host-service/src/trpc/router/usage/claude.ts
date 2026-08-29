@@ -153,6 +153,7 @@ export async function readDefaultLoginEmail(): Promise<string | null> {
 async function discoverClaudeCredentials(): Promise<{
 	credentials: ClaudeOauthCredential[];
 	signedOutProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
+	apiProfiles: Awaited<ReturnType<typeof discoverClaudeProfiles>>;
 }> {
 	const home = homedir();
 	const defaultCandidates: Array<{ path: string; sourceLabel: string }> = [
@@ -204,6 +205,9 @@ async function discoverClaudeCredentials(): Promise<{
 	};
 
 	const profiles = await discoverClaudeProfiles();
+	const subscriptionProfiles = profiles.filter(
+		(profile) => profile.credentialKind === "subscription",
+	);
 	const [defaultEmail, keychainCredential, defaultFiles, explicit, profiled] =
 		await Promise.all([
 			readDefaultLoginEmail(),
@@ -218,7 +222,7 @@ async function discoverClaudeCredentials(): Promise<{
 					readCredentialFile(path, sourceLabel, configDir),
 				),
 			),
-			Promise.all(profiles.map(readProfileCredential)),
+			Promise.all(subscriptionProfiles.map(readProfileCredential)),
 		]);
 
 	const defaultCredential = pickFreshest([keychainCredential, ...defaultFiles]);
@@ -235,10 +239,16 @@ async function discoverClaudeCredentials(): Promise<{
 	// Profiles with an identity but no readable credential (logged out, or a
 	// login that died half-way) still surface so the UI can offer re-sign-in
 	// and removal — otherwise the dir exists but nothing shows it.
-	const signedOutProfiles = profiles.filter(
+	const signedOutProfiles = subscriptionProfiles.filter(
 		(_profile, index) => profiled[index] === null,
 	);
-	return { credentials: [...byToken.values()], signedOutProfiles };
+	return {
+		credentials: [...byToken.values()],
+		signedOutProfiles,
+		apiProfiles: profiles.filter(
+			(profile) => profile.credentialKind === "api_key",
+		),
+	};
 }
 
 interface ClaudeUsageWindow {
@@ -338,6 +348,7 @@ async function fetchClaudeAccount(
 ): Promise<UsageAccount> {
 	const base = {
 		provider: "claude" as const,
+		credentialKind: "subscription" as const,
 		accountKey: credential.accountKey,
 		sourceLabel: credential.sourceLabel,
 		plan: credential.subscriptionType,
@@ -437,11 +448,32 @@ async function fetchClaudeAccount(
 }
 
 export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
-	const { credentials, signedOutProfiles } = await discoverClaudeCredentials();
+	const { credentials, signedOutProfiles, apiProfiles } =
+		await discoverClaudeCredentials();
 	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
+	for (const profile of apiProfiles) {
+		accounts.push({
+			provider: "claude",
+			credentialKind: "api_key",
+			accountKey: profile.configDir,
+			sourceLabel: profile.sourceLabel,
+			email: profile.email,
+			plan: null,
+			status: "ok",
+			statusDetail:
+				"Usage is billed through the Anthropic API account. Quota windows are not available.",
+			windows: [],
+			creditsBalance: null,
+			extraUsage: null,
+			selection: profile.configDir,
+			isDefault: false,
+			fetchedAt: new Date(),
+		});
+	}
 	for (const profile of signedOutProfiles) {
 		accounts.push({
 			provider: "claude",
+			credentialKind: "subscription",
 			accountKey: profile.configDir,
 			sourceLabel: profile.sourceLabel,
 			email: profile.email,

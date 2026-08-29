@@ -25575,6 +25575,16 @@ msgstr "{0} → {1} 保留中"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.account.apiBilling"
+msgstr "API 課金"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
+msgid "settings.usage.account.apiBillingDetail"
+msgstr "使用量はプロバイダーの API アカウントに請求されます。サブスクリプションのクォータ期間は適用されません。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.account.copyFailed"
 msgstr "コピーに失敗しました"
 
@@ -25671,7 +25681,7 @@ msgstr "使用量を取得できません。"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addDescription"
-msgstr "別のプロファイルとして2つ目のサブスクリプションにサインインします。現在のログインはそのまま、新しいプロファイルはスキル、プラグイン、MCPサーバー、設定を共有します。"
+msgstr "別のサブスクリプションに独立したプロファイルとしてサインインします。現在のログインはそのまま、新しいプロファイルはスキル、プラグイン、MCPサーバー、設定を共有します。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
@@ -25683,6 +25693,21 @@ msgstr "がサインインしており、クォータがここに表示されま
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.addTitle"
 msgstr "{0}アカウントを追加"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiAddedSuffix"
+msgstr "の準備が完了し、API 課金が使用されます。"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiBilling"
+msgstr "API 課金"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.apiDescription"
+msgstr "API 課金用プロファイルを追加します。認証はプロバイダーの CLI 内で行われ、Superset が API キーを受信または保存することはありません。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
@@ -25712,7 +25737,12 @@ msgstr "プロファイル名"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
 msgid "settings.usage.addAccount.runCommandHint"
-msgstr "このホストの任意のターミナルで実行し、ブラウザでサインインを完了してください:"
+msgstr "このホストの任意のターミナルで実行し、プロバイダーのサインインを完了してください:"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/components/AddAccountDialog/AddAccountDialog.tsx
+msgid "settings.usage.addAccount.subscription"
+msgstr "サブスクリプション"
 
 #. js-lingui-explicit-id
 #. placeholder {0}: PROVIDER_LABELS[switchTarget.provider]
@@ -26009,12 +26039,12 @@ msgstr "メールを隠す"
 #. placeholder {0}: PROVIDER_LABELS[provider]
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.noLogins"
-msgstr "このホストに{0}のログインがありません — サインインすると使用量が表示されます。"
+msgstr "このホストに{0}のプロファイルがありません。ここからサブスクリプションまたは API 課金アカウントを追加してください。"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
 msgid "settings.usage.quota.reading"
-msgstr "サブスクリプション使用量を読み取り中…"
+msgstr "アカウント使用量を読み取り中…"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/settings/usage/components/UsageView/UsageView.tsx
