@@ -76,7 +76,13 @@ export function initI18n(locale: SupportedLocale = DEFAULT_LOCALE): void {
 		return;
 	}
 	i18n.activate(DEFAULT_LOCALE);
-	void loadLocale(locale).then(() => {
-		i18n.activate(locale);
-	});
+	loadLocale(locale)
+		.then(() => {
+			i18n.activate(locale);
+		})
+		.catch((error: unknown) => {
+			// English is already active, so a failed catalog import degrades to
+			// the default language rather than crashing the process.
+			console.error(`failed to load locale catalog "${locale}"`, error);
+		});
 }
