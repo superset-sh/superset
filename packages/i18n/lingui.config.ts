@@ -19,6 +19,7 @@ export default defineConfig({
 		"it",
 		"ru",
 		"tr",
+		"pl",
 	],
 	// lineNumbers off: line-only churn in .po files would dirty every PR that
 	// moves code, and the CI drift check diffs this file.
