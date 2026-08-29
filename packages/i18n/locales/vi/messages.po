@@ -11357,11 +11357,6 @@ msgstr "Xem repository Superset trên GitHub"
 
 #. js-lingui-explicit-id
 #: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
-msgid "docs.nav.languageAuto"
-msgstr "Tự động"
-
-#. js-lingui-explicit-id
-#: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
 msgid "docs.nav.languageLabel"
 msgstr "Ngôn ngữ"
 
@@ -14267,11 +14262,6 @@ msgstr "Trạng thái"
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx
 msgid "marketing.footer.copyright"
 msgstr "© {year} Superset Inc."
-
-#. js-lingui-explicit-id
-#: ../../apps/marketing/src/app/components/Footer/Footer.tsx
-msgid "marketing.footer.languageAuto"
-msgstr "Tự động"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx

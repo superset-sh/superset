@@ -72,7 +72,6 @@ export default function NavigationBar() {
 							<Globe aria-hidden className="size-4 shrink-0" />
 							<LanguageSwitcher
 								label={t({ id: "docs.nav.languageLabel", message: "Language" })}
-								autoLabel={t({ id: "docs.nav.languageAuto", message: "Auto" })}
 								className="cursor-pointer appearance-none bg-transparent outline-none [&>option]:bg-background [&>option]:text-foreground"
 							/>
 						</li>

@@ -11357,11 +11357,6 @@ msgstr "Superset deposunu GitHub'da görüntüle"
 
 #. js-lingui-explicit-id
 #: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
-msgid "docs.nav.languageAuto"
-msgstr "Otomatik"
-
-#. js-lingui-explicit-id
-#: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
 msgid "docs.nav.languageLabel"
 msgstr "Dil"
 
@@ -14267,11 +14262,6 @@ msgstr "Durum"
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx
 msgid "marketing.footer.copyright"
 msgstr "© {year} Superset Inc."
-
-#. js-lingui-explicit-id
-#: ../../apps/marketing/src/app/components/Footer/Footer.tsx
-msgid "marketing.footer.languageAuto"
-msgstr "Otomatik"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx

@@ -11357,11 +11357,6 @@ msgstr "在GitHub上檢視Superset儲存庫"
 
 #. js-lingui-explicit-id
 #: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
-msgid "docs.nav.languageAuto"
-msgstr "自動"
-
-#. js-lingui-explicit-id
-#: ../../apps/docs/src/app/components/NavigationBar/NavigationBar.tsx
 msgid "docs.nav.languageLabel"
 msgstr "語言"
 
@@ -14267,11 +14262,6 @@ msgstr "服務狀態"
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx
 msgid "marketing.footer.copyright"
 msgstr "© {year} Superset Inc."
-
-#. js-lingui-explicit-id
-#: ../../apps/marketing/src/app/components/Footer/Footer.tsx
-msgid "marketing.footer.languageAuto"
-msgstr "自動"
 
 #. js-lingui-explicit-id
 #: ../../apps/marketing/src/app/components/Footer/Footer.tsx

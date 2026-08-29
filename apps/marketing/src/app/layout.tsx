@@ -149,7 +149,7 @@ export default async function RootLayout({
 						starCounter={<GitHubStarCounter />}
 					/>
 					{children}
-					<Footer />
+					<Footer locale={locale} />
 					<CookieConsent />
 				</Providers>
 			</body>

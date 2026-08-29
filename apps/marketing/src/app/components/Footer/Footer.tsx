@@ -1,6 +1,7 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
+import type { SupportedLocale } from "@superset/i18n";
 import { LanguageSwitcher } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import { m } from "framer-motion";
@@ -148,7 +149,7 @@ const LEGAL_LINKS: FooterLink[] = [
 	},
 ];
 
-export function Footer() {
+export function Footer({ locale }: { locale?: SupportedLocale }) {
 	const pathname = usePathname();
 	// Named local so the copyright message extracts as `{year}`, not `{0}`.
 	const year = new Date().getFullYear();
@@ -185,7 +186,7 @@ export function Footer() {
 								© {year} Superset Inc.
 							</Trans>
 						</p>
-						<FooterLanguageSwitcher />
+						<FooterLanguageSwitcher locale={locale} />
 					</div>
 
 					<FooterColumn
@@ -256,17 +257,17 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 	);
 }
 
-function FooterLanguageSwitcher() {
+function FooterLanguageSwitcher({ locale }: { locale?: SupportedLocale }) {
 	const { t } = useLingui();
 	return (
 		<div className="flex w-max items-center gap-2 text-sm text-muted-foreground transition-colors focus-within:text-foreground hover:text-foreground">
 			<Globe aria-hidden className="size-4 shrink-0" />
 			<LanguageSwitcher
+				locale={locale}
 				label={t({
 					id: "marketing.footer.languageLabel",
 					message: "Language",
 				})}
-				autoLabel={t({ id: "marketing.footer.languageAuto", message: "Auto" })}
 				className="cursor-pointer appearance-none bg-transparent pr-1 outline-none [&>option]:text-foreground [&>option]:bg-background"
 			/>
 		</div>
