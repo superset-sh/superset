@@ -18,6 +18,12 @@ export type HostShapedWorkspace = Omit<
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
 	type: "main" | "worktree" | "session";
+	/**
+	 * Normalized, sorted tag set. Optional because a row served by an older
+	 * host — or restored from a pre-tags IndexedDB snapshot — carries the
+	 * field ABSENT; consumers must guard with `== null` / `?? []`.
+	 */
+	tags?: string[];
 };
 
 /**
@@ -229,6 +235,9 @@ export function applyWorkspaceChangedEvent(
 		type: snapshot.type,
 		createdByUserId: snapshot.createdByUserId,
 		taskId: snapshot.taskId,
+		// Runtime-optional despite the payload type: an older host's events
+		// carry no tags — keep the row's last known set rather than wiping it.
+		tags: snapshot.tags ?? existing?.tags,
 		createdAt: new Date(snapshot.createdAt),
 		updatedAt: new Date(snapshot.updatedAt),
 		worktreePath: snapshot.worktreePath,

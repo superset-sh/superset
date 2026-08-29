@@ -1,4 +1,9 @@
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
+import {
+	getProjectFolderTagIndex,
+	resolveWorkspaceSectionId,
+	type TagFolderRef,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type {
 	DashboardSidebarPinnedWorkspace,
@@ -32,6 +37,13 @@ export interface SidebarSectionInput {
 	isCollapsed: boolean;
 	tabOrder: number;
 	color: string | null;
+	/**
+	 * Non-null = tag-backed folder: membership comes from workspace tags, and
+	 * `sectionId` pointers at it are ignored. Null/absent = legacy folder that
+	 * owns members via `sectionId`. Callers pass the deriveTagFolders union so
+	 * tag-only folders exist here too.
+	 */
+	tag?: string | null;
 }
 
 export interface SidebarWorkspaceInput {
@@ -48,6 +60,8 @@ export interface SidebarWorkspaceInput {
 	updatedAt: Date;
 	tabOrder: number;
 	sectionId: string | null;
+	/** Host tag set; absent when served by an older host. */
+	tags?: readonly string[] | null;
 	pinnedAt: number | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
@@ -249,6 +263,24 @@ export function buildDashboardSidebarProjects({
 		});
 	}
 
+	// One membership resolver for every pass (workspaceTagFolders): a tag
+	// places the workspace in its folder; a local sectionId only counts when
+	// it points at a legacy (non-tag-backed) row.
+	const folderIndexByProjectId = new Map<string, Map<string, TagFolderRef>>();
+	const sectionIndexInputs = sidebarSections.map((section) => ({
+		sectionId: section.id,
+		projectId: section.projectId,
+		tabOrder: section.tabOrder,
+		tag: section.tag,
+	}));
+	for (const project of sidebarProjects) {
+		folderIndexByProjectId.set(
+			project.id,
+			getProjectFolderTagIndex(sectionIndexInputs, project.id),
+		);
+	}
+	const emptyFolderIndex = new Map<string, TagFolderRef>();
+
 	for (const workspace of visibleSidebarWorkspaces) {
 		// Sessions render in the top-level Sessions section, never in a
 		// project group (see buildDashboardSidebarSessionWorkspaces).
@@ -263,8 +295,14 @@ export function buildDashboardSidebarProjects({
 			pullRequestsByWorkspaceId,
 		);
 
-		if (workspace.sectionId) {
-			const section = project.sectionMap.get(workspace.sectionId);
+		const effectiveSectionId = resolveWorkspaceSectionId({
+			tags: workspace.tags,
+			localSectionId: workspace.sectionId,
+			index: folderIndexByProjectId.get(workspace.projectId) ?? emptyFolderIndex,
+		});
+
+		if (effectiveSectionId) {
+			const section = project.sectionMap.get(effectiveSectionId);
 			if (section) {
 				section.workspaces.push({
 					...sidebarWorkspace,

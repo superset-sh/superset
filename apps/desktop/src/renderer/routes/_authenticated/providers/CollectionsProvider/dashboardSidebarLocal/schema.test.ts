@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { WorkspaceState } from "@superset/panes";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
+	dashboardSidebarSectionSchema,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	sanitizePaneLayout,
@@ -414,5 +415,73 @@ describe("workspace sidebar activeTab retirement", () => {
 				},
 			}).success,
 		).toBe(false);
+	});
+});
+
+describe("dashboardSidebarSectionSchema tag folders", () => {
+	// withReadHeal DELETES rows that fail parse, so every previously
+	// persisted shape must keep parsing after the tag-folder widening.
+	const preTagsRow = {
+		sectionId: "33333333-3333-4333-8333-333333333333",
+		projectId: "22222222-2222-4222-8222-222222222222",
+		name: "Old group",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		tabOrder: 2,
+		isCollapsed: false,
+		color: "#abcdef",
+		// No `tag` — the field did not exist when this row was written.
+	};
+
+	it("parses a pre-tags persisted row; the absent tag defaults to null", () => {
+		const parsed = dashboardSidebarSectionSchema.parse(preTagsRow);
+		expect(parsed.tag).toBeNull();
+		expect(parsed.sectionId).toBe(preTagsRow.sectionId);
+	});
+
+	it("parses a tag-backed row with a composite (non-uuid) sectionId", () => {
+		const parsed = dashboardSidebarSectionSchema.parse({
+			...preTagsRow,
+			sectionId: "22222222-2222-4222-8222-222222222222:perf work",
+			tag: "perf work",
+		});
+		expect(parsed.sectionId).toBe(
+			"22222222-2222-4222-8222-222222222222:perf work",
+		);
+		expect(parsed.tag).toBe("perf work");
+	});
+});
+
+describe("workspaceLocalStateSchema sectionId widening", () => {
+	const paneLayout: PaneLayout = { version: 1, tabs: [], activeTabId: null };
+	const row = (sectionId: unknown) => ({
+		workspaceId: "11111111-1111-4111-8111-111111111111",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		paneLayout,
+		sidebarState: {
+			projectId: "22222222-2222-4222-8222-222222222222",
+			sectionId,
+		},
+	});
+
+	it("parses a pre-widening uuid pointer unchanged", () => {
+		expect(
+			workspaceLocalStateSchema.parse(
+				row("33333333-3333-4333-8333-333333333333"),
+			).sidebarState.sectionId,
+		).toBe("33333333-3333-4333-8333-333333333333");
+	});
+
+	it("parses a composite tag-folder pointer", () => {
+		expect(
+			workspaceLocalStateSchema.parse(
+				row("22222222-2222-4222-8222-222222222222:perf"),
+			).sidebarState.sectionId,
+		).toBe("22222222-2222-4222-8222-222222222222:perf");
+	});
+
+	it("parses a row with the sectionId field ABSENT (defaults to null)", () => {
+		expect(
+			workspaceLocalStateSchema.parse(row(undefined)).sidebarState.sectionId,
+		).toBeNull();
 	});
 });

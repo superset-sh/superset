@@ -13,6 +13,7 @@ import {
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { deriveTagFolders } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
@@ -232,7 +233,7 @@ export function useDashboardSidebarData() {
 		});
 	}, [orderedSidebarProjectRows, hostProjects]);
 
-	const { data: sidebarSections = [] } = useLiveQuery(
+	const { data: storedSidebarSections = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarSections: collections.v2SidebarSections })
@@ -240,13 +241,14 @@ export function useDashboardSidebarData() {
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
 				.orderBy(({ sidebarSections }) => sidebarSections.sectionId, "asc")
 				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
+					sectionId: sidebarSections.sectionId,
 					projectId: sidebarSections.projectId,
 					name: sidebarSections.name,
 					createdAt: sidebarSections.createdAt,
 					isCollapsed: sidebarSections.isCollapsed,
 					tabOrder: sidebarSections.tabOrder,
 					color: sidebarSections.color,
+					tag: sidebarSections.tag,
 				})),
 		[collections],
 	);
@@ -256,6 +258,27 @@ export function useDashboardSidebarData() {
 	const hostWorkspacesById = useMemo(
 		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
 		[hostWorkspaces],
+	);
+
+	// The section lane the builder consumes is the deriveTagFolders union:
+	// stored presentation rows PLUS folders that exist only because some
+	// workspace carries the tag. A folder must exist because a workspace
+	// carries the tag, not because a local row does.
+	const sidebarSections = useMemo(
+		() =>
+			deriveTagFolders(storedSidebarSections, hostWorkspaces).map(
+				(section) => ({
+					id: section.sectionId,
+					projectId: section.projectId,
+					name: section.name,
+					createdAt: section.createdAt,
+					isCollapsed: section.isCollapsed,
+					tabOrder: section.tabOrder,
+					color: section.color,
+					tag: section.tag,
+				}),
+			),
+		[hostWorkspaces, storedSidebarSections],
 	);
 
 	const { data: sidebarLocalStateRows = [] } = useLiveQuery(
@@ -299,6 +322,7 @@ export function useDashboardSidebarData() {
 						updatedAt: workspace.updatedAt,
 						tabOrder: localState.tabOrder,
 						sectionId: localState.sectionId,
+						tags: workspace.tags,
 						isHidden: localState.isHidden,
 						pinnedAt: localState.pinnedAt,
 					},
@@ -348,6 +372,7 @@ export function useDashboardSidebarData() {
 					updatedAt: workspace.updatedAt,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
 					sectionId: null as string | null,
+					tags: workspace.tags,
 					// Auto-included mains have no local-state row; pinning one
 					// creates a row first (see setWorkspacePinned).
 					pinnedAt: null as number | null,

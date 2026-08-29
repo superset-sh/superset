@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildSidebarFolderKey,
+	deriveTagFolders,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
 	buildDashboardSidebarSessionWorkspaces,
@@ -300,5 +304,152 @@ describe("sessions (null projectId)", () => {
 		expect(rows.map((row) => row.id)).toEqual(["pinned-session"]);
 		expect(rows[0].projectName).toBeNull();
 		expect(rows[0].projectIconUrl).toBeNull();
+	});
+});
+
+describe("buildDashboardSidebarProjects with tag-derived folders", () => {
+	// The real pipeline: the hook derives the section union from tags first,
+	// then the builder resolves membership through the same module.
+	function deriveSections(
+		storedSections: SidebarSectionInput[],
+		workspaces: SidebarWorkspaceInput[],
+	): SidebarSectionInput[] {
+		return deriveTagFolders(
+			storedSections.map((section) => ({
+				sectionId: section.id,
+				projectId: section.projectId,
+				name: section.name,
+				tabOrder: section.tabOrder,
+				isCollapsed: section.isCollapsed,
+				color: section.color,
+				createdAt: section.createdAt,
+				tag: section.tag,
+			})),
+			workspaces,
+		).map((section) => ({
+			id: section.sectionId,
+			projectId: section.projectId,
+			name: section.name,
+			createdAt: section.createdAt,
+			isCollapsed: section.isCollapsed,
+			tabOrder: section.tabOrder,
+			color: section.color,
+			tag: section.tag,
+		}));
+	}
+
+	it("a folder exists and holds members because workspaces carry the tag — no local row anywhere", () => {
+		const workspaces = [
+			makeWorkspace({ id: "w-1", tags: ["perf"] }),
+			makeWorkspace({ id: "w-2", tags: ["perf"], tabOrder: 2 }),
+			makeWorkspace({ id: "w-3", tabOrder: 3 }),
+		];
+		const [project] = build({
+			sidebarSections: deriveSections([], workspaces),
+			visibleSidebarWorkspaces: workspaces,
+		});
+
+		const sections = project.children.filter(
+			(child) => child.type === "section",
+		);
+		expect(sections).toHaveLength(1);
+		const [folder] = sections;
+		if (folder.type !== "section") throw new Error("expected section");
+		expect(folder.section.id).toBe(buildSidebarFolderKey("project-1", "perf"));
+		expect(folder.section.name).toBe("perf");
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["w-1", "w-2"],
+		);
+
+		const topLevelIds = project.children
+			.filter((child) => child.type === "workspace")
+			.map((child) =>
+				child.type === "workspace" ? child.workspace.id : null,
+			);
+		expect(topLevelIds).toEqual(["w-3"]);
+	});
+
+	it("tags beat a stale sectionId pointer at a tag-backed folder", () => {
+		const perfKey = buildSidebarFolderKey("project-1", "perf");
+		const workspaces = [
+			// Untagged, but its local row still points at the perf folder: the
+			// tag-backed folder ignores sectionId, so it renders top-level.
+			makeWorkspace({ id: "w-stale", sectionId: perfKey, tags: [] }),
+			makeWorkspace({ id: "w-tagged", tags: ["perf"], tabOrder: 2 }),
+		];
+		const [project] = build({
+			sidebarSections: deriveSections([], workspaces),
+			visibleSidebarWorkspaces: workspaces,
+		});
+
+		const folder = project.children.find((child) => child.type === "section");
+		if (folder?.type !== "section") throw new Error("expected section");
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["w-tagged"],
+		);
+		const topLevelIds = project.children
+			.filter((child) => child.type === "workspace")
+			.map((child) =>
+				child.type === "workspace" ? child.workspace.id : null,
+			);
+		expect(topLevelIds).toEqual(["w-stale"]);
+	});
+
+	it("a legacy folder keeps owning members via sectionId when no tags resolve", () => {
+		const workspaces = [
+			makeWorkspace({ id: "w-legacy", sectionId: "section-1" }),
+		];
+		const [project] = build({
+			sidebarSections: deriveSections([makeSection()], workspaces),
+			visibleSidebarWorkspaces: workspaces,
+		});
+
+		const folder = project.children.find((child) => child.type === "section");
+		if (folder?.type !== "section") throw new Error("expected section");
+		expect(folder.section.id).toBe("section-1");
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["w-legacy"],
+		);
+	});
+
+	it("a workspace row with the tags field ABSENT renders exactly like an untagged one", () => {
+		const legacyWorkspace = makeWorkspace({ id: "w-old" });
+		// Simulate a row served by an older host: the field is absent.
+		delete (legacyWorkspace as { tags?: unknown }).tags;
+		const [project] = build({
+			sidebarSections: deriveSections([], [legacyWorkspace]),
+			visibleSidebarWorkspaces: [legacyWorkspace],
+		});
+
+		expect(project.children).toHaveLength(1);
+		expect(project.children[0]?.type).toBe("workspace");
+	});
+
+	it("a customised stored row wins over deriving a duplicate folder for the same tag", () => {
+		const storedRow = makeSection({
+			id: buildSidebarFolderKey("project-1", "perf"),
+			name: "perf",
+			color: "#ff0000",
+			tabOrder: 1,
+			tag: "perf",
+		});
+		const workspaces = [makeWorkspace({ id: "w-1", tags: ["perf"] })];
+		const [project] = build({
+			sidebarSections: deriveSections([storedRow], workspaces),
+			visibleSidebarWorkspaces: workspaces,
+		});
+
+		const sections = project.children.filter(
+			(child) => child.type === "section",
+		);
+		expect(sections).toHaveLength(1);
+		const [folder] = sections;
+		if (folder.type !== "section") throw new Error("expected section");
+		expect(folder.section.color).toBe("#ff0000");
+		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["w-1"],
+		);
+		// Members inherit the customised folder colour.
+		expect(folder.section.workspaces[0]?.accentColor).toBe("#ff0000");
 	});
 });

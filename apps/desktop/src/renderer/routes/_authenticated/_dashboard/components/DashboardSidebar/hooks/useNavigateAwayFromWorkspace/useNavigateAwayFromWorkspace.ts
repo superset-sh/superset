@@ -41,7 +41,7 @@ export function useNavigateAwayFromWorkspace() {
 			const target = resolveWorkspaceRemovalNavigationTarget({
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
-				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
+				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections, workspaces),
 				// Before the host fan-out settles, an unlisted sibling means
 				// "unknown", not "gone" — prefer navigating to it over home; the
 				// workspace route's own not-found handling covers a true miss.
@@ -68,7 +68,7 @@ export function useNavigateAwayFromWorkspace() {
 				reportRemovalNavigationError,
 			);
 		},
-		[collections, workspaceIds, matchRoute, navigate, isReady],
+		[collections, workspaceIds, workspaces, matchRoute, navigate, isReady],
 	);
 
 	return { navigateAwayFromWorkspace };

@@ -15,6 +15,13 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	deriveTagFolders,
+	getProjectFolderTagIndex,
+	resolveWorkspaceSectionId,
+	type TagFolderRef,
+	type TagFolderWorkspaceInput,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
 	createEmptyPaneLayout,
@@ -45,17 +52,39 @@ function compareProjectTopLevelItems(
 
 function getProjectTopLevelItems(
 	collections: ProjectTopLevelCollections,
+	// Host rows carry the tags that decide folder membership — a workspace
+	// whose tag resolves into a folder must NOT count as top-level, or every
+	// insert index computed against this lane is shifted by phantom siblings.
+	// Same resolver as the sidebar builder and the flatten pass.
+	hostWorkspaces: readonly TagFolderWorkspaceInput[],
 	// Null scopes to the Sessions section (project-less workspaces).
 	projectId: string | null,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
 ): ProjectTopLevelItem[] {
+	const folderIndex: ReadonlyMap<string, TagFolderRef> =
+		projectId === null
+			? new Map()
+			: getProjectFolderTagIndex(
+					deriveTagFolders(
+						Array.from(collections.v2SidebarSections.state.values()),
+						hostWorkspaces,
+					),
+					projectId,
+				);
+	const hostTagsByWorkspaceId = new Map(
+		hostWorkspaces.map((workspace) => [workspace.id, workspace.tags]),
+	);
 	return [
 		...Array.from(collections.v2WorkspaceLocalState.state.values())
 			.filter(
 				(item) =>
 					item.sidebarState.projectId === projectId &&
 					isSidebarWorkspaceVisible(item) &&
-					item.sidebarState.sectionId === null &&
+					resolveWorkspaceSectionId({
+						tags: hostTagsByWorkspaceId.get(item.workspaceId),
+						localSectionId: item.sidebarState.sectionId,
+						index: folderIndex,
+					}) === null &&
 					item.workspaceId !== options.excludeWorkspaceId,
 			)
 			.map((item) => ({
@@ -63,6 +92,8 @@ function getProjectTopLevelItems(
 				id: item.workspaceId,
 				tabOrder: item.sidebarState.tabOrder,
 			})),
+		// Stored rows only: a derived-only folder has no row to renumber, and
+		// its synthetic tabOrder floor must never feed getNextTabOrder math.
 		...Array.from(collections.v2SidebarSections.state.values())
 			.filter(
 				(item) =>
@@ -136,6 +167,7 @@ function ensureSidebarWorkspaceRecord(
 		AppCollections,
 		"v2SidebarSections" | "v2WorkspaceLocalState"
 	>,
+	hostWorkspaces: readonly TagFolderWorkspaceInput[],
 	workspaceId: string,
 	// Null places the workspace in the Sessions section.
 	projectId: string | null,
@@ -145,7 +177,11 @@ function ensureSidebarWorkspaceRecord(
 		return;
 	}
 
-	const topLevelItems = getProjectTopLevelItems(collections, projectId);
+	const topLevelItems = getProjectTopLevelItems(
+		collections,
+		hostWorkspaces,
+		projectId,
+	);
 
 	if (existing) {
 		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
@@ -209,9 +245,14 @@ export function useDashboardSidebarState() {
 			if (projectId !== null) {
 				ensureSidebarProjectRecord(collections, projectId);
 			}
-			ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+			ensureSidebarWorkspaceRecord(
+				collections,
+				hostWorkspaces,
+				workspaceId,
+				projectId,
+			);
 		},
-		[collections],
+		[collections, hostWorkspaces],
 	);
 
 	const toggleProjectCollapsed = useCallback(
@@ -322,7 +363,7 @@ export function useDashboardSidebarState() {
 				].value;
 
 			const tabOrder = getNextTabOrder(
-				getProjectTopLevelItems(collections, projectId),
+				getProjectTopLevelItems(collections, hostWorkspaces, projectId),
 			);
 
 			collections.v2SidebarSections.insert({
@@ -333,11 +374,12 @@ export function useDashboardSidebarState() {
 				tabOrder,
 				isCollapsed: false,
 				color: randomColor,
+				tag: null,
 			});
 
 			return sectionId;
 		},
-		[collections],
+		[collections, hostWorkspaces],
 	);
 
 	const toggleSectionCollapsed = useCallback(
@@ -390,9 +432,12 @@ export function useDashboardSidebarState() {
 				) {
 					return;
 				}
-				const topLevelItems = getProjectTopLevelItems(collections, projectId, {
-					excludeWorkspaceId: workspaceId,
-				});
+				const topLevelItems = getProjectTopLevelItems(
+					collections,
+					hostWorkspaces,
+					projectId,
+					{ excludeWorkspaceId: workspaceId },
+				);
 				// Groups interleave with ungrouped rows, so "before the first
 				// section" can be far from the row's group. Keep the row in
 				// place: land it directly below its former group.
@@ -433,7 +478,7 @@ export function useDashboardSidebarState() {
 				draft.sidebarState.isHidden = false;
 			});
 		},
-		[collections],
+		[collections, hostWorkspaces],
 	);
 
 	const deleteSection = useCallback(
@@ -446,6 +491,7 @@ export function useDashboardSidebarState() {
 			// "before the first section" (which may be far away).
 			const withSection = getProjectTopLevelItems(
 				collections,
+				hostWorkspaces,
 				section.projectId,
 			);
 			const sectionIndex = withSection.findIndex(
@@ -485,7 +531,7 @@ export function useDashboardSidebarState() {
 
 			collections.v2SidebarSections.delete(sectionId);
 		},
-		[collections],
+		[collections, hostWorkspaces],
 	);
 
 	const setWorkspacePinned = useCallback(
@@ -499,7 +545,12 @@ export function useDashboardSidebarState() {
 				if (projectId !== null) {
 					ensureSidebarProjectRecord(collections, projectId);
 				}
-				ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+				ensureSidebarWorkspaceRecord(
+					collections,
+					hostWorkspaces,
+					workspaceId,
+					projectId,
+				);
 			}
 			// Strictly greater than every existing pin so same-millisecond pins
 			// still order by pin sequence instead of collection iteration order.
@@ -519,7 +570,7 @@ export function useDashboardSidebarState() {
 				}
 			});
 		},
-		[collections],
+		[collections, hostWorkspaces],
 	);
 
 	const reorderPinnedWorkspaces = useCallback(
@@ -554,7 +605,12 @@ export function useDashboardSidebarState() {
 					if (projectId !== null) {
 						ensureSidebarProjectRecord(collections, projectId);
 					}
-					ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+					ensureSidebarWorkspaceRecord(
+						collections,
+						hostWorkspaces,
+						workspaceId,
+						projectId,
+					);
 				}
 				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 					draft.sidebarState.pinnedAt = base + index;
@@ -562,7 +618,7 @@ export function useDashboardSidebarState() {
 				});
 			});
 		},
-		[collections],
+		[collections, hostWorkspaces],
 	);
 
 	const removeWorkspaceFromSidebar = useCallback(
