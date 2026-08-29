@@ -4,6 +4,7 @@ import {
 	generateFriendlyBranchName,
 	sanitizeUserBranchName,
 } from "@superset/shared/workspace-launch";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
@@ -116,6 +117,7 @@ const createInputSchema = z
 		// When false, skip the setup terminal. Used by worktree import,
 		// where the worktree is usually already set up.
 		runSetup: z.boolean().optional(),
+		tags: workspaceTagsInputSchema.optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
@@ -479,6 +481,7 @@ async function registerLocalWorkspace(args: {
 	branch: string;
 	worktreePath: string;
 	taskId: string | undefined;
+	tags: string[] | undefined;
 	rollbackWorktree: () => Promise<void>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
@@ -492,6 +495,7 @@ async function registerLocalWorkspace(args: {
 			branch: args.branch,
 			name: args.name,
 			taskId: args.taskId ?? null,
+			tags: args.tags,
 		});
 	} catch (err) {
 		await args.rollbackWorktree();
@@ -787,6 +791,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
+								tags: input.tags,
 								rollbackWorktree: rollbackCreatedWorktree,
 							});
 
@@ -1062,6 +1067,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
+								tags: input.tags,
 								rollbackWorktree,
 							});
 							aiCanRenameBranch = !typedBranch;

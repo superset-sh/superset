@@ -70,6 +70,8 @@ export interface WorkspaceSnapshot {
 	createdByUserId: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/** Normalized, sorted tag set; sidebar folders derive from it. */
+	tags: string[];
 }
 
 export interface WorkspaceChangedMessage {

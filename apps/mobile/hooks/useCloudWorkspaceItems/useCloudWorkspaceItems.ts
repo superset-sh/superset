@@ -73,6 +73,7 @@ function itemFromCloudRow(
 		type: "main",
 		createdByUserId: cloud.createdByUserId ?? null,
 		taskId: null,
+		tags: served?.tags ?? [],
 		createdAt: cloud.createdAt,
 		updatedAt: served?.updatedAt ?? cloud.updatedAt,
 		worktreePath: served?.worktreePath ?? "",

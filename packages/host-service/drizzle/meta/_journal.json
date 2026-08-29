@@ -183,6 +183,13 @@
       "when": 1787516889350,
       "tag": "0025_fuzzy_true_believers",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1787967926202,
+      "tag": "0026_workspace_tags",
+      "breakpoints": true
     }
   ]
 }

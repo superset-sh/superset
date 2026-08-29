@@ -268,6 +268,29 @@ export const workspaces = sqliteTable(
 );
 
 /**
+ * Plain-string tags on workspaces — no tag entity, no tag ids. `tag` is
+ * stored already-normalized (trimmed + lowercased, see
+ * `@superset/shared/workspace-tags`); sidebar folders derive from these
+ * rows, so any actor that can tag a workspace can file it.
+ */
+export const workspaceTags = sqliteTable(
+	"workspace_tags",
+	{
+		workspaceId: text("workspace_id")
+			.notNull()
+			.references(() => workspaces.id, { onDelete: "cascade" }),
+		tag: text().notNull(),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		primaryKey({ columns: [table.workspaceId, table.tag] }),
+		index("workspace_tags_tag_idx").on(table.tag),
+	],
+);
+
+/**
  * Every pull request a workspace has ever been linked to, append-only.
  * `workspaces.pullRequestId` stays the single "currently linked" pointer the
  * sidebar shows (and Remove PR Link clears); this table is the memory that
