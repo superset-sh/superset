@@ -59,6 +59,15 @@ const GROK_RATES: Record<string, ModelRate> = {
 	"grok-3": { inputPerM: 3, outputPerM: 15 },
 };
 
+const AGY_RATES: Record<string, ModelRate> = {
+	...CLAUDE_RATES,
+	...CODEX_RATES,
+	"gemini-3.1-pro": { inputPerM: 2, outputPerM: 12 },
+	"gemini-3-flash": { inputPerM: 0.5, outputPerM: 3 },
+	"gemini-2.5-pro": { inputPerM: 1.25, outputPerM: 10 },
+	"gemini-2.5-flash": { inputPerM: 0.3, outputPerM: 2.5 },
+};
+
 // Cursor prices per request server-side; its usage events carry the real
 // cost, so this table is only the fallback for events without one.
 const CURSOR_RATES: Record<string, ModelRate> = {
@@ -78,6 +87,7 @@ const RATES_BY_PROVIDER: Record<UsageProvider, Record<string, ModelRate>> = {
 	claude: CLAUDE_RATES,
 	codex: CODEX_RATES,
 	grok: GROK_RATES,
+	agy: AGY_RATES,
 	cursor: CURSOR_RATES,
 	opencode: MULTI_PROVIDER_RATES,
 	copilot: MULTI_PROVIDER_RATES,

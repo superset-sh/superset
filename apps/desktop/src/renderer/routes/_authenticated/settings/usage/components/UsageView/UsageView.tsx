@@ -45,12 +45,20 @@ import { switchSignInCommand } from "./utils/switchSignInCommand";
 
 type Provider = UsageAccount["provider"];
 
-const PROVIDERS: Provider[] = ["claude", "codex"];
+const PROVIDERS: Provider[] = ["claude", "codex", "grok", "agy"];
 
 const PROVIDER_LABELS: Record<Provider, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
+	grok: "Grok",
+	agy: "Antigravity",
 };
+
+type ManagedProvider = "claude" | "codex";
+
+function isManagedProvider(provider: Provider): provider is ManagedProvider {
+	return provider === "claude" || provider === "codex";
+}
 
 function meterColor(usedPercent: number): string {
 	if (usedPercent >= 90) return "bg-red-500";
@@ -125,7 +133,7 @@ function AccountCard({
 }: {
 	account: UsageAccount;
 	onMakeDefault: () => void;
-	onSwitchSignIn: () => void;
+	onSwitchSignIn: (() => void) | null;
 	/** Null on the system-default card — the main login is never removable. */
 	onRemove: (() => void) | null;
 	isSwitching: boolean;
@@ -140,7 +148,15 @@ function AccountCard({
 	const credits = creditsLine(account);
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
-		account.status === "token_expired" ? switchSignInCommand(account) : null;
+		account.status === "token_expired"
+			? account.provider === "grok"
+				? "grok login"
+				: account.provider === "agy"
+					? "agy"
+					: switchSignInCommand(
+							account as UsageAccount & { provider: ManagedProvider },
+						)
+			: null;
 	return (
 		<div
 			className={cn(
@@ -213,29 +229,33 @@ function AccountCard({
 					    profiles of the same account apart. */}
 					{account.sourceLabel}
 				</span>
-				<DropdownMenu modal={false}>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-4 shrink-0 self-center text-muted-foreground"
-						>
-							<LuEllipsis className="size-3" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuItem onClick={onSwitchSignIn}>
-							<Trans id="settings.usage.account.switchSignIn">
-								Switch sign-in…
-							</Trans>
-						</DropdownMenuItem>
-						{onRemove && (
-							<DropdownMenuItem variant="destructive" onClick={onRemove}>
-								<Trans id="settings.usage.account.remove">Remove…</Trans>
-							</DropdownMenuItem>
-						)}
-					</DropdownMenuContent>
-				</DropdownMenu>
+				{(onSwitchSignIn || onRemove) && (
+					<DropdownMenu modal={false}>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-4 shrink-0 self-center text-muted-foreground"
+							>
+								<LuEllipsis className="size-3" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							{onSwitchSignIn && (
+								<DropdownMenuItem onClick={onSwitchSignIn}>
+									<Trans id="settings.usage.account.switchSignIn">
+										Switch sign-in…
+									</Trans>
+								</DropdownMenuItem>
+							)}
+							{onRemove && (
+								<DropdownMenuItem variant="destructive" onClick={onRemove}>
+									<Trans id="settings.usage.account.remove">Remove…</Trans>
+								</DropdownMenuItem>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 			</div>
 			{account.status === "ok" ? (
 				<div className="mt-2 flex flex-col gap-1.5">
@@ -338,7 +358,8 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [hideEmails, setHideEmails] = useState(false);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
-	const [dialogProvider, setDialogProvider] = useState<Provider>("claude");
+	const [dialogProvider, setDialogProvider] =
+		useState<ManagedProvider>("claude");
 	const [switchTarget, setSwitchTarget] = useState<SwitchSignInTarget | null>(
 		null,
 	);
@@ -348,6 +369,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const isBusy = quotaQuery.isFetching || isRefreshing;
 
 	const makeDefaultAccount = (account: UsageAccount) => {
+		if (!isManagedProvider(account.provider)) return;
 		setDefault.mutate(
 			{ provider: account.provider, selection: account.selection },
 			{
@@ -372,13 +394,14 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		);
 	};
 
-	const openAddAccount = (provider: Provider) => {
+	const openAddAccount = (provider: ManagedProvider) => {
 		setDialogProvider(provider);
 		setSwitchTarget(null);
 		setIsDialogOpen(true);
 	};
 
 	const openSwitchSignIn = (account: UsageAccount) => {
+		if (!isManagedProvider(account.provider)) return;
 		setDialogProvider(account.provider);
 		setSwitchTarget({
 			provider: account.provider,
@@ -455,18 +478,20 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 								<span className="text-xs font-medium">
 									{PROVIDER_LABELS[provider]}
 								</span>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
-									disabled={!hostUrl}
-									onClick={() => openAddAccount(provider)}
-								>
-									<LuPlus className="size-3" />
-									<Trans id="settings.usage.quota.addAccount">
-										Add account
-									</Trans>
-								</Button>
+								{isManagedProvider(provider) && (
+									<Button
+										variant="ghost"
+										size="sm"
+										className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
+										disabled={!hostUrl}
+										onClick={() => openAddAccount(provider)}
+									>
+										<LuPlus className="size-3" />
+										<Trans id="settings.usage.quota.addAccount">
+											Add account
+										</Trans>
+									</Button>
+								)}
 							</div>
 							{providerAccounts.length === 0 ? (
 								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
@@ -482,14 +507,21 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 											key={account.accountKey}
 											account={account}
 											onMakeDefault={() => makeDefaultAccount(account)}
-											onSwitchSignIn={() => openSwitchSignIn(account)}
+											onSwitchSignIn={
+												isManagedProvider(account.provider)
+													? () => openSwitchSignIn(account)
+													: null
+											}
 											onRemove={
 												account.selection === null
 													? null
 													: () => setRemoveTarget(account)
 											}
 											isSwitching={setDefault.isPending}
-											selectable={providerAccounts.length > 1}
+											selectable={
+												isManagedProvider(provider) &&
+												providerAccounts.length > 1
+											}
 											hideEmails={hideEmails}
 										/>
 									))}
@@ -507,7 +539,12 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				}}
 				isRemoving={removeAccount.isPending}
 				onConfirm={() => {
-					if (!removeTarget || removeTarget.selection === null) return;
+					if (
+						!removeTarget ||
+						removeTarget.selection === null ||
+						!isManagedProvider(removeTarget.provider)
+					)
+						return;
 					removeAccount.mutate(
 						{
 							provider: removeTarget.provider,

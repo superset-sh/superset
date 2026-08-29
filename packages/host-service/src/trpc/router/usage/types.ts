@@ -1,6 +1,6 @@
 /**
  * Providers that can appear in usage history/analytics. Quota accounts exist
- * only for "claude" and "codex"; the rest surface transcript-derived token
+ * only for providers listed by UsageAccountProvider; the rest surface transcript-derived token
  * history. Agents whose CLIs record no usable local usage data (gemini, amp,
  * kimi, vibe, kiro, droid, hermes, mastracode) are intentionally absent.
  */
@@ -8,6 +8,7 @@ export type UsageProvider =
 	| "claude"
 	| "codex"
 	| "grok"
+	| "agy"
 	| "cursor"
 	| "opencode"
 	| "copilot"
@@ -16,7 +17,7 @@ export type UsageProvider =
 	| "fx";
 
 /** The subset of providers with quota accounts and switchable logins. */
-export type UsageAccountProvider = "claude" | "codex";
+export type UsageAccountProvider = "claude" | "codex" | "grok" | "agy";
 
 export type UsageAccountStatus =
 	/** Quota fetched successfully. */

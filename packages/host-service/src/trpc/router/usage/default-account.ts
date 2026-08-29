@@ -19,9 +19,9 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { HostDb } from "../../../db/index.ts";
 import { hostSettings } from "../../../db/schema.ts";
-import type { UsageAccountProvider } from "./types.ts";
+type SwitchableAccountProvider = "claude" | "codex";
 
-const POINTER_NAMES: Record<UsageAccountProvider, string> = {
+const POINTER_NAMES: Record<SwitchableAccountProvider, string> = {
 	claude: "default-claude-config-dir",
 	codex: "default-codex-home",
 };
@@ -35,7 +35,9 @@ function supersetHomeDir(): string {
 	return process.env.SUPERSET_HOME_DIR?.trim() || join(homedir(), ".superset");
 }
 
-function defaultAccountPointerPath(provider: UsageAccountProvider): string {
+function defaultAccountPointerPath(
+	provider: SwitchableAccountProvider,
+): string {
 	return join(supersetHomeDir(), "state", POINTER_NAMES[provider]);
 }
 
@@ -52,7 +54,7 @@ function temporaryPointerPath(pointerPath: string): string {
  * that agent launches would not observe.
  */
 export function syncDefaultAccountPointer(
-	provider: UsageAccountProvider,
+	provider: SwitchableAccountProvider,
 	selection: string | null,
 ): void {
 	let temporaryPath: string | null = null;
@@ -81,7 +83,7 @@ export function syncDefaultAccountPointer(
  * services migrating concurrently cannot replace each other's selection.
  */
 function migrateDefaultAccountPointer(
-	provider: UsageAccountProvider,
+	provider: SwitchableAccountProvider,
 	selection: string,
 ): void {
 	const dir = join(supersetHomeDir(), "state");
@@ -104,7 +106,7 @@ function migrateDefaultAccountPointer(
 	}
 }
 
-function readDefaultAccountPointer(provider: UsageAccountProvider): {
+function readDefaultAccountPointer(provider: SwitchableAccountProvider): {
 	exists: boolean;
 	selection: string | null;
 } {
@@ -182,7 +184,7 @@ export function getDefaultAccountSelections(
 
 export function setDefaultAccountSelection(
 	db: HostDb,
-	provider: UsageAccountProvider,
+	provider: SwitchableAccountProvider,
 	selection: string | null,
 ): void {
 	const values =

@@ -12,8 +12,10 @@ import {
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { offLoop } from "../../off-loop";
 import { provisionClaudeAccount } from "./account-provisioning";
+import { fetchAgyAccounts } from "./agy-quota";
 import { fetchClaudeAccounts, readDefaultLoginEmail } from "./claude";
 import { fetchCodexAccounts } from "./codex";
+import { fetchGrokAccounts } from "./grok-quota";
 import {
 	getDefaultAccountSelections,
 	setDefaultAccountSelection,
@@ -37,9 +39,12 @@ let cachedQuota: { promise: Promise<UsageAccount[]>; cachedAt: number } | null =
 	null;
 
 function loadAccounts(): Promise<UsageAccount[]> {
-	return Promise.all([fetchClaudeAccounts(), fetchCodexAccounts()]).then(
-		(groups) => groups.flat(),
-	);
+	return Promise.all([
+		fetchClaudeAccounts(),
+		fetchCodexAccounts(),
+		fetchGrokAccounts(),
+		fetchAgyAccounts(),
+	]).then((groups) => groups.flat());
 }
 
 function getQuota(forceRefresh: boolean): Promise<UsageAccount[]> {
@@ -72,10 +77,11 @@ export const usageRouter = router({
 			return accounts.map((account) => ({
 				...account,
 				isDefault:
-					account.selection ===
-					(account.provider === "claude"
-						? defaults.claudeConfigDir
-						: defaults.codexHome),
+					account.provider === "claude"
+						? account.selection === defaults.claudeConfigDir
+						: account.provider === "codex"
+							? account.selection === defaults.codexHome
+							: false,
 			}));
 		}),
 

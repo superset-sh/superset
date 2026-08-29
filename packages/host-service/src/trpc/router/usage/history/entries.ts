@@ -2,6 +2,7 @@ import { realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { discoverClaudeProfiles, discoverCodexHomes } from "../profiles";
+import { collectAgyEntries } from "./agy";
 import { collectCopilotEntries } from "./copilot";
 import { collectCursorEntries } from "./cursor";
 import { collectFxEntries } from "./fx";
@@ -110,6 +111,10 @@ export async function collectUsageEntries(
 	const collectors: Array<{
 		run: (out: UsageLogEntry[]) => Promise<number | undefined>;
 	}> = [
+		{
+			run: (out: UsageLogEntry[]) =>
+				collectAgyEntries(cutoffMs, out, sessionLabels),
+		},
 		...grokHomes().map((grokHome) => ({
 			run: (out: UsageLogEntry[]) =>
 				collectGrokEntries(grokHome, cutoffMs, out, sessionLabels),
