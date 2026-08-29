@@ -53,3 +53,14 @@ If an edit genuinely does not invalidate a translation (fixing an English typo,
 rewording a sentence the translation already renders correctly), add the message
 to `locales/en-only-changes.txt`. Exemptions are keyed to the exact English text
 they were granted for, so the next edit to that message is checked again.
+
+## New strings translate themselves on the PR
+
+Adding an English string leaves every enabled locale with an empty entry, which
+`compile --strict` refuses. The `Translate Catalogs` workflow closes that gap on
+the PR: it extracts, fills the missing entries with Claude — anchored to each
+catalog's own existing translations for register and terminology — validates
+placeholder, tag, and ICU integrity (rejected fills stay empty so the strict
+gate fails loudly), and pushes the fills back to the branch. To run it locally
+instead: `bun run --cwd packages/i18n translate` with `ANTHROPIC_API_KEY` set.
+Machine fills are a floor, not a ceiling — reword them freely in the same PR.

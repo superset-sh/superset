@@ -357,15 +357,17 @@ export function describeSchedule(
 			}
 			if (byDay.length === 1) {
 				const day = formatWeekday(byDay[0] as string, "long", locale);
+				// "{day}s" pluralized a weekday by appending an s, which no other
+				// language can do; the full sentence translates everywhere.
 				return hasTime
 					? i18n._({
-							id: "shared.schedule.everyDayOfWeekAt",
-							message: "{day}s at {time}",
+							id: "shared.schedule.eachDayOfWeekAt",
+							message: "Every {day} at {time}",
 							values: { day, time },
 						})
 					: i18n._({
-							id: "shared.schedule.everyDayOfWeek",
-							message: "{day}s",
+							id: "shared.schedule.eachDayOfWeek",
+							message: "Every {day}",
 							values: { day },
 						});
 			}
