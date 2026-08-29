@@ -374,7 +374,10 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const accounts = quotaQuery.data ?? [];
 	const isBusy = quotaQuery.isFetching || isRefreshing;
 
-	const showMadeDefaultToast = (providerLabel: string, accountLabel: string) => {
+	const showMadeDefaultToast = (
+		providerLabel: string,
+		accountLabel: string,
+	) => {
 		toast.success(
 			t({
 				id: "settings.usage.account.madeDefaultToast",
