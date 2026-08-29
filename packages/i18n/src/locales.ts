@@ -49,7 +49,12 @@ const LOCALE_ALIASES: Readonly<Record<string, SupportedLocale>> = {
 // and region subtags before falling back to the base language.
 export function resolveLocale(preferences: readonly string[]): SupportedLocale {
 	for (const tag of preferences) {
-		const parts = tag.toLowerCase().split("-").filter(Boolean);
+		let parts = tag.toLowerCase().split("-").filter(Boolean);
+		// Cut BCP 47 extension and private-use sequences ("zh-TW-u-nu-latn"):
+		// everything from the first singleton subtag on modifies formatting,
+		// not language identity, and would defeat exact and alias matching.
+		const singleton = parts.findIndex((part, i) => i > 0 && part.length === 1);
+		if (singleton !== -1) parts = parts.slice(0, singleton);
 		const base = parts[0];
 		if (!base) continue;
 
