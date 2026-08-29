@@ -43,6 +43,7 @@ export interface MigrationLocalRow {
 
 export interface MigrationHostRow {
 	id: string;
+	projectId: string | null;
 	tags?: readonly string[] | null;
 	/** False when the host didn't answer or has no resolvable URL right now. */
 	hostReachable: boolean;
@@ -76,45 +77,62 @@ export async function migrateLegacySidebarFolders(
 		deferred: [],
 	};
 
-	// Tags already owned by a row, per project — collisions get -2.
-	const takenTagsByProject = new Map<string, Set<string>>();
+	// Tags owned by a stored row, plus tags minted earlier in this run —
+	// reserved unconditionally so two legacy folders can't mint the same tag.
+	const storedTagsByProject = new Map<string, Set<string>>();
+	const reserveStored = (projectId: string, tag: string) => {
+		let taken = storedTagsByProject.get(projectId);
+		if (!taken) {
+			taken = new Set();
+			storedTagsByProject.set(projectId, taken);
+		}
+		taken.add(tag);
+	};
 	for (const section of io.sections) {
 		const tag = normalizeWorkspaceTag(section.tag);
 		if (tag == null) continue;
-		let taken = takenTagsByProject.get(section.projectId);
-		if (!taken) {
-			taken = new Set();
-			takenTagsByProject.set(section.projectId, taken);
-		}
-		taken.add(tag);
+		reserveStored(section.projectId, tag);
 	}
 
 	for (const section of io.sections) {
 		if (normalizeWorkspaceTag(section.tag) != null) continue; // converted
 		if (sessionParked.has(section.sectionId)) continue;
 
+		// A pointer whose workspace no host serves any more is a stale row
+		// (deleted workspace) — it must not hold the folder legacy forever.
+		// The caller only runs this pass once the host fan-out is ready, so
+		// "no row anywhere" means gone, not "not yet answered".
 		const members = io.localRows.filter(
-			(row) => row.sectionId === section.sectionId && row.isVisible,
+			(row) =>
+				row.sectionId === section.sectionId &&
+				row.isVisible &&
+				io.hostRowsById.has(row.workspaceId),
 		);
 		const memberHostRows = members.map((member) =>
 			io.hostRowsById.get(member.workspaceId),
 		);
-		if (
-			memberHostRows.some((hostRow) => !hostRow || !hostRow.hostReachable)
-		) {
-			// A member's host is offline or hasn't answered — leave the whole
-			// folder legacy; the pass re-runs on every workspace-cache change.
+		if (memberHostRows.some((hostRow) => !hostRow?.hostReachable)) {
+			// A member's host is offline — leave the whole folder legacy; the
+			// pass re-runs on every workspace-cache change.
 			result.deferred.push(section.sectionId);
 			continue;
 		}
 
-		let taken = takenTagsByProject.get(section.projectId);
-		if (!taken) {
-			taken = new Set();
-			takenTagsByProject.set(section.projectId, taken);
+		// Derived folders count as taken too — but only through tags carried
+		// by NON-members. A tag carried solely by this folder's own members is
+		// a previous partial run of this very conversion, and reusing it is
+		// what makes the retry converge instead of minting -2 forever.
+		const memberIds = new Set(members.map((member) => member.workspaceId));
+		const taken = new Set(storedTagsByProject.get(section.projectId) ?? []);
+		for (const hostRow of io.hostRowsById.values()) {
+			if (hostRow.projectId !== section.projectId) continue;
+			if (memberIds.has(hostRow.id)) continue;
+			for (const workspaceTag of normalizeWorkspaceTags(hostRow.tags)) {
+				taken.add(workspaceTag);
+			}
 		}
 		const tag = mintFolderTag(section.name, taken);
-		taken.add(tag);
+		reserveStored(section.projectId, tag);
 
 		let rejected = false;
 		for (const hostRow of memberHostRows) {

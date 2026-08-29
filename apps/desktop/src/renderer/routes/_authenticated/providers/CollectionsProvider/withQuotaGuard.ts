@@ -102,7 +102,7 @@ function crossWindowStorageEventApi(
 	const wrappedByListener = new Map<StorageEventListener, StorageEventListener>();
 	return {
 		addEventListener: (type, listener) => {
-			if (type !== "storage") return;
+			if (type !== "storage" || wrappedByListener.has(listener)) return;
 			const wrapped: StorageEventListener = (event) => {
 				if (event.storageArea !== window.localStorage) return;
 				listener(

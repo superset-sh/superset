@@ -1,8 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-	WORKSPACE_TAG_MAX_LENGTH,
-	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
-} from "@superset/shared/workspace-tags";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 import { defineTool } from "../../define-tool";
 import { hostServiceCall } from "../../host-service-client";
@@ -20,9 +17,7 @@ export function register(server: McpServer): void {
 				.describe("Host machineId the workspace lives on."),
 			id: z.string().uuid().describe("Workspace UUID."),
 			name: z.string().min(1).optional().describe("New workspace name."),
-			tags: z
-				.array(z.string().min(1).max(WORKSPACE_TAG_MAX_LENGTH))
-				.max(WORKSPACE_TAGS_MAX_PER_WORKSPACE)
+			tags: workspaceTagsInputSchema
 				.optional()
 				.describe(
 					"Full replacement of the workspace's tag set. Tags are plain strings, normalized to trimmed lowercase; each tag surfaces as a sidebar folder.",

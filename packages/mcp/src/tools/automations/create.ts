@@ -1,8 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-	WORKSPACE_TAG_MAX_LENGTH,
-	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
-} from "@superset/shared/workspace-tags";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
@@ -68,9 +65,7 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe("IANA timezone (e.g. America/New_York)."),
-			tags: z
-				.array(z.string().min(1).max(WORKSPACE_TAG_MAX_LENGTH))
-				.max(WORKSPACE_TAGS_MAX_PER_WORKSPACE)
+			tags: workspaceTagsInputSchema
 				.optional()
 				.describe(
 					"Workspace tags applied to each run's created workspace; each tag files it into a sidebar folder of the same name. Defaults to ['automation'] so runs group out of the box.",

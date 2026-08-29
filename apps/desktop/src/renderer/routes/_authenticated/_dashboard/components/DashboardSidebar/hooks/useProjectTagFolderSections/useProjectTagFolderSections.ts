@@ -21,7 +21,8 @@ export function useProjectTagFolderSections(projectId: string | null): {
 	areSectionsReady: boolean;
 } {
 	const collections = useCollections();
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const { workspaces: hostWorkspaces, isReady: hostWorkspacesReady } =
+		useHostWorkspaces();
 	const { data: storedSections = [], isReady } = useLiveQuery(
 		(q) =>
 			q
@@ -53,5 +54,7 @@ export function useProjectTagFolderSections(projectId: string | null): {
 				color: section.color,
 			}));
 	}, [projectId, storedSections, hostWorkspaces]);
-	return { sections, areSectionsReady: isReady };
+	// Derived folders come from host rows, so "ready" needs the host fan-out
+	// too — otherwise the menu claims a complete list before tags arrive.
+	return { sections, areSectionsReady: isReady && hostWorkspacesReady };
 }

@@ -1,6 +1,7 @@
 import {
 	normalizeWorkspaceTag,
 	normalizeWorkspaceTags,
+	WORKSPACE_TAG_MAX_LENGTH,
 } from "@superset/shared/workspace-tags";
 
 /**
@@ -240,8 +241,16 @@ export function mintFolderTag(
 	const base = normalizeWorkspaceTag(name) ?? "group";
 	if (!taken.has(base)) return base;
 	let counter = 2;
-	while (taken.has(`${base}-${counter}`)) counter += 1;
-	return `${base}-${counter}`;
+	for (;;) {
+		const suffix = `-${counter}`;
+		// Trim the base so the suffixed tag stays within the length cap —
+		// the host rejects (never trims) over-length tags.
+		const candidate =
+			base.slice(0, WORKSPACE_TAG_MAX_LENGTH - suffix.length).trimEnd() +
+			suffix;
+		if (!taken.has(candidate)) return candidate;
+		counter += 1;
+	}
 }
 
 /**

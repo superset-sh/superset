@@ -33,6 +33,7 @@ export function useMigrateLegacySidebarFolders(): void {
 				workspace.id,
 				{
 					id: workspace.id,
+					projectId: workspace.projectId,
 					tags: workspace.tags,
 					hostReachable:
 						workspace.hostReachable &&

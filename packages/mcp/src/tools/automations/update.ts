@@ -1,8 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-	WORKSPACE_TAG_MAX_LENGTH,
-	WORKSPACE_TAGS_MAX_PER_WORKSPACE,
-} from "@superset/shared/workspace-tags";
+import { workspaceTagsInputSchema } from "@superset/shared/workspace-tags";
 import { z } from "zod";
 import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
@@ -38,9 +35,7 @@ export function register(server: McpServer): void {
 				.optional()
 				.describe("First scheduled fire (ISO 8601)."),
 			timezone: z.string().min(1).optional(),
-			tags: z
-				.array(z.string().min(1).max(WORKSPACE_TAG_MAX_LENGTH))
-				.max(WORKSPACE_TAGS_MAX_PER_WORKSPACE)
+			tags: workspaceTagsInputSchema
 				.optional()
 				.describe(
 					"Workspace tags applied to each run's created workspace; each tag files it into a sidebar folder of the same name. Update replaces the whole set.",

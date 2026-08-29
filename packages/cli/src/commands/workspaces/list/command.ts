@@ -43,6 +43,12 @@ export default command({
 		// Normalize both sides — `--tag Perf` must match a workspace tagged
 		// "perf". Rows served by an older host carry no tags field.
 		const tagFilter = normalizeWorkspaceTag(options.tag);
+		if (options.tag !== undefined && tagFilter == null) {
+			throw new CLIError(
+				"Invalid --tag value",
+				"Tags are 1-64 characters after trimming",
+			);
+		}
 		return workspaces
 			.filter(
 				(workspace) =>

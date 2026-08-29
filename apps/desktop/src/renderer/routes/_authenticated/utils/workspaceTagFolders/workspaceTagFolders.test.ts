@@ -373,4 +373,11 @@ describe("mintFolderTag", () => {
 	it("normalizes taken tags before comparing", () => {
 		expect(mintFolderTag("perf", [" PERF "])).toBe("perf-2");
 	});
+
+	it("keeps collision suffixes within the tag length cap", () => {
+		const base = "a".repeat(64);
+		const minted = mintFolderTag(base, [base]);
+		expect(minted.length).toBeLessThanOrEqual(64);
+		expect(minted.endsWith("-2")).toBe(true);
+	});
 });

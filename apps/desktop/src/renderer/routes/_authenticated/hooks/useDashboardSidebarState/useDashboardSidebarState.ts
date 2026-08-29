@@ -287,7 +287,10 @@ export function useDashboardSidebarState() {
 	// → invalidate + toast on failure).
 	const writeWorkspaceTags = useCallback(
 		(workspaceId: string, tags: string[]) => {
-			v2Workspaces.updateWorkspace(workspaceId, { tags });
+			const transaction = v2Workspaces.updateWorkspace(workspaceId, { tags });
+			// Resolves once the host accepted the write (rejection already
+			// rolled back the cache and toasted); rename gates its rekey on it.
+			return transaction?.isPersisted.promise ?? Promise.reject();
 		},
 		[v2Workspaces],
 	);
@@ -561,37 +564,55 @@ export function useDashboardSidebarState() {
 			}
 			// Retag every member BEFORE rekeying the row — swap the row first
 			// and the old tag survives on every member as litter that silently
-			// recaptures them if a folder by that name is ever recreated.
+			// recaptures them if a folder by that name is ever recreated. The
+			// rekey waits for the hosts to ACCEPT the retags: a rejected write
+			// rolls back that member's cached tags, and rekeying anyway would
+			// leave it in neither folder.
+			const memberWrites: Promise<unknown>[] = [];
 			for (const workspace of hostWorkspaces) {
 				if (workspace.projectId !== projectId) continue;
 				const tags = normalizeWorkspaceTags(workspace.tags);
 				if (!tags.includes(currentTag)) continue;
-				writeWorkspaceTags(
-					workspace.id,
-					normalizeWorkspaceTags([
-						...tags.filter((tag) => tag !== currentTag),
-						newTag,
-					]),
+				memberWrites.push(
+					writeWorkspaceTags(
+						workspace.id,
+						normalizeWorkspaceTags([
+							...tags.filter((tag) => tag !== currentTag),
+							newTag,
+						]),
+					),
 				);
 			}
-			const newSectionId = buildSidebarFolderKey(projectId, newTag);
-			if (!collections.v2SidebarSections.get(newSectionId)) {
-				collections.v2SidebarSections.insert({
-					sectionId: newSectionId,
-					projectId,
-					name: trimmed,
-					tag: newTag,
-					createdAt: existing?.createdAt ?? new Date(),
-					tabOrder:
-						existing?.tabOrder ??
-						getNextTabOrder(
-							getProjectTopLevelItems(collections, hostWorkspaces, projectId),
-						),
-					isCollapsed: existing?.isCollapsed ?? false,
-					color: existing?.color ?? null,
+			void Promise.all(memberWrites)
+				.then(() => {
+					const newSectionId = buildSidebarFolderKey(projectId, newTag);
+					if (!collections.v2SidebarSections.get(newSectionId)) {
+						collections.v2SidebarSections.insert({
+							sectionId: newSectionId,
+							projectId,
+							name: trimmed,
+							tag: newTag,
+							createdAt: existing?.createdAt ?? new Date(),
+							tabOrder:
+								existing?.tabOrder ??
+								getNextTabOrder(
+									getProjectTopLevelItems(
+										collections,
+										hostWorkspaces,
+										projectId,
+									),
+								),
+							isCollapsed: existing?.isCollapsed ?? false,
+							color: existing?.color ?? null,
+						});
+					}
+					if (existing) collections.v2SidebarSections.delete(sectionId);
+				})
+				.catch(() => {
+					// A member write was rejected (already rolled back + toasted).
+					// The row keeps its old key; successfully retagged members sit
+					// in the new tag's derived folder until the user retries.
 				});
-			}
-			if (existing) collections.v2SidebarSections.delete(sectionId);
 		},
 		[collections, ensureSectionRow, hostWorkspaces, writeWorkspaceTags],
 	);

@@ -31,7 +31,7 @@ function makeLegacySection(
 function makeHarness(args: {
 	sections: MigrationSectionRow[];
 	localRows?: MigrationLocalRow[];
-	hostRows?: MigrationHostRow[];
+	hostRows?: Array<Omit<MigrationHostRow, "projectId"> & { projectId?: string | null }>;
 	rejectWritesFor?: Set<string>;
 }) {
 	const writes: Array<{ workspaceId: string; tags: string[] }> = [];
@@ -42,7 +42,10 @@ function makeHarness(args: {
 		sections: args.sections,
 		localRows: args.localRows ?? [],
 		hostRowsById: new Map(
-			(args.hostRows ?? []).map((row) => [row.id, row]),
+			(args.hostRows ?? []).map((row) => [
+				row.id,
+				{ projectId: PROJECT, ...row },
+			]),
 		),
 		writeTags: async (workspaceId, tags) => {
 			if (args.rejectWritesFor?.has(workspaceId)) {
@@ -198,6 +201,61 @@ describe("migrateLegacySidebarFolders", () => {
 		expect(h.writes).toEqual([]);
 		expect(h.inserted[0]?.tag).toBe("perf work");
 		expect(h.deleted).toEqual([LEGACY_ID]);
+	});
+
+	it("skips a stale member whose workspace no host serves and still converts", async () => {
+		const h = makeHarness({
+			sections: [makeLegacySection()],
+			localRows: [
+				{ workspaceId: "w1", sectionId: LEGACY_ID, isVisible: true },
+				// Points at a deleted workspace: no host row anywhere. Must not
+				// hold the folder legacy forever.
+				{ workspaceId: "w-dead", sectionId: LEGACY_ID, isVisible: true },
+			],
+			hostRows: [{ id: "w1", tags: [], hostReachable: true }],
+		});
+		const result = await migrateLegacySidebarFolders(h.io, new Set());
+		expect(result.converted).toEqual([LEGACY_ID]);
+		expect(h.writes.map((w) => w.workspaceId)).toEqual(["w1"]);
+		expect(h.cleared.map((c) => c.workspaceId)).toEqual(["w1"]);
+	});
+
+	it("a partial earlier run's tag is reused on retry, not suffixed", async () => {
+		// w1 was tagged by a previous run that died before the row swap; no
+		// stored row exists and no non-member carries the tag. The retry must
+		// converge on the same tag.
+		const h = makeHarness({
+			sections: [makeLegacySection()],
+			localRows: [
+				{ workspaceId: "w1", sectionId: LEGACY_ID, isVisible: true },
+				{ workspaceId: "w2", sectionId: LEGACY_ID, isVisible: true },
+			],
+			hostRows: [
+				{ id: "w1", tags: ["perf work"], hostReachable: true },
+				{ id: "w2", tags: [], hostReachable: true },
+			],
+		});
+		const result = await migrateLegacySidebarFolders(h.io, new Set());
+		expect(result.converted).toEqual([LEGACY_ID]);
+		expect(h.writes).toEqual([{ workspaceId: "w2", tags: ["perf work"] }]);
+		expect(h.inserted[0]?.tag).toBe("perf work");
+	});
+
+	it("a derived folder (tag on a NON-member workspace) collides to -2 instead of merging", async () => {
+		const h = makeHarness({
+			sections: [makeLegacySection()],
+			localRows: [{ workspaceId: "w1", sectionId: LEGACY_ID, isVisible: true }],
+			hostRows: [
+				{ id: "w1", tags: [], hostReachable: true },
+				// An agent tagged an unrelated workspace "perf work" — that
+				// derived folder must not absorb the legacy group.
+				{ id: "w-outsider", tags: ["perf work"], hostReachable: true },
+			],
+		});
+		const result = await migrateLegacySidebarFolders(h.io, new Set());
+		expect(result.converted).toEqual([LEGACY_ID]);
+		expect(h.writes).toEqual([{ workspaceId: "w1", tags: ["perf work-2"] }]);
+		expect(h.inserted[0]?.tag).toBe("perf work-2");
 	});
 
 	it("handles a section row with the tag field ABSENT as legacy", async () => {
