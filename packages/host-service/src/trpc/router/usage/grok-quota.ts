@@ -184,7 +184,7 @@ export async function fetchGrokAccounts(): Promise<UsageAccount[]> {
 	const credential = Object.values(parsed).find((entry) => entry?.key);
 	if (!credential?.key) return [];
 	const base = {
-		provider: "grok" as const,
+		agent: "grok" as const,
 		accountKey: authPath,
 		sourceLabel: "~/.grok",
 		email: credential.email ?? null,

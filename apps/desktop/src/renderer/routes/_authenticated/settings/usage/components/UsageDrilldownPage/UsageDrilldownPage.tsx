@@ -13,7 +13,7 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useHostUsageHistory } from "../../hooks/useHostUsageHistory";
 import type { HistoryMetric } from "../UsageHistorySection/constants";
 import {
-	PROVIDER_CHART_CONFIG,
+	AGENT_CHART_CONFIG,
 	RANGE_OPTIONS,
 } from "../UsageHistorySection/constants";
 import {
@@ -59,14 +59,14 @@ export function UsageDrilldownPage({
 				: history.modelDetails[entityKey]) ?? null)
 		: null;
 
-	const provider =
+	const agent =
 		kind === "model"
-			? (entityKey.split("|")[0] as keyof typeof PROVIDER_CHART_CONFIG)
+			? (entityKey.split("|")[0] as keyof typeof AGENT_CHART_CONFIG)
 			: null;
 	const title = kind === "model" ? entityKey.split("|")[1] : entityKey;
 	const seriesColor =
-		provider && PROVIDER_CHART_CONFIG[provider]
-			? PROVIDER_CHART_CONFIG[provider].color
+		agent && AGENT_CHART_CONFIG[agent]
+			? AGENT_CHART_CONFIG[agent].color
 			: "#d06a48";
 	const chartConfig = {
 		value: {
@@ -299,8 +299,7 @@ export function UsageDrilldownPage({
 											<span
 												className="size-1.5 shrink-0 rounded-[2px]"
 												style={{
-													background:
-														PROVIDER_CHART_CONFIG[row.provider]?.color,
+													background: AGENT_CHART_CONFIG[row.agent]?.color,
 												}}
 											/>
 											{rowTitle}
@@ -317,7 +316,7 @@ export function UsageDrilldownPage({
 											className="h-full rounded-full"
 											style={{
 												width: `${breakdownMax > 0 ? Math.max(1, (100 * row.usd) / breakdownMax) : 0}%`,
-												background: PROVIDER_CHART_CONFIG[row.provider]?.color,
+												background: AGENT_CHART_CONFIG[row.agent]?.color,
 												opacity: 0.6,
 											}}
 										/>
@@ -381,7 +380,7 @@ export function UsageDrilldownPage({
 														className="size-1.5 shrink-0 rounded-[2px]"
 														style={{
 															background:
-																PROVIDER_CHART_CONFIG[session.provider]?.color,
+																AGENT_CHART_CONFIG[session.agent]?.color,
 														}}
 													/>
 													<span className="truncate">
@@ -421,7 +420,7 @@ export function UsageDrilldownPage({
 													style={{
 														width: `${sessionMax > 0 ? Math.max(1, (100 * session.usd) / sessionMax) : 0}%`,
 														background:
-															PROVIDER_CHART_CONFIG[session.provider]?.color,
+															AGENT_CHART_CONFIG[session.agent]?.color,
 														opacity: 0.6,
 													}}
 												/>

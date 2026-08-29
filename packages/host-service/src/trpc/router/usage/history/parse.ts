@@ -1,5 +1,5 @@
 /**
- * Streaming parsers for the providers' own transcript files — the same
+ * Streaming parsers for the agents' own transcript files — the same
  * source ccusage and T3 Code read, so usage is complete even for turns not
  * driven through Superset.
  *
@@ -17,11 +17,11 @@
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
 import { createInterface } from "node:readline";
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 import type { LogFile } from "./logs";
 
 export interface UsageLogEntry {
-	provider: UsageProvider;
+	agent: UsageAgent;
 	model: string;
 	timestampMs: number;
 	cwd: string | null;
@@ -33,7 +33,7 @@ export interface UsageLogEntry {
 	cacheWrite1h: number;
 	output: number;
 	reasoningOutput: number;
-	/** Provider-reported real cost in USD (opencode/pi/fx/cursor record one).
+	/** Agent-reported real cost in USD (opencode/pi/fx/cursor record one).
 	 * When present it replaces the API-list-rate estimate. */
 	costUsd?: number;
 }
@@ -177,7 +177,7 @@ export async function parseClaudeLogFile(
 		const write5m = num(usage.cache_creation?.ephemeral_5m_input_tokens);
 		const write1h = num(usage.cache_creation?.ephemeral_1h_input_tokens);
 		const entry: UsageLogEntry = {
-			provider: "claude",
+			agent: "claude",
 			model,
 			timestampMs,
 			cwd: typeof parsed.cwd === "string" ? parsed.cwd : null,
@@ -284,7 +284,7 @@ export async function parseCodexLogFile(
 		const input = num(usage.input_tokens);
 		const cached = num(usage.cached_input_tokens);
 		out.push({
-			provider: "codex",
+			agent: "codex",
 			model: currentModel ?? "unknown",
 			timestampMs,
 			cwd: currentCwd,

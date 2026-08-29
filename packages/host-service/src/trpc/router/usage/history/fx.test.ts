@@ -62,7 +62,7 @@ describe("collectFxEntries", () => {
 		expect(scanned).toBe(1);
 		expect(out).toHaveLength(2);
 		expect(out[0]).toMatchObject({
-			provider: "fx",
+			agent: "fx",
 			model: "zai/glm-5.2",
 			cwd: "/tmp/proj",
 			sessionId: "session-1",

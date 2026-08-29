@@ -2,7 +2,7 @@
 import { createReadStream } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import type { UsageLogEntry } from "./parse";
 import { toSessionLabel } from "./parse";
@@ -95,7 +95,7 @@ export function parseAgyTranscriptLine(
 			? modelValue
 			: ((object(modelValue)?.id as string | undefined) ?? "antigravity");
 	return {
-		provider: "agy",
+		agent: "agy",
 		model,
 		timestampMs,
 		cwd,

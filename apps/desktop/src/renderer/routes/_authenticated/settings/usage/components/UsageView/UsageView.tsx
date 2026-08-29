@@ -43,21 +43,21 @@ import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
 
-type Provider = UsageAccount["provider"];
+type Agent = UsageAccount["agent"];
 
-const PROVIDERS: Provider[] = ["claude", "codex", "grok", "agy"];
+const AGENTS: Agent[] = ["claude", "codex", "grok", "agy"];
 
-const PROVIDER_LABELS: Record<Provider, string> = {
+const AGENT_LABELS: Record<Agent, string> = {
 	claude: "Claude Code",
 	codex: "Codex",
 	grok: "Grok",
 	agy: "Antigravity",
 };
 
-type ManagedProvider = "claude" | "codex";
+type ManagedAgent = "claude" | "codex";
 
-function isManagedProvider(provider: Provider): provider is ManagedProvider {
-	return provider === "claude" || provider === "codex";
+function isManagedAgent(agent: Agent): agent is ManagedAgent {
+	return agent === "claude" || agent === "codex";
 }
 
 function meterColor(usedPercent: number): string {
@@ -137,7 +137,7 @@ function AccountCard({
 	/** Null on the system-default card — the main login is never removable. */
 	onRemove: (() => void) | null;
 	isSwitching: boolean;
-	/** True when the provider has several accounts, so the cards read as a
+	/** True when the agent has several accounts, so the cards read as a
 	 * radio group: the default gets a check + accent border, the rest get a
 	 * selectable circle. */
 	selectable: boolean;
@@ -149,12 +149,12 @@ function AccountCard({
 	const { copyToClipboard, copied } = useCopyToClipboard();
 	const expiredCommand =
 		account.status === "token_expired"
-			? account.provider === "grok"
+			? account.agent === "grok"
 				? "grok login"
-				: account.provider === "agy"
+				: account.agent === "agy"
 					? "agy"
 					: switchSignInCommand(
-							account as UsageAccount & { provider: ManagedProvider },
+							account as UsageAccount & { agent: ManagedAgent },
 						)
 			: null;
 	return (
@@ -199,7 +199,7 @@ function AccountCard({
 					{hideEmails && account.email ? (
 						<Trans id="settings.usage.account.emailHidden">Email hidden</Trans>
 					) : (
-						(account.email ?? PROVIDER_LABELS[account.provider])
+						(account.email ?? AGENT_LABELS[account.agent])
 					)}
 				</span>
 				{account.plan && (
@@ -358,8 +358,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [hideEmails, setHideEmails] = useState(false);
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
-	const [dialogProvider, setDialogProvider] =
-		useState<ManagedProvider>("claude");
+	const [dialogAgent, setDialogAgent] = useState<ManagedAgent>("claude");
 	const [switchTarget, setSwitchTarget] = useState<SwitchSignInTarget | null>(
 		null,
 	);
@@ -369,17 +368,17 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 	const isBusy = quotaQuery.isFetching || isRefreshing;
 
 	const makeDefaultAccount = (account: UsageAccount) => {
-		if (!isManagedProvider(account.provider)) return;
+		if (!isManagedAgent(account.agent)) return;
 		setDefault.mutate(
-			{ provider: account.provider, selection: account.selection },
+			{ agent: account.agent, selection: account.selection },
 			{
 				onSuccess: () => {
-					const providerLabel = PROVIDER_LABELS[account.provider];
+					const agentLabel = AGENT_LABELS[account.agent];
 					const accountLabel = account.email ?? account.sourceLabel;
 					toast.success(
 						t({
 							id: "settings.usage.account.madeDefaultToast",
-							message: `New ${providerLabel} agents will use ${accountLabel}.`,
+							message: `New ${agentLabel} agents will use ${accountLabel}.`,
 						}),
 						{
 							description: t({
@@ -394,17 +393,17 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		);
 	};
 
-	const openAddAccount = (provider: ManagedProvider) => {
-		setDialogProvider(provider);
+	const openAddAgentAccount = (agent: ManagedAgent) => {
+		setDialogAgent(agent);
 		setSwitchTarget(null);
 		setIsDialogOpen(true);
 	};
 
 	const openSwitchSignIn = (account: UsageAccount) => {
-		if (!isManagedProvider(account.provider)) return;
-		setDialogProvider(account.provider);
+		if (!isManagedAgent(account.agent)) return;
+		setDialogAgent(account.agent);
 		setSwitchTarget({
-			provider: account.provider,
+			agent: account.agent,
 			selection: account.selection,
 			label:
 				account.selection === null
@@ -466,27 +465,27 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					</Trans>
 				</div>
 			) : (
-				PROVIDERS.filter((provider) =>
-					accounts.some((account) => account.provider === provider),
-				).map((provider) => {
-					const providerAccounts = accounts.filter(
-						(account) => account.provider === provider,
+				AGENTS.filter((agent) =>
+					accounts.some((account) => account.agent === agent),
+				).map((agent) => {
+					const agentAccounts = accounts.filter(
+						(account) => account.agent === agent,
 					);
-					const icon = getPresetIcon(provider, isDark);
+					const icon = getPresetIcon(agent, isDark);
 					return (
-						<section key={provider} className="flex flex-col gap-1.5">
+						<section key={agent} className="flex flex-col gap-1.5">
 							<div className="flex items-center gap-1.5">
 								{icon && <img src={icon} alt="" className="size-3.5" />}
 								<span className="text-xs font-medium">
-									{PROVIDER_LABELS[provider]}
+									{AGENT_LABELS[agent]}
 								</span>
-								{isManagedProvider(provider) && (
+								{isManagedAgent(agent) && (
 									<Button
 										variant="ghost"
 										size="sm"
 										className="ml-auto h-5 gap-1 px-1.5 text-[10px] text-muted-foreground"
 										disabled={!hostUrl}
-										onClick={() => openAddAccount(provider)}
+										onClick={() => openAddAgentAccount(agent)}
 									>
 										<LuPlus className="size-3" />
 										<Trans id="settings.usage.quota.addAccount">
@@ -495,22 +494,22 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 									</Button>
 								)}
 							</div>
-							{providerAccounts.length === 0 ? (
+							{agentAccounts.length === 0 ? (
 								<div className="rounded-lg border border-dashed px-3 py-2 text-[11px] text-muted-foreground">
 									<Trans id="settings.usage.quota.noLogins">
-										No {PROVIDER_LABELS[provider]} logins on this host — sign in
-										and usage appears here.
+										No {AGENT_LABELS[agent]} logins on this host — sign in and
+										usage appears here.
 									</Trans>
 								</div>
 							) : (
 								<div className="grid gap-2 md:grid-cols-2">
-									{providerAccounts.map((account) => (
+									{agentAccounts.map((account) => (
 										<AccountCard
 											key={account.accountKey}
 											account={account}
 											onMakeDefault={() => makeDefaultAccount(account)}
 											onSwitchSignIn={
-												isManagedProvider(account.provider)
+												isManagedAgent(account.agent)
 													? () => openSwitchSignIn(account)
 													: null
 											}
@@ -521,8 +520,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 											}
 											isSwitching={setDefault.isPending}
 											selectable={
-												isManagedProvider(provider) &&
-												providerAccounts.length > 1
+												isManagedAgent(agent) && agentAccounts.length > 1
 											}
 											hideEmails={hideEmails}
 										/>
@@ -544,12 +542,12 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					if (
 						!removeTarget ||
 						removeTarget.selection === null ||
-						!isManagedProvider(removeTarget.provider)
+						!isManagedAgent(removeTarget.agent)
 					)
 						return;
 					removeAccount.mutate(
 						{
-							provider: removeTarget.provider,
+							agent: removeTarget.agent,
 							selection: removeTarget.selection,
 						},
 						{
@@ -576,7 +574,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 					setIsDialogOpen(open);
 					if (!open) setSwitchTarget(null);
 				}}
-				provider={dialogProvider}
+				agent={dialogAgent}
 				switchTarget={switchTarget}
 				hostUrl={hostUrl}
 				onAccountAdded={() => {

@@ -20,7 +20,7 @@ describe("parseAgyTranscriptLine", () => {
 			"/repo",
 		);
 		expect(entry).toMatchObject({
-			provider: "agy",
+			agent: "agy",
 			model: "gemini-3.1-pro",
 			uncachedInput: 75,
 			cachedInput: 25,

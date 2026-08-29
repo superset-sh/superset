@@ -14,7 +14,7 @@ describe("matchModelRate", () => {
 		expect(rate.approximate).toBe(true);
 	});
 
-	test("plain ids still match their provider table", () => {
+	test("plain ids still match their agent table", () => {
 		const rate = matchModelRate("grok", "grok-4.6");
 		expect(rate.approximate).toBe(false);
 		expect(rate.inputPerM).toBe(2);

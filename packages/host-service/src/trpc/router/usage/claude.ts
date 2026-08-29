@@ -337,7 +337,7 @@ async function fetchClaudeAccount(
 	credential: ClaudeOauthCredential,
 ): Promise<UsageAccount> {
 	const base = {
-		provider: "claude" as const,
+		agent: "claude" as const,
 		accountKey: credential.accountKey,
 		sourceLabel: credential.sourceLabel,
 		plan: credential.subscriptionType,
@@ -441,7 +441,7 @@ export async function fetchClaudeAccounts(): Promise<UsageAccount[]> {
 	const accounts = await Promise.all(credentials.map(fetchClaudeAccount));
 	for (const profile of signedOutProfiles) {
 		accounts.push({
-			provider: "claude",
+			agent: "claude",
 			accountKey: profile.configDir,
 			sourceLabel: profile.sourceLabel,
 			email: profile.email,

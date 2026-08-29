@@ -52,7 +52,7 @@ describe("collectOpencodeEntries", () => {
 		expect(scanned).toBe(2);
 		expect(out).toHaveLength(1);
 		expect(out[0]).toMatchObject({
-			provider: "opencode",
+			agent: "opencode",
 			model: "claude-sonnet-5",
 			cwd: "/tmp/proj",
 			sessionId: SESSION,

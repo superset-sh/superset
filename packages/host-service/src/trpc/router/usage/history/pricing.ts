@@ -1,4 +1,4 @@
-import type { UsageProvider } from "../types";
+import type { UsageAgent } from "../types";
 
 /**
  * API list prices in USD per million tokens. Used to price subscription
@@ -6,7 +6,7 @@ import type { UsageProvider } from "../types";
  * always labeled as an estimate in the UI, never as money spent.
  *
  * Longest-prefix match on the lowercased model id; unknown models fall back
- * to the provider's cheapest rate and mark the result approximate.
+ * to the agent's cheapest rate and mark the result approximate.
  */
 export const PRICING_TABLE_UPDATED = "2026-08-16";
 
@@ -77,30 +77,30 @@ const CURSOR_RATES: Record<string, ModelRate> = {
 /** Multi-model harnesses (opencode, pi, omp, copilot, fx) route to many
  * upstream providers — match against every table we know. Harness-reported
  * costs, when present, take precedence over these rates anyway. */
-const MULTI_PROVIDER_RATES: Record<string, ModelRate> = {
+const MULTI_AGENT_RATES: Record<string, ModelRate> = {
 	...CLAUDE_RATES,
 	...CODEX_RATES,
 	...GROK_RATES,
 };
 
-const RATES_BY_PROVIDER: Record<UsageProvider, Record<string, ModelRate>> = {
+const RATES_BY_AGENT: Record<UsageAgent, Record<string, ModelRate>> = {
 	claude: CLAUDE_RATES,
 	codex: CODEX_RATES,
 	grok: GROK_RATES,
 	agy: AGY_RATES,
 	cursor: CURSOR_RATES,
-	opencode: MULTI_PROVIDER_RATES,
-	copilot: MULTI_PROVIDER_RATES,
-	pi: MULTI_PROVIDER_RATES,
-	omp: MULTI_PROVIDER_RATES,
-	fx: MULTI_PROVIDER_RATES,
+	opencode: MULTI_AGENT_RATES,
+	copilot: MULTI_AGENT_RATES,
+	pi: MULTI_AGENT_RATES,
+	omp: MULTI_AGENT_RATES,
+	fx: MULTI_AGENT_RATES,
 };
 
-const cheapestByProvider = new Map<UsageProvider, ModelRate>();
-function cheapestRate(provider: UsageProvider): ModelRate {
-	let cheapest = cheapestByProvider.get(provider);
+const cheapestByAgent = new Map<UsageAgent, ModelRate>();
+function cheapestRate(agent: UsageAgent): ModelRate {
+	let cheapest = cheapestByAgent.get(agent);
 	if (!cheapest) {
-		for (const rate of Object.values(RATES_BY_PROVIDER[provider])) {
+		for (const rate of Object.values(RATES_BY_AGENT[agent])) {
 			if (
 				!cheapest ||
 				rate.inputPerM + rate.outputPerM <
@@ -109,7 +109,7 @@ function cheapestRate(provider: UsageProvider): ModelRate {
 				cheapest = rate;
 			}
 		}
-		cheapestByProvider.set(provider, cheapest as ModelRate);
+		cheapestByAgent.set(agent, cheapest as ModelRate);
 	}
 	return cheapest as ModelRate;
 }
@@ -119,11 +119,8 @@ export interface MatchedRate extends ModelRate {
 	approximate: boolean;
 }
 
-export function matchModelRate(
-	provider: UsageProvider,
-	model: string,
-): MatchedRate {
-	const rates = RATES_BY_PROVIDER[provider];
+export function matchModelRate(agent: UsageAgent, model: string): MatchedRate {
+	const rates = RATES_BY_AGENT[agent];
 	const normalized = model.toLowerCase();
 	// Multi-model harnesses vendor-qualify ids ("anthropic/claude-sonnet-4");
 	// also match on the segment after the last slash so those don't fall
@@ -145,7 +142,7 @@ export function matchModelRate(
 		}
 	}
 	if (best) return { ...best.rate, approximate: false };
-	return { ...cheapestRate(provider), approximate: true };
+	return { ...cheapestRate(agent), approximate: true };
 }
 
 export interface TokenCounts {

@@ -137,7 +137,7 @@ export async function collectOpencodeEntries(
 			seenSessions.add(sessionId);
 			const cost = num(message.cost);
 			out.push({
-				provider: "opencode",
+				agent: "opencode",
 				model: message.modelID || "unknown",
 				timestampMs,
 				cwd: typeof message.path?.cwd === "string" ? message.path.cwd : null,
