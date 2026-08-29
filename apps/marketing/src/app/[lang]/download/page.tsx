@@ -4,7 +4,7 @@ import { initServerI18n } from "@/app/i18n-server";
 import { DownloadInterstitial } from "./components/DownloadInterstitial";
 
 export async function generateMetadata(): Promise<Metadata> {
-	const lang = await initServerI18n();
+	const _lang = await initServerI18n();
 	return {
 		title: i18n._({
 			id: "marketing.meta.download.title",

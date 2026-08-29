@@ -1,7 +1,11 @@
 "use client";
 
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { SupportedLocale } from "@superset/i18n";
+import {
+	isSupportedLocale,
+	LOCALE_COOKIE,
+	type SupportedLocale,
+} from "@superset/i18n";
 import { LanguageSwitcher } from "@superset/i18n/react";
 import { COMPANY } from "@superset/shared/constants";
 import { m } from "framer-motion";
@@ -259,11 +263,30 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 
 function FooterLanguageSwitcher({ locale }: { locale?: SupportedLocale }) {
 	const { t } = useLingui();
+	const pathname = usePathname() ?? "/";
+	// The URL carries the locale, so applying a choice is a navigation: strip
+	// any current locale prefix, then go to the same page under the new one
+	// (bare for English). The cookie still records the choice for the
+	// client-resolved apps (docs, web).
+	const selectLocale = (next: SupportedLocale) => {
+		const segments = pathname.split("/");
+		const barePath = isSupportedLocale(segments[1] ?? "")
+			? `/${segments.slice(2).join("/")}`
+			: pathname;
+		// biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is still not available in all supported browsers, and the page navigates immediately after this write.
+		document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; SameSite=Lax`;
+		window.location.assign(
+			next === "en"
+				? barePath || "/"
+				: `/${next}${barePath === "/" ? "" : barePath}`,
+		);
+	};
 	return (
 		<div className="flex w-max items-center gap-2 text-sm text-muted-foreground transition-colors focus-within:text-foreground hover:text-foreground">
 			<Globe aria-hidden className="size-4 shrink-0" />
 			<LanguageSwitcher
 				locale={locale}
+				onSelect={selectLocale}
 				label={t({
 					id: "marketing.footer.languageLabel",
 					message: "Language",

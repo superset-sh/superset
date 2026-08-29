@@ -58,6 +58,12 @@ interface LanguageSwitcherProps {
 	/** Accessible name for the control, localized by the calling app. */
 	label: string;
 	/**
+	 * When provided, called with the chosen locale instead of the default
+	 * cookie-and-reload behavior — for apps whose locale lives in the URL,
+	 * where applying a choice is a navigation.
+	 */
+	onSelect?: (locale: SupportedLocale) => void;
+	/**
 	 * Server-resolved effective locale, when the caller knows it. Client
 	 * components server-render through the non-RSC module instance, whose
 	 * i18n singleton has not been activated for the request — without this
@@ -85,6 +91,7 @@ interface LanguageSwitcherProps {
 export function LanguageSwitcher({
 	label,
 	locale,
+	onSelect,
 	className,
 }: LanguageSwitcherProps) {
 	// The effective locale: starts at the module's current value (the server
@@ -104,7 +111,11 @@ export function LanguageSwitcher({
 			className={className}
 			value={value}
 			onChange={(event) => {
-				const next = event.target.value;
+				const next = event.target.value as SupportedLocale;
+				if (onSelect) {
+					onSelect(next);
+					return;
+				}
 				// biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is still not available in all supported browsers, and the page reloads immediately after this write.
 				document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; SameSite=Lax`;
 				// A full reload is deliberate: server-rendered apps must

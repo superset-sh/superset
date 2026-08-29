@@ -1,4 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { localizedAlternates } from "@/app/[lang]/metadata";

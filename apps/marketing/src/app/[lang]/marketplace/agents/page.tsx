@@ -1,6 +1,5 @@
 import { Trans } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";

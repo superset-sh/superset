@@ -1,6 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
 import { ArrowUpRight, Download } from "lucide-react";
