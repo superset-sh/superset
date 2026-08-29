@@ -43,6 +43,7 @@ export type DispatchableAutomation = Pick<
 	| "targetHostId"
 	| "v2ProjectId"
 	| "v2WorkspaceId"
+	| "tags"
 >;
 
 /**
@@ -417,7 +418,7 @@ async function createWorkspaceOnHost(args: {
 	// folder under ~/.superset/sessions and dedupes the name per run.
 	if (args.projectId === null) {
 		const result = await relayMutation<
-			{ name: string },
+			{ name: string; tags?: string[] },
 			{ workspace: { id: string } }
 		>(
 			{
@@ -427,7 +428,12 @@ async function createWorkspaceOnHost(args: {
 				timeoutMs: 90_000,
 			},
 			"workspaces.createSession",
-			{ name: args.automation.name.slice(0, 100) },
+			{
+				name: args.automation.name.slice(0, 100),
+				...(args.automation.tags.length > 0
+					? { tags: args.automation.tags }
+					: {}),
+			},
 		);
 		return { workspaceId: result.workspace.id };
 	}
@@ -449,6 +455,7 @@ async function createWorkspaceOnHost(args: {
 			projectId: string;
 			name: string;
 			branch: string;
+			tags?: string[];
 		},
 		{
 			workspace: {
@@ -475,6 +482,10 @@ async function createWorkspaceOnHost(args: {
 			projectId: args.projectId,
 			name: workspaceName,
 			branch: branchName,
+			// An older host's create schema simply strips the unknown key.
+			...(args.automation.tags.length > 0
+				? { tags: args.automation.tags }
+				: {}),
 		},
 	);
 

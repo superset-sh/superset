@@ -4709,6 +4709,16 @@ msgid "dashboard.automations.statCards.showFailedTitle"
 msgstr "只显示上次运行失败的自动化"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.empty"
+msgstr "无标签"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.placeholder"
+msgstr "添加标签…"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/templates/data.ts
 msgid "dashboard.automations.templates.docsFresh.description"
 msgstr "每周三上午9点，回顾本周合并的PR，更新被它们改过时的文档。"
@@ -4762,6 +4772,11 @@ msgstr "下次运行"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.onDevice"
 msgstr "在"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
+msgid "dashboard.automations.triggersCard.taggedWith"
+msgstr "标签"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx

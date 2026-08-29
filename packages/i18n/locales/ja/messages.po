@@ -4709,6 +4709,16 @@ msgid "dashboard.automations.statCards.showFailedTitle"
 msgstr "前回の実行が失敗したオートメーションのみ表示"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.empty"
+msgstr "タグなし"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.placeholder"
+msgstr "タグを追加…"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/templates/data.ts
 msgid "dashboard.automations.templates.docsFresh.description"
 msgstr "毎週水曜午前9時に、今週マージされたPRを確認し、古くなったドキュメントを更新する。"
@@ -4762,6 +4772,11 @@ msgstr "次回の実行"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.onDevice"
 msgstr "で"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
+msgid "dashboard.automations.triggersCard.taggedWith"
+msgstr "タグ:"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx

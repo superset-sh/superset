@@ -863,6 +863,11 @@ export const automations = pgTable(
 		v2ProjectId: uuid("v2_project_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
+		// Workspace tags applied to each run's created workspace, so scheduled
+		// runs file themselves into the matching sidebar folders. Stored
+		// normalized (see @superset/shared/workspace-tags).
+		tags: jsonb().$type<string[]>().notNull().default([]),
+
 		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
 

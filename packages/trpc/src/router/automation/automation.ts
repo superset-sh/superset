@@ -372,6 +372,7 @@ export const automationRouter = {
 						targetHostId,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
+						tags: input.tags ?? [],
 					})
 					.returning();
 
@@ -546,6 +547,7 @@ export const automationRouter = {
 						targetHostId: nextTargetHostId,
 						v2ProjectId: nextProjectId,
 						v2WorkspaceId: nextWorkspaceId,
+						tags: input.tags ?? existing.tags,
 					})
 					.where(eq(automations.id, input.id))
 					.returning();

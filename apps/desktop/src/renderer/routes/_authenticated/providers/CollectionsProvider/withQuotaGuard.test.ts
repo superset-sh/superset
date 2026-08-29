@@ -262,7 +262,7 @@ describe("cross-window storage events", () => {
 			const options = withQuotaGuard(
 				{ storageKey: "sync-test-key" },
 				{ reclaim: () => 0, onPersistFailed: () => {} },
-			) as {
+			) as unknown as {
 				storage: unknown;
 				storageEventApi?: {
 					addEventListener(t: string, l: Listener): void;

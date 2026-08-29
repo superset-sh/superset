@@ -4709,6 +4709,16 @@ msgid "dashboard.automations.statCards.showFailedTitle"
 msgstr "Show only automations whose last run failed"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.empty"
+msgstr "no tags"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.placeholder"
+msgstr "Add tag…"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/templates/data.ts
 msgid "dashboard.automations.templates.docsFresh.description"
 msgstr "Every Wednesday at 9am, review this week's merged PRs and update any docs they made stale."
@@ -4762,6 +4772,11 @@ msgstr "Next run"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.onDevice"
 msgstr "on"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
+msgid "dashboard.automations.triggersCard.taggedWith"
+msgstr "tagged"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx

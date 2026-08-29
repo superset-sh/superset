@@ -4709,6 +4709,16 @@ msgid "dashboard.automations.statCards.showFailedTitle"
 msgstr "마지막 실행이 실패한 자동화만 표시"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.empty"
+msgstr "태그 없음"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/components/AutomationTagsPicker/AutomationTagsPicker.tsx
+msgid "dashboard.automations.tagsPicker.placeholder"
+msgstr "태그 추가…"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/templates/data.ts
 msgid "dashboard.automations.templates.docsFresh.description"
 msgstr "매주 수요일 오전 9시에 이번 주 머지된 PR을 검토하고, 그로 인해 오래된 문서를 업데이트합니다."
@@ -4762,6 +4772,11 @@ msgstr "다음 실행"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
 msgid "dashboard.automations.triggersCard.onDevice"
 msgstr "기기"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
+msgid "dashboard.automations.triggersCard.taggedWith"
+msgstr "태그"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx

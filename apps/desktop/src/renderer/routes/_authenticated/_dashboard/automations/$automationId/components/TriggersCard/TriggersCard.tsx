@@ -15,6 +15,7 @@ import { ProjectPicker } from "../../../components/ProjectPicker";
 import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { TriggersEditor } from "../../../components/TriggersEditor";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
+import { AutomationTagsPicker } from "./components/AutomationTagsPicker";
 
 export type AutomationUpdatePatch = Partial<
 	Omit<Parameters<typeof apiTrpcClient.automation.update.mutate>[0], "id">
@@ -185,6 +186,17 @@ export function TriggersCard({
 								: {}),
 						})
 					}
+				/>
+				<span>
+					<Trans id="dashboard.automations.triggersCard.taggedWith">
+						tagged
+					</Trans>
+				</span>
+				<AutomationTagsPicker
+					className={SCOPE_CHIP}
+					tags={automation.tags}
+					disabled={readOnly}
+					onChange={(tags) => onUpdate({ tags })}
 				/>
 			</div>
 			<RelayOfflineNotice hostId={hostId} className="mt-1" />
