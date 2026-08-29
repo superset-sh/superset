@@ -10807,12 +10807,12 @@ msgstr "모든 워크스페이스"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
 msgid "dashboard.v2Workspaces.pinFilterPinned"
-msgstr "고정됨"
+msgstr "표시됨"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
 msgid "dashboard.v2Workspaces.pinFilterUnpinned"
-msgstr "고정 해제됨"
+msgstr "숨김"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
@@ -10924,7 +10924,7 @@ msgstr "열기"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.pinToSidebar"
-msgstr "사이드바에 고정"
+msgstr "사이드바에 표시"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
@@ -10934,7 +10934,7 @@ msgstr "알 수 없는 오류"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.unpinFromSidebar"
-msgstr "사이드바에서 고정 해제"
+msgstr "사이드바에서 숨기기"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesList/V2WorkspacesList.tsx
@@ -11039,7 +11039,7 @@ msgstr "다른 기기"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx
 msgid "dashboard.workspaces.header.pinnedFilter"
-msgstr "고정됨"
+msgstr "사이드바"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx

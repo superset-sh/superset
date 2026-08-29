@@ -10807,12 +10807,12 @@ msgstr "すべてのワークスペース"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
 msgid "dashboard.v2Workspaces.pinFilterPinned"
-msgstr "ピン留め済み"
+msgstr "表示中"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
 msgid "dashboard.v2Workspaces.pinFilterUnpinned"
-msgstr "ピン留めなし"
+msgstr "非表示"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
@@ -10924,7 +10924,7 @@ msgstr "開く"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.pinToSidebar"
-msgstr "サイドバーにピン留め"
+msgstr "サイドバーに表示"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
@@ -10934,7 +10934,7 @@ msgstr "不明なエラー"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.unpinFromSidebar"
-msgstr "サイドバーのピン留めを解除"
+msgstr "サイドバーから非表示"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesList/V2WorkspacesList.tsx
@@ -11039,7 +11039,7 @@ msgstr "その他のデバイス"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx
 msgid "dashboard.workspaces.header.pinnedFilter"
-msgstr "ピン留め"
+msgstr "サイドバー"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx

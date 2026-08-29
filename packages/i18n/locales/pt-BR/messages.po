@@ -10807,12 +10807,12 @@ msgstr "Todas as áreas de trabalho"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
 msgid "dashboard.v2Workspaces.pinFilterPinned"
-msgstr "Fixadas"
+msgstr "Exibidos"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
 msgid "dashboard.v2Workspaces.pinFilterUnpinned"
-msgstr "Não fixadas"
+msgstr "Ocultos"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore/v2WorkspacesFilterStore.ts
@@ -10924,7 +10924,7 @@ msgstr "Abrir"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.pinToSidebar"
-msgstr "Fixar na barra lateral"
+msgstr "Mostrar na barra lateral"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
@@ -10934,7 +10934,7 @@ msgstr "Erro desconhecido"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspaceContextMenu/V2WorkspaceContextMenu.tsx
 msgid "dashboard.workspaces.contextMenu.unpinFromSidebar"
-msgstr "Desafixar da barra lateral"
+msgstr "Ocultar da barra lateral"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesList/V2WorkspacesList.tsx
@@ -11039,7 +11039,7 @@ msgstr "Outros dispositivos"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx
 msgid "dashboard.workspaces.header.pinnedFilter"
-msgstr "Fixadas"
+msgstr "Barra lateral"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacesHeader/V2WorkspacesHeader.tsx

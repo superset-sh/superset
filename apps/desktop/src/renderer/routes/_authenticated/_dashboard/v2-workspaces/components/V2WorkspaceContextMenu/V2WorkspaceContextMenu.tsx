@@ -10,8 +10,13 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useCallback } from "react";
-import { LuArrowUpRight, LuGitBranch, LuTrash2 } from "react-icons/lu";
-import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
+import {
+	LuArrowUpRight,
+	LuGitBranch,
+	LuPanelLeftClose,
+	LuPanelLeftOpen,
+	LuTrash2,
+} from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -29,7 +34,7 @@ export interface V2WorkspaceActions {
 
 interface V2WorkspaceContextMenuProps {
 	workspace: AccessibleV2Workspace;
-	/** Unpinning the current route's workspace is blocked. */
+	/** Hiding the current route's workspace from the sidebar is blocked. */
 	isCurrentRoute?: boolean;
 	/** Rendered as the context-menu trigger; receives the shared actions so
 	 * inline affordances (pin cell, trash button, card click) reuse them. */
@@ -80,15 +85,15 @@ export function V2WorkspaceContextMenu({
 
 	const removeFromSidebar = useCallback(() => {
 		if (isCurrentRoute) return;
-		// Unpin directly (synchronous optimistic write) rather than routing
+		// Hide directly (synchronous optimistic write) rather than routing
 		// through the intent store + RemoveFromSidebarMount effect, which adds
 		// an extra render cycle of latency. The list view is never a workspace
 		// route, so there's no active workspace to navigate away from.
 		//
 		// Always hide (keep the row with isHidden) rather than delete: the
 		// auto-add-local-workspaces hook treats a missing v2WorkspaceLocalState
-		// row as never-seen and would re-pin it. The tombstone row preserves the
-		// unpin intent.
+		// row as never-seen and would show it again. The tombstone row preserves
+		// the hidden state.
 		hideWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [
 		isCurrentRoute,
@@ -159,16 +164,16 @@ export function V2WorkspaceContextMenu({
 						onSelect={removeFromSidebar}
 						disabled={isCurrentRoute}
 					>
-						<RiPushpinLine className="size-4" />
+						<LuPanelLeftClose className="size-4" />
 						<Trans id="dashboard.workspaces.contextMenu.unpinFromSidebar">
-							Unpin from Sidebar
+							Hide from Sidebar
 						</Trans>
 					</ContextMenuItem>
 				) : (
 					<ContextMenuItem onSelect={addToSidebar}>
-						<RiPushpinFill className="size-4" />
+						<LuPanelLeftOpen className="size-4" />
 						<Trans id="dashboard.workspaces.contextMenu.pinToSidebar">
-							Pin to Sidebar
+							Show on Sidebar
 						</Trans>
 					</ContextMenuItem>
 				)}
