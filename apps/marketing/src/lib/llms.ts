@@ -2,7 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import {
 	FAQ_ITEMS,
 	faqSourceText,
-} from "@/app/components/FAQSection/constants";
+} from "@/app/[lang]/components/FAQSection/constants";
 import { API_URL, MCP_SERVER_URL } from "./api-url";
 import { getBlogPosts } from "./blog";
 import { getCategoryPages } from "./category";

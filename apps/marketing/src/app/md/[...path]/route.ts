@@ -1,13 +1,13 @@
 import type { MessageDescriptor } from "@lingui/core";
 import { i18n, initI18n } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
-import { MCP_CAPABILITIES } from "@/app/mcp-install/components/McpCapabilities/constants";
+import { MCP_CAPABILITIES } from "@/app/[lang]/mcp-install/components/McpCapabilities/constants";
 import {
 	COMPARISON_SECTIONS,
 	type ComparisonValue,
 	PRICING_FAQ_ITEMS,
 	PRICING_TIERS,
-} from "@/app/pricing/constants";
+} from "@/app/[lang]/pricing/constants";
 import { getBlogPost } from "@/lib/blog";
 import { getCategoryPage } from "@/lib/category";
 import { getChangelogEntry } from "@/lib/changelog";

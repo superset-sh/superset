@@ -2,7 +2,7 @@ import { COMPANY } from "@superset/shared/constants";
 import {
 	FAQ_ITEMS,
 	faqSourceText,
-} from "@/app/components/FAQSection/constants";
+} from "@/app/[lang]/components/FAQSection/constants";
 import {
 	buildCompanyFactsSection,
 	buildDeveloperResourcesSection,

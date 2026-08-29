@@ -2,7 +2,10 @@ import { COMPANY } from "@superset/shared/constants";
 import { getBlogPosts } from "@/lib/blog";
 import { getComparisonPages } from "@/lib/compare";
 import { PRODUCT_SUMMARY, stripMdxSyntax } from "@/lib/llms";
-import { FAQ_ITEMS, faqSourceText } from "../components/FAQSection/constants";
+import {
+	FAQ_ITEMS,
+	faqSourceText,
+} from "../[lang]/components/FAQSection/constants";
 
 export async function GET() {
 	const posts = getBlogPosts();
