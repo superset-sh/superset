@@ -109,6 +109,56 @@ export function markTerminalAgentBindingEnded(
 	return { workspaceId: row.workspaceId };
 }
 
+/**
+ * A terminal's binding whatever its state — including rows already stamped
+ * `endedAt`/`endReason`. Every other read in this module hides ended and
+ * dead-terminal bindings on purpose; this one exists so an orchestrator can
+ * recover the provider conversation id after the agent (or the whole
+ * terminal) is gone, instead of reading a provider's private session files.
+ * Scoped by the workspace recorded on the binding, so it answers even when
+ * the terminal session row has already been swept.
+ */
+export function findTerminalAgentBinding(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): TerminalAgentBinding | undefined {
+	const row = db
+		.select(bindingColumns)
+		.from(terminalAgentBindings)
+		.where(
+			and(
+				eq(terminalAgentBindings.terminalId, terminalId),
+				eq(terminalAgentBindings.workspaceId, workspaceId),
+			),
+		)
+		.get();
+	return row ? rowToBinding(row) : undefined;
+}
+
+/**
+ * The stored status of a workspace-owned terminal, or undefined when the
+ * workspace does not own a terminal by that id. Read alongside the binding
+ * so a still-open shell whose agent has ended is legible as exactly that.
+ */
+export function findTerminalSessionStatus(
+	db: HostDb,
+	workspaceId: string,
+	terminalId: string,
+): string | undefined {
+	const row = db
+		.select({ status: terminalSessions.status })
+		.from(terminalSessions)
+		.where(
+			and(
+				eq(terminalSessions.id, terminalId),
+				eq(terminalSessions.originWorkspaceId, workspaceId),
+			),
+		)
+		.get();
+	return row?.status;
+}
+
 /** The agent session id a terminal's binding currently points at, if any. */
 export function getTerminalAgentBindingSessionId(
 	db: HostDb,
@@ -123,11 +173,19 @@ export function getTerminalAgentBindingSessionId(
 }
 
 /**
- * A dead terminal's binding is resumable when: agent session id captured, the
- * terminal died under the agent ("terminal-exited") rather than the agent
- * detaching cleanly, and the session progressed past its start — agents only
- * persist a conversation once it has a message, so resuming a never-prompted
- * session fails with "no conversation found".
+ * Which dead terminals Superset may restore into a pane *on its own*. This is
+ * deliberately narrower than "the provider conversation can be resumed":
+ * auto-resume only acts when the agent session id was captured, the terminal
+ * died under the agent ("terminal-exited") rather than the agent detaching
+ * cleanly, and the session progressed past its start — agents only persist a
+ * conversation once it has a message, so resuming a never-prompted session
+ * fails with "no conversation found".
+ *
+ * A session the user quit or killed is excluded here because resurrecting it
+ * unasked would be wrong, not because its id stopped working. Deliberate
+ * resume-by-id (`agents create --resume-session`) is reported by
+ * `@superset/shared/agent-session-identity` and is unaffected by this
+ * predicate.
  */
 function resumeCandidatePredicate(workspaceId: string, terminalId: string) {
 	return and(

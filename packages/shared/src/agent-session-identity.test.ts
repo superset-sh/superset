@@ -109,6 +109,22 @@ describe("isAgentSessionResumable", () => {
 			}),
 		).toBe(true);
 	});
+
+	it("stays true for end reasons the host will not auto-resume", () => {
+		// "detached" and "disposed" bar Superset from restoring a pane on its
+		// own; neither invalidates the provider's conversation id.
+		for (const endReason of ["detached", "disposed", "resumed"]) {
+			expect(
+				buildAgentSessionIdentity({
+					agentSessionId: "prov-1",
+					resumeArgs: CLAUDE_RESUME_ARGS,
+					lastEventType: "Stop",
+					endedAt: 1_700_000_001_000,
+					endReason,
+				}).resumable,
+			).toBe(true);
+		}
+	});
 });
 
 describe("buildAgentSessionIdentity", () => {

@@ -2,6 +2,10 @@ import {
 	type AgentDefinitionId,
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
+import {
+	type AgentSessionIdentity,
+	buildAgentSessionIdentity,
+} from "@superset/shared/agent-session-identity";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
@@ -17,6 +21,8 @@ import type {
 import {
 	claimResumeCandidateBinding,
 	findResumeCandidateBinding,
+	findTerminalAgentBinding,
+	findTerminalSessionStatus,
 	seedEndedTerminalAgentBinding,
 	unclaimResumeCandidateBinding,
 } from "../../../terminal-agents/persistence";
@@ -54,6 +60,67 @@ export interface ResumeSessionDeps {
 		resumeSessionId: string;
 	}) => Promise<AgentRunResult>;
 	disposeSession: (terminalId: string) => Promise<unknown>;
+}
+
+/**
+ * The two identities a terminal carries, kept apart: `terminalId` names the
+ * PTY, `agent` names the provider conversation running inside it.
+ *
+ * `terminalStatus` is the PTY's own state, so a provider that exited while
+ * its shell stayed open reads as an ended agent in an `active` terminal
+ * rather than as a live agent. `agent` is null when no lifecycle hook has
+ * ever bound an agent to this terminal — a bare shell, or a launch whose
+ * first hook has not landed yet.
+ */
+export interface TerminalAgentSessionView {
+	kind: "terminal";
+	terminalId: string;
+	workspaceId: string;
+	terminalStatus: string | null;
+	agent: AgentSessionIdentity | null;
+}
+
+/**
+ * Read a terminal's durable agent binding, including one already stamped
+ * `endedAt`/`endReason`. This is the supported way for an orchestrator to
+ * recover a parked conversation's provider session id; it never asks the
+ * caller to interpret a provider's private files, and it never normalizes
+ * the id it returns.
+ *
+ * Returns null when the workspace owns neither a binding nor a terminal by
+ * that id.
+ */
+export function getTerminalAgentSession(
+	db: HostDb,
+	input: { workspaceId: string; terminalId: string },
+): TerminalAgentSessionView | null {
+	const { workspaceId, terminalId } = input;
+	const binding = findTerminalAgentBinding(db, workspaceId, terminalId);
+	const terminalStatus = findTerminalSessionStatus(db, workspaceId, terminalId);
+	if (!binding && terminalStatus === undefined) return null;
+
+	const config = binding
+		? resolveHostAgentConfig(db, binding.definitionId ?? binding.agentId)
+		: null;
+
+	return {
+		kind: "terminal",
+		terminalId,
+		workspaceId,
+		terminalStatus: terminalStatus ?? null,
+		agent: binding
+			? buildAgentSessionIdentity({
+					presetId: config?.presetId ?? binding.agentId,
+					agentSessionId: binding.agentSessionId,
+					resumeArgs: config?.resumeArgs,
+					lastEventType: binding.lastEventType,
+					lastEventAt: binding.lastEventAt,
+					startedAt: binding.startedAt,
+					endedAt: binding.endedAt,
+					endReason: binding.endReason,
+				})
+			: null,
+	};
 }
 
 const resumeInflight = new Map<string, Promise<ResumeResult>>();
@@ -120,7 +187,7 @@ export async function resumeTerminalAgentSession(
 
 		return {
 			resumed: true,
-			terminalId: result.sessionId,
+			terminalId: result.terminalId,
 			label: result.label,
 		};
 	})();
@@ -153,6 +220,20 @@ export const terminalAgentsRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.terminalAgentStore.list();
 	}),
+
+	/** See {@link getTerminalAgentSession}. Backs `superset agents get`. */
+	get: protectedProcedure
+		.input(z.object({ workspaceId: z.string(), terminalId: z.string() }))
+		.query(({ ctx, input }) => {
+			const session = getTerminalAgentSession(ctx.db, input);
+			if (!session) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No terminal ${input.terminalId} in workspace ${input.workspaceId}`,
+				});
+			}
+			return session;
+		}),
 
 	listByWorkspace: protectedProcedure
 		.input(

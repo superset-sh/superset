@@ -56,11 +56,17 @@ export const terminalAgentBindings = sqliteTable(
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),
-		// Set when the agent session ended. "detached" = the agent reported its
-		// own end (SessionEnd hook) — not resumable; "terminal-exited" = the
-		// terminal died under it (kill, crash, reboot) — resume candidate;
-		// "resumed" = the candidate was consumed by an auto-resume; "disposed"
-		// = deliberately killed (pane close, CLI kill) — never resumable.
+		// Set when the agent session ended. This records whether Superset may
+		// restore the session into a pane BY ITSELF — not whether the provider
+		// conversation can still be resumed at all. "detached" = the agent
+		// reported its own end (SessionEnd hook), so the user quit and no pane
+		// should reappear; "terminal-exited" = the terminal died under it
+		// (kill, crash, reboot), the one case auto-resume acts on; "resumed" =
+		// that candidate was already consumed; "disposed" = deliberately killed
+		// (pane close, CLI kill), which must never come back on its own.
+		// `agentSessionId` outlives every one of them, so an orchestrator that
+		// deliberately parked a conversation can always resume it by id —
+		// see @superset/shared/agent-session-identity.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
 	},

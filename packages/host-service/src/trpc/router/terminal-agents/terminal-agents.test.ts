@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { buildAgentSessionIdentity } from "@superset/shared/agent-session-identity";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -94,8 +95,13 @@ function createDeps(
 			if (runAgent) return runAgent(input);
 			return Promise.resolve({
 				kind: "terminal",
+				terminalId: "t-new",
 				sessionId: "t-new",
 				label: "Claude",
+				agent: buildAgentSessionIdentity({
+					presetId: "claude",
+					resumeArgs: ["--resume"],
+				}),
 			} satisfies AgentRunResult);
 		},
 		disposeSession: (terminalId) => {
@@ -163,7 +169,16 @@ describe("resumeTerminalAgentSession", () => {
 		});
 		const { deps, runCalls } = createDeps(db, async () => {
 			await gate;
-			return { kind: "terminal", sessionId: "t-new", label: "Claude" };
+			return {
+				kind: "terminal",
+				terminalId: "t-new",
+				sessionId: "t-new",
+				label: "Claude",
+				agent: buildAgentSessionIdentity({
+					presetId: "claude",
+					resumeArgs: ["--resume"],
+				}),
+			};
 		});
 
 		const input = { workspaceId: "ws-1", terminalId: "t1" };
@@ -192,8 +207,13 @@ describe("resumeTerminalAgentSession", () => {
 			}
 			return Promise.resolve({
 				kind: "terminal",
+				terminalId: "t-new",
 				sessionId: "t-new",
 				label: "Claude",
+				agent: buildAgentSessionIdentity({
+					presetId: "claude",
+					resumeArgs: ["--resume"],
+				}),
 			});
 		});
 

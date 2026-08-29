@@ -75,11 +75,18 @@ export interface AgentSessionResumableInput {
 
 /**
  * Whether `agentSessionId` can actually be handed back through
- * `agents create --resume-session`. Ending does not make a session
- * unresumable — parking a conversation and picking it up later is the
- * point. Never having started one does: providers only persist a
- * conversation once it has a message, so an id captured at attach time
- * resolves to "no conversation found".
+ * `agents create --resume-session`.
+ *
+ * This is provider capability, not app policy. It is deliberately broader
+ * than the host's auto-resume rule, which asks a different question — may
+ * Superset restore this session into a pane *unasked*? — and answers no for
+ * a session the user quit or killed. Those still hold a live provider
+ * conversation, and deliberately parking one to pick up later is the whole
+ * point of this contract, so ending never clears `resumable`.
+ *
+ * Never having started a conversation does: providers only persist one once
+ * it has a message, so an id captured at attach time resolves to "no
+ * conversation found".
  */
 export function isAgentSessionResumable({
 	agentSessionId,
