@@ -65,10 +65,10 @@ export const ENFORCED_DIRS: readonly string[] = [
 	// batch 5: marketing routes that are fully converted. The component
 	// directories stay out — their mockups deliberately render fake CLI output
 	// and brand names, which the scanner cannot tell from real copy.
-	"apps/marketing/src/app/contact",
-	"apps/marketing/src/app/enterprise",
-	"apps/marketing/src/app/mcp-install",
-	"apps/marketing/src/app/pricing",
-	"apps/marketing/src/app/roadmap",
-	"apps/marketing/src/app/stats",
+	"apps/marketing/src/app/[lang]/contact",
+	"apps/marketing/src/app/[lang]/enterprise",
+	"apps/marketing/src/app/[lang]/mcp-install",
+	"apps/marketing/src/app/[lang]/pricing",
+	"apps/marketing/src/app/[lang]/roadmap",
+	"apps/marketing/src/app/[lang]/stats",
 ];

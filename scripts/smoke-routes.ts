@@ -60,34 +60,41 @@ async function waitForReady(timeoutMs = 90_000) {
 // 2026-08-29 on 25 pages, invisible to status-code checks).
 const CJK = /[\u3040-\u30ff\u3400-\u9fff]/g;
 async function hitLocalized(route: string) {
-	const url = `${base}${route}`;
-	let res: Response;
-	try {
-		res = await fetch(url, {
-			headers: { "Accept-Language": "ja" },
-			redirect: "manual",
-		});
-	} catch (error) {
-		failures.push({
-			route,
-			mode: "ja",
-			detail: `request failed: ${String(error)}`,
-		});
-		return;
-	}
-	if (res.status >= 300) return; // redirects and errors are the plain pass's job
-	const body = await res.text();
-	const lang = body.match(/<html[^>]*\slang="([^"]*)"/)?.[1];
-	if (lang !== undefined && lang !== "ja") {
-		failures.push({ route, mode: "ja", detail: `served lang="${lang}"` });
-		return;
-	}
-	if ((body.match(CJK)?.length ?? 0) < 10) {
-		failures.push({
-			route,
-			mode: "ja",
-			detail: "no Japanese text in served HTML",
-		});
+	// URL-based since the [lang] migration: /ja<route> must serve Japanese
+	// and the bare route English, both read from raw served HTML so client
+	// patch-up cannot mask a server regression.
+	for (const [url, wantLang, wantCjk] of [
+		[`${base}/ja${route === "/" ? "" : route}`, "ja", true],
+		[`${base}${route}`, "en", false],
+	] as const) {
+		let res: Response;
+		try {
+			res = await fetch(url, {
+				headers: { "Accept-Language": "ja" },
+				redirect: "manual",
+			});
+		} catch (error) {
+			failures.push({
+				route,
+				mode: wantLang,
+				detail: `request failed: ${String(error)}`,
+			});
+			continue;
+		}
+		if (res.status >= 300) continue; // redirects/errors are the plain pass's job
+		const body = await res.text();
+		const lang = body.match(/<html[^>]*\slang="([^"]*)"/)?.[1];
+		if (lang !== undefined && lang !== wantLang) {
+			failures.push({ route, mode: wantLang, detail: `served lang="${lang}"` });
+			continue;
+		}
+		if (wantCjk && (body.match(CJK)?.length ?? 0) < 10) {
+			failures.push({
+				route,
+				mode: wantLang,
+				detail: "no Japanese text in served HTML",
+			});
+		}
 	}
 }
 

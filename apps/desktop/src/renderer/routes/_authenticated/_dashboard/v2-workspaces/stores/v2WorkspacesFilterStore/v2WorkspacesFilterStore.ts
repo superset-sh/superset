@@ -69,11 +69,11 @@ export const V2_WORKSPACES_PIN_FILTER_LABELS: Record<
 	}),
 	pinned: msg({
 		id: "dashboard.v2Workspaces.pinFilterPinned",
-		message: "Pinned",
+		message: "Shown",
 	}),
 	unpinned: msg({
 		id: "dashboard.v2Workspaces.pinFilterUnpinned",
-		message: "Unpinned",
+		message: "Hidden",
 	}),
 };
 
@@ -136,7 +136,7 @@ interface V2WorkspacesFilterState {
 	prStateFilters: V2WorkspacesPrStateFilter[];
 	/** Empty = any agent status. */
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[];
-	/** Sidebar visibility: pinned, unpinned, or both ("all"). */
+	/** Sidebar visibility: shown, hidden, or both ("all"). */
 	pinFilter: V2WorkspacesPinFilter;
 	viewMode: V2WorkspacesViewMode;
 	/** Row order inside status groups (both views). */

@@ -1,5 +1,7 @@
+import { SUPPORTED_LOCALES } from "@superset/i18n";
 import { COMPANY } from "@superset/shared/constants";
 import type { MetadataRoute } from "next";
+import { localeUrl } from "@/app/[lang]/metadata";
 import { getBlogPosts } from "@/lib/blog";
 import { getCategoryPages } from "@/lib/category";
 import { getChangelogEntries } from "@/lib/changelog";
@@ -189,7 +191,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		priority: 0.6,
 	}));
 
-	return [
+	const pages = [
 		...staticPages,
 		...blogPages,
 		...changelogPages,
@@ -199,4 +201,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		...legalPages,
 		...themePages,
 	];
+
+	// Every page exists once per locale (English at the bare URL, others under
+	// /{locale}), and every entry names its siblings via hreflang alternates —
+	// this is what makes the localized tree discoverable to search engines.
+	return pages.flatMap((entry) => {
+		const path = entry.url === baseUrl ? "/" : entry.url.slice(baseUrl.length);
+		const languages: Record<string, string> = {
+			"x-default": localeUrl("en", path),
+		};
+		for (const locale of SUPPORTED_LOCALES) {
+			languages[locale] = localeUrl(locale, path);
+		}
+		return SUPPORTED_LOCALES.map((locale) => ({
+			...entry,
+			url: localeUrl(locale, path),
+			alternates: { languages },
+		}));
+	});
 }

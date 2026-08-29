@@ -4,7 +4,6 @@ import { I18nProvider as LinguiI18nProvider } from "@lingui/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { i18n, inferLocale, initI18n } from "./index";
 import {
-	isSupportedLocale,
 	LOCALE_COOKIE,
 	LOCALE_LABELS,
 	SUPPORTED_LOCALES,
@@ -58,8 +57,20 @@ export function I18nProvider({
 interface LanguageSwitcherProps {
 	/** Accessible name for the control, localized by the calling app. */
 	label: string;
-	/** Label for the follow-the-browser entry, localized by the calling app. */
-	autoLabel: string;
+	/**
+	 * When provided, called with the chosen locale instead of the default
+	 * cookie-and-reload behavior — for apps whose locale lives in the URL,
+	 * where applying a choice is a navigation.
+	 */
+	onSelect?: (locale: SupportedLocale) => void;
+	/**
+	 * Server-resolved effective locale, when the caller knows it. Client
+	 * components server-render through the non-RSC module instance, whose
+	 * i18n singleton has not been activated for the request — without this
+	 * the select's initial value names the default language, not the one on
+	 * screen.
+	 */
+	locale?: SupportedLocale;
 	className?: string;
 }
 
@@ -70,26 +81,28 @@ interface LanguageSwitcherProps {
  * its lang attribute so screen readers pronounce it correctly, no flags
  * (flags name countries, not languages).
  *
- * The choice persists in LOCALE_COOKIE and applies with a full reload:
- * server-resolved apps re-render in the new language, and inferLocale honors
- * the cookie everywhere else. "Auto" clears the cookie and returns to
- * browser preferences. Strings arrive as props because each app extracts its
- * own catalog entries for them.
+ * The trigger shows the language actually in effect, never a meta-label like
+ * "Auto": before any choice it names the auto-detected language, which is
+ * what the reader sees around them. Choosing a language pins it in
+ * LOCALE_COOKIE and reloads — server-resolved apps re-render in the new
+ * language, and inferLocale honors the cookie everywhere else. Strings
+ * arrive as props because each app extracts its own catalog entries.
  */
 export function LanguageSwitcher({
 	label,
-	autoLabel,
+	locale,
+	onSelect,
 	className,
 }: LanguageSwitcherProps) {
-	// Starts at "auto" on both server and first client render, then reads the
-	// cookie after mount — keeps server and client markup identical.
-	const [value, setValue] = useState("auto");
+	// The effective locale: starts at the module's current value (the server
+	// pass rendered with the request's locale on server-resolved apps) and
+	// follows activation, so the trigger always names the language on screen.
+	const [value, setValue] = useState<SupportedLocale>(
+		() => locale ?? (i18n.locale as SupportedLocale),
+	);
 	useEffect(() => {
-		const match = document.cookie.match(
-			new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`),
-		);
-		const chosen = match?.[1];
-		if (chosen && isSupportedLocale(chosen)) setValue(chosen);
+		setValue(i18n.locale as SupportedLocale);
+		return i18n.on("change", () => setValue(i18n.locale as SupportedLocale));
 	}, []);
 
 	return (
@@ -98,18 +111,18 @@ export function LanguageSwitcher({
 			className={className}
 			value={value}
 			onChange={(event) => {
-				const next = event.target.value;
+				const next = event.target.value as SupportedLocale;
+				if (onSelect) {
+					onSelect(next);
+					return;
+				}
 				// biome-ignore lint/suspicious/noDocumentCookie: the Cookie Store API is still not available in all supported browsers, and the page reloads immediately after this write.
-				document.cookie =
-					next === "auto"
-						? `${LOCALE_COOKIE}=; path=/; max-age=0; SameSite=Lax`
-						: `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; SameSite=Lax`;
+				document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; SameSite=Lax`;
 				// A full reload is deliberate: server-rendered apps must
 				// re-resolve the locale, and the whole page changes language.
 				window.location.reload();
 			}}
 		>
-			<option value="auto">{autoLabel}</option>
 			{SUPPORTED_LOCALES.map((locale) => (
 				<option key={locale} value={locale} lang={locale}>
 					{LOCALE_LABELS[locale]}

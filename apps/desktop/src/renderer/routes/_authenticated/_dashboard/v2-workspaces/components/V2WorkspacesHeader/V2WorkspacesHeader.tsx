@@ -29,7 +29,7 @@ import {
 	LuListFilter,
 	LuMonitor,
 	LuMonitorSmartphone,
-	LuPin,
+	LuPanelLeft,
 	LuSquareKanban,
 	LuTerminal,
 } from "react-icons/lu";
@@ -377,9 +377,9 @@ export function V2WorkspacesHeader({
 							<DropdownMenuSub>
 								<DropdownMenuSubTrigger>
 									<span className="flex items-center gap-2">
-										<LuPin className="size-3.5" />
+										<LuPanelLeft className="size-3.5" />
 										<Trans id="dashboard.workspaces.header.pinnedFilter">
-											Pinned
+											Sidebar
 										</Trans>
 									</span>
 									{pinFilter !== "all" ? (

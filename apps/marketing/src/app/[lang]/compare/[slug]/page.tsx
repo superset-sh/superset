@@ -1,0 +1,125 @@
+import { COMPANY } from "@superset/shared/constants";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { MDXRemote } from "next-mdx-remote/rsc";
+import remarkGfm from "remark-gfm";
+import { mdxComponents } from "@/app/[lang]/blog/components/mdx-components";
+import { localeUrl, localizedAlternates } from "@/app/[lang]/metadata";
+import { initServerI18n } from "@/app/i18n-server";
+import {
+	BreadcrumbJsonLd,
+	ComparisonJsonLd,
+	FAQPageJsonLd,
+	ItemListJsonLd,
+} from "@/components/JsonLd";
+import { getAllComparisonSlugs, getComparisonPage } from "@/lib/compare";
+import {
+	extractComparisonFaqItems,
+	extractRoundupItems,
+	getComparisonPageTypeLabel,
+} from "@/lib/compare-utils";
+import { slugify } from "@/lib/content-utils";
+import { CompareLayout } from "./components/CompareLayout";
+
+interface PageProps {
+	params: Promise<{ slug: string }>;
+}
+
+export default async function ComparePageRoute({ params }: PageProps) {
+	await initServerI18n();
+
+	const { slug } = await params;
+	const page = getComparisonPage(slug);
+
+	if (!page) {
+		notFound();
+	}
+
+	const url = `${COMPANY.MARKETING_URL}/compare/${slug}`;
+	const faqItems = extractComparisonFaqItems(page.content);
+	const roundupItems =
+		page.type === "roundup"
+			? extractRoundupItems(page.content).map((item) => ({
+					name: item,
+					url: `${url}#${slugify(item)}`,
+				}))
+			: [];
+
+	return (
+		<main>
+			{roundupItems.length > 1 && (
+				<ItemListJsonLd name={page.title} items={roundupItems} />
+			)}
+			<ComparisonJsonLd
+				title={page.title}
+				description={page.description}
+				publishedTime={new Date(page.date).toISOString()}
+				modifiedTime={
+					page.lastUpdated
+						? new Date(page.lastUpdated).toISOString()
+						: undefined
+				}
+				url={url}
+				image={page.image}
+				keywords={page.keywords}
+				articleSection={getComparisonPageTypeLabel(page.type)}
+			/>
+			<BreadcrumbJsonLd
+				items={[
+					{ name: "Home", url: COMPANY.MARKETING_URL },
+					{ name: "Compare", url: `${COMPANY.MARKETING_URL}/compare` },
+					{ name: page.title, url },
+				]}
+			/>
+			{faqItems.length > 0 && <FAQPageJsonLd items={faqItems} />}
+			<CompareLayout page={page}>
+				<MDXRemote
+					source={page.content}
+					components={mdxComponents}
+					options={{ mdxOptions: { remarkPlugins: [remarkGfm] } }}
+				/>
+			</CompareLayout>
+		</main>
+	);
+}
+
+export async function generateStaticParams() {
+	return getAllComparisonSlugs().map((slug) => ({ slug }));
+}
+
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
+	const lang = await initServerI18n();
+	const { slug } = await params;
+	const page = getComparisonPage(slug);
+
+	if (!page) {
+		return {};
+	}
+
+	const url = localeUrl(lang, `/compare/${slug}`);
+
+	return {
+		title: `${page.title} | ${COMPANY.NAME}`,
+		description: page.description,
+		...(page.keywords.length > 0 && { keywords: page.keywords }),
+		alternates: localizedAlternates(lang, `/compare/${slug}`),
+		openGraph: {
+			title: page.title,
+			description: page.description,
+			type: "article",
+			url,
+			siteName: COMPANY.NAME,
+			publishedTime: page.date,
+			modifiedTime: page.lastUpdated ?? page.date,
+			...(page.image && { images: [page.image] }),
+		},
+		twitter: {
+			card: "summary_large_image",
+			title: page.title,
+			description: page.description,
+			...(page.image && { images: [page.image] }),
+		},
+	};
+}
