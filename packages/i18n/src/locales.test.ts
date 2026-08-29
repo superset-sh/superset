@@ -54,6 +54,28 @@ describe("multi-locale support", () => {
 		expect(resolveLocale(["ja-JP"])).toBe("ja");
 	});
 
+	test("routes Traditional-script Chinese to zh-TW, not the first zh-*", () => {
+		// The failure this guards: matching on the base language alone sends
+		// every Traditional preference to whichever zh-* is listed first, so a
+		// Taiwanese or Hong Kong user is shown Simplified. Chrome and macOS
+		// both report the script subtag rather than a bare region.
+		expect(resolveLocale(["zh-Hant"])).toBe("zh-TW");
+		expect(resolveLocale(["zh-Hant-TW"])).toBe("zh-TW");
+		expect(resolveLocale(["zh-HK"])).toBe("zh-TW");
+		expect(resolveLocale(["zh-MO"])).toBe("zh-TW");
+	});
+
+	test("keeps Simplified-script preferences on zh-CN", () => {
+		expect(resolveLocale(["zh-Hans"])).toBe("zh-CN");
+		expect(resolveLocale(["zh-SG"])).toBe("zh-CN");
+	});
+
+	test("matches tags case-insensitively", () => {
+		// navigator.languages is not guaranteed to use canonical casing.
+		expect(resolveLocale(["zh-tw"])).toBe("zh-TW");
+		expect(resolveLocale(["ZH-HANT"])).toBe("zh-TW");
+	});
+
 	test("prefers an earlier preference over a later exact match", () => {
 		expect(resolveLocale(["ja", "en"])).toBe("ja");
 	});
