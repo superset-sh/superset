@@ -33,12 +33,19 @@ jobs:
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          # Least privilege: pushing the fills needs contents only.
+          permission-contents: write
 
       - name: Checkout PR head
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-          token: ${{ steps.app-token.outputs.token }}
+          # The stale-translation check resolves a merge base.
+          fetch-depth: 0
+          # Extract and the translator execute repo-controlled code (lingui
+          # config, scripts), so the token must not sit in git config where a
+          # malicious PR could read it. It is passed only to the push step.
+          persist-credentials: false
 
       - name: Setup Bun
         id: setup-bun
@@ -93,6 +100,8 @@ jobs:
 
       - name: Commit and push fills
         if: steps.missing.outputs.count != '0'
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git config user.name "superset-i18n[bot]"
           git config user.email "i18n-bot@superset.sh"
@@ -102,4 +111,4 @@ jobs:
             exit 1
           fi
           git commit -m "chore(i18n): translate new strings across enabled locales"
-          git push
+          git push "https://x-access-token:${APP_TOKEN}@github.com/${{ github.repository }}.git" "HEAD:${{ github.event.pull_request.head.ref }}"
