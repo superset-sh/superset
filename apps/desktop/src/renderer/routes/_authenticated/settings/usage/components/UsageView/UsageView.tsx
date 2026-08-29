@@ -34,12 +34,15 @@ import type {
 } from "../../hooks/useHostUsageQuota";
 import { useHostUsageQuota } from "../../hooks/useHostUsageQuota";
 import { useRemoveUsageAccount } from "../../hooks/useRemoveUsageAccount";
+import { useRestartAgentSessions } from "../../hooks/useRestartAgentSessions";
 import { useSetDefaultUsageAccount } from "../../hooks/useSetDefaultUsageAccount";
 import { LeaderboardPrompt } from "../LeaderboardPrompt";
 import { UsageHistorySection } from "../UsageHistorySection";
 import type { SwitchSignInTarget } from "./components/AddAccountDialog";
 import { AddAccountDialog } from "./components/AddAccountDialog";
 import { RemoveAccountDialog } from "./components/RemoveAccountDialog";
+import type { RestartSessionsPrompt } from "./components/RestartSessionsDialog";
+import { RestartSessionsDialog } from "./components/RestartSessionsDialog";
 import { formatResetIn, formatResetLabel } from "./utils/formatResetIn";
 import { switchSignInCommand } from "./utils/switchSignInCommand";
 
@@ -363,27 +366,96 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 		null,
 	);
 	const [removeTarget, setRemoveTarget] = useState<UsageAccount | null>(null);
+	const [restartPrompt, setRestartPrompt] =
+		useState<RestartSessionsPrompt | null>(null);
+	const { countRestartCandidates, restartMutation } =
+		useRestartAgentSessions(hostUrl);
 
 	const accounts = quotaQuery.data ?? [];
 	const isBusy = quotaQuery.isFetching || isRefreshing;
 
+	const showMadeDefaultToast = (agentLabel: string, accountLabel: string) => {
+		toast.success(
+			t({
+				id: "settings.usage.account.madeDefaultToast",
+				message: `New ${agentLabel} agents will use ${accountLabel}.`,
+			}),
+			{
+				description: t({
+					id: "settings.usage.account.madeDefaultDescription",
+					message: "Relaunch running agents to switch them.",
+				}),
+			},
+		);
+	};
+
+	// Running agents keep the previous account (their PTY env froze at
+	// spawn) — after a switch, offer to restart them onto the new one. When
+	// the host can't be asked, fall back to the plain toast.
+	const handleDefaultSwitched = async (
+		agent: ManagedAgent,
+		accountLabel: string,
+	) => {
+		const agentLabel = AGENT_LABELS[agent];
+		let candidateCount = 0;
+		try {
+			candidateCount = await countRestartCandidates(agent);
+		} catch {
+			// Fall through to the plain toast.
+		}
+		if (candidateCount > 0) {
+			setRestartPrompt({
+				agent,
+				agentLabel,
+				accountLabel,
+				count: candidateCount,
+			});
+			return;
+		}
+		showMadeDefaultToast(agentLabel, accountLabel);
+	};
+
 	const makeDefaultAccount = (account: UsageAccount) => {
 		if (!isManagedAgent(account.agent)) return;
+		const agent = account.agent;
 		setDefault.mutate(
-			{ agent: account.agent, selection: account.selection },
+			{ agent, selection: account.selection },
 			{
 				onSuccess: () => {
-					const agentLabel = AGENT_LABELS[account.agent];
-					const accountLabel = account.email ?? account.sourceLabel;
+					void handleDefaultSwitched(
+						agent,
+						account.email ?? account.sourceLabel,
+					);
+				},
+				onError: (error) => toast.error(errorMessage(error)),
+			},
+		);
+	};
+
+	const declineRestartSessions = () => {
+		if (!restartPrompt) return;
+		const { agentLabel, accountLabel } = restartPrompt;
+		setRestartPrompt(null);
+		showMadeDefaultToast(agentLabel, accountLabel);
+	};
+
+	const confirmRestartSessions = () => {
+		if (!restartPrompt) return;
+		const { agent, accountLabel } = restartPrompt;
+		setRestartPrompt(null);
+		restartMutation.mutate(
+			{ agent },
+			{
+				onSuccess: () => {
 					toast.success(
 						t({
-							id: "settings.usage.account.madeDefaultToast",
-							message: `New ${agentLabel} agents will use ${accountLabel}.`,
+							id: "settings.usage.restartAgents.startedToast",
+							message: `Restarting agents on ${accountLabel}.`,
 						}),
 						{
 							description: t({
-								id: "settings.usage.account.madeDefaultDescription",
-								message: "Relaunch running agents to switch them.",
+								id: "settings.usage.restartAgents.startedDescription",
+								message: "Each session resumes where it left off.",
 							}),
 						},
 					);
@@ -568,6 +640,12 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				}}
 			/>
 
+			<RestartSessionsDialog
+				prompt={restartPrompt}
+				onDecline={declineRestartSessions}
+				onConfirm={confirmRestartSessions}
+			/>
+
 			<AddAccountDialog
 				open={isDialogOpen}
 				onOpenChange={(open) => {
@@ -577,6 +655,9 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				agent={dialogAgent}
 				switchTarget={switchTarget}
 				hostUrl={hostUrl}
+				onDefaultSwitched={(agent, accountLabel) => {
+					void handleDefaultSwitched(agent, accountLabel);
+				}}
 				onAccountAdded={() => {
 					setIsRefreshing(true);
 					void quotaQuery

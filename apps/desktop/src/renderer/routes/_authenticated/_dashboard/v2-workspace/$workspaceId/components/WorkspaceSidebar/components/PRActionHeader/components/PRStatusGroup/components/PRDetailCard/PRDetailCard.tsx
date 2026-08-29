@@ -1,3 +1,4 @@
+import { plural } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@superset/ui/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -130,17 +131,15 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 						className="size-3.5 shrink-0 text-emerald-500"
 					/>
 				}
-				text={
-					total === 1
-						? t({
-								id: "workspace.prDetailCard.allChecksPassedOne",
-								message: `All ${total} check passed`,
-							})
-						: t({
-								id: "workspace.prDetailCard.allChecksPassedMany",
-								message: `All ${total} checks passed`,
-							})
-				}
+				text={t({
+					id: "workspace.prDetailCard.allChecksPassed",
+					// One ICU plural instead of a hand-split pair: "All 1 check
+					// passed" forced every language into awkward singular shapes.
+					message: plural(total, {
+						one: "The check passed",
+						other: "All # checks passed",
+					}),
+				})}
 			/>
 		);
 	}

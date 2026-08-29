@@ -119,6 +119,9 @@ interface AddAccountDialogProps {
 	agent: Agent;
 	/** Called once when the new sign-in is detected, to refresh quota. */
 	onAccountAdded: () => void;
+	/** Called after "Use for new agents" makes the added account the default;
+	 * the owner toasts, or offers to restart running agents onto it. */
+	onDefaultSwitched: (agent: Agent, accountLabel: string) => void;
 	/** When set, the dialog re-signs this existing login instead of adding a
 	 * separate profile. */
 	switchTarget?: SwitchSignInTarget | null;
@@ -137,6 +140,7 @@ export function AddAccountDialog({
 	hostUrl,
 	agent: addAgent,
 	onAccountAdded,
+	onDefaultSwitched,
 	switchTarget = null,
 }: AddAccountDialogProps) {
 	const { t } = useLingui();
@@ -286,20 +290,7 @@ export function AddAccountDialog({
 											{ agent, selection: found.selection },
 											{
 												onSuccess: () => {
-													const foundLabel = found.label;
-													toast.success(
-														t({
-															id: "settings.usage.addAccount.defaultSetToast",
-															message: `New agents will use ${foundLabel}.`,
-														}),
-														{
-															description: t({
-																id: "settings.usage.addAccount.defaultSetDescription",
-																message:
-																	"Running sessions keep their current account — restart them to switch.",
-															}),
-														},
-													);
+													onDefaultSwitched(agent, found.label);
 													onOpenChange(false);
 												},
 												onError: (error) => toast.error(errorMessage(error)),
