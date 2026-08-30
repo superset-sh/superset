@@ -105,9 +105,15 @@ export function NewChatWidget({
 	// string "default", which reads as a branch name and is not one.
 	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? null;
 
+	// Only a request made after mount counts: the store keeps the last nonce,
+	// and a remount that read it as "positive" would focus without anyone
+	// asking.
 	const focusNonce = useComposerFocusStore((state) => state.focusNonce);
+	const seenFocusNonce = useRef(focusNonce);
 	useEffect(() => {
-		if (focusNonce > 0) composerRef.current?.focus();
+		if (focusNonce === seenFocusNonce.current) return;
+		seenFocusNonce.current = focusNonce;
+		composerRef.current?.focus();
 	}, [focusNonce]);
 
 	const isSending =
