@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { cursorEventsToEntries } from "./cursor";
+import { cursorEventsToEntries } from "./cursor-events";
 
 describe("cursorEventsToEntries", () => {
 	test("maps events with token usage into priced entries", () => {
