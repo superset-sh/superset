@@ -685,7 +685,7 @@ superset workspaces create \
 # Project-less session with an agent
 superset workspaces create --local --agent claude --prompt "…"
 
-# Tags group the workspace into sidebar folders — no folder setup needed
+# Tags group the workspace into sidebar folders, no folder setup needed
 superset workspaces create --project prj_… --name "perf-spike" --branch perf/spike --local --tag perf
 ```
 </Command>
@@ -757,7 +757,7 @@ superset workspaces get --field branch   # inside a workspace
 	output="Workspace"
 >
 Update a workspace on its host (default: this machine). `--tag` replaces the
-whole tag set — tagging is how workspaces group into sidebar folders, so
+whole tag set; tagging is how workspaces group into sidebar folders, so
 retagging moves the workspace between folders.
 
 ```bash

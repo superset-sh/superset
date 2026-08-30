@@ -4,7 +4,7 @@ import { agentSessionId } from "../agentSession";
 
 export default command({
 	description:
-		"Reply to a comment thread — answer only threads handed off to this session",
+		"Reply to a comment thread (answer only threads handed off to this session)",
 	options: {
 		threadId: string().alias("thread").required().desc("Thread id to reply to"),
 	},
