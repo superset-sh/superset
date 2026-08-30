@@ -1380,6 +1380,7 @@ export class PullRequestRuntimeManager {
 		// Branch stays case-sensitive so two case-variant branches can't share
 		// a cache entry and return each other's PR.
 		const cacheKey = [
+			repo.provider,
 			repo.owner.toLowerCase(),
 			repo.name.toLowerCase(),
 			head.owner.toLowerCase(),
@@ -1526,7 +1527,7 @@ export class PullRequestRuntimeManager {
 		repo: NormalizedRepoIdentity,
 		options: { bypassCache?: boolean } = {},
 	): Promise<GitHubPullRequestNode[]> {
-		const cacheKey = `${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
+		const cacheKey = `${repo.provider}/${repo.owner.toLowerCase()}/${repo.name.toLowerCase()}`;
 		return this.cachedGitHubFetch(
 			this.openPullRequestsCache,
 			cacheKey,

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { ExecGlab } from "../../../../trpc/router/workspace-creation/utils/exec-glab";
 import {
+	fetchJobLogsFromGlab,
 	fetchPullRequestByHeadFromGlab,
 	fetchPullRequestChecksFromGlab,
 	fetchPullRequestReviewDecisionFromGlab,
@@ -10,9 +11,9 @@ import {
 const REPOSITORY = { owner: "acme", name: "app" };
 
 function fakeGlab(response: unknown) {
-	const calls: Array<{ args: string[]; cwd?: string }> = [];
+	const calls: Array<{ args: string[]; cwd?: string; maxBuffer?: number }> = [];
 	const execGlab: ExecGlab = async (args, options) => {
-		calls.push({ args, cwd: options?.cwd });
+		calls.push({ args, cwd: options?.cwd, maxBuffer: options?.maxBuffer });
 		return response;
 	};
 	return { calls, execGlab };
@@ -131,5 +132,12 @@ describe("GitLab merge request queries", () => {
 				cwd: "/repo",
 			},
 		]);
+	});
+
+	test("allows large GitLab job traces", async () => {
+		const { calls, execGlab } = fakeGlab("large trace");
+		await fetchJobLogsFromGlab(execGlab, REPOSITORY, 7, "/repo");
+
+		expect(calls[0]?.maxBuffer).toBe(50 * 1024 * 1024);
 	});
 });

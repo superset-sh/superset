@@ -54,8 +54,20 @@ export const mergePR = protectedProcedure
 			});
 		}
 
-		const resolved = await resolveLocalRepo(project.repoPath);
-		if (resolved.parsed?.provider === "gitlab") {
+		if (project.repoProvider === "gitlab") {
+			const resolved = await resolveLocalRepo(project.repoPath, {
+				remoteName: project.remoteName ?? undefined,
+			});
+			if (
+				!project.remoteName ||
+				resolved.remoteName !== project.remoteName ||
+				resolved.parsed?.provider !== "gitlab"
+			) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Configured GitLab remote is no longer available",
+				});
+			}
 			try {
 				await mergePullRequestFromGlab(
 					ctx.execGlab,

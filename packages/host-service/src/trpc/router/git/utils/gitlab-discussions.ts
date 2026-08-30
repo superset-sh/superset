@@ -145,7 +145,7 @@ export async function setPullRequestDiscussionResolutionFromGlab(
 			"api",
 			"--method",
 			"PUT",
-			`${projectApiPath(repository)}/merge_requests/${mergeRequestNumber}/discussions/${discussionId}`,
+			`${projectApiPath(repository)}/merge_requests/${mergeRequestNumber}/discussions/${encodeURIComponent(discussionId)}`,
 			"-F",
 			`resolved=${resolved}`,
 		],
