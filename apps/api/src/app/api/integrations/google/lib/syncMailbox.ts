@@ -1,5 +1,8 @@
 import { db } from "@superset/db/client";
-import type { SelectIntegrationConnection } from "@superset/db/schema";
+import {
+	automationEvents,
+	type SelectIntegrationConnection,
+} from "@superset/db/schema";
 import type { GmailMatchableEvent } from "@superset/shared/automation-matching";
 import {
 	type GmailMessage,
@@ -12,6 +15,7 @@ import {
 	parseAddresses,
 	patchGmailState,
 } from "@superset/trpc/integrations/google";
+import { and, eq, inArray } from "drizzle-orm";
 import {
 	ingestAutomationEvent,
 	type NormalizedDelivery,
@@ -53,9 +57,33 @@ export async function syncMailbox(
 		return { baseline: true, added: 0, recorded: 0, matched: 0 };
 	}
 
+	// Which of these were already recorded, so the fetch below is skipped for
+	// them. Without this, a history walk that cannot finish inside the
+	// function's time budget re-fetches every message on every push and the
+	// checkpoint write at the bottom never runs — the cursor wedges at its old
+	// value, each new email costs a full re-scan, and the re-scan only grows.
+	// One indexed query makes a re-walk nearly free, so runs complete and the
+	// cursor advances again.
+	const known = new Set<string>();
+	for (let i = 0; i < result.messages.length; i += 500) {
+		const chunk = result.messages.slice(i, i + 500).map((m) => m.id);
+		const rows = await db
+			.select({ id: automationEvents.externalEventId })
+			.from(automationEvents)
+			.where(
+				and(
+					eq(automationEvents.integrationConnectionId, connection.id),
+					eq(automationEvents.provider, "gmail"),
+					inArray(automationEvents.externalEventId, chunk),
+				),
+			);
+		for (const row of rows) known.add(row.id);
+	}
+
 	let recorded = 0;
 	let matched = 0;
 	for (const added of result.messages) {
+		if (known.has(added.id)) continue;
 		if (added.labelIds.some((label) => OUTGOING_LABELS.has(label))) continue;
 		const message = await getMessage(connection.id, added.id);
 		if (!message) continue;
