@@ -73,6 +73,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 			minimumContrastRatio: 1,
 			cursorStyle: "block" as const,
 			cursorBlink: true,
+			macOptionIsMeta: false,
 		};
 		const runtime = {
 			terminal: {
@@ -156,6 +157,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 				minimumContrastRatio: 4.5,
 				cursorStyle: "bar",
 				cursorBlink: false,
+				macOptionIsMeta: false,
 			});
 
 			for (const key of addedKeys) {
@@ -173,6 +175,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 					minimumContrastRatio: 4.5,
 					cursorStyle: "bar",
 					cursorBlink: false,
+					macOptionIsMeta: false,
 				});
 				expect(entry.runtime.ligaturesEnabled).toBe(false);
 			}
