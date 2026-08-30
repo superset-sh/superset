@@ -152,19 +152,28 @@ final class ComposerDictation {
 
     let input = engine.inputNode
     let format = input.outputFormat(forBus: 0)
-    // `installTap` raises an Objective-C exception — not a Swift error, so
-    // there is nothing to catch — when handed a degenerate format, which is
-    // what the input node reports while something else holds the microphone: a
-    // phone call, another recording app. Checking first turns a crash into the
-    // ordinary failure path.
+    // A degenerate format is what the input node reports while something else
+    // holds the microphone — a phone call, another recording app. Failing here
+    // is the cheap, deterministic version of the guard below.
     guard format.sampleRate > 0, format.channelCount > 0 else {
       throw NSError(domain: "ComposerDictation", code: 2)
     }
     pendingFrames = 0
     pendingPeak = 0
-    input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak self] buffer, _ in
-      request.append(buffer)
-      self?.accumulate(buffer, sampleRate: format.sampleRate)
+    // `installTap` raises an Objective-C exception rather than throwing, and
+    // an uncaught one is a crash (MOBILE-5: "Failed to create tap due to
+    // format mismatch"). Two defences. No explicit format, because the node's
+    // format can change between reading it and installing the tap — a
+    // Bluetooth headset finishing its route switch after the session goes
+    // active — so nil lets the engine take the bus's format at the moment of
+    // the install, and the buffers carry the rate the meter needs. And the
+    // guard, so whatever AVFoundation still objects to lands on the ordinary
+    // failure path instead of taking the app down.
+    try ComposerExceptionGuard.run {
+      input.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
+        request.append(buffer)
+        self?.accumulate(buffer, sampleRate: buffer.format.sampleRate)
+      }
     }
 
     engine.prepare()
