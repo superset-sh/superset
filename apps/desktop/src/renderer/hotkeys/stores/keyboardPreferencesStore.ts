@@ -30,6 +30,21 @@ export const useKeyboardPreferencesStore = create<KeyboardPreferencesState>()(
 );
 
 /**
+ * True for macOS "… – QWERTY ⌘" input sources (e.g. "Dvorak – QWERTY ⌘",
+ * layout id `com.apple.keylayout.DVORAK-QWERTYCMD`). On these layouts the OS
+ * reverts the keyboard to QWERTY positions *while Command is held*, so a
+ * ⌘-shortcut fires on the QWERTY key, not the layout's own key. Adaptive
+ * translation must be disabled for them — otherwise it maps ⌘-chords through
+ * the layout's glyph map (Dvorak) and every command shortcut lands on the
+ * wrong physical key (#4674). QWERTY positions equal `event.code` letter
+ * tokens, which is exactly what a null map (untranslated authored chord)
+ * dispatches, so bypassing adaptive mapping is the correct behavior here.
+ */
+export function isQwertyCommandLayout(layoutId: string): boolean {
+	return /qwerty[-_ ]?(cmd|command|⌘)/i.test(layoutId);
+}
+
+/**
  * The layout map every dispatch consumer should use. Returns the OS layout
  * map only when adaptive mapping is on; null otherwise (so logical bindings
  * fall back to their authored chord). This is the single chokepoint —
@@ -41,12 +56,16 @@ export const useKeyboardPreferencesStore = create<KeyboardPreferencesState>()(
  */
 export function useEffectiveLayoutMap(): ReadonlyMap<string, string> | null {
 	const layoutMap = useKeyboardLayoutStore((s) => s.map);
+	const layoutId = useKeyboardLayoutStore((s) => s.layoutId);
 	const adaptive = useKeyboardPreferencesStore((s) => s.adaptiveLayoutEnabled);
-	return adaptive ? layoutMap : null;
+	if (!adaptive || isQwertyCommandLayout(layoutId)) return null;
+	return layoutMap;
 }
 
 /** Imperative form of {@link useEffectiveLayoutMap} for non-React contexts. */
 export function getEffectiveLayoutMap(): ReadonlyMap<string, string> | null {
 	const adaptive = useKeyboardPreferencesStore.getState().adaptiveLayoutEnabled;
-	return adaptive ? useKeyboardLayoutStore.getState().map : null;
+	const { map, layoutId } = useKeyboardLayoutStore.getState();
+	if (!adaptive || isQwertyCommandLayout(layoutId)) return null;
+	return map;
 }
