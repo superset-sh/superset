@@ -7,6 +7,7 @@ export interface ParsedGitHubRemote {
 
 export interface ParsedGitLabRemote {
 	provider: "gitlab";
+	host: string;
 	owner: string;
 	name: string;
 	url: string;
@@ -39,7 +40,9 @@ export function parseGitHubRemote(
 	return null;
 }
 
-export function parseGitLabRemote(
+const GITLAB_COM_HOSTS = new Set(["gitlab.com"]);
+
+export function parseGitLabRemoteCandidate(
 	remoteUrl: string,
 ): ParsedGitLabRemote | null {
 	const trimmed = remoteUrl.trim();
@@ -62,6 +65,7 @@ export function parseGitLabRemote(
 
 		return {
 			provider: "gitlab",
+			host: host.toLowerCase(),
 			owner,
 			name,
 			url: `https://${host}/${owner}/${name}`,
@@ -71,8 +75,20 @@ export function parseGitLabRemote(
 	return null;
 }
 
+export function parseGitLabRemote(
+	remoteUrl: string,
+	knownHosts: ReadonlySet<string> = GITLAB_COM_HOSTS,
+): ParsedGitLabRemote | null {
+	const parsed = parseGitLabRemoteCandidate(remoteUrl);
+	return parsed && knownHosts.has(parsed.host) ? parsed : null;
+}
+
 export function parseRepositoryRemote(
 	remoteUrl: string,
+	knownGitLabHosts?: ReadonlySet<string>,
 ): ParsedRepositoryRemote | null {
-	return parseGitHubRemote(remoteUrl) ?? parseGitLabRemote(remoteUrl);
+	return (
+		parseGitHubRemote(remoteUrl) ??
+		parseGitLabRemote(remoteUrl, knownGitLabHosts)
+	);
 }

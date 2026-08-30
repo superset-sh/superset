@@ -7,6 +7,7 @@ const execFileAsync = promisify(execFile);
 export interface ExecGlabOptions {
 	cwd?: string;
 	timeout?: number;
+	maxBuffer?: number;
 }
 
 export type ExecGlab = (
@@ -25,7 +26,7 @@ export const execGlab: ExecGlab = async (args, options) => {
 	const { stdout } = await execFileAsync("glab", args, {
 		encoding: "utf8",
 		timeout: options?.timeout ?? 10_000,
-		maxBuffer: 10 * 1024 * 1024,
+		maxBuffer: options?.maxBuffer ?? 10 * 1024 * 1024,
 		cwd: options?.cwd,
 		env,
 	});

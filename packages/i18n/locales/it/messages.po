@@ -34543,7 +34543,7 @@ msgstr "Caricamento della revisione..."
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/ReviewTabContent/ReviewTabContent.tsx
 msgid "workspace.reviewTab.noPr"
-msgstr "Apri una pull request o merge request per vedere lo stato della revisione, i controlli e i commenti."
+msgstr "Apri una pull request o una merge request per vedere lo stato della revisione, i controlli e i commenti."
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2WorkspaceRunButton/V2WorkspaceRunButton.tsx

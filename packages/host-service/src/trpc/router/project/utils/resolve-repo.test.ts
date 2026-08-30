@@ -102,6 +102,7 @@ describe("resolveLocalRepo", () => {
 		expect(resolved.remoteName).toBe("origin");
 		expect(resolved.parsed).toEqual({
 			provider: "gitlab",
+			host: "gitlab.com",
 			owner: "acme",
 			name: "example",
 			url: "https://gitlab.com/acme/example",
@@ -113,11 +114,14 @@ describe("resolveLocalRepo", () => {
 		const git = await initRepoAt(repo);
 		await git.addRemote("origin", "git@gitlab.example.com:acme/example.git");
 
-		const resolved = await resolveLocalRepo(repo);
+		const resolved = await resolveLocalRepo(repo, {
+			isConfiguredGitLabHost: async (host) => host === "gitlab.example.com",
+		});
 
 		expect(resolved.remoteName).toBe("origin");
 		expect(resolved.parsed).toEqual({
 			provider: "gitlab",
+			host: "gitlab.example.com",
 			owner: "acme",
 			name: "example",
 			url: "https://gitlab.example.com/acme/example",

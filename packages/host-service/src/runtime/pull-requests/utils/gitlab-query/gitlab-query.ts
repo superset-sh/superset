@@ -286,7 +286,7 @@ export async function fetchJobLogsFromGlab(
 			"GET",
 			`${projectApiPath(repository)}/jobs/${jobId}/trace`,
 		],
-		{ cwd, timeout: 30_000 },
+		{ cwd, timeout: 30_000, maxBuffer: 50 * 1024 * 1024 },
 	);
 	return typeof logs === "string" ? logs : String(logs);
 }

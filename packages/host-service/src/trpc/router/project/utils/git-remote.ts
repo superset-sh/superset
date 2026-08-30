@@ -2,6 +2,7 @@ import {
 	type ParsedGitHubRemote,
 	type ParsedRepositoryRemote,
 	parseGitHubRemote,
+	parseGitLabRemoteCandidate,
 	parseRepositoryRemote,
 } from "@superset/shared/github-remote";
 import type { SimpleGit } from "simple-git";
@@ -61,13 +62,26 @@ export async function getGitHubRemotes(
 
 export async function getSupportedRemotes(
 	git: SimpleGit,
+	isConfiguredGitLabHost: (host: string) => Promise<boolean> = async () =>
+		false,
 ): Promise<Map<string, ParsedRepositoryRemote>> {
 	const rawRemotes = await getAllRemoteUrls(git);
 	const parsed = new Map<string, ParsedRepositoryRemote>();
 
 	for (const [name, url] of rawRemotes) {
 		const result = parseRepositoryRemote(url);
-		if (result) parsed.set(name, result);
+		if (result) {
+			parsed.set(name, result);
+			continue;
+		}
+
+		const gitLabCandidate = parseGitLabRemoteCandidate(url);
+		if (
+			gitLabCandidate &&
+			(await isConfiguredGitLabHost(gitLabCandidate.host))
+		) {
+			parsed.set(name, gitLabCandidate);
+		}
 	}
 
 	return parsed;

@@ -94,3 +94,21 @@ test("refreshes provider state on mount and retry without duplicating focus refr
 	await Promise.resolve();
 	expect(refreshPullRequest).toHaveBeenCalledTimes(2);
 });
+
+test("keeps refresh cooldown state isolated when switching workspaces", async () => {
+	function Probe({ workspaceId }: { workspaceId: string }) {
+		usePRFlowState(workspaceId);
+		return null;
+	}
+
+	const view = render(<Probe workspaceId="workspace-a" />);
+	await waitFor(() => expect(refreshPullRequest).toHaveBeenCalledTimes(1));
+
+	view.rerender(<Probe workspaceId="workspace-b" />);
+	await waitFor(() => expect(refreshPullRequest).toHaveBeenCalledTimes(2));
+	expect(refreshPullRequest).toHaveBeenLastCalledWith({
+		workspaceIds: ["workspace-b"],
+	});
+
+	view.unmount();
+});

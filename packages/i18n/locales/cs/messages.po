@@ -32725,12 +32725,12 @@ msgstr "Otevřít v diffu na nové kartě"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
 msgid "workspace.commentsSection.openOnProvider"
-msgstr "Otevřít na {providerName}"
+msgstr "Otevřít na platformě {providerName}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
 msgid "workspace.commentsSection.openOnProviderAria"
-msgstr "Otevřít komentář na {providerName}"
+msgstr "Otevřít komentář na platformě {providerName}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/hooks/useReviewTab/components/CommentsSection/CommentsSection.tsx
@@ -34387,7 +34387,7 @@ msgstr "Aktualizováno {updatedRelative}"
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PRActionHeader/components/PRStatusGroup/components/PRDetailCard/PRDetailCard.tsx
 msgid "workspace.prDetailCard.viewOnProvider"
-msgstr "Zobrazit na {providerName}"
+msgstr "Zobrazit na platformě {providerName}"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/V2PresetsBar/components/V2PresetBarItem/V2PresetBarItem.tsx

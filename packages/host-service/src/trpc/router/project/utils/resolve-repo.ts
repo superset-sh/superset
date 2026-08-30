@@ -8,6 +8,7 @@ import { parseRepositoryRemote } from "@superset/shared/github-remote";
 import { TRPCError } from "@trpc/server";
 import type { GitCredentialProvider } from "../../../../runtime/git";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
+import { execGlab } from "../../workspace-creation/utils/exec-glab";
 import {
 	findMatchingRemote,
 	getGitHubRemotes,
@@ -34,6 +35,20 @@ export interface ResolvedRepo {
 export interface ResolvedGitHubRepo extends ResolvedRepo {
 	remoteName: string;
 	parsed: ParsedGitHubRemote;
+}
+
+export interface ResolveLocalRepoOptions {
+	remoteName?: string;
+	isConfiguredGitLabHost?: (host: string) => Promise<boolean>;
+}
+
+async function isConfiguredGitLabHost(host: string): Promise<boolean> {
+	try {
+		await execGlab(["auth", "status", "--hostname", host]);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 export function validateDirectoryPath(path: string, label: string): void {
@@ -209,10 +224,22 @@ async function revParseGitRoot(path: string): Promise<string> {
  */
 export async function resolveLocalRepo(
 	repoPath: string,
+	options: ResolveLocalRepoOptions = {},
 ): Promise<ResolvedRepo> {
 	validateDirectoryPath(repoPath, "Path");
 	const gitRoot = await revParseGitRoot(repoPath);
-	const remotes = await getSupportedRemotes(createUserSimpleGit(gitRoot));
+	const remotes = await getSupportedRemotes(
+		createUserSimpleGit(gitRoot),
+		options.isConfiguredGitLabHost ?? isConfiguredGitLabHost,
+	);
+	if (options.remoteName) {
+		const parsed = remotes.get(options.remoteName);
+		return {
+			repoPath: gitRoot,
+			remoteName: parsed ? options.remoteName : null,
+			parsed: parsed ?? null,
+		};
+	}
 	const originParsed = remotes.get("origin");
 	if (originParsed) {
 		return { repoPath: gitRoot, remoteName: "origin", parsed: originParsed };

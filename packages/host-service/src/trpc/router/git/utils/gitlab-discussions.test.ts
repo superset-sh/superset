@@ -85,13 +85,13 @@ describe("GitLab discussion requests", () => {
 			execGlab,
 			{ owner: "acme", name: "app" },
 			42,
-			"discussion-1",
+			"discussion/1",
 			true,
 			"/repo",
 		);
 
 		expect(calls[0]).toContain(
-			"projects/acme%2Fapp/merge_requests/42/discussions/discussion-1",
+			"projects/acme%2Fapp/merge_requests/42/discussions/discussion%2F1",
 		);
 		expect(calls[0]).toContain("resolved=true");
 	});
