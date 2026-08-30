@@ -108,6 +108,22 @@ describe("resolveLocalRepo", () => {
 		});
 	});
 
+	test("returns origin when origin is a self-hosted GitLab remote", async () => {
+		const repo = join(workRoot, "self-hosted-gitlab-origin");
+		const git = await initRepoAt(repo);
+		await git.addRemote("origin", "git@gitlab.example.com:acme/example.git");
+
+		const resolved = await resolveLocalRepo(repo);
+
+		expect(resolved.remoteName).toBe("origin");
+		expect(resolved.parsed).toEqual({
+			provider: "gitlab",
+			owner: "acme",
+			name: "example",
+			url: "https://gitlab.example.com/acme/example",
+		});
+	});
+
 	test("prefers origin over other GitHub remotes when both exist", async () => {
 		const repo = join(workRoot, "multi-remote");
 		const git = await initRepoAt(repo);

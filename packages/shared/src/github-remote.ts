@@ -44,9 +44,9 @@ export function parseGitLabRemote(
 ): ParsedGitLabRemote | null {
 	const trimmed = remoteUrl.trim();
 	const patterns = [
-		/^git@(?<host>gitlab\.com):(?<path>.+?)(?:\.git)?$/,
-		/^ssh:\/\/git@(?<host>gitlab\.com)\/(?<path>.+?)(?:\.git)?$/,
-		/^https:\/\/(?<host>gitlab\.com)\/(?<path>.+?)(?:\.git)?\/?$/,
+		/^git@(?<host>[^/:]+):(?<path>.+?)(?:\.git)?$/,
+		/^ssh:\/\/git@(?<host>[^/:]+(?::\d+)?)\/(?<path>.+?)(?:\.git)?$/,
+		/^https:\/\/(?<host>[^/]+)\/(?<path>.+?)(?:\.git)?\/?$/,
 	];
 
 	for (const pattern of patterns) {
