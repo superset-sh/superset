@@ -58,6 +58,7 @@ const {
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
+	createClaudeWrapper,
 	createClaudeSettingsJson,
 	createCodexHooksJson,
 	createCodexWrapper,
@@ -1157,6 +1158,40 @@ describe("agent-wrappers claude settings.json", () => {
 
 	afterEach(() => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("runs the generated wrapper on the system default after a profile switch", () => {
+		const supersetHome = path.join(TEST_ROOT, "superset");
+		const stateDir = path.join(supersetHome, "state");
+		const staleProfile = path.join(TEST_ROOT, "stale-profile");
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realClaude = path.join(realBinDir, "claude");
+		const resolvedConfigDir = path.join(TEST_ROOT, "resolved-config-dir.txt");
+
+		mkdirSync(stateDir, { recursive: true });
+		mkdirSync(staleProfile);
+		mkdirSync(realBinDir);
+		writeFileSync(path.join(stateDir, "default-claude-config-dir"), "");
+		writeFileSync(
+			realClaude,
+			`#!/bin/bash
+printf '%s' "\${CLAUDE_CONFIG_DIR:-<unset>}" > "${resolvedConfigDir}"
+`,
+			{ mode: 0o755 },
+		);
+
+		createClaudeWrapper();
+		execFileSync(path.join(TEST_BIN_DIR, "claude"), ["--version"], {
+			env: {
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH ?? ""}`,
+				SUPERSET_TERMINAL_ID: "terminal-1",
+				SUPERSET_HOME_DIR: supersetHome,
+				CLAUDE_CONFIG_DIR: staleProfile,
+				SUPERSET_DEFAULT_CLAUDE_CONFIG_DIR: staleProfile,
+			},
+		});
+
+		expect(readFileSync(resolvedConfigDir, "utf-8")).toBe("<unset>");
 	});
 
 	it("creates Claude settings.json with hooks when no file exists", () => {
