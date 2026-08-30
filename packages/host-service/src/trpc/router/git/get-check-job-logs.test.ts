@@ -7,8 +7,13 @@ const ACTIONS_URL =
 	"https://github.com/acme/widgets/actions/runs/42/job/123456";
 
 function createCaller(opts: {
-	workspace?: { pullRequestId: string | null };
-	pr?: { repoOwner: string; repoName: string };
+	workspace?: { pullRequestId: string | null; worktreePath?: string };
+	pr?: {
+		repoOwner: string;
+		repoName: string;
+		repoProvider?: "github" | "gitlab";
+		url?: string;
+	};
 	logs?: string;
 }) {
 	const downloadCalls: Array<{ owner: string; repo: string; job_id: number }> =
@@ -39,6 +44,14 @@ function createCaller(opts: {
 				},
 			},
 		}),
+		execGlab: async (args: string[], options?: { cwd?: string }) => {
+			downloadCalls.push({
+				owner: args.join(" "),
+				repo: options?.cwd ?? "",
+				job_id: -1,
+			});
+			return opts.logs ?? "";
+		},
 	} as unknown as HostServiceContext;
 	return { caller: gitRouter.createCaller(ctx), downloadCalls };
 }
@@ -59,7 +72,7 @@ async function expectTrpcError(
 describe("gitRouter.getCheckJobLogs", () => {
 	it("downloads logs for the PR's repo using the job id from the URL", async () => {
 		const { caller, downloadCalls } = createCaller({
-			workspace: { pullRequestId: "pr-1" },
+			workspace: { pullRequestId: "pr-1", worktreePath: "/tmp" },
 			pr: { repoOwner: "acme", repoName: "widgets" },
 			logs: "::group::build\nboom\n::endgroup::",
 		});
@@ -72,6 +85,33 @@ describe("gitRouter.getCheckJobLogs", () => {
 		expect(result.logs).toBe("::group::build\nboom\n::endgroup::");
 		expect(downloadCalls).toEqual([
 			{ owner: "acme", repo: "widgets", job_id: 123456 },
+		]);
+	});
+
+	it("downloads GitLab CI logs from the linked MR repository", async () => {
+		const { caller, downloadCalls } = createCaller({
+			workspace: { pullRequestId: "pr-1", worktreePath: "/tmp" },
+			pr: {
+				repoOwner: "acme",
+				repoName: "widgets",
+				repoProvider: "gitlab",
+				url: "https://gitlab.com/acme/widgets/-/merge_requests/42",
+			},
+			logs: "build failed",
+		});
+
+		const result = await caller.getCheckJobLogs({
+			workspaceId: "ws-1",
+			detailsUrl: "https://gitlab.com/acme/widgets/-/jobs/123456",
+		});
+
+		expect(result.logs).toBe("build failed");
+		expect(downloadCalls).toEqual([
+			{
+				owner: "api --method GET projects/acme%2Fwidgets/jobs/123456/trace",
+				repo: "/tmp",
+				job_id: -1,
+			},
 		]);
 	});
 

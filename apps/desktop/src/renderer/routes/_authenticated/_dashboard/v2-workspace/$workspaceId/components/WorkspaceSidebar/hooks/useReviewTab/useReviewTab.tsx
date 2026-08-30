@@ -55,6 +55,7 @@ export function useReviewTab({
 		const raw = prQuery.data;
 		if (!raw) return null;
 		return {
+			provider: raw.repoProvider === "gitlab" ? "gitlab" : "github",
 			number: raw.number,
 			url: raw.url,
 			title: raw.title,

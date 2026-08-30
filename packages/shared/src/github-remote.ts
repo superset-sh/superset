@@ -5,6 +5,15 @@ export interface ParsedGitHubRemote {
 	url: string;
 }
 
+export interface ParsedGitLabRemote {
+	provider: "gitlab";
+	owner: string;
+	name: string;
+	url: string;
+}
+
+export type ParsedRepositoryRemote = ParsedGitHubRemote | ParsedGitLabRemote;
+
 export function parseGitHubRemote(
 	remoteUrl: string,
 ): ParsedGitHubRemote | null {
@@ -28,4 +37,42 @@ export function parseGitHubRemote(
 	}
 
 	return null;
+}
+
+export function parseGitLabRemote(
+	remoteUrl: string,
+): ParsedGitLabRemote | null {
+	const trimmed = remoteUrl.trim();
+	const patterns = [
+		/^git@(?<host>gitlab\.com):(?<path>.+?)(?:\.git)?$/,
+		/^ssh:\/\/git@(?<host>gitlab\.com)\/(?<path>.+?)(?:\.git)?$/,
+		/^https:\/\/(?<host>gitlab\.com)\/(?<path>.+?)(?:\.git)?\/?$/,
+	];
+
+	for (const pattern of patterns) {
+		const match = pattern.exec(trimmed);
+		const host = match?.groups?.host;
+		const path = match?.groups?.path?.replace(/\/$/, "");
+		if (!host || !path) continue;
+
+		const segments = path.split("/").filter(Boolean);
+		const name = segments.pop();
+		const owner = segments.join("/");
+		if (!name || !owner) continue;
+
+		return {
+			provider: "gitlab",
+			owner,
+			name,
+			url: `https://${host}/${owner}/${name}`,
+		};
+	}
+
+	return null;
+}
+
+export function parseRepositoryRemote(
+	remoteUrl: string,
+): ParsedRepositoryRemote | null {
+	return parseGitHubRemote(remoteUrl) ?? parseGitLabRemote(remoteUrl);
 }

@@ -1,5 +1,5 @@
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
 	type PullRequest as FlowPullRequest,
 	getPRFlowState,
@@ -11,7 +11,14 @@ interface UsePRFlowStateResult {
 	onRetry: () => void;
 }
 
+const PROVIDER_REFRESH_COOLDOWN_MS = 30_000;
+
 export function usePRFlowState(workspaceId: string): UsePRFlowStateResult {
+	const utils = workspaceTrpc.useUtils();
+	const lastProviderRefreshAt = useRef(0);
+	const providerRefreshInFlight = useRef(false);
+	const { mutateAsync: refreshPullRequest } =
+		workspaceTrpc.pullRequests.refreshByWorkspaces.useMutation();
 	const prQuery = workspaceTrpc.git.getPullRequest.useQuery(
 		{ workspaceId },
 		{
@@ -31,6 +38,41 @@ export function usePRFlowState(workspaceId: string): UsePRFlowStateResult {
 			staleTime: 5_000,
 		},
 	);
+
+	const refreshFromProvider = useCallback(
+		async (force = false) => {
+			if (!workspaceId || providerRefreshInFlight.current) return;
+			const now = Date.now();
+			if (
+				!force &&
+				now - lastProviderRefreshAt.current < PROVIDER_REFRESH_COOLDOWN_MS
+			) {
+				return;
+			}
+
+			lastProviderRefreshAt.current = now;
+			providerRefreshInFlight.current = true;
+			try {
+				await refreshPullRequest({ workspaceIds: [workspaceId] });
+			} catch (error) {
+				console.warn("Failed to refresh pull request from provider", error);
+			} finally {
+				providerRefreshInFlight.current = false;
+				await Promise.all([
+					utils.git.getPullRequest.invalidate({ workspaceId }),
+					utils.git.getBranchSyncStatus.invalidate({ workspaceId }),
+				]);
+			}
+		},
+		[refreshPullRequest, utils, workspaceId],
+	);
+
+	useEffect(() => {
+		void refreshFromProvider();
+		const handleFocus = () => void refreshFromProvider();
+		window.addEventListener("focus", handleFocus);
+		return () => window.removeEventListener("focus", handleFocus);
+	}, [refreshFromProvider]);
 
 	const flowState = useMemo(
 		() =>
@@ -57,8 +99,7 @@ export function usePRFlowState(workspaceId: string): UsePRFlowStateResult {
 	return {
 		flowState,
 		onRetry: () => {
-			void prQuery.refetch();
-			void syncQuery.refetch();
+			void refreshFromProvider(true);
 		},
 	};
 }

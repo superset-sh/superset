@@ -21,6 +21,7 @@ import type { NormalizedComment } from "./types";
 
 interface CommentsSectionProps {
 	workspaceId: string;
+	provider: "github" | "gitlab";
 	comments: NormalizedComment[];
 	isLoading: boolean;
 	onOpenComment?: (comment: CommentPaneData) => void;
@@ -34,6 +35,7 @@ interface CommentsSectionProps {
 
 export function CommentsSection({
 	workspaceId,
+	provider,
 	comments,
 	isLoading,
 	onOpenComment,
@@ -251,6 +253,7 @@ export function CommentsSection({
 						conversationComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
+								provider={provider}
 								comment={comment}
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
@@ -332,6 +335,7 @@ export function CommentsSection({
 						openReviewComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
+								provider={provider}
 								comment={comment}
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}
@@ -372,6 +376,7 @@ export function CommentsSection({
 						{resolvedComments.map((comment) => (
 							<CommentRow
 								key={comment.id}
+								provider={provider}
 								comment={comment}
 								copiedActionKey={copiedActionKey}
 								onCopy={handleCopySingle}

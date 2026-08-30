@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
-import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { parseRepositoryRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import {
@@ -13,6 +13,7 @@ import {
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
+import type { ExecGlab } from "../../trpc/router/workspace-creation/utils/exec-glab";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
 import {
 	GitHubAvailabilityGate,
@@ -39,6 +40,12 @@ import type {
 	GitHubPullRequestNode,
 	GitHubPullRequestReviewDecision,
 } from "./utils/github-query/types";
+import {
+	fetchOpenPullRequestsFromGlab,
+	fetchPullRequestByHeadFromGlab,
+	fetchPullRequestChecksFromGlab,
+	fetchPullRequestReviewDecisionFromGlab,
+} from "./utils/gitlab-query";
 import {
 	type ChecksStatus,
 	coerceChecksStatus,
@@ -92,7 +99,7 @@ function upstreamKey(
 	return `${owner.toLowerCase()}/${repo.toLowerCase()}#${branch}`;
 }
 
-type RepoProvider = "github";
+type RepoProvider = "github" | "gitlab";
 
 export interface PullRequestStateSnapshot {
 	url: string;
@@ -142,6 +149,7 @@ export interface WorkspacePullRequestHistory {
 export interface PullRequestRuntimeManagerOptions {
 	db: HostDb;
 	execGh: ExecGh;
+	execGlab?: ExecGlab;
 	git: GitFactory;
 	github: () => Promise<Octokit>;
 	gitWatcher: GitWatcher;
@@ -159,6 +167,7 @@ interface NormalizedRepoIdentity {
 	name: string;
 	url: string;
 	remoteName: string;
+	repoPath: string;
 	// Null when the repo can't be opened. Drives the default-branch link guard.
 	defaultBranch: string | null;
 }
@@ -220,6 +229,7 @@ interface PullRequestDetails {
 export class PullRequestRuntimeManager {
 	private readonly db: HostDb;
 	private readonly execGh: ExecGh;
+	private readonly execGlab: ExecGlab;
 	private readonly git: GitFactory;
 	private readonly github: () => Promise<Octokit>;
 	private readonly gitWatcher: GitWatcher;
@@ -283,6 +293,11 @@ export class PullRequestRuntimeManager {
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
 		this.execGh = options.execGh;
+		this.execGlab =
+			options.execGlab ??
+			(async () => {
+				throw new Error("glab is not configured");
+			});
 		this.git = options.git;
 		this.github = options.github;
 		this.gitWatcher = options.gitWatcher;
@@ -1019,18 +1034,19 @@ export class PullRequestRuntimeManager {
 
 		let identity: Omit<NormalizedRepoIdentity, "defaultBranch">;
 		if (
-			project.repoProvider === "github" &&
+			(project.repoProvider === "github" || project.repoProvider === "gitlab") &&
 			project.repoOwner &&
 			project.repoName &&
 			project.repoUrl &&
 			project.remoteName
 		) {
 			identity = {
-				provider: "github",
+				provider: project.repoProvider,
 				owner: project.repoOwner,
 				name: project.repoName,
 				url: project.repoUrl,
 				remoteName: project.remoteName,
+				repoPath: project.repoPath,
 			};
 		} else {
 			const remoteName = "origin";
@@ -1049,7 +1065,7 @@ export class PullRequestRuntimeManager {
 				return null;
 			}
 
-			const parsedRemote = parseGitHubRemote(remoteUrl);
+			const parsedRemote = parseRepositoryRemote(remoteUrl);
 			if (!parsedRemote) return null;
 
 			this.db
@@ -1064,7 +1080,7 @@ export class PullRequestRuntimeManager {
 				.where(eq(projects.id, projectId))
 				.run();
 
-			identity = { ...parsedRemote, remoteName };
+			identity = { ...parsedRemote, remoteName, repoPath: project.repoPath };
 		}
 
 		const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
@@ -1375,6 +1391,14 @@ export class PullRequestRuntimeManager {
 			cacheKey,
 			options,
 			() =>
+				repo.provider === "gitlab"
+					? fetchPullRequestByHeadFromGlab(
+							this.execGlab,
+							{ owner: repo.owner, name: repo.name },
+							head,
+							repo.repoPath,
+						)
+					:
 				this.fetchFromGitHub(
 					"PR head lookup",
 					{ owner: repo.owner, name: repo.name, head },
@@ -1414,6 +1438,24 @@ export class PullRequestRuntimeManager {
 			cacheKey,
 			{ ...options, fingerprint: node.headRefOid },
 			async () => {
+				if (repo.provider === "gitlab") {
+					const [reviewDecision, checks] = await Promise.all([
+						fetchPullRequestReviewDecisionFromGlab(
+							this.execGlab,
+							repo,
+							node.number,
+							node.state,
+							repo.repoPath,
+						),
+						fetchPullRequestChecksFromGlab(
+							this.execGlab,
+							repo,
+							node.headRefOid,
+							repo.repoPath,
+						),
+					]);
+					return { reviewDecision, checks, isInMergeQueue: null };
+				}
 				const [reviewDecision, checks] = await this.fetchFromGitHub(
 					"PR review/check lookup",
 					context,
@@ -1490,6 +1532,13 @@ export class PullRequestRuntimeManager {
 			cacheKey,
 			options,
 			() =>
+				repo.provider === "gitlab"
+					? fetchOpenPullRequestsFromGlab(
+							this.execGlab,
+							{ owner: repo.owner, name: repo.name },
+							repo.repoPath,
+						)
+					:
 				this.fetchFromGitHub(
 					"open-PR sweep",
 					{ owner: repo.owner, name: repo.name },
