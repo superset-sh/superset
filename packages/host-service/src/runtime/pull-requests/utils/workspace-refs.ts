@@ -2,7 +2,7 @@
 // own module (not pull-requests.ts) so the worker task can import it without
 // pulling the runtime's DB/Octokit graph into the worker bundle.
 
-import { parseGitHubRemote } from "@superset/shared/github-remote";
+import { parseRepositoryRemote } from "@superset/shared/github-remote";
 import type { SimpleGit } from "simple-git";
 
 const UNBORN_HEAD_ERROR_PATTERNS = [
@@ -89,7 +89,7 @@ async function resolveWorkspaceUpstream(
 		const slash = pushRef.indexOf("/");
 		if (slash > 0) {
 			const url = await resolveRemoteValueToUrl(git, pushRef.slice(0, slash));
-			const parsed = url ? parseGitHubRemote(url) : null;
+			const parsed = url ? parseRepositoryRemote(url) : null;
 			if (parsed) {
 				return {
 					owner: parsed.owner,
@@ -114,7 +114,7 @@ async function resolveWorkspaceUpstream(
 	if (!remoteValue) return null;
 
 	const url = await resolveRemoteValueToUrl(git, remoteValue);
-	const parsed = url ? parseGitHubRemote(url) : null;
+	const parsed = url ? parseRepositoryRemote(url) : null;
 	if (!parsed) return null;
 
 	// `gh pr checkout` renames the local branch on collision (`main` →
