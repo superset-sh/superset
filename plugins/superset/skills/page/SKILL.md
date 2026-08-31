@@ -7,8 +7,10 @@ allowed-tools: Bash(superset:*)
 
 # Superset Pages
 
-A page is **one self-contained `.html` file** published to a URL people in the
-org can open. Every publish mints a version, so a page has history. Readers can
+A page is an **`.html` document** published to a URL people in the org can
+open. Publish a single file and it must be self-contained; publish a directory
+and its `index.html` is the document, with the images, stylesheets, and media
+it references by relative path published alongside it. Every publish mints a version, so a page has history. Readers can
 pin a comment to any element on it, and those comments come back to an agent to
 fix. That is what makes a page a working surface rather than an export.
 
@@ -197,8 +199,8 @@ for each thread gives a `thread:` id, an `at:` CSS selector path from `<body>`,
 and the element's text at the time of writing.
 
 **That selector points into the published HTML, which is the same document as
-your source file.** A page is one self-contained file, so the anchor locates
-the exact element to edit. Quoted text alone doesn't; the same words often
+your source file** — the `index.html` you published, not any asset beside it —
+so the anchor locates the exact element to edit. Quoted text alone doesn't; the same words often
 appear more than once.
 
 The loop, in order:

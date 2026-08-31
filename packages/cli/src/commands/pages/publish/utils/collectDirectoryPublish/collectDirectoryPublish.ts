@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { extname, join, relative, sep } from "node:path";
 
 export const MAX_ASSETS = 200;
@@ -21,10 +21,19 @@ export interface DirectoryPublish {
  * A directory publish is the directory as the page: `index.html` is the
  * document, everything else ships at its relative path. Dotfiles and
  * `node_modules` are skipped — they are never page content.
+ *
+ * Every node is stat-ed with `lstat` and a symbolic link is refused outright:
+ * following one would let a link inside the directory publish a file from
+ * anywhere on the machine, and pages default to organization-visible. Refusing
+ * beats skipping because a page silently missing an asset it references is
+ * worse than one that will not publish.
  */
 export function collectDirectoryPublish(directory: string): DirectoryPublish {
 	const entryFilePath = join(directory, "index.html");
-	const entryStat = statSync(entryFilePath, { throwIfNoEntry: false });
+	const entryStat = lstatSync(entryFilePath, { throwIfNoEntry: false });
+	if (entryStat?.isSymbolicLink()) {
+		throw new Error("index.html is a symbolic link — publish the file itself");
+	}
 	if (!entryStat?.isFile()) {
 		throw new Error(
 			"A directory publish needs an index.html at its root — that file is the page",
@@ -36,7 +45,12 @@ export function collectDirectoryPublish(directory: string): DirectoryPublish {
 		for (const name of readdirSync(current)) {
 			if (name.startsWith(".") || name === "node_modules") continue;
 			const filePath = join(current, name);
-			const stat = statSync(filePath);
+			const stat = lstatSync(filePath);
+			if (stat.isSymbolicLink()) {
+				throw new Error(
+					`${relative(directory, filePath).split(sep).join("/")} is a symbolic link — a directory publish carries only its own files`,
+				);
+			}
 			if (stat.isDirectory()) {
 				walk(filePath);
 				continue;
