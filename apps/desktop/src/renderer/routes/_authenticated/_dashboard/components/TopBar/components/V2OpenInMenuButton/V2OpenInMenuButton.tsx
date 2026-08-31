@@ -79,6 +79,7 @@ export function V2OpenInMenuButton({
 	const showCopyPathShortcut = copyPathDisplay.text !== "Unassigned";
 	const isLoading = openInApp.isPending || copyPath.isPending;
 	const isDark = activeTheme?.type === "dark";
+	const abbreviatedBranch = abbreviateBranch(branch);
 
 	const handleOpenInEditor = useCallback(() => {
 		if (openInApp.isPending || copyPath.isPending) return;
@@ -120,12 +121,8 @@ export function V2OpenInMenuButton({
 									})
 						}
 						className={cn(
-							// Icon-only when the nearest @container is narrow; the branch
-							// label comes back once there's room (right sidebar is resizable,
-							// so viewport breakpoints don't apply here). The threshold is
-							// higher than the PR badge's so the badge (with its merge
-							// chevron) keeps space priority and never clips in the 240-320px
-							// dead zone (#6385).
+							// The resizable sidebar shows a branch suffix before falling back
+							// to the app icon, keeping the merge-request controls readable.
 							"group flex h-6 items-center justify-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-1.5 text-xs font-medium @[320px]:pr-2",
 							"transition-all duration-150 ease-out",
 							"hover:bg-secondary hover:border-border",
@@ -142,12 +139,20 @@ export function V2OpenInMenuButton({
 							/>
 						)}
 						{branch && (
-							<OverflowFadeText
-								className="hidden max-w-[140px] text-muted-foreground tabular-nums @[320px]:inline-block"
-								title={branch}
-							>
-								/{branch}
-							</OverflowFadeText>
+							<>
+								<OverflowFadeText
+									className="hidden max-w-[90px] text-muted-foreground tabular-nums @[240px]:inline-block @[320px]:hidden"
+									title={branch}
+								>
+									{abbreviatedBranch}
+								</OverflowFadeText>
+								<OverflowFadeText
+									className="hidden max-w-[140px] text-muted-foreground tabular-nums @[320px]:inline-block"
+									title={branch}
+								>
+									/{branch}
+								</OverflowFadeText>
+							</>
 						)}
 					</button>
 				</TooltipTrigger>
@@ -225,4 +230,11 @@ export function V2OpenInMenuButton({
 			</DropdownMenu>
 		</div>
 	);
+}
+
+function abbreviateBranch(branch: string): string {
+	const suffixLength = 12;
+	return branch.length > suffixLength
+		? `...${branch.slice(-suffixLength)}`
+		: `/${branch}`;
 }
