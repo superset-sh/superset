@@ -28,6 +28,7 @@ import {
 	useState,
 } from "react";
 import { LuFileCode } from "react-icons/lu";
+import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import {
 	createPaneScrollStateKey,
 	getPaneScrollState,
@@ -128,6 +129,14 @@ export function DiffPane({
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const utils = workspaceTrpc.useUtils();
 	const { trpcClient } = useWorkspaceClient();
+	useWorkspaceEvent(
+		"git:changed",
+		workspaceId,
+		() => {
+			void utils.filesystem.readFile.invalidate({ workspaceId });
+		},
+		!!worktreePath,
+	);
 	const [editingSet, setEditingSet] = useState<ReadonlySet<string>>(new Set());
 	const [dirtyItemIds, setDirtyItemIds] = useState<ReadonlySet<string>>(
 		new Set(),
@@ -783,7 +792,9 @@ function BinaryDiffPlaceholder({
 		if (imageQuery.data.exceededLimit) {
 			return (
 				<BinaryDiffPlaceholderContent>
-					Image is too large to preview (max 10MB)
+					<Trans id="workspace.diffPane.imageTooLarge">
+						Image is too large to preview (max 10MB)
+					</Trans>
 					<BinaryDiffPlaceholderActions file={file} onOpenFile={onOpenFile} />
 				</BinaryDiffPlaceholderContent>
 			);
@@ -803,7 +814,8 @@ function BinaryDiffPlaceholder({
 	if (mimeType && canOpen && imageQuery.isLoading) {
 		return (
 			<BinaryDiffPlaceholderContent>
-				Loading image…
+				<Trans id="workspace.diffPane.imageLoading">Loading image…</Trans>
+				<BinaryDiffPlaceholderActions file={file} onOpenFile={onOpenFile} />
 			</BinaryDiffPlaceholderContent>
 		);
 	}
