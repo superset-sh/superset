@@ -12,7 +12,7 @@ import {
 import { mintPageSlug } from "@superset/shared/page-slug";
 import { fileOriginalKey, pageVersionKey } from "@superset/shared/usercontent";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { userError } from "../../i18n-error";
 import { SNIFF_BYTES, sniffContentType } from "../../lib/files";
 import { getObject, headObject, putObject } from "../../lib/r2";
@@ -198,14 +198,18 @@ async function runPublish({
 			// Staging means "new for the next version". Clearing it here is what
 			// makes that true: an asset the next publish still wants is reused
 			// from this version's rows by content hash, not left staged.
-			await tx
-				.delete(attachments)
-				.where(
-					and(
-						eq(attachments.parentKind, "page"),
-						eq(attachments.parentId, page.id),
-					),
-				);
+			//
+			// Only the rows this version actually snapshotted. `staged` was read
+			// before the transaction, so a concurrent upload may have staged a
+			// path since; deleting the whole page's staging would drop that asset
+			// without attaching it anywhere — silently, and out of the next
+			// publish too, because its staging record would be gone.
+			await tx.delete(attachments).where(
+				inArray(
+					attachments.id,
+					staged.map((asset) => asset.id),
+				),
+			);
 		}
 
 		await putObject({ key, body: buffer, contentType: input.contentType });
@@ -245,9 +249,9 @@ async function runPublish({
  */
 async function verifyStagedAssets(
 	pageId: string,
-): Promise<{ fileId: string; path: string }[]> {
+): Promise<{ id: string; fileId: string; path: string }[]> {
 	const rows = await dbWs
-		.select({ file: files, path: attachments.path })
+		.select({ file: files, path: attachments.path, id: attachments.id })
 		.from(attachments)
 		.innerJoin(files, eq(files.id, attachments.fileId))
 		.where(
@@ -255,14 +259,14 @@ async function verifyStagedAssets(
 		);
 
 	return await Promise.all(
-		rows.map(async ({ file, path }) => {
+		rows.map(async ({ file, path, id }) => {
 			if (!path) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Staged asset has no path",
 				});
 			}
-			if (file.status === "ready") return { fileId: file.id, path };
+			if (file.status === "ready") return { id, fileId: file.id, path };
 
 			// Explicitly typed so a `refuse` call narrows what follows it.
 			const refuse: (reason: string) => never = (reason) => {
@@ -295,7 +299,7 @@ async function verifyStagedAssets(
 				.where(and(eq(files.id, file.id), eq(files.status, "pending")))
 				.returning({ id: files.id });
 			if (!updated) refuse("expired before publishing — upload it again");
-			return { fileId: file.id, path };
+			return { id, fileId: file.id, path };
 		}),
 	);
 }

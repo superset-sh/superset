@@ -28,6 +28,7 @@ import { assertPageReadable, assertPageWritable } from "./access";
 import { pageAssetRouter } from "./assets";
 import { pageUrl } from "./page-url";
 import { publishPage } from "./publish";
+import { isEntryPathConflict } from "./publish-rules";
 import {
 	clearPageWatchSchema,
 	createPageSchema,
@@ -185,16 +186,28 @@ export const pageRouter = {
 						workspaceId: input.workspaceId,
 						organizationId,
 					});
-					await tx
-						.insert(workspacePages)
-						.values({
-							workspaceId: input.workspaceId,
-							pageId: page.id,
-							entryPath: input.entryPath,
-						})
-						.onConflictDoNothing({
-							target: [workspacePages.workspaceId, workspacePages.pageId],
+					try {
+						await tx
+							.insert(workspacePages)
+							.values({
+								workspaceId: input.workspaceId,
+								pageId: page.id,
+								entryPath: input.entryPath,
+							})
+							// Targeted at the primary key, so it stays a no-op for a page
+							// already linked to this path. It deliberately does not cover
+							// the (workspace, entryPath) unique index — a colleague's page
+							// holding this path has to surface, not be swallowed.
+							.onConflictDoNothing({
+								target: [workspacePages.workspaceId, workspacePages.pageId],
+							});
+					} catch (error) {
+						if (!isEntryPathConflict(error)) throw error;
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: `Someone else has already published ${input.entryPath} from this workspace. Publish with an explicit page id to add a version to their page, or move the file.`,
 						});
+					}
 				}
 				return {
 					id: page.id,

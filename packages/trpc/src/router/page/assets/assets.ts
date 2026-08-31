@@ -35,6 +35,11 @@ export const pageAssetRouter = {
 			});
 			validateAssetPaths([{ path: input.path }]);
 
+			// Before the reuse branch: a reused file still occupies a path, so
+			// checking only on the upload branch would let a caller map one
+			// reusable file across unlimited paths and pass the cap.
+			await assertStagingHasRoom({ pageId: page.id, path: input.path });
+
 			// The bytes may already be here: an unchanged asset on a republish, or
 			// the same image at two paths. Reuse is by content hash within this
 			// page's own lineage, so nothing is shared across pages by accident.
@@ -48,7 +53,6 @@ export const pageAssetRouter = {
 				return { reused: true as const };
 			}
 
-			await assertStagingHasRoom({ pageId: page.id, path: input.path });
 			const [row] = await db
 				.insert(files)
 				.values({
