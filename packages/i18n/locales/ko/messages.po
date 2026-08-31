@@ -1466,7 +1466,7 @@ msgstr "세션"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/hooks/useDeleteWorkspace/useDeleteWorkspace.ts
 #: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/files-changed/FilesChangedScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/pull-request/[pullRequestId]/hooks/useMergePullRequest/useMergePullRequest.ts
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/sessions/SessionsSheet.tsx
@@ -17516,9 +17516,9 @@ msgstr "홈으로 돌아가기"
 #: ../../apps/mobile/components/ui/dialog.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/organizations/OrganizationsSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/search/SearchScreen.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/actions/WorkspaceActionsSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/commits/CommitsSheet.tsx
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/finish-review/FinishReviewSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/jump-to-file/JumpToFileSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/line-comment/LineCommentSheet.tsx
@@ -18194,7 +18194,7 @@ msgstr "파일로 이동"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/app/(authenticated)/_layout.tsx
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
 msgid "mobile.nav.newSession.title"
 msgstr "새 세션"
 
@@ -19020,6 +19020,11 @@ msgstr "첨부하려면 호스트가 온라인이어야 합니다"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
+msgid "mobile.terminal.closeFailed"
+msgstr "세션을 닫지 못했습니다"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.terminal.connecting"
 msgstr "연결 중…"
 
@@ -19065,15 +19070,26 @@ msgid "mobile.terminal.sendFailed"
 msgstr "보낼 수 없습니다"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/sessions/SessionsSheet.tsx
 msgid "mobile.terminalTabs.closeSession"
 msgstr "세션 닫기"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
+msgid "mobile.terminalTabs.copySessionId"
+msgstr "세션 ID 복사"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
 msgid "mobile.terminalTabs.manageSessions"
 msgstr "세션 관리"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
+msgid "mobile.terminalTabs.scrollToStart"
+msgstr "첫 세션으로 이동"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/components/ai-elements/test-results.tsx
@@ -19554,11 +19570,6 @@ msgstr "샌드박스 미리보기에 URL이 없습니다"
 #: src/server-errors.ts
 msgid "serverError.chat.chatSessionNotFound"
 msgstr "채팅 세션을 찾을 수 없습니다"
-
-#. js-lingui-explicit-id
-#: src/server-errors.ts
-msgid "serverError.chat.failedToRecordChatAttachment"
-msgstr "채팅 첨부 파일을 기록하지 못했습니다"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts

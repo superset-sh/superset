@@ -1466,7 +1466,7 @@ msgstr "Sessões"
 #. js-lingui-explicit-id
 #: ../../apps/mobile/hooks/useDeleteWorkspace/useDeleteWorkspace.ts
 #: ../../apps/mobile/screens/(authenticated)/settings/SettingsScreen.tsx
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/files-changed/FilesChangedScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/pull-request/[pullRequestId]/hooks/useMergePullRequest/useMergePullRequest.ts
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/sessions/SessionsSheet.tsx
@@ -17516,9 +17516,9 @@ msgstr "Voltar para o início"
 #: ../../apps/mobile/components/ui/dialog.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/organizations/OrganizationsSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/(home)/search/SearchScreen.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/actions/WorkspaceActionsSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/commits/CommitsSheet.tsx
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/finish-review/FinishReviewSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/jump-to-file/JumpToFileSheet.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/line-comment/LineCommentSheet.tsx
@@ -18194,7 +18194,7 @@ msgstr "Ir para o arquivo"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/app/(authenticated)/_layout.tsx
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
 msgid "mobile.nav.newSession.title"
 msgstr "Nova sessão"
 
@@ -19020,6 +19020,11 @@ msgstr "Anexos precisam de um host online"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
+msgid "mobile.terminal.closeFailed"
+msgstr "Não foi possível fechar a sessão"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.terminal.connecting"
 msgstr "Conectando…"
 
@@ -19065,15 +19070,26 @@ msgid "mobile.terminal.sendFailed"
 msgstr "Não foi possível enviar"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
 #: ../../apps/mobile/screens/(authenticated)/workspace/[id]/sessions/SessionsSheet.tsx
 msgid "mobile.terminalTabs.closeSession"
 msgstr "Fechar sessão"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalTabs/TerminalTabs.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
+msgid "mobile.terminalTabs.copySessionId"
+msgstr "Copiar ID da sessão"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
 msgid "mobile.terminalTabs.manageSessions"
 msgstr "Gerenciar sessões"
+
+#. js-lingui-explicit-id
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/TerminalComposer/TerminalComposer.tsx
+msgid "mobile.terminalTabs.scrollToStart"
+msgstr "Ir para a primeira sessão"
 
 #. js-lingui-explicit-id
 #: ../../apps/mobile/components/ai-elements/test-results.tsx
@@ -19554,11 +19570,6 @@ msgstr "A prévia do sandbox não tem URL"
 #: src/server-errors.ts
 msgid "serverError.chat.chatSessionNotFound"
 msgstr "Sessão de chat não encontrada"
-
-#. js-lingui-explicit-id
-#: src/server-errors.ts
-msgid "serverError.chat.failedToRecordChatAttachment"
-msgstr "Falha ao registrar o anexo do chat"
 
 #. js-lingui-explicit-id
 #: src/server-errors.ts

@@ -705,8 +705,15 @@
     {
       "idx": 100,
       "version": "7",
-      "when": 1788122006454,
-      "tag": "0100_add_files_and_attachments",
+      "when": 1788134015857,
+      "tag": "0100_drop_chat_attachments_rename_page_version_storage_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1788145777142,
+      "tag": "0101_add_files_and_attachments",
       "breakpoints": true
     }
   ]

@@ -147,9 +147,8 @@ const RESOURCE_LINKS: FooterLink[] = [
 
 const LEGAL_LINKS: FooterLink[] = [
 	{
-		href: COMPANY.TRUST_URL,
+		href: "/security",
 		label: <Trans id="marketing.footer.legal.security">Security</Trans>,
-		external: true,
 	},
 	{
 		href: "/terms",

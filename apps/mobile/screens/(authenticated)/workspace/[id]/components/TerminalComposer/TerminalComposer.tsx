@@ -3,6 +3,7 @@ import {
 	Composer,
 	type ComposerHandle,
 	type ComposerQuickKey,
+	type ComposerSessionTab,
 	type ComposerSlashCommand,
 } from "@superset/composer";
 import type { SlashCommand } from "@superset/shared/slash-commands";
@@ -49,6 +50,19 @@ interface TerminalComposerProps {
 	 * how the panel stays hidden there.
 	 */
 	slashCommands: SlashCommand[];
+	/**
+	 * The workspace's sessions, drawn by the composer above the quick keys.
+	 * Empty hides the strip — a workspace with nothing running has its own
+	 * empty state, which already carries a way to start one.
+	 */
+	sessionTabs: ComposerSessionTab[];
+	onSessionTabPress: (terminalId: string) => void;
+	/** Close was chosen. Nothing is dead yet — this is where the confirm goes. */
+	onSessionTabClose: (terminalId: string) => void;
+	/** Copy id was chosen from the press-and-hold menu. */
+	onSessionTabCopyId: (terminalId: string) => void;
+	onNewSessionPress: () => void;
+	onAllSessionsPress: () => void;
 	/** Focused, or the keyboard is up — the screen covers the terminal with a
 	 *  tap-to-dismiss target while this is true. */
 	onActiveChange?: (active: boolean) => void;
@@ -82,6 +96,12 @@ export const TerminalComposer = forwardRef<
 		attachmentTarget,
 		allowAttachments,
 		slashCommands,
+		sessionTabs,
+		onSessionTabPress,
+		onSessionTabClose,
+		onSessionTabCopyId,
+		onNewSessionPress,
+		onAllSessionsPress,
 		onActiveChange,
 		onHeightChange,
 		selectActive,
@@ -130,6 +150,7 @@ export const TerminalComposer = forwardRef<
 				id: key.id,
 				label: key.label,
 				symbol: key.symbol,
+				divider: key.divider,
 			}));
 
 	const submit = async ({ text, attachments: files }: PromptInputMessage) => {
@@ -203,6 +224,35 @@ export const TerminalComposer = forwardRef<
 				autocapitalization="never"
 				showAttachments={allowAttachments}
 				quickKeys={quickKeys}
+				sessionTabs={sessionTabs}
+				// Translated here because the composer has no catalog of its own.
+				sessionTabLabels={{
+					copyId: t({
+						id: "mobile.terminalTabs.copySessionId",
+						message: "Copy session ID",
+					}),
+					close: t({
+						id: "mobile.terminalTabs.closeSession",
+						message: "Close session",
+					}),
+					newSession: t({
+						id: "mobile.nav.newSession.title",
+						message: "New session",
+					}),
+					allSessions: t({
+						id: "mobile.terminalTabs.manageSessions",
+						message: "Manage sessions",
+					}),
+					scrollToStart: t({
+						id: "mobile.terminalTabs.scrollToStart",
+						message: "Scroll to the first session",
+					}),
+				}}
+				onSessionTabPress={onSessionTabPress}
+				onSessionTabClose={onSessionTabClose}
+				onSessionTabCopyId={onSessionTabCopyId}
+				onNewSessionPress={onNewSessionPress}
+				onAllSessionsPress={onAllSessionsPress}
 				slashCommands={slashCommands.map(
 					(command): ComposerSlashCommand => ({
 						id: `${command.trigger}${command.name}`,

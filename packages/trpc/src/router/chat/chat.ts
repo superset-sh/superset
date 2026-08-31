@@ -7,7 +7,6 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
-import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
 // Re-shaped from the canonical catalog in `@superset/shared/agent-models` so
 // the chat API and the workspace-create model picker never drift.
@@ -177,57 +176,6 @@ export const chatRouter = {
 			const { deleted, txid } = result;
 
 			return { deleted: !!deleted, txid };
-		}),
-
-	uploadAttachment: protectedProcedure
-		.input(
-			z.object({
-				sessionId: z.uuid(),
-				filename: z.string().min(1).max(255),
-				mediaType: z.string().min(1).max(255),
-				fileData: z.string().min(1),
-			}),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const organizationId = ctx.activeOrganizationId;
-
-			if (!organizationId) {
-				throw userError({
-					code: "FORBIDDEN",
-					message: "No active organization selected",
-					i18nKey: "serverError.chat.noActiveOrganizationSelected",
-				});
-			}
-
-			const [sessionRecord] = await db
-				.select({
-					id: chatSessions.id,
-					organizationId: chatSessions.organizationId,
-				})
-				.from(chatSessions)
-				.where(
-					and(
-						eq(chatSessions.id, input.sessionId),
-						eq(chatSessions.organizationId, organizationId),
-						eq(chatSessions.createdBy, ctx.session.user.id),
-					),
-				)
-				.limit(1);
-
-			if (!sessionRecord) {
-				throw userError({
-					code: "NOT_FOUND",
-					message: "Chat session not found",
-					i18nKey: "serverError.chat.chatSessionNotFound",
-				});
-			}
-
-			const result = await uploadChatAttachment({
-				...input,
-				userId: ctx.session.user.id,
-				organizationId: sessionRecord.organizationId,
-			});
-			return result;
 		}),
 
 	updateTitle: protectedProcedure

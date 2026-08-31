@@ -41,7 +41,7 @@ function ticketSecret(): string {
 }
 
 /**
- * Rewrites the manifest the content Worker serves from. Called after any
+ * Rewrites the manifest the usercontent Worker serves from. Called after any
  * change to what a page serves or who may see it; idempotent, so a failed
  * write is repaired by the next caller.
  */
@@ -57,7 +57,7 @@ export async function writePageManifest(pageId: string): Promise<void> {
 		.select({
 			id: pageVersions.id,
 			version: pageVersions.version,
-			key: pageVersions.blobPathname,
+			key: pageVersions.storageKey,
 			contentType: pageVersions.contentType,
 		})
 		.from(pageVersions)
@@ -117,11 +117,24 @@ export async function writePageManifest(pageId: string): Promise<void> {
 		),
 	};
 
-	await putObject({
-		key: pageManifestKey(pageId),
-		body: JSON.stringify(manifest),
-		contentType: "application/json",
-	});
+	// The manifest is the Worker's authorization source, so its write gets a
+	// short retry before the caller's error surfaces; a crash between the
+	// database commit and this write is repaired by the next caller (durable
+	// reconciliation is a recorded follow-up).
+	let lastError: unknown;
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		try {
+			await putObject({
+				key: pageManifestKey(pageId),
+				body: JSON.stringify(manifest),
+				contentType: "application/json",
+			});
+			return;
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	throw lastError;
 }
 
 export async function deletePageObjects({

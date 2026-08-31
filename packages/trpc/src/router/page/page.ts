@@ -12,6 +12,7 @@ import {
 } from "@superset/db/schema";
 import {
 	fileOriginalKey,
+	pageManifestKey,
 	pageThumbnailKey,
 	pageThumbnailUrl,
 	pageViewUrl,
@@ -480,67 +481,57 @@ export const pageRouter = {
 
 			const rows = await db
 				.select({
+					id: pageVersions.id,
 					version: pageVersions.version,
-					key: pageVersions.blobPathname,
+					key: pageVersions.storageKey,
 				})
 				.from(pageVersions)
 				.where(eq(pageVersions.pageId, page.id));
 
+			// The manifest is the Worker's authorization source: removing it
+			// first makes deletion fail closed. If this throws, nothing has
+			// been deleted and the page still serves; once it is gone the
+			// origin 404s even if the cleanup below is interrupted.
+			await deleteObjects([pageManifestKey(page.id)]);
+
 			await db.delete(pages).where(eq(pages.id, page.id));
 
 			try {
-				// Page assets are files attached to this page's versions. Deleting the
-				// page removes those attachments; a file left with no attachments at
-				// all dies with them — its whole reason to exist was this page.
-				const versionIds = await db
-					.select({ id: pageVersions.id })
-					.from(pageVersions)
-					.where(eq(pageVersions.pageId, page.id));
-				if (versionIds.length > 0) {
-					const ids = versionIds.map((row) => row.id);
-					const attached = await db
-						.select({ fileId: attachments.fileId })
-						.from(attachments)
-						.where(
-							and(
-								eq(attachments.parentKind, "page_version"),
-								inArray(attachments.parentId, ids),
-							),
-						);
-					await db
-						.delete(attachments)
-						.where(
-							and(
-								eq(attachments.parentKind, "page_version"),
-								inArray(attachments.parentId, ids),
-							),
-						);
-					const candidates = [...new Set(attached.map((row) => row.fileId))];
-					if (candidates.length > 0) {
-						const stillAttached = await db
-							.select({ fileId: attachments.fileId })
-							.from(attachments)
-							.where(inArray(attachments.fileId, candidates));
-						const keep = new Set(stillAttached.map((row) => row.fileId));
-						const orphaned = candidates.filter((id) => !keep.has(id));
-						if (orphaned.length > 0) {
-							await db.delete(files).where(inArray(files.id, orphaned));
-							await deleteObjects(orphaned.map(fileOriginalKey)).catch(
-								(error) => {
-									console.error("[pages] failed to delete asset objects", {
-										pageId: page.id,
-										error,
-									});
-								},
-							);
-						}
-					}
-				}
-
 				await deletePageObjects({
 					pageId: page.id,
 					versions: rows,
 				});
+				// `attachments.parentId` carries no foreign key (its parent kind
+				// varies), so the version cascade leaves attachment rows behind;
+				// files referenced by nothing else go with them, bytes included.
+				const versionIds = rows.map((row) => row.id);
+				if (versionIds.length > 0) {
+					const removed = await db
+						.delete(attachments)
+						.where(
+							and(
+								eq(attachments.parentKind, "page_version"),
+								inArray(attachments.parentId, versionIds),
+							),
+						)
+						.returning({ fileId: attachments.fileId });
+					const fileIds = [...new Set(removed.map((row) => row.fileId))];
+					if (fileIds.length > 0) {
+						const stillReferenced = new Set(
+							(
+								await db
+									.select({ fileId: attachments.fileId })
+									.from(attachments)
+									.where(inArray(attachments.fileId, fileIds))
+							).map((row) => row.fileId),
+						);
+						const orphans = fileIds.filter((id) => !stillReferenced.has(id));
+						if (orphans.length > 0) {
+							await deleteObjects(orphans.map(fileOriginalKey));
+							await db.delete(files).where(inArray(files.id, orphans));
+						}
+					}
+				}
 			} catch (error) {
 				console.error("[pages] storage cleanup failed after delete", {
 					pageId: page.id,
@@ -619,7 +610,7 @@ export const pageRouter = {
 
 			let downloadUrl: string;
 			try {
-				downloadUrl = await presignedGetUrl(row.blobPathname);
+				downloadUrl = await presignedGetUrl(row.storageKey);
 			} catch (error) {
 				console.error("[pages] presign failed", {
 					pageId: page.id,
@@ -659,7 +650,7 @@ export const pageRouter = {
 				sizeBytes: row.sizeBytes,
 				sha256: row.sha256,
 				createdAt: row.createdAt,
-				storageKey: row.blobPathname,
+				storageKey: row.storageKey,
 				downloadUrl,
 				viewUrl,
 			};

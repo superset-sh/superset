@@ -102,11 +102,6 @@ export const serverErrorMessages: Record<
 			id: "serverError.chat.chatSessionNotFound",
 			message: "Chat session not found",
 		}),
-	"serverError.chat.failedToRecordChatAttachment": () =>
-		i18n._({
-			id: "serverError.chat.failedToRecordChatAttachment",
-			message: "Failed to record chat attachment",
-		}),
 	"serverError.chat.noActiveOrganizationSelected": () =>
 		i18n._({
 			id: "serverError.chat.noActiveOrganizationSelected",

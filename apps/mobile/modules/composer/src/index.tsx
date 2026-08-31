@@ -18,6 +18,8 @@ interface NativeComposerViewProps {
 	selectedModel?: ComposerMenuOption;
 	headerChips?: ComposerMenuOption[];
 	quickKeys?: ComposerQuickKey[];
+	sessionTabs?: ComposerSessionTab[];
+	sessionTabLabels?: ComposerSessionTabLabels;
 	slashCommands?: ComposerSlashCommand[];
 	showAttachments?: boolean;
 	autocapitalization?: "sentences" | "never";
@@ -28,6 +30,11 @@ interface NativeComposerViewProps {
 	onModelPress?: () => void;
 	onChipPress?: (event: { nativeEvent: { id: string } }) => void;
 	onQuickKeyPress?: (event: { nativeEvent: { id: string } }) => void;
+	onSessionTabPress?: (event: { nativeEvent: { id: string } }) => void;
+	onSessionTabClose?: (event: { nativeEvent: { id: string } }) => void;
+	onSessionTabCopyId?: (event: { nativeEvent: { id: string } }) => void;
+	onNewSessionPress?: () => void;
+	onAllSessionsPress?: () => void;
 	onHeightChange?: (event: { nativeEvent: { height: number } }) => void;
 	onPaste?: (event: { nativeEvent: { items: ComposerPastedItem[] } }) => void;
 	onDraftChange?: (event: { nativeEvent: { text: string } }) => void;
@@ -101,6 +108,50 @@ export interface ComposerQuickKey {
 	label?: string;
 	/** SF Symbol name, e.g. `arrow.up`. */
 	symbol?: string;
+	/**
+	 * A hairline between groups rather than a key. Which keys belong together
+	 * is the terminal's knowledge, so it arrives as data — but a divider still
+	 * needs its own unique `id`, because the strip identifies entries by it.
+	 */
+	divider?: boolean;
+}
+
+/**
+ * One session in the strip above the quick keys — the workspace's tab bar.
+ *
+ * Data only, like the quick keys: the composer draws a pill and reports which
+ * one was touched. Everything about what a session *is* stays with the caller.
+ */
+export interface ComposerSessionTab {
+	id: string;
+	label: string;
+	/**
+	 * The agent's brand mark. Same rule as `ComposerMenuOption.iconUri`: a
+	 * remote URL or a local file URI, never a Metro asset reference. Resolve
+	 * bundled art with `expo-asset` first — see `useAgentIconUris`. Omit for a
+	 * plain shell, which draws the session's initial instead.
+	 */
+	iconUri?: string;
+	selected?: boolean;
+	/** Desktop's StatusIndicator states; omit for a session with nothing to say. */
+	attention?: "permission" | "working" | "failed" | "review";
+}
+
+/**
+ * Every user-facing string the tab strip draws.
+ *
+ * They cross the bridge because the composer cannot translate — Lingui's macros
+ * and catalogs live here — and a hardcoded English menu item would be the one
+ * untranslated string on a translated screen.
+ */
+export interface ComposerSessionTabLabels {
+	/** Context menu: copies the session's id to the pasteboard. */
+	copyId: string;
+	/** Context menu, destructive, and the close disc's accessibility label. */
+	close: string;
+	newSession: string;
+	allSessions: string;
+	scrollToStart: string;
 }
 
 /**
@@ -150,7 +201,25 @@ export interface ComposerHandle {
 	blur: () => void;
 }
 
-export interface ComposerProps {
+/**
+ * The strip and its strings arrive together or not at all.
+ *
+ * Split out of the props rather than left as two optional fields: the composer
+ * cannot translate, so tabs without labels render a context menu and
+ * accessibility labels that are empty strings — a caller can reach that state
+ * without any type error, and nothing about it looks wrong until VoiceOver
+ * reaches it.
+ */
+type ComposerSessionTabsProps =
+	| {
+			sessionTabs: ComposerSessionTab[];
+			sessionTabLabels: ComposerSessionTabLabels;
+	  }
+	| { sessionTabs?: undefined; sessionTabLabels?: undefined };
+
+export type ComposerProps = ComposerBaseProps & ComposerSessionTabsProps;
+
+interface ComposerBaseProps {
 	placeholder?: string;
 	/**
 	 * Whatever this surface had typed when it was last open, put back as the
@@ -209,9 +278,25 @@ export interface ComposerProps {
 	onModelPress?: () => void;
 	onChipPress?: (id: string) => void;
 	onQuickKeyPress?: (id: string) => void;
+	/** A tab was tapped — attach that session. */
+	onSessionTabPress?: (id: string) => void;
 	/**
-	 * How much room the composer occupies above the bottom safe area — card,
-	 * quick keys and the gaps between them.
+	 * Close was chosen, from the selected tab's disc or the press-and-hold
+	 * menu. Nothing has been killed yet: the composer has no idea what closing
+	 * costs, so the caller confirms.
+	 */
+	onSessionTabClose?: (id: string) => void;
+	/**
+	 * Copy id was chosen from the press-and-hold menu. The caller owns the
+	 * pasteboard write and whatever it shows afterwards, so the confirmation
+	 * matches every other copy on the screen.
+	 */
+	onSessionTabCopyId?: (id: string) => void;
+	onNewSessionPress?: () => void;
+	onAllSessionsPress?: () => void;
+	/**
+	 * How much room the composer occupies above the bottom safe area — the
+	 * session tabs, the card, the quick keys and the gaps between them.
 	 *
 	 * The composer draws in an overlay and takes no layout space, so a caller
 	 * with content underneath cannot measure it. Excludes the keyboard, which
@@ -268,6 +353,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			selectedModel,
 			headerChips,
 			quickKeys,
+			sessionTabs,
+			sessionTabLabels,
 			slashCommands,
 			showAttachments = true,
 			autocapitalization = "sentences",
@@ -278,6 +365,11 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 			onModelPress,
 			onChipPress,
 			onQuickKeyPress,
+			onSessionTabPress,
+			onSessionTabClose,
+			onSessionTabCopyId,
+			onNewSessionPress,
+			onAllSessionsPress,
 			onHeightChange,
 			onPaste,
 			onDraftChange,
@@ -306,6 +398,8 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				selectedModel={selectedModel}
 				headerChips={headerChips}
 				quickKeys={quickKeys}
+				sessionTabs={sessionTabs}
+				sessionTabLabels={sessionTabLabels}
 				slashCommands={slashCommands}
 				showAttachments={showAttachments}
 				autocapitalization={autocapitalization}
@@ -318,6 +412,13 @@ export const Composer = forwardRef<ComposerHandle, ComposerProps>(
 				onModelPress={onModelPress}
 				onChipPress={(event) => onChipPress?.(event.nativeEvent.id)}
 				onQuickKeyPress={(event) => onQuickKeyPress?.(event.nativeEvent.id)}
+				onSessionTabPress={(event) => onSessionTabPress?.(event.nativeEvent.id)}
+				onSessionTabClose={(event) => onSessionTabClose?.(event.nativeEvent.id)}
+				onSessionTabCopyId={(event) =>
+					onSessionTabCopyId?.(event.nativeEvent.id)
+				}
+				onNewSessionPress={onNewSessionPress}
+				onAllSessionsPress={onAllSessionsPress}
 				onHeightChange={(event) => onHeightChange?.(event.nativeEvent.height)}
 				onPaste={(event) => onPaste?.(event.nativeEvent.items)}
 				onDraftChange={(event) => onDraftChange?.(event.nativeEvent.text)}

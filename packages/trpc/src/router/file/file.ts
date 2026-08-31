@@ -140,15 +140,17 @@ export const fileRouter = {
 				: new Uint8Array();
 			const contentType = sniffContentType(bytes, row.contentType);
 
+			// Guarded on `pending`: if the sweep claimed this row mid-flight,
+			// the update matches nothing and the upload starts over.
 			const [updated] = await db
 				.update(files)
 				.set({ contentType, status: "ready" })
-				.where(eq(files.id, row.id))
+				.where(and(eq(files.id, row.id), eq(files.status, "pending")))
 				.returning();
 			if (!updated) {
 				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to mark the file ready",
+					code: "CONFLICT",
+					message: "The upload expired before completing — start over",
 				});
 			}
 			return signedFile(updated);

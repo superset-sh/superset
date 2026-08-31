@@ -1,6 +1,6 @@
 /**
  * Object keys in the private bucket. A page's keys mirror the URLs the
- * content Worker serves them at: what `/versions/3/` returns is
+ * usercontent Worker serves them at: what `/versions/3/` returns is
  * `pages/<pageId>/versions/3/index.html`, so a key reads as its URL and a
  * page is one prefix to list, copy or delete.
  */

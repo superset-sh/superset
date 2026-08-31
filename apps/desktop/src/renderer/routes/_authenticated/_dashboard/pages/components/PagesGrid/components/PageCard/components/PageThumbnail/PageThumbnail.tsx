@@ -12,8 +12,15 @@ interface PageThumbnailProps {
  * shows a placeholder until the next list refetch.
  */
 export function PageThumbnail({ src }: PageThumbnailProps) {
-	const [failedSrc, setFailedSrc] = useState<string | null>(null);
-	const showImage = src !== null && failedSrc !== src;
+	const [failed, setFailed] = useState<{ src: string; at: number } | null>(
+		null,
+	);
+	// A capture that has not happened yet 404s; the failure is remembered per
+	// src but expires, so a later list refetch retries instead of showing the
+	// placeholder forever under the same thumbnail URL.
+	const showImage =
+		src !== null &&
+		!(failed && failed.src === src && Date.now() - failed.at < 60_000);
 
 	return (
 		<div
@@ -27,7 +34,7 @@ export function PageThumbnail({ src }: PageThumbnailProps) {
 					aria-hidden="true"
 					loading="lazy"
 					decoding="async"
-					onError={() => setFailedSrc(src)}
+					onError={() => setFailed({ src, at: Date.now() })}
 					className="absolute inset-0 h-full w-full object-cover object-top"
 				/>
 			) : (

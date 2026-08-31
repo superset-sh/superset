@@ -18,6 +18,13 @@ export function orderTerminalRows(
 		if (rankA !== undefined && rankB !== undefined) return rankA - rankB;
 		if (rankA !== undefined) return -1;
 		if (rankB !== undefined) return 1;
-		return a.createdAt - b.createdAt;
+		// Ties break on id rather than falling through to whatever order the
+		// terminals query happened to return. That order tracks activity, so
+		// without this two sessions created in the same millisecond swap places
+		// the moment you attach to one — the strip reordering under the thumb
+		// that just tapped it.
+		return (
+			a.createdAt - b.createdAt || a.terminalId.localeCompare(b.terminalId)
+		);
 	});
 }

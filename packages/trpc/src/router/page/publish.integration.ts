@@ -314,7 +314,7 @@ describe("publish", () => {
 
 		expect(row?.sizeBytes).toBe(Buffer.byteLength(body));
 		expect(row?.sha256).toHaveLength(64);
-		expect(row?.blobPathname).toBe(
+		expect(row?.storageKey).toBe(
 			`pages/${result.id}/versions/${result.version}/index.html`,
 		);
 	});

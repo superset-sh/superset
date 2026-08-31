@@ -18,7 +18,7 @@ const rows = await db
 	.select({
 		pageId: pageVersions.pageId,
 		version: pageVersions.version,
-		key: pageVersions.blobPathname,
+		key: pageVersions.storageKey,
 		contentType: pageVersions.contentType,
 	})
 	.from(pageVersions);
@@ -47,7 +47,7 @@ for (const row of rows) {
 	if (row.key !== key) {
 		await db
 			.update(pageVersions)
-			.set({ blobPathname: key })
+			.set({ storageKey: key })
 			.where(
 				and(
 					eq(pageVersions.pageId, row.pageId),

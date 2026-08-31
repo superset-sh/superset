@@ -47,8 +47,8 @@ const relayBackupWsOrigin = relayBackupHttpOrigin
 const usercontentUrl = new URL(
 	process.env.USERCONTENT_URL ||
 		(isProduction
-			? "https://pages.supersetusercontent.com"
-			: "http://pages.usercontent.localhost:8787"),
+			? "https://frame.supersetusercontent.com"
+			: "http://frame.usercontent.localhost:8787"),
 );
 const usercontentFrameSource = `${usercontentUrl.protocol}//*.${usercontentUrl.host}`;
 

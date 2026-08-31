@@ -306,7 +306,7 @@ step_write_env() {
     # Each workspace gets a range of 20 ports from its base.
     # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
     #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal,
-    #          +11 code inspector, +13 relay
+    #          +11 code inspector, +13 relay, +14 usercontent worker
     # (+9, +10, +12 were Electric/Caddy/wrangler; retired, kept unassigned so
     # the surviving offsets stay stable across existing allocations)
     local BASE=$SUPERSET_PORT_BASE
@@ -323,6 +323,7 @@ step_write_env() {
     local STREAMS_INTERNAL_PORT=$((BASE + 8))
     local CODE_INSPECTOR_PORT=$((BASE + 11))
     local RELAY_PORT=$((BASE + 13))
+    local USERCONTENT_DEV_PORT=$((BASE + 14))
 
     echo ""
     echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
@@ -338,6 +339,7 @@ step_write_env() {
     write_env_var "STREAMS_INTERNAL_PORT" "$STREAMS_INTERNAL_PORT"
     write_env_var "CODE_INSPECTOR_PORT" "$CODE_INSPECTOR_PORT"
     write_env_var "RELAY_PORT" "$RELAY_PORT"
+    write_env_var "USERCONTENT_DEV_PORT" "$USERCONTENT_DEV_PORT"
     echo ""
     echo "# Cross-app URLs (overrides from root .env)"
     write_env_var "NEXT_PUBLIC_API_URL" "http://localhost:$API_PORT"
@@ -352,6 +354,7 @@ step_write_env() {
     write_env_var "RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "NEXT_PUBLIC_RELAY_URL" "http://localhost:$RELAY_PORT"
     write_env_var "SUPERSET_WEB_URL" "http://localhost:$WEB_PORT"
+    write_env_var "USERCONTENT_URL" "http://frame.usercontent.localhost:$USERCONTENT_DEV_PORT"
     echo ""
     echo "# Streams URLs (overrides from root .env)"
     write_env_var "PORT" "$STREAMS_PORT"
@@ -379,6 +382,7 @@ step_write_env() {
     { "port": $DESKTOP_NOTIFICATIONS_PORT, "label": "Notifications" },
     { "port": $STREAMS_PORT, "label": "Streams" },
     { "port": $STREAMS_INTERNAL_PORT, "label": "Streams Internal" },
+    { "port": $USERCONTENT_DEV_PORT, "label": "Usercontent Worker" },
     { "port": $CODE_INSPECTOR_PORT, "label": "Code Inspector" }
   ]
 }

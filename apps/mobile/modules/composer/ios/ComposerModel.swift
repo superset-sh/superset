@@ -52,6 +52,14 @@ final class ComposerModel {
   /// The terminal's quick keys, above the card. Empty on every other surface.
   var quickKeys: [ComposerQuickKey] = []
 
+  /// The workspace's sessions, above the quick keys. Empty on every other
+  /// surface, which is also how the strip stays off the home composer.
+  var sessionTabs: [ComposerSessionTab] = []
+
+  /// Every string the strip draws, translated in React Native — the composer
+  /// has no catalog. See `ComposerSessionTabLabels`.
+  var sessionTabLabels = ComposerSessionTabLabels()
+
   /// What the active agent can run behind `/` (or `$`). Empty hides the
   /// suggestion panel entirely — a plain shell, an agent without discovery,
   /// or a host too old to answer all land here the same way.
@@ -102,6 +110,15 @@ final class ComposerModel {
   @ObservationIgnored var onModelPress: (() -> Void)?
   @ObservationIgnored var onChipPress: ((String) -> Void)?
   @ObservationIgnored var onQuickKeyPress: ((String) -> Void)?
+  /// The session strip reports by id and knows nothing else. Selecting swaps
+  /// which terminal is attached, closing raises React Native's confirm before
+  /// anything is killed, and copying puts the terminal id on the pasteboard
+  /// there — where the "Copied" notice already lives.
+  @ObservationIgnored var onSessionTabPress: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabClose: ((String) -> Void)?
+  @ObservationIgnored var onSessionTabCopyId: ((String) -> Void)?
+  @ObservationIgnored var onNewSessionPress: (() -> Void)?
+  @ObservationIgnored var onAllSessionsPress: (() -> Void)?
   /// Files and images pasted into the field, already written to disk. The tray
   /// lives in React Native, so the composer hands over URIs and lets it add
   /// them the same way the pickers do.

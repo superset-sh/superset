@@ -1,18 +1,18 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "superset-content",
+	"name": "superset-usercontent",
 	"main": "src/index.ts",
 	"workers_dev": false,
-	// One origin per page under `pages.`; files get their own first-level host
-	// later. Needs proxied DNS records for `*.pages`, `pages` and `@`, and
+	// One origin per page under `frame.`; files get their own first-level host
+	// later. Needs proxied DNS records for `*.frame`, `frame` and `@`, and
 	// Advanced Certificate Manager for the second-level wildcard certificate.
 	"routes": [
 		{
-			"pattern": "*.pages.supersetusercontent.com/*",
+			"pattern": "*.frame.supersetusercontent.com/*",
 			"zone_name": "supersetusercontent.com"
 		},
 		{
-			"pattern": "pages.supersetusercontent.com/*",
+			"pattern": "frame.supersetusercontent.com/*",
 			"zone_name": "supersetusercontent.com"
 		},
 		{
@@ -27,7 +27,7 @@
 	"compatibility_date": "2026-07-01",
 	"compatibility_flags": ["nodejs_als"],
 	"vars": {
-		"USERCONTENT_URL": "https://pages.supersetusercontent.com",
+		"USERCONTENT_URL": "https://frame.supersetusercontent.com",
 		"MEDIA_URL": "https://media.supersetusercontent.com",
 		"APP_URL": "https://app.superset.sh",
 		// Who may frame a page. `file:` is the packaged desktop renderer; a
@@ -40,18 +40,16 @@
 	"observability": { "enabled": true },
 	"dev": { "port": 8787 },
 	"env": {
-		// `wrangler dev --env dev`: no routes, so the per-page host reaches the
-		// Worker as sent (with routes, local dev rewrites it to the zone).
-		// Chromium resolves `*.localhost` to loopback; curl needs `--resolve`.
+		// `wrangler dev --env dev` via `bun run dev`: no routes, so the
+		// per-page host reaches the Worker as sent (with routes, local dev
+		// rewrites it to the zone). Only topology lives here — the port and
+		// the URL vars that embed it are machine-specific, so scripts/dev.ts
+		// derives them from the worktree's .env (setup's port allocator,
+		// offset +14) into a generated .dev.vars.dev. Chromium resolves
+		// `*.localhost` to loopback; curl needs `--resolve`.
 		"dev": {
 			"workers_dev": true,
 			"routes": [],
-			"vars": {
-				"USERCONTENT_URL": "http://pages.usercontent.localhost:8787",
-				"MEDIA_URL": "http://media.usercontent.localhost:8787",
-				"APP_URL": "http://localhost:3000",
-				"FRAME_ANCESTORS": "http://localhost:* file:"
-			},
 			"r2_buckets": [
 				{ "binding": "PRIVATE", "bucket_name": "superset-private-dev" }
 			]

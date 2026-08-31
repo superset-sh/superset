@@ -6,6 +6,7 @@ import {
 	fileResponsePolicy,
 	injectScriptTag,
 	type PageManifest,
+	type PageTicketClaims,
 	pageContentSecurityPolicy,
 	pageIdFromHost,
 	pageManifestKey,
@@ -19,9 +20,9 @@ import {
 	verifyPageTicket,
 } from "@superset/shared/usercontent";
 import { type Context, Hono } from "hono";
-import type { ContentEnv } from "./types";
+import { assertEnv, type UsercontentEnv } from "./env";
 
-type AppContext = { Bindings: ContentEnv };
+type AppContext = { Bindings: UsercontentEnv };
 
 const app = new Hono<AppContext>();
 
@@ -74,10 +75,10 @@ async function authorized(
 	c: Context<AppContext>,
 	manifest: PageManifest,
 	version: number,
-): Promise<boolean> {
-	if (manifest.visibility === "everyone") return true;
+): Promise<PageTicketClaims | "public" | null> {
+	if (manifest.visibility === "everyone") return "public";
 	const ticket = requestTicket(c);
-	if (!ticket) return false;
+	if (!ticket) return null;
 	const claims = await verifyPageTicket(
 		[
 			c.env.USERCONTENT_TOKEN_SECRET,
@@ -85,8 +86,10 @@ async function authorized(
 		],
 		ticket,
 	);
-	if (!claims || claims.pageId !== manifest.pageId) return false;
-	return claims.version === undefined || claims.version === version;
+	if (!claims || claims.pageId !== manifest.pageId) return null;
+	return claims.version === undefined || claims.version === version
+		? claims
+		: null;
 }
 
 function signInRedirect(c: Context<AppContext>, slug: string): Response {
@@ -152,20 +155,26 @@ async function serveThumbnail(c: Context<AppContext>): Promise<Response> {
 	if (!manifest) return notFound();
 	const version = requestedVersion(c);
 	if (!version) return notFound();
-	if (!(await authorized(c, manifest, version))) return notFound();
+	const auth = await authorized(c, manifest, version);
+	if (!auth) return notFound();
 
 	const key = pageThumbnailKey(manifest.pageId, version);
 	const object = await c.env.PRIVATE.get(key);
 	if (!object) return notFound();
+	// A restricted thumbnail may live in the browser cache only as long as
+	// the ticket that fetched it: after a visibility flip, stale copies age
+	// out with the ticket instead of surviving another day.
+	const remaining =
+		auth === "public"
+			? null
+			: Math.max(0, Math.min(auth.exp - Math.floor(Date.now() / 1000), 86400));
 	return new Response(object.body, {
 		headers: {
 			"Content-Type": "image/jpeg",
 			"Superset-Storage-Key": key,
 			"X-Content-Type-Options": "nosniff",
 			"Cache-Control":
-				manifest.visibility === "everyone"
-					? IMMUTABLE
-					: "private, max-age=86400",
+				remaining === null ? IMMUTABLE : `private, max-age=${remaining}`,
 		},
 	});
 }
@@ -255,7 +264,12 @@ async function serveFile(c: Context<AppContext>): Promise<Response> {
 		"Referrer-Policy": "no-referrer",
 		"X-Robots-Tag": "noindex, nofollow",
 		"Accept-Ranges": "bytes",
-		"Cache-Control": "private, max-age=86400, immutable",
+		// Like thumbnails: the browser may keep the bytes only as long as the
+		// ticket that fetched them, so revocation is bounded by ticket life.
+		"Cache-Control": `private, max-age=${Math.max(
+			0,
+			Math.min(claims.exp - Math.floor(Date.now() / 1000), 86400),
+		)}, immutable`,
 	});
 	if (range && object.range) {
 		const offset =
@@ -301,14 +315,18 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 	const asset = entry.assets?.[assetPath];
 	if (!asset) return notFound();
 
-	if (!(await authorized(c, manifest, version))) {
-		return signInRedirect(c, manifest.slug);
-	}
+	const auth = await authorized(c, manifest, version);
+	if (!auth) return signInRedirect(c, manifest.slug);
 
-	const ticketed = manifest.visibility !== "everyone";
-	const cacheControl = ticketed
-		? "private, max-age=86400, immutable"
-		: IMMUTABLE;
+	// Assets cache like the document's thumbnail: public versions immutably,
+	// ticketed ones only until the ticket that fetched them expires.
+	const cacheControl =
+		auth === "public"
+			? IMMUTABLE
+			: `private, max-age=${Math.max(
+					0,
+					Math.min(auth.exp - Math.floor(Date.now() / 1000), 86400),
+				)}, immutable`;
 	const isHtml = asset.contentType.startsWith("text/html");
 	const headers = new Headers({
 		"Content-Type": isHtml ? "text/html; charset=utf-8" : asset.contentType,
@@ -365,9 +383,10 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 	return new Response(object.body, { headers });
 }
 
-// Pages hang off `pages.<zone>`; the zone apex and `pages.` itself have
+// Pages hang off `frame.<zone>`; the zone apex and `frame.` itself have
 // nothing to serve, so readers arriving there belong in the app.
 app.use("*", async (c, next) => {
+	assertEnv(c.env);
 	const host = requestHost(c);
 	const base = baseHost(c);
 	const apex = base.slice(base.indexOf(".") + 1);
@@ -414,7 +433,7 @@ app.get("/:path{.+}", serveAsset);
 app.notFound(() => notFound());
 
 // Exceptions only; no-op until SENTRY_DSN is set.
-const sentryOptions = (env: ContentEnv): Sentry.CloudflareOptions => ({
+const sentryOptions = (env: UsercontentEnv): Sentry.CloudflareOptions => ({
 	dsn: env.SENTRY_DSN,
 	tracesSampleRate: 0,
 	sendDefaultPii: false,
@@ -424,4 +443,4 @@ const sentryOptions = (env: ContentEnv): Sentry.CloudflareOptions => ({
 
 export default Sentry.withSentry(sentryOptions, {
 	fetch: app.fetch,
-} satisfies ExportedHandler<ContentEnv>);
+} satisfies ExportedHandler<UsercontentEnv>);
