@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { ExecGlab } from "../../../../trpc/router/workspace-creation/utils/exec-glab";
 import {
 	fetchJobLogsFromGlab,
+	fetchOpenPullRequestsFromGlab,
 	fetchPullRequestByHeadFromGlab,
 	fetchPullRequestChecksFromGlab,
 	fetchPullRequestReviewDecisionFromGlab,
@@ -50,6 +51,40 @@ describe("GitLab merge request queries", () => {
 		expect(calls[0]?.cwd).toBe("/repo");
 		expect(calls[0]?.args).toContain("projects/acme%2Fapp/merge_requests");
 		expect(calls[0]?.args).toContain("source_branch=feat/gitlab");
+	});
+
+	test("filters merge requests from forked source projects", async () => {
+		const { execGlab } = fakeGlab([
+			{
+				iid: 1,
+				title: "Forked request",
+				web_url: "https://gitlab.example.com/acme/app/-/merge_requests/1",
+				state: "opened",
+				source_branch: "feat/fork",
+				sha: "fork-sha",
+				source_project_id: 99,
+				target_project_id: 10,
+			},
+			{
+				iid: 2,
+				title: "Same project request",
+				web_url: "https://gitlab.example.com/acme/app/-/merge_requests/2",
+				state: "opened",
+				source_branch: "feat/same",
+				sha: "same-sha",
+				source_project_id: 10,
+				target_project_id: 10,
+			},
+		]);
+
+		const result = await fetchOpenPullRequestsFromGlab(
+			execGlab,
+			REPOSITORY,
+			"/repo",
+		);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]?.number).toBe(2);
 	});
 
 	test("maps approvals to the shared review decision", async () => {
