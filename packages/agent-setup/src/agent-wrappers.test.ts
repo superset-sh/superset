@@ -108,8 +108,13 @@ describe("agent-wrappers opencode", () => {
 	// definitely on disk. Nothing here needs a fresh module anyway: the plugin's
 	// re-entry guard lives on `globalThis`, not in module scope, and `beforeEach`
 	// clears it, so one cached import gives every test its own hooks.
+	/** The plugin hands back a map of OpenCode hooks, keyed by event name. */
+	type OpenCodeHooks = Record<
+		string,
+		(...args: unknown[]) => Promise<unknown> | unknown
+	>;
 	let pluginModule: Promise<{
-		SupersetNotifyPlugin: (input: unknown) => Promise<Record<string, never>>;
+		SupersetNotifyPlugin: (input: unknown) => Promise<OpenCodeHooks>;
 	}>;
 
 	const loadOpenCodePlugin = async () => {
