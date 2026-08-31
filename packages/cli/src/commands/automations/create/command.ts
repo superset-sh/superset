@@ -23,7 +23,7 @@ export default command({
 		project: string().desc(
 			"v2 project id for new-workspace-per-run mode. Omit (with no --workspace) to create a project-less session per run",
 		),
-		workspace: string().desc("existing v2 workspace id — reuses it every run"),
+		workspace: string().desc("existing v2 workspace id (reuses it every run)"),
 		host: string().desc(
 			"Host the target project/workspace lives on (default: this machine)",
 		),

@@ -122,7 +122,7 @@ export default command({
 				});
 				watching = true;
 				watchNote =
-					"\nWatching for comments — they will be sent to this session";
+					"\nWatching for comments; they will be sent to this session";
 			} catch (error) {
 				watchNote = `\nNot watching for comments: ${
 					error instanceof Error ? error.message : "could not reach the host"

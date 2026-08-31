@@ -3,7 +3,7 @@ import { command } from "../../../../lib/command";
 
 export default command({
 	description:
-		"Mark a comment thread resolved — reply first, so the reader sees what changed",
+		"Mark a comment thread resolved (reply first, so the reader sees what changed)",
 	options: {
 		threadId: string().alias("thread").required().desc("Thread id to resolve"),
 		reopen: boolean().desc("Reopen the thread instead of resolving it"),
