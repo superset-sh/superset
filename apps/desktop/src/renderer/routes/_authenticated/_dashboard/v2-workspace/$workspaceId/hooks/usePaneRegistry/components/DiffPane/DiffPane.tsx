@@ -788,7 +788,12 @@ function BinaryDiffPlaceholder({
 		},
 	);
 
-	if (mimeType && canOpen && imageQuery.data?.kind === "bytes") {
+	if (
+		mimeType &&
+		canOpen &&
+		!imageQuery.isError &&
+		imageQuery.data?.kind === "bytes"
+	) {
 		if (imageQuery.data.exceededLimit) {
 			return (
 				<BinaryDiffPlaceholderContent>
