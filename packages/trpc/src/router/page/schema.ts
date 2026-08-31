@@ -22,6 +22,11 @@ export const pageFields = {
 	agentId: z.string().min(1).max(200),
 } as const;
 
+export const publishAssetSchema = z.object({
+	path: z.string().min(1).max(512),
+	fileId: pageFields.id,
+});
+
 const publishPageFieldsSchema = z.object({
 	content: z.string().min(1),
 	contentType: z.string().min(1),
@@ -33,6 +38,7 @@ const publishPageFieldsSchema = z.object({
 	description: pageFields.description.optional(),
 	label: pageFields.label.optional(),
 	visibility: pageFields.visibility.optional(),
+	assets: z.array(publishAssetSchema).max(200).optional(),
 });
 
 /**

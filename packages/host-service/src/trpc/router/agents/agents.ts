@@ -5,6 +5,7 @@ import {
 	buildAgentModelArgs,
 	buildAgentModelEnv,
 	getAgentEffortSupport,
+	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
 	resolveAgentLaunchPresetId,
@@ -262,6 +263,7 @@ export function validateAgentEffortSelection(
 	presetId: string,
 	label: string,
 	effort: string | undefined,
+	model?: string,
 ): void {
 	if (!effort) return;
 
@@ -273,10 +275,13 @@ export function validateAgentEffortSelection(
 		});
 	}
 
-	if (!support.efforts.some((option) => option.id === effort)) {
+	// Some efforts only exist on some of the agent's models (Codex's max and
+	// ultra need GPT-5.6), so the accepted set follows the selected model.
+	const efforts = getAgentEfforts(presetId, model);
+	if (!efforts.some((option) => option.id === effort)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Unsupported reasoning effort "${effort}" for ${label}. Choose one of: ${support.efforts.map((option) => option.id).join(", ")}.`,
+			message: `Unsupported reasoning effort "${effort}" for ${label}${model ? ` with model ${model}` : ""}. Choose one of: ${efforts.map((option) => option.id).join(", ")}.`,
 		});
 	}
 }
@@ -421,7 +426,12 @@ export function validateAgentLaunchOptions(
 		config.command,
 	);
 	validateAgentModelSelection(launchPresetId, config.label, input.model);
-	validateAgentEffortSelection(launchPresetId, config.label, input.effort);
+	validateAgentEffortSelection(
+		launchPresetId,
+		config.label,
+		input.effort,
+		input.model,
+	);
 	validateAgentModeSelection(launchPresetId, config.label, input.mode);
 }
 
@@ -450,7 +460,12 @@ export function buildTerminalAgentLaunch(
 		config.command,
 	);
 	validateAgentModelSelection(launchPresetId, config.label, input.model);
-	validateAgentEffortSelection(launchPresetId, config.label, input.effort);
+	validateAgentEffortSelection(
+		launchPresetId,
+		config.label,
+		input.effort,
+		input.model,
+	);
 	validateAgentModeSelection(launchPresetId, config.label, input.mode);
 	// Ahead of the per-field validators: passing both is its own mistake, and
 	// "this agent cannot fork" would send the caller after the wrong one.
@@ -478,7 +493,11 @@ export function buildTerminalAgentLaunch(
 
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(launchPresetId, input.model);
-	const effortArgs = buildAgentEffortArgs(launchPresetId, input.effort);
+	const effortArgs = buildAgentEffortArgs(
+		launchPresetId,
+		input.effort,
+		input.model,
+	);
 	const modeArgs = buildAgentModeArgs(launchPresetId, input.mode);
 	const command = buildAgentCommandString(
 		config,

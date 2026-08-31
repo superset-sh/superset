@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
 	getAgentEffortSupport,
+	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
 } from "@superset/shared/agent-models";
@@ -214,6 +215,21 @@ export function PromptGroup({
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
 	);
+	// Codex's top two efforts only exist on its GPT-5.6 models, so the offered
+	// list follows the model picker. A remembered effort the current model
+	// rejects stays stored but shows (and launches) as the agent default.
+	const effortOptions = useMemo(
+		() =>
+			selectedPresetId
+				? getAgentEfforts(selectedPresetId, selectedModel ?? undefined)
+				: [],
+		[selectedPresetId, selectedModel],
+	);
+	const effortForLaunch = effortOptions.some(
+		(option) => option.id === selectedEffort,
+	)
+		? selectedEffort
+		: null;
 	const modeSupport = selectedPresetId
 		? getAgentModeSupport(selectedPresetId)
 		: undefined;
@@ -374,7 +390,7 @@ export function PromptGroup({
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
-		effortSupport ? selectedEffort : null,
+		effortForLaunch,
 		modeSupport ? selectedMode : null,
 		uploadAttachments,
 		promptContext,
@@ -649,7 +665,7 @@ export function PromptGroup({
 						)}
 						{effortSupport && (
 							<AgentModelSelect
-								models={effortSupport.efforts}
+								models={effortOptions}
 								value={selectedEffort}
 								onValueChange={setSelectedEffort}
 								defaultLabel={t({

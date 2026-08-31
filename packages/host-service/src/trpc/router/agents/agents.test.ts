@@ -685,13 +685,27 @@ describe("validateAgentEffortSelection", () => {
 
 	it("rejects an invalid effort with the supported values", () => {
 		try {
-			validateAgentEffortSelection("codex", "Codex", "max");
+			validateAgentEffortSelection("codex", "Codex", "extreme");
 			throw new Error("Expected validation to fail");
 		} catch (error) {
 			expect(error).toBeInstanceOf(TRPCError);
 			expect((error as TRPCError).code).toBe("BAD_REQUEST");
 			expect((error as Error).message).toBe(
-				'Unsupported reasoning effort "max" for Codex. Choose one of: low, medium, high, xhigh.',
+				'Unsupported reasoning effort "extreme" for Codex. Choose one of: low, medium, high, xhigh, max, ultra.',
+			);
+		}
+	});
+
+	it("rejects an effort the selected model does not accept", () => {
+		expect(() =>
+			validateAgentEffortSelection("codex", "Codex", "ultra", "gpt-5.6-sol"),
+		).not.toThrow();
+		try {
+			validateAgentEffortSelection("codex", "Codex", "ultra", "gpt-5.5");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect((error as Error).message).toBe(
+				'Unsupported reasoning effort "ultra" for Codex with model gpt-5.5. Choose one of: low, medium, high, xhigh.',
 			);
 		}
 	});

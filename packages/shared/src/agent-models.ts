@@ -221,6 +221,16 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	},
 ];
 
+export interface AgentEffortOption extends AgentModelOption {
+	/**
+	 * Model ids that accept this effort, when only some do. Absent means every
+	 * model the agent offers takes it. Codex's two top levels arrived with
+	 * GPT-5.6 and the models below it reject them, so the picker only offers
+	 * them next to a model that has them.
+	 */
+	models?: readonly string[];
+}
+
 export interface AgentEffortSupport {
 	presetId: string;
 	effortFlag: string;
@@ -230,7 +240,7 @@ export interface AgentEffortSupport {
 	 * `-c model_reasoning_effort=high`.
 	 */
 	effortValuePrefix?: string;
-	efforts: AgentModelOption[];
+	efforts: AgentEffortOption[];
 }
 
 export interface AgentModeOption extends AgentModelOption {
@@ -293,6 +303,16 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
 			{ id: "xhigh", label: "xHigh" },
+			// Per-model support taken from Codex's own model catalog
+			// (`supported_reasoning_levels`, codex-cli 0.149.1): every GPT-5.6
+			// model takes `max`, and `ultra` — max reasoning plus automatic
+			// task delegation — is Sol and Terra only.
+			{
+				id: "max",
+				label: "Max",
+				models: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"],
+			},
+			{ id: "ultra", label: "Ultra", models: ["gpt-5.6-sol", "gpt-5.6-terra"] },
 		],
 	},
 	{
@@ -375,19 +395,44 @@ export function getAgentModeSupport(
 }
 
 /**
+ * Efforts the given preset offers for `model` — the full curated list minus
+ * any option the selected model rejects. An unset model (or an id outside the
+ * curated catalog, which `buildAgentModelArgs` drops so the launch runs the
+ * agent's own default) keeps the full list.
+ */
+export function getAgentEfforts(
+	presetId: string,
+	model?: string,
+): AgentEffortOption[] {
+	const support = getAgentEffortSupport(presetId);
+	if (!support) return [];
+	const selected = getAgentModelSupport(presetId)?.models.some(
+		(option) => option.id === model,
+	)
+		? model
+		: undefined;
+	return support.efforts.filter(
+		(effort) => !effort.models || !selected || effort.models.includes(selected),
+	);
+}
+
+/**
  * Argv tokens that select `effort` for the given preset, e.g.
  * `["--effort", "high"]` (codex: `["-c", "model_reasoning_effort=high"]`).
- * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets
- * or effort ids outside the curated list return `[]`.
+ * Same degrade-to-default contract as `buildAgentModelArgs`: unknown presets,
+ * effort ids outside the curated list, and efforts the selected model rejects
+ * return `[]`.
  */
 export function buildAgentEffortArgs(
 	presetId: string,
 	effort: string | undefined,
+	model?: string,
 ): string[] {
 	if (!effort) return [];
 	const support = getAgentEffortSupport(presetId);
 	if (!support) return [];
-	if (!support.efforts.some((option) => option.id === effort)) return [];
+	const efforts = getAgentEfforts(presetId, model);
+	if (!efforts.some((option) => option.id === effort)) return [];
 	return [support.effortFlag, `${support.effortValuePrefix ?? ""}${effort}`];
 }
 

@@ -8,6 +8,7 @@ import {
 	buildAgentModelArgs,
 	buildAgentModelEnv,
 	getAgentEffortSupport,
+	getAgentEfforts,
 	getAgentModelSupport,
 	getAgentModeSupport,
 	resolveAgentLaunchPresetId,
@@ -321,6 +322,52 @@ describe("buildAgentEffortArgs", () => {
 	it("returns [] for effort ids outside the preset's curated list", () => {
 		expect(buildAgentEffortArgs("claude", "bogus")).toEqual([]);
 		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
+	});
+
+	it("drops an effort the selected model does not accept", () => {
+		expect(buildAgentEffortArgs("codex", "ultra", "gpt-5.6-sol")).toEqual([
+			"-c",
+			"model_reasoning_effort=ultra",
+		]);
+		expect(buildAgentEffortArgs("codex", "ultra", "gpt-5.5")).toEqual([]);
+	});
+});
+
+describe("getAgentEfforts", () => {
+	it("offers codex's top efforts only alongside the models that take them", () => {
+		expect(getAgentEfforts("codex", "gpt-5.6-sol").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+			"ultra",
+		]);
+		expect(getAgentEfforts("codex", "gpt-5.6-luna").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+			"max",
+		]);
+		expect(getAgentEfforts("codex", "gpt-5.5").map((e) => e.id)).toEqual([
+			"low",
+			"medium",
+			"high",
+			"xhigh",
+		]);
+	});
+
+	it("keeps the full list when the model is unset or uncurated", () => {
+		// Both launch on the agent's own default model.
+		expect(getAgentEfforts("codex").map((e) => e.id)).toContain("ultra");
+		expect(getAgentEfforts("codex", "gpt-9").map((e) => e.id)).toContain(
+			"ultra",
+		);
+	});
+
+	it("returns [] for presets without effort support", () => {
+		expect(getAgentEfforts("gemini")).toEqual([]);
 	});
 });
 
