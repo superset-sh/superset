@@ -3,6 +3,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+import { buildPortUrl } from "shared/port-url";
 import { usePortForward } from "../../providers/PortForwardsProvider";
 import type { DashboardSidebarPort } from "../useDashboardSidebarPortsData";
 
@@ -31,7 +32,12 @@ export function usePortOpenActions(
 		forward?.status.state === "active" ? forward.status : null;
 	const canOpenInBrowser =
 		port.hostType === "local-device" || activeForward !== null;
-	const portUrl = `http://localhost:${activeForward?.localPort ?? port.port}`;
+	// The forward changes which port to open, not how the service speaks, so the
+	// declared scheme still applies: a tunnel carries TLS through unchanged.
+	const portUrl = buildPortUrl({
+		port: activeForward?.localPort ?? port.port,
+		scheme: port.scheme,
+	});
 
 	const openExternal = () => {
 		if (!canOpenInBrowser || openUrl.isPending) return;

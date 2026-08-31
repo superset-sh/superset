@@ -1,12 +1,15 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { parseStaticPortsConfig } from "@superset/port-scanner";
+import {
+	parseStaticPortsConfig,
+	type StaticPortEntry,
+} from "@superset/port-scanner";
 
 const PROJECT_SUPERSET_DIR_NAME = ".superset";
 const PORTS_FILE_NAME = "ports.json";
 
-interface LabelCacheEntry {
-	labels: Map<number, string> | null;
+interface StaticPortCacheEntry {
+	entries: Map<number, StaticPortEntry> | null;
 	portsFileSignature: string | null;
 	worktreePath: string | null;
 }
@@ -34,7 +37,7 @@ function safeGetPortsFileSignature(worktreePath: string): string | null {
 	try {
 		return getPortsFileSignature(worktreePath);
 	} catch (error) {
-		console.warn("[ports] Failed to stat static port labels:", {
+		console.warn("[ports] Failed to stat static port entries:", {
 			worktreePath,
 			error,
 		});
@@ -51,11 +54,13 @@ function readPortsFile(worktreePath: string): string | null {
 	}
 }
 
-function safeLoadLabels(worktreePath: string): Map<number, string> | null {
+function safeLoadEntries(
+	worktreePath: string,
+): Map<number, StaticPortEntry> | null {
 	try {
-		return loadLabels(worktreePath);
+		return loadEntries(worktreePath);
 	} catch (error) {
-		console.warn("[ports] Failed to load static port labels:", {
+		console.warn("[ports] Failed to load static port entries:", {
 			worktreePath,
 			error,
 		});
@@ -64,64 +69,66 @@ function safeLoadLabels(worktreePath: string): Map<number, string> | null {
 }
 
 /**
- * Read `<worktree>/.superset/ports.json` and return a `port → label` map.
+ * Read `<worktree>/.superset/ports.json` and return a `port → entry` map.
  * Returns null if the file is missing or malformed — this endpoint is a
- * best-effort label hint, not a validator, so parse errors are silent.
+ * best-effort hint, not a validator, so parse errors are silent.
  */
-function loadLabels(worktreePath: string): Map<number, string> | null {
+function loadEntries(
+	worktreePath: string,
+): Map<number, StaticPortEntry> | null {
 	const content = readPortsFile(worktreePath);
 	if (content === null) return null;
 
 	const parsed = parseStaticPortsConfig(content);
 	if (parsed.ports === null) return null;
 
-	const labels = new Map<number, string>();
+	const entries = new Map<number, StaticPortEntry>();
 	for (const port of parsed.ports) {
-		labels.set(port.port, port.label);
+		entries.set(port.port, port);
 	}
-	return labels;
+	return entries;
 }
 
 /**
- * Memoize label lookups per workspaceId. Called by host port snapshots and
+ * Memoize entry lookups per workspaceId. Called by host port snapshots and
  * add-event enrichment, so the workspace-root + fs reads would otherwise repeat
- * needlessly. `labels: null` with a resolved worktree means "no labels file" —
+ * needlessly. `entries: null` with a resolved worktree means "no entries file" —
  * that negative can stick until the file signature changes. A missing
  * worktreePath is not cached because workspace hydration can race first reads.
  */
-const labelCache = new Map<string, LabelCacheEntry>();
+const staticPortCache = new Map<string, StaticPortCacheEntry>();
 
-function setLabelCache(
+function setStaticPortCache(
 	workspaceId: string,
 	worktreePath: string | null,
-	labels: Map<number, string> | null,
-): Map<number, string> | null {
+	entries: Map<number, StaticPortEntry> | null,
+): Map<number, StaticPortEntry> | null {
 	const portsFileSignature = worktreePath
 		? safeGetPortsFileSignature(worktreePath)
 		: null;
-	labelCache.set(workspaceId, {
-		labels,
+	staticPortCache.set(workspaceId, {
+		entries,
 		portsFileSignature,
 		worktreePath,
 	});
-	return labels;
+	return entries;
 }
 
-export function getLabelsForWorkspace(
+export function getStaticPortsForWorkspace(
 	resolveWorktreePath: (workspaceId: string) => string | null,
 	workspaceId: string,
-): Map<number, string> | null {
-	const cached = labelCache.get(workspaceId);
+): Map<number, StaticPortEntry> | null {
+	const cached = staticPortCache.get(workspaceId);
 	if (cached) {
 		if (cached.worktreePath === null) {
-			labelCache.delete(workspaceId);
+			staticPortCache.delete(workspaceId);
 		} else {
 			const currentSignature = safeGetPortsFileSignature(cached.worktreePath);
-			if (currentSignature === cached.portsFileSignature) return cached.labels;
-			return setLabelCache(
+			if (currentSignature === cached.portsFileSignature) return cached.entries;
+			return setStaticPortCache(
 				workspaceId,
 				cached.worktreePath,
-				safeLoadLabels(cached.worktreePath),
+				safeLoadEntries(cached.worktreePath),
 			);
 		}
 	}
@@ -129,10 +136,14 @@ export function getLabelsForWorkspace(
 	const worktreePath = resolveWorktreePath(workspaceId);
 	if (!worktreePath) return null;
 
-	return setLabelCache(workspaceId, worktreePath, safeLoadLabels(worktreePath));
+	return setStaticPortCache(
+		workspaceId,
+		worktreePath,
+		safeLoadEntries(worktreePath),
+	);
 }
 
-export function invalidateLabelCache(workspaceId?: string): void {
-	if (workspaceId === undefined) labelCache.clear();
-	else labelCache.delete(workspaceId);
+export function invalidateStaticPortCache(workspaceId?: string): void {
+	if (workspaceId === undefined) staticPortCache.clear();
+	else staticPortCache.delete(workspaceId);
 }

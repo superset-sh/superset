@@ -34,6 +34,7 @@ function createPortEvent(
 	return {
 		eventType,
 		label: "Vite",
+		scheme: null,
 		occurredAt: 2,
 		port: {
 			port: 5173,
@@ -62,6 +63,17 @@ describe("applyPortEventsToHostPortsResult", () => {
 			processName: "vite",
 			address: "0.0.0.0",
 			label: "Vite",
+		});
+	});
+
+	it("keeps the scheme an add event carries, so the row opens over https", () => {
+		const result = applyPortEventsToHostPortsResult(createResult(), [
+			{ ...createPortEvent("add", { port: 3030 }), scheme: "https" },
+		]);
+
+		expect(result?.ports.at(-1)).toMatchObject({
+			port: 3030,
+			scheme: "https",
 		});
 	});
 
