@@ -71,7 +71,15 @@ export const ANCHOR_MESSAGE = {
 	path: ["workspaceId"],
 };
 
+/**
+ * Strict on purpose. Zod strips unknown keys by default, so a newer client
+ * against an older server has its extra fields silently discarded — a CLI
+ * that uploaded assets and sent them here would get a successful publish
+ * whose page is missing every one of them, with no error anywhere. Refusing
+ * the key is how a version mismatch becomes visible.
+ */
 export const publishPageSchema = publishPageFieldsSchema
+	.strict()
 	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE)
 	.refine(isAnchoredPublish, ANCHOR_MESSAGE);
 

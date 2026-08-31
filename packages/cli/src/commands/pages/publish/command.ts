@@ -25,7 +25,7 @@ export default command({
 		positional("path")
 			.required()
 			.desc(
-				"Path to the .html file, or a directory whose index.html is the page",
+				"Path to the .html file, or a directory whose index.html is the page. Files the HTML references by relative path — images, CSS, fonts — are uploaded with it; unchanged ones are reused from the previous version",
 			),
 	],
 	options: {
@@ -34,7 +34,9 @@ export default command({
 		label: string()
 			.alias("l")
 			.desc("What changed in this version, shown in the version history"),
-		visibility: string().desc(`One of: ${VISIBILITIES.join(", ")}`),
+		visibility: string().desc(
+			`One of: ${VISIBILITIES.join(", ")} (new pages default to org)`,
+		),
 		page: string().desc(
 			"Publish a new version of this page id, instead of resolving by workspace",
 		),
