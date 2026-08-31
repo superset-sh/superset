@@ -114,6 +114,10 @@ enum ComposerMetrics {
   static let sessionTabCloseFade: CGFloat = 12
   static let sessionTabControlSize: CGFloat = 28
   static let sessionTabControlGlyph: CGFloat = 13
+  /// A drawn mark needs more box than an SF Symbol at the same nominal size —
+  /// the symbol's own bounds already carry optical padding, a 24-unit lucide
+  /// path does not.
+  static let sessionTabControlMark: CGFloat = 16
   static let sessionTabControlGap: CGFloat = sessionTabGap
   /// How far the strip scrolls before the scroll-home chevron is fully in.
   /// The reveal is a ratio of this, not a threshold crossing, so the control
@@ -286,13 +290,18 @@ struct ComposerRootView: View {
             // is also what keeps the terminal's inset honest: the height
             // reported below is measured off this stack, so a tab strip
             // appearing is already in the number the caller insets by.
-            if !model.sessionTabs.isEmpty {
+            // Or a leading action with no sessions yet: the strip is still
+            // the row that control belongs to, and drawing it is cheaper than
+            // a second place for the caller to put one.
+            if !model.sessionTabs.isEmpty || model.sessionAction != nil {
               ComposerSessionTabs(
                 tabs: model.sessionTabs,
                 labels: model.sessionTabLabels,
+                action: model.sessionAction,
                 onSelect: { model.onSessionTabPress?($0) },
                 onClose: { model.onSessionTabClose?($0) },
                 onCopyId: { model.onSessionTabCopyId?($0) },
+                onAction: { model.onSessionActionPress?() },
                 onNewSession: { model.onNewSessionPress?() },
                 onAllSessions: { model.onAllSessionsPress?() }
               )

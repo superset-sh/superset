@@ -57,6 +57,36 @@ export const PULL_REQUEST_STATUS: Record<
 	},
 };
 
+/**
+ * The same marks as `icon` above, bundled as art for the native surfaces that
+ * cannot render a React component — the composer's leading chip.
+ *
+ * SF Symbols has no pull request: its nearest neighbours are all arrows
+ * (`arrow.triangle.pull`, `arrow.triangle.branch`), and none of them reads as
+ * the glyph GitHub taught everyone. These are lucide's own paths at 96px, so
+ * the chip draws the same mark the sheet and the cards do.
+ */
+export const PULL_REQUEST_ASSET = {
+	draft: require("@/assets/pull-request/draft.png"),
+	open: require("@/assets/pull-request/open.png"),
+	queued: require("@/assets/pull-request/open.png"),
+	merged: require("@/assets/pull-request/merged.png"),
+	closed: require("@/assets/pull-request/closed.png"),
+} as const satisfies Record<PullRequestStatus, number>;
+
+/**
+ * What a native surface draws until the art above has resolved to a file it
+ * can read — the same role the session tab's initial plays behind its brand
+ * mark, so the chip never flashes empty.
+ */
+export const PULL_REQUEST_SYMBOL = {
+	draft: "arrow.triangle.pull",
+	open: "arrow.triangle.pull",
+	queued: "arrow.triangle.pull",
+	merged: "arrow.triangle.merge",
+	closed: "arrow.triangle.pull",
+} as const satisfies Record<PullRequestStatus, string>;
+
 /** Accepts the synced row or the host detail; both carry these three fields. */
 export function pullRequestStatus(
 	pullRequest: { state: string; isDraft: boolean; mergedAt: Date | null },

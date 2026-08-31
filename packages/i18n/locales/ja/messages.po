@@ -18140,22 +18140,12 @@ msgid "mobile.pullRequest.viewFilesChanged"
 msgstr "変更されたファイルを表示"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewMany"
-msgstr "{count}件のPRを表示"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewManyLabel"
 msgstr "{count}件のプルリクエストを表示"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewOne"
-msgstr "PRを表示"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewOneLabel"
 msgstr "プルリクエストを表示"
 

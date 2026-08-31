@@ -18141,22 +18141,12 @@ msgid "mobile.pullRequest.viewFilesChanged"
 msgstr "Посмотреть изменённые файлы"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewMany"
-msgstr "Смотреть {count} PR"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewManyLabel"
 msgstr "Смотреть {count} пул-реквестов"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewOne"
-msgstr "Смотреть PR"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewOneLabel"
 msgstr "Смотреть пул-реквест"
 

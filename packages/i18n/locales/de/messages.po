@@ -18141,22 +18141,12 @@ msgid "mobile.pullRequest.viewFilesChanged"
 msgstr "Geänderte Dateien ansehen"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewMany"
-msgstr "{count} PRs ansehen"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewManyLabel"
 msgstr "{count} Pull Requests ansehen"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewOne"
-msgstr "PR ansehen"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewOneLabel"
 msgstr "Pull Request ansehen"
 

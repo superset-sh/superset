@@ -18140,22 +18140,12 @@ msgid "mobile.pullRequest.viewFilesChanged"
 msgstr "查看更改的文件"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewMany"
-msgstr "查看{count}个PR"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewManyLabel"
 msgstr "查看{count}个拉取请求"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewOne"
-msgstr "查看PR"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewOneLabel"
 msgstr "查看拉取请求"
 
