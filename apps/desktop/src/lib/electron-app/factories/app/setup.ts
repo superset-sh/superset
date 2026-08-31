@@ -4,6 +4,7 @@ import { loadReactDevToolsExtension } from "main/lib/extensions";
 import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
+import { applyHardwareAccelerationPolicy } from "./hardware-acceleration";
 
 ignoreConsoleWarnings(["Manifest version 2 is deprecated"]);
 
@@ -60,7 +61,9 @@ export async function makeAppSetup(
 	return window;
 }
 
-PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
+// GPU stays enabled on every platform unless the user opts out explicitly
+// (`--disable-gpu` argv or `SUPERSET_DISABLE_GPU=1`). See hardware-acceleration.ts.
+applyHardwareAccelerationPolicy(app);
 
 // macOS Sequoia+: occluded window throttling can corrupt GPU compositor layers
 if (PLATFORM.IS_MAC) {
