@@ -684,7 +684,10 @@ export class PullRequestRuntimeManager {
 			if (!branch) return null;
 
 			const project = this.db
-				.select({ repoProvider: projects.repoProvider })
+				.select({
+					repoProvider: projects.repoProvider,
+					repoUrl: projects.repoUrl,
+				})
 				.from(projects)
 				.where(eq(projects.id, workspace.projectId))
 				.get();
@@ -693,11 +696,27 @@ export class PullRequestRuntimeManager {
 				project?.repoProvider !== null &&
 				project?.repoProvider !== undefined &&
 				upstream.provider !== project.repoProvider;
-			const matchingUpstream = upstreamProviderMismatch ? null : upstream;
+			const projectHost =
+				project?.repoProvider === "gitlab" && project.repoUrl
+					? (() => {
+							try {
+								return new URL(project.repoUrl).hostname.toLowerCase();
+							} catch {
+								return null;
+							}
+						})()
+					: null;
+			const upstreamHostMismatch =
+				upstream?.provider === "gitlab" &&
+				projectHost !== null &&
+				upstream.host !== undefined &&
+				upstream.host !== projectHost;
+			const upstreamMismatch = upstreamProviderMismatch || upstreamHostMismatch;
+			const matchingUpstream = upstreamMismatch ? null : upstream;
 			const upstreamOwner = matchingUpstream?.owner ?? null;
 			const upstreamRepo = matchingUpstream?.name ?? null;
 			const upstreamBranch = matchingUpstream?.branch ?? null;
-			const pullRequestId = upstreamProviderMismatch
+			const pullRequestId = upstreamMismatch
 				? null
 				: matchingUpstream ||
 						this.pullRequestHeadMatches(workspace.pullRequestId, headSha)
@@ -971,12 +990,17 @@ export class PullRequestRuntimeManager {
 					return false;
 				}
 			});
-			const remoteName =
-				(project.remoteName && remotes.has(project.remoteName)
+			const configuredRemoteName =
+				project.remoteName && remotes.has(project.remoteName)
 					? project.remoteName
-					: remotes.has("origin")
-						? "origin"
-						: remotes.keys().next().value) ?? null;
+					: null;
+			const remoteName =
+				(project.repoProvider === "gitlab"
+					? configuredRemoteName
+					: (configuredRemoteName ??
+						(remotes.has("origin")
+							? "origin"
+							: remotes.keys().next().value))) ?? null;
 			if (remoteName) {
 				const parsedRemote = remotes.get(remoteName);
 				if (parsedRemote) {
@@ -997,6 +1021,10 @@ export class PullRequestRuntimeManager {
 						.where(eq(projects.id, projectId))
 						.run();
 				}
+			} else if (project.repoProvider === "gitlab") {
+				// Do not fall back to stale metadata when the GitLab remote is
+				// currently unauthenticated or unavailable.
+				identity = null;
 			}
 		} catch {
 			// Fall back to stored metadata below.

@@ -19,6 +19,8 @@ interface GitLabMergeRequest {
 	source_branch?: string;
 	sha?: string;
 	updated_at?: string;
+	source_project_id?: number;
+	target_project_id?: number;
 }
 
 interface GitLabCommitStatus {
@@ -84,12 +86,23 @@ function normalizePullRequest(
 	};
 }
 
+function isSameProjectMergeRequest(value: unknown): boolean {
+	if (!isRecord(value)) return false;
+	const raw = value as GitLabMergeRequest;
+	return !(
+		typeof raw.source_project_id === "number" &&
+		typeof raw.target_project_id === "number" &&
+		raw.source_project_id !== raw.target_project_id
+	);
+}
+
 function normalizePullRequestCandidates(
 	raw: unknown,
 	head: GitHubPullRequestHeadRef,
 ): GitHubPullRequestNode | null {
 	return (
 		asArray(raw)
+			.filter(isSameProjectMergeRequest)
 			.map((item) => normalizePullRequest(item, head))
 			.find((item) => item?.headRefName === head.branch) ?? null
 	);
@@ -151,8 +164,9 @@ export async function fetchOpenPullRequestsFromGlab(
 	const head = { ...repository, repo: repository.name, branch: "" };
 	return asArray(raw)
 		.map((item) => {
-			if (!item || typeof item !== "object") return null;
-			const branch = (item as GitLabMergeRequest).source_branch;
+			if (!isSameProjectMergeRequest(item)) return null;
+			const mergeRequest = item as GitLabMergeRequest;
+			const branch = mergeRequest.source_branch;
 			return typeof branch === "string"
 				? normalizePullRequest(item, { ...head, branch })
 				: null;

@@ -18,6 +18,7 @@ const UNBORN_HEAD_ERROR_PATTERNS = [
 
 export interface WorkspaceUpstream {
 	provider?: "github" | "gitlab";
+	host?: string;
 	owner: string;
 	name: string;
 	branch: string;
@@ -103,6 +104,7 @@ async function resolveWorkspaceUpstream(
 			if (parsed) {
 				return {
 					provider: parsed.provider,
+					host: parsed.provider === "gitlab" ? parsed.host : undefined,
 					owner: parsed.owner,
 					name: parsed.name,
 					branch: pushRef.slice(slash + 1),
@@ -133,6 +135,7 @@ async function resolveWorkspaceUpstream(
 	// tracked remote branch, not the local name.
 	return {
 		provider: parsed.provider,
+		host: parsed.provider === "gitlab" ? parsed.host : undefined,
 		owner: parsed.owner,
 		name: parsed.name,
 		branch: trackedBranch,

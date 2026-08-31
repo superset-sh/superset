@@ -1122,6 +1122,41 @@ describe("project repository resolution", () => {
 			repoName: "example",
 		});
 	});
+
+	test("does not fall back to stale metadata when a GitLab remote is unavailable", async () => {
+		const db = createRealDb();
+		db.insert(schema.projects)
+			.values({
+				id: PROJECT_ID,
+				repoPath: "/repo",
+				repoProvider: "gitlab",
+				repoOwner: "stale-owner",
+				repoName: "stale-repo",
+				repoUrl: "https://gitlab.example.com/stale-owner/stale-repo",
+				remoteName: "origin",
+				createdAt: Date.now(),
+			})
+			.run();
+		const manager = createManager(db, {
+			git: (async () => ({
+				raw: async (args: string[]) => {
+					if (args[0] === "config" && args[1] === "--get-regexp") {
+						return "remote.github.url https://github.com/acme/example.git\n";
+					}
+					if (args[0] === "symbolic-ref") return "main\n";
+					throw new Error(`unexpected git raw: ${args.join(" ")}`);
+				},
+			})) as never,
+		});
+
+		const repo = await (
+			manager as unknown as {
+				getProjectRepository: (id: string) => Promise<unknown>;
+			}
+		).getProjectRepository(PROJECT_ID);
+
+		expect(repo).toBeNull();
+	});
 });
 
 type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
@@ -1224,6 +1259,38 @@ describe("workspace-created event trigger", () => {
 				headSha: "sha-foreign",
 				upstream: {
 					provider: "gitlab",
+					owner: REPO.owner,
+					name: REPO.name,
+					branch: "feat/new-thing",
+				},
+			}),
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit(createdEvent);
+		await waitFor(() => getWorkspace(db, "ws-new")?.headSha === "sha-foreign");
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.upstreamOwner).toBeNull();
+		expect(ws?.upstreamRepo).toBeNull();
+		expect(ws?.upstreamBranch).toBeNull();
+		expect(ws?.pullRequestId).toBeNull();
+
+		manager.stop();
+	});
+
+	test("does not link an upstream from a different GitLab host", async () => {
+		const db = createRealDb();
+		seedProject(db, "gitlab");
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const manager = createManager(db, {
+			readWorkspaceRefs: async () => ({
+				branch: "feat/new-thing",
+				headSha: "sha-foreign",
+				upstream: {
+					provider: "gitlab",
+					host: "gitlab.example.com",
 					owner: REPO.owner,
 					name: REPO.name,
 					branch: "feat/new-thing",
