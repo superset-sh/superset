@@ -675,6 +675,7 @@ export class PullRequestRuntimeManager {
 			this.noteWorktreeMissing(workspace.id, workspace.worktreePath);
 			return null;
 		}
+		if (!workspace.projectId) return null;
 		this.noteWorktreePresent(workspace.id);
 		try {
 			const { branch, headSha, upstream } = await this.readWorkspaceRefs(
@@ -682,12 +683,24 @@ export class PullRequestRuntimeManager {
 			);
 			if (!branch) return null;
 
-			const upstreamOwner = upstream?.owner ?? null;
-			const upstreamRepo = upstream?.name ?? null;
-			const upstreamBranch = upstream?.branch ?? null;
-			const pullRequestId =
-				upstream ||
-				this.pullRequestHeadMatches(workspace.pullRequestId, headSha)
+			const project = this.db
+				.select({ repoProvider: projects.repoProvider })
+				.from(projects)
+				.where(eq(projects.id, workspace.projectId))
+				.get();
+			const upstreamProviderMismatch =
+				upstream?.provider !== undefined &&
+				project?.repoProvider !== null &&
+				project?.repoProvider !== undefined &&
+				upstream.provider !== project.repoProvider;
+			const matchingUpstream = upstreamProviderMismatch ? null : upstream;
+			const upstreamOwner = matchingUpstream?.owner ?? null;
+			const upstreamRepo = matchingUpstream?.name ?? null;
+			const upstreamBranch = matchingUpstream?.branch ?? null;
+			const pullRequestId = upstreamProviderMismatch
+				? null
+				: matchingUpstream ||
+						this.pullRequestHeadMatches(workspace.pullRequestId, headSha)
 					? workspace.pullRequestId
 					: null;
 

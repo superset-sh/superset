@@ -1214,6 +1214,37 @@ describe("workspace-created event trigger", () => {
 		expect(bus.listeners.size).toBe(0);
 	});
 
+	test("does not link an upstream from a different provider", async () => {
+		const db = createRealDb();
+		seedProject(db, "github");
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const manager = createManager(db, {
+			readWorkspaceRefs: async () => ({
+				branch: "feat/new-thing",
+				headSha: "sha-foreign",
+				upstream: {
+					provider: "gitlab",
+					owner: REPO.owner,
+					name: REPO.name,
+					branch: "feat/new-thing",
+				},
+			}),
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit(createdEvent);
+		await waitFor(() => getWorkspace(db, "ws-new")?.headSha === "sha-foreign");
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.upstreamOwner).toBeNull();
+		expect(ws?.upstreamRepo).toBeNull();
+		expect(ws?.upstreamBranch).toBeNull();
+		expect(ws?.pullRequestId).toBeNull();
+
+		manager.stop();
+	});
+
 	test("ignores updated and deleted events", async () => {
 		const db = createRealDb();
 		seedProject(db);

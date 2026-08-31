@@ -17,6 +17,7 @@ const UNBORN_HEAD_ERROR_PATTERNS = [
 ];
 
 export interface WorkspaceUpstream {
+	provider?: "github" | "gitlab";
 	owner: string;
 	name: string;
 	branch: string;
@@ -101,6 +102,7 @@ async function resolveWorkspaceUpstream(
 			const parsed = url ? parseUpstreamRemote(url) : null;
 			if (parsed) {
 				return {
+					provider: parsed.provider,
 					owner: parsed.owner,
 					name: parsed.name,
 					branch: pushRef.slice(slash + 1),
@@ -129,7 +131,12 @@ async function resolveWorkspaceUpstream(
 	// `gh pr checkout` renames the local branch on collision (`main` →
 	// `quueli-main`) but the PR's headRefName stays `main`, so we key on the
 	// tracked remote branch, not the local name.
-	return { owner: parsed.owner, name: parsed.name, branch: trackedBranch };
+	return {
+		provider: parsed.provider,
+		owner: parsed.owner,
+		name: parsed.name,
+		branch: trackedBranch,
+	};
 }
 
 async function tryRaw(git: SimpleGit, args: string[]): Promise<string | null> {
