@@ -243,6 +243,23 @@ export const fileRouter = {
 					message: "Only the uploader can delete a file",
 				});
 			}
+			// A published version is immutable and `attachments.file_id`
+			// cascades, so deleting an attached file would drop the attachment
+			// row and the bytes while the manifest still names them — the page
+			// then serves a hole. Republishing reuses one file id across every
+			// version whose bytes did not change, so a single delete can empty
+			// an asset out of the entire history at once.
+			const attached = await db
+				.select({ id: attachments.id })
+				.from(attachments)
+				.where(eq(attachments.fileId, row.id))
+				.limit(1);
+			if (attached.length > 0) {
+				throw new TRPCError({
+					code: "CONFLICT",
+					message: "File is in use — delete what it is attached to instead",
+				});
+			}
 			await db.delete(files).where(eq(files.id, row.id));
 			await deleteObjects([fileOriginalKey(row.id)]).catch((error) => {
 				console.error("[files] failed to delete object", {
