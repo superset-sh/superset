@@ -97,13 +97,17 @@ async function runPublish({
 	// The version number is reserved before the bytes move so the key can
 	// name it. A concurrent publish of the same page collides on the unique
 	// (page, version) index and retries under the next number.
-	await verifyPublishAssets(input.assets, organizationId);
-
 	const target = await resolveTargetPage({
 		executor: dbWs,
 		input,
 		organizationId,
 		userId,
+	});
+	await verifyPublishAssets({
+		assets: input.assets,
+		organizationId,
+		userId,
+		pageId: target?.id ?? null,
 	});
 	const pageId = target?.id ?? randomUUID();
 	const version = (target ? await latestVersionNumber(dbWs, target.id) : 0) + 1;
@@ -221,26 +225,64 @@ async function runPublish({
 	return published;
 }
 
-async function verifyPublishAssets(
-	assets: PublishPageInput["assets"],
-	organizationId: string,
-): Promise<void> {
+/**
+ * An asset may only ride a publish if the caller uploaded it, or it already
+ * belongs to this page's lineage (the republish-reuse path). Without the
+ * ownership check, any org-visible file id could be republished to a wider
+ * audience on someone's `everyone` page.
+ */
+async function verifyPublishAssets({
+	assets,
+	organizationId,
+	userId,
+	pageId,
+}: {
+	assets: PublishPageInput["assets"];
+	organizationId: string;
+	userId: string;
+	pageId: string | null;
+}): Promise<void> {
 	if (!assets || assets.length === 0) return;
 	const ids = [...new Set(assets.map((asset) => asset.fileId))];
 	const rows = await dbWs
-		.select({ id: files.id, status: files.status })
+		.select({
+			id: files.id,
+			status: files.status,
+			createdByUserId: files.createdByUserId,
+		})
 		.from(files)
 		.where(
 			and(inArray(files.id, ids), eq(files.organizationId, organizationId)),
 		);
-	const ready = new Set(
-		rows.filter((row) => row.status === "ready").map((row) => row.id),
+	const lineage = new Set<string>();
+	if (pageId) {
+		const attached = await dbWs
+			.select({ fileId: attachments.fileId })
+			.from(attachments)
+			.innerJoin(pageVersions, eq(pageVersions.id, attachments.parentId))
+			.where(
+				and(
+					eq(attachments.parentKind, "page_version"),
+					eq(pageVersions.pageId, pageId),
+					inArray(attachments.fileId, ids),
+				),
+			);
+		for (const row of attached) lineage.add(row.fileId);
+	}
+	const allowed = new Set(
+		rows
+			.filter(
+				(row) =>
+					row.status === "ready" &&
+					(row.createdByUserId === userId || lineage.has(row.id)),
+			)
+			.map((row) => row.id),
 	);
-	const missing = ids.find((id) => !ready.has(id));
-	if (missing) {
+	const refused = ids.find((id) => !allowed.has(id));
+	if (refused) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
-			message: `Asset file ${missing} is missing or not completed`,
+			message: `Asset file ${refused} is missing, not completed, or not yours to attach`,
 		});
 	}
 }
