@@ -139,7 +139,7 @@ describe("uploadAssets", () => {
 	test("a rejected PUT surfaces the path and status", async () => {
 		const asset = write("big.bin", "xxxx");
 		const { api } = fakeApi({ failUpload: true });
-		expect(
+		await expect(
 			uploadAssets({ api, assets: [asset], target: null }),
 		).rejects.toThrow("Uploading big.bin failed (500)");
 	});
