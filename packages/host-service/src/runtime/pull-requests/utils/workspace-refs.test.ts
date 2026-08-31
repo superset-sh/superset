@@ -20,6 +20,7 @@ describe("readWorkspaceRefs", () => {
 			branch: "alexanderc.smk/29567",
 			headSha: "head-sha",
 			upstream: {
+				provider: "gitlab",
 				owner: "smarkets",
 				name: "smarkets",
 				branch: "alexanderc.smk/29567",
