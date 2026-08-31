@@ -102,16 +102,24 @@ const managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
 
 describe("agent-wrappers opencode", () => {
 	const originalTerminalId = process.env.SUPERSET_TERMINAL_ID;
-	let pluginImportCounter = 0;
+	// Written and imported once. A fresh file per test used to be the way to get
+	// a fresh module, but only the first dynamic import out of this directory
+	// ever resolved — the rest died on "Cannot find module" for a file that was
+	// definitely on disk. Nothing here needs a fresh module anyway: the plugin's
+	// re-entry guard lives on `globalThis`, not in module scope, and `beforeEach`
+	// clears it, so one cached import gives every test its own hooks.
+	let pluginModule: Promise<{
+		SupersetNotifyPlugin: (input: unknown) => Promise<Record<string, never>>;
+	}>;
 
 	const loadOpenCodePlugin = async () => {
-		mkdirSync(TEST_ROOT, { recursive: true });
-		const pluginPath = path.join(
-			TEST_ROOT,
-			`opencode-notify-${pluginImportCounter++}.mjs`,
-		);
-		writeFileSync(pluginPath, getOpenCodePluginContent("/tmp/notify.sh"));
-		return import(pathToFileURL(pluginPath).href);
+		if (!pluginModule) {
+			mkdirSync(TEST_ROOT, { recursive: true });
+			const pluginPath = path.join(TEST_ROOT, "opencode-notify.mjs");
+			writeFileSync(pluginPath, getOpenCodePluginContent("/tmp/notify.sh"));
+			pluginModule = import(pathToFileURL(pluginPath).href);
+		}
+		return pluginModule;
 	};
 
 	beforeEach(() => {
