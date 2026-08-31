@@ -199,8 +199,8 @@ for each thread gives a `thread:` id, an `at:` CSS selector path from `<body>`,
 and the element's text at the time of writing.
 
 **That selector points into the published HTML, which is the same document as
-your source file** — the `index.html` you published, not any asset beside it —
-so the anchor locates the exact element to edit. Quoted text alone doesn't; the same words often
+your source file.** That document is the `index.html` you published, not any
+asset beside it, so the anchor locates the exact element to edit. Quoted text alone doesn't; the same words often
 appear more than once.
 
 The loop, in order:
