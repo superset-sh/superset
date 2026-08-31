@@ -1,8 +1,8 @@
-import { db, dbWs } from "@superset/db/client";
+import { db } from "@superset/db/client";
 import { attachments, files, pages, pageVersions } from "@superset/db/schema";
 import { fileOriginalKey } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { presignedPutUrl } from "../../../lib/r2";
 import { protectedProcedure, userError } from "../../../trpc";
 import { requireActiveOrgMembership } from "../../utils/active-org";
@@ -210,8 +210,11 @@ async function assertStagingHasRoom({
 }
 
 /**
- * One file per path. Re-uploading a path drops the row that held it; if that
- * row pointed at bytes no version references, the sweep reclaims them.
+ * One file per path, as a single upsert onto the unique index — atomic
+ * without a transaction, which matters because this runs once per asset and
+ * a pooled transaction per file made a thirty-asset publish take twenty
+ * seconds. Re-uploading a path repoints it; if the row it displaced pointed
+ * at bytes no version references, the sweep reclaims them.
  */
 async function stageAsset({
 	pageId,
@@ -222,11 +225,14 @@ async function stageAsset({
 	path: string;
 	fileId: string;
 }): Promise<void> {
-	// neon-http has no transactions; the pooled client does.
-	await dbWs.transaction(async (tx) => {
-		await tx.delete(attachments).where(stagedAt({ pageId, path }));
-		await tx
-			.insert(attachments)
-			.values({ fileId, parentKind: "page", parentId: pageId, path });
-	});
+	await db
+		.insert(attachments)
+		.values({ fileId, parentKind: "page", parentId: pageId, path })
+		.onConflictDoUpdate({
+			target: [attachments.parentKind, attachments.parentId, attachments.path],
+			// The unique index is partial, so the predicate has to be repeated
+			// here or Postgres cannot infer which index the conflict is on.
+			targetWhere: sql`${attachments.path} is not null`,
+			set: { fileId },
+		});
 }
