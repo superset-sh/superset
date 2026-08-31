@@ -66,7 +66,7 @@ export function ConfigFilePreview({
 
 			<div className="mt-4">
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={handleLearnMore}
 					className="gap-2"

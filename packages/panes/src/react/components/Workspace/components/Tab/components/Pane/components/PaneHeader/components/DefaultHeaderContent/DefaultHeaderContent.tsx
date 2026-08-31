@@ -19,7 +19,7 @@ export function DefaultHeaderContent({
 	actionsContent,
 }: DefaultHeaderContentProps) {
 	return (
-		<div className="flex h-full w-full min-w-0 items-center gap-2 px-3">
+		<div className="flex h-full w-full min-w-0 items-center gap-2 px-2">
 			{/* font-semibold on the wrapper so custom titleContent inherits the
 			    active bolding too, not just the default title span. */}
 			<div
@@ -33,7 +33,7 @@ export function DefaultHeaderContent({
 						{icon && <span className="shrink-0">{icon}</span>}
 						<span
 							className={cn(
-								"truncate text-xs transition-colors duration-150",
+								"truncate text-sm transition-colors duration-150",
 								isActive ? "text-foreground" : "text-muted-foreground",
 							)}
 							title={typeof title === "string" ? title : undefined}

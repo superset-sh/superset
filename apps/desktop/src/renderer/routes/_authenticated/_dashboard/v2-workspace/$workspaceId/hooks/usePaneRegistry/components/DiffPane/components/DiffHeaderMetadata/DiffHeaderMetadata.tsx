@@ -136,7 +136,7 @@ export function DiffHeaderMetadata({
 						<output
 							className={cn(
 								"size-1.5 rounded-full transition-colors",
-								isDirty ? "bg-amber-500" : "bg-muted-foreground/30",
+								isDirty ? "bg-warning" : "bg-muted-foreground/30",
 							)}
 							aria-label={
 								isDirty

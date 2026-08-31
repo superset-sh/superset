@@ -101,7 +101,7 @@ export function WorkspaceSidebarHeader({
 							type="button"
 							onClick={handleWorkspacesClick}
 							className={cn(
-								"flex items-center justify-center size-8 rounded-md transition-colors",
+								"flex items-center justify-center size-8 rounded transition-colors",
 								isWorkspacesListOpen
 									? "text-foreground bg-fill-selected"
 									: "text-muted-foreground hover:text-foreground hover:bg-fill-hover",
@@ -121,7 +121,7 @@ export function WorkspaceSidebarHeader({
 							aria-label="Tasks"
 							aria-current={isTasksOpen ? "page" : undefined}
 							className={cn(
-								"flex items-center justify-center size-8 rounded-md transition-colors",
+								"flex items-center justify-center size-8 rounded transition-colors",
 								isTasksOpen
 									? "text-foreground bg-fill-selected"
 									: "text-muted-foreground hover:text-foreground hover:bg-fill-hover",
@@ -144,7 +144,7 @@ export function WorkspaceSidebarHeader({
 							aria-label="Pull requests"
 							aria-current={isPullRequestsOpen ? "page" : undefined}
 							className={cn(
-								"flex items-center justify-center size-8 rounded-md transition-colors",
+								"flex items-center justify-center size-8 rounded transition-colors",
 								isPullRequestsOpen
 									? "text-foreground bg-fill-selected"
 									: "text-muted-foreground hover:text-foreground hover:bg-fill-hover",
@@ -167,7 +167,7 @@ export function WorkspaceSidebarHeader({
 				type="button"
 				onClick={handleWorkspacesClick}
 				className={cn(
-					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded transition-colors",
 					isWorkspacesListOpen
 						? "text-foreground bg-fill-selected"
 						: "text-muted-foreground hover:text-foreground hover:bg-fill-hover",
@@ -185,7 +185,7 @@ export function WorkspaceSidebarHeader({
 				aria-label="Tasks"
 				aria-current={isTasksOpen ? "page" : undefined}
 				className={cn(
-					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded transition-colors",
 					isTasksOpen
 						? "text-foreground bg-fill-selected"
 						: "text-muted-foreground hover:text-foreground hover:bg-fill-hover",
@@ -206,7 +206,7 @@ export function WorkspaceSidebarHeader({
 				aria-label="Pull requests"
 				aria-current={isPullRequestsOpen ? "page" : undefined}
 				className={cn(
-					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded transition-colors",
 					isPullRequestsOpen
 						? "text-foreground bg-fill-selected"
 						: "text-muted-foreground hover:text-foreground hover:bg-fill-hover",

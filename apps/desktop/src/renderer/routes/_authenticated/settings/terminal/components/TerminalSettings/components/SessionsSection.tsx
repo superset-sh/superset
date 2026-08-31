@@ -196,7 +196,7 @@ export function SessionsSection() {
 
 	return (
 		<>
-			<div className="rounded-md border border-border/60 p-4 space-y-3">
+			<div className="rounded border border-border/60 p-4 space-y-3">
 				<div className="space-y-0.5">
 					<div className="flex items-center justify-between">
 						<Label className="text-sm font-medium">
@@ -257,7 +257,7 @@ export function SessionsSection() {
 						</Trans>
 					</Button>
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						disabled={restartDaemon.isPending}
 						onClick={() => setConfirmRestartDaemonOpen(true)}
@@ -285,7 +285,7 @@ export function SessionsSection() {
 				</div>
 
 				{showSessionList && aliveSessions.length > 0 && (
-					<div className="rounded-md border border-border/60 overflow-hidden">
+					<div className="rounded border border-border/60 overflow-hidden">
 						<div className="max-h-64 overflow-auto">
 							<table className="w-full text-xs">
 								<thead className="sticky top-0 bg-background">
@@ -322,9 +322,9 @@ export function SessionsSection() {
 										</th>
 									</tr>
 								</thead>
-								<tbody className="divide-y divide-border/60">
+								<tbody className="divide-y divide-border-variant">
 									{sessionsSorted.map((session) => (
-										<tr key={session.sessionId} className="hover:bg-muted/30">
+										<tr key={session.sessionId} className="hover:bg-fill-hover">
 											<td className="px-2 py-2 font-mono">
 												{session.workspaceId}
 											</td>

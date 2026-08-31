@@ -258,7 +258,7 @@ export function SparseCheckoutSection({
 					</span>
 				)}
 				{saveStatus === "saved" && (
-					<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+					<span className="flex items-center gap-1 text-success">
 						<HiCheckCircle className="h-3.5 w-3.5" />
 						<Trans id="settings.project.sparseCheckoutStatus.saved">
 							Saved

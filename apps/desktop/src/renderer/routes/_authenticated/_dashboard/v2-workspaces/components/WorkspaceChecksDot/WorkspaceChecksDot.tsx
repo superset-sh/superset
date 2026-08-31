@@ -30,7 +30,7 @@ export function WorkspaceChecksDot({
 					id: "dashboard.workspaces.checksDot.checksPassed",
 					message: "Checks passed",
 				})}
-				className="size-3 text-emerald-500"
+				className="size-3 text-success"
 			/>
 		);
 	}
@@ -42,7 +42,7 @@ export function WorkspaceChecksDot({
 					id: "dashboard.workspaces.checksDot.checksFailed",
 					message: "Checks failed",
 				})}
-				className="size-3 text-red-500"
+				className="size-3 text-destructive"
 			/>
 		);
 	}
@@ -80,7 +80,7 @@ export function WorkspaceChecksDot({
 					r={RADIUS}
 					fill="none"
 					strokeWidth="1.5"
-					className="stroke-amber-500/25"
+					className="stroke-warning/25"
 				/>
 				<circle
 					cx="6"
@@ -90,7 +90,7 @@ export function WorkspaceChecksDot({
 					strokeWidth="1.5"
 					strokeLinecap="round"
 					strokeDasharray={`${CIRCUMFERENCE * fraction} ${CIRCUMFERENCE}`}
-					className="stroke-amber-500"
+					className="stroke-warning"
 				/>
 			</svg>
 		</span>

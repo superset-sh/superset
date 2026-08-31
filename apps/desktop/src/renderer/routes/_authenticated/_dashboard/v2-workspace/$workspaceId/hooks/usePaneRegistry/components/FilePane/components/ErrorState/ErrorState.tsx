@@ -53,12 +53,12 @@ export function ErrorState({
 				{message ?? i18n._(MESSAGES[reason])}
 			</span>
 			{reason === "too-large" && onOpenAnyway && (
-				<Button variant="outline" size="sm" onClick={onOpenAnyway}>
+				<Button variant="secondary" size="sm" onClick={onOpenAnyway}>
 					<Trans id="workspace.filePane.openAnyway">Open anyway</Trans>
 				</Button>
 			)}
 			{reason === "load-failed" && onRetry && (
-				<Button variant="outline" size="sm" onClick={onRetry}>
+				<Button variant="secondary" size="sm" onClick={onRetry}>
 					<Trans id="workspace.filePane.retryLoad">Retry</Trans>
 				</Button>
 			)}

@@ -43,11 +43,11 @@ const PR_ICON_BY_STATE = {
 } as const;
 
 const PR_COLOR_BY_STATE = {
-	open: "text-emerald-500",
-	merged: "text-purple-500",
+	open: "text-success",
+	merged: "text-status-1",
 	closed: "text-destructive",
 	draft: "text-muted-foreground",
-	queued: "text-amber-500",
+	queued: "text-warning",
 } as const;
 
 export function DashboardSidebarWorkspaceIcon({

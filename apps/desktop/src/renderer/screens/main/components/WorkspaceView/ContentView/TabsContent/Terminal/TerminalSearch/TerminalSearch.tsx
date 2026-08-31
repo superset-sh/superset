@@ -125,7 +125,7 @@ export function TerminalSearch({
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
 				placeholder="Find"
-				className="h-6 min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+				className="h-[var(--btn-h-sm)] min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{matchCount === 0 && query && (
 				<span className="text-xs text-muted-foreground whitespace-nowrap px-1">

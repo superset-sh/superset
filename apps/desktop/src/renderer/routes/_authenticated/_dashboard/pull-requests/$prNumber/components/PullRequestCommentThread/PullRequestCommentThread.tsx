@@ -196,7 +196,7 @@ export function PullRequestCommentThread({
 						</span>
 					)}
 					{isResolved && (
-						<span className="rounded-full bg-[#dcfae8] px-1.5 py-0.5 text-[10px] font-medium text-[#00a558] [.dark_&]:bg-[#064e3b] [.dark_&]:text-[#34d399]">
+						<span className="rounded-full bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
 							<Trans id="dashboard.pullRequests.commentThread.resolved">
 								Resolved
 							</Trans>
@@ -224,7 +224,7 @@ export function PullRequestCommentThread({
 						}
 					>
 						{isCopied ? (
-							<LuCheck className="size-3 text-green-500" />
+							<LuCheck className="size-3 text-success" />
 						) : (
 							<LuCopy className="size-3" />
 						)}
@@ -246,13 +246,13 @@ export function PullRequestCommentThread({
 					)}
 				</div>
 			</div>
-			<CollapsibleContent className="overflow-hidden border-t border-border/50 data-[state=closed]:animate-none">
-				<ul className="divide-y divide-border/50">
+			<CollapsibleContent className="overflow-hidden border-t border-border-variant data-[state=closed]:animate-none">
+				<ul className="divide-y divide-border-variant">
 					{comments.map((comment) => (
 						<CommentRow key={comment.id} comment={comment} />
 					))}
 				</ul>
-				<div className="flex flex-col gap-2 border-t border-border/50 bg-muted/20 px-3 py-2">
+				<div className="flex flex-col gap-2 border-t border-border-variant bg-muted/20 px-3 py-2">
 					<Textarea
 						value={replyText}
 						onChange={(e) => setReplyText(e.target.value)}
@@ -273,7 +273,7 @@ export function PullRequestCommentThread({
 						<Button
 							type="button"
 							size="xs"
-							variant="outline"
+							variant="ghost"
 							disabled={isResolvePending}
 							onClick={() => onResolveChange(!isResolved)}
 						>

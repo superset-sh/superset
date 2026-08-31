@@ -155,7 +155,7 @@ export function ExperimentalSettings({
 						</div>
 						<Button
 							type="button"
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							onClick={() => openV1ImportModal()}
 							disabled={!isV2CloudEnabled}

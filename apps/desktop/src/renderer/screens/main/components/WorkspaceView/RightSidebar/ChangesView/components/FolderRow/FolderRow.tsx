@@ -46,6 +46,9 @@ interface FolderRowProps {
 	defaultApp?: ExternalApp | null;
 }
 
+const LEVEL_INDICATOR_CLASS_NAME =
+	"w-3 self-stretch border-r border-border-variant";
+
 function LevelIndicators({ level }: { level: number }) {
 	if (level === 0) return null;
 
@@ -53,7 +56,7 @@ function LevelIndicators({ level }: { level: number }) {
 		<div className="flex self-stretch shrink-0">
 			{Array.from({ length: level }).map((_, i) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
-				<div key={i} className="w-3 self-stretch border-r border-border/50" />
+				<div key={i} className={LEVEL_INDICATOR_CLASS_NAME} />
 			))}
 		</div>
 	);
@@ -258,7 +261,7 @@ export function FolderRow({
 					<ContextMenuTrigger asChild>
 						<div
 							className={cn(
-								"group flex items-center min-w-0 rounded-sm px-1.5",
+								"group flex items-center min-w-0 rounded px-1.5",
 								"hover:bg-accent/50 cursor-pointer transition-colors",
 							)}
 						>
@@ -271,7 +274,7 @@ export function FolderRow({
 				<CollapsibleContent
 					className={cn(
 						"min-w-0",
-						isGrouped && "ml-1.5 border-l border-border pl-0.5",
+						isGrouped && "ml-1.5 border-l border-border-variant pl-0.5",
 					)}
 				>
 					{children}

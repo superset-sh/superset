@@ -30,11 +30,11 @@ export function ImportPageShell({
 		<div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
 			<div className="flex items-center gap-3 border-b border-border/60 px-6 py-3.5">
 				<div className="min-w-0 flex-1">
-					<div className="truncate text-[14px] font-medium tracking-tight text-foreground">
+					<div className="truncate text-base font-medium tracking-tight text-foreground">
 						{title}
 					</div>
 					{description && (
-						<p className="mt-0.5 truncate text-[12px] text-muted-foreground">
+						<p className="mt-0.5 truncate text-xs text-muted-foreground">
 							{description}
 						</p>
 					)}
@@ -49,7 +49,7 @@ export function ImportPageShell({
 							onClick={onRefresh}
 							disabled={isRefreshing}
 							aria-label="Refresh"
-							className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+							className="h-[var(--btn-h-default)] w-[var(--btn-h-default)] shrink-0 text-muted-foreground hover:text-foreground"
 						>
 							<LuRefreshCw
 								className={`size-3.5${isRefreshing ? " animate-spin" : ""}`}
@@ -65,7 +65,7 @@ export function ImportPageShell({
 						<Spinner className="size-4 text-muted-foreground" />
 					</div>
 				) : itemCount === 0 ? (
-					<div className="flex flex-1 items-center justify-center px-6 text-center text-[13px] text-muted-foreground">
+					<div className="flex flex-1 items-center justify-center px-6 text-center text-sm text-muted-foreground">
 						{emptyMessage ?? "Nothing to import."}
 					</div>
 				) : (

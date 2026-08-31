@@ -154,7 +154,7 @@ export function useOrderedSections({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+								className="h-[var(--btn-h-sm)] w-[var(--btn-h-sm)] opacity-0 group-hover:opacity-100 transition-opacity"
 								onClick={onShowDiscardStagedDialog}
 								disabled={isDiscardAllStagedPending}
 							>
@@ -168,7 +168,7 @@ export function useOrderedSections({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="h-6 w-6"
+								className="h-[var(--btn-h-sm)] w-[var(--btn-h-sm)]"
 								onClick={onUnstageAll}
 								disabled={isUnstageAllPending}
 							>
@@ -209,7 +209,7 @@ export function useOrderedSections({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+								className="h-[var(--btn-h-sm)] w-[var(--btn-h-sm)] opacity-0 group-hover:opacity-100 transition-opacity"
 								onClick={onShowDiscardUnstagedDialog}
 								disabled={isDiscardAllUnstagedPending}
 							>
@@ -223,7 +223,7 @@ export function useOrderedSections({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="h-6 w-6"
+								className="h-[var(--btn-h-sm)] w-[var(--btn-h-sm)]"
 								onClick={onStageAll}
 								disabled={isStageAllPending}
 							>

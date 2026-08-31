@@ -22,7 +22,7 @@ export function TerminalContent({ content }: { content: TerminalToolContent }) {
 					</Badge>
 				)}
 			</div>
-			<pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md bg-muted/50 p-2">
+			<pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded bg-muted/50 p-2">
 				{output}
 			</pre>
 			{clipped && (

@@ -28,8 +28,8 @@ export function WorkItemDetailHeader({
 		<div className="@container flex shrink-0 items-center gap-2 border-b border-border px-4 py-3 @md:gap-3 @md:px-6 @md:py-4">
 			<Button
 				variant="ghost"
-				size="icon"
-				className="size-8 shrink-0"
+				size="icon-lg"
+				className="shrink-0"
 				onClick={onBack}
 				aria-label={backLabel}
 			>
@@ -43,7 +43,7 @@ export function WorkItemDetailHeader({
 			<div className="drag -my-3 min-w-0 flex-1 self-stretch @md:-my-4" />
 			<div className="ml-auto flex shrink-0 items-center gap-1">
 				{url && (
-					<Button variant="ghost" size="icon" className="size-8" asChild>
+					<Button variant="ghost" size="icon-lg" asChild>
 						<a
 							href={url}
 							target="_blank"
@@ -57,9 +57,9 @@ export function WorkItemDetailHeader({
 				)}
 				{onAddToWorkspace && (
 					<Button
-						variant="outline"
-						size="sm"
-						className="h-8 gap-1.5 px-2 @md:px-3"
+						variant="ghost"
+						size="lg"
+						className="gap-1.5 px-2 @md:px-3"
 						onClick={onAddToWorkspace}
 						aria-label={t({
 							id: "dashboard.workItemDetailHeader.addToWorkspaceLabel",

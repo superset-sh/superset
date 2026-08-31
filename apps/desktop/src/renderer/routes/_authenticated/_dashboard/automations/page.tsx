@@ -627,12 +627,12 @@ function AutomationsPage() {
 	);
 
 	const sectionRow = (label: string, alert = false) => (
-		<TableRow className="border-border/50 hover:bg-transparent">
+		<TableRow className="border-border-variant hover:bg-transparent">
 			<TableCell
 				colSpan={columnCount}
 				className={cn(
 					"h-8 bg-accent/20 pl-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70",
-					alert && "text-red-600/80 dark:text-red-400/80",
+					alert && "text-destructive/80",
 				)}
 			>
 				{label}
@@ -643,7 +643,7 @@ function AutomationsPage() {
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
 			{/* Window-drag leaf standing in for the hidden TopBar. */}
-			<div className="drag h-10 shrink-0" />
+			<div className="drag h-[var(--header-height)] shrink-0" />
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
@@ -657,8 +657,8 @@ function AutomationsPage() {
 									<Button
 										asChild
 										variant="ghost"
-										size="icon-sm"
-										className="size-8 text-muted-foreground"
+										size="icon-lg"
+										className="text-muted-foreground"
 									>
 										<a
 											href={`${COMPANY.DOCS_URL}/automations`}
@@ -681,9 +681,9 @@ function AutomationsPage() {
 							</Tooltip>
 							<Button
 								type="button"
-								variant="outline"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
+								variant="ghost"
+								size="lg"
+								className="gap-1.5 px-3"
 								disabled={creatingWithAgent}
 								onClick={handleCreateWithAgent}
 							>
@@ -696,8 +696,8 @@ function AutomationsPage() {
 							</Button>
 							<Button
 								type="button"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
+								size="lg"
+								className="gap-1.5 px-3"
 								disabled={createMutation.isPending}
 								onClick={() => createMutation.mutate(null)}
 							>
@@ -737,10 +737,10 @@ function AutomationsPage() {
 					{!orgEmpty && (
 						<div className="mt-6 flex items-center justify-between gap-2">
 							<Tabs value={scope} onValueChange={handleScopeChange}>
-								<TabsList className="h-8 bg-transparent p-0 gap-1">
+								<TabsList className="h-[var(--btn-h-lg)] bg-transparent p-0 gap-1">
 									<TabsTrigger
 										value="mine"
-										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+										className="h-[var(--btn-h-lg)] rounded px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
 										<span className="text-sm">
 											<Trans id="dashboard.automations.page.tabMine">
@@ -753,7 +753,7 @@ function AutomationsPage() {
 									</TabsTrigger>
 									<TabsTrigger
 										value="team"
-										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+										className="h-[var(--btn-h-lg)] rounded px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
 										<span className="text-sm">
 											<Trans id="dashboard.automations.page.tabTeam">
@@ -773,9 +773,9 @@ function AutomationsPage() {
 											<TooltipTrigger asChild>
 												<Button
 													type="button"
-													variant="outline"
+													variant="ghost"
 													size="sm"
-													className="h-8 gap-1.5 px-3"
+													className="h-[var(--btn-h-lg)] gap-1.5 px-3"
 													disabled={retryAllMutation.isPending}
 													onClick={() => retryAllMutation.mutate(failedMine)}
 												>
@@ -815,7 +815,7 @@ function AutomationsPage() {
 												id: "dashboard.automations.page.searchAriaLabel",
 												message: "Search automations",
 											})}
-											className="h-8 w-44 pl-8"
+											className="h-[var(--input-h)] w-44 pl-8"
 										/>
 									</div>
 								</div>
@@ -855,7 +855,7 @@ function AutomationsPage() {
 									</EmptyDescription>
 								</EmptyHeader>
 								<Button
-									variant="outline"
+									variant="ghost"
 									size="sm"
 									onClick={() => {
 										void refetchAutomations();

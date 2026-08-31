@@ -379,7 +379,7 @@ export function WorkspaceListItem({
 						}}
 						onClick={(e) => e.stopPropagation()}
 						onMouseDown={(e) => e.stopPropagation()}
-						className="h-6 px-1 py-0 text-sm -ml-1"
+						className="h-[var(--btn-h-sm)] px-1 py-0 text-sm -ml-1"
 					/>
 				) : (
 					<div className="flex flex-col gap-0.5">
@@ -388,7 +388,7 @@ export function WorkspaceListItem({
 								name={isBranchWorkspace ? "local" : name || branch}
 								forceActive={isFocused}
 								className={cn(
-									"text-[13px] leading-tight transition-colors flex-1",
+									"text-sm leading-tight transition-colors flex-1",
 									isActive
 										? "text-foreground font-medium"
 										: "text-foreground/80",

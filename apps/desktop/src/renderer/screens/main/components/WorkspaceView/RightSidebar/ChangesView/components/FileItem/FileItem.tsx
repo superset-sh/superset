@@ -46,6 +46,9 @@ interface FileItemProps {
 	defaultApp?: ExternalApp | null;
 }
 
+const LEVEL_INDICATOR_CLASS_NAME =
+	"w-3 self-stretch border-r border-border-variant";
+
 function LevelIndicators({ level }: { level: number }) {
 	if (level === 0) return null;
 
@@ -53,7 +56,7 @@ function LevelIndicators({ level }: { level: number }) {
 		<div className="flex self-stretch shrink-0">
 			{Array.from({ length: level }).map((_, i) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
-				<div key={i} className="w-3 self-stretch border-r border-border" />
+				<div key={i} className={LEVEL_INDICATOR_CLASS_NAME} />
 			))}
 		</div>
 	);
@@ -216,7 +219,7 @@ export function FileItem({
 		<div
 			{...fileDragProps}
 			className={cn(
-				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
+				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded",
 				"hover:bg-accent/50 cursor-pointer transition-colors",
 				isHighlighted && "bg-accent",
 			)}
@@ -248,14 +251,10 @@ export function FileItem({
 					{showStatsDisplay && (
 						<span className="flex items-center gap-0.5 text-[10px] font-mono shrink-0 whitespace-nowrap opacity-60">
 							{file.additions > 0 && (
-								<span className="text-green-600 dark:text-green-500">
-									+{file.additions}
-								</span>
+								<span className="text-success">+{file.additions}</span>
 							)}
 							{file.deletions > 0 && (
-								<span className="text-red-600 dark:text-red-400">
-									-{file.deletions}
-								</span>
+								<span className="text-destructive">-{file.deletions}</span>
 							)}
 						</span>
 					)}

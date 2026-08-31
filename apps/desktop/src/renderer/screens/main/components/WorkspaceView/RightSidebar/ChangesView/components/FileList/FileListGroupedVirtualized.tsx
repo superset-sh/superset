@@ -203,7 +203,7 @@ export function FileListGroupedVirtualized({
 									{null}
 								</FolderRow>
 							) : (
-								<div className="ml-1.5 border-l border-border pl-0.5">
+								<div className="ml-1.5 border-l border-border-variant pl-0.5">
 									<FileItem
 										file={row.file}
 										isSelected={

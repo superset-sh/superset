@@ -39,8 +39,8 @@ export class BootErrorBoundary extends Component<
 					height: "100vh",
 					alignItems: "center",
 					justifyContent: "center",
-					background: "#0f0f0f",
-					color: "#e5e5e5",
+					background: "var(--background)",
+					color: "var(--foreground)",
 					fontFamily: "system-ui, sans-serif",
 					padding: "24px",
 					textAlign: "center",
@@ -50,13 +50,13 @@ export class BootErrorBoundary extends Component<
 					{/* This boundary mounts outside I18nProvider, so it uses the
 					    non-React i18n._ path; descriptors fall back to the English
 					    message when no catalog is active. */}
-					<h1 style={{ fontSize: "18px", marginBottom: "8px" }}>
+					<h1 style={{ fontSize: "var(--text-lg)", marginBottom: "8px" }}>
 						{i18n._({
 							id: "components.bootError.title",
 							message: "Superset failed to start",
 						})}
 					</h1>
-					<p style={{ fontSize: "14px", opacity: 0.8 }}>
+					<p style={{ fontSize: "var(--text-base)", opacity: 0.8 }}>
 						{i18n._({
 							id: "components.bootError.description",
 							message:
@@ -69,13 +69,13 @@ export class BootErrorBoundary extends Component<
 							style={{
 								marginTop: "12px",
 								padding: "10px 12px",
-								fontSize: "12px",
+								fontSize: "var(--text-xs)",
 								fontFamily:
 									"ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-								background: "#1a1a1a",
-								border: "1px solid #2a2a2a",
-								borderRadius: "6px",
-								color: "#f87171",
+								background: "var(--background-2)",
+								border: "1px solid var(--border)",
+								borderRadius: "var(--radius)",
+								color: "var(--destructive)",
 								textAlign: "left",
 								whiteSpace: "pre-wrap",
 								wordBreak: "break-word",
@@ -91,11 +91,11 @@ export class BootErrorBoundary extends Component<
 						style={{
 							marginTop: "16px",
 							padding: "8px 20px",
-							fontSize: "14px",
-							background: "#333",
-							color: "#e5e5e5",
-							border: "1px solid #555",
-							borderRadius: "6px",
+							fontSize: "var(--text-base)",
+							background: "var(--secondary)",
+							color: "var(--foreground)",
+							border: "1px solid var(--border)",
+							borderRadius: "var(--radius)",
 							cursor: "pointer",
 						}}
 					>

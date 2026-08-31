@@ -84,7 +84,7 @@ export function CommandsEditor({
 	};
 
 	const inputClassName =
-		"h-8 flex-1 min-w-0 border-border/70 bg-transparent px-2 text-sm shadow-none dark:bg-transparent focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10";
+		"h-[var(--input-h)] flex-1 min-w-0 border-border/70 bg-transparent px-2 text-sm shadow-none focus-visible:border-foreground/30 focus-visible:ring-2 focus-visible:ring-foreground/10";
 
 	return (
 		<div className="flex flex-col gap-1.5 min-w-0">
@@ -107,7 +107,7 @@ export function CommandsEditor({
 							variant="ghost"
 							size="icon-sm"
 							onClick={() => handleDeleteCommand(index)}
-							className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/command-row:opacity-100 group-focus-within/command-row:opacity-100"
+							className="h-[var(--btn-h-lg)] w-[var(--btn-h-lg)] shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/command-row:opacity-100 group-focus-within/command-row:opacity-100"
 							aria-label={t({
 								id: "settings.terminal.commandsEditor.deleteCommand",
 								message: `Delete command ${index + 1}`,

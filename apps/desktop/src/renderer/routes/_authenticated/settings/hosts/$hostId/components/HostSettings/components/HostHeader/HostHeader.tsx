@@ -62,7 +62,7 @@ export function HostHeader({
 				<span
 					className={cn(
 						"size-2 rounded-full",
-						isOnline ? "bg-emerald-500" : "bg-muted-foreground/40",
+						isOnline ? "bg-success" : "bg-muted-foreground/40",
 					)}
 				/>
 				{isEditing ? (

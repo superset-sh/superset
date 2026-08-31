@@ -57,7 +57,7 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 						content={notice.body}
 						allowHtml={false}
 						// images bleed edge-to-edge (cover-style); a leading image also bleeds to the top
-						className="h-auto overflow-visible text-[13px] [&_article]:max-w-none [&_article]:p-0 [&_article>*:first-child]:mt-0 [&_article>*:first-child_img]:-mt-5 [&_img]:-mx-5 [&_img]:w-[calc(100%+2.5rem)] [&_img]:max-w-none [&_img]:max-h-52 [&_img]:object-cover"
+						className="h-auto overflow-visible text-sm [&_article]:max-w-none [&_article]:p-0 [&_article>*:first-child]:mt-0 [&_article>*:first-child_img]:-mt-5 [&_img]:-mx-5 [&_img]:w-[calc(100%+2.5rem)] [&_img]:max-w-none [&_img]:max-h-52 [&_img]:object-cover"
 					/>
 					{(notice.dismissible || notice.cta) && (
 						<DialogFooter className="mt-4 flex-row justify-end gap-2">

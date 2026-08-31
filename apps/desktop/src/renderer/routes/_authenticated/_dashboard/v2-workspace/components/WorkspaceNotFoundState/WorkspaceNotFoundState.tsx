@@ -19,23 +19,23 @@ export function WorkspaceNotFoundState({
 					aria-hidden="true"
 				/>
 				<div className="flex flex-col gap-1.5">
-					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="text-md font-medium tracking-tight text-foreground">
 						<Trans id="workspace.states.notFoundTitle">
 							Workspace not found
 						</Trans>
 					</h1>
-					<p className="text-[13px] leading-relaxed text-muted-foreground">
+					<p className="text-sm leading-relaxed text-muted-foreground">
 						<Trans id="workspace.states.notFoundBody">
 							This workspace may have been removed, or you no longer have access
 							to it.
 						</Trans>
 					</p>
 				</div>
-				<div className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5">
-					<span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+				<div className="flex w-full items-center gap-2 rounded border border-border/60 bg-muted/30 px-2.5 py-1.5">
+					<span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
 						<Trans id="workspace.states.notFoundIdLabel">ID</Trans>
 					</span>
-					<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+					<code className="min-w-0 truncate font-mono text-xs text-muted-foreground">
 						{workspaceId}
 					</code>
 				</div>
@@ -43,7 +43,7 @@ export function WorkspaceNotFoundState({
 					asChild
 					size="sm"
 					variant="ghost"
-					className="-ml-2 h-7 gap-1.5 px-2 text-[13px] font-medium text-foreground hover:bg-muted/60"
+					className="-ml-2 h-[var(--btn-h-default)] gap-1.5 px-2 text-sm font-medium text-foreground hover:bg-fill-hover"
 				>
 					<Link to="/v2-workspaces">
 						<Trans id="workspace.states.notFoundBrowseWorkspaces">

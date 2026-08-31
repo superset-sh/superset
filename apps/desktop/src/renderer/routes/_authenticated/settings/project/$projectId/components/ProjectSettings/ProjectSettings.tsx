@@ -555,8 +555,8 @@ export function ProjectSettings({
 									onClick={handleIconUpload}
 									disabled={setProjectIcon.isPending}
 									className={cn(
-										"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
-										"hover:bg-muted transition-colors",
+										"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border",
+										"hover:bg-fill-hover transition-colors",
 									)}
 								>
 									<LuImagePlus className="size-4" />
@@ -568,7 +568,7 @@ export function ProjectSettings({
 										onClick={handleRemoveIcon}
 										disabled={setProjectIcon.isPending}
 										className={cn(
-											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border",
+											"flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border",
 											"hover:bg-destructive/10 text-destructive transition-colors",
 										)}
 									>

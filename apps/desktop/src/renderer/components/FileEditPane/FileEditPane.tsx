@@ -110,7 +110,7 @@ export function FileEditPane({ document, filePath }: FileEditPaneProps) {
 					)}
 					{document.dirty && (
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="xs"
 							disabled={document.pendingSave}
 							onClick={() => void document.save()}

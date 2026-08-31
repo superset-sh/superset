@@ -92,8 +92,8 @@ export function DestroyConfirmPane({
 					<div
 						className={
 							hasWarnings
-								? "text-xs rounded-md border px-2.5 py-1.5 text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20"
-								: "text-xs rounded-md border border-transparent px-2.5 py-1.5"
+								? "text-xs rounded border px-2.5 py-1.5 text-warning bg-warning/10 border-warning/20"
+								: "text-xs rounded border border-transparent px-2.5 py-1.5"
 						}
 						aria-hidden={hasWarnings ? undefined : true}
 					>
@@ -118,7 +118,7 @@ export function DestroyConfirmPane({
 				</div>
 				{blockingReason && (
 					<div className="px-4 pb-2">
-						<div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-2.5 py-1.5">
+						<div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded px-2.5 py-1.5">
 							{blockingReason}
 						</div>
 					</div>
@@ -148,7 +148,7 @@ export function DestroyConfirmPane({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
 						<Trans id="dashboard.sidebar.destroyConfirm.cancel">Cancel</Trans>
@@ -156,7 +156,7 @@ export function DestroyConfirmPane({
 					<Button
 						variant="destructive"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={onConfirm}
 						disabled={!canConfirm}
 					>

@@ -180,7 +180,7 @@ export function DesignModePopover({
 	return (
 		<div className="absolute z-20" style={style}>
 			<form
-				className="overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),0_2px_4px_-2px_rgba(0,0,0,0.12)]"
+				className="overflow-hidden rounded-xl border border-border/80 bg-popover text-popover-foreground shadow"
 				onSubmit={(e) => {
 					e.preventDefault();
 					handleSubmit();
@@ -203,7 +203,7 @@ export function DesignModePopover({
 				}}
 			>
 				<div className="flex flex-wrap items-start gap-x-1.5 gap-y-1 px-3 pt-2.5 pb-1">
-					<span className="inline-flex max-w-56 shrink-0 items-center gap-1 pt-px text-[13px] font-medium text-[#0d99ff]">
+					<span className="inline-flex max-w-56 shrink-0 items-center gap-1 pt-px text-sm font-medium text-[#0d99ff]">
 						<SquareDashedMousePointer className="size-3.5 shrink-0" />
 						<span className="truncate">
 							{shortDesignModeElementLabel(payload)}
@@ -221,7 +221,7 @@ export function DesignModePopover({
 							message: "Describe the change…",
 						})}
 						rows={1}
-						className="block min-w-[140px] flex-1 resize-none bg-transparent text-[13px] leading-snug text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+						className="block min-w-[140px] flex-1 resize-none bg-transparent text-sm leading-snug text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
 					/>
 				</div>
 
@@ -235,7 +235,7 @@ export function DesignModePopover({
 									id: "workspace.browserPane.designPickDifferentElementAria",
 									message: "Pick a different element",
 								})}
-								className="inline-flex h-6 shrink-0 items-center gap-0.5 rounded-full border border-border/60 px-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+								className="inline-flex h-[var(--btn-h-sm)] shrink-0 items-center gap-0.5 rounded-full bg-grayAlpha-100 px-1.5 text-muted-foreground transition-colors hover:bg-grayAlpha-200 hover:text-foreground"
 							>
 								<SquareDashedMousePointer className="size-3" />
 								<XIcon className="size-3" />

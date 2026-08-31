@@ -6,7 +6,7 @@ import { ChipButton } from "../../../../TriggerSentence/components/ChipButton";
 import { emojiLabel, parseEmojiNames } from "../../emoji";
 
 const ROW =
-	"flex w-full items-center justify-between rounded-[6px] px-2 py-1.5 text-left text-sm hover:bg-accent";
+	"flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm hover:bg-accent";
 
 /**
  * One or more emoji names: the obvious choices as rows, anything else typed.
@@ -115,8 +115,8 @@ export function EmojiNameChip({
 					}}
 					className={
 						noneLabel !== undefined || defaultName !== undefined
-							? "mt-1.5 h-8 text-[13px]"
-							: "h-8 text-[13px]"
+							? "mt-1.5 h-8 text-sm"
+							: "h-[var(--input-h)] text-sm"
 					}
 				/>
 			</PopoverContent>

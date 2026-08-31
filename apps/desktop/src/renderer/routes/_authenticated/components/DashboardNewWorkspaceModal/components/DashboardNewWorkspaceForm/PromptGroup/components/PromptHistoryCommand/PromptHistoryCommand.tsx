@@ -113,7 +113,7 @@ export function PromptHistoryCommand({
 										key={entry.id}
 										value={entry.id}
 										onSelect={() => handleSelect(entry.prompt)}
-										className="group items-start gap-3 rounded-md px-2.5 py-2"
+										className="group items-start gap-3 rounded px-2.5 py-2"
 									>
 										<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 											<span className="line-clamp-2 whitespace-pre-line text-sm leading-snug">

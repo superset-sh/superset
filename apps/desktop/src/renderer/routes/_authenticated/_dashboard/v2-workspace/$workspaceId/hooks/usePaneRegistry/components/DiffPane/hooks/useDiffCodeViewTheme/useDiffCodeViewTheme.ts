@@ -72,14 +72,8 @@ export function useDiffCodeViewTheme() {
 		],
 	);
 
-	const additionColor =
-		activeTheme.type === "dark"
-			? "var(--color-green-400)"
-			: "var(--color-green-700)";
-	const deletionColor =
-		activeTheme.type === "dark"
-			? "var(--color-red-500)"
-			: "var(--color-red-700)";
+	const additionColor = "var(--success)";
+	const deletionColor = "var(--destructive)";
 
 	const options = useMemo<CodeViewOptions<DiffAnnotationMetadata>>(
 		() => ({
@@ -171,14 +165,7 @@ export function useDiffCodeViewTheme() {
 				}
 			`,
 		}),
-		[
-			activeTheme,
-			additionColor,
-			deletionColor,
-			diffStyle,
-			expandUnchanged,
-			surfaceBg,
-		],
+		[activeTheme, diffStyle, expandUnchanged, surfaceBg],
 	);
 
 	return { options, style };

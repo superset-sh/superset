@@ -3,14 +3,14 @@
 	height: 1px;
 	width: 100%;
 	overflow: hidden;
-	background: hsl(var(--border) / 0.6);
+	background: color-mix(in oklab, var(--border) 60%, transparent);
 }
 
 .wcs-bar-fill {
 	position: absolute;
 	inset-block: 0;
 	left: 0;
-	background: hsl(var(--foreground) / 0.75);
+	background: color-mix(in oklab, var(--foreground) 75%, transparent);
 	transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -20,7 +20,7 @@
 	background: linear-gradient(
 		90deg,
 		transparent,
-		hsl(var(--foreground) / 0.25) 50%,
+		color-mix(in oklab, var(--foreground) 25%, transparent) 50%,
 		transparent
 	);
 	transform: translateX(-100%);

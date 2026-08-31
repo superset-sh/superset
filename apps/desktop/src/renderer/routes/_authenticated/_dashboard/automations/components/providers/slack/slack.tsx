@@ -65,7 +65,7 @@ function renderSlot(
 				config.actor.mode === "list" && config.actor.ids.length > 0;
 			if (!legacyList) {
 				return (
-					<span key={index} className="text-[13px] text-muted-foreground">
+					<span key={index} className="text-sm text-muted-foreground">
 						Anyone
 					</span>
 				);

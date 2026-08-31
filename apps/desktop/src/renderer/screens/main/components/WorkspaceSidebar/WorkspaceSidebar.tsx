@@ -86,7 +86,7 @@ export function WorkspaceSidebar({
 	);
 
 	return (
-		<SidebarDropZone className="flex flex-col h-full bg-muted/45 dark:bg-muted/35">
+		<SidebarDropZone className="flex flex-col h-full border-r border-border bg-sidebar">
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: mousedown on empty sidebar space clears selection */}

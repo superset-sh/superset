@@ -29,7 +29,7 @@ export function V2WorkspacesBoardColumn({
 				</span>
 			</div>
 
-			<div className="flex min-h-[60px] flex-1 flex-col gap-1 overflow-y-auto rounded-md p-0.5">
+			<div className="flex min-h-[60px] flex-1 flex-col gap-1 overflow-y-auto rounded p-0.5">
 				{workspaces.map((workspace) => (
 					<V2WorkspacesBoardCard key={workspace.id} workspace={workspace} />
 				))}

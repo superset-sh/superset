@@ -246,9 +246,9 @@ export function Pane<TData>({
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: clicking anywhere in a pane focuses it (standard IDE behavior) */}
 			<div
 				ref={setRefs}
-				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden border-2 transition-colors duration-150 ${
+				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden border transition-colors duration-150 ${
 					isActive && parentDirection !== null
-						? "border-primary/15"
+						? "border-primary/40"
 						: "border-transparent"
 				}`}
 				onMouseDown={context.actions.focus}
@@ -273,7 +273,7 @@ export function Pane<TData>({
 					{definition ? (
 						definition.renderPane(context)
 					) : (
-						<div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
+						<div className="flex flex-1 items-center justify-center text-base text-muted-foreground">
 							Unknown pane kind: {pane.kind}
 						</div>
 					)}

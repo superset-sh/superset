@@ -158,7 +158,7 @@ export function BrowserOverflowMenu({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
-						className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
+						className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-fill-hover hover:text-foreground"
 					>
 						<TbDots className="size-3.5" />
 					</button>
@@ -205,7 +205,7 @@ export function BrowserOverflowMenu({
 									id: "workspace.browserPane.zoomOut",
 									message: "Zoom out",
 								})}
-								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<MinusIcon className="size-3.5" />
 							</button>
@@ -221,7 +221,7 @@ export function BrowserOverflowMenu({
 									id: "workspace.browserPane.zoomIn",
 									message: "Zoom in",
 								})}
-								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<PlusIcon className="size-3.5" />
 							</button>
@@ -234,7 +234,7 @@ export function BrowserOverflowMenu({
 									id: "workspace.browserPane.resetZoom",
 									message: "Reset zoom",
 								})}
-								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
+								className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
 							>
 								<RotateCcwIcon className="size-3.5" />
 							</button>

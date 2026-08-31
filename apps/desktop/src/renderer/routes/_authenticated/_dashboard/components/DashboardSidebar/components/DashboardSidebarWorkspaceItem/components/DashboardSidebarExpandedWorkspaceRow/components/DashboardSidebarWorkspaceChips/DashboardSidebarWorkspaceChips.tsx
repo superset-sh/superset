@@ -46,8 +46,8 @@ export function DashboardSidebarWorkspaceChips({
 		// biome-ignore lint/a11y/useKeyWithClickEvents: keyboard activation lives on the workspace row button; the strip click is a pointer convenience
 		<div
 			className={cn(
-				"flex h-7 items-center gap-1 pr-2",
-				isInSection ? "pl-[50px]" : "pl-[42px]",
+				"flex h-[var(--btn-h-default)] items-center gap-1 pr-2",
+				isInSection ? "pl-[58px]" : "pl-[42px]",
 				onClick && "cursor-pointer",
 			)}
 			onMouseDown={(event) => event.stopPropagation()}

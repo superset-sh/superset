@@ -166,11 +166,11 @@ export function TriggersEditor({
 			    for the set can sit on its line. Above the surface, not below it: a
 			    Save that trails the rows drifts down the page as triggers are added,
 			    and takes the reason it was refused with it. */}
-			<div className="mb-2 flex min-h-7 items-center gap-3">
+			<div className="mb-2 flex min-h-[var(--btn-h-default)] items-center gap-3">
 				<span className="shrink-0 text-muted-foreground text-sm">Triggers</span>
 
 				{banner && (
-					<p className="flex min-w-0 items-center gap-1.5 text-[13px] text-amber-600 dark:text-amber-400">
+					<p className="flex min-w-0 items-center gap-1.5 text-sm text-warning">
 						<LuTriangleAlert className="size-3.5 shrink-0" />
 						<span className="truncate">{banner}</span>
 					</p>
@@ -184,7 +184,7 @@ export function TriggersEditor({
 							size="sm"
 							onClick={discard}
 							disabled={saving}
-							className="h-7 text-[13px]"
+							className="h-[var(--btn-h-default)] text-sm"
 						>
 							Discard
 						</Button>
@@ -193,7 +193,7 @@ export function TriggersEditor({
 							size="sm"
 							onClick={save}
 							disabled={saving}
-							className="h-7 text-[13px]"
+							className="h-[var(--btn-h-default)] text-sm"
 						>
 							{saving ? "Saving..." : "Save triggers"}
 						</Button>
@@ -203,7 +203,7 @@ export function TriggersEditor({
 
 			{/* A filled surface, not an outlined box: the rows are the structure, and
 			    a border around them competes with the card they already sit in. */}
-			<div className="rounded-[12px] bg-foreground/[0.04] p-1">
+			<div className="rounded-xl bg-grayAlpha-50 p-1">
 				{drafts.map((trigger, index) => (
 					<TriggerSentence
 						key={trigger.id ?? `draft-${index}`}
@@ -239,7 +239,7 @@ export function TriggersEditor({
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="h-10 w-full justify-start gap-1.5 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+							className="h-[var(--btn-h-xl)] w-full justify-start gap-1.5 rounded px-2 font-normal text-sm text-muted-foreground hover:bg-grayAlpha-100 hover:text-foreground"
 						>
 							<LuPlus className="size-4" />
 							Add Trigger
@@ -260,7 +260,7 @@ export function TriggersEditor({
 										event.stopPropagation();
 									}
 								}}
-								className="mb-1 h-8 border-none bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-0 dark:bg-transparent"
+								className="mb-1 h-[var(--input-h)] border-none bg-transparent px-2 text-sm shadow-none focus-visible:ring-0"
 							/>
 						)}
 

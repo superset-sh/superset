@@ -55,7 +55,7 @@ export function TopBarPortsDropdown({
 								id: "dashboard.topBar.ports.pillAriaLabel",
 								message: `Ports — ${totalPortCount} live`,
 							})}
-							className="flex items-center gap-1.5 rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-fill-hover hover:text-foreground data-[state=open]:bg-fill-hover data-[state=open]:text-foreground"
+							className="flex items-center gap-1.5 rounded px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-fill-hover hover:text-foreground data-[state=open]:bg-fill-hover data-[state=open]:text-foreground"
 						>
 							<LuRadioTower className="size-3.5" strokeWidth={STROKE_WIDTH} />
 							<span className="font-medium tabular-nums">{totalPortCount}</span>

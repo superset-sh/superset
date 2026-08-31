@@ -63,7 +63,7 @@ export function PriorityProperty({ task }: PriorityPropertyProps) {
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					className="flex items-center gap-2 hover:bg-muted/50 rounded px-1 py-0.5 -mx-1 transition-colors w-full"
+					className="flex items-center gap-2 hover:bg-fill-hover rounded px-1 py-0.5 -mx-1 transition-colors w-full"
 				>
 					<PriorityIcon priority={currentPriority} statusType={statusType} />
 					<span className="text-sm capitalize">

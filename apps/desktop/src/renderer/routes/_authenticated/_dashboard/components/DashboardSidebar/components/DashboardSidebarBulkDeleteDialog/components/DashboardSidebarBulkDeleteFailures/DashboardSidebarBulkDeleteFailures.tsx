@@ -63,7 +63,7 @@ export function DashboardSidebarBulkDeleteFailures({
 							return (
 								<div
 									key={workspace.id}
-									className="select-text cursor-text rounded-md border border-destructive/20 bg-destructive/10 px-2.5 py-2 text-xs text-destructive"
+									className="select-text cursor-text rounded border border-destructive/20 bg-destructive/10 px-2.5 py-2 text-xs text-destructive"
 								>
 									{bulkWorkspaceDestroyErrorMessage(workspace, error)}
 								</div>
@@ -74,7 +74,7 @@ export function DashboardSidebarBulkDeleteFailures({
 						return (
 							<div
 								key={workspace.id}
-								className="rounded-md border border-destructive/20 bg-destructive/10 px-2.5 py-2"
+								className="rounded border border-destructive/20 bg-destructive/10 px-2.5 py-2"
 							>
 								<p className="select-text cursor-text text-xs font-medium text-destructive">
 									{workspaceName}: {formatTeardownReason(error.cause)}
@@ -104,7 +104,7 @@ export function DashboardSidebarBulkDeleteFailures({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						disabled={isDeleting}
 						onClick={onClose}
 					>
@@ -114,7 +114,7 @@ export function DashboardSidebarBulkDeleteFailures({
 						<Button
 							variant="destructive"
 							size="sm"
-							className="h-7 px-3 text-xs"
+							className="h-[var(--btn-h-default)] px-3 text-xs"
 							disabled={isDeleting}
 							onClick={onForceTeardownFailures}
 						>

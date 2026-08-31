@@ -48,7 +48,7 @@ function AddTabButton<_TData>({
 }) {
 	const button = (
 		<Button
-			className="ml-1.5 size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
+			className="ml-1.5 h-[var(--btn-h-default)] w-[var(--btn-h-default)] rounded bg-transparent px-1 text-muted-foreground hover:bg-grayAlpha-100 hover:text-foreground"
 			size="icon"
 			type="button"
 			variant="ghost"
@@ -175,7 +175,7 @@ export function TabBar<TData>({
 			// children out with `no-drag` loses the carve-outs once they sit inside
 			// the masked/scrollable OverflowFadeContainer, which made the entire bar
 			// swallow clicks.
-			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-muted/45 dark:bg-muted/35"
+			className="group/root-tabs flex h-[var(--header-height)] min-w-0 shrink-0 items-stretch bg-background-2"
 		>
 			{renderTabBarLeading && (
 				<div className="flex h-full shrink-0 items-stretch border-b border-border">

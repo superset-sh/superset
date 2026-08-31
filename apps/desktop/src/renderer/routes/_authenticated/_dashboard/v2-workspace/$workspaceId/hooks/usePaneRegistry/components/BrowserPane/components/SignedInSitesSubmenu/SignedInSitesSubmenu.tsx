@@ -91,7 +91,7 @@ export function SignedInSitesSubmenu() {
 										message: "Search sites…",
 									})
 						}
-						className="h-7 rounded-md bg-muted/40 px-2"
+						className="h-[var(--btn-h-default)] rounded bg-muted/40 px-2"
 						spellCheck={false}
 						autoComplete="off"
 						autoFocus

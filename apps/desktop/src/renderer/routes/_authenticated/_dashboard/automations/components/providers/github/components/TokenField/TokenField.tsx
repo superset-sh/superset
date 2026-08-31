@@ -107,7 +107,7 @@ export function TokenField({
 				{values.map((value) => (
 					<span
 						key={value}
-						className="flex max-w-full items-center gap-1 rounded-[4px] bg-accent px-1.5 py-0.5 text-[13px]"
+						className="flex max-w-full items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-sm"
 					>
 						<span className="truncate">{valueLabel(value)}</span>
 						<button
@@ -158,7 +158,7 @@ export function TokenField({
 					onBlur={() => {
 						if (commit(draft)) setDraft("");
 					}}
-					className="h-6 min-w-24 flex-1 border-0 bg-transparent px-1 text-[13px] shadow-none focus-visible:ring-0"
+					className="h-[var(--btn-h-sm)] min-w-24 flex-1 border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0"
 				/>
 			</div>
 		</>

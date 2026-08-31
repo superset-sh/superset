@@ -7,7 +7,7 @@ function pillClass(isActive: boolean) {
 		"rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
 		isActive
 			? "bg-accent text-accent-foreground"
-			: "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+			: "bg-muted/40 text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 	);
 }
 

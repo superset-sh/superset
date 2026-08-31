@@ -471,7 +471,7 @@ export function ThemeSection() {
 					/>
 					<Button
 						type="button"
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={handleDownloadBaseTheme}
 					>
@@ -482,7 +482,7 @@ export function ThemeSection() {
 					</Button>
 					<Button
 						type="button"
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={() => fileInputRef.current?.click()}
 						disabled={isImporting}

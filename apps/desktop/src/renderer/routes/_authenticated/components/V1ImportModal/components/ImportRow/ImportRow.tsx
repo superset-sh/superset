@@ -54,7 +54,7 @@ export function ImportRow({
 	action,
 }: ImportRowProps) {
 	return (
-		<div className="group grid w-full min-w-0 max-w-full shrink-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 overflow-hidden rounded-md px-2.5 py-2 transition-colors hover:bg-accent/40 sm:grid-cols-[1rem_minmax(0,1fr)_auto]">
+		<div className="group grid w-full min-w-0 max-w-full shrink-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 overflow-hidden rounded px-2.5 py-2 transition-colors hover:bg-accent/40 sm:grid-cols-[1rem_minmax(0,1fr)_auto]">
 			{icon && (
 				<div className="row-start-1 flex size-4 shrink-0 items-center justify-center self-start pt-0.5 text-muted-foreground sm:self-center sm:pt-0">
 					{icon}
@@ -62,7 +62,7 @@ export function ImportRow({
 			)}
 			<div className="col-start-2 flex min-w-0 flex-col">
 				<span
-					className="truncate text-[13px] font-medium leading-4 text-foreground"
+					className="truncate text-sm font-medium leading-4 text-foreground"
 					title={primary}
 				>
 					{primary}
@@ -111,10 +111,10 @@ function RowActionView({ action }: { action: RowAction }) {
 				<Button
 					type="button"
 					size="sm"
-					variant="outline"
+					variant="ghost"
 					onClick={action.onClick}
 					disabled={action.disabled}
-					className="h-7 shrink-0 px-2.5 text-[12px] font-medium"
+					className="h-[var(--btn-h-default)] shrink-0 px-2.5 text-xs font-medium"
 				>
 					{action.label}
 				</Button>
@@ -124,9 +124,9 @@ function RowActionView({ action }: { action: RowAction }) {
 				<Button
 					type="button"
 					size="sm"
-					variant="outline"
+					variant="ghost"
 					disabled
-					className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
+					className="h-[var(--btn-h-default)] shrink-0 gap-1.5 px-2.5 text-xs font-medium"
 				>
 					<Spinner className="size-3" />
 					{action.label}
@@ -136,8 +136,8 @@ function RowActionView({ action }: { action: RowAction }) {
 			return (
 				<div
 					className={cn(
-						"flex shrink-0 items-center gap-1 text-[12px] font-medium",
-						"text-emerald-600 dark:text-emerald-400",
+						"flex shrink-0 items-center gap-1 text-xs font-medium",
+						"text-success",
 					)}
 				>
 					<LuCheck className="size-3.5" strokeWidth={2.5} />
@@ -155,9 +155,9 @@ function RowActionView({ action }: { action: RowAction }) {
 				<Button
 					type="button"
 					size="sm"
-					variant="outline"
+					variant="ghost"
 					onClick={action.onRetry}
-					className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
+					className="h-[var(--btn-h-default)] shrink-0 gap-1.5 px-2.5 text-xs font-medium"
 				>
 					<LuTriangle className="size-3 text-destructive" strokeWidth={2.5} />
 					Retry
@@ -172,7 +172,7 @@ function RowActionView({ action }: { action: RowAction }) {
 						variant="ghost"
 						onClick={action.onCancel}
 						disabled={action.disabled}
-						className="h-7 px-2.5 text-[12px] font-medium"
+						className="h-[var(--btn-h-default)] px-2.5 text-xs font-medium"
 					>
 						{action.cancelLabel ?? "Cancel"}
 					</Button>
@@ -182,7 +182,7 @@ function RowActionView({ action }: { action: RowAction }) {
 						variant="default"
 						onClick={action.onConfirm}
 						disabled={action.disabled}
-						className="h-7 px-2.5 text-[12px] font-medium"
+						className="h-[var(--btn-h-default)] px-2.5 text-xs font-medium"
 					>
 						{action.confirmLabel}
 					</Button>
@@ -195,9 +195,9 @@ function RowActionView({ action }: { action: RowAction }) {
 						<Button
 							type="button"
 							size="sm"
-							variant="outline"
+							variant="ghost"
 							disabled={action.disabled}
-							className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium"
+							className="h-[var(--btn-h-default)] shrink-0 gap-1.5 px-2.5 text-xs font-medium"
 						>
 							{action.label}
 							<LuChevronDown className="size-3" strokeWidth={2} />
@@ -211,9 +211,9 @@ function RowActionView({ action }: { action: RowAction }) {
 								className="flex flex-col items-start gap-0.5"
 							>
 								<div className="flex w-full items-center gap-2">
-									<span className="truncate text-[13px]">{candidate.name}</span>
+									<span className="truncate text-sm">{candidate.name}</span>
 									{candidate.matchesExpected && (
-										<span className="ml-auto shrink-0 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+										<span className="ml-auto shrink-0 text-[10px] font-medium text-success">
 											matches v1
 										</span>
 									)}

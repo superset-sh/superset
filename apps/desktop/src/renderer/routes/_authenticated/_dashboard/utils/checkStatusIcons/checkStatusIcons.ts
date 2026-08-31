@@ -15,15 +15,15 @@ import {
 export const CHECK_STATUS_ICONS = {
 	success: {
 		Icon: LuCheck,
-		className: "text-emerald-600 [.dark_&]:text-[#34d399]",
+		className: "text-success",
 	},
 	failure: {
 		Icon: LuX,
-		className: "text-red-600 [.dark_&]:text-[#f87171]",
+		className: "text-destructive",
 	},
 	pending: {
 		Icon: LuLoaderCircle,
-		className: "text-amber-600 [.dark_&]:text-[#fbbf24]",
+		className: "text-warning",
 	},
 	skipped: { Icon: LuSkipForward, className: "text-muted-foreground" },
 	cancelled: { Icon: LuMinus, className: "text-muted-foreground" },

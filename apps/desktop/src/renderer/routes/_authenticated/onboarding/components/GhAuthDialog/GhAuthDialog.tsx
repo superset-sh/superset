@@ -155,8 +155,8 @@ export function GhAuthDialog({
 					</DialogTitle>
 				</DialogHeader>
 				{phase === "success" ? (
-					<div className="flex h-[296px] w-full flex-col items-center justify-center gap-2.5 rounded-lg border bg-[#151110]">
-						<LuCheck className="size-5 text-emerald-500" strokeWidth={2} />
+					<div className="flex h-[296px] w-full flex-col items-center justify-center gap-2.5 rounded-lg border bg-background">
+						<LuCheck className="size-5 text-success" strokeWidth={2} />
 						<p className="text-sm font-medium text-foreground">
 							{isInstall
 								? "GitHub CLI installed and signed in"
@@ -166,7 +166,7 @@ export function GhAuthDialog({
 				) : (
 					<>
 						{phase === "failed" ? (
-							<div className="flex min-h-11 items-center gap-2.5 rounded-md border bg-muted/40 px-3.5 py-1.5 text-sm text-foreground">
+							<div className="flex min-h-11 items-center gap-2.5 rounded border bg-muted/40 px-3.5 py-1.5 text-sm text-foreground">
 								<LuTriangleAlert className="size-3.5 shrink-0 text-destructive" />
 								<span className="select-text cursor-text">
 									{isInstall
@@ -194,7 +194,7 @@ export function GhAuthDialog({
 									<Button
 										type="button"
 										size="sm"
-										variant="outline"
+										variant="ghost"
 										onClick={handleRetry}
 									>
 										Retry
@@ -202,12 +202,12 @@ export function GhAuthDialog({
 								</span>
 							</div>
 						) : phase === "checking" ? (
-							<div className="flex min-h-11 items-center gap-2.5 rounded-md bg-muted/40 px-3.5 text-sm text-muted-foreground">
+							<div className="flex min-h-11 items-center gap-2.5 rounded bg-muted/40 px-3.5 text-sm text-muted-foreground">
 								<Spinner className="size-3.5 shrink-0" />
 								Checking sign-in status…
 							</div>
 						) : oneTimeCode ? (
-							<div className="flex min-h-11 items-center gap-3 rounded-md border bg-muted/40 px-3.5 py-1.5">
+							<div className="flex min-h-11 items-center gap-3 rounded border bg-muted/40 px-3.5 py-1.5">
 								<span className="select-text cursor-text font-mono text-lg font-semibold tracking-[0.18em] text-foreground">
 									{oneTimeCode}
 								</span>
@@ -215,7 +215,7 @@ export function GhAuthDialog({
 									Paste this code on GitHub — your browser is opening
 								</span>
 								{copied ? (
-									<span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs font-medium text-emerald-500">
+									<span className="ml-auto flex shrink-0 items-center gap-1.5 text-xs font-medium text-success">
 										<LuCheck className="size-3.5" strokeWidth={2.5} />
 										Copied
 									</span>
@@ -223,7 +223,7 @@ export function GhAuthDialog({
 									<Button
 										type="button"
 										size="sm"
-										variant="outline"
+										variant="ghost"
 										className="ml-auto"
 										onClick={handleCopyCode}
 									>
@@ -233,7 +233,7 @@ export function GhAuthDialog({
 								)}
 							</div>
 						) : (
-							<div className="flex min-h-11 items-center gap-2.5 rounded-md bg-muted/40 px-3.5 text-sm text-muted-foreground">
+							<div className="flex min-h-11 items-center gap-2.5 rounded bg-muted/40 px-3.5 text-sm text-muted-foreground">
 								<Spinner className="size-3.5 shrink-0" />
 								Follow the prompts below
 							</div>
@@ -241,7 +241,7 @@ export function GhAuthDialog({
 						<div
 							ref={terminalBoxRef}
 							className={cn(
-								"h-[240px] w-full overflow-hidden rounded-lg border bg-[#151110] p-3 transition-opacity duration-300",
+								"h-[240px] w-full overflow-hidden rounded-lg border bg-background p-3 transition-opacity duration-300",
 								phase === "failed" && "opacity-60",
 							)}
 						>

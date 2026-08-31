@@ -173,7 +173,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 					aria-disabled={isBusy}
 					aria-label={tooltip}
 					className={cn(
-						"relative flex size-8 items-center justify-center rounded-md",
+						"relative flex size-8 items-center justify-center rounded",
 						"animate-in fade-in duration-300",
 						isBusy
 							? "cursor-default text-muted-foreground"
@@ -189,22 +189,20 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 					{isDownloading ? (
 						<DownloadRing percent={percent} className="size-3.5" />
 					) : isInstalling ? (
-						<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
+						<span className="font-mono text-xs leading-none text-warning">
 							{spinnerGlyph}
 						</span>
 					) : isUpdated ? (
 						<LuCircleCheck
 							strokeWidth={STROKE_WIDTH}
-							className="size-4 text-emerald-600 dark:text-emerald-400"
+							className="size-4 text-success"
 						/>
 					) : (
 						<LuCircleArrowUp
 							strokeWidth={STROKE_WIDTH}
 							className={cn(
 								"size-4",
-								isError
-									? "text-destructive"
-									: "text-emerald-600 dark:text-emerald-400",
+								isError ? "text-destructive" : "text-success",
 							)}
 						/>
 					)}
@@ -227,10 +225,10 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						(isDownloading || isInstalling || isUpdated) &&
 							"bg-foreground/[0.045] ring-foreground/[0.06]",
 						(isDownloading || isUpdated) && "text-muted-foreground",
-						isInstalling && "text-orange-600 dark:text-orange-300",
+						isInstalling && "text-warning",
 						isReady &&
 							!isInstalling &&
-							"bg-emerald-500/15 ring-emerald-500/25 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300",
+							"bg-success/15 ring-success/25 text-success hover:bg-success/25",
 						isError &&
 							"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
 					)}
@@ -262,7 +260,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 								fill="none"
 								stroke="currentColor"
 								aria-hidden="true"
-								className="size-3 shrink-0 text-emerald-600 dark:text-emerald-400"
+								className="size-3 shrink-0 text-success"
 							>
 								<path
 									d="M4.5 12.5l5 5L20 6.5"
@@ -288,7 +286,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						</>
 					) : isReady ? (
 						<>
-							<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
+							<span className="size-1.5 shrink-0 rounded-full bg-success animate-pulse" />
 							<span>
 								<Trans id="components.updatesPill.update">↑ update</Trans>
 							</span>

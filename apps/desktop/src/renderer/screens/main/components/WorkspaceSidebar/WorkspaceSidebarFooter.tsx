@@ -142,8 +142,8 @@ export function WorkspaceSidebarFooter({
 				<DropdownMenuTrigger asChild>
 					<Button
 						variant="ghost"
-						size="sm"
-						className="min-w-0 flex-1 shrink justify-start gap-2 text-muted-foreground hover:text-foreground"
+						size="lg"
+						className="min-w-0 flex-1 shrink justify-start gap-2 px-2 text-muted-foreground hover:text-foreground"
 						disabled={isLoading}
 					>
 						<LuFolderPlus

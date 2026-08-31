@@ -50,9 +50,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 
 	const previewButton = previewUrl ? (
 		<Button
-			variant="outline"
+			variant="secondary"
 			size="sm"
-			className="w-full h-7 text-xs gap-1.5"
+			className="w-full h-[var(--btn-h-default)] text-xs gap-1.5"
 			asChild
 		>
 			<a href={previewUrl} target="_blank" rel="noopener noreferrer">
@@ -120,7 +120,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 			{taskId && <LinkedTaskSection taskId={taskId} />}
 
 			{needsRebase && (
-				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
+				<div className="flex items-center gap-2 text-warning text-xs bg-warning/10 px-2 py-1.5 rounded">
 					<LuTriangleAlert className="size-3.5 shrink-0" />
 					<span>
 						{behindCount != null ? (
@@ -158,7 +158,7 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 						</div>
 						{diffStats && (
 							<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
-								<span className="text-emerald-500">+{diffStats.additions}</span>
+								<span className="text-success">+{diffStats.additions}</span>
 								<span className="text-destructive-foreground">
 									-{diffStats.deletions}
 								</span>
@@ -185,9 +185,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 					)}
 
 					<Button
-						variant="outline"
+						variant="secondary"
 						size="sm"
-						className="w-full mt-1 h-7 text-xs gap-1.5"
+						className="w-full mt-1 h-[var(--btn-h-default)] text-xs gap-1.5"
 						asChild
 					>
 						<a href={pullRequest.url} target="_blank" rel="noopener noreferrer">
@@ -220,9 +220,9 @@ export function DashboardSidebarWorkspaceHoverCardContent({
 			) : previewButton ? (
 				<div className="pt-2 border-t border-border">
 					<Button
-						variant="outline"
+						variant="secondary"
 						size="sm"
-						className="w-full h-7 text-xs gap-1.5"
+						className="w-full h-[var(--btn-h-default)] text-xs gap-1.5"
 						asChild
 					>
 						<a

@@ -44,7 +44,7 @@ export function PullRequestRow({
 		// biome-ignore lint/a11y/useSemanticElements: row is a composite list item, not a native control
 		<div
 			className={cn(
-				"flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
+				"flex cursor-pointer items-center gap-3 rounded p-2 hover:bg-grayAlpha-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
 				isSelected && "bg-accent",
 			)}
 			onClick={onClick}
@@ -61,18 +61,18 @@ export function PullRequestRow({
 		>
 			<PRIcon state={state} className="size-4 shrink-0" />
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<span className="truncate text-[13px] font-medium text-foreground">
+				<span className="truncate text-sm font-medium text-foreground">
 					{pr.title}
 				</span>
 				<div className="flex min-w-0 items-center gap-2 text-muted-foreground">
 					{pr.authorLogin && (
 						<div className="flex shrink-0 items-center gap-1">
-							<Avatar className="size-4 rounded-sm">
+							<Avatar className="size-4 rounded">
 								<AvatarImage
 									src={`https://github.com/${pr.authorLogin}.png?size=32`}
 									alt={pr.authorLogin}
 								/>
-								<AvatarFallback className="rounded-sm text-[8px]">
+								<AvatarFallback className="rounded text-[8px]">
 									{pr.authorLogin.slice(0, 1).toUpperCase()}
 								</AvatarFallback>
 							</Avatar>
@@ -105,12 +105,8 @@ export function PullRequestRow({
 				</div>
 				{hasDiffStat && (
 					<span className="flex items-center gap-1 tabular-nums">
-						<span className="text-emerald-600 [.dark_&]:text-[#34d399]">
-							+{pr.additions ?? 0}
-						</span>
-						<span className="text-red-600 [.dark_&]:text-[#f87171]">
-							-{pr.deletions ?? 0}
-						</span>
+						<span className="text-success">+{pr.additions ?? 0}</span>
+						<span className="text-destructive">-{pr.deletions ?? 0}</span>
 					</span>
 				)}
 			</div>

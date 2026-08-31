@@ -96,7 +96,7 @@ export function PresetBarItem({
 						<Button
 							variant="ghost"
 							size="sm"
-							className="h-6 px-2 gap-1.5 text-xs shrink-0"
+							className="h-[var(--btn-h-sm)] px-2 gap-1.5 text-xs shrink-0"
 							onClick={() => onOpenDefault(preset)}
 						>
 							{icon ? (

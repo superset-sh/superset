@@ -43,7 +43,7 @@ function BatchStatusIcon({ status }: { status: TaskStatus }) {
 		case "creating":
 			return <Spinner className="size-3" />;
 		case "done":
-			return <HiCheck className="size-3 text-green-500" />;
+			return <HiCheck className="size-3 text-success" />;
 		case "failed":
 			return <HiXMark className="size-3 text-destructive" />;
 	}
@@ -268,7 +268,7 @@ export function RunInWorkspacePopover({
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-7 text-xs gap-1.5 bg-muted/50"
+					className="h-[var(--btn-h-default)] text-xs gap-1.5 bg-muted/50"
 				>
 					<HiMiniPlay className="size-3" />
 					<Trans id="dashboard.tasks.runInWorkspacePopover.trigger">
@@ -292,7 +292,7 @@ export function RunInWorkspacePopover({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="w-full justify-between font-normal h-8 min-w-0 bg-muted/50 rounded-md"
+								className="w-full justify-between font-normal h-[var(--input-h)] min-w-0 bg-muted/50 rounded"
 								disabled={isRunning}
 							>
 								<span className="flex items-center gap-2 truncate">
@@ -367,7 +367,7 @@ export function RunInWorkspacePopover({
 						onValueChange={setSelectedAgent}
 						onBeforeConfigureAgents={() => setOpen(false)}
 						disabled={isRunning}
-						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
+						triggerClassName="h-[var(--input-h)] text-xs w-full border-0 shadow-none bg-muted/50 rounded"
 						allowNone
 						noneLabel={t({
 							id: "dashboard.tasks.runInWorkspacePopover.noAgent",
@@ -413,7 +413,7 @@ export function RunInWorkspacePopover({
 				<div className="border-t border-border p-2">
 					<Button
 						size="sm"
-						className="w-full h-8"
+						className="w-full h-[var(--btn-h-lg)]"
 						disabled={!effectiveProjectId || isRunning}
 						onClick={handleRun}
 					>

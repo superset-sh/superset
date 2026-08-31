@@ -56,7 +56,7 @@ export function DashboardContentError({ error }: ErrorComponentProps) {
 				</p>
 			</div>
 			<div className="flex items-center gap-2">
-				<Button variant="outline" size="sm" asChild>
+				<Button variant="ghost" size="sm" asChild>
 					<Link to="/">
 						<Trans id="dashboard.contentError.goHome">Go home</Trans>
 					</Link>

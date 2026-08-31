@@ -57,7 +57,7 @@ export function RemoveAccountDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
 						<Trans id="settings.usage.removeAccount.cancel">Cancel</Trans>
@@ -65,7 +65,7 @@ export function RemoveAccountDialog({
 					<AlertDialogAction
 						variant="destructive"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						disabled={isRemoving}
 						onClick={onConfirm}
 					>

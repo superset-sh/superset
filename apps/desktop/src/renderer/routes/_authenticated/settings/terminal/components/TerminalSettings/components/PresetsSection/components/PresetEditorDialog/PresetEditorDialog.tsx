@@ -169,7 +169,7 @@ function Segmented<T extends string>({
 }: SegmentedProps<T>) {
 	return (
 		<div
-			className={`inline-flex rounded-md border border-border overflow-hidden w-full ${className ?? ""}`.trim()}
+			className={`inline-flex rounded bg-grayAlpha-100 overflow-hidden w-full ${className ?? ""}`.trim()}
 		>
 			{options.map((option, idx) => (
 				<button
@@ -177,11 +177,11 @@ function Segmented<T extends string>({
 					type="button"
 					onClick={() => onChange(option.value)}
 					className={`flex-1 px-3 py-1 text-xs font-medium transition-colors ${
-						idx > 0 ? "border-l border-border" : ""
+						idx > 0 ? "border-l border-border-variant" : ""
 					} ${
 						value === option.value
-							? "bg-accent text-accent-foreground"
-							: "bg-transparent text-muted-foreground hover:bg-accent/50"
+							? "bg-grayAlpha-200 text-accent-foreground"
+							: "text-muted-foreground hover:bg-grayAlpha-200"
 					}`}
 				>
 					{option.label}
@@ -486,7 +486,7 @@ export function PresetEditorDialog({
 											placeholder="claude --dangerously-skip-permissions"
 										/>
 									) : (
-										<div className="min-w-0 rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
+										<div className="min-w-0 rounded border border-border bg-muted/30 px-3 py-2 font-mono text-xs">
 											{liveCommands.length > 0 ? (
 												liveCommands.map((command, index) => (
 													<div
@@ -624,8 +624,8 @@ export function PresetEditorDialog({
 									/>
 									<Button
 										type="button"
-										variant="outline"
-										size="sm"
+										variant="ghost"
+										size="icon-lg"
 										onClick={handleBrowseDirectory}
 										disabled={selectDirectory.isPending}
 										aria-label={t({

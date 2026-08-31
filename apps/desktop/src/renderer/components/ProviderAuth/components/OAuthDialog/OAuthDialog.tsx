@@ -90,7 +90,7 @@ export function OAuthDialog({
 							<div className="flex flex-wrap gap-2">
 								<Button
 									type="button"
-									variant="outline"
+									variant="ghost"
 									onClick={onOpenAuthUrl}
 									disabled={!authUrl || isPending}
 								>

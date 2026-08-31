@@ -3,7 +3,7 @@ import type { Item } from "@superset/chat/protocol";
 
 export function UnknownItemRow({ item }: { item: Item }) {
 	return (
-		<details className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground">
+		<details className="rounded border border-dashed border-border p-2 text-xs text-muted-foreground">
 			<summary>
 				<Trans id="workspace.chat.unsupportedItem">
 					Unsupported item "{item.kind}"

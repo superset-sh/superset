@@ -61,10 +61,10 @@ export function TopBar() {
 			// under a `drag` ancestor are lost inside zoomed/masked/scrollable
 			// wrappers, which makes the whole bar swallow clicks.
 			className={cn(
-				"gap-2 h-12 w-full flex items-center justify-between relative dark:bg-muted/35",
+				"gap-2 h-12 w-full flex items-center justify-between relative",
 				isPullRequestsRoute && isSidebarCollapsed
 					? "bg-sidebar"
-					: "bg-muted/45",
+					: "bg-background-2",
 			)}
 			style={barStyle}
 		>

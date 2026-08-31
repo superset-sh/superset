@@ -192,17 +192,6 @@ function DashboardLayout() {
 		},
 	);
 
-	// Collapsed rail on the v2 workspace route: the rail's headroom strip
-	// continues the pane tab bar, so the panel must not draw its own
-	// full-height border — the sidebar's inner border (which stops below the
-	// strip) is the only divider.
-	const railContinuesTabBar =
-		isV2CloudEnabled &&
-		onV2WorkspaceRoute &&
-		!versionMismatch &&
-		isWorkspaceSidebarOpen &&
-		isWorkspaceSidebarCollapsed();
-
 	const sidebarPanel = isWorkspaceSidebarOpen && (
 		<ResizablePanel
 			width={workspaceSidebarWidth}
@@ -213,7 +202,7 @@ function DashboardLayout() {
 			maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
 			handleSide="right"
 			clampWidth={false}
-			className={railContinuesTabBar ? "border-r-0" : undefined}
+			className="border-r-0"
 			onDoubleClickHandle={() =>
 				setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
 			}

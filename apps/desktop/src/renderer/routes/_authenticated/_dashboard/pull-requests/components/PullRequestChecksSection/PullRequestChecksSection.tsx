@@ -106,7 +106,7 @@ export function PullRequestChecksSection({
 							</>
 						);
 						const rowClassName =
-							"flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 -mx-2 hover:bg-fill-hover";
+							"flex min-w-0 items-center gap-2 rounded px-2 py-1.5 -mx-2 hover:bg-fill-hover";
 						return check.url ? (
 							<a
 								key={`${check.name}-${index}`}

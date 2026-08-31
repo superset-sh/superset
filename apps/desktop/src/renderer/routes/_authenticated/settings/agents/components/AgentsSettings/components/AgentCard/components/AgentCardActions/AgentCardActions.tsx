@@ -13,7 +13,7 @@ export function AgentCardActions({
 }: AgentCardActionsProps) {
 	return (
 		<CardFooter className="mt-2 justify-end">
-			<Button variant="outline" onClick={onReset} disabled={isResetting}>
+			<Button variant="ghost" onClick={onReset} disabled={isResetting}>
 				<Trans id="settings.agents.card.resetToDefaults">
 					Reset to Defaults
 				</Trans>

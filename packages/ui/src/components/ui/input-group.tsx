@@ -15,8 +15,8 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
 			data-slot="input-group"
 			role="group"
 			className={cn(
-				"group/input-group border-input dark:bg-input/30 relative flex w-full items-center rounded-md border shadow-xs transition-[color,box-shadow] outline-none",
-				"h-9 min-w-0 has-[>textarea]:h-auto",
+				"group/input-group border-input relative flex w-full items-center rounded border transition-colors outline-none",
+				"h-[var(--input-h)] min-w-0 has-[>textarea]:h-auto",
 
 				// Variants based on alignment.
 				"has-[>[data-align=inline-start]]:[&>input]:pl-2",
@@ -38,18 +38,18 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 const inputGroupAddonVariants = cva(
-	"text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded-[calc(var(--radius)-5px)] group-data-[disabled=true]/input-group:opacity-50",
+	"text-muted-foreground flex h-auto cursor-text items-center justify-center gap-2 py-1.5 text-sm font-medium select-none [&>svg:not([class*='size-'])]:size-4 [&>kbd]:rounded group-data-[disabled=true]/input-group:opacity-50",
 	{
 		variants: {
 			align: {
 				"inline-start":
-					"order-first pl-3 has-[>button]:ml-[-0.45rem] has-[>kbd]:ml-[-0.35rem]",
+					"order-first pl-2 has-[>button]:ml-[-0.3rem] has-[>kbd]:ml-[-0.15rem]",
 				"inline-end":
-					"order-last pr-3 has-[>button]:mr-[-0.45rem] has-[>kbd]:mr-[-0.35rem]",
+					"order-last pr-2 has-[>button]:mr-[-0.3rem] has-[>kbd]:mr-[-0.15rem]",
 				"block-start":
-					"order-first w-full justify-start px-3 pt-3 [.border-b]:pb-3 group-has-[>input]/input-group:pt-2.5",
+					"order-first w-full justify-start px-2.5 pt-2 [.border-b]:pb-2 group-has-[>input]/input-group:pt-2",
 				"block-end":
-					"order-last w-full justify-start px-3 pb-3 [.border-t]:pt-3 group-has-[>input]/input-group:pb-2.5",
+					"order-last w-full justify-start px-2.5 pb-2 [.border-t]:pt-2 group-has-[>input]/input-group:pb-2",
 			},
 		},
 		defaultVariants: {
@@ -91,11 +91,11 @@ const inputGroupButtonVariants = cva(
 	{
 		variants: {
 			size: {
-				xs: "h-6 gap-1 px-2 rounded-[calc(var(--radius)-5px)] [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-2",
-				sm: "h-8 px-2.5 gap-1.5 rounded-md has-[>svg]:px-2.5",
+				xs: "h-[var(--btn-h-sm)] gap-1 px-1.5 rounded [&>svg:not([class*='size-'])]:size-3.5 has-[>svg]:px-1.5",
+				sm: "h-[var(--btn-h-lg)] px-2.5 gap-1.5 rounded has-[>svg]:px-2.5",
 				"icon-xs":
-					"size-6 rounded-[calc(var(--radius)-5px)] p-0 has-[>svg]:p-0",
-				"icon-sm": "size-8 p-0 has-[>svg]:p-0",
+					"h-[var(--btn-h-sm)] w-[var(--btn-h-sm)] rounded p-0 has-[>svg]:p-0",
+				"icon-sm": "h-[var(--btn-h-lg)] w-[var(--btn-h-lg)] p-0 has-[>svg]:p-0",
 			},
 		},
 		defaultVariants: {

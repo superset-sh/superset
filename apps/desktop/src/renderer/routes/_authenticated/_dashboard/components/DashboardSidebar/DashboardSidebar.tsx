@@ -283,7 +283,7 @@ export function DashboardSidebar({
 								workspaceShortcutLabels={workspaceShortcutLabels}
 								onReorderProjects={handleReorderProjects}
 							>
-								<div className="flex h-full flex-col border-r border-border bg-sidebar dark:bg-muted/35">
+								<div className="flex h-full flex-col border-r border-border bg-sidebar">
 									<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
 									<OverflowFadeContainer
@@ -368,7 +368,7 @@ export function DashboardSidebar({
 													})}
 													onClick={() => navigate({ to: "/settings/account" })}
 													className={cn(
-														"flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
+														"flex size-8 shrink-0 items-center justify-center rounded transition-colors",
 														isSettingsOpen
 															? "bg-fill-selected text-muted-foreground"
 															: "text-muted-foreground hover:bg-fill-hover",

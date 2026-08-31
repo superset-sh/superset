@@ -30,7 +30,7 @@ export function EndpointChip({
 			<button
 				type="button"
 				disabled
-				className={cn(CHIP, CHIP_EMPTY, "font-mono text-[12px]")}
+				className={cn(CHIP, CHIP_EMPTY, "font-mono text-xs")}
 			>
 				{resolvedPlaceholder}
 			</button>
@@ -59,7 +59,7 @@ export function EndpointChip({
 								),
 						)
 					}
-					className={cn(CHIP, "max-w-80 font-mono text-[12px]")}
+					className={cn(CHIP, "max-w-80 font-mono text-xs")}
 				>
 					<span className="truncate">{url}</span>
 					<LuCopy className="size-3 shrink-0 opacity-50" />

@@ -6,7 +6,7 @@ export function ThemeSwatch({ theme }: { theme: Theme }) {
 	const isDark = theme.type === "dark";
 	return (
 		<div
-			className="flex h-5 w-7 shrink-0 items-center justify-center gap-1 rounded-sm font-semibold"
+			className="flex h-5 w-7 shrink-0 items-center justify-center gap-1 rounded font-semibold"
 			style={{
 				backgroundColor: terminal.background,
 				boxShadow: "inset 0 0 0 0.5px rgba(128, 128, 128, 0.3)",

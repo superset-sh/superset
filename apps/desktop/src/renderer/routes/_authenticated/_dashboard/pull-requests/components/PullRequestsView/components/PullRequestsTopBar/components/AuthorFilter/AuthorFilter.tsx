@@ -100,7 +100,7 @@ export function AuthorFilter({
 						id: "dashboard.pullRequests.authorFilter.triggerAria",
 						message: `Author: ${label}`,
 					})}
-					className="h-8 max-w-44 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+					className="h-[var(--btn-h-lg)] max-w-44 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineUserCircle className="size-4 shrink-0" />
 					<span className="truncate text-sm">{label}</span>
@@ -152,12 +152,12 @@ export function AuthorFilter({
 										key={contributor.login}
 										onSelect={() => handleSelect(contributor.login)}
 									>
-										<Avatar className="size-4 shrink-0 rounded-sm">
+										<Avatar className="size-4 shrink-0 rounded">
 											<AvatarImage
 												src={`https://github.com/${contributor.login}.png?size=32`}
 												alt={contributor.login}
 											/>
-											<AvatarFallback className="rounded-sm text-[8px]">
+											<AvatarFallback className="rounded text-[8px]">
 												{contributor.login.slice(0, 1).toUpperCase()}
 											</AvatarFallback>
 										</Avatar>

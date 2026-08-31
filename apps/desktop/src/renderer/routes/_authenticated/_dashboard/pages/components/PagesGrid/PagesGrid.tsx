@@ -55,7 +55,7 @@ export function PagesGrid({
 							className="w-full rounded-none"
 							style={{ aspectRatio: THUMBNAIL_ASPECT_RATIO }}
 						/>
-						<div className="flex flex-col gap-2 border-border/60 border-t px-3 py-2.5">
+						<div className="flex flex-col gap-2 border-border-variant border-t px-3 py-2.5">
 							<Skeleton className="h-4 w-2/3" />
 							<Skeleton className="h-3 w-1/3" />
 						</div>

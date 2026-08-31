@@ -93,7 +93,7 @@ export function PageCard({
 				className="flex flex-1 flex-col text-left"
 			>
 				<PageThumbnail src={page.thumbnailUrl} />
-				<div className="flex flex-col gap-1 border-border/60 border-t px-3 py-2.5">
+				<div className="flex flex-col gap-1 border-border-variant border-t px-3 py-2.5">
 					<span className="truncate font-medium text-sm">{page.title}</span>
 					<span className="flex items-center gap-1.5 text-muted-foreground text-xs">
 						<VisibilityIcon className="size-3 shrink-0" />

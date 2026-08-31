@@ -92,7 +92,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 								onCheckedChange={(checked) => setEnabled(plugin.name, checked)}
 							/>
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								className="text-destructive"
 								disabled={isBusy}
@@ -143,7 +143,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 							Detected in your agent configs
 						</Trans>
 					</h2>
-					<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+					<div className="flex flex-col divide-y divide-border-variant rounded-lg border border-border/60">
 						{detectedServers.map((server) => (
 							<div key={server.name} className="flex items-center gap-3 p-3">
 								<div className="min-w-0 flex-1">
@@ -178,7 +178,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 						MCP servers
 					</Trans>
 				</h2>
-				<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+				<div className="flex flex-col divide-y divide-border-variant rounded-lg border border-border/60">
 					{Object.entries(plugin.mcpServers).map(([name, config]) => (
 						<div key={name} className="flex items-center gap-3 p-3">
 							<div className="min-w-0 flex-1">
@@ -220,7 +220,7 @@ export function PluginDetail({ plugin }: { plugin: PluginCatalogEntry }) {
 					<h2 className="text-sm font-semibold text-foreground">
 						<Trans id="dashboard.plugins.detail.skillsHeading">Skills</Trans>
 					</h2>
-					<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+					<div className="flex flex-col divide-y divide-border-variant rounded-lg border border-border/60">
 						{plugin.skills.map((name) => (
 							<div key={name} className="flex items-center gap-3 p-3">
 								<SkillIcon skillName={name} className="size-7" />

@@ -86,7 +86,7 @@ export function DashboardSidebarBulkDeleteDialog({
 				</AlertDialogHeader>
 
 				<div className="px-4 pb-2">
-					<ul className="max-h-36 space-y-1 overflow-y-auto rounded-md bg-muted/60 px-2.5 py-2 text-xs">
+					<ul className="max-h-36 space-y-1 overflow-y-auto rounded bg-muted/60 px-2.5 py-2 text-xs">
 						{items.map((item) => (
 							<li
 								key={item.workspaceId}
@@ -114,7 +114,7 @@ export function DashboardSidebarBulkDeleteDialog({
 								)}
 								{item.status === "ready" &&
 									(item.hasChanges || item.hasUnpushedCommits) && (
-										<span className="shrink-0 text-right text-yellow-700 dark:text-yellow-400">
+										<span className="shrink-0 text-right text-warning">
 											{item.hasChanges && item.hasUnpushedCommits ? (
 												<Trans id="dashboard.sidebar.bulkDelete.uncommittedAndUnpushed">
 													Uncommitted · Unpushed
@@ -158,7 +158,7 @@ export function DashboardSidebarBulkDeleteDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						disabled={isDeleting}
 						onClick={() => onOpenChange(false)}
 					>
@@ -167,7 +167,7 @@ export function DashboardSidebarBulkDeleteDialog({
 					<Button
 						variant="destructive"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						disabled={!canConfirm || isDeleting}
 						onClick={run}
 					>

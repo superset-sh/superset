@@ -238,7 +238,7 @@ export function PRLinkCommand({
 											key={pr.prNumber}
 											value={`${pr.prNumber}-${pr.title}`}
 											onSelect={() => handleSelect(pr)}
-											className="group items-start gap-3 rounded-md px-2.5 py-2"
+											className="group items-start gap-3 rounded px-2.5 py-2"
 										>
 											<PRIcon
 												state={state}

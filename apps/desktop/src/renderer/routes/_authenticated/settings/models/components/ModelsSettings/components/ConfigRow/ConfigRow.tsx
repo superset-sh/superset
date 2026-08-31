@@ -59,7 +59,7 @@ export function ConfigRow({
 				<div className="min-w-0 flex-1">{field}</div>
 				{onClear && showClear ? (
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={onClear}
 						disabled={disableClear}

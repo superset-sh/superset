@@ -32,7 +32,7 @@ export function CategoryHeader({
 			onClick={onToggle}
 			className={cn(
 				"flex items-center gap-2 px-4 py-2 w-full text-left transition-colors sticky top-0 z-20 border-b border-r border-border",
-				"hover:bg-muted cursor-grab active:cursor-grabbing",
+				"hover:bg-fill-hover cursor-grab active:cursor-grabbing",
 				isOver && "bg-muted",
 				isDragging && "opacity-45",
 			)}

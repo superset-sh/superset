@@ -207,7 +207,7 @@ export function DeleteWorkspaceDialog({
 						<Button
 							variant="ghost"
 							size="sm"
-							className="h-7 px-3 text-xs"
+							className="h-[var(--btn-h-default)] px-3 text-xs"
 							onClick={() => onOpenChange(false)}
 						>
 							Cancel
@@ -216,7 +216,7 @@ export function DeleteWorkspaceDialog({
 							ref={closeActionButtonRef}
 							variant="secondary"
 							size="sm"
-							className="h-7 px-3 text-xs"
+							className="h-[var(--btn-h-default)] px-3 text-xs"
 							onClick={handleClose}
 						>
 							Close
@@ -257,7 +257,7 @@ export function DeleteWorkspaceDialog({
 
 				{!isLoading && canDelete && hasWarnings && (
 					<div className="px-4 pb-2">
-						<div className="text-xs text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-md px-2.5 py-1.5">
+						<div className="text-xs text-warning bg-warning/10 border border-warning/20 rounded px-2.5 py-1.5">
 							{hasChanges && hasUnpushedCommits
 								? "Has uncommitted changes and unpushed commits"
 								: hasChanges
@@ -291,7 +291,7 @@ export function DeleteWorkspaceDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
 						Cancel
@@ -300,7 +300,7 @@ export function DeleteWorkspaceDialog({
 						ref={closeActionButtonRef}
 						variant="secondary"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={handleClose}
 					>
 						Hide
@@ -310,7 +310,7 @@ export function DeleteWorkspaceDialog({
 							<Button
 								variant="destructive"
 								size="sm"
-								className="h-7 px-3 text-xs"
+								className="h-[var(--btn-h-default)] px-3 text-xs"
 								onClick={handleDelete}
 								disabled={!canDelete || isLoading}
 							>

@@ -141,8 +141,8 @@ export function AnimatedStarButton({
 						className={cn(
 							"size-3.5 transition-colors",
 							isStarred
-								? "fill-amber-400 text-amber-400"
-								: "group-hover:fill-amber-400/70 group-hover:text-amber-400/70 group-active:fill-amber-400 group-active:text-amber-400",
+								? "fill-warning text-warning"
+								: "group-hover:fill-warning/70 group-hover:text-warning/70 group-active:fill-warning group-active:text-warning",
 						)}
 					/>
 				</motion.span>

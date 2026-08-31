@@ -31,7 +31,7 @@ function SidebarCard({
 		<div
 			data-slot="sidebar-card"
 			className={cn(
-				"relative rounded-lg border border-border bg-card p-3",
+				"relative rounded border border-border bg-background-2 p-3",
 				className,
 			)}
 		>
@@ -51,12 +51,7 @@ function SidebarCard({
 				</button>
 			)}
 
-			<p
-				className={cn(
-					"text-sm font-semibold text-card-foreground",
-					badge && "mt-2",
-				)}
-			>
+			<p className={cn("text-sm font-medium text-foreground", badge && "mt-2")}>
 				{title}
 			</p>
 
@@ -70,9 +65,9 @@ function SidebarCard({
 
 			{actionLabel && onAction && (
 				<Button
-					variant="outline"
+					variant="secondary"
 					size="sm"
-					className="mt-3 w-full h-7 text-xs"
+					className="mt-3 w-full text-xs"
 					onClick={onAction}
 				>
 					{actionLabel}

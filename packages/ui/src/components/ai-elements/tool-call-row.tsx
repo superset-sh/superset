@@ -101,7 +101,7 @@ export function ToolCallRow({
 
 	return (
 		<Collapsible
-			className={cn("-mx-1 rounded-md font-mono", className)}
+			className={cn("-mx-1 rounded font-mono", className)}
 			onOpenChange={(open) => hasDetails && setIsOpen(open)}
 			open={hasDetails ? isOpen : false}
 		>
@@ -109,9 +109,9 @@ export function ToolCallRow({
 				<CollapsibleTrigger asChild>
 					<button
 						className={cn(
-							"flex h-7 min-w-0 flex-1 items-center justify-between rounded-md px-1 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+							"flex h-[var(--btn-h-default)] min-w-0 flex-1 items-center justify-between rounded px-1 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
 							hasDetails
-								? "cursor-pointer transition-colors duration-150 hover:bg-muted/30"
+								? "cursor-pointer transition-colors duration-150 hover:bg-fill-hover"
 								: "cursor-text",
 						)}
 						data-tool-trigger

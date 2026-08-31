@@ -79,10 +79,10 @@ function HotkeyRow({
 					type="button"
 					onClick={onStartRecording}
 					className={cn(
-						"h-7 px-3 rounded-md border text-xs transition-colors",
+						"h-[var(--btn-h-default)] px-3 rounded text-xs transition-colors",
 						isRecording
-							? "border-destructive/50 bg-destructive/10 text-destructive ring-2 ring-destructive/20"
-							: "border-border bg-accent/20 text-foreground hover:bg-accent/40",
+							? "bg-destructive/10 text-destructive ring-2 ring-destructive/20"
+							: "bg-grayAlpha-100 text-foreground hover:bg-grayAlpha-200",
 					)}
 				>
 					{isRecording ? (
@@ -97,7 +97,7 @@ function HotkeyRow({
 						</KbdGroup>
 					)}
 				</button>
-				<Button variant="ghost" size="sm" onClick={onReset}>
+				<Button variant="ghost" size="default" onClick={onReset}>
 					<Trans id="settings.keyboard.reset">Reset</Trans>
 				</Button>
 			</div>
@@ -261,7 +261,7 @@ function KeyboardShortcutsPage() {
 					</p>
 				</div>
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={() => {
 						setRecordingId(null);
@@ -322,7 +322,7 @@ function KeyboardShortcutsPage() {
 							<h3 className="text-sm font-medium text-muted-foreground mb-2">
 								{categoryLabels[category]}
 							</h3>
-							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+							<div className="rounded-lg border border-border overflow-hidden divide-y divide-border-variant">
 								{hotkeys.map((hotkey) => (
 									<HotkeyRow
 										key={hotkey.id}

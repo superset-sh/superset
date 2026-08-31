@@ -97,13 +97,10 @@ export function ShowCode({
 
 	return (
 		<div
-			className={cn(
-				"overflow-hidden rounded-md border border-border",
-				className,
-			)}
+			className={cn("overflow-hidden rounded border border-border", className)}
 		>
 			{/* Header */}
-			<div className="flex items-center justify-between border-b border-border bg-muted/50 px-3 py-1.5">
+			<div className="flex items-center justify-between border-b border-border-variant bg-muted/50 px-3 py-1.5">
 				{/* Left: language label or clickable filename + line range */}
 				<div className="flex min-w-0 items-center gap-2 font-mono text-xs">
 					{filename ? (

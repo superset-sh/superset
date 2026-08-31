@@ -239,7 +239,7 @@ export function CommitInput({
 						<Button
 							variant="secondary"
 							size="sm"
-							className="flex-1 gap-1.5 h-7 text-xs"
+							className="flex-1 gap-1.5 h-[var(--btn-h-default)] text-xs"
 							onClick={primary.handler}
 							disabled={primary.disabled}
 						>
@@ -258,7 +258,7 @@ export function CommitInput({
 							variant="secondary"
 							size="sm"
 							disabled={isPending}
-							className="h-7 px-1.5"
+							className="h-[var(--btn-h-default)] px-1.5"
 						>
 							<VscChevronDown className="size-3.5" />
 						</Button>

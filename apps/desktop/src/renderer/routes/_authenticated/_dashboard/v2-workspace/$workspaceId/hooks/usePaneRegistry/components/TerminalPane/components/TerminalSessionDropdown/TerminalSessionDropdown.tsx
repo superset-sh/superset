@@ -295,7 +295,7 @@ export function TerminalSessionDropdown({
 						message: "Terminal sessions",
 					})}
 					title={triggerTitle}
-					className="flex min-w-32 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex min-w-32 max-w-96 items-center gap-1.5 rounded px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 					onMouseDown={(event) => event.stopPropagation()}
 					onClick={(event) => event.stopPropagation()}
 				>
@@ -304,10 +304,10 @@ export function TerminalSessionDropdown({
 						<span
 							className={
 								workspaceRunState === "running"
-									? "size-1.5 shrink-0 rounded-full bg-emerald-500"
+									? "size-1.5 shrink-0 rounded-full bg-success"
 									: workspaceRunState === "stopped-by-user"
-										? "size-1.5 shrink-0 rounded-full bg-amber-500"
-										: "size-1.5 shrink-0 rounded-full bg-red-500"
+										? "size-1.5 shrink-0 rounded-full bg-warning"
+										: "size-1.5 shrink-0 rounded-full bg-destructive"
 							}
 							title={t({
 								id: "workspace.terminalPane.workspaceRunState",
@@ -340,7 +340,7 @@ export function TerminalSessionDropdown({
 							id: "workspace.terminalPane.newTerminalTitle",
 							message: "New terminal",
 						})}
-						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();

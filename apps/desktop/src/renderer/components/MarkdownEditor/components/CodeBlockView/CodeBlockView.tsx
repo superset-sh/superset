@@ -49,7 +49,7 @@ export function CodeBlockView({
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="flex items-center gap-1 h-6 px-2 text-xs bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
+							className="flex items-center gap-1 h-[var(--btn-h-sm)] px-2 text-xs bg-background/80 backdrop-blur rounded hover:bg-grayAlpha-200 transition-colors"
 						>
 							{currentLabel}
 							<HiChevronDown className="w-3 h-3" />
@@ -77,10 +77,10 @@ export function CodeBlockView({
 				<button
 					type="button"
 					onClick={handleCopy}
-					className="flex items-center justify-center h-6 w-6 bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
+					className="flex items-center justify-center h-[var(--btn-h-sm)] w-[var(--btn-h-sm)] bg-background/80 backdrop-blur rounded hover:bg-grayAlpha-200 transition-colors"
 				>
 					{copied ? (
-						<HiCheck className="w-3.5 h-3.5 text-green-500" />
+						<HiCheck className="w-3.5 h-3.5 text-success" />
 					) : (
 						<HiOutlineClipboard className="w-3.5 h-3.5" />
 					)}

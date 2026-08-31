@@ -73,12 +73,12 @@ function OnboardingDashboardPage() {
 			<div className="-mt-4">
 				<p className="mb-6 flex items-center gap-2 text-xs text-muted-foreground">
 					<span className="relative flex size-1.5">
-						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-						<span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+						<span className="relative inline-flex size-1.5 rounded-full bg-success" />
 					</span>
 					Detecting automatically · statuses update as you install or sign in
 				</p>
-				<div className="divide-y divide-border">
+				<div className="divide-y divide-border-variant">
 					{SUPPORTED_LOCALES.length > 1 && <OnboardingLanguageRow />}
 					<OnboardingRow
 						icon={<SiGithub className="size-4.5" />}
@@ -169,8 +169,8 @@ function rowStatus(isPending: boolean, connected: boolean): RowStatus {
 type StatusTone = "warning" | "neutral";
 
 const STATUS_DOT: Record<"connected" | StatusTone, string> = {
-	connected: "bg-emerald-500",
-	warning: "bg-amber-500",
+	connected: "bg-success",
+	warning: "bg-warning",
 	neutral: "bg-muted-foreground/40",
 };
 
@@ -205,7 +205,7 @@ function OnboardingRow({
 		<div className="flex items-center gap-4 py-7 first:pt-0 last:pb-0">
 			<div
 				className={cn(
-					"flex size-9 shrink-0 items-center justify-center rounded-md",
+					"flex size-9 shrink-0 items-center justify-center rounded",
 					chipClassName ?? "bg-muted text-foreground",
 				)}
 			>
@@ -234,7 +234,7 @@ function OnboardingRow({
 							className={cn(
 								"flex min-w-28 items-center justify-end gap-1.5 text-xs tabular-nums",
 								status === "connected"
-									? "text-emerald-500"
+									? "text-success"
 									: "text-muted-foreground",
 							)}
 						>

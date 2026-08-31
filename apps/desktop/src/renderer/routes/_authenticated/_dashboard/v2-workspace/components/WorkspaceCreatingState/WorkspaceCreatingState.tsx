@@ -145,7 +145,7 @@ export function WorkspaceCreatingState({
 				/>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="text-md font-medium tracking-tight text-foreground">
 						{isSession
 							? t({
 									id: "workspace.states.creatingSessionTitle",
@@ -156,7 +156,7 @@ export function WorkspaceCreatingState({
 									message: "Creating workspace",
 								})}
 					</h1>
-					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
+					<p className="truncate text-sm leading-relaxed text-muted-foreground">
 						{name ||
 							t({
 								id: "workspace.states.creatingUntitled",
@@ -172,7 +172,7 @@ export function WorkspaceCreatingState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+						<code className="min-w-0 truncate font-mono text-xs text-muted-foreground">
 							{branch}
 						</code>
 					</div>
@@ -200,7 +200,7 @@ export function WorkspaceCreatingState({
 						/>
 						<div className="wcs-bar-sweep" />
 					</div>
-					<div className="flex items-center justify-between text-[11px] text-muted-foreground/80">
+					<div className="flex items-center justify-between text-xs text-muted-foreground/80">
 						<span className="font-mono tabular-nums">
 							{formatElapsed(elapsed)}
 						</span>
@@ -214,7 +214,7 @@ export function WorkspaceCreatingState({
 
 				{stuck && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
-						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
+						<p className="select-text cursor-text text-xs leading-relaxed text-muted-foreground">
 							{isSession ? (
 								<Trans id="workspace.states.creatingStuckSessionBody">
 									This is taking longer than usual. The session may already be
@@ -229,8 +229,8 @@ export function WorkspaceCreatingState({
 						</p>
 						<Button
 							size="sm"
-							variant="outline"
-							className="h-7 w-fit gap-1.5 px-2 text-[12px] font-medium"
+							variant="ghost"
+							className="h-[var(--btn-h-default)] w-fit gap-1.5 px-2 text-xs font-medium"
 							onClick={() => window.location.reload()}
 						>
 							<RotateCw
@@ -255,7 +255,7 @@ function StepRow({ label, state }: { label: string; state: StepState }) {
 	return (
 		<li
 			className={cn(
-				"flex items-center gap-2.5 text-[13px] leading-tight transition-colors duration-300",
+				"flex items-center gap-2.5 text-sm leading-tight transition-colors duration-300",
 				state === "done" && "text-foreground/80",
 				state === "active" && "text-foreground",
 				state === "pending" && "text-muted-foreground/55",

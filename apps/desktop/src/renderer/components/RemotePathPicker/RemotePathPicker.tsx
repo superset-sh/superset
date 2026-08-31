@@ -258,7 +258,7 @@ export function RemotePathPicker({
 						<div className="flex flex-col gap-0.5 p-2">
 							{[0, 1, 2, 3, 4].map((i) => (
 								<div key={i} className="flex items-center gap-2 px-2 py-1.5">
-									<Skeleton className="size-4 shrink-0 rounded-sm" />
+									<Skeleton className="size-4 shrink-0 rounded" />
 									<Skeleton className="h-4 w-40" />
 								</div>
 							))}
@@ -283,7 +283,7 @@ export function RemotePathPicker({
 										<button
 											type="button"
 											onClick={() => setCurrentPath(childPath)}
-											className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+											className="group flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
 										>
 											<LuFolder className="size-4 shrink-0 text-muted-foreground" />
 											<span className="truncate">{entry.name}</span>

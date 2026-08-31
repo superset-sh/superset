@@ -37,11 +37,11 @@ export function DeferredDiffPlaceholder({
 				)}
 			</p>
 			{reason === "deferred" ? (
-				<Button variant="outline" size="sm" onClick={onRequest}>
+				<Button variant="secondary" size="sm" onClick={onRequest}>
 					<Trans id="workspace.diffPane.loadDiff">Load diff</Trans>
 				</Button>
 			) : reason === "error" ? (
-				<Button variant="outline" size="sm" onClick={onRequest}>
+				<Button variant="secondary" size="sm" onClick={onRequest}>
 					<Trans id="workspace.diffPane.retryDiff">Retry</Trans>
 				</Button>
 			) : null}

@@ -102,7 +102,7 @@ export function V1ImportModal() {
 						variant="ghost"
 						size="sm"
 						onClick={close}
-						className="h-8 shrink-0 px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+						className="h-[var(--btn-h-lg)] shrink-0 px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
 					>
 						Cancel
 					</Button>
@@ -112,7 +112,7 @@ export function V1ImportModal() {
 								variant="ghost"
 								size="sm"
 								onClick={() => setPage(previousPage)}
-								className="h-8 shrink-0 px-3 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+								className="h-[var(--btn-h-lg)] shrink-0 px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
 							>
 								Back
 							</Button>
@@ -121,7 +121,7 @@ export function V1ImportModal() {
 							<Button
 								size="sm"
 								onClick={() => setPage(nextPage)}
-								className="h-8 shrink-0 px-3 text-[13px] font-medium"
+								className="h-[var(--btn-h-lg)] shrink-0 px-3 text-sm font-medium"
 							>
 								{page === "welcome" ? "Get started" : "Next"}
 							</Button>
@@ -129,7 +129,7 @@ export function V1ImportModal() {
 							<Button
 								size="sm"
 								onClick={close}
-								className="h-8 shrink-0 px-3 text-[13px] font-medium"
+								className="h-[var(--btn-h-lg)] shrink-0 px-3 text-sm font-medium"
 							>
 								Done
 							</Button>

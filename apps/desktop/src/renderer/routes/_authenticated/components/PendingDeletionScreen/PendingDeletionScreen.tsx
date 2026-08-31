@@ -58,11 +58,11 @@ export function PendingDeletionScreen({
 				>
 					{reactivate.isPending ? "Reactivating…" : "Reactivate my account"}
 				</Button>
-				<Button variant="outline" size="sm" asChild>
+				<Button variant="secondary" size="sm" asChild>
 					<a href={COMPANY.MAIL_TO}>Contact support</a>
 				</Button>
 				<Button
-					variant="outline"
+					variant="secondary"
 					size="sm"
 					disabled={isSigningOut}
 					onClick={async () => {

@@ -74,8 +74,8 @@ export function AgentIconPicker({
 					type="button"
 					disabled={disabled || isProcessing}
 					className={cn(
-						"inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-sm",
-						"bg-transparent hover:bg-accent/50 transition-colors disabled:opacity-50",
+						"inline-flex items-center gap-2 rounded px-3 py-1.5 text-sm",
+						"bg-grayAlpha-100 hover:bg-grayAlpha-200 transition-colors disabled:opacity-50",
 					)}
 				>
 					<AgentIcon iconId={value} presetId="custom" className="size-5" />

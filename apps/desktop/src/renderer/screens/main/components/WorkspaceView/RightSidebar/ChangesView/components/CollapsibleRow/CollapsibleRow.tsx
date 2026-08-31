@@ -36,7 +36,7 @@ export function CollapsibleRow({
 		>
 			<CollapsibleTrigger
 				className={cn(
-					"w-full flex items-center gap-1.5 px-1.5 py-1 text-left rounded-sm",
+					"w-full flex items-center gap-1.5 px-1.5 py-1 text-left rounded",
 					"hover:bg-accent/50 cursor-pointer transition-colors",
 					triggerClassName,
 				)}

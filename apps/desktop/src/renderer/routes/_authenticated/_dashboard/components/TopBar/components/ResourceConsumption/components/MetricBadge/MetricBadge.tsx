@@ -12,7 +12,7 @@ export function MetricBadge({ label, value, tooltip }: MetricBadgeProps) {
 			<div className="text-[10px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
 				{label}
 			</div>
-			<div className="mt-1.5 text-[15px] leading-none font-medium tabular-nums tracking-tight text-foreground whitespace-nowrap">
+			<div className="mt-1.5 text-md leading-none font-medium tabular-nums tracking-tight text-foreground whitespace-nowrap">
 				{value}
 			</div>
 		</div>

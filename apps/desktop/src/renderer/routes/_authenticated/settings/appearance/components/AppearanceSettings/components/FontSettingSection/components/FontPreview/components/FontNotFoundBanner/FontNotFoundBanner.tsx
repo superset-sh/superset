@@ -68,7 +68,7 @@ export function FontNotFoundBanner({ fontFamily }: { fontFamily: string }) {
 	if (available !== false || !primaryFont) return null;
 
 	return (
-		<div className="flex items-center gap-2 px-3 py-2 text-xs border-t border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400">
+		<div className="flex items-center gap-2 px-3 py-2 text-xs border-t border-destructive/20 bg-destructive/10 text-destructive">
 			<AlertCircleIcon className="size-3.5 shrink-0" />
 			<span>
 				<Trans id="settings.appearance.fontNotFound.message">

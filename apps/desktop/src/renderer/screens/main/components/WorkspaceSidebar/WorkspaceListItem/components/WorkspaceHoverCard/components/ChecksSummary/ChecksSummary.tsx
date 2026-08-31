@@ -18,7 +18,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 	const config = {
 		success: {
 			icon: LuCheck,
-			className: "text-emerald-500",
+			className: "text-success",
 		},
 		failure: {
 			icon: LuX,
@@ -26,7 +26,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 		},
 		pending: {
 			icon: LuLoaderCircle,
-			className: "text-amber-500",
+			className: "text-warning",
 		},
 	};
 

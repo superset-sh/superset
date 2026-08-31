@@ -34,7 +34,7 @@ export function UsageModelTable({ history }: { history: UsageHistory }) {
 				{rows.map((row) => (
 					<tr
 						key={`${row.agent}|${row.model}`}
-						className="cursor-pointer transition-colors hover:bg-muted/60"
+						className="cursor-pointer transition-colors hover:bg-fill-hover"
 						onClick={() =>
 							navigate({
 								to: "/settings/usage/model/$modelKey",

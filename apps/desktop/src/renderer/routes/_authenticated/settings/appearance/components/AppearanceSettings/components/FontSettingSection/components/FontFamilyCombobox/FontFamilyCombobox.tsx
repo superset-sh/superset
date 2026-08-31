@@ -105,7 +105,7 @@ export function FontFamilyCombobox({
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant="outline"
+					variant="secondary"
 					className="flex-1 justify-between font-normal truncate"
 					disabled={disabled || fontsLoading}
 				>

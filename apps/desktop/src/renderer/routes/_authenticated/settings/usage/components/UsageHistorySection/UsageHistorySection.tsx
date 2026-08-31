@@ -93,7 +93,7 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 						value={metric}
 						onValueChange={(value) => setMetric(value as HistoryMetric)}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
 								<Trans id="settings.usage.history.metricCost">Cost</Trans>
 							</TabsTrigger>
@@ -106,7 +106,7 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 						value={String(days)}
 						onValueChange={(value) => setDays(Number(value))}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							{RANGE_OPTIONS.map((option) => (
 								<TabsTrigger
 									key={option}
@@ -160,7 +160,7 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 									)}
 								</div>
 								{metric === "usd" && (
-									<div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+									<div className="text-[11px] font-medium text-success">
 										<Trans id="settings.usage.history.costToYouZero">
 											Cost to you: $0
 										</Trans>
@@ -206,7 +206,7 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 														})
 											}
 											className={cn(
-												"flex items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:bg-muted/60",
+												"flex items-center gap-1.5 rounded px-1 py-0.5 text-left text-[11px] transition-colors hover:bg-fill-hover",
 												hidden && "opacity-40",
 											)}
 										>
@@ -238,14 +238,14 @@ export function UsageHistorySection({ hostUrl }: { hostUrl: string | null }) {
 								})}
 							</div>
 							{selectedBucket && (
-								<div className="rounded-md border bg-card/60 p-2 text-[11px]">
+								<div className="rounded border bg-card/60 p-2 text-[11px]">
 									<div className="flex items-center">
 										<span className="font-medium">
 											{formatDayLabel(selectedBucket.day)}
 										</span>
 										<button
 											type="button"
-											className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+											className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-fill-hover hover:text-foreground"
 											onClick={() => setSelectedDay(null)}
 											aria-label={t({
 												id: "settings.usage.history.clearSelectedDay",

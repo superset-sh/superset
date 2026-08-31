@@ -20,16 +20,14 @@ export function Sentence<Slot extends string>({
 	renderSlot,
 }: SentenceProps<Slot>) {
 	if (!parts) {
-		return (
-			<span className="text-[13px] text-muted-foreground">{fallback}</span>
-		);
+		return <span className="text-sm text-muted-foreground">{fallback}</span>;
 	}
 	return (
 		<>
 			{parts.map((part, index) =>
 				"text" in part ? (
 					// biome-ignore lint/suspicious/noArrayIndexKey: grammar parts are a static sentence that never reorders
-					<span key={index} className="text-[13px] text-muted-foreground">
+					<span key={index} className="text-sm text-muted-foreground">
 						{part.text}
 					</span>
 				) : (

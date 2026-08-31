@@ -50,7 +50,7 @@ export function SafeImage({ src, alt, className }: SafeImageProps) {
 	if (!isSafeImageSrc(src)) {
 		return (
 			<div
-				className={`inline-flex items-center gap-2 px-3 py-2 rounded-md bg-muted text-muted-foreground text-sm ${className ?? ""}`}
+				className={`inline-flex items-center gap-2 px-3 py-2 rounded bg-muted text-muted-foreground text-sm ${className ?? ""}`}
 				title={t({
 					id: "components.safeImage.blockedTitle",
 					message: `Image blocked: ${src ?? "(empty)"}`,
@@ -69,7 +69,7 @@ export function SafeImage({ src, alt, className }: SafeImageProps) {
 		<img
 			src={src}
 			alt={alt}
-			className={className ?? "max-w-full h-auto rounded-md my-4"}
+			className={className ?? "max-w-full h-auto rounded my-4"}
 		/>
 	);
 }

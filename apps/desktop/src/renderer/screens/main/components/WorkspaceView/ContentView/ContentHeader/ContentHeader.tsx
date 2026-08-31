@@ -15,13 +15,17 @@ export function ContentHeader({
 	trailingAction,
 }: ContentHeaderProps) {
 	return (
-		<div className="flex items-end bg-background shrink-0 h-10 border-b">
+		<div className="flex items-end bg-background shrink-0 h-[var(--header-height)] border-b">
 			{leadingAction && (
-				<div className="flex items-center h-10 pl-2">{leadingAction}</div>
+				<div className="flex items-center h-[var(--header-height)] pl-2">
+					{leadingAction}
+				</div>
 			)}
 			<div className="flex-1 min-w-0">{children}</div>
 			{trailingAction && (
-				<div className="flex items-center h-10 pr-2">{trailingAction}</div>
+				<div className="flex items-center h-[var(--header-height)] pr-2">
+					{trailingAction}
+				</div>
 			)}
 		</div>
 	);

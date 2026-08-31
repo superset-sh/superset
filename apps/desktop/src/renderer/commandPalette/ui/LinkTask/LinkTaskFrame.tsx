@@ -153,7 +153,7 @@ export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
 								key={task.id}
 								value={`${task.slug} ${task.title}`}
 								onSelect={() => handleSelect(task.id, task.slug)}
-								className="group items-start gap-3 rounded-md px-2.5 py-2"
+								className="group items-start gap-3 rounded px-2.5 py-2"
 							>
 								<span className="mt-0.5 flex size-4 shrink-0 items-center justify-center">
 									{status ? (

@@ -36,14 +36,14 @@ export function ResourceMetricsSummary({
 	);
 	const shareBarColorClass =
 		hostShareSeverity === "high"
-			? "bg-red-500/80"
+			? "bg-destructive/80"
 			: hostShareSeverity === "elevated"
-				? "bg-amber-500/80"
+				? "bg-warning/80"
 				: "bg-foreground/40";
 
 	return (
 		<>
-			<div className="grid grid-cols-3 divide-x divide-border/50">
+			<div className="grid grid-cols-3 divide-x divide-border-variant">
 				<MetricBadge
 					label={t({
 						id: "dashboard.topBar.resourceSummary.cpuLabel",

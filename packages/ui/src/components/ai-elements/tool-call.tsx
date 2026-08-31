@@ -28,9 +28,7 @@ export const ToolCall = ({
 		: "";
 
 	return (
-		<div
-			className={cn("flex items-start gap-1.5 rounded-md py-0.5", className)}
-		>
+		<div className={cn("flex items-start gap-1.5 rounded py-0.5", className)}>
 			<div className="min-w-0 flex flex-1 items-center gap-1.5">
 				<div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
 					<ShimmerLabel isShimmering={isPending}>{title}</ShimmerLabel>

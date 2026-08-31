@@ -519,7 +519,7 @@ export function PromptInputAttachment({
 			<HoverCardTrigger asChild>
 				<div
 					className={cn(
-						"group relative flex h-8 cursor-pointer select-none items-center gap-1.5 rounded-md border border-border px-1.5 font-medium text-sm transition-all hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+						"group relative flex h-[var(--btn-h-lg)] cursor-pointer select-none items-center gap-1.5 rounded border border-border px-1.5 font-medium text-sm transition-all hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
 						className,
 					)}
 					key={data.id}
@@ -573,7 +573,7 @@ export function PromptInputAttachment({
 			<PromptInputHoverCardContent className="w-auto p-2">
 				<div className="w-auto space-y-3">
 					{isImage && (
-						<div className="relative flex max-h-96 w-96 items-center justify-center overflow-hidden rounded-md border">
+						<div className="relative flex max-h-96 w-96 items-center justify-center overflow-hidden rounded border">
 							<img
 								alt={
 									filename ||

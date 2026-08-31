@@ -168,7 +168,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 
 		if (items.length === 0) {
 			return (
-				<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
+				<div className="bg-popover text-popover-foreground rounded border p-1 shadow-md">
 					<div className="px-2 py-1.5 text-sm text-muted-foreground">
 						<Trans id="components.slashCommand.noResults">No results</Trans>
 					</div>
@@ -196,7 +196,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 		return (
 			<div
 				ref={containerRef}
-				className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md overflow-hidden max-h-80 overflow-y-auto w-48"
+				className="bg-popover text-popover-foreground rounded border p-1 shadow-md overflow-hidden max-h-80 overflow-y-auto w-48"
 			>
 				{groups.map((group, groupIndex) => (
 					<div key={group.key}>
@@ -212,7 +212,7 @@ const SlashCommandList = forwardRef<SlashCommandListRef, SlashCommandListProps>(
 									key={item.title.id}
 									data-index={index}
 									onClick={() => command(item)}
-									className={`relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none w-full ${
+									className={`relative flex cursor-default items-center gap-2 rounded px-2 py-1.5 text-sm outline-hidden select-none w-full ${
 										index === selectedIndex
 											? "bg-accent text-accent-foreground"
 											: ""

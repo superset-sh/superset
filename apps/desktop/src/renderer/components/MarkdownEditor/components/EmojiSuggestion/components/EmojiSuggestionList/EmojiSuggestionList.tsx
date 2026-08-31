@@ -57,7 +57,7 @@ export const EmojiSuggestionList = forwardRef<
 
 	if (items.length === 0) {
 		return (
-			<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
+			<div className="bg-popover text-popover-foreground rounded border p-1 shadow-md">
 				<div className="px-2 py-1.5 text-sm text-muted-foreground">
 					<Trans id="components.emojiSuggestionList.noEmojiFound">
 						No emoji found
@@ -70,7 +70,7 @@ export const EmojiSuggestionList = forwardRef<
 	return (
 		<div
 			ref={containerRef}
-			className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md overflow-hidden max-h-72 overflow-y-auto w-64"
+			className="bg-popover text-popover-foreground rounded border p-1 shadow-md overflow-hidden max-h-72 overflow-y-auto w-64"
 		>
 			{items.map((item, index) => {
 				const shortcode = item.shortcodes[0] ?? item.name;
@@ -80,7 +80,7 @@ export const EmojiSuggestionList = forwardRef<
 						key={item.name}
 						data-index={index}
 						onClick={() => command(item)}
-						className={`relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none w-full ${
+						className={`relative flex cursor-default items-center gap-2 rounded px-2 py-1.5 text-sm outline-hidden select-none w-full ${
 							index === selectedIndex ? "bg-accent text-accent-foreground" : ""
 						}`}
 					>

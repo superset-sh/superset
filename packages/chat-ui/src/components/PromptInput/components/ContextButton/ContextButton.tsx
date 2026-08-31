@@ -24,7 +24,7 @@ export function ContextButton({ onClick, disabled }: ContextButtonProps) {
 			})}
 			disabled={disabled}
 			onClick={onClick}
-			className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+			className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:bg-grayAlpha-100 hover:text-foreground disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
 		>
 			<PlusIcon className="size-4.5" />
 		</button>

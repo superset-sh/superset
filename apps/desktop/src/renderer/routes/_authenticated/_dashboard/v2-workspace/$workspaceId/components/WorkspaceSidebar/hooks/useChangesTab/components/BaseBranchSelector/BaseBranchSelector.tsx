@@ -64,7 +64,7 @@ export function BaseBranchSelector({
 							<button
 								key={branch.name}
 								type="button"
-								className="flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+								className="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-accent"
 								onClick={() => {
 									onChange(branch.name);
 									setOpen(false);

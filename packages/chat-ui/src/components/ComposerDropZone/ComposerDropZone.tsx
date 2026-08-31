@@ -111,7 +111,7 @@ export function ComposerDropZone({
 				>
 					<span
 						className={cn(
-							"inline-flex items-center rounded-md border border-border/50 bg-secondary px-3 py-1 text-sm text-foreground shadow transition-transform duration-150 motion-reduce:transition-none",
+							"inline-flex items-center rounded border border-border bg-popover px-3 py-1 text-base text-popover-foreground shadow transition-transform duration-150 motion-reduce:transition-none",
 							isDraggingFiles ? "scale-100" : "scale-95",
 						)}
 					>

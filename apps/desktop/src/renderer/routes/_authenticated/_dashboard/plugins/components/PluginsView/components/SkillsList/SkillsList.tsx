@@ -28,7 +28,7 @@ export function SkillsList() {
 					automatically in every agent you use. Click one to preview it.
 				</Trans>
 			</p>
-			<div className="flex flex-col divide-y divide-border/60 rounded-lg border border-border/60">
+			<div className="flex flex-col divide-y divide-border-variant rounded-lg border border-border/60">
 				{SUPERSET_MANAGED_SKILLS.map((skill) => {
 					const isDisabled = disabledSkills.has(skill.name);
 					return (

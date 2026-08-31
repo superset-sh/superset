@@ -139,7 +139,7 @@ export function CommandPalette({
 
 					<CommandPrimitive
 						shouldFilter={false}
-						className="bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md"
+						className="bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded"
 					>
 						<div className="flex h-12 items-center gap-2 border-b px-3">
 							<SearchIcon className="size-5 shrink-0 opacity-50" />
@@ -172,13 +172,13 @@ export function CommandPalette({
 									value={includePattern}
 									onChange={(e) => setIncludePattern(e.target.value)}
 									placeholder="files to include (glob)"
-									className="h-8 rounded border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
+									className="h-[var(--input-h)] rounded border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
 								/>
 								<input
 									value={excludePattern}
 									onChange={(e) => setExcludePattern(e.target.value)}
 									placeholder="files to exclude (glob)"
-									className="h-8 rounded border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
+									className="h-[var(--input-h)] rounded border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground"
 								/>
 							</div>
 						)}

@@ -167,7 +167,7 @@ export function InfiniteScrollView({
 				<div>No changes detected</div>
 				{isExpandedView ? (
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={() => setSidebarMode(SidebarMode.Tabs)}
 					>

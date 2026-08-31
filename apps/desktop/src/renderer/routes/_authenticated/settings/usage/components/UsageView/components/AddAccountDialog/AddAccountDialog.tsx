@@ -266,7 +266,7 @@ export function AddAccountDialog({
 
 				{found ? (
 					<div className="flex flex-col gap-3">
-						<div className="rounded-md border bg-card/40 p-3 text-sm">
+						<div className="rounded border bg-card/40 p-3 text-sm">
 							<span className="font-medium">{found.label}</span>{" "}
 							{switchTarget ? (
 								<Trans id="settings.usage.addAccount.switchedSuffix">
@@ -317,7 +317,7 @@ export function AddAccountDialog({
 								<Input
 									value={name}
 									onChange={(event) => setName(event.target.value)}
-									className="h-7 flex-1 text-xs"
+									className="h-[var(--btn-h-default)] flex-1 text-xs"
 									placeholder="work"
 								/>
 							</div>
@@ -330,7 +330,7 @@ export function AddAccountDialog({
 									in your browser:
 								</Trans>
 							</span>
-							<div className="flex items-start gap-1.5 rounded-md border bg-muted/40 p-2">
+							<div className="flex items-start gap-1.5 rounded border bg-muted/40 p-2">
 								<code className="flex-1 whitespace-pre-wrap break-all font-mono text-[11px]">
 									{command}
 								</code>
@@ -341,7 +341,7 @@ export function AddAccountDialog({
 									onClick={copyCommand}
 								>
 									{copied ? (
-										<LuCheck className="size-3 text-green-500" />
+										<LuCheck className="size-3 text-success" />
 									) : (
 										<LuCopy className="size-3" />
 									)}

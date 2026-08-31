@@ -285,15 +285,15 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 					setHostId(next);
 					setLastHostId(next);
 				}}
-				className="w-full max-w-none h-8"
+				className="w-full max-w-none h-[var(--input-h)]"
 			/>
 			<div className="flex gap-1.5">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button
-							variant="outline"
+							variant="secondary"
 							size="sm"
-							className="flex-1 justify-between font-normal h-8 min-w-0"
+							className="flex-1 justify-between font-normal h-[var(--input-h)] min-w-0"
 						>
 							<span className="flex items-center gap-2 truncate">
 								{selectedProject ? (
@@ -340,7 +340,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 									/>
 									<span className="flex-1 truncate">{project.name}</span>
 									{project.needsSetup === true && (
-										<span className="text-[10px] text-amber-500 shrink-0">
+										<span className="text-[10px] text-warning shrink-0">
 											<Trans id="dashboard.tasks.openInWorkspaceV2.notSetUp">
 												not set up
 											</Trans>
@@ -352,12 +352,12 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 					</DropdownMenuContent>
 				</DropdownMenu>
 				<Button
-					size="icon"
+					size="icon-lg"
 					aria-label={t({
 						id: "dashboard.tasks.openInWorkspaceV2.openButton",
 						message: "Open in workspace",
 					})}
-					className="h-8 w-8 shrink-0"
+					className="shrink-0"
 					disabled={!!submitBlocker}
 					onClick={handleOpen}
 				>
@@ -372,7 +372,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 					message: "Select agent",
 				})}
 				onValueChange={setSelectedAgent}
-				triggerClassName="h-8 text-xs"
+				triggerClassName="h-[var(--input-h)] text-xs"
 				allowNone
 				noneLabel={t({
 					id: "dashboard.tasks.openInWorkspaceV2.noAgent",

@@ -100,7 +100,7 @@ export function Composer({
 				value={value}
 			/>
 			{onCancelTurn ? (
-				<Button onClick={onCancelTurn} size="icon" variant="outline">
+				<Button onClick={onCancelTurn} size="icon" variant="ghost">
 					<Square className="size-4" />
 				</Button>
 			) : (

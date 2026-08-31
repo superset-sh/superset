@@ -256,7 +256,7 @@ export function PromptTransportToggle({
 }: PromptTransportToggleProps) {
 	const { t } = useLingui();
 	return (
-		<div className="inline-flex shrink-0 rounded-md border border-border overflow-hidden">
+		<div className="inline-flex shrink-0 rounded bg-grayAlpha-100 overflow-hidden">
 			{TRANSPORT_OPTIONS.map((option, index) => {
 				const isSelected = value === option;
 				return (
@@ -271,10 +271,10 @@ export function PromptTransportToggle({
 						onClick={() => onChange(option)}
 						className={cn(
 							"px-3 py-1 text-xs font-medium transition-colors",
-							index > 0 && "border-l border-border",
+							index > 0 && "border-l border-border-variant",
 							isSelected
-								? "bg-accent text-accent-foreground"
-								: "bg-transparent text-muted-foreground hover:bg-accent/50",
+								? "bg-grayAlpha-200 text-accent-foreground"
+								: "text-muted-foreground hover:bg-grayAlpha-200",
 						)}
 					>
 						{option}

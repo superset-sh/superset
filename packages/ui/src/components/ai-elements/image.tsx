@@ -19,10 +19,7 @@ export const Image = ({
 			props.alt ||
 			i18n._({ id: "ui.image.generatedAlt", message: "Generated image" })
 		}
-		className={cn(
-			"h-auto max-w-full overflow-hidden rounded-md",
-			props.className,
-		)}
+		className={cn("h-auto max-w-full overflow-hidden rounded", props.className)}
 		src={`data:${mediaType};base64,${base64}`}
 	/>
 );

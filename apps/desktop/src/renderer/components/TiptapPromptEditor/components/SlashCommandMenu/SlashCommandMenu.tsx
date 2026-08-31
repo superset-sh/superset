@@ -40,7 +40,7 @@ export function SlashCommandMenu({
 						key={cmd.name}
 						ref={index === selectedIndex ? selectedRef : undefined}
 						type="button"
-						className={`flex w-full cursor-pointer flex-col gap-0.5 rounded-md px-3 py-2 text-left transition-colors ${
+						className={`flex w-full cursor-pointer flex-col gap-0.5 rounded px-3 py-2 text-left transition-colors ${
 							index === selectedIndex
 								? "bg-accent text-accent-foreground"
 								: "hover:bg-accent/50"
@@ -57,7 +57,7 @@ export function SlashCommandMenu({
 								{cmd.name}
 							</span>
 							{cmd.kind === "builtin" && (
-								<span className="rounded-sm border border-border/70 bg-muted/40 px-1 py-0.5 font-mono text-[10px] text-muted-foreground uppercase leading-none">
+								<span className="rounded bg-grayAlpha-100 px-1 py-0.5 font-mono text-[10px] text-muted-foreground uppercase leading-none">
 									<Trans id="components.slashCommandMenu.builtinBadge">
 										builtin
 									</Trans>

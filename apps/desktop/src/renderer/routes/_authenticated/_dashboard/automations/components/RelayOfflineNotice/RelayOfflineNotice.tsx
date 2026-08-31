@@ -15,7 +15,7 @@ interface RelayOfflineNoticeProps {
 }
 
 const WRAPPER_CLASS =
-	"flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs leading-relaxed text-foreground/85 select-text cursor-text";
+	"flex flex-wrap items-center gap-x-4 gap-y-2 rounded border border-warning/40 bg-warning/10 px-3 py-2 text-xs leading-relaxed text-foreground/85 select-text cursor-text";
 
 const ICON = (
 	<LuTriangleAlert
@@ -54,7 +54,7 @@ export function RelayOfflineNotice({
 				<Button
 					variant="outline"
 					size="sm"
-					className="ml-auto h-7 shrink-0 border-warning/40 bg-warning/10 px-2.5 text-xs text-warning hover:bg-warning/20"
+					className="ml-auto h-[var(--btn-h-default)] shrink-0 border-warning/40 bg-warning/10 px-2.5 text-xs text-warning hover:bg-warning/20"
 					disabled={isPending}
 					onClick={() =>
 						gateFeature(GATED_FEATURES.REMOTE_ACCESS, () =>

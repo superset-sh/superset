@@ -173,7 +173,7 @@ export function V2WorkspacesList({
 				</EmptyHeader>
 				{hasActiveFilters ? (
 					<EmptyContent>
-						<Button variant="outline" size="sm" onClick={() => resetFilters()}>
+						<Button variant="ghost" size="sm" onClick={() => resetFilters()}>
 							<Trans id="dashboard.workspaces.empty.clearFilters">
 								Clear filters
 							</Trans>
@@ -240,7 +240,7 @@ function StatusSectionGroup({
 				}
 				aria-expanded={!isCollapsed}
 				aria-controls={rowsId}
-				className="sticky top-0 z-[5] flex w-full items-center gap-2 border-b border-border/60 bg-muted/70 px-6 py-1.5 text-left outline-none backdrop-blur transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
+				className="sticky top-0 z-[5] flex w-full items-center gap-2 border-b border-border-variant bg-muted/70 px-6 py-1.5 text-left outline-none backdrop-blur transition-colors hover:bg-fill-hover focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
 			>
 				{/* Disclosure lives in the left padding gutter so the status icon
 				    stays locked to the row-glyph column. */}

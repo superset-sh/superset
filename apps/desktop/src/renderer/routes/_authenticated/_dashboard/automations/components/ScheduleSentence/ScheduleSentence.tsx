@@ -109,14 +109,12 @@ export function ScheduleSentence({
 	// row's icon — it drops to its own line and takes the whole sentence with it.
 	return (
 		<>
-			{state.kind === "hourly" && (
-				<span className="text-[13px]">Every hour</span>
-			)}
-			{state.kind === "daily" && <span className="text-[13px]">Every day</span>}
+			{state.kind === "hourly" && <span className="text-sm">Every hour</span>}
+			{state.kind === "daily" && <span className="text-sm">Every day</span>}
 			{state.kind === "weekly" && (
 				<>
-					<span className="text-[13px]">Every week</span>
-					<span className="text-[13px]">on</span>
+					<span className="text-sm">Every week</span>
+					<span className="text-sm">on</span>
 					<SelectChip
 						value={state.day}
 						disabled={disabled}
@@ -128,7 +126,7 @@ export function ScheduleSentence({
 
 			{showsTime && (
 				<>
-					<span className="text-[13px]">at</span>
+					<span className="text-sm">at</span>
 					<SelectChip
 						value={timeValue}
 						disabled={disabled}
@@ -143,7 +141,7 @@ export function ScheduleSentence({
 						    silently move when the automation fires — create it in Los
 						    Angeles, open it from London, and an 11:00 job becomes a
 						    19:00 one. */}
-					<span className="text-[13px]" title={timezone.replace(/_/g, " ")}>
+					<span className="text-sm" title={timezone.replace(/_/g, " ")}>
 						{timezoneAbbreviation(timezone)}
 					</span>
 				</>
@@ -151,7 +149,7 @@ export function ScheduleSentence({
 
 			{state.kind === "custom" && (
 				<>
-					<span className="shrink-0 text-[13px]">Custom schedule</span>
+					<span className="shrink-0 text-sm">Custom schedule</span>
 					<input
 						disabled={disabled}
 						placeholder="FREQ=WEEKLY;BYDAY=FR;BYHOUR=9;BYMINUTE=0"
@@ -169,7 +167,7 @@ export function ScheduleSentence({
 				    rule that won't save has no next run, and showing both at once
 				    reads as a contradiction. */}
 			{showsProblem ? (
-				<span className="ml-1 truncate text-[13px] text-destructive">
+				<span className="ml-1 truncate text-sm text-destructive">
 					{draftCleared
 						? "Enter a recurrence rule — changes aren't saved"
 						: customProblem === "exhausted"
@@ -178,7 +176,7 @@ export function ScheduleSentence({
 				</span>
 			) : (
 				nextRun && (
-					<span className="ml-1 truncate text-[13px] text-muted-foreground">
+					<span className="ml-1 truncate text-sm text-muted-foreground">
 						{nextRun}
 					</span>
 				)

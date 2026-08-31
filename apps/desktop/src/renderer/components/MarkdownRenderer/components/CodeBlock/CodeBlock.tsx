@@ -32,7 +32,7 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 
 	if (isInline) {
 		return (
-			<code className="px-1.5 py-0.5 rounded-md bg-fill-selected font-mono text-xs">
+			<code className="px-1.5 py-0.5 rounded bg-fill-selected font-mono text-xs">
 				{children}
 			</code>
 		);

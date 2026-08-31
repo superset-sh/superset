@@ -303,7 +303,7 @@ function V2SessionsSectionInner() {
 							)}
 						</Button>
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							disabled={updateDaemon.isPending || restartDaemon.isPending}
 							onClick={() => setConfirmRestartOpen(true)}
@@ -328,10 +328,7 @@ function V2SessionsSectionInner() {
 									showSessionList && "rotate-90",
 								)}
 							/>
-							<span
-								aria-hidden
-								className="size-1.5 rounded-full bg-emerald-500"
-							/>
+							<span aria-hidden className="size-1.5 rounded-full bg-success" />
 							{sessionCountLabel}
 						</button>
 					) : (
@@ -387,9 +384,9 @@ function V2SessionsSectionInner() {
 									</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-border/40">
+							<tbody className="divide-y divide-border-variant">
 								{sessions.map((s) => (
-									<tr key={s.id} className="hover:bg-muted/30">
+									<tr key={s.id} className="hover:bg-fill-hover">
 										<td className="px-2 py-2 font-mono">{s.id}</td>
 										<td className="px-2 py-2 text-right font-mono">
 											{s.pid || "—"}

@@ -131,7 +131,7 @@ export function TerminalAgentAutoResume({
 		<div className="absolute top-2 left-1/2 z-20 -translate-x-1/2">
 			<div
 				className={cn(
-					"flex items-center gap-2 rounded-md border border-border bg-background/95 py-1 pl-2.5 shadow-md",
+					"flex items-center gap-2 rounded border border-border bg-background/95 py-1 pl-2.5 shadow-md",
 					failed ? "pr-1" : "pr-2.5",
 				)}
 			>
@@ -157,7 +157,7 @@ export function TerminalAgentAutoResume({
 					<>
 						<Button
 							size="sm"
-							className="h-6 px-2 text-xs"
+							className="px-2 text-xs"
 							onClick={() => {
 								setFailed(false);
 								attemptedSessionRef.current = null;
@@ -167,8 +167,7 @@ export function TerminalAgentAutoResume({
 						</Button>
 						<Button
 							variant="ghost"
-							size="icon"
-							className="size-6"
+							size="icon-sm"
 							aria-label={t({
 								id: "workspace.terminalPane.dismissResumeAria",
 								message: "Dismiss resume prompt",

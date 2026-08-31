@@ -28,7 +28,7 @@ export function OpenClosedFilter({
 					id: "dashboard.openClosedFilter.filterByState",
 					message: "Filter by state",
 				})}
-				className="h-8 rounded-md border-0 bg-muted/50 p-0.5"
+				className="h-[var(--btn-h-lg)] rounded border-0 bg-muted/50 p-0.5"
 			>
 				<ToggleGroupItem
 					value="open"
@@ -36,7 +36,7 @@ export function OpenClosedFilter({
 						id: "dashboard.openClosedFilter.showOpenItems",
 						message: "Show open items",
 					})}
-					className="h-7 border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
+					className="h-[var(--btn-h-default)] border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
 				>
 					<Trans id="dashboard.openClosedFilter.open">Open</Trans>
 				</ToggleGroupItem>
@@ -46,7 +46,7 @@ export function OpenClosedFilter({
 						id: "dashboard.openClosedFilter.showAllStates",
 						message: "Show items in all states",
 					})}
-					className="h-7 border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
+					className="h-[var(--btn-h-default)] border-0 px-2 text-xs data-[state=on]:bg-background data-[state=on]:text-foreground"
 				>
 					<Trans id="dashboard.openClosedFilter.all">All</Trans>
 				</ToggleGroupItem>

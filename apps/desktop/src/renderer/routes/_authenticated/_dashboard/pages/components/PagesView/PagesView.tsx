@@ -110,7 +110,7 @@ export function PagesView({
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-			<div className="drag h-10 shrink-0" />
+			<div className="drag h-[var(--header-height)] shrink-0" />
 
 			<div className="min-h-0 flex-1 overflow-y-auto">
 				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
@@ -125,12 +125,12 @@ export function PagesView({
 							value={activeScope}
 							onValueChange={(value) => onScopeChange(value as PageScope)}
 						>
-							<TabsList className="h-8 gap-1 bg-transparent p-0">
+							<TabsList className="h-[var(--btn-h-lg)] gap-1 bg-transparent p-0">
 								{tabs.map((tab) => (
 									<TabsTrigger
 										key={tab.value}
 										value={tab.value}
-										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+										className="h-[var(--btn-h-lg)] rounded px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
 									>
 										<span className="text-sm">{tabLabels[tab.value]}</span>
 										<span className="ml-1 text-muted-foreground text-xs tabular-nums">
@@ -150,7 +150,7 @@ export function PagesView({
 									id: "dashboard.pages.searchPlaceholder",
 									message: "Search pages",
 								})}
-								className="h-8 pl-7 text-sm"
+								className="h-[var(--input-h)] pl-7 text-sm"
 							/>
 						</div>
 					</div>

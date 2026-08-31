@@ -70,7 +70,7 @@ export function AutomationDetailHeader({
 						<span className="inline-flex">
 							<Button
 								variant="ghost"
-								size="icon-sm"
+								size="icon-lg"
 								onClick={onOpenHistory}
 								disabled={readOnly}
 								aria-label={t({
@@ -98,7 +98,7 @@ export function AutomationDetailHeader({
 					<DropdownMenuTrigger asChild>
 						<Button
 							variant="ghost"
-							size="icon-sm"
+							size="icon-lg"
 							disabled={readOnly}
 							aria-label={t({
 								id: "dashboard.automations.detailHeader.moreActionsAriaLabel",
@@ -126,9 +126,9 @@ export function AutomationDetailHeader({
 					<TooltipTrigger asChild>
 						<span className="inline-flex">
 							<Button
-								variant="outline"
-								size="sm"
-								className="h-8 gap-1.5 px-3"
+								variant="ghost"
+								size="lg"
+								className="gap-1.5 px-3"
 								onClick={onRunNow}
 								disabled={readOnly || runNowDisabled}
 							>

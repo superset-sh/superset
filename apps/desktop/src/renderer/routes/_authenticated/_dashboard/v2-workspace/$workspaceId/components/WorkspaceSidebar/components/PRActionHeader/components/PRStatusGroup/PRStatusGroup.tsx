@@ -255,33 +255,33 @@ function stateTintClasses(state: PRState): {
 	switch (state) {
 		case "open":
 			return {
-				container: "border-emerald-500/30 bg-emerald-500/10",
-				hover: "hover:bg-emerald-500/15 focus-visible:bg-emerald-500/15",
-				divider: "bg-emerald-500/30",
+				container: "border-success/30 bg-success/10",
+				hover: "hover:bg-success/15 focus-visible:bg-success/15",
+				divider: "bg-success/30",
 			};
 		case "merged":
 			return {
-				container: "border-violet-500/30 bg-violet-500/10",
-				hover: "hover:bg-violet-500/15 focus-visible:bg-violet-500/15",
-				divider: "bg-violet-500/30",
+				container: "border-status-1/30 bg-status-1/10",
+				hover: "hover:bg-status-1/15 focus-visible:bg-status-1/15",
+				divider: "bg-status-1/30",
 			};
 		case "closed":
 			return {
-				container: "border-rose-500/30 bg-rose-500/10",
-				hover: "hover:bg-rose-500/15 focus-visible:bg-rose-500/15",
-				divider: "bg-rose-500/30",
+				container: "border-destructive/30 bg-destructive/10",
+				hover: "hover:bg-destructive/15 focus-visible:bg-destructive/15",
+				divider: "bg-destructive/30",
 			};
 		case "draft":
 			return {
 				container: "border-border bg-muted/40",
-				hover: "hover:bg-muted/60 focus-visible:bg-muted/60",
+				hover: "hover:bg-fill-hover focus-visible:bg-muted/60",
 				divider: "bg-border",
 			};
 		case "queued":
 			return {
-				container: "border-amber-500/30 bg-amber-500/10",
-				hover: "hover:bg-amber-500/15 focus-visible:bg-amber-500/15",
-				divider: "bg-amber-500/30",
+				container: "border-warning/30 bg-warning/10",
+				hover: "hover:bg-warning/15 focus-visible:bg-warning/15",
+				divider: "bg-warning/30",
 			};
 	}
 }

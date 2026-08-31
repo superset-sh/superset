@@ -50,12 +50,12 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 					<p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
 						{pr.title}
 					</p>
-					<div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+					<div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
 						<span className="font-mono">#{pr.number}</span>
 						<span aria-hidden="true">·</span>
 						<span
 							className={cn(
-								"rounded-sm px-1 py-px text-[10px] font-medium",
+								"rounded px-1 py-px text-[10px] font-medium",
 								statePillClass,
 							)}
 						>
@@ -66,7 +66,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 			</div>
 
 			{pr.headRefName && (
-				<div className="flex items-center gap-1.5 px-3 pb-2 text-[11px] text-muted-foreground">
+				<div className="flex items-center gap-1.5 px-3 pb-2 text-xs text-muted-foreground">
 					<LuGitBranch
 						aria-hidden="true"
 						className="size-3 shrink-0 text-muted-foreground/70"
@@ -82,7 +82,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 			</div>
 
 			{updatedRelative && (
-				<div className="border-t border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
+				<div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">
 					<Trans id="workspace.prDetailCard.updatedAt">
 						Updated {updatedRelative}
 					</Trans>
@@ -93,7 +93,7 @@ export function PRDetailCard({ pr, checks, linkState }: PRDetailCardProps) {
 				href={pr.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="group flex items-center justify-between border-t border-border/60 px-3 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				className="group flex items-center justify-between border-t border-border-variant px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-grayAlpha-100 hover:text-foreground"
 			>
 				<span>
 					<Trans id="workspace.prDetailCard.viewOnGitHub">View on GitHub</Trans>
@@ -128,7 +128,7 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 				icon={
 					<LuCircleCheck
 						aria-hidden="true"
-						className="size-3.5 shrink-0 text-emerald-500"
+						className="size-3.5 shrink-0 text-success"
 					/>
 				}
 				text={t({
@@ -150,7 +150,7 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 				icon={
 					<LuCircleX
 						aria-hidden="true"
-						className="size-3.5 shrink-0 text-rose-500"
+						className="size-3.5 shrink-0 text-destructive"
 					/>
 				}
 				text={
@@ -174,7 +174,7 @@ function ChecksLine({ checks }: { checks: ChecksRollup }) {
 			icon={
 				<LuCircleDashed
 					aria-hidden="true"
-					className="size-3.5 shrink-0 text-amber-500"
+					className="size-3.5 shrink-0 text-warning"
 				/>
 			}
 			text={
@@ -212,8 +212,8 @@ function DetailLine({
 					"truncate",
 					muted && "text-muted-foreground/60",
 					!muted && !accent && "text-foreground",
-					accent === "failure" && "text-rose-600 dark:text-rose-400",
-					accent === "pending" && "text-amber-600 dark:text-amber-400",
+					accent === "failure" && "text-destructive",
+					accent === "pending" && "text-warning",
 				)}
 			>
 				{text}
@@ -225,14 +225,14 @@ function DetailLine({
 function stateLabelToPillClass(state: PRState): string {
 	switch (state) {
 		case "open":
-			return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+			return "bg-success/10 text-success";
 		case "merged":
-			return "bg-violet-500/10 text-violet-600 dark:text-violet-400";
+			return "bg-status-1/10 text-status-1";
 		case "closed":
-			return "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+			return "bg-destructive/10 text-destructive";
 		case "draft":
 			return "bg-muted text-muted-foreground";
 		case "queued":
-			return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
+			return "bg-warning/10 text-warning";
 	}
 }

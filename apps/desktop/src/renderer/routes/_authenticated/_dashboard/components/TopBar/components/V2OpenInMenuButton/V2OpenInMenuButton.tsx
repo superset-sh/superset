@@ -126,9 +126,9 @@ export function V2OpenInMenuButton({
 							// higher than the PR badge's so the badge (with its merge
 							// chevron) keeps space priority and never clips in the 240-320px
 							// dead zone (#6385).
-							"group flex h-6 items-center justify-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-1.5 text-xs font-medium @[320px]:pr-2",
+							"group flex h-[var(--btn-h-sm)] items-center justify-center gap-1.5 rounded-l bg-grayAlpha-100 px-1.5 text-xs font-medium @[320px]:pr-2",
 							"transition-all duration-150 ease-out",
-							"hover:bg-secondary hover:border-border",
+							"hover:bg-grayAlpha-200",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isLoading && "opacity-50 pointer-events-none",
@@ -174,9 +174,9 @@ export function V2OpenInMenuButton({
 						type="button"
 						disabled={isLoading}
 						className={cn(
-							"flex items-center justify-center h-6 w-6 rounded-r border border-border/60 bg-secondary/50 text-muted-foreground",
+							"flex items-center justify-center h-[var(--btn-h-sm)] w-6 rounded-r border-l border-border-variant bg-grayAlpha-100 text-muted-foreground",
 							"transition-all duration-150 ease-out",
-							"hover:bg-secondary hover:border-border hover:text-foreground",
+							"hover:bg-grayAlpha-200 hover:text-foreground",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isLoading && "opacity-50 pointer-events-none",

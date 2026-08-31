@@ -78,8 +78,8 @@ export function StepProgress({ currentStep }: StepProgressProps) {
 								className={cn(
 									"step-progress__icon",
 									state === "waiting" && "text-muted-foreground/50",
-									state === "progress" && "text-orange-500",
-									state === "done" && "text-green-500",
+									state === "progress" && "text-warning",
+									state === "done" && "text-success",
 								)}
 							>
 								<StepIcon state={state} />

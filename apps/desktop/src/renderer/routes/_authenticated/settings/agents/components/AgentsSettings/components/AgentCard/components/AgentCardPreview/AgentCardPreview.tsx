@@ -33,7 +33,7 @@ export function AgentCardPreview({
 						</Trans>
 					</p>
 				</div>
-				<Button type="button" variant="outline" size="sm" onClick={onToggle}>
+				<Button type="button" variant="ghost" size="sm" onClick={onToggle}>
 					{showPreview ? (
 						<Trans id="settings.agents.preview.hide">Hide Preview</Trans>
 					) : (
@@ -52,7 +52,7 @@ export function AgentCardPreview({
 						</p>
 						<MarkdownRenderer
 							content={previewPrompt}
-							className="h-64 rounded-md border bg-background text-sm"
+							className="h-64 rounded border bg-background text-sm"
 						/>
 					</div>
 					{preset.kind === "terminal" && (
@@ -62,7 +62,7 @@ export function AgentCardPreview({
 									No-Prompt Launch
 								</Trans>
 							</p>
-							<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
+							<pre className="whitespace-pre-wrap rounded bg-background p-3 text-xs">
 								{previewNoPromptCommand}
 							</pre>
 						</div>
@@ -79,7 +79,7 @@ export function AgentCardPreview({
 								</Trans>
 							)}
 						</p>
-						<pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-xs">
+						<pre className="whitespace-pre-wrap rounded bg-background p-3 text-xs">
 							{previewTaskCommand}
 						</pre>
 					</div>

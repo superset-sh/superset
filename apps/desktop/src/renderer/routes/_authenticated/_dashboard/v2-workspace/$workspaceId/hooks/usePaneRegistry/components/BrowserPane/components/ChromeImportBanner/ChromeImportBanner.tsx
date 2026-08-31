@@ -40,9 +40,9 @@ export function ChromeImportBanner({
 				</Trans>
 			</span>
 			<Button
-				variant="outline"
+				variant="ghost"
 				size="sm"
-				className="h-6 shrink-0 px-2 text-xs"
+				className="h-[var(--btn-h-sm)] shrink-0 px-2 text-xs"
 				onClick={onImport}
 			>
 				<Trans id="workspace.browserPane.importBannerAction">Import</Trans>

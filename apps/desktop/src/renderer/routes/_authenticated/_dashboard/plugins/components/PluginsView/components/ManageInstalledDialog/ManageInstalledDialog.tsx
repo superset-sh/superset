@@ -56,7 +56,7 @@ export function ManageInstalledDialog({
 						</Trans>
 					</p>
 				) : (
-					<div className="flex flex-col divide-y divide-border/60">
+					<div className="flex flex-col divide-y divide-border-variant">
 						{installed.map((entry) => {
 							const plugin = getPluginByName(entry.name);
 							const isEnabled = entry.enabled !== false;

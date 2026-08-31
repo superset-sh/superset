@@ -49,7 +49,7 @@ export function WorkItemsSearch({
 					}
 				}}
 				className={cn(
-					"h-8 border-0 bg-muted/50 pl-9 pr-3 text-sm focus-visible:ring-1",
+					"h-[var(--input-h)] border-0 bg-muted/50 pl-9 pr-3 text-sm focus-visible:ring-1",
 					className,
 				)}
 			/>

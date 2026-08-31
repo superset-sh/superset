@@ -15,7 +15,7 @@
  * 32px tall with the wrong padding.
  */
 export const CHIP =
-	"inline-flex h-6 w-auto min-w-0 shrink-0 items-center gap-1 rounded-[6px] bg-foreground/[0.06] py-0 pr-1.5 pl-2 text-[13px] leading-none transition-colors hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
+	"inline-flex h-[var(--btn-h-sm)] w-auto min-w-0 shrink-0 items-center gap-1 rounded bg-grayAlpha-100 py-0 pr-1.5 pl-2 text-sm leading-none transition-colors hover:bg-grayAlpha-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50";
 
 /** Unset reads as dimmer text, not as an error — nothing is wrong yet. */
 export const CHIP_EMPTY = "text-muted-foreground";
@@ -28,5 +28,4 @@ export const CHIP_EMPTY = "text-muted-foreground";
  * three chips where only one is empty, and the banner names the problem without
  * pointing at it.
  */
-export const CHIP_INVALID =
-	"ring-1 ring-amber-500/50 text-amber-600 dark:text-amber-400";
+export const CHIP_INVALID = "ring-1 ring-warning/50 text-warning";

@@ -42,7 +42,7 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 				type="button"
 				ref={ref}
 				className={cn(
-					"relative flex items-center justify-center size-8 rounded-md",
+					"relative flex items-center justify-center size-8 rounded",
 					"transition-colors cursor-pointer",
 					isActive
 						? "bg-fill-selected hover:bg-fill-selected"

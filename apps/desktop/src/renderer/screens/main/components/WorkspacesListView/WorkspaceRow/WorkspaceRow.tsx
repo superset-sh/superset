@@ -140,15 +140,15 @@ export function WorkspaceRow({
 			{/* Unread indicator */}
 			{workspace.isUnread && (
 				<span className="relative flex size-2 shrink-0">
-					<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-					<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+					<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+					<span className="relative inline-flex size-2 rounded-full bg-destructive" />
 				</span>
 			)}
 
 			{/* Diff stats */}
 			{showDiffStats && (
 				<div className="flex items-center gap-1 text-[10px] font-mono shrink-0">
-					<span className="text-emerald-500">+{pr.additions}</span>
+					<span className="text-success">+{pr.additions}</span>
 					<span className="text-destructive-foreground">-{pr.deletions}</span>
 				</div>
 			)}

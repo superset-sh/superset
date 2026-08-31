@@ -57,7 +57,7 @@ export function WorkspaceUsageRow({
 		<Link
 			to="/settings/usage/workspace/$workspaceName"
 			params={{ workspaceName: row.project }}
-			className="flex flex-col gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-muted/60"
+			className="flex flex-col gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-fill-hover"
 		>
 			{content}
 		</Link>

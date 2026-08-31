@@ -68,17 +68,17 @@ export function LinkedIssuePill({
 					message: `Open task ${title}`,
 				}),
 			})}
-			className="group flex items-center gap-2.5 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-sm transition-all select-none hover:bg-accent hover:ring-1 hover:ring-border dark:hover:bg-accent/50"
+			className="group flex items-center gap-2.5 rounded bg-grayAlpha-100 px-3 py-2 text-sm transition-all select-none hover:bg-grayAlpha-200"
 			style={{ cursor: taskId || url ? "pointer" : "default" }}
 		>
-			<div className="relative flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground/10 p-0.5">
-				<LinearIcon className="size-5 rounded-sm transition-opacity group-hover:opacity-0" />
+			<div className="relative flex size-7 shrink-0 items-center justify-center rounded bg-foreground/10 p-0.5">
+				<LinearIcon className="size-5 rounded transition-opacity group-hover:opacity-0" />
 				<Button
 					aria-label={t({
 						id: "components.linkedIssuePill.removeLinkedIssue",
 						message: "Remove linked issue",
 					})}
-					className="pointer-events-none absolute inset-0 size-7 cursor-pointer rounded-md p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-3"
+					className="pointer-events-none absolute inset-0 size-7 cursor-pointer rounded p-0 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [&>svg]:size-3"
 					onClick={(e) => {
 						e.stopPropagation();
 						onRemove();

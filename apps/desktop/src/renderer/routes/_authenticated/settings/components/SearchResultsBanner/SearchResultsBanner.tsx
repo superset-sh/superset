@@ -52,7 +52,7 @@ export function SearchResultsBanner({
 					id: "settings.components.searchResultsBanner.clearSearch",
 					message: "Clear search",
 				})}
-				className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+				className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 			>
 				<HiXMark className="h-3.5 w-3.5" />
 			</button>

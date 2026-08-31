@@ -118,7 +118,7 @@ export function CreateOrganization() {
 		}
 		if (slugAvailable === true) {
 			return (
-				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600">
+				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-success">
 					<Trans id="auth.createOrganization.slugAvailable">Available</Trans>
 				</span>
 			);

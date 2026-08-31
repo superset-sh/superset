@@ -209,7 +209,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 						<h3 className="text-sm font-medium mb-2">
 							<Trans id="settings.billing.planSectionTitle">Plan</Trans>
 						</h3>
-						<div className="divide-y divide-border">
+						<div className="divide-y divide-border-variant">
 							<CurrentPlanCard
 								currentPlan={plan}
 								onCancel={handleCancel}

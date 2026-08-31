@@ -35,8 +35,8 @@ export function AgentPickerSelect({
 			<SelectTrigger
 				size="sm"
 				className={cn(
-					"h-7 min-w-40 gap-1.5 border-border/60 bg-popover px-2 text-[11px]",
-					"hover:bg-accent/50",
+					"h-[var(--btn-h-default)] min-w-40 gap-1.5 border-transparent bg-grayAlpha-100 px-2 text-xs",
+					"hover:bg-grayAlpha-200",
 				)}
 			>
 				<SelectValue
@@ -58,7 +58,7 @@ export function AgentPickerSelect({
 							<SelectItem
 								key={session.terminalId}
 								value={`${EXISTING_PREFIX}${session.terminalId}`}
-								className="text-[12px]"
+								className="text-xs"
 							>
 								<ExistingSessionOption binding={session} />
 							</SelectItem>
@@ -77,7 +77,7 @@ export function AgentPickerSelect({
 							<SelectItem
 								key={config.id}
 								value={`${NEW_PREFIX}${config.id}`}
-								className="text-[12px]"
+								className="text-xs"
 							>
 								<NewSessionOption
 									label={config.label}

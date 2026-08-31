@@ -35,10 +35,10 @@ export function WorkspaceMissingWorktreeState({
 				</div>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="select-text cursor-text text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="select-text cursor-text text-md font-medium tracking-tight text-foreground">
 						<Trans id="workspace.missingWorktree.title">Worktree missing</Trans>
 					</h1>
-					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
+					<p className="select-text cursor-text text-sm leading-relaxed text-muted-foreground">
 						<Trans id="workspace.missingWorktree.body">
 							This workspace record still exists, but its worktree folder is no
 							longer on this host. Terminals and file actions are unavailable.
@@ -47,13 +47,13 @@ export function WorkspaceMissingWorktreeState({
 				</div>
 
 				{worktreePath ? (
-					<div className="flex w-full items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5">
-						<span className="shrink-0 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+					<div className="flex w-full items-center gap-2 rounded border border-border/60 bg-muted/30 px-2.5 py-1.5">
+						<span className="shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
 							<Trans id="workspace.missingWorktree.pathLabel">Path</Trans>
 						</span>
 						<div className="min-w-0 flex-1 overflow-x-auto">
 							<code
-								className="inline-block min-w-max select-text cursor-text whitespace-nowrap font-mono text-[11px] text-muted-foreground"
+								className="inline-block min-w-max select-text cursor-text whitespace-nowrap font-mono text-xs text-muted-foreground"
 								title={worktreePath}
 							>
 								{worktreePath}
@@ -66,7 +66,7 @@ export function WorkspaceMissingWorktreeState({
 					<Button
 						size="sm"
 						variant="destructive"
-						className="h-7 gap-1.5 px-2.5 text-[13px]"
+						className="h-[var(--btn-h-default)] gap-1.5 px-2.5 text-sm"
 						onClick={() =>
 							useDeleteWorkspaceIntent.getState().request({
 								workspaceId,
@@ -82,7 +82,7 @@ export function WorkspaceMissingWorktreeState({
 					<Button
 						size="sm"
 						variant="ghost"
-						className="h-7 gap-1.5 px-2 text-[13px] font-medium"
+						className="h-[var(--btn-h-default)] gap-1.5 px-2 text-sm font-medium"
 						onClick={onRefresh}
 						disabled={isRefreshing}
 					>
@@ -97,7 +97,7 @@ export function WorkspaceMissingWorktreeState({
 						asChild
 						size="sm"
 						variant="ghost"
-						className="h-7 gap-1.5 px-2 text-[13px] font-medium"
+						className="h-[var(--btn-h-default)] gap-1.5 px-2 text-sm font-medium"
 					>
 						<Link to="/v2-workspaces">
 							<Trans id="workspace.missingWorktree.browseWorkspaces">

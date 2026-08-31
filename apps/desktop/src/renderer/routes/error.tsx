@@ -60,7 +60,7 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 						<Button onClick={() => window.location.reload()}>
 							<Trans id="app.errorPage.reload">Reload</Trans>
 						</Button>
-						<Button variant="outline" asChild>
+						<Button variant="secondary" asChild>
 							<Link to="/">
 								<Trans id="app.errorPage.goHome">Go home</Trans>
 							</Link>
@@ -88,19 +88,19 @@ export function ErrorPage({ error, info }: ErrorComponentProps) {
 								onClick={() => {
 									void copyToClipboard(details).catch(() => {});
 								}}
-								className="absolute top-2 right-2 flex items-center justify-center h-6 w-6 bg-background/80 backdrop-blur border border-border rounded hover:bg-accent transition-colors"
+								className="absolute top-2 right-2 flex items-center justify-center h-[var(--btn-h-sm)] w-[var(--btn-h-sm)] bg-background/80 backdrop-blur rounded hover:bg-grayAlpha-200 transition-colors"
 								aria-label={t({
 									id: "app.errorPage.copyDetails",
 									message: "Copy error details",
 								})}
 							>
 								{copied ? (
-									<HiCheck className="w-3.5 h-3.5 text-green-500" />
+									<HiCheck className="w-3.5 h-3.5 text-success" />
 								) : (
 									<HiOutlineClipboard className="w-3.5 h-3.5" />
 								)}
 							</button>
-							<pre className="w-full max-h-80 overflow-auto rounded-md border border-border bg-muted/40 p-3 pr-10 text-left text-xs text-muted-foreground select-text">
+							<pre className="w-full max-h-80 overflow-auto rounded border border-border bg-muted/40 p-3 pr-10 text-left text-xs text-muted-foreground select-text">
 								{details}
 							</pre>
 						</div>

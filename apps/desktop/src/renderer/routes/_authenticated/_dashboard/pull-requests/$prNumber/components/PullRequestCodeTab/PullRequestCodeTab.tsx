@@ -41,7 +41,6 @@ import type { AgentTarget } from "renderer/routes/_authenticated/_dashboard/v2-w
 import { useDiffCodeViewTheme } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/DiffPane/hooks/useDiffCodeViewTheme";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { useSettings } from "renderer/stores/settings";
-import { useResolvedTheme } from "renderer/stores/theme";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates/useWorkspaceCreates";
 import { PullRequestCommentComposer } from "../PullRequestCommentComposer";
 import { PullRequestCommentThread } from "../PullRequestCommentThread";
@@ -156,10 +155,9 @@ const NARROW_PANE_WIDTH_HIDE_TREE_THRESHOLD = 1150;
 // inventing a new one.
 //
 // A function (not a static string) because the additions/deletions colors
-// are theme-branched in JS — mirroring useDiffCodeViewTheme's own
-// additionColor/deletionColor — rather than relying on a `.dark` selector,
-// which can't reach in from outside the shadow root the way a CSS custom
-// property can.
+// arrive as custom properties — mirroring useDiffCodeViewTheme's own
+// additionColor/deletionColor — rather than a `.dark` selector, which can't
+// reach in from outside the shadow root the way a custom property can.
 function prCodeTabCardUnsafeCss(
 	additionsColor: string,
 	deletionsColor: string,
@@ -170,7 +168,7 @@ function prCodeTabCardUnsafeCss(
 		border-bottom: none;
 		border-top-left-radius: 0.75rem;
 		border-top-right-radius: 0.75rem;
-		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+		box-shadow: var(--shadow-1);
 		/* Pushes [data-metadata] (the +/- count) to the card's right edge
 		 * instead of leaving it flush against the filename — matches the
 		 * PR list row's own diff-stat placement. Overrides the shared
@@ -215,7 +213,7 @@ function prCodeTabCardUnsafeCss(
 		border-top: none;
 		border-bottom-left-radius: 0.75rem;
 		border-bottom-right-radius: 0.75rem;
-		box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+		box-shadow: var(--shadow-1);
 	}
 	/* The shared hook zeroes this strip's own inline padding to sit flush
 	 * with DiffPane's edge-to-edge pane — appropriate there, but it leaves
@@ -312,19 +310,14 @@ export function PullRequestCodeTab({
 }: PullRequestCodeTabProps) {
 	const { t } = useLingui();
 	const { options, style } = useDiffCodeViewTheme();
-	// Matches PullRequestRow's diff-stat colors exactly (text-emerald-600 /
-	// [.dark_&]:text-[#34d399], text-red-600 / [.dark_&]:text-[#f87171]) so
-	// the same PR reads with the same additions/deletions colors in both the
-	// list and the diff viewer. Branched in JS rather than a `.dark`
-	// selector in unsafeCSS — `.dark` lives on an ancestor outside Pierre's
-	// shadow root, which a shadow-scoped stylesheet's descendant combinator
-	// can't reach (see additionColor/deletionColor in useDiffCodeViewTheme
-	// for the same pattern).
-	const activeTheme = useResolvedTheme();
-	const prAdditionsColor =
-		activeTheme.type === "dark" ? "#34d399" : "var(--color-emerald-600)";
-	const prDeletionsColor =
-		activeTheme.type === "dark" ? "#f87171" : "var(--color-red-600)";
+	// Matches PullRequestRow's diff-stat colors exactly (text-success /
+	// text-destructive) so the same PR reads with the same
+	// additions/deletions colors in both the list and the diff viewer. Passed
+	// as custom properties rather than a `.dark` selector in unsafeCSS —
+	// `.dark` lives on an ancestor outside Pierre's shadow root, which a
+	// shadow-scoped stylesheet's descendant combinator can't reach.
+	const prAdditionsColor = "var(--success)";
+	const prDeletionsColor = "var(--destructive)";
 	// useDiffCodeViewTheme sources its background from the *terminal* theme
 	// (terminalTheme?.background ?? var(--background)) — sensible for
 	// DiffPane, which sits next to terminal panes in the workspace view, but
@@ -909,7 +902,7 @@ export function PullRequestCodeTab({
 					updateComposer({ itemId: context.item.id, path, range });
 				},
 			}) as CodeViewOptions<PrAnnotationMetadata>,
-		[options, pathByItemId, updateComposer, prAdditionsColor, prDeletionsColor],
+		[options, pathByItemId, updateComposer],
 	);
 
 	const treePaths = useMemo(() => files.map((f) => f.path), [files]);
@@ -1087,7 +1080,7 @@ export function PullRequestCodeTab({
 												message: "Hide file tree",
 											})
 								}
-								className="flex items-center gap-1.5 rounded-md bg-fill-hover px-1.5 py-1 text-muted-foreground transition-colors hover:bg-fill-selected hover:text-foreground"
+								className="flex items-center gap-1.5 rounded bg-fill-hover px-1.5 py-1 text-muted-foreground transition-colors hover:bg-fill-selected hover:text-foreground"
 							>
 								<LuFiles className="size-3.5 shrink-0" strokeWidth={1.5} />
 								<span className="text-[11px] font-medium">
@@ -1146,7 +1139,7 @@ export function PullRequestCodeTab({
 						<div className="flex items-center gap-1">
 							{orderedThreads.length > 0 && (
 								<>
-									<div className="flex items-center gap-0.5 rounded-md bg-muted/50 px-1 py-0.5">
+									<div className="flex items-center gap-0.5 rounded bg-muted/50 px-1 py-0.5">
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<button

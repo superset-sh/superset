@@ -68,7 +68,7 @@ export function V2WorktreeLocationPicker({
 	return (
 		<>
 			<div className="flex w-[28rem] max-w-full items-center gap-2">
-				<div className="flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30">
+				<div className="flex h-[var(--input-h)] min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded bg-input px-3">
 					<span
 						className="font-mono text-sm text-foreground"
 						title={displayPath}
@@ -80,9 +80,9 @@ export function V2WorktreeLocationPicker({
 					<TooltipTrigger asChild>
 						<Button
 							type="button"
-							variant="outline"
-							size="icon"
-							className="size-9 shrink-0"
+							variant="ghost"
+							size="icon-lg"
+							className="shrink-0"
 							onClick={handleBrowse}
 							disabled={isBusy || !hostUrl}
 							aria-label={t({
@@ -104,9 +104,9 @@ export function V2WorktreeLocationPicker({
 						<TooltipTrigger asChild>
 							<Button
 								type="button"
-								variant="outline"
-								size="icon"
-								className="size-9 shrink-0"
+								variant="ghost"
+								size="icon-lg"
+								className="shrink-0"
 								onClick={onReset}
 								disabled={disabled}
 								aria-label={t({

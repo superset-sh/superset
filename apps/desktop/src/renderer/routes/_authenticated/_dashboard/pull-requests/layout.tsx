@@ -126,7 +126,7 @@ function PullRequestsLayout() {
 			ref={rootRef}
 			className={cn(
 				"flex h-full min-h-0 min-w-0 flex-1 overflow-hidden",
-				isAppSidebarCollapsed && "rounded-tl-[8px] bg-sidebar dark:bg-muted/35",
+				isAppSidebarCollapsed && "rounded-tl-lg bg-sidebar",
 			)}
 		>
 			{!isListCollapsed && (
@@ -144,7 +144,7 @@ function PullRequestsLayout() {
 					}
 					className={cn(
 						"flex min-h-0 flex-col bg-background",
-						isAppSidebarCollapsed && "rounded-tl-[8px]",
+						isAppSidebarCollapsed && "rounded-tl-lg",
 					)}
 				>
 					{listContent}
@@ -154,7 +154,7 @@ function PullRequestsLayout() {
 				<div
 					className={cn(
 						"flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
-						isAppSidebarCollapsed && isListCollapsed && "rounded-tl-[8px]",
+						isAppSidebarCollapsed && isListCollapsed && "rounded-tl-lg",
 					)}
 				>
 					{params.prNumber === undefined && (

@@ -213,12 +213,12 @@ export const UserQuestionTool = ({
 	return (
 		<div
 			className={cn(
-				"overflow-hidden rounded-xl border border-border bg-card/95 shadow-sm",
+				"overflow-hidden rounded border border-border bg-card/95",
 				className,
 			)}
 		>
 			{/* Header */}
-			<div className="flex items-center justify-between border-border/60 border-b bg-muted/20 px-3 py-1.5">
+			<div className="flex items-center justify-between border-border-variant border-b bg-muted/20 px-3 py-1.5">
 				<div className="flex items-center gap-1.5">
 					<span className="text-xs text-muted-foreground">
 						{current.header ?? (
@@ -238,7 +238,7 @@ export const UserQuestionTool = ({
 				{questions.length > 1 && (
 					<div className="flex items-center gap-1">
 						<button
-							className="rounded p-0.5 outline-none hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+							className="rounded p-0.5 outline-none hover:bg-fill-hover disabled:cursor-not-allowed disabled:opacity-30"
 							disabled={currentIndex === 0}
 							onClick={() => {
 								setCurrentIndex((i) => i - 1);
@@ -252,7 +252,7 @@ export const UserQuestionTool = ({
 							{currentIndex + 1} / {questions.length}
 						</span>
 						<button
-							className="rounded p-0.5 outline-none hover:bg-muted disabled:cursor-not-allowed disabled:opacity-30"
+							className="rounded p-0.5 outline-none hover:bg-fill-hover disabled:cursor-not-allowed disabled:opacity-30"
 							disabled={currentIndex === questions.length - 1}
 							onClick={() => {
 								setCurrentIndex((i) => i + 1);
@@ -288,8 +288,8 @@ export const UserQuestionTool = ({
 						return (
 							<button
 								className={cn(
-									"flex w-full items-start gap-3 rounded-md p-2 text-left text-[13px] text-foreground outline-none transition-colors",
-									focused ? "bg-muted/70" : "hover:bg-muted/50",
+									"flex w-full items-start gap-3 rounded p-2 text-left text-sm text-foreground outline-none transition-colors",
+									focused ? "bg-muted/70" : "hover:bg-fill-hover",
 									isSubmitting && "cursor-not-allowed opacity-50",
 								)}
 								disabled={isSubmitting}
@@ -316,7 +316,7 @@ export const UserQuestionTool = ({
 									{optIndex + 1}
 								</div>
 								<div className="flex flex-col gap-0.5">
-									<span className="text-[13px] font-medium text-foreground">
+									<span className="text-sm font-medium text-foreground">
 										{option.label}
 									</span>
 									{option.description && (
@@ -332,7 +332,7 @@ export const UserQuestionTool = ({
 			</div>
 
 			{/* Footer */}
-			<div className="flex items-center justify-end gap-2 border-border/60 border-t bg-muted/10 px-2 py-2">
+			<div className="flex items-center justify-end gap-2 border-border-variant border-t bg-muted/10 px-2 py-2">
 				<Button
 					className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
 					disabled={isSubmitting}
@@ -343,7 +343,7 @@ export const UserQuestionTool = ({
 					<Trans id="ui.userQuestionTool.skipAll">Skip All</Trans>
 				</Button>
 				<Button
-					className="h-6 rounded-md px-3 text-xs"
+					className="h-6 rounded px-3 text-xs"
 					disabled={isSubmitting || (isLast ? !allAnswered : !currentHasAnswer)}
 					onClick={handleContinue}
 					size="sm"

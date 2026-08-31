@@ -60,7 +60,7 @@ export function DevToolsPane({
 				<button
 					type="button"
 					onClick={() => openDevTools({ paneId: targetPaneId })}
-					className="rounded border border-border px-3 py-1.5 text-foreground transition-colors hover:bg-accent"
+					className="rounded bg-grayAlpha-100 px-3 py-1.5 text-foreground transition-colors hover:bg-grayAlpha-200"
 				>
 					Reopen DevTools
 				</button>

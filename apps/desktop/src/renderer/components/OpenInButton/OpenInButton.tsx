@@ -88,7 +88,7 @@ export function OpenInButton({
 				<Tooltip delayDuration={1000}>
 					<TooltipTrigger asChild>
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							className="gap-1.5"
 							onClick={handleOpenLastUsed}
@@ -122,12 +122,7 @@ export function OpenInButton({
 			)}
 			<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 				<DropdownMenuTrigger asChild>
-					<Button
-						variant="outline"
-						size="sm"
-						className="gap-1"
-						disabled={!path}
-					>
+					<Button variant="ghost" size="sm" className="gap-1" disabled={!path}>
 						<span>
 							<Trans id="components.openInButton.open">Open</Trans>
 						</span>

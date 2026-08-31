@@ -25,22 +25,22 @@ export function WorkspaceStatusBadge({
 		open: {
 			icon: (
 				<LuGitPullRequest
-					className={cn(iconClass, "text-emerald-500")}
+					className={cn(iconClass, "text-success")}
 					strokeWidth={STROKE_WIDTH}
 				/>
 			),
-			bgColor: "bg-emerald-500/10",
-			hoverBgColor: "hover:bg-emerald-500/30",
+			bgColor: "bg-success/10",
+			hoverBgColor: "hover:bg-success/30",
 		},
 		merged: {
 			icon: (
 				<LuGitMerge
-					className={cn(iconClass, "text-purple-500")}
+					className={cn(iconClass, "text-status-1")}
 					strokeWidth={STROKE_WIDTH}
 				/>
 			),
-			bgColor: "bg-purple-500/10",
-			hoverBgColor: "hover:bg-purple-500/30",
+			bgColor: "bg-status-1/10",
+			hoverBgColor: "hover:bg-status-1/30",
 		},
 		closed: {
 			icon: (
@@ -60,7 +60,7 @@ export function WorkspaceStatusBadge({
 				/>
 			),
 			bgColor: "bg-muted",
-			hoverBgColor: "hover:bg-muted/70",
+			hoverBgColor: "hover:bg-fill-hover",
 		},
 	};
 
@@ -81,7 +81,7 @@ export function WorkspaceStatusBadge({
 			onClick={handleClick}
 			disabled={!isClickable}
 			className={cn(
-				"flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] leading-none shrink-0 transition-colors",
+				"flex items-center justify-center gap-1 px-1.5 py-0.5 rounded text-[10px] leading-none shrink-0 transition-colors",
 				bgColor,
 				isClickable && [hoverBgColor, "cursor-pointer"],
 				!isClickable && "cursor-default",

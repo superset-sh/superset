@@ -66,7 +66,7 @@ export function TeardownFailedPane({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
 						<Trans id="dashboard.sidebar.teardownFailed.cancel">Cancel</Trans>
@@ -74,7 +74,7 @@ export function TeardownFailedPane({
 					<Button
 						variant="destructive"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={onForceDelete}
 					>
 						<Trans id="dashboard.sidebar.teardownFailed.deleteAnyway">

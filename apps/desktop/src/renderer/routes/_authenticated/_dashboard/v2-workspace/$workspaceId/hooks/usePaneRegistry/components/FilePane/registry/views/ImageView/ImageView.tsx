@@ -67,7 +67,7 @@ export function ImageView({ document, filePath }: ViewProps) {
 			{isTransformed && (
 				<button
 					type="button"
-					className="absolute right-2 bottom-2 rounded-md border border-border bg-background/80 px-2 py-0.5 font-mono text-muted-foreground text-xs backdrop-blur hover:text-foreground"
+					className="absolute right-2 bottom-2 rounded border border-border bg-background/80 px-2 py-0.5 font-mono text-muted-foreground text-xs backdrop-blur hover:text-foreground"
 					onPointerDown={(event) => event.stopPropagation()}
 					onClick={reset}
 					title={t({

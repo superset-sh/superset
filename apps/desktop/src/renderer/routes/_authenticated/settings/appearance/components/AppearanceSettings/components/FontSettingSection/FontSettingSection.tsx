@@ -145,7 +145,7 @@ export function FontSettingSection({
 				</p>
 			</div>
 
-			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border-variant">
 				{showEditor && (
 					<TypographySurfaceCard
 						variant="editor"

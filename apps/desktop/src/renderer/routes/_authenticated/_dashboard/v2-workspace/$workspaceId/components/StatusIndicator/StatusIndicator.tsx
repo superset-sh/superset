@@ -17,13 +17,13 @@ export type FileStatus =
 	| "untracked";
 
 const STATUS_COLORS: Record<FileStatus, string> = {
-	added: "text-green-700 dark:text-green-400",
-	copied: "text-purple-700 dark:text-purple-400",
-	changed: "text-yellow-600 dark:text-yellow-400",
-	deleted: "text-red-700 dark:text-red-500",
-	modified: "text-yellow-600 dark:text-yellow-400",
-	renamed: "text-blue-600 dark:text-blue-400",
-	untracked: "text-green-700 dark:text-green-400",
+	added: "text-success",
+	copied: "text-status-1",
+	changed: "text-warning",
+	deleted: "text-destructive",
+	modified: "text-warning",
+	renamed: "text-primary",
+	untracked: "text-success",
 };
 
 function getStatusIcon(status: FileStatus, iconClass: string): ReactNode {

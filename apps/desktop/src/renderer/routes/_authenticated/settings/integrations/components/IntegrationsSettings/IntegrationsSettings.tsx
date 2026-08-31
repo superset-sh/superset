@@ -266,7 +266,7 @@ function IntegrationRow({
 			<span
 				className={
 					isConnected
-						? "size-2 rounded-full bg-green-500"
+						? "size-2 rounded-full bg-success"
 						: "size-2 rounded-full bg-muted-foreground/30"
 				}
 			/>
@@ -301,12 +301,7 @@ function IntegrationRow({
 			</div>
 			<div className="flex items-center gap-3 shrink-0">
 				{status}
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={onManage}
-					className="gap-2"
-				>
+				<Button variant="ghost" size="sm" onClick={onManage} className="gap-2">
 					<HiOutlineArrowTopRightOnSquare className="size-4" />
 					{isConnected ? (
 						<Trans id="settings.integrations.manage">Manage</Trans>

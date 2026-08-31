@@ -122,7 +122,7 @@ export function BrowserSettings({ visibleItems }: BrowserSettingsProps) {
 							</p>
 						</div>
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							className="gap-2 shrink-0"
 							onClick={() => setIsImportOpen(true)}

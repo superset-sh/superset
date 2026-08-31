@@ -122,7 +122,7 @@ function SplitView<TData>({
 				/>
 			</ResizablePanel>
 			<ResizableHandle
-				// The active pane draws a 2px border on either side of the 1px
+				// The active pane draws a 1px border on either side of the 1px
 				// divider. Cover that full visual border with the sash hit area.
 				hitAreaSize="large"
 				style={{ zIndex: RESIZE_HANDLE_BASE_Z_INDEX - path.length }}
@@ -285,7 +285,7 @@ export function Tab<TData>({
 }: TabProps<TData>) {
 	if (!tab.layout) {
 		return (
-			<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
+			<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-base text-muted-foreground">
 				No panes open
 			</div>
 		);

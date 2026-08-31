@@ -728,7 +728,7 @@ export function ChangesView({
 				onValueChange={(value) => setActiveTab(value as ChangesSidebarTab)}
 				className="flex flex-1 min-h-0 flex-col gap-0"
 			>
-				<div className="h-8 shrink-0 border-b bg-background">
+				<div className="h-[var(--btn-h-lg)] shrink-0 border-b bg-background">
 					<TabsList className="grid h-full w-full grid-cols-2 items-stretch gap-0 rounded-none bg-transparent p-0">
 						<TabsTrigger
 							value="diffs"

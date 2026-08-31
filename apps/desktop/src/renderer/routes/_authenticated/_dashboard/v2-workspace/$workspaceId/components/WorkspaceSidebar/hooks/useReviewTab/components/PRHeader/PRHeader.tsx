@@ -8,8 +8,7 @@ import type { NormalizedPR } from "../../types";
 const reviewDecisionConfig = {
 	approved: {
 		label: msg({ id: "workspace.prHeader.approved", message: "Approved" }),
-		className:
-			"border border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+		className: "border border-success/20 bg-success/10 text-success",
 	},
 	changes_requested: {
 		label: msg({
@@ -17,15 +16,14 @@ const reviewDecisionConfig = {
 			message: "Changes requested",
 		}),
 		className:
-			"border border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
+			"border border-destructive/20 bg-destructive/10 text-destructive",
 	},
 	pending: {
 		label: msg({
 			id: "workspace.prHeader.reviewPending",
 			message: "Review pending",
 		}),
-		className:
-			"border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+		className: "border border-warning/20 bg-warning/10 text-warning",
 	},
 } as const;
 
@@ -57,7 +55,7 @@ export function PRHeader({ pr }: PRHeaderProps) {
 			<div className="flex items-center gap-1.5">
 				<span
 					className={cn(
-						"shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
+						"shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
 						reviewDecisionConfig[pr.reviewDecision].className,
 					)}
 				>

@@ -55,7 +55,7 @@ export function ScreenshotsDialog({
 					{
 						description: savePath,
 						icon: (
-							<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
+							<span className="flex size-4 items-center justify-center rounded-full bg-success">
 								<LuCheck className="size-2.5 text-white" strokeWidth={3} />
 							</span>
 						),
@@ -98,7 +98,7 @@ export function ScreenshotsDialog({
 							{rows.map((row) => (
 								<div
 									key={row.id}
-									className="flex w-full min-w-0 items-center gap-2.5 rounded-md px-2 py-2 text-sm"
+									className="flex w-full min-w-0 items-center gap-2.5 rounded px-2 py-2 text-sm"
 								>
 									<button
 										type="button"

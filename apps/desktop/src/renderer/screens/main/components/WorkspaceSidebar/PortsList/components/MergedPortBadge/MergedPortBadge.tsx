@@ -48,7 +48,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 			<TooltipTrigger asChild>
 				<div
 					className={cn(
-						"group relative mb-1 inline-flex max-w-full items-center gap-1 rounded-md",
+						"group relative mb-1 inline-flex max-w-full items-center gap-1 rounded",
 						"bg-primary/10 text-xs text-primary transition-colors hover:bg-primary/20",
 						isPending && "opacity-70",
 					)}
@@ -56,7 +56,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 					<button
 						type="button"
 						onClick={handleClick}
-						className="flex max-w-40 min-w-0 items-center gap-1 rounded-md px-2 py-1 font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+						className="flex max-w-40 min-w-0 items-center gap-1 rounded px-2 py-1 font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 					>
 						{port.label ? (
 							<>

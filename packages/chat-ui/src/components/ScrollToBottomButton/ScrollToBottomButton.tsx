@@ -22,7 +22,7 @@ export function ScrollToBottomButton({ className }: ScrollToBottomButtonProps) {
 				message: "Scroll to bottom",
 			})}
 			className={cn(
-				"pointer-events-auto flex size-9 cursor-pointer items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm ring-1 ring-border backdrop-blur transition-[opacity,scale,color] duration-150 hover:text-foreground",
+				"pointer-events-auto flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] cursor-pointer items-center justify-center rounded-full bg-background-3/80 text-muted-foreground ring-1 ring-border backdrop-blur transition-[opacity,scale,color] duration-150 hover:bg-grayAlpha-100 hover:text-foreground",
 				"data-[active=false]:pointer-events-none data-[active=false]:scale-95 data-[active=false]:opacity-0",
 				className,
 			)}

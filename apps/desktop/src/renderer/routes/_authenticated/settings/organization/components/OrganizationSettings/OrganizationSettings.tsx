@@ -397,7 +397,7 @@ export function OrganizationSettings({
 											type="button"
 											onClick={handleLogoUpload}
 											disabled={!isOwner}
-											className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
+											className="rounded transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-100"
 											aria-label={t({
 												id: "settings.organization.changeLogoAriaLabel",
 												message: "Change organization logo",
@@ -491,7 +491,7 @@ export function OrganizationSettings({
 												id: "settings.organization.copyIdAriaLabel",
 												message: "Copy organization ID",
 											})}
-											className="group relative block w-72 cursor-pointer rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+											className="group relative block w-72 cursor-pointer rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 										>
 											<Input
 												value={organization.id}
@@ -501,7 +501,7 @@ export function OrganizationSettings({
 											/>
 											<Tooltip>
 												<TooltipTrigger asChild>
-													<span className="absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground group-hover:bg-secondary/80">
+													<span className="absolute right-1 top-1 inline-flex h-[var(--btn-h-default)] w-[var(--btn-h-default)] items-center justify-center rounded bg-secondary text-secondary-foreground group-hover:bg-secondary/80">
 														{copied ? (
 															<HiOutlineClipboardDocumentCheck className="h-4 w-4" />
 														) : (
@@ -569,7 +569,7 @@ export function OrganizationSettings({
 									</div>
 
 									{membersPending && members.length === 0 ? (
-										<div className="border rounded-lg divide-y divide-border">
+										<div className="border rounded-lg divide-y divide-border-variant">
 											{[0, 1, 2].map((i) => (
 												<div key={i} className="flex items-center gap-4 p-4">
 													<Skeleton className="h-8 w-8 rounded-full" />

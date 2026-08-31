@@ -248,7 +248,7 @@ export function CommentsSection({
 						<div className="mr-1.5 flex items-center gap-1">
 							<button
 								type="button"
-								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 								onClick={handleCopyConversationComments}
 							>
 								{copiedActionKey === "comments:conversation" ? (
@@ -315,7 +315,7 @@ export function CommentsSection({
 							{resolvableThreadIds.length > 0 && (
 								<button
 									type="button"
-									className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
+									className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
 									onClick={() => void handleResolveAll()}
 									disabled={isResolvingAll}
 								>
@@ -333,7 +333,7 @@ export function CommentsSection({
 							)}
 							<button
 								type="button"
-								className="flex shrink-0 items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								className="flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 								onClick={handleCopyReviewComments}
 							>
 								{copiedActionKey === "comments:review" ? (
@@ -460,9 +460,9 @@ function buildCommentsClipboardText(comments: NormalizedComment[]): string {
 function renderCommentSkeletons() {
 	return (
 		<div className="space-y-1 px-1">
-			<Skeleton className="h-11 w-full rounded-sm" />
-			<Skeleton className="h-11 w-full rounded-sm" />
-			<Skeleton className="h-11 w-full rounded-sm" />
+			<Skeleton className="h-11 w-full rounded" />
+			<Skeleton className="h-11 w-full rounded" />
+			<Skeleton className="h-11 w-full rounded" />
 		</div>
 	);
 }
@@ -552,7 +552,7 @@ function CommentRow({
 						{comment.authorLogin}
 					</span>
 					{comment.kind === "review" && comment.isOutdated ? (
-						<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
+						<span className="shrink-0 rounded bg-grayAlpha-100 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
 							<Trans id="workspace.commentsSection.outdatedBadge">
 								Outdated
 							</Trans>
@@ -573,7 +573,7 @@ function CommentRow({
 	);
 
 	return (
-		<div className="group relative flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50">
+		<div className="group relative flex items-start gap-1 rounded px-1.5 py-1 transition-colors hover:bg-accent/50">
 			<button
 				type="button"
 				onClick={handleClick}
@@ -585,14 +585,14 @@ function CommentRow({
 			>
 				{content}
 			</button>
-			<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100">
+			<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded bg-background/90 px-0.5 py-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 has-[[data-state=open]]:opacity-100">
 				{comment.url ? (
 					<a
 						href={comment.url}
 						target="_blank"
 						rel="noopener noreferrer"
 						onClick={(e) => e.stopPropagation()}
-						className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+						className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						aria-label={t({
 							id: "workspace.commentsSection.openOnGitHubAria",
 							message: "Open comment on GitHub",
@@ -610,7 +610,7 @@ function CommentRow({
 								id: "workspace.commentsSection.moreActionsAria",
 								message: "More actions",
 							})}
-							className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground"
+							className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground"
 						>
 							<ChevronDown className="size-3" />
 						</button>

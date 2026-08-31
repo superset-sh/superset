@@ -19,7 +19,7 @@ export function FilesTabDropOverlay({ target }: FilesTabDropOverlayProps) {
 		<div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
 			{rect ? (
 				<div
-					className="absolute rounded-sm bg-primary/15 ring-2 ring-inset ring-primary"
+					className="absolute rounded bg-primary/15 ring-2 ring-inset ring-primary"
 					style={{
 						top: rect.top,
 						left: rect.left,
@@ -28,7 +28,7 @@ export function FilesTabDropOverlay({ target }: FilesTabDropOverlayProps) {
 					}}
 				/>
 			) : (
-				<div className="absolute inset-0 m-1 rounded-md border-2 border-dashed border-primary/60 bg-primary/5" />
+				<div className="absolute inset-0 m-1 rounded border-2 border-dashed border-primary/60 bg-primary/5" />
 			)}
 
 			<div className="absolute inset-x-0 bottom-2 flex justify-center">

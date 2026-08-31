@@ -24,30 +24,30 @@ export function WorkspaceRunIndicator({
 
 	const colorClasses =
 		state === "running"
-			? "bg-emerald-500"
+			? "bg-success"
 			: state === "stopped-by-user"
 				? "bg-muted-foreground/40"
-				: "bg-red-400/50";
+				: "bg-destructive/50";
 
 	const inlineColorClasses =
 		state === "running"
-			? "bg-emerald-500/15 text-emerald-400"
+			? "bg-success/15 text-success"
 			: state === "stopped-by-user"
 				? "bg-muted-foreground/10 text-muted-foreground/50"
-				: "bg-red-500/15 text-red-400/70";
+				: "bg-destructive/15 text-destructive/70";
 
 	const toolbarColorClasses =
 		state === "running"
-			? "text-emerald-300"
+			? "text-success"
 			: state === "stopped-by-user"
-				? "text-amber-300"
-				: "text-red-300/70";
+				? "text-warning"
+				: "text-destructive/70";
 
 	if (variant === "circle") {
 		return (
 			<span
 				className={cn(
-					"flex size-3 items-center justify-center rounded-full text-white ring-1 ring-background shadow-sm",
+					"flex size-3 items-center justify-center rounded-full text-white ring-1 ring-background",
 					colorClasses,
 					className,
 				)}

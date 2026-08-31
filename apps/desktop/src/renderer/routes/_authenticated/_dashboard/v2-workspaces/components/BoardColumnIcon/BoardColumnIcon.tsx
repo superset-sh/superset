@@ -52,22 +52,19 @@ export function BoardColumnIcon({ column, className }: BoardColumnIconProps) {
 	switch (column) {
 		case "attention":
 			return (
-				<LuCircleAlert className={cn("size-3.5 text-red-500", className)} />
+				<LuCircleAlert className={cn("size-3.5 text-destructive", className)} />
 			);
 		case "working":
 			return (
-				<PieIcon fraction={0.5} className={cn("text-amber-500", className)} />
+				<PieIcon fraction={0.5} className={cn("text-warning", className)} />
 			);
 		case "review":
 			return (
-				<PieIcon
-					fraction={0.75}
-					className={cn("text-emerald-500", className)}
-				/>
+				<PieIcon fraction={0.75} className={cn("text-success", className)} />
 			);
 		case "merged":
 			return (
-				<LuCircleCheck className={cn("size-3.5 text-violet-500", className)} />
+				<LuCircleCheck className={cn("size-3.5 text-status-1", className)} />
 			);
 		case "deleted":
 			return (

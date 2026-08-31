@@ -50,9 +50,9 @@ export function WorkspaceHoverCardContent({
 
 	const previewButton = previewUrl ? (
 		<Button
-			variant="outline"
+			variant="secondary"
 			size="sm"
-			className="w-full h-7 text-xs gap-1.5"
+			className="w-full h-[var(--btn-h-default)] text-xs gap-1.5"
 			asChild
 		>
 			<a href={previewUrl} target="_blank" rel="noopener noreferrer">
@@ -130,7 +130,7 @@ export function WorkspaceHoverCardContent({
 			</div>
 
 			{needsRebase && (
-				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
+				<div className="flex items-center gap-2 text-warning text-xs bg-warning/10 px-2 py-1.5 rounded">
 					<LuTriangleAlert
 						className="size-3.5 shrink-0"
 						strokeWidth={STROKE_WIDTH}
@@ -151,7 +151,7 @@ export function WorkspaceHoverCardContent({
 					<span className="text-xs">Loading PR...</span>
 				</div>
 			) : pr ? (
-				<div className="pt-2 border-t border-border space-y-2">
+				<div className="pt-2 border-t border-border-variant space-y-2">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-1.5 flex-wrap">
 							<span className="text-xs font-medium text-muted-foreground">
@@ -166,7 +166,7 @@ export function WorkspaceHoverCardContent({
 							)}
 						</div>
 						<div className="flex items-center gap-1.5 text-xs font-mono shrink-0">
-							<span className="text-emerald-500">+{pr.additions}</span>
+							<span className="text-success">+{pr.additions}</span>
 							<span className="text-destructive-foreground">
 								-{pr.deletions}
 							</span>
@@ -185,9 +185,9 @@ export function WorkspaceHoverCardContent({
 					)}
 
 					<Button
-						variant="outline"
+						variant="secondary"
 						size="sm"
-						className="w-full mt-1 h-7 text-xs gap-1.5"
+						className="w-full mt-1 h-[var(--btn-h-default)] text-xs gap-1.5"
 						asChild
 					>
 						<a href={pr.url} target="_blank" rel="noopener noreferrer">
@@ -207,7 +207,7 @@ export function WorkspaceHoverCardContent({
 					{previewButton}
 				</div>
 			) : repoUrl ? (
-				<div className="pt-2 border-t border-border space-y-2">
+				<div className="pt-2 border-t border-border-variant space-y-2">
 					<div className="text-xs text-muted-foreground">
 						No PR for this branch
 					</div>

@@ -253,7 +253,7 @@ export function ImportHistoryDialog({
 							</Trans>
 						</p>
 						<div className="flex gap-2">
-							<Button variant="outline" size="sm" onClick={handleOpenSettings}>
+							<Button variant="ghost" size="sm" onClick={handleOpenSettings}>
 								<Trans id="components.importHistoryDialog.openSystemSettings">
 									Open System Settings
 								</Trans>

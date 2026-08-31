@@ -4,9 +4,9 @@ interface PRStatusBadgeProps {
 
 export function PRStatusBadge({ state }: PRStatusBadgeProps) {
 	const styles = {
-		open: "bg-emerald-500/15 text-emerald-500",
+		open: "bg-success/15 text-success",
 		draft: "bg-muted text-muted-foreground",
-		merged: "bg-violet-500/15 text-violet-500",
+		merged: "bg-status-1/15 text-status-1",
 		closed: "bg-destructive/15 text-destructive-foreground",
 	};
 
@@ -19,7 +19,7 @@ export function PRStatusBadge({ state }: PRStatusBadgeProps) {
 
 	return (
 		<span
-			className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 ${styles[state]}`}
+			className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 ${styles[state]}`}
 		>
 			{labels[state]}
 		</span>

@@ -183,7 +183,7 @@ export function TeardownLogsDialog() {
 						<Button
 							variant="destructive"
 							size="sm"
-							className="h-7 px-3 text-xs"
+							className="h-[var(--btn-h-default)] px-3 text-xs"
 							onClick={handleDeleteAnyway}
 						>
 							Delete Anyway

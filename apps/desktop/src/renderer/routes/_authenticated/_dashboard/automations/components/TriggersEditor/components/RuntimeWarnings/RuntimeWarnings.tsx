@@ -17,7 +17,7 @@ export function RuntimeWarnings({ warnings }: { warnings: string[] }) {
 					key={warning}
 					// select-text: the renderer body sets user-select: none, and a
 					// warning naming a channel is something people copy out.
-					className="flex cursor-text select-text items-start gap-1.5 text-[13px] text-amber-600 dark:text-amber-400"
+					className="flex cursor-text select-text items-start gap-1.5 text-sm text-warning"
 				>
 					<LuTriangleAlert className="mt-0.5 size-3.5 shrink-0" />
 					<span>{warning}</span>

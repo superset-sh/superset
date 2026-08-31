@@ -50,7 +50,7 @@ export function KanbanCard({ task, onClick, overlay }: KanbanCardProps) {
 			role="button"
 			tabIndex={0}
 			className={cn(
-				"bg-card border border-border/60 rounded-md px-3 py-2.5 cursor-grab active:cursor-grabbing hover:bg-accent/30 transition-colors group",
+				"bg-card border border-border/60 rounded px-3 py-2.5 cursor-grab active:cursor-grabbing hover:bg-accent/30 transition-colors group",
 				isDragging && "opacity-40",
 				overlay && "shadow-xl border-border cursor-grabbing",
 			)}

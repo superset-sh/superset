@@ -28,7 +28,7 @@ export function RecentInvoices() {
 			<h3 className="text-sm font-medium mb-2">
 				<Trans id="settings.billing.invoicesTitle">Recent invoices</Trans>
 			</h3>
-			<div className="divide-y divide-border">
+			<div className="divide-y divide-border-variant">
 				{invoices.map((invoice) => (
 					<div
 						key={invoice.id}

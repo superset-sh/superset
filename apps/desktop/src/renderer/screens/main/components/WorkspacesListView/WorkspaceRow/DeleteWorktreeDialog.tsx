@@ -97,7 +97,7 @@ export function DeleteWorktreeDialog({
 
 				{!isLoading && canDelete && hasWarnings && (
 					<div className="px-4 pb-2">
-						<div className="text-sm text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
+						<div className="text-sm text-warning bg-warning/10 bg-warning/50 border border-warning/20 border-warning rounded px-2 py-1.5">
 							{hasChanges && hasUnpushedCommits
 								? "Has uncommitted changes and unpushed commits"
 								: hasChanges
@@ -111,7 +111,7 @@ export function DeleteWorktreeDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
 						Cancel
@@ -121,7 +121,7 @@ export function DeleteWorktreeDialog({
 							<Button
 								variant="destructive"
 								size="sm"
-								className="h-7 px-3 text-xs"
+								className="h-[var(--btn-h-default)] px-3 text-xs"
 								onClick={handleDelete}
 								disabled={!canDelete || isLoading}
 							>

@@ -80,12 +80,16 @@ export function RestartSessionsDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={onDecline}
 					>
 						<Trans id="settings.usage.restartAgents.decline">Not now</Trans>
 					</Button>
-					<Button size="sm" className="h-7 px-3 text-xs" onClick={onConfirm}>
+					<Button
+						size="sm"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
+						onClick={onConfirm}
+					>
 						<Trans id="settings.usage.restartAgents.confirm">
 							Restart and resume
 						</Trans>

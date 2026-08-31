@@ -85,14 +85,14 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 						{visibleBranches.map((wt) => (
 							<span
 								key={wt.path}
-								className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-mono text-muted-foreground"
+								className="inline-flex items-center gap-1 rounded bg-muted px-2 py-0.5 text-xs font-mono text-muted-foreground"
 							>
 								<GoGitBranch className="size-3 shrink-0" />
 								<span className="truncate max-w-[180px]">{wt.branch}</span>
 							</span>
 						))}
 						{remainingCount > 0 && (
-							<span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+							<span className="inline-flex items-center rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
 								<Trans id="dashboard.project.worktreesBanner.moreCount">
 									+{remainingCount} more
 								</Trans>
@@ -105,7 +105,7 @@ export function ExternalWorktreesBanner({ projectId }: { projectId: string }) {
 					<AlertDialogTrigger asChild>
 						<Button
 							size="sm"
-							variant="outline"
+							variant="ghost"
 							className="shrink-0"
 							disabled={importAllWorktrees.isPending}
 						>

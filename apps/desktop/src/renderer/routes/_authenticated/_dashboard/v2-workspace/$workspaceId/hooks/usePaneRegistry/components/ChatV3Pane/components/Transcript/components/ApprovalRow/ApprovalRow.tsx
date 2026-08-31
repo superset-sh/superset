@@ -81,7 +81,7 @@ export function ApprovalRow({
 									})
 								}
 								size="sm"
-								variant="outline"
+								variant="secondary"
 							>
 								{option.label}
 							</Button>
@@ -98,7 +98,7 @@ export function ApprovalRow({
 						<Button
 							onClick={() => onRespond(item.id, { type: "accept_for_session" })}
 							size="sm"
-							variant="outline"
+							variant="ghost"
 						>
 							<Trans id="workspace.chat.approvalAllowForSession">
 								Allow for session
@@ -107,7 +107,7 @@ export function ApprovalRow({
 						<Button
 							onClick={() => onRespond(item.id, { type: "decline" })}
 							size="sm"
-							variant="outline"
+							variant="ghost"
 						>
 							<Trans id="workspace.chat.approvalDeny">Deny</Trans>
 						</Button>

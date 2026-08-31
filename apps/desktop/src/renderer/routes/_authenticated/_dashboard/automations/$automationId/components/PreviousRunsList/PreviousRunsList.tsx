@@ -25,12 +25,12 @@ function describeRunError(error: string): string {
 }
 
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
-	dispatched: "bg-emerald-500",
-	dispatching: "bg-amber-500",
-	skipped_offline: "bg-red-500",
-	dispatch_failed: "bg-red-500",
-	debounced: "bg-slate-400",
-	rejected: "bg-amber-500",
+	dispatched: "bg-success",
+	dispatching: "bg-warning",
+	skipped_offline: "bg-destructive",
+	dispatch_failed: "bg-destructive",
+	debounced: "bg-muted-foreground",
+	rejected: "bg-warning",
 };
 
 interface PreviousRunsListProps {
@@ -91,7 +91,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 						disabled={!clickable}
 						onClick={() => handleOpenRun(run)}
 						className={cn(
-							"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left",
+							"flex w-full items-center gap-2 rounded px-2 py-1.5 text-left",
 							clickable
 								? "cursor-pointer hover:bg-accent/40"
 								: "cursor-default opacity-70",
@@ -123,7 +123,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 					<li key={run.id}>
 						{row}
 						{run.error && (
-							<p className="select-text cursor-text mx-2 mb-1 whitespace-pre-wrap rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+							<p className="select-text cursor-text mx-2 mb-1 whitespace-pre-wrap rounded bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
 								{describeRunError(run.error)}
 							</p>
 						)}

@@ -80,12 +80,12 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							disabled={isBlankPage}
 							aria-pressed={designMode.phase !== "idle"}
 							className={cn(
-								"flex h-[22px] shrink-0 items-center gap-1 rounded-md px-1.5 text-[11px] font-medium leading-none transition-colors disabled:opacity-40",
+								"flex h-[var(--btn-h-sm)] shrink-0 items-center gap-1 rounded px-1.5 text-xs font-medium leading-none transition-colors disabled:opacity-40",
 								// Armed color matches the in-page picker outline
 								// (design-mode-script.ts), not the theme primary.
 								designMode.phase !== "idle"
 									? "bg-[#0d99ff] text-white hover:bg-[#0d99ff]/90"
-									: "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+									: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 							)}
 						>
 							<SquareDashedMousePointer className="size-3" />
@@ -110,7 +110,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 						<button
 							type="button"
 							onClick={handleOpenDevTools}
-							className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
+							className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-fill-hover hover:text-foreground"
 						>
 							<TbDeviceDesktop className="size-3.5" />
 						</button>

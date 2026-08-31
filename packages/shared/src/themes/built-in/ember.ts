@@ -1,9 +1,5 @@
 import type { Theme } from "../types";
 
-/**
- * Dark theme - Warm dark theme inspired by the Figma start screen design
- * Features a warm, slightly reddish dark background (#151110)
- */
 export const darkTheme: Theme = {
 	id: "dark",
 	name: "Dark",
@@ -12,102 +8,103 @@ export const darkTheme: Theme = {
 	isBuiltIn: true,
 
 	ui: {
-		// Core - warm dark tones
-		background: "#151110",
-		foreground: "#eae8e6",
-		card: "#201E1C",
-		cardForeground: "#eae8e6",
-		popover: "#201E1C",
-		popoverForeground: "#eae8e6",
+		background: "oklch(21.34% 0 0)",
+		foreground: "oklch(85.8% 0 0)",
 
-		// Primary - light foreground for contrast
-		primary: "#eae8e6",
-		primaryForeground: "#151110",
+		card: "oklch(25.2% 0 0)",
+		cardForeground: "oklch(92.8% 0 0)",
 
-		// Secondary - warm grays
-		secondary: "#2a2827",
-		secondaryForeground: "#eae8e6",
+		popover: "oklch(25.2% 0 0)",
+		popoverForeground: "oklch(92.8% 0 0)",
 
-		// Muted - subtle warm grays
-		muted: "#2a2827",
-		mutedForeground: "#a8a5a3",
+		primary: "oklch(60.21% 0.1823 252.59)",
+		primaryForeground: "oklch(92.8% 0 0)",
 
-		// Accent - warm highlight
-		accent: "#2a2827",
-		accentForeground: "#eae8e6",
+		secondary: "oklch(100% 0 0 / 7.06%)",
+		secondaryForeground: "oklch(92.8% 0 0)",
 
-		// Tertiary - panel backgrounds
-		tertiary: "#1a1716",
-		tertiaryActive: "#252220",
+		muted: "oklch(100% 0 0 / 13.33%)",
+		mutedForeground: "oklch(76.99% 0 0)",
 
-		// Destructive - warm red
-		destructive: "#cc4444",
-		destructiveForeground: "#ffcccc",
-		warning: "#e5c07b",
-		warningForeground: "#000000",
+		accent: "oklch(100% 0 0 / 10.59%)",
+		accentForeground: "oklch(98.8% 0 0)",
 
-		// Borders - subtle warm gray
-		border: "#2a2827",
-		input: "#2a2827",
-		ring: "#3a3837",
+		tertiary: "oklch(25.2% 0 0)",
+		tertiaryActive: "oklch(28.5% 0 0)",
 
-		// Sidebar - slightly lighter than background
-		sidebar: "#1a1716",
-		sidebarForeground: "#eae8e6",
-		sidebarPrimary: "#e07850",
-		sidebarPrimaryForeground: "#151110",
-		sidebarAccent: "#252220",
-		sidebarAccentForeground: "#eae8e6",
-		sidebarBorder: "#2a2827",
-		sidebarRing: "#3a3837",
+		destructive: "oklch(61.34% 0.162 23.58)",
+		destructiveForeground: "oklch(100% 0 0)",
+		warning: "oklch(70.43% 0.14390424619548714 87.9634104985311)",
+		warningForeground: "oklch(100% 0 0)",
 
-		// Charts - warm palette
-		chart1: "#e07850",
-		chart2: "#50a878",
-		chart3: "#d4a84b",
-		chart4: "#7b68ee",
-		chart5: "#dc6b6b",
+		border: "oklch(31.32% 0 0)",
+		input: "oklch(100% 0 0 / 10.59%)",
+		ring: "oklch(60.21% 0.1823 252.59)",
 
-		// Search highlights - warm orange tint matching ember's accent
-		highlightMatch: "rgba(224, 120, 80, 0.2)",
-		highlightActive: "rgba(224, 120, 80, 0.5)",
+		sidebar: "oklch(21.34% 0 0)",
+		sidebarForeground: "oklch(85.8% 0 0)",
+		sidebarPrimary: "oklch(60.21% 0.1823 252.59)",
+		sidebarPrimaryForeground: "oklch(92.8% 0 0)",
+		sidebarAccent: "oklch(100% 0 0 / 10.59%)",
+		sidebarAccentForeground: "oklch(98.8% 0 0)",
+		sidebarBorder: "oklch(31.32% 0 0)",
+		sidebarRing: "oklch(60.21% 0.1823 252.59)",
 
-		// Brand highlight - ember's warm orange
-		highlight: "#e07850",
-		highlightForeground: "#151110",
+		chart1: "#4187c0",
+		chart2: "#54935b",
+		chart3: "#c28c11",
+		chart4: "#886dbc",
+		chart5: "#b56455",
+
+		highlightMatch: "rgba(3, 129, 233, 0.28)",
+		highlightActive: "rgba(3, 129, 233, 0.55)",
+
+		highlight: "oklch(60.21% 0.1823 252.59)",
+		highlightForeground: "oklch(100% 0 0)",
 	},
 
 	terminal: {
-		background: "#151110",
-		foreground: "#eae8e6",
-		cursor: "#e07850",
-		cursorAccent: "#151110",
-		selectionBackground: "rgba(224, 120, 80, 0.25)",
+		background: "oklch(21.34% 0 0)",
+		foreground: "oklch(85.8% 0 0)",
+		cursor: "#0381e9",
+		cursorAccent: "oklch(21.34% 0 0)",
+		selectionBackground: "rgba(3, 129, 233, 0.28)",
 
-		// Standard ANSI colors - warm tinted
-		black: "#151110",
-		red: "#dc6b6b",
-		green: "#7ec699",
-		yellow: "#e5c07b",
-		blue: "#61afef",
-		magenta: "#c678dd",
-		cyan: "#56b6c2",
-		white: "#eae8e6",
+		black: "#191919",
+		red: "#d75056",
+		green: "#54935b",
+		yellow: "#c28c11",
+		blue: "#4187c0",
+		magenta: "#886dbc",
+		cyan: "#1c91a8",
+		white: "#b4b4b4",
 
-		// Bright ANSI colors
-		brightBlack: "#5c5856",
-		brightRed: "#e88888",
-		brightGreen: "#98d1a8",
-		brightYellow: "#ecd08f",
-		brightBlue: "#7ec0f5",
-		brightMagenta: "#d494e6",
-		brightCyan: "#73c7d3",
-		brightWhite: "#ffffff",
+		brightBlack: "#606060",
+		brightRed: "#e78587",
+		brightGreen: "#7dc599",
+		brightYellow: "#ebc724",
+		brightBlue: "#77b8f0",
+		brightMagenta: "#a165a1",
+		brightCyan: "#62c4cc",
+		brightWhite: "#eeeeee",
 	},
 
 	editor: {
 		syntax: {
-			comment: "#a8a5a3",
+			plainText: "oklch(85.8% 0 0)",
+			comment: "oklch(76.99% 0 0)",
+			keyword: "#ad6e30",
+			string: "#1c91a8",
+			number: "#7b8a34",
+			functionCall: "#b56455",
+			variableName: "#886dbc",
+			typeName: "#7b8a34",
+			className: "#b56455",
+			constant: "#7b8a34",
+			regexp: "#886dbc",
+			tagName: "#886dbc",
+			attributeName: "#886dbc",
+			invalid: "oklch(61.34% 0.162 23.58)",
 		},
 	},
 };

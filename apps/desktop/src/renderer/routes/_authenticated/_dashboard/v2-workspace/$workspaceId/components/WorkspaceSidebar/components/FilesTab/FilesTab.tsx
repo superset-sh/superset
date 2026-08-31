@@ -347,13 +347,13 @@ export function FilesTab({
 					header={
 						<div
 							data-file-tree-header="true"
-							className="group flex h-10 items-center gap-1 bg-background px-2"
+							className="group flex h-[var(--header-height)] items-center gap-1 bg-background px-2"
 						>
 							{onSearch && (
 								<button
 									type="button"
 									onClick={onSearch}
-									className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+									className="flex h-[var(--btn-h-lg)] min-w-0 flex-1 items-center gap-1.5 rounded px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 								>
 									<Search className="size-3.5 shrink-0" />
 									<span className="truncate">

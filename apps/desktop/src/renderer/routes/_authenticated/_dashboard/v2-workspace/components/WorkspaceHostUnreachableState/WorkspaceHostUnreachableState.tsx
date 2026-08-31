@@ -55,41 +55,41 @@ export function WorkspaceHostUnreachableState({
 				</div>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="text-md font-medium tracking-tight text-foreground">
 						<Trans id="workspace.states.hostUnreachableTitle">
 							Host unreachable
 						</Trans>
 					</h1>
-					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground">
+					<p className="select-text cursor-text text-sm leading-relaxed text-muted-foreground">
 						<Trans id="workspace.states.hostUnreachableBody">
 							This workspace lives on a device Superset can't reach right now.
 							Terminals, files, and agents stay put — they come back as soon as
 							the connection does.
 						</Trans>
 					</p>
-					<p className="select-text cursor-text text-[13px] leading-relaxed text-muted-foreground/80">
+					<p className="select-text cursor-text text-sm leading-relaxed text-muted-foreground/80">
 						{detail}
 					</p>
 				</div>
 
-				<div className="flex w-full flex-col gap-0 overflow-hidden rounded-md border border-border/60 bg-muted/30">
+				<div className="flex w-full flex-col gap-0 overflow-hidden rounded border border-border/60 bg-muted/30">
 					<div className="flex items-center gap-2.5 px-3 py-2">
 						<span
 							aria-hidden="true"
 							className={cn(
 								"size-1.5 shrink-0 rounded-full",
 								isReconnecting
-									? "animate-pulse bg-yellow-500"
+									? "animate-pulse bg-warning"
 									: "bg-muted-foreground/40",
 							)}
 						/>
 						<span
-							className="select-text cursor-text min-w-0 truncate text-[13px] font-medium text-foreground"
+							className="select-text cursor-text min-w-0 truncate text-sm font-medium text-foreground"
 							title={hostName}
 						>
 							{hostName}
 						</span>
-						<span className="ml-auto shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground/70">
+						<span className="ml-auto shrink-0 text-xs uppercase tracking-wider text-muted-foreground/70">
 							{isReconnecting
 								? t({
 										id: "workspace.states.hostUnreachableReconnecting",
@@ -101,16 +101,16 @@ export function WorkspaceHostUnreachableState({
 									})}
 						</span>
 					</div>
-					<div className="border-t border-border/60 px-3 py-2">
+					<div className="border-t border-border-variant px-3 py-2">
 						<div className="grid gap-1.5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center sm:gap-3">
-							<span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground/70">
+							<span className="shrink-0 text-xs uppercase tracking-wider text-muted-foreground/70">
 								<Trans id="workspace.states.hostUnreachableHostIdLabel">
 									Host ID
 								</Trans>
 							</span>
 							<div className="min-w-0 overflow-x-auto sm:text-right">
 								<code
-									className="inline-block min-w-max select-text cursor-text whitespace-nowrap font-mono text-[12px] tabular-nums text-muted-foreground"
+									className="inline-block min-w-max select-text cursor-text whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground"
 									title={hostId}
 								>
 									{hostId}
@@ -124,7 +124,7 @@ export function WorkspaceHostUnreachableState({
 					<Button
 						size="sm"
 						variant="secondary"
-						className="h-7 gap-1.5 px-2.5 text-[13px] font-medium"
+						className="h-[var(--btn-h-default)] gap-1.5 px-2.5 text-sm font-medium"
 						onClick={onRetry}
 					>
 						<RefreshCw
@@ -138,7 +138,7 @@ export function WorkspaceHostUnreachableState({
 						asChild
 						size="sm"
 						variant="ghost"
-						className="h-7 gap-1.5 px-2 text-[13px] font-medium text-foreground hover:bg-muted/60"
+						className="h-[var(--btn-h-default)] gap-1.5 px-2 text-sm font-medium text-foreground hover:bg-fill-hover"
 					>
 						<Link to="/settings/hosts/$hostId" params={{ hostId }}>
 							<Settings

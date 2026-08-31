@@ -272,7 +272,7 @@ function CommentCodeBlock({
 			}
 			language={language}
 			PreTag="div"
-			className="rounded-md text-sm"
+			className="rounded text-sm"
 		>
 			{codeString}
 		</SyntaxHighlighter>
@@ -336,7 +336,7 @@ function CopyableTable({ children }: { children?: ReactNode }) {
 			<button
 				type="button"
 				onClick={handleCopy}
-				className="absolute right-0 -top-6 z-10 rounded-sm px-1.5 py-0.5 text-2xs text-muted-foreground hover:text-foreground"
+				className="absolute right-0 -top-6 z-10 rounded px-1.5 py-0.5 text-2xs text-muted-foreground hover:text-foreground"
 			>
 				{copied ? (
 					<span className="flex items-center gap-1">

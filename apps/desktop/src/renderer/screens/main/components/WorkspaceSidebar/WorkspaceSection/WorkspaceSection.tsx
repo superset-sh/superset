@@ -218,9 +218,9 @@ export function WorkspaceSection({
 							"text-muted-foreground hover:bg-fill-hover transition-colors",
 							dropZone.isDropTarget &&
 								!dropZone.isDragOver &&
-								"border border-dashed border-primary/20 rounded-sm",
+								"border border-dashed border-primary/20 rounded",
 							dropZone.isDragOver &&
-								"bg-primary/10 border border-solid border-primary/40 rounded-sm",
+								"bg-primary/10 border border-solid border-primary/40 rounded",
 						)}
 						style={{ cursor: isSectionDragging ? "grabbing" : "grab" }}
 					>

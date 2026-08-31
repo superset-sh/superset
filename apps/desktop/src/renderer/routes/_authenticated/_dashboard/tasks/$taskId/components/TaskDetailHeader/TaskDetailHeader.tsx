@@ -22,7 +22,7 @@ export function TaskDetailHeader({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="h-8 w-8"
+				className="size-[var(--btn-h-lg)]"
 				onClick={onBack}
 				aria-label={t({
 					id: "dashboard.tasks.taskDetailHeader.backToTasks",

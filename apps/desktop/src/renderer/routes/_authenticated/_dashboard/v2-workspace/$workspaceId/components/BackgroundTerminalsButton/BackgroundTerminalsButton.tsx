@@ -224,7 +224,7 @@ export const BackgroundTerminalsButton = memo(
 			<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 				<DropdownMenuTrigger asChild>
 					<Button
-						className="h-7 gap-1 rounded-md border border-border/60 bg-muted/30 px-2 text-xs text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
+						className="h-[var(--btn-h-default)] gap-1 rounded bg-grayAlpha-100 px-2 text-xs text-muted-foreground shadow-none hover:bg-grayAlpha-200 hover:text-foreground"
 						size="sm"
 						type="button"
 						variant="ghost"

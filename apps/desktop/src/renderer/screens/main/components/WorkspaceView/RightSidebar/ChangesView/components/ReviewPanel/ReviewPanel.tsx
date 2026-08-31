@@ -274,7 +274,7 @@ export function ReviewPanel({
 							<span className="truncate text-xs font-medium text-foreground">
 								{comment.authorLogin}
 							</span>
-							<span className="shrink-0 rounded border border-border/70 bg-muted/35 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
+							<span className="shrink-0 rounded bg-grayAlpha-100 px-1 py-0 text-[9px] uppercase tracking-wide text-muted-foreground">
 								{getCommentKindText(comment)}
 							</span>
 							<span className="flex-1" />
@@ -294,7 +294,7 @@ export function ReviewPanel({
 			return (
 				<div
 					key={comment.id}
-					className="group relative flex items-start gap-1 rounded-sm px-1.5 py-1 transition-colors hover:bg-accent/50"
+					className="group relative flex items-start gap-1 rounded px-1.5 py-1 transition-colors hover:bg-accent/50"
 				>
 					<button
 						type="button"
@@ -304,11 +304,11 @@ export function ReviewPanel({
 					>
 						{content}
 					</button>
-					<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded-sm bg-background/90 px-0.5 py-0.5 shadow-sm opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+					<div className="absolute right-0.5 top-0.5 flex items-center gap-0.5 rounded bg-background/90 px-0.5 py-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 						{comment.threadId && workspaceId ? (
 							<button
 								type="button"
-								className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 								onClick={(event) => {
 									event.preventDefault();
 									event.stopPropagation();
@@ -328,7 +328,7 @@ export function ReviewPanel({
 						) : null}
 						<button
 							type="button"
-							className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							onClick={(event) => {
 								event.preventDefault();
 								event.stopPropagation();
@@ -347,7 +347,7 @@ export function ReviewPanel({
 								href={comment.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								className="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 								aria-label="Open comment on GitHub"
 							>
 								<LuArrowUpRight className="size-3" />
@@ -379,7 +379,7 @@ export function ReviewPanel({
 				<div className="flex items-center gap-1.5">
 					<span
 						className={cn(
-							"shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] font-medium",
+							"shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium",
 							reviewDecisionConfig[pr.reviewDecision].className,
 						)}
 					>
@@ -393,7 +393,7 @@ export function ReviewPanel({
 				</div>
 			</div>
 
-			<div className="border-b border-border/70 my-1" />
+			<div className="border-b border-border-variant my-1" />
 
 			<Collapsible open={checksOpen} onOpenChange={setChecksOpen}>
 				<CollapsibleTrigger
@@ -450,7 +450,7 @@ export function ReviewPanel({
 									rel="noopener noreferrer"
 									className="group block"
 								>
-									<div className="flex min-w-0 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
+									<div className="flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
 										<CheckIcon
 											className={cn(
 												"size-3 shrink-0",
@@ -472,7 +472,7 @@ export function ReviewPanel({
 							) : (
 								<div
 									key={check.name}
-									className="flex min-w-0 items-center gap-1 rounded-sm px-1.5 py-1 text-xs"
+									className="flex min-w-0 items-center gap-1 rounded px-1.5 py-1 text-xs"
 								>
 									<CheckIcon
 										className={cn(
@@ -494,7 +494,7 @@ export function ReviewPanel({
 				</CollapsibleContent>
 			</Collapsible>
 
-			<div className="border-b border-border/70 my-1" />
+			<div className="border-b border-border-variant my-1" />
 
 			<Collapsible
 				open={commentsOpen}
@@ -524,7 +524,7 @@ export function ReviewPanel({
 							{uniqueResolvableThreadIds.length > 0 && workspaceId && (
 								<button
 									type="button"
-									className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
+									className="shrink-0 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground disabled:opacity-50"
 									onClick={() => void handleResolveAll()}
 									disabled={isResolvingAll}
 								>
@@ -538,7 +538,7 @@ export function ReviewPanel({
 							)}
 							<button
 								type="button"
-								className="shrink-0 flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+								className="shrink-0 flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 								onClick={handleCopyCommentsList}
 							>
 								{copiedActionKey === ALL_COMMENTS_COPY_ACTION_KEY ? (
@@ -554,9 +554,9 @@ export function ReviewPanel({
 				<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
 					{isCommentsLoading ? (
 						<div className="space-y-1 px-1">
-							<Skeleton className="h-11 w-full rounded-sm" />
-							<Skeleton className="h-11 w-full rounded-sm" />
-							<Skeleton className="h-11 w-full rounded-sm" />
+							<Skeleton className="h-11 w-full rounded" />
+							<Skeleton className="h-11 w-full rounded" />
+							<Skeleton className="h-11 w-full rounded" />
 						</div>
 					) : comments.length === 0 ? (
 						<div className="px-1.5 py-1 text-xs text-muted-foreground">

@@ -23,7 +23,7 @@ export function MembersTable({
 	onRemove,
 }: MembersTableProps) {
 	return (
-		<div className="rounded-md border">
+		<div className="rounded border">
 			<Table>
 				<TableHeader>
 					<TableRow>

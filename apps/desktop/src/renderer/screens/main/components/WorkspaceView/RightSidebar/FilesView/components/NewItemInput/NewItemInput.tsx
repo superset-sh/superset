@@ -47,11 +47,14 @@ export function NewItemInput({
 
 	return (
 		<div
-			className={cn("flex items-center gap-1 px-1 h-7", "bg-accent rounded-sm")}
+			className={cn(
+				"flex items-center gap-1 px-1 h-[var(--btn-h-default)]",
+				"bg-accent rounded",
+			)}
 			style={{ paddingLeft: `${level * TREE_INDENT + 4}px` }}
 		>
 			<span className="w-4 h-4 shrink-0" />
-			<Icon className="size-4 shrink-0 text-amber-500" />
+			<Icon className="size-4 shrink-0 text-warning" />
 			<input
 				type="text"
 				value={value}

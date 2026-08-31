@@ -148,11 +148,11 @@ export const FileRow = memo(function FileRow({
 					{(file.additions > 0 || file.deletions > 0) && (
 						<span className="text-[10px] text-muted-foreground">
 							{file.additions > 0 && (
-								<span className="text-green-400">+{file.additions}</span>
+								<span className="text-success">+{file.additions}</span>
 							)}
 							{file.additions > 0 && file.deletions > 0 && " "}
 							{file.deletions > 0 && (
-								<span className="text-red-400">-{file.deletions}</span>
+								<span className="text-destructive">-{file.deletions}</span>
 							)}
 						</span>
 					)}

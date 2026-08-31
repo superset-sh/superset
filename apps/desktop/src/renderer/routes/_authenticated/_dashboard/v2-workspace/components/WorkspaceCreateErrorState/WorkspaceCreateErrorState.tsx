@@ -58,12 +58,12 @@ export function WorkspaceCreateErrorState({
 				/>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="text-md font-medium tracking-tight text-foreground">
 						<Trans id="workspace.states.createErrorTitle">
 							Couldn't create workspace
 						</Trans>
 					</h1>
-					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
+					<p className="truncate text-sm leading-relaxed text-muted-foreground">
 						{name ||
 							t({
 								id: "workspace.states.createErrorUntitled",
@@ -79,14 +79,14 @@ export function WorkspaceCreateErrorState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+						<code className="min-w-0 truncate font-mono text-xs text-muted-foreground">
 							{branch}
 						</code>
 					</div>
 				)}
 
-				<div className="w-full rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
-					<p className="select-text font-mono text-[11px] leading-relaxed text-destructive/90 break-words whitespace-pre-wrap cursor-text">
+				<div className="w-full rounded border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
+					<p className="select-text font-mono text-xs leading-relaxed text-destructive/90 break-words whitespace-pre-wrap cursor-text">
 						{entry.error}
 					</p>
 				</div>

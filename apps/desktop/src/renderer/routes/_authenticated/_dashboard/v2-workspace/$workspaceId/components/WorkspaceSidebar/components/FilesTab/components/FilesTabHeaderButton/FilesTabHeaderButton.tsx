@@ -22,7 +22,7 @@ export function FilesTabHeaderButton({
 				<Button
 					variant="ghost"
 					size="icon"
-					className="size-7 text-muted-foreground hover:text-foreground"
+					className="size-[var(--btn-h-default)] text-muted-foreground hover:text-foreground"
 					onClick={onClick}
 					aria-label={label}
 				>

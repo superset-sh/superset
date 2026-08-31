@@ -30,7 +30,7 @@ export function CommentModeButton({
 				onPressedChange={onToggle}
 				aria-label={label}
 				title={label}
-				className="h-6 min-w-6 gap-1 px-1 text-muted-foreground/60 hover:text-muted-foreground data-[state=on]:text-foreground"
+				className="h-[var(--btn-h-sm)] min-w-[var(--btn-h-sm)] gap-1 px-1 text-muted-foreground/60 hover:text-muted-foreground data-[state=on]:text-foreground"
 			>
 				<MessageSquarePlus className="size-3.5" />
 				{openCount > 0 ? (
@@ -49,7 +49,7 @@ export function CommentModeButton({
 			onPressedChange={onToggle}
 			aria-label={label}
 			title={label}
-			className="h-7 min-w-7 gap-1.5 px-2"
+			className="h-[var(--btn-h-default)] min-w-[var(--btn-h-default)] gap-1.5 px-2"
 		>
 			<MessageSquarePlus className="size-3.5" />
 			{openCount > 0 ? (

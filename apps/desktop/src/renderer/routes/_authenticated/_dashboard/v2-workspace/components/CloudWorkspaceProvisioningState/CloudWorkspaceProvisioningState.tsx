@@ -68,12 +68,12 @@ export function CloudWorkspaceProvisioningState({
 				/>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="text-md font-medium tracking-tight text-foreground">
 						<Trans id="workspace.states.cloudProvisioningTitle">
 							Starting cloud workspace
 						</Trans>
 					</h1>
-					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
+					<p className="truncate text-sm leading-relaxed text-muted-foreground">
 						{name ||
 							t({
 								id: "workspace.states.cloudProvisioningUntitled",
@@ -89,7 +89,7 @@ export function CloudWorkspaceProvisioningState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+						<code className="min-w-0 truncate font-mono text-xs text-muted-foreground">
 							{branch}
 						</code>
 					</div>
@@ -112,13 +112,13 @@ export function CloudWorkspaceProvisioningState({
 					/>
 				</ul>
 
-				<span className="font-mono text-[11px] tabular-nums text-muted-foreground/80">
+				<span className="font-mono text-xs tabular-nums text-muted-foreground/80">
 					{formatElapsed(elapsed)}
 				</span>
 
 				{elapsed >= STUCK_AFTER_SECONDS && (
 					<div className="flex w-full flex-col gap-2 border-t border-border/60 pt-4 animate-in fade-in slide-in-from-bottom-1 duration-500">
-						<p className="select-text cursor-text text-[12px] leading-relaxed text-muted-foreground">
+						<p className="select-text cursor-text text-xs leading-relaxed text-muted-foreground">
 							<Trans id="workspace.states.cloudProvisioningStuckBody">
 								This is taking longer than usual. The sandbox may still be
 								pulling its image — it keeps going whether this window is open
@@ -177,12 +177,12 @@ function CloudWorkspaceFailedState({
 				/>
 
 				<div className="flex flex-col gap-1.5">
-					<h1 className="text-[15px] font-medium tracking-tight text-foreground">
+					<h1 className="text-md font-medium tracking-tight text-foreground">
 						<Trans id="workspace.states.cloudProvisioningFailedTitle">
 							Couldn't start cloud workspace
 						</Trans>
 					</h1>
-					<p className="truncate text-[13px] leading-relaxed text-muted-foreground">
+					<p className="truncate text-sm leading-relaxed text-muted-foreground">
 						{name ||
 							t({
 								id: "workspace.states.cloudProvisioningFailedUntitled",
@@ -198,14 +198,14 @@ function CloudWorkspaceFailedState({
 							strokeWidth={2}
 							aria-hidden="true"
 						/>
-						<code className="min-w-0 truncate font-mono text-[11px] text-muted-foreground">
+						<code className="min-w-0 truncate font-mono text-xs text-muted-foreground">
 							{branch}
 						</code>
 					</div>
 				)}
 
-				<div className="w-full rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
-					<p className="select-text cursor-text text-[12px] leading-relaxed text-destructive/90">
+				<div className="w-full rounded border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
+					<p className="select-text cursor-text text-xs leading-relaxed text-destructive/90">
 						<Trans id="workspace.states.cloudProvisioningFailedBody">
 							Provisioning failed and the sandbox was torn down. Nothing is
 							running, and this workspace can't be opened — create a new one to
@@ -216,7 +216,7 @@ function CloudWorkspaceFailedState({
 
 				<Button
 					size="sm"
-					variant="outline"
+					variant="ghost"
 					disabled={isDeleting}
 					onClick={() => void handleDelete()}
 				>
@@ -241,7 +241,7 @@ function StepRow({ label, state }: { label: string; state: StepState }) {
 	return (
 		<li
 			className={cn(
-				"flex items-center gap-2.5 text-[13px] leading-tight transition-colors duration-300",
+				"flex items-center gap-2.5 text-sm leading-tight transition-colors duration-300",
 				state === "done" && "text-foreground/80",
 				state === "active" && "text-foreground",
 				state === "pending" && "text-muted-foreground/55",

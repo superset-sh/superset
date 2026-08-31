@@ -1,5 +1,4 @@
 import type { TaskPriority } from "@superset/db/enums";
-import colors from "tailwindcss/colors";
 
 interface PriorityIconProps {
 	priority: TaskPriority;
@@ -18,7 +17,7 @@ export function PriorityIcon({
 }: PriorityIconProps) {
 	const sizeClass = className || "h-4 w-4";
 	const hoverClass = showHover ? "group-hover:brightness-150" : "";
-	const defaultColor = color || colors.neutral[500];
+	const defaultColor = color || "var(--muted-foreground)";
 
 	if (priority === "none") {
 		return (
@@ -66,7 +65,9 @@ export function PriorityIcon({
 			statusType === "backlog";
 
 		// For urgent statuses that are also active, we use orange as a small stylistic touch
-		const fillColor = color || (isActive ? "#F97316" : colors.neutral[500]);
+		const fillColor =
+			color ||
+			(isActive ? "var(--color-orange-500)" : "var(--muted-foreground)");
 
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>

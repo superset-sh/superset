@@ -117,7 +117,7 @@ export function UsageDrilldownPage({
 			<div className="flex flex-wrap items-center gap-2">
 				<Link
 					to="/settings/usage"
-					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
 					<Trans id="settings.usage.drilldown.backToUsage">Usage</Trans>
@@ -142,7 +142,7 @@ export function UsageDrilldownPage({
 						value={metric}
 						onValueChange={(value) => setMetric(value as HistoryMetric)}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
 								<Trans id="settings.usage.drilldown.metricCost">Cost</Trans>
 							</TabsTrigger>
@@ -155,7 +155,7 @@ export function UsageDrilldownPage({
 						value={String(days)}
 						onValueChange={(value) => setDays(Number(value))}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							{RANGE_OPTIONS.map((option) => (
 								<TabsTrigger
 									key={option}
@@ -328,7 +328,7 @@ export function UsageDrilldownPage({
 									key={row.label}
 									to={linkTarget.to}
 									params={linkTarget.params}
-									className="flex flex-col gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-muted/60"
+									className="flex flex-col gap-0.5 rounded px-1 py-0.5 transition-colors hover:bg-fill-hover"
 								>
 									{content}
 								</Link>
@@ -372,7 +372,7 @@ export function UsageDrilldownPage({
 												message:
 													"Click to copy the session ID (resume with `claude --resume <id>`).",
 											})}`}
-											className="group flex flex-col gap-0.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/60"
+											className="group flex flex-col gap-0.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-fill-hover"
 										>
 											<div className="flex items-baseline justify-between gap-3 text-[11px]">
 												<span className="flex min-w-0 items-center gap-1.5">
@@ -397,7 +397,7 @@ export function UsageDrilldownPage({
 														)}
 													</span>
 													{copied ? (
-														<span className="flex shrink-0 items-center gap-1 text-[10px] text-emerald-500">
+														<span className="flex shrink-0 items-center gap-1 text-[10px] text-success">
 															<LuCheck className="size-2.5" />
 															<Trans id="settings.usage.drilldown.idCopied">
 																ID copied

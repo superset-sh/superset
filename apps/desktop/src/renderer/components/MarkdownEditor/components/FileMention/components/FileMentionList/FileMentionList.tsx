@@ -62,7 +62,7 @@ export const FileMentionList = forwardRef<
 
 	if (items.length === 0) {
 		return (
-			<div className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md">
+			<div className="bg-popover text-popover-foreground rounded border p-1 shadow-md">
 				<div className="px-2 py-1.5 text-xs text-muted-foreground">
 					<Trans id="components.fileMentionList.noFilesFound">
 						No files found
@@ -75,7 +75,7 @@ export const FileMentionList = forwardRef<
 	return (
 		<div
 			ref={containerRef}
-			className="bg-popover text-popover-foreground rounded-md border p-1 shadow-md max-h-72 overflow-y-auto w-[28rem]"
+			className="bg-popover text-popover-foreground rounded border p-1 shadow-md max-h-72 overflow-y-auto w-[28rem]"
 		>
 			{items.map((item, index) => {
 				const directory = getDirectory(item.relativePath);
@@ -85,7 +85,7 @@ export const FileMentionList = forwardRef<
 						key={item.id}
 						data-index={index}
 						onClick={() => command(item)}
-						className={`relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-hidden select-none w-full ${
+						className={`relative flex cursor-default items-center gap-2 rounded px-2 py-1.5 text-xs outline-hidden select-none w-full ${
 							index === selectedIndex ? "bg-accent text-accent-foreground" : ""
 						}`}
 					>

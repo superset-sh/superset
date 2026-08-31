@@ -121,11 +121,11 @@ export function V2WorkspaceRow({
 					onBlur={handleRowBlur}
 					title={rowTitle}
 					className={cn(
-						"flex cursor-pointer items-center gap-3 border-b border-border/40 px-6 py-3 text-sm outline-none transition-colors",
+						"flex cursor-pointer items-center gap-3 border-b border-border-variant px-6 py-3 text-sm outline-none transition-colors",
 						"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
 						isCurrentRoute
-							? "bg-muted hover:bg-muted focus-visible:bg-muted"
-							: "hover:bg-accent/50 focus-visible:bg-accent/50",
+							? "bg-grayAlpha-200 hover:bg-grayAlpha-200 focus-visible:bg-grayAlpha-200"
+							: "hover:bg-grayAlpha-100 focus-visible:bg-grayAlpha-100",
 					)}
 				>
 					<WorkspaceStateGlyph workspace={workspace} />
@@ -200,10 +200,10 @@ export function V2WorkspaceRow({
 								}),
 							})}
 						>
-							<span className="text-emerald-600/80 dark:text-emerald-400/70">
+							<span className="text-success/80 text-success/70">
 								+{formatCount(workspace.diffStats.additions)}
 							</span>
-							<span className="text-red-600/80 dark:text-red-400/70">
+							<span className="text-destructive/80 text-destructive/70">
 								−{formatCount(workspace.diffStats.deletions)}
 							</span>
 						</span>

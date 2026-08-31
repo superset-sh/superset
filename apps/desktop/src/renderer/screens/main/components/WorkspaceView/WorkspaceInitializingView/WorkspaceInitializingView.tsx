@@ -134,7 +134,7 @@ export function WorkspaceInitializingView({
 						{/* Action buttons */}
 						<div className="flex gap-3">
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								onClick={() => setShowDeleteConfirm(true)}
 								disabled={deleteWorkspace.isPending}
@@ -180,7 +180,7 @@ export function WorkspaceInitializingView({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-7 px-3 text-xs"
+								className="h-[var(--btn-h-default)] px-3 text-xs"
 								onClick={() => setShowDeleteConfirm(false)}
 							>
 								Cancel
@@ -188,7 +188,7 @@ export function WorkspaceInitializingView({
 							<Button
 								variant="destructive"
 								size="sm"
-								className="h-7 px-3 text-xs"
+								className="h-[var(--btn-h-default)] px-3 text-xs"
 								onClick={handleDelete}
 							>
 								Delete
@@ -223,7 +223,7 @@ export function WorkspaceInitializingView({
 								{workspaceName}
 							</p>
 							{progress?.error && (
-								<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded-md px-3 py-2 select-text cursor-text break-words">
+								<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded px-3 py-2 select-text cursor-text break-words">
 									{progress.error}
 								</p>
 							)}
@@ -232,7 +232,7 @@ export function WorkspaceInitializingView({
 						{/* Action buttons */}
 						<div className="flex gap-3">
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								onClick={() => setShowDeleteConfirm(true)}
 								disabled={deleteWorkspace.isPending}
@@ -289,7 +289,7 @@ export function WorkspaceInitializingView({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-7 px-3 text-xs"
+								className="h-[var(--btn-h-default)] px-3 text-xs"
 								onClick={() => setShowDeleteConfirm(false)}
 							>
 								Cancel
@@ -297,7 +297,7 @@ export function WorkspaceInitializingView({
 							<Button
 								variant="destructive"
 								size="sm"
-								className="h-7 px-3 text-xs"
+								className="h-[var(--btn-h-default)] px-3 text-xs"
 								onClick={handleDelete}
 							>
 								Delete

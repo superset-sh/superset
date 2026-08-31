@@ -308,7 +308,7 @@ export function RunIssuesInWorkspacePopover({
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-7 text-xs gap-1.5 bg-muted/50"
+					className="h-[var(--btn-h-default)] text-xs gap-1.5 bg-muted/50"
 				>
 					<HiMiniPlay className="size-3" />
 					<Trans id="dashboard.tasks.runIssuesPopover.trigger">
@@ -332,7 +332,7 @@ export function RunIssuesInWorkspacePopover({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="w-full justify-between font-normal h-8 min-w-0 bg-muted/50 rounded-md"
+								className="w-full justify-between font-normal h-[var(--input-h)] min-w-0 bg-muted/50 rounded"
 							>
 								<span className="flex items-center gap-2 truncate">
 									{selectedProject ? (
@@ -387,7 +387,7 @@ export function RunIssuesInWorkspacePopover({
 												/>
 												<span className="flex-1 truncate">{project.name}</span>
 												{project.needsSetup === true && (
-													<span className="text-[10px] text-amber-500">
+													<span className="text-[10px] text-warning">
 														<Trans id="dashboard.tasks.runIssuesPopover.notSetUp">
 															not set up
 														</Trans>
@@ -413,7 +413,7 @@ export function RunIssuesInWorkspacePopover({
 						})}
 						onValueChange={setSelectedAgent}
 						onBeforeConfigureAgents={() => setOpen(false)}
-						triggerClassName="h-8 text-xs w-full border-0 shadow-none bg-muted/50 rounded-md"
+						triggerClassName="h-[var(--input-h)] text-xs w-full border-0 shadow-none bg-muted/50 rounded"
 						allowNone
 						noneLabel={t({
 							id: "dashboard.tasks.runIssuesPopover.noAgent",
@@ -431,7 +431,7 @@ export function RunIssuesInWorkspacePopover({
 					)}
 					<Button
 						size="sm"
-						className="w-full h-8"
+						className="w-full h-[var(--btn-h-lg)]"
 						disabled={!!submitBlocker}
 						title={submitBlocker ?? undefined}
 						onClick={handleRun}

@@ -10,7 +10,7 @@ export function ReviewStatus({
 	const config = {
 		approved: {
 			label: "Approved",
-			className: "bg-emerald-500/15 text-emerald-500",
+			className: "bg-success/15 text-success",
 		},
 		changes_requested: {
 			label: "Changes requested",
@@ -21,7 +21,7 @@ export function ReviewStatus({
 				requestedReviewers && requestedReviewers.length > 0
 					? `Awaiting ${requestedReviewers.join(", ")}`
 					: "Review pending",
-			className: "bg-amber-500/15 text-amber-500",
+			className: "bg-warning/15 text-warning",
 		},
 	};
 
@@ -29,7 +29,7 @@ export function ReviewStatus({
 
 	return (
 		<span
-			className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md shrink-0 truncate max-w-[200px] ${className}`}
+			className={`text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0 truncate max-w-[200px] ${className}`}
 			title={label}
 		>
 			{label}

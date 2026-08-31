@@ -255,7 +255,7 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 		if (!action) return null;
 		if (action.kind === "logout") {
 			return (
-				<Button variant="outline" size="sm" onClick={onDisconnect}>
+				<Button variant="ghost" size="sm" onClick={onDisconnect}>
 					<Trans id="settings.models.signOut">Sign out</Trans>
 				</Button>
 			);

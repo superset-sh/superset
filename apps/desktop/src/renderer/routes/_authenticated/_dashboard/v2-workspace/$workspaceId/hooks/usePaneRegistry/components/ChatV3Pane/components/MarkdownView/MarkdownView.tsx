@@ -34,7 +34,7 @@ export function MarkdownView({
 			))}
 			{plan.tail !== null &&
 				(plan.tailFenceOpen ? (
-					<pre className="overflow-x-auto whitespace-pre-wrap rounded-md bg-muted p-2 font-mono text-xs">
+					<pre className="overflow-x-auto whitespace-pre-wrap rounded bg-muted p-2 font-mono text-xs">
 						{plan.tail}
 					</pre>
 				) : (

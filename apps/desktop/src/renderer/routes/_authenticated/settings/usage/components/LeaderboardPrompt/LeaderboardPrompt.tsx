@@ -28,7 +28,7 @@ export function LeaderboardPrompt({ hostUrl }: { hostUrl: string | null }) {
 
 	return (
 		<>
-			<div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 px-4 py-3">
+			<div className="flex items-start gap-3 rounded border border-border bg-muted/30 px-4 py-3">
 				<TrophyIcon className="size-4 mt-0.5 shrink-0 text-muted-foreground" />
 				<div className="flex-1 min-w-0">
 					<p className="text-sm font-medium">
@@ -44,7 +44,7 @@ export function LeaderboardPrompt({ hostUrl }: { hostUrl: string | null }) {
 					</p>
 				</div>
 				<div className="flex items-center gap-1 shrink-0">
-					<Button size="sm" variant="outline" onClick={openJoin}>
+					<Button size="sm" variant="ghost" onClick={openJoin}>
 						<Trans id="settings.usage.leaderboardPrompt.seeMyRank">
 							See my rank
 						</Trans>

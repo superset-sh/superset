@@ -95,7 +95,7 @@ export function PullRequestsTopBar({
 						onClick={() => onStateFilterChange(tab.value)}
 						aria-checked={stateFilter === tab.value}
 						className={cn(
-							"rounded-md px-2 py-1 text-xs font-medium transition-colors",
+							"rounded px-2 py-1 text-xs font-medium transition-colors",
 							stateFilter === tab.value
 								? "bg-accent text-foreground"
 								: "text-muted-foreground hover:text-foreground",
@@ -129,7 +129,7 @@ export function PullRequestsTopBar({
 				<Popover>
 					<PopoverTrigger asChild>
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="icon-xs"
 							className="relative shrink-0"
 							aria-label={

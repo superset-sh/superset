@@ -37,7 +37,7 @@ export function ProjectThumbnail({
 		return (
 			<div
 				className={cn(
-					"relative size-6 rounded-sm overflow-hidden flex-shrink-0 bg-muted border",
+					"relative size-6 rounded overflow-hidden flex-shrink-0 bg-muted border",
 					hasColor ? undefined : "border-foreground/10",
 					className,
 				)}
@@ -56,7 +56,7 @@ export function ProjectThumbnail({
 	return (
 		<div
 			className={cn(
-				"size-6 rounded-sm flex items-center justify-center flex-shrink-0",
+				"size-6 rounded flex items-center justify-center flex-shrink-0",
 				"text-xs font-medium border",
 				hasColor
 					? undefined

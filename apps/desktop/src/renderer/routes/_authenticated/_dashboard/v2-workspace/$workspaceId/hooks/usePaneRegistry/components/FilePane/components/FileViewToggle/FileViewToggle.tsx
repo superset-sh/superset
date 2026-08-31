@@ -15,7 +15,7 @@ export function FileViewToggle({
 	onChange,
 }: FileViewToggleProps) {
 	return (
-		<div className="inline-flex h-5 min-w-0 items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
+		<div className="inline-flex h-5 min-w-0 items-center gap-0.5 rounded bg-grayAlpha-100 p-0.5">
 			{views.map((view) => {
 				const label = resolveViewLabel(view, filePath);
 
@@ -25,9 +25,9 @@ export function FileViewToggle({
 						type="button"
 						title={label}
 						className={cn(
-							"flex h-4 min-w-0 max-w-20 items-center rounded-sm px-1.5 text-[10px] leading-none transition-colors",
+							"flex h-4 min-w-0 max-w-20 items-center rounded px-1.5 text-[10px] leading-none transition-colors",
 							view.id === activeViewId
-								? "bg-background text-foreground shadow-sm"
+								? "bg-background text-foreground"
 								: "text-muted-foreground hover:text-foreground",
 						)}
 						onClick={() => onChange(view.id)}

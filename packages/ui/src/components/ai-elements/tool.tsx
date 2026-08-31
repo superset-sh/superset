@@ -38,7 +38,7 @@ export type ToolProps = ComponentProps<typeof Collapsible>;
 export const Tool = ({ className, ...props }: ToolProps) => (
 	<Collapsible
 		className={cn(
-			"not-prose mb-4 w-full overflow-hidden rounded-lg border border-border bg-muted/30 font-mono",
+			"not-prose mb-4 w-full overflow-hidden rounded border border-border bg-muted/30 font-mono",
 			className,
 		)}
 		{...props}
@@ -88,7 +88,7 @@ export const ToolHeader = ({
 	return (
 		<CollapsibleTrigger
 			className={cn(
-				"group flex h-7 w-full items-center justify-between gap-3 rounded-b-md px-1 transition-colors hover:bg-muted/50",
+				"group flex h-[var(--btn-h-default)] w-full items-center justify-between gap-3 rounded-b px-1 transition-colors hover:bg-fill-hover",
 				className,
 			)}
 			data-tool-trigger
@@ -123,7 +123,7 @@ export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 export const ToolContent = ({ className, ...props }: ToolContentProps) => (
 	<CollapsibleContent
 		className={cn(
-			"border-t border-border text-popover-foreground outline-none",
+			"border-t border-border-variant text-popover-foreground outline-none",
 			className,
 		)}
 		{...props}
@@ -153,7 +153,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
 			<h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
 				<Trans id="ui.tool.input">Input</Trans>
 			</h4>
-			<pre className="overflow-x-auto rounded-sm bg-muted/30 px-2 py-1.5 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
+			<pre className="overflow-x-auto rounded bg-muted/30 px-2 py-1.5 font-mono text-xs text-muted-foreground whitespace-pre-wrap break-all">
 				{displayCode}
 			</pre>
 		</div>
@@ -195,7 +195,7 @@ export const ToolOutput = ({
 			</h4>
 			<pre
 				className={cn(
-					"overflow-x-auto rounded-sm px-2 py-1.5 font-mono text-xs whitespace-pre-wrap break-all",
+					"overflow-x-auto rounded px-2 py-1.5 font-mono text-xs whitespace-pre-wrap break-all",
 					errorText
 						? "bg-destructive/10 text-destructive"
 						: "bg-muted/30 text-foreground",

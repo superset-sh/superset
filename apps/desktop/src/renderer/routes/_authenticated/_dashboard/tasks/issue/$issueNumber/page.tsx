@@ -106,7 +106,7 @@ function IssueDetailPage() {
 
 	const isClosed = data?.state.toLowerCase() === "closed";
 	const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
-	const stateIconClass = isClosed ? "text-violet-500" : "text-emerald-500";
+	const stateIconClass = isClosed ? "text-status-1" : "text-success";
 	const header = (
 		<WorkItemDetailHeader
 			itemNumber={data?.number ?? issueNumber}

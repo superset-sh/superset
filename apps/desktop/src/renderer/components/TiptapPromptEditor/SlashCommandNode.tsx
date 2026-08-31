@@ -229,7 +229,7 @@ function SlashCommandChip({
 						tabIndex={-1}
 						contentEditable={false}
 						className={cn(
-							"inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-mono text-xs select-none transition-colors cursor-default",
+							"inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-mono text-xs select-none transition-colors cursor-default",
 							selected ? "bg-muted-foreground/15" : "bg-muted-foreground/10",
 						)}
 						onClick={handleChipClick}

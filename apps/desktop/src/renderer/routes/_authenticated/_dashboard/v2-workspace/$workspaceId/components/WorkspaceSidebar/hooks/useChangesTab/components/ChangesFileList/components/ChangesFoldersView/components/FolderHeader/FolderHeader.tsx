@@ -35,7 +35,7 @@ export function FolderHeader({
 					<span className="min-w-0 flex-1 truncate" dir="rtl">
 						{label}
 					</span>
-					<span className="ml-auto shrink-0 text-[11px] tabular-nums">
+					<span className="ml-auto shrink-0 text-xs tabular-nums">
 						{fileCount}
 					</span>
 				</button>

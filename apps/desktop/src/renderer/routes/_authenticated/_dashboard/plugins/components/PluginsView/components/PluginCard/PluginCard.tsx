@@ -50,7 +50,7 @@ export function PluginCard({
 					onOpen(plugin);
 				}
 			}}
-			className="flex cursor-pointer items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-fill-hover"
+			className="flex cursor-pointer items-center gap-3 rounded p-3 text-left transition-colors hover:bg-grayAlpha-100"
 		>
 			<PluginIcon pluginName={plugin.name} />
 			<div className="min-w-0 flex-1">
@@ -114,7 +114,7 @@ export function PluginCard({
 				</DropdownMenu>
 			) : (
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					className="shrink-0 rounded-full"
 					disabled={isBusy}

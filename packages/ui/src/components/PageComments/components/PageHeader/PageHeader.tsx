@@ -62,7 +62,7 @@ export function PageHeader({
 	return (
 		<div
 			className={cn(
-				"flex h-11 shrink-0 items-center gap-2 border-b px-2",
+				"border-border flex h-11 shrink-0 items-center gap-2 border-b px-2",
 				className,
 			)}
 		>

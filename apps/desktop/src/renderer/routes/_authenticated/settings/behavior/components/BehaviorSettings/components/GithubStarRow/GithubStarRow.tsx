@@ -61,7 +61,7 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<span>
-							<Button variant="outline" size="sm" disabled>
+							<Button variant="ghost" size="sm" disabled>
 								<Star className="size-3.5" />
 								<Trans id="settings.behavior.githubStar.starUnknown">
 									Star
@@ -78,7 +78,7 @@ export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
 				</Tooltip>
 			) : (
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={handleClick}
 					disabled={!canActivateStarAction(state) || isBusy}

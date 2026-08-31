@@ -14,7 +14,7 @@ export function BinaryWarningView({ filePath, onForceView }: ViewProps) {
 					output or freeze the editor for large files.
 				</Trans>
 			</div>
-			<Button variant="outline" size="sm" onClick={() => onForceView("code")}>
+			<Button variant="ghost" size="sm" onClick={() => onForceView("code")}>
 				<Trans id="workspace.filePane.binaryOpenAnyway">Open Anyway</Trans>
 			</Button>
 		</div>

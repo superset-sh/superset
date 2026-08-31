@@ -42,7 +42,7 @@ function OnlineDot({ online }: { online: boolean }) {
 			}
 			className={cn(
 				"inline-block size-1.5 shrink-0 rounded-full",
-				online ? "bg-emerald-500" : "bg-muted-foreground/60",
+				online ? "bg-success" : "bg-muted-foreground/60",
 			)}
 		/>
 	);

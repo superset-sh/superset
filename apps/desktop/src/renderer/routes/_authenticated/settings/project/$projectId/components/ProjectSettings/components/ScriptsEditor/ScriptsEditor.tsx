@@ -118,7 +118,7 @@ function ScriptTextarea({
 				role="region"
 				aria-label="Script editor with file drop support"
 				className={cn(
-					"relative rounded-lg border transition-colors",
+					"relative rounded border transition-colors",
 					isDragOver
 						? "border-primary bg-primary/5"
 						: "border-border hover:border-border/80",
@@ -132,11 +132,11 @@ function ScriptTextarea({
 					onChange={(e) => onChange(e.target.value)}
 					onBlur={onBlur}
 					placeholder={placeholder}
-					className="w-full min-h-[80px] p-3 text-sm font-mono bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-ring rounded-lg"
+					className="w-full min-h-[80px] p-3 text-sm font-mono bg-transparent resize-y focus:outline-none focus:ring-1 focus:ring-ring rounded"
 					rows={3}
 				/>
 				{isDragOver && (
-					<div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded-lg pointer-events-none">
+					<div className="absolute inset-0 flex items-center justify-center bg-primary/10 rounded pointer-events-none">
 						<div className="flex items-center gap-2 text-primary text-sm font-medium">
 							<HiDocumentArrowUp className="h-5 w-5" />
 							Drop to import
@@ -359,12 +359,12 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 					</h3>
 					{saveStatus === "saving" && (
 						<span className="text-xs text-muted-foreground flex items-center gap-1">
-							<span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+							<span className="inline-block h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
 							Saving…
 						</span>
 					)}
 					{saveStatus === "saved" && (
-						<span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+						<span className="text-xs text-success flex items-center gap-1">
 							<HiCheckCircle className="h-3.5 w-3.5" />
 							Saved
 						</span>

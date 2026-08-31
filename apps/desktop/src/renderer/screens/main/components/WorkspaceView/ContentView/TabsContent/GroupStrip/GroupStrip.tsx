@@ -227,7 +227,7 @@ export function GroupStrip() {
 	);
 
 	return (
-		<div className="flex h-10 min-w-0 flex-1 items-stretch">
+		<div className="flex h-[var(--header-height)] min-w-0 flex-1 items-stretch">
 			<div
 				ref={scrollContainerRef}
 				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"

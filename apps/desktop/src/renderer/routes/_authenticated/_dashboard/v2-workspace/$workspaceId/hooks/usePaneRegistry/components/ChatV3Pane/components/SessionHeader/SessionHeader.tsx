@@ -56,8 +56,7 @@ export function SessionHeader({
 				<Badge
 					variant={status === "awaiting_input" ? "default" : "secondary"}
 					className={cn(
-						status === "awaiting_input" &&
-							"bg-amber-500/15 text-amber-600 dark:text-amber-400",
+						status === "awaiting_input" && "bg-warning/15 text-warning",
 					)}
 				>
 					{STATUS_LABELS[status] ? i18n._(STATUS_LABELS[status]) : status}
@@ -66,7 +65,7 @@ export function SessionHeader({
 			<span
 				className={cn(
 					"ml-auto flex items-center gap-1.5 text-xs",
-					connection === "open" && "text-emerald-600 dark:text-emerald-400",
+					connection === "open" && "text-success",
 					connection === "connecting" && "text-muted-foreground",
 					connection === "closed" && "text-destructive",
 				)}
@@ -74,7 +73,7 @@ export function SessionHeader({
 				<span
 					className={cn(
 						"size-1.5 rounded-full",
-						connection === "open" && "bg-emerald-500",
+						connection === "open" && "bg-success",
 						connection === "connecting" && "animate-pulse bg-muted-foreground",
 						connection === "closed" && "bg-destructive",
 					)}

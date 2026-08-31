@@ -65,7 +65,7 @@ export function FlipNoticeCard({
 			<div className="space-y-3 p-4 pt-3">
 				<p className="text-muted-foreground text-sm">{body}</p>
 				{warning ? (
-					<div className="flex items-start gap-2 bg-amber-500/10 px-2.5 py-2 text-amber-500">
+					<div className="flex items-start gap-2 bg-warning/10 px-2.5 py-2 text-warning">
 						<TriangleAlert className="mt-0.5 size-4 shrink-0" />
 						<p className="text-sm">{warning}</p>
 					</div>

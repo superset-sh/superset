@@ -26,7 +26,7 @@ export function UsageProjectBars({ history }: { history: UsageHistory }) {
 				<span className="flex items-baseline gap-2">
 					<Link
 						to="/settings/usage/workspaces"
-						className="rounded px-1 text-[10px] transition-colors hover:bg-muted hover:text-foreground"
+						className="rounded px-1 text-[10px] transition-colors hover:bg-fill-hover hover:text-foreground"
 					>
 						<Trans id="settings.usage.projectBars.viewAll">
 							All {history.projects.length} →

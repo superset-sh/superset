@@ -70,7 +70,7 @@ export function DashboardSidebarSessionsSection({
 						onHoverCardOpen={onWorkspaceHover}
 					/>
 				))}
-				<div className="mx-3 mt-1 border-b border-border" />
+				<div className="mx-3 mt-1 border-b border-border-variant" />
 			</div>
 		);
 	}
@@ -97,7 +97,7 @@ export function DashboardSidebarSessionsSection({
 								openNewSessionModal();
 							}}
 							onKeyDown={(event) => event.stopPropagation()}
-							className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+							className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 						>
 							<LuPlus className="size-3.5" />
 						</button>

@@ -1,0 +1,231 @@
+@theme inline {
+	--color-background: var(--background);
+	--color-background-2: var(--background-2);
+	--color-background-3: var(--background-3);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-tertiary: var(--tertiary);
+	--color-tertiary-active: var(--tertiary-active);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-warning: var(--warning);
+	--color-warning-foreground: var(--warning-foreground);
+	--color-success: var(--success);
+	--color-success-foreground: var(--success-foreground);
+	--color-status-0: var(--status-icon-0);
+	--color-status-pill-0: var(--status-pill-0);
+	--color-status-1: var(--status-icon-1);
+	--color-status-pill-1: var(--status-pill-1);
+	--color-status-2: var(--status-icon-2);
+	--color-status-pill-2: var(--status-pill-2);
+	--color-status-3: var(--status-icon-3);
+	--color-status-pill-3: var(--status-pill-3);
+	--color-status-4: var(--status-icon-4);
+	--color-status-pill-4: var(--status-pill-4);
+	--color-status-5: var(--status-icon-5);
+	--color-status-pill-5: var(--status-pill-5);
+	--color-status-6: var(--status-icon-6);
+	--color-status-pill-6: var(--status-pill-6);
+	--color-border: var(--border);
+	--color-border-dark: var(--border-dark);
+	--color-border-variant: var(--border-variant);
+	--color-border-focused: var(--border-focused);
+	--color-border-selected: var(--border-selected);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+
+	--color-highlight: var(--highlight);
+	--color-highlight-foreground: var(--highlight-foreground);
+	--color-highlight-match: var(--highlight-match);
+	--color-fill-hover: var(--fill-hover);
+	--color-fill-selected: var(--fill-selected);
+
+	--color-gray-50: var(--gray-50);
+	--color-gray-100: var(--gray-100);
+	--color-gray-200: var(--gray-200);
+	--color-gray-300: var(--gray-300);
+	--color-gray-400: var(--gray-400);
+	--color-gray-500: var(--gray-500);
+	--color-gray-600: var(--gray-600);
+	--color-gray-700: var(--gray-700);
+	--color-gray-800: var(--gray-800);
+	--color-gray-900: var(--gray-900);
+	--color-gray-950: var(--gray-950);
+
+	--color-grayAlpha-50: oklch(var(--grayAlpha-50));
+	--color-grayAlpha-100: oklch(var(--grayAlpha-100));
+	--color-grayAlpha-200: oklch(var(--grayAlpha-200));
+	--color-grayAlpha-300: oklch(var(--grayAlpha-300));
+	--color-grayAlpha-400: oklch(var(--grayAlpha-400));
+	--color-grayAlpha-500: oklch(var(--grayAlpha-500));
+	--color-grayAlpha-600: oklch(var(--grayAlpha-600));
+	--color-grayAlpha-700: oklch(var(--grayAlpha-700));
+	--color-grayAlpha-800: oklch(var(--grayAlpha-800));
+	--color-grayAlpha-900: oklch(var(--grayAlpha-900));
+	--color-grayAlpha-950: oklch(var(--grayAlpha-950));
+
+	--color-red-50: #fdf3f3;
+	--color-red-100: #fbe9e8;
+	--color-red-200: #f7d4d4;
+	--color-red-300: #f0b1b1;
+	--color-red-400: #e78587;
+	--color-red-500: #d75056;
+	--color-red-600: #c43a46;
+	--color-red-700: #a52b3a;
+	--color-red-800: #8a2735;
+	--color-red-900: #772433;
+	--color-red-950: #420f18;
+
+	--color-orange-50: #fdf6ef;
+	--color-orange-100: #fbead9;
+	--color-orange-200: #f7d2b1;
+	--color-orange-300: #f1b480;
+	--color-orange-400: #ea8c4d;
+	--color-orange-500: #e67333;
+	--color-orange-600: #d65520;
+	--color-orange-700: #b2401c;
+	--color-orange-800: #8e341e;
+	--color-orange-900: #732d1b;
+	--color-orange-950: #3e140c;
+
+	--color-yellow-50: #fdfbe9;
+	--color-yellow-100: #faf7c7;
+	--color-yellow-200: #f7ec91;
+	--color-yellow-300: #f1db53;
+	--color-yellow-400: #ebc724;
+	--color-yellow-500: #dcb016;
+	--color-yellow-600: #c28c11;
+	--color-yellow-700: #976211;
+	--color-yellow-800: #7d4f16;
+	--color-yellow-900: #6b4118;
+	--color-yellow-950: #3e220a;
+
+	--text-xs: var(--size-text-xs);
+	--text-sm: var(--size-text-sm);
+	--text-base: var(--size-text-base);
+	--text-md: var(--size-text-md);
+	--text-lg: var(--size-text-lg);
+	--text-xl: var(--size-text-xl);
+	--text-2xl: var(--size-text-2xl);
+
+	--radius-none: 0px;
+	--radius: 0.25rem;
+	--radius-sm: 0.125rem;
+	--radius-md: 0.25rem;
+	--radius-lg: 0.375rem;
+	--radius-xl: 0.75rem;
+	--radius-2xl: 1rem;
+	--radius-3xl: 1.5rem;
+	--radius-4xl: 2rem;
+	--radius-5xl: 3rem;
+	--radius-full: 9999px;
+
+	--shadow:
+		0px 6px 20px 0px rgba(0, 0, 0, 0.15), 0px 0px 2px 0px rgba(0, 0, 0, 0.2);
+	--shadow-1:
+		lch(0 0 0 / 0.022) 0px 3px 6px -2px, lch(0 0 0 / 0.044) 0px 1px 1px;
+
+	--font-sans:
+		"Geist-Variable", "Geist Variable", "Helvetica Neue", "Helvetica", "Arial",
+		sans-serif;
+	--font-mono:
+		"GeistMono-Variable", "Geist Mono Variable", monaco, Consolas,
+		"Lucida Console", monospace;
+}
+
+:root {
+	--size-text-xs: 12px;
+	--size-text-sm: 13px;
+	--size-text-base: 14px;
+	--size-text-md: 16px;
+	--size-text-lg: 18px;
+	--size-text-xl: 22px;
+	--size-text-2xl: 24px;
+
+	--btn-h-xs: 20px;
+	--btn-h-sm: 24px;
+	--btn-h-default: 28px;
+	--btn-h-lg: 32px;
+	--btn-h-xl: 36px;
+	--btn-h-2xl: 48px;
+	--btn-h-icon: 28px;
+	--btn-w-icon: 28px;
+
+	--input-h: 32px;
+
+	--header-height: 40px;
+	--tabbar-height: 0px;
+}
+
+@media (max-width: 768px) {
+	:root {
+		--size-text-xs: 13px;
+		--size-text-sm: 14px;
+		--size-text-base: 16px;
+		--size-text-md: 17px;
+		--size-text-lg: 19px;
+		--size-text-xl: 24px;
+		--size-text-2xl: 28px;
+
+		--btn-h-xs: 32px;
+		--btn-h-sm: 36px;
+		--btn-h-default: 40px;
+		--btn-h-lg: 44px;
+		--btn-h-xl: 44px;
+		--btn-h-2xl: 52px;
+		--btn-h-icon: 40px;
+		--btn-w-icon: 40px;
+
+		--input-h: 44px;
+
+		--header-height: 56px;
+	}
+}
+
+@layer utilities {
+	.h-page {
+		height: calc(100vh - 56px - var(--tabbar-height, 0px));
+	}
+	.h-page-sm {
+		height: calc(100vh - 40px - var(--tabbar-height, 0px));
+	}
+	.h-page-xs {
+		height: calc(100vh - 16px - var(--tabbar-height, 0px));
+	}
+}
+
+@layer base {
+	.popover,
+	.dialog-content,
+	.dropdown {
+		box-shadow:
+			0px 0px 2px 0px rgba(0, 0, 0, 0.2),
+			0px 6px 20px 0px rgba(0, 0, 0, 0.15);
+	}
+}

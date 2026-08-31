@@ -80,14 +80,11 @@ type DetailTab = "summary" | "code";
 // theme switcher, and silently never fires when they disagree. `[.dark_&]`
 // targets the real `.dark` class the theme store puts on <html>.
 const STATE_BADGE_STYLES: Record<PRState, string> = {
-	open: "bg-[#dcfae8] text-[#00a558] [.dark_&]:bg-[#064e3b] [.dark_&]:text-[#34d399]",
-	closed:
-		"bg-rose-100 text-rose-600 [.dark_&]:bg-[#4a2020] [.dark_&]:text-[#e0918a]",
-	merged:
-		"bg-violet-100 text-violet-600 [.dark_&]:bg-[#322b47] [.dark_&]:text-[#b0a6d9]",
+	open: "bg-success/10 text-success",
+	closed: "bg-destructive/10 text-destructive",
+	merged: "bg-status-1/10 text-status-1",
 	draft: "bg-muted text-muted-foreground",
-	queued:
-		"bg-amber-100 text-amber-600 [.dark_&]:bg-[#78350f] [.dark_&]:text-[#fbbf24]",
+	queued: "bg-warning/10 text-warning",
 };
 
 function PullRequestDetailPage() {
@@ -289,7 +286,7 @@ function PullRequestDetailPage() {
 		createdAtMs === null ? null : formatRelativeTime(createdAtMs);
 	const header = (
 		<div className="flex shrink-0 flex-col border-b border-border">
-			<div className="flex h-10 shrink-0 items-center gap-1 px-4">
+			<div className="flex h-[var(--header-height)] shrink-0 items-center gap-1 px-4">
 				<PullRequestListToggle />
 				<div className="ml-2 flex items-center gap-1">
 					{detailTabs.map(({ value, label }) => (
@@ -299,7 +296,7 @@ function PullRequestDetailPage() {
 							onClick={() => setActiveTab(value)}
 							aria-current={activeTab === value ? "true" : undefined}
 							className={cn(
-								"rounded-md px-2 py-1 text-xs font-medium transition-colors",
+								"rounded px-2 py-1 text-xs font-medium transition-colors",
 								activeTab === value
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:text-foreground",
@@ -332,7 +329,7 @@ function PullRequestDetailPage() {
 				)}
 				{data && (
 					<div className="flex shrink-0 items-center gap-2">
-						<Button variant="ghost" size="icon-sm" asChild>
+						<Button variant="ghost" size="icon-lg" asChild>
 							<a
 								href={data.url}
 								target="_blank"
@@ -350,9 +347,9 @@ function PullRequestDetailPage() {
 							</a>
 						</Button>
 						<Button
-							variant="outline"
-							size="sm"
-							className="h-8 px-3"
+							variant="ghost"
+							size="lg"
+							className="px-3"
 							onClick={handleAddToWorkspace}
 						>
 							<Trans id="dashboard.pullRequests.detail.startWorkspace">
@@ -364,8 +361,8 @@ function PullRequestDetailPage() {
 								<DropdownMenuTrigger asChild>
 									<Button
 										variant="outline"
-										size="sm"
-										className="h-8 gap-1.5 px-3 border-emerald-500/30 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15 hover:text-emerald-600 [.dark_&]:text-[#34d399] [.dark_&]:hover:text-[#34d399]"
+										size="lg"
+										className="gap-1.5 px-3 border-success/30 bg-success/10 text-success hover:bg-success/15 hover:text-success"
 										disabled={isActionPending}
 										aria-label={t({
 											id: "dashboard.pullRequests.detail.mergeAria",
@@ -538,7 +535,7 @@ function PullRequestDetailPage() {
 													{
 														description: data.branch,
 														icon: (
-															<span className="flex size-4 items-center justify-center rounded-full bg-emerald-500">
+															<span className="flex size-4 items-center justify-center rounded-full bg-success">
 																<LuCheck
 																	className="size-2.5 text-white"
 																	strokeWidth={3}
@@ -754,7 +751,7 @@ function PullRequestDetailPage() {
 						<Button
 							variant="ghost"
 							size="sm"
-							className="h-7 px-3 text-xs"
+							className="h-[var(--btn-h-default)] px-3 text-xs"
 							onClick={() => setPendingAction(null)}
 						>
 							<Trans id="dashboard.pullRequests.confirm.cancel">Cancel</Trans>
@@ -767,7 +764,7 @@ function PullRequestDetailPage() {
 									: "default"
 							}
 							size="sm"
-							className="h-7 px-3 text-xs"
+							className="h-[var(--btn-h-default)] px-3 text-xs"
 							onClick={handleConfirmAction}
 						>
 							{pendingAction?.kind === "close" ? (

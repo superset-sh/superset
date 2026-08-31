@@ -43,7 +43,7 @@ export function QuickAddPresets({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button size="sm" variant="outline" disabled={isAddDisabled}>
+				<Button size="sm" variant="ghost" disabled={isAddDisabled}>
 					<LuPlus className="size-4" />
 					<Trans id="settings.terminal.quickAdd.importAgent">
 						Import agent

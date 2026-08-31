@@ -36,7 +36,10 @@ export function DeviceToolbar({
 		// relative z-20: stay above the blank-page/error inset-0 z-10 overlays.
 		<div className="relative z-20 flex shrink-0 items-center gap-2 border-b border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-foreground/90">
 			<Select value={state.deviceId} onValueChange={onSetDevice}>
-				<SelectTrigger size="sm" className="h-6 gap-1.5 px-2 text-xs">
+				<SelectTrigger
+					size="sm"
+					className="h-[var(--btn-h-sm)] gap-1.5 px-2 text-xs"
+				>
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

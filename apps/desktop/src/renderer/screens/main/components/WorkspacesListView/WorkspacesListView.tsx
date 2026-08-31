@@ -184,7 +184,7 @@ export function WorkspacesListView() {
 			{/* Header */}
 			<div className="flex items-center gap-3 px-4 py-2 border-b border-border/50">
 				{/* Filter toggle */}
-				<div className="flex items-center gap-1 bg-background/50 rounded-md p-0.5">
+				<div className="flex items-center gap-1 bg-background/50 rounded p-0.5">
 					{FILTER_OPTIONS.map((option) => {
 						const count =
 							option.value === "all"
@@ -198,7 +198,7 @@ export function WorkspacesListView() {
 								type="button"
 								onClick={() => setFilterMode(option.value)}
 								className={cn(
-									"px-2 py-1 text-xs rounded-md transition-colors",
+									"px-2 py-1 text-xs rounded transition-colors",
 									filterMode === option.value
 										? "bg-accent text-foreground"
 										: "text-foreground/60 hover:text-foreground",
@@ -219,7 +219,7 @@ export function WorkspacesListView() {
 						placeholder="Search..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9 h-8 bg-background/50"
+						className="pl-9 h-[var(--input-h)] bg-background/50"
 					/>
 				</div>
 
@@ -239,7 +239,7 @@ export function WorkspacesListView() {
 				{projectGroups.map((group) => (
 					<div key={group.projectId}>
 						{/* Project header */}
-						<div className="sticky top-0 bg-card/95 backdrop-blur-sm px-4 py-2 border-b border-border/50">
+						<div className="sticky top-0 bg-card/95 backdrop-blur-sm px-4 py-2 border-b border-border-variant">
 							<span className="text-xs font-medium text-foreground/70">
 								{group.projectName}
 							</span>

@@ -32,10 +32,10 @@ export function DiffSectionBar({ kind, count }: DiffSectionBarProps) {
 			aria-live="polite"
 			className="flex shrink-0 items-center gap-2 border-border border-b bg-muted/40 px-4 py-1.5"
 		>
-			<span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wider">
+			<span className="font-medium text-xs text-muted-foreground uppercase tracking-wider">
 				{i18n._(GROUP_TITLES[kind])}
 			</span>
-			<span className="text-[11px] text-muted-foreground/60 tabular-nums">
+			<span className="text-xs text-muted-foreground/60 tabular-nums">
 				{count}
 			</span>
 		</div>

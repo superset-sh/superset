@@ -108,7 +108,7 @@ export function DownloadsDialog({ open, onOpenChange }: DownloadsDialogProps) {
 							{rows.map((row) => (
 								<div
 									key={row.id}
-									className="flex w-full min-w-0 items-center gap-2.5 rounded-md px-2 py-2 text-sm"
+									className="flex w-full min-w-0 items-center gap-2.5 rounded px-2 py-2 text-sm"
 								>
 									<button
 										type="button"

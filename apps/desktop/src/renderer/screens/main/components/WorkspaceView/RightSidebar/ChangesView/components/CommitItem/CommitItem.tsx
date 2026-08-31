@@ -95,7 +95,7 @@ export function CommitItem({
 			isExpanded={isExpanded}
 			onToggle={() => onToggle()}
 			triggerClassName="mx-0.5"
-			contentClassName="ml-4 pl-1.5 border-l border-border mt-0.5 mb-0.5"
+			contentClassName="ml-4 pl-1.5 border-l border-border-variant mt-0.5 mb-0.5"
 			header={
 				<CommitHeader
 					hash={commit.hash}

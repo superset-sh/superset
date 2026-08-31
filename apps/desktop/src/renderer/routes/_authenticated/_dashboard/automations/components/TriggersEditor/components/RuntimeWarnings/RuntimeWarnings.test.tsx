@@ -64,7 +64,7 @@ describe("standing warnings", () => {
 	test("read as a caution rather than an error", async () => {
 		const { container } = await warnings(["a warning"]);
 		const line = container.querySelector("p");
-		expect(line?.className).toContain("amber");
+		expect(line?.className).toContain("warning");
 		expect(line?.className).not.toContain("destructive");
 	});
 

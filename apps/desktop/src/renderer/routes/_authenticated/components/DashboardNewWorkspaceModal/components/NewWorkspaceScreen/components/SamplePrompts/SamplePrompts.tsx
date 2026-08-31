@@ -27,7 +27,7 @@ export function SamplePrompts({
 				<button
 					key={sample.id}
 					type="button"
-					className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+					className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
 					onClick={() => {
 						track("new_workspace_sample_prompt_clicked", {
 							prompt_id: sample.id,

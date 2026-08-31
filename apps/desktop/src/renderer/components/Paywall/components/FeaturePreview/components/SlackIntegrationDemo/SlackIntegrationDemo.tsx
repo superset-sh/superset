@@ -50,8 +50,8 @@ export function SlackIntegrationDemo() {
 						</div>
 					))}
 
-					<div className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
-						<div className="flex items-center gap-2 text-emerald-300 text-xs">
+					<div className="rounded-md border border-success/20 bg-success/10 px-3 py-2">
+						<div className="flex items-center gap-2 text-success text-xs">
 							<HiCheck className="size-3.5" />
 							<span className="font-medium">
 								<Trans id="components.slackIntegrationDemo.taskSynced">

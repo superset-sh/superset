@@ -74,7 +74,7 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 	return (
 		<div
 			className={cn(
-				"group/port relative rounded-md transition-colors hover:bg-fill-hover",
+				"group/port relative rounded transition-colors hover:bg-fill-hover",
 				isPending && "opacity-60",
 			)}
 		>
@@ -82,7 +82,7 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 				type="button"
 				onClick={handleOpen}
 				disabled={isPending}
-				className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 rounded-md px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+				className="grid w-full grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-2 rounded px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			>
 				<span className="font-medium font-mono text-foreground text-xs tabular-nums">
 					:{port.port}
@@ -99,7 +99,7 @@ export function TopBarPortRow({ port, onNavigate }: TopBarPortRowProps) {
 					<PortForwardBusyActions forward={forward} />
 				</div>
 			)}
-			<div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-px rounded-md border border-border bg-popover/95 p-px opacity-0 transition-opacity focus-within:opacity-100 group-hover/port:opacity-100">
+			<div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-px rounded border border-border bg-popover/95 p-px opacity-0 transition-opacity focus-within:opacity-100 group-hover/port:opacity-100">
 				{canOpenInBrowser && (
 					<button
 						type="button"

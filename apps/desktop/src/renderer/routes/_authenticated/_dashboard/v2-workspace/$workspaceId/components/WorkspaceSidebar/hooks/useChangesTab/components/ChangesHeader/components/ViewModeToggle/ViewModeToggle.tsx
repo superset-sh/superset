@@ -30,7 +30,7 @@ export function ViewModeToggle({ viewMode, onChange }: ViewModeToggleProps) {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="size-7 text-muted-foreground hover:text-foreground"
+					className="size-[var(--btn-h-default)] text-muted-foreground hover:text-foreground"
 					onClick={() => onChange(next)}
 					aria-label={label}
 				>

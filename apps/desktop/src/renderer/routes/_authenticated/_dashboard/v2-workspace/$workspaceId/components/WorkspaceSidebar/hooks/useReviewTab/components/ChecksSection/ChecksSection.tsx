@@ -158,7 +158,7 @@ function CheckRow({
 		/\/job\/\d+/.test(check.url);
 
 	const rowContent = (
-		<div className="flex min-w-0 flex-1 items-center gap-1 rounded-sm px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
+		<div className="flex min-w-0 flex-1 items-center gap-1 rounded px-1.5 py-1 text-xs transition-colors hover:bg-accent/50">
 			<CheckIcon
 				className={cn(
 					"size-3 shrink-0",
@@ -258,11 +258,11 @@ function CopyLogsButton({
 				message: "Copy job logs to clipboard",
 			})}
 			className={cn(
-				"shrink-0 rounded-sm p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground",
+				"shrink-0 rounded p-0.5 text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground",
 				"opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
 				state !== "idle" && "opacity-100",
-				state === "copied" && "text-emerald-600 dark:text-emerald-400",
-				state === "error" && "text-red-600 dark:text-red-400",
+				state === "copied" && "text-success",
+				state === "error" && "text-destructive",
 			)}
 		>
 			<Icon className={cn("size-3", state === "loading" && "animate-spin")} />

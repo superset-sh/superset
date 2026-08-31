@@ -339,7 +339,7 @@ export function HistoryDropdown() {
 					<button
 						type="button"
 						disabled
-						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground opacity-30"
+						className="no-drag flex items-center justify-center size-7 rounded text-muted-foreground opacity-30"
 					>
 						<LuHistory className="size-3.5" strokeWidth={1.5} />
 					</button>
@@ -360,7 +360,7 @@ export function HistoryDropdown() {
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+							className="no-drag flex items-center justify-center size-7 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
 						>
 							<LuHistory className="size-3.5" strokeWidth={1.5} />
 						</button>

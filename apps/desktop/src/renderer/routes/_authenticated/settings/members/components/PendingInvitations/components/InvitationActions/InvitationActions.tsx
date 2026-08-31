@@ -53,7 +53,11 @@ export function InvitationActions({ invitation }: InvitationActionsProps) {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="icon" className="h-8 w-8">
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-[var(--btn-h-lg)] w-[var(--btn-h-lg)]"
+				>
 					<HiEllipsisVertical className="h-4 w-4" />
 				</Button>
 			</DropdownMenuTrigger>

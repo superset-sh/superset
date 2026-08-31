@@ -48,7 +48,7 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 						id: "dashboard.pullRequests.reviewFilter.triggerAria",
 						message: `Reviews: ${label}`,
 					})}
-					className="h-8 max-w-52 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+					className="h-[var(--btn-h-lg)] max-w-52 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineChatBubbleLeftRight className="size-4 shrink-0" />
 					<span className="truncate text-sm">{label}</span>
@@ -87,7 +87,7 @@ export function ReviewFilter({ value, onChange }: ReviewFilterProps) {
 						return (
 							<label
 								key={option.value ?? "all"}
-								className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-2 text-left text-sm hover:bg-accent focus-within:ring-1 focus-within:ring-ring"
+								className="flex w-full cursor-pointer items-center gap-2 rounded px-2 py-2 text-left text-sm hover:bg-accent focus-within:ring-1 focus-within:ring-ring"
 							>
 								<input
 									type="radio"

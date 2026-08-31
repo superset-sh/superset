@@ -628,7 +628,7 @@ export function V2PresetsSection({
 
 	return (
 		<div>
-			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+			<div className="rounded-lg border border-border overflow-hidden divide-y divide-border-variant">
 				<div className="flex items-start justify-between gap-3 p-4">
 					<div className="min-w-0">
 						<h3 className="text-sm font-medium">

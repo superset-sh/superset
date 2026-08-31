@@ -62,7 +62,7 @@ export function TextFilterChip({
 					onKeyDown={(event) => {
 						if (event.key === "Enter") setOpen(false);
 					}}
-					className="h-8 text-[13px]"
+					className="h-[var(--input-h)] text-sm"
 				/>
 			</PopoverContent>
 		</Popover>

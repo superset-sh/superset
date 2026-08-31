@@ -25,7 +25,7 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
 				id: "dashboard.newWorkspaceModal.attachmentCard.removeAttachment",
 				message: "Remove attachment",
 			})}
-			className="absolute top-1 right-1 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+			className="absolute top-1 right-1 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
 			onClick={onClick}
 		>
 			<XIcon className="size-3" />

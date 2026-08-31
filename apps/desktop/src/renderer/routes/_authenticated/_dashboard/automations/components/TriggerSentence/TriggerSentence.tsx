@@ -85,7 +85,7 @@ export function TriggerSentence({
 	return (
 		// select-text: the renderer body sets user-select: none, and the
 		// sentence is prose that opts back in.
-		<div className="group flex min-h-10 select-text flex-wrap items-center gap-1.5 rounded-[8px] px-2 py-1.5 hover:bg-foreground/[0.03]">
+		<div className="group flex min-h-10 select-text flex-wrap items-center gap-1.5 rounded px-2 py-1.5 hover:bg-grayAlpha-100">
 			{/* mr-1.5 on top of the row's gap-1.5 puts 12px after the icon. Wider
 			    than the row's own 8px inset on purpose: the brand glyphs do not
 			    fill their 16px box, so a gap that measures even reads tight. */}
@@ -93,12 +93,8 @@ export function TriggerSentence({
 
 			{requiresConnection ? (
 				<>
-					<span className="text-[13px]">
-						{triggerEventLabel(provider, config)}
-					</span>
-					<span className="text-[13px] text-amber-500">
-						Requires connection
-					</span>
+					<span className="text-sm">{triggerEventLabel(provider, config)}</span>
+					<span className="text-sm text-warning">Requires connection</span>
 					{removeButton}
 					{webPath && (
 						<Button
@@ -108,7 +104,7 @@ export function TriggerSentence({
 							onClick={() =>
 								window.open(`${env.NEXT_PUBLIC_WEB_URL}${webPath}`, "_blank")
 							}
-							className="h-7 shrink-0 gap-1 border-amber-500/40 bg-amber-500/10 px-2.5 text-amber-700 text-xs hover:bg-amber-500/20 dark:text-amber-400"
+							className="h-[var(--btn-h-default)] shrink-0 gap-1 border-warning/40 bg-warning/10 px-2.5 text-warning text-xs hover:bg-warning/20"
 						>
 							Connect
 							<LuArrowUpRight className="size-3.5" />

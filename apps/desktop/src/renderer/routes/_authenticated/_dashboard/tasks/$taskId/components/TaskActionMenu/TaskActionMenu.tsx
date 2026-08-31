@@ -53,7 +53,7 @@ export function TaskActionMenu({ task, onDelete }: TaskActionMenuProps) {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-8 w-8"
+					className="size-[var(--btn-h-lg)]"
 					aria-label={t({
 						id: "dashboard.tasks.taskActionMenu.openActions",
 						message: "Open task actions",

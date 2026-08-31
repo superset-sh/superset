@@ -165,7 +165,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 			<div className="flex flex-wrap items-center gap-2">
 				<Link
 					to="/settings/usage"
-					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+					className="flex items-center gap-1 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 				>
 					<LuArrowLeft className="size-3" />
 					<Trans id="settings.usage.workspacesPage.backToUsage">Usage</Trans>
@@ -187,7 +187,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 						value={metric}
 						onValueChange={(value) => setMetric(value as HistoryMetric)}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							<TabsTrigger value="usd" className="h-4 px-1.5 text-[10px]">
 								<Trans id="settings.usage.workspacesPage.metricCost">
 									Cost
@@ -204,7 +204,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 						value={String(days)}
 						onValueChange={(value) => setDays(Number(value))}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							{RANGE_OPTIONS.map((option) => (
 								<TabsTrigger
 									key={option}
@@ -227,7 +227,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 						if (value === "projects") setGroupFilter(null);
 					}}
 				>
-					<TabsList className="h-6">
+					<TabsList className="h-[var(--btn-h-sm)]">
 						<TabsTrigger value="workspaces" className="h-4 px-1.5 text-[10px]">
 							<Trans id="settings.usage.workspacesPage.viewWorkspaces">
 								Workspaces
@@ -254,14 +254,14 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 									message: "Filter workspaces…",
 								})
 					}
-					className="h-6 w-56 px-2 text-[11px]"
+					className="h-[var(--btn-h-sm)] w-56 px-2 text-[11px]"
 				/>
 				{view === "workspaces" && (
 					<Tabs
 						value={kind}
 						onValueChange={(value) => setKind(value as KindFilter)}
 					>
-						<TabsList className="h-6">
+						<TabsList className="h-[var(--btn-h-sm)]">
 							{KIND_FILTERS.map((option) => (
 								<TabsTrigger
 									key={option.value}
@@ -346,7 +346,7 @@ export function UsageWorkspacesPage({ hostUrl }: { hostUrl: string | null }) {
 								setQuery("");
 								setView("workspaces");
 							}}
-							className="flex flex-col gap-0.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/60"
+							className="flex flex-col gap-0.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-fill-hover"
 						>
 							<div className="flex items-baseline justify-between gap-3 text-[11px]">
 								<span

@@ -236,7 +236,7 @@ export function GitHubIssueLinkCommand({
 											key={issue.issueNumber}
 											value={`${issue.issueNumber}-${issue.title}`}
 											onSelect={() => handleSelect(issue)}
-											className="group items-start gap-3 rounded-md px-2.5 py-2"
+											className="group items-start gap-3 rounded px-2.5 py-2"
 										>
 											<IssueIcon
 												state={state}

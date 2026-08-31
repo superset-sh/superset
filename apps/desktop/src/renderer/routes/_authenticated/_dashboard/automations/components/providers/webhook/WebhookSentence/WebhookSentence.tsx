@@ -91,9 +91,7 @@ export function WebhookSentence({ triggerId, disabled }: WebhookSentenceProps) {
 
 	return (
 		<>
-			<span className="text-[13px] text-muted-foreground">
-				Webhook triggered
-			</span>
+			<span className="text-sm text-muted-foreground">Webhook triggered</span>
 			<EndpointChip url={url} />
 			<Tooltip>
 				<TooltipTrigger asChild>

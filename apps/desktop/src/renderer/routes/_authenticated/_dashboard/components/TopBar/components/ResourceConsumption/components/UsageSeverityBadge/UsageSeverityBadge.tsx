@@ -26,7 +26,7 @@ export function UsageSeverityBadge({ severity }: UsageSeverityBadgeProps) {
 			}
 			className={cn(
 				"h-1.5 w-1.5 shrink-0 rounded-full",
-				severity === "high" ? "bg-red-500" : "bg-amber-500",
+				severity === "high" ? "bg-destructive" : "bg-warning",
 			)}
 		/>
 	);

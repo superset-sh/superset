@@ -37,7 +37,7 @@ export function HostSelect({
 		<Select value={value} onValueChange={onValueChange}>
 			<SelectTrigger
 				size="sm"
-				className={`h-8 gap-1.5 px-2 text-foreground ${className ?? ""}`}
+				className={`h-[var(--input-h)] gap-1.5 px-2 text-foreground ${className ?? ""}`}
 			>
 				<SelectValue>
 					<span className="flex items-center gap-1.5">
@@ -65,7 +65,7 @@ export function HostSelect({
 								}
 								className={
 									selected.isOnline
-										? "size-1.5 shrink-0 rounded-full bg-emerald-500"
+										? "size-1.5 shrink-0 rounded-full bg-success"
 										: "size-1.5 shrink-0 rounded-full bg-muted-foreground/60"
 								}
 							/>

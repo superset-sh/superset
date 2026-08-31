@@ -69,7 +69,7 @@ export function PageTitleMenu({
 					className={cn(
 						"min-w-0",
 						compact
-							? "-ml-1 h-5 gap-1 px-1 font-[inherit] text-xs"
+							? "-ml-1 h-[var(--btn-h-xs)] gap-1 px-1 font-[inherit] text-xs"
 							: "gap-1.5 font-medium text-sm",
 					)}
 				>

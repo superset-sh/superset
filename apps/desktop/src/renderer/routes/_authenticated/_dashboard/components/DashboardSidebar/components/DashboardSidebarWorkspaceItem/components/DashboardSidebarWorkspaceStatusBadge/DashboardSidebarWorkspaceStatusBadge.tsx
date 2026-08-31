@@ -28,20 +28,20 @@ export function DashboardSidebarWorkspaceStatusBadge({
 		open: {
 			icon: (
 				<LuGitPullRequest
-					className={cn(iconClass, "text-emerald-500")}
+					className={cn(iconClass, "text-success")}
 					strokeWidth={1.75}
 				/>
 			),
-			bgColor: "bg-emerald-500/10",
+			bgColor: "bg-success/10",
 		},
 		merged: {
 			icon: (
 				<LuGitMerge
-					className={cn(iconClass, "text-purple-500")}
+					className={cn(iconClass, "text-status-1")}
 					strokeWidth={1.75}
 				/>
 			),
-			bgColor: "bg-purple-500/10",
+			bgColor: "bg-status-1/10",
 		},
 		closed: {
 			icon: (
@@ -64,11 +64,11 @@ export function DashboardSidebarWorkspaceStatusBadge({
 		queued: {
 			icon: (
 				<LuListChecks
-					className={cn(iconClass, "text-amber-500")}
+					className={cn(iconClass, "text-warning")}
 					strokeWidth={1.75}
 				/>
 			),
-			bgColor: "bg-amber-500/10",
+			bgColor: "bg-warning/10",
 		},
 	};
 
@@ -87,7 +87,7 @@ export function DashboardSidebarWorkspaceStatusBadge({
 			onClick={handleClick}
 			disabled={!isClickable}
 			className={cn(
-				"flex items-center justify-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] leading-none shrink-0 transition-colors",
+				"flex items-center justify-center gap-1 rounded px-1.5 py-0.5 text-[10px] leading-none shrink-0 transition-colors",
 				bgColor,
 				isClickable && "cursor-pointer hover:opacity-80",
 				!isClickable && "cursor-default",

@@ -48,7 +48,7 @@ export function TriggersCard({
 	// directly above them. Passed per call site, so the pickers keep their own
 	// look everywhere else they are used.
 	const SCOPE_CHIP =
-		"h-6 gap-1 rounded-[6px] bg-foreground/[0.06] px-2 text-[13px] font-normal hover:bg-foreground/10";
+		"h-[var(--btn-h-sm)] gap-1 rounded bg-grayAlpha-100 px-2 text-sm font-normal hover:bg-grayAlpha-200";
 
 	// Computed from the rule on screen, never the dispatcher's persisted
 	// nextRunAt: that value lags behind edits, goes stale while paused, and
@@ -95,7 +95,7 @@ export function TriggersCard({
 				renderNextRun={renderNextRun}
 				readOnly={readOnly}
 			>
-				<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
+				<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-sm text-muted-foreground">
 					<span>in</span>
 					<ProjectPicker
 						className={SCOPE_CHIP}

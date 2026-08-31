@@ -180,7 +180,7 @@ export function ChatHistorySidebar({
 					<motion.div
 						ref={safeTriangle.setCardElement}
 						onPointerEnter={safeTriangle.cardPointerEnter}
-						className="absolute left-full z-50 w-80 -translate-y-1/2 overflow-hidden rounded-xl bg-popover/95 p-2 text-sm leading-5 text-popover-foreground shadow-xl ring-[0.5px] ring-border backdrop-blur-sm"
+						className="absolute left-full z-50 w-80 -translate-y-1/2 overflow-hidden rounded bg-popover/95 p-2 text-sm leading-5 text-popover-foreground shadow-xl ring-[0.5px] ring-border backdrop-blur-sm"
 						initial={{ opacity: 0, top: hovered.top }}
 						animate={{ opacity: 1, top: hovered.top }}
 						exit={{ opacity: 0, pointerEvents: "none" }}

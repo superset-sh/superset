@@ -181,7 +181,7 @@ function SignInPage() {
 					<div className="flex flex-col gap-3 w-full max-w-xs">
 						{env.NODE_ENV === "development" && (
 							<Button
-								variant="outline"
+								variant="secondary"
 								size="lg"
 								onClick={signInAsDev}
 								className="w-full gap-3"
@@ -199,7 +199,7 @@ function SignInPage() {
 							</p>
 						)}
 						<Button
-							variant="outline"
+							variant="secondary"
 							size="lg"
 							onClick={() => signIn("github")}
 							className="w-full gap-3"
@@ -213,7 +213,7 @@ function SignInPage() {
 						</Button>
 
 						<Button
-							variant="outline"
+							variant="secondary"
 							size="lg"
 							onClick={() => signIn("google")}
 							className="w-full gap-3"

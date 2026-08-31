@@ -60,7 +60,7 @@ export function WorktreeLocationPicker({
 			</div>
 			<div className="flex items-center gap-2">
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={handleBrowse}
 					disabled={disabled || selectDirectory.isPending}
@@ -71,7 +71,7 @@ export function WorktreeLocationPicker({
 				</Button>
 				{currentPath && (
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={onReset}
 						disabled={disabled}

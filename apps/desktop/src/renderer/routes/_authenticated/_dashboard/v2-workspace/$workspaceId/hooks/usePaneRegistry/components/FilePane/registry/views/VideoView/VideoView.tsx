@@ -37,7 +37,7 @@ export function VideoView({ document, filePath }: ViewProps) {
 				src={source.url}
 				controls
 				preload="metadata"
-				className="max-h-full max-w-full rounded-md bg-black"
+				className="max-h-full max-w-full rounded bg-black"
 				aria-label={getBaseName(filePath)}
 			>
 				<track kind="captions" />

@@ -8,7 +8,7 @@ export function ReadOnlySafeImageView({ node }: NodeViewProps) {
 
 	return (
 		<NodeViewWrapper as="div" className="my-4">
-			<SafeImage src={src} alt={alt} className="max-w-full h-auto rounded-md" />
+			<SafeImage src={src} alt={alt} className="max-w-full h-auto rounded" />
 		</NodeViewWrapper>
 	);
 }

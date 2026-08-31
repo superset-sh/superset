@@ -44,7 +44,7 @@ export function MemberRow({
 							onSetRole(member, value as "owner" | "member")
 						}
 					>
-						<SelectTrigger className="h-8">
+						<SelectTrigger className="h-[var(--input-h)]">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>

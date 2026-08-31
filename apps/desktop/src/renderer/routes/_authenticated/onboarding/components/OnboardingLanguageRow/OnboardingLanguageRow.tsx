@@ -40,7 +40,7 @@ export function OnboardingLanguageRow() {
 
 	return (
 		<div className="flex items-center gap-4 py-7 first:pt-0 last:pb-0">
-			<div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+			<div className="flex size-9 shrink-0 items-center justify-center rounded bg-muted text-foreground">
 				<HiOutlineLanguage className="size-4" />
 			</div>
 			<div className="min-w-0 flex-1">

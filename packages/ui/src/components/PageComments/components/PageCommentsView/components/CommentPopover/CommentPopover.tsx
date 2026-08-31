@@ -139,7 +139,7 @@ export function CommentPopover({
 			ref={cardRef}
 			data-comment-ui=""
 			style={{ transform: `translate(${left}px, ${top}px)`, width }}
-			className="pointer-events-auto absolute top-0 left-0 overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg"
+			className="border-border pointer-events-auto absolute top-0 left-0 overflow-hidden rounded border bg-popover text-popover-foreground shadow-lg"
 		>
 			{thread ? (
 				<div className="flex max-h-72 flex-col overflow-y-auto">
@@ -233,7 +233,7 @@ export function CommentPopover({
 									<Textarea
 										value={editValue}
 										onChange={(event) => setEditValue(event.target.value)}
-										className="min-h-16 resize-none rounded-[13px] border-[0.5px] bg-foreground/[0.02] p-2.5 text-sm shadow-none focus-visible:ring-0 dark:bg-foreground/[0.02]"
+										className="min-h-16 resize-none rounded border-[0.5px] bg-foreground/[0.02] p-2.5 text-sm shadow-none focus-visible:ring-0 dark:bg-foreground/[0.02]"
 									/>
 									<div className="flex gap-2">
 										<Button
@@ -270,7 +270,12 @@ export function CommentPopover({
 				</div>
 			) : null}
 
-			<div className={cn("flex flex-col", thread && "border-t")}>
+			<div
+				className={cn(
+					"flex flex-col",
+					thread && "border-t border-t-border-variant",
+				)}
+			>
 				<Textarea
 					ref={inputRef}
 					value={value}
@@ -306,7 +311,7 @@ export function CommentPopover({
 						</span>
 						<Button
 							size="icon"
-							className="ml-auto size-8 rounded-lg"
+							className="ml-auto h-[var(--btn-h-lg)] w-[var(--btn-h-lg)] rounded"
 							onClick={submit}
 							aria-label={
 								thread
@@ -351,7 +356,7 @@ function IconButton({
 			title={label}
 			onClick={onClick}
 			disabled={disabled}
-			className="size-6 text-muted-foreground hover:text-foreground"
+			className="h-[var(--btn-h-sm)] w-[var(--btn-h-sm)] text-muted-foreground hover:text-foreground"
 		>
 			{children}
 		</Button>

@@ -226,7 +226,7 @@ export function ImportProjectsPage({
 				void importAll();
 			}}
 			disabled={isImportingAll || isLoading || pendingProjects.length === 0}
-			className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium tabular-nums"
+			className="h-[var(--btn-h-default)] shrink-0 gap-1.5 px-2.5 text-xs font-medium tabular-nums"
 		>
 			{importAllProgress && <Spinner className="size-3" />}
 			{importAllProgress

@@ -32,7 +32,7 @@ export function RemoteAccessDemo() {
 						</div>
 						<div className="flex items-center gap-1">
 							<div className="w-6 h-px bg-foreground/20" />
-							<HiOutlineSignal className="size-4 text-pink-400 animate-pulse" />
+							<HiOutlineSignal className="size-4 text-status-1 animate-pulse" />
 							<div className="w-6 h-px bg-foreground/20" />
 						</div>
 						<div className="flex flex-col items-center gap-1.5">
@@ -52,7 +52,7 @@ export function RemoteAccessDemo() {
 									Tunnel established
 								</Trans>
 							</span>
-							<span className="text-emerald-400 text-[10px]">
+							<span className="text-success text-[10px]">
 								<Trans id="components.remoteAccessDemo.live">live</Trans>
 							</span>
 						</div>

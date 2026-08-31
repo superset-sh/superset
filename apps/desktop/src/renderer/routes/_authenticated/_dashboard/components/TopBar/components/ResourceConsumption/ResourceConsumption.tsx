@@ -176,9 +176,9 @@ function ResourceConsumptionContent({
 
 	return (
 		<PopoverContent align="start" className="w-[28rem] p-0 overflow-hidden">
-			<div className="px-3.5 pt-3 pb-3 border-b border-border/60">
+			<div className="px-3.5 pt-3 pb-3 border-b border-border-variant">
 				<div className="flex items-center justify-between">
-					<h4 className="text-[13px] font-medium tracking-tight text-foreground">
+					<h4 className="text-sm font-medium tracking-tight text-foreground">
 						<Trans id="dashboard.topBar.resources.title">Resources</Trans>
 					</h4>
 					<div className="flex items-center gap-0.5">
@@ -186,7 +186,7 @@ function ResourceConsumptionContent({
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
-									className="flex items-center gap-1 h-6 px-1.5 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
+									className="flex items-center gap-1 h-[var(--btn-h-sm)] px-1.5 rounded text-[11px] text-muted-foreground hover:text-foreground hover:bg-grayAlpha-100 transition-colors"
 									aria-label={t({
 										id: "dashboard.topBar.resources.sortWorkspaces",
 										message: "Sort workspaces",
@@ -223,7 +223,7 @@ function ResourceConsumptionContent({
 						<button
 							type="button"
 							onClick={() => refetch()}
-							className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors"
+							className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-grayAlpha-100 transition-colors"
 							aria-label={t({
 								id: "dashboard.topBar.resources.refreshMetrics",
 								message: "Refresh metrics",

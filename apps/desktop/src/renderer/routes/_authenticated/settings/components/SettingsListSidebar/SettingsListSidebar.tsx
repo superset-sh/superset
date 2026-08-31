@@ -66,7 +66,7 @@ export function SettingsListSidebar<T>({
 								placeholder={searchPlaceholder}
 								value={filter}
 								onChange={(e) => setFilter(e.target.value)}
-								className="w-full h-8 pl-8 pr-2 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+								className="w-full h-[var(--input-h)] pl-8 pr-2 text-sm bg-input rounded border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
 							/>
 						</div>
 						{toolbar}
@@ -105,7 +105,7 @@ export function SettingsListSidebar<T>({
 
 export function settingsListItemClass(isActive: boolean, extra?: string) {
 	return cn(
-		"flex h-7 items-center px-2 text-[13px] rounded-md transition-colors",
+		"flex h-[var(--btn-h-default)] items-center px-2 text-sm rounded transition-colors",
 		isActive
 			? "bg-fill-selected"
 			: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",

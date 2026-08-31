@@ -252,7 +252,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 							})}
 						>
 							<Button
-								variant="outline"
+								variant="ghost"
 								onClick={async () => {
 									await signOut();
 									toast.success(

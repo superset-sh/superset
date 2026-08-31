@@ -64,7 +64,7 @@ function PermissionRow({
 			</div>
 			<div className="flex items-center gap-3 shrink-0">
 				<StatusBadge granted={granted} />
-				<Button variant="outline" size="sm" onClick={onRequest}>
+				<Button variant="ghost" size="sm" onClick={onRequest}>
 					<LuExternalLink className="h-3.5 w-3.5 mr-1.5" />
 					<Trans id="settings.permissions.openSettings">Open settings</Trans>
 				</Button>

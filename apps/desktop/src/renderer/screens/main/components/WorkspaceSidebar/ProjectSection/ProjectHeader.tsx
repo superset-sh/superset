@@ -186,7 +186,7 @@ export function ProjectHeader({
 									type="button"
 									onClick={onToggleCollapse}
 									className={cn(
-										"flex items-center justify-center size-8 rounded-md",
+										"flex items-center justify-center size-8 rounded",
 										"hover:bg-fill-hover transition-colors",
 									)}
 								>
@@ -281,7 +281,7 @@ export function ProjectHeader({
 									onChange={rename.setRenameValue}
 									onSubmit={rename.submitRename}
 									onCancel={rename.cancelRename}
-									className="h-6 px-1 py-0 text-sm -ml-1 font-medium bg-transparent border-none outline-none flex-1 min-w-0"
+									className="h-[var(--btn-h-sm)] px-1 py-0 text-sm -ml-1 font-medium bg-transparent border-none outline-none flex-1 min-w-0"
 								/>
 							</div>
 						) : (

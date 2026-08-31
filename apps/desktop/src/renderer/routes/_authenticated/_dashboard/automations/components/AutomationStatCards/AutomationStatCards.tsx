@@ -81,7 +81,7 @@ export function AutomationStatCards({
 					"transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
 					(canFilterFailed || failedFilter) &&
 						"cursor-pointer hover:bg-accent/40",
-					failedFilter && "border-red-500/40 bg-red-500/5",
+					failedFilter && "border-destructive/40 bg-destructive/5",
 				)}
 			>
 				<p className={LABEL}>
@@ -89,7 +89,7 @@ export function AutomationStatCards({
 						Failed <span className="text-muted-foreground/60">· 7d</span>
 					</Trans>
 					{failedFilter && (
-						<span className="ml-1.5 text-red-600 dark:text-red-400">
+						<span className="ml-1.5 text-destructive">
 							<Trans id="dashboard.automations.statCards.filtering">
 								filtering
 							</Trans>

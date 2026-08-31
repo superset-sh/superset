@@ -83,7 +83,7 @@ export function FileTreeToolbar({
 					placeholder="Search files..."
 					value={localSearchTerm}
 					onChange={handleSearchChange}
-					className="h-7 text-xs pr-7"
+					className="h-[var(--input-h)] text-xs pr-7"
 				/>
 				{localSearchTerm && (
 					<button

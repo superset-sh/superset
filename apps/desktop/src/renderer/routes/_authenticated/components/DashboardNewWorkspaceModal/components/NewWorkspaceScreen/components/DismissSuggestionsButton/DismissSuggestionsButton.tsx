@@ -23,7 +23,7 @@ export function DismissSuggestionsButton({
 				message: "Dismiss suggestions",
 			})}
 			onClick={onDismiss}
-			className="absolute -top-2 right-0 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-border bg-popover text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+			className="absolute -top-2 right-0 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full border-[0.5px] border-border bg-popover text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
 		>
 			<XIcon className="size-3" />
 		</button>

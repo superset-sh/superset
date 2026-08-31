@@ -55,7 +55,7 @@ function BoardCardBody({
 			onClick={onOpen}
 			disabled={isArchived}
 			className={cn(
-				"w-full rounded-md border border-border/60 bg-card px-3 py-2.5 text-left transition-colors",
+				"w-full rounded border border-border/60 bg-card px-3 py-2.5 text-left transition-colors",
 				isArchived
 					? "cursor-default opacity-60"
 					: "cursor-pointer hover:bg-accent/30",
@@ -99,7 +99,7 @@ function BoardCardBody({
 
 			<div className="mt-1.5 flex items-center gap-1.5">
 				{workspace.pr ? (
-					<span className="flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+					<span className="flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">
 						<PRIcon state={workspace.pr.state} className="size-3" />#
 						{workspace.pr.prNumber}
 						<WorkspaceChecksDot

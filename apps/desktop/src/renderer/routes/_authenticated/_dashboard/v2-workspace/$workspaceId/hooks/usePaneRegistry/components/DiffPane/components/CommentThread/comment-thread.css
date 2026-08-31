@@ -29,7 +29,7 @@
 }
 
 .diff-comment-body {
-	font-size: 13px;
+	font-size: var(--size-text-sm);
 	line-height: 1.4;
 	color: var(--foreground);
 	overflow-wrap: anywhere;
@@ -97,7 +97,7 @@
 	font-family:
 		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
 		"Courier New", monospace;
-	font-size: 12px;
+	font-size: var(--size-text-xs);
 	padding: 0.5rem 0.6rem;
 	border-radius: 6px;
 	background: var(--muted);
@@ -145,15 +145,15 @@
 .diff-comment-body h6 {
 	font-weight: 600;
 	line-height: 1.3;
-	font-size: 13px;
+	font-size: var(--size-text-sm);
 }
 
 .diff-comment-body h1 {
-	font-size: 15px;
+	font-size: var(--size-text-md);
 }
 
 .diff-comment-body h2 {
-	font-size: 14px;
+	font-size: var(--size-text-base);
 }
 
 .diff-comment-body img,
@@ -207,7 +207,7 @@
 	border-collapse: collapse;
 	display: block;
 	overflow-x: auto;
-	font-size: 12px;
+	font-size: var(--size-text-xs);
 }
 
 .diff-comment-body th,

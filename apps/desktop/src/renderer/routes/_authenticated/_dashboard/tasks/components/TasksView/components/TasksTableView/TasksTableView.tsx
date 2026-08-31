@@ -129,7 +129,7 @@ export function TasksTableView({
 										role="button"
 										tabIndex={0}
 										className={cn(
-											"grid items-center gap-3 px-4 h-9 cursor-pointer border-b border-border/50 hover:bg-accent/50",
+											"grid items-center gap-3 px-4 h-[var(--btn-h-xl)] cursor-pointer border-b border-border-variant hover:bg-grayAlpha-100",
 											row.getIsSelected() && "bg-accent/30",
 										)}
 										style={{

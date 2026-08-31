@@ -61,7 +61,7 @@ export function ChangesToolbar({
 	const Icon = collapsed ? UnfoldVertical : FoldVertical;
 	return (
 		<>
-			<div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 pt-0.5 pb-1.5 text-[11px] text-muted-foreground">
+			<div className="flex min-w-0 items-center gap-2 overflow-hidden px-2 pt-0.5 pb-1.5 text-xs text-muted-foreground">
 				<CommitFilterDropdown
 					filter={filter}
 					onFilterChange={onFilterChange}
@@ -79,16 +79,16 @@ export function ChangesToolbar({
 				{(totalAdditions > 0 || totalDeletions > 0) && (
 					<span className="whitespace-nowrap">
 						{totalAdditions > 0 && (
-							<span className="text-green-400">+{totalAdditions}</span>
+							<span className="text-success">+{totalAdditions}</span>
 						)}
 						{totalAdditions > 0 && totalDeletions > 0 && " "}
 						{totalDeletions > 0 && (
-							<span className="text-red-400">-{totalDeletions}</span>
+							<span className="text-destructive">-{totalDeletions}</span>
 						)}
 					</span>
 				)}
 			</div>
-			<div className="flex h-10 items-center gap-1 bg-background px-2">
+			<div className="flex h-[var(--header-height)] items-center gap-1 bg-background px-2">
 				<div className="flex shrink-0 items-center gap-0.5">
 					<ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
 					<Tooltip>
@@ -96,7 +96,7 @@ export function ChangesToolbar({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 text-muted-foreground hover:text-foreground"
+								className="size-[var(--btn-h-default)] text-muted-foreground hover:text-foreground"
 								onClick={onRefresh}
 								disabled={isRefreshing}
 								aria-label={t({
@@ -120,7 +120,7 @@ export function ChangesToolbar({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 text-muted-foreground hover:text-foreground"
+								className="size-[var(--btn-h-default)] text-muted-foreground hover:text-foreground"
 								onClick={onToggleFold}
 								aria-label={label}
 							>

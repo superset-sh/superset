@@ -124,7 +124,7 @@ export function AddMemberButton({
 							id: "settings.teams.addMember.searchPlaceholder",
 							message: "Add team member...",
 						})}
-						className="h-8"
+						className="h-[var(--input-h)]"
 						autoFocus
 					/>
 				</div>
@@ -145,7 +145,7 @@ export function AddMemberButton({
 									key={user.id}
 									disabled={isPending}
 									onClick={() => toggleMembership(user, isMember)}
-									className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-md text-left text-sm hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
+									className="flex items-center gap-2.5 w-full px-2 py-1.5 rounded text-left text-sm hover:bg-accent disabled:opacity-60 disabled:cursor-not-allowed"
 								>
 									<Checkbox checked={isMember} aria-hidden tabIndex={-1} />
 									<Avatar
@@ -165,7 +165,7 @@ export function AddMemberButton({
 					<Link
 						to="/settings/organization"
 						onClick={() => setIsOpen(false)}
-						className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+						className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
 					>
 						<HiOutlinePaperAirplane className="h-4 w-4" />
 						<Trans id="settings.teams.addMember.invitePeople">

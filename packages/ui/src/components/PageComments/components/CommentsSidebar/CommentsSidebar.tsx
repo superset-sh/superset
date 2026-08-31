@@ -44,13 +44,15 @@ export function CommentsSidebar({
 	return (
 		<aside
 			className={cn(
-				"flex h-full w-[300px] shrink-0 flex-col border-l bg-background",
+				"border-border flex h-full w-[300px] shrink-0 flex-col border-l bg-background",
 				className,
 			)}
 		>
-			{header ? <div className="border-b p-3">{header}</div> : null}
+			{header ? (
+				<div className="border-b border-b-border-variant p-3">{header}</div>
+			) : null}
 
-			<div className="flex items-center gap-2 border-b px-3 py-2">
+			<div className="flex items-center gap-2 border-b border-b-border-variant px-3 py-2">
 				<MessageSquare className="size-3.5 text-muted-foreground" />
 				<span className="text-xs font-medium">
 					{openCount} open {openCount === 1 ? "comment" : "comments"}
@@ -59,7 +61,7 @@ export function CommentsSidebar({
 					<Button
 						size="sm"
 						variant="ghost"
-						className="ml-auto h-6 px-1.5 text-[11px]"
+						className="ml-auto h-[var(--btn-h-sm)] px-1.5 text-[11px]"
 						onClick={() => setShowResolved((value) => !value)}
 					>
 						{showResolved ? "Hide" : "Show"} resolved ({resolvedCount})

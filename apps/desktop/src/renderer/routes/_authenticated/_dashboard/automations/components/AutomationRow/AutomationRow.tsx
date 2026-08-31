@@ -57,21 +57,21 @@ const LAST_RUN_META: Record<
 	{ dot: string; label: MessageDescriptor; failed?: boolean }
 > = {
 	dispatched: {
-		dot: "bg-emerald-500",
+		dot: "bg-success",
 		label: msg({
 			id: "dashboard.automations.row.lastRunCreated",
 			message: "created",
 		}),
 	},
 	dispatching: {
-		dot: "bg-amber-500",
+		dot: "bg-warning",
 		label: msg({
 			id: "dashboard.automations.row.lastRunCreating",
 			message: "creating",
 		}),
 	},
 	skipped_offline: {
-		dot: "bg-red-500",
+		dot: "bg-destructive",
 		label: msg({
 			id: "dashboard.automations.row.lastRunFailedOffline",
 			message: "failed",
@@ -79,7 +79,7 @@ const LAST_RUN_META: Record<
 		failed: true,
 	},
 	dispatch_failed: {
-		dot: "bg-red-500",
+		dot: "bg-destructive",
 		label: msg({
 			id: "dashboard.automations.row.lastRunFailed",
 			message: "failed",
@@ -89,14 +89,14 @@ const LAST_RUN_META: Record<
 	// Neither created a workspace, so neither is `failed` — that flag offers to
 	// open one.
 	debounced: {
-		dot: "bg-slate-400",
+		dot: "bg-muted-foreground",
 		label: msg({
 			id: "dashboard.automations.row.lastRunSuperseded",
 			message: "superseded",
 		}),
 	},
 	rejected: {
-		dot: "bg-amber-500",
+		dot: "bg-warning",
 		label: msg({
 			id: "dashboard.automations.row.lastRunBlocked",
 			message: "blocked",
@@ -207,7 +207,7 @@ export function AutomationRow({
 							openDetail();
 						}
 					}}
-					className="group/row h-10 cursor-pointer border-border/50 text-sm outline-none transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
+					className="group/row h-10 cursor-pointer border-border-variant text-sm outline-none transition-colors hover:bg-grayAlpha-100 focus-visible:bg-grayAlpha-100 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
 				>
 					<TableCell className="pl-4">
 						<span className="flex min-w-0 items-center gap-2">
@@ -294,7 +294,7 @@ export function AutomationRow({
 									<span
 										className={cn(
 											"flex items-center gap-1.5",
-											lastRunMeta.failed && "text-red-600 dark:text-red-400",
+											lastRunMeta.failed && "text-destructive",
 										)}
 									>
 										<span

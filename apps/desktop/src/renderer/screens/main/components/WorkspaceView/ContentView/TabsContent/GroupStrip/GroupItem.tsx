@@ -213,7 +213,7 @@ export function GroupItem({
 						drag(drop(node));
 					}}
 					className={cn(
-						"group relative flex items-center shrink-0 h-full border-r border-border",
+						"group relative flex items-center shrink-0 h-full border-r border-border-variant",
 						isOver && canDrop && "bg-primary/5",
 						isDragging && "opacity-50 text-muted-foreground/50",
 					)}
@@ -264,7 +264,7 @@ export function GroupItem({
 												e.stopPropagation();
 												onClose();
 											}}
-											className="cursor-pointer size-6 hover:bg-muted"
+											className="cursor-pointer size-6 hover:bg-fill-hover"
 											aria-label="Close pane"
 										>
 											<HiMiniXMark className="size-4" />

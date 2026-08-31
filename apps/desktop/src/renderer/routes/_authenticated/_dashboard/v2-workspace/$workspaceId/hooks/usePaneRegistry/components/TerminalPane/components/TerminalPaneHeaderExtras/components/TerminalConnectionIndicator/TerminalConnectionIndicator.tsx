@@ -206,13 +206,13 @@ export function TerminalConnectionIndicator({
 					});
 	const StatusIcon = mode === "reconnecting" ? Loader2 : TriangleAlert;
 	const accentClass =
-		mode === "disconnected" ? "text-destructive" : "text-yellow-500";
+		mode === "disconnected" ? "text-destructive" : "text-warning";
 	const dotClass =
 		mode === "disconnected"
 			? "bg-destructive"
 			: mode === "unresponsive"
-				? "bg-yellow-500"
-				: "animate-pulse bg-yellow-500";
+				? "bg-warning"
+				: "animate-pulse bg-warning";
 
 	return (
 		<Popover>
@@ -281,7 +281,7 @@ export function TerminalConnectionIndicator({
 						)}
 						{daemonUnreachable && (
 							<Button
-								variant="outline"
+								variant="ghost"
 								className="flex-1 hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
 								disabled={restartDaemon.isPending}
 								onClick={() => setConfirmRestartOpen(true)}

@@ -96,7 +96,7 @@ export function OrganizationDropdown({
 		variant === "collapsed" ? (
 			<button
 				type="button"
-				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-fill-hover"
+				className="flex size-8 items-center justify-center rounded transition-colors text-muted-foreground hover:bg-fill-hover"
 				aria-label={t({
 					id: "dashboard.topBar.organizationDropdown.menuCollapsed",
 					message: "Organization menu",
@@ -112,7 +112,7 @@ export function OrganizationDropdown({
 		) : variant === "expanded" ? (
 			<button
 				type="button"
-				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
+				className="group flex w-full items-center gap-2 rounded px-2 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
 				aria-label={t({
 					id: "dashboard.topBar.organizationDropdown.menuExpanded",
 					message: "Organization menu",
@@ -130,7 +130,7 @@ export function OrganizationDropdown({
 		) : (
 			<button
 				type="button"
-				className="group no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+				className="group no-drag flex items-center gap-1.5 h-[var(--btn-h-sm)] px-1.5 rounded bg-grayAlpha-100 hover:bg-grayAlpha-200 transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
 				aria-label={t({
 					id: "dashboard.topBar.organizationDropdown.menuTopbar",
 					message: "Organization menu",
@@ -203,7 +203,7 @@ export function OrganizationDropdown({
 											size="xs"
 											fullName={organization.name}
 											image={organization.logo}
-											className="rounded-md"
+											className="rounded"
 										/>
 										<span className="flex-1 truncate">{organization.name}</span>
 										{organization.id === activeOrganization?.id && (

@@ -1,8 +1,5 @@
 import type { Theme } from "../types";
 
-/**
- * Light theme - based on the original Superset light mode colors
- */
 export const lightTheme: Theme = {
 	id: "light",
 	name: "Light",
@@ -11,77 +8,103 @@ export const lightTheme: Theme = {
 	isBuiltIn: true,
 
 	ui: {
-		background: "#f9f9fa",
-		foreground: "oklch(0.145 0 0)",
-		card: "oklch(0.97 0 0)",
-		cardForeground: "oklch(0.145 0 0)",
-		popover: "oklch(0.97 0 0)",
-		popoverForeground: "oklch(0.145 0 0)",
-		primary: "oklch(0.205 0 0)",
-		primaryForeground: "oklch(0.985 0 0)",
-		secondary: "oklch(0.97 0 0)",
-		secondaryForeground: "oklch(0.205 0 0)",
-		muted: "oklch(0.97 0 0)",
-		mutedForeground: "#4a4847",
-		accent: "oklch(0.93 0 0)",
-		accentForeground: "oklch(0.205 0 0)",
-		tertiary: "oklch(0.95 0.003 40)",
-		tertiaryActive: "oklch(0.90 0.003 40)",
-		destructive: "oklch(0.577 0.245 27.325)",
-		destructiveForeground: "oklch(0.985 0 0)",
-		warning: "#906d00",
-		warningForeground: "#ffffff",
-		border: "oklch(0.922 0 0)",
-		input: "oklch(0.922 0 0)",
-		ring: "oklch(0.708 0 0)",
-		sidebar: "#ececec",
-		sidebarForeground: "oklch(0.145 0 0)",
-		sidebarPrimary: "oklch(0.205 0 0)",
-		sidebarPrimaryForeground: "oklch(0.985 0 0)",
-		sidebarAccent: "oklch(0.97 0 0)",
-		sidebarAccentForeground: "oklch(0.205 0 0)",
-		sidebarBorder: "oklch(0.922 0 0)",
-		sidebarRing: "oklch(0.708 0 0)",
-		chart1: "oklch(0.646 0.222 41.116)",
-		chart2: "oklch(0.6 0.118 184.704)",
-		chart3: "oklch(0.398 0.07 227.392)",
-		chart4: "oklch(0.828 0.189 84.429)",
-		chart5: "oklch(0.769 0.188 70.08)",
+		background: "oklch(94.28% 0 0)",
+		foreground: "oklch(30.87% 0 0)",
 
-		// Search highlights
-		highlightMatch: "rgba(255, 211, 61, 0.35)",
-		highlightActive: "rgba(255, 150, 50, 0.55)",
+		card: "oklch(97.21% 0 0)",
+		cardForeground: "oklch(30.87% 0 0)",
 
-		// Brand highlight - warm chart-1 orange
-		highlight: "oklch(0.646 0.222 41.116)",
-		highlightForeground: "oklch(0.985 0 0)",
+		popover: "oklch(97.21% 0 0)",
+		popoverForeground: "oklch(0% 0 0)",
+
+		primary: "oklch(60.21% 0.1823 252.59)",
+		primaryForeground: "oklch(100% 0 0)",
+
+		secondary: "oklch(0% 0 0 / 6.27%)",
+		secondaryForeground: "oklch(0% 0 0)",
+
+		muted: "oklch(0% 0 0 / 19.22%)",
+		mutedForeground: "oklch(55.26% 0 0)",
+
+		accent: "oklch(0% 0 0 / 9.02%)",
+		accentForeground: "oklch(20.87% 0 0)",
+
+		tertiary: "oklch(97.21% 0 0)",
+		tertiaryActive: "oklch(100% 0 0)",
+
+		destructive: "oklch(61.34% 0.162 23.58)",
+		destructiveForeground: "oklch(100% 0 0)",
+		warning: "oklch(70.43% 0.14390424619548714 87.9634104985311)",
+		warningForeground: "oklch(100% 0 0)",
+
+		border: "oklch(90.67% 0 0)",
+		input: "oklch(0% 0 0 / 6.27%)",
+		ring: "oklch(60.21% 0.1823 252.59)",
+
+		sidebar: "oklch(94.28% 0 0)",
+		sidebarForeground: "oklch(30.87% 0 0)",
+		sidebarPrimary: "oklch(60.21% 0.1823 252.59)",
+		sidebarPrimaryForeground: "oklch(100% 0 0)",
+		sidebarAccent: "oklch(0% 0 0 / 9.02%)",
+		sidebarAccentForeground: "oklch(20.87% 0 0)",
+		sidebarBorder: "oklch(90.67% 0 0)",
+		sidebarRing: "oklch(60.21% 0.1823 252.59)",
+
+		chart1: "#4187c0",
+		chart2: "#54935b",
+		chart3: "#c28c11",
+		chart4: "#886dbc",
+		chart5: "#b56455",
+
+		highlightMatch: "rgba(3, 129, 233, 0.22)",
+		highlightActive: "rgba(3, 129, 233, 0.45)",
+
+		highlight: "oklch(60.21% 0.1823 252.59)",
+		highlightForeground: "oklch(100% 0 0)",
 	},
 
 	terminal: {
-		background: "#ffffff",
-		foreground: "#000000",
-		cursor: "#000000",
-		cursorAccent: "#ffffff",
-		selectionBackground: "#add6ff",
+		background: "oklch(94.28% 0 0)",
+		foreground: "oklch(30.87% 0 0)",
+		cursor: "#0381e9",
+		cursorAccent: "oklch(94.28% 0 0)",
+		selectionBackground: "rgba(3, 129, 233, 0.22)",
 
-		// Standard ANSI colors (xterm defaults)
-		black: "#2e3436",
-		red: "#cc0000",
-		green: "#4e9a06",
-		yellow: "#c4a000",
-		blue: "#3465a4",
-		magenta: "#75507b",
-		cyan: "#06989a",
-		white: "#d3d7cf",
+		black: "#202020",
+		red: "#c43a46",
+		green: "#54935b",
+		yellow: "#976211",
+		blue: "#4187c0",
+		magenta: "#886dbc",
+		cyan: "#1c91a8",
+		white: "#8d8d8d",
 
-		// Bright ANSI colors (xterm defaults)
-		brightBlack: "#555753",
-		brightRed: "#ef2929",
-		brightGreen: "#8ae234",
-		brightYellow: "#fce94f",
-		brightBlue: "#729fcf",
-		brightMagenta: "#ad7fa8",
-		brightCyan: "#34e2e2",
-		brightWhite: "#eeeeec",
+		brightBlack: "#bbbbbb",
+		brightRed: "#d75056",
+		brightGreen: "#7b8a34",
+		brightYellow: "#c28c11",
+		brightBlue: "#3f8ef7",
+		brightMagenta: "#a165a1",
+		brightCyan: "#2b9684",
+		brightWhite: "#cecece",
+	},
+
+	editor: {
+		syntax: {
+			plainText: "oklch(30.87% 0 0)",
+			comment: "oklch(55.26% 0 0)",
+			keyword: "#ad6e30",
+			string: "#1c91a8",
+			number: "#7b8a34",
+			functionCall: "#b56455",
+			variableName: "#886dbc",
+			typeName: "#7b8a34",
+			className: "#b56455",
+			constant: "#7b8a34",
+			regexp: "#886dbc",
+			tagName: "#886dbc",
+			attributeName: "#886dbc",
+			invalid: "oklch(61.34% 0.162 23.58)",
+		},
 	},
 };

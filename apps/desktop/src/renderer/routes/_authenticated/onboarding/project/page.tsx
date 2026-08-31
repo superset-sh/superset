@@ -221,7 +221,7 @@ function OnboardingProjectPage() {
 					</p>
 				</div>
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={() => setEmptyProjectOpen(true)}
 					disabled={busy}
@@ -239,7 +239,7 @@ function OnboardingProjectPage() {
 					</p>
 				</div>
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={handleOpenFolder}
 					disabled={busy}
@@ -272,6 +272,7 @@ function OnboardingProjectPage() {
 					/>
 					<Button
 						type="submit"
+						size="lg"
 						disabled={!url.trim() || busy || !cloneTargetDir}
 					>
 						{busy ? "Cloning…" : "Clone"}
@@ -285,7 +286,7 @@ function OnboardingProjectPage() {
 						{cloneError.needsGhAuth && (
 							<Button
 								type="button"
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								onClick={() => setGhAuthOpen(true)}
 							>
@@ -307,7 +308,7 @@ function OnboardingProjectPage() {
 					</p>
 				</div>
 				<Button
-					variant="outline"
+					variant="ghost"
 					size="sm"
 					onClick={() => setTemplateOpen(true)}
 					disabled={busy}
@@ -354,7 +355,7 @@ function repoNameFromUrl(url: string): string {
 
 function ProjectIcon({ icon }: { icon: ReactNode }) {
 	return (
-		<div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+		<div className="flex size-9 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
 			{icon}
 		</div>
 	);

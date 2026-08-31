@@ -218,11 +218,11 @@ function AuthenticatedLayout() {
 							</p>
 						</div>
 						<div className="flex gap-2">
-							<Button variant="outline" size="sm" onClick={() => refetch()}>
+							<Button variant="secondary" size="sm" onClick={() => refetch()}>
 								Retry
 							</Button>
 							<Button
-								variant="outline"
+								variant="secondary"
 								size="sm"
 								disabled={isSigningOut}
 								onClick={async () => {
@@ -254,7 +254,7 @@ function AuthenticatedLayout() {
 						Connect to the internet to continue
 					</p>
 				</div>
-				<Button variant="outline" size="sm" onClick={() => refetch()}>
+				<Button variant="secondary" size="sm" onClick={() => refetch()}>
 					Retry
 				</Button>
 			</div>

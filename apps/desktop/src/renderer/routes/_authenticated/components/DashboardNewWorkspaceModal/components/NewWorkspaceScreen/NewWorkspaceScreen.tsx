@@ -797,7 +797,7 @@ export function NewWorkspaceScreen({
 						maxFiles={5}
 						maxFileSize={10 * 1024 * 1024}
 						onError={(error) => toast.error(error.message)}
-						className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+						className="[&>[data-slot=input-group]]:rounded [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 					>
 						{(draft.linkedPR ||
 							draft.linkedIssues.length > 0 ||
@@ -1062,9 +1062,9 @@ export function NewWorkspaceScreen({
 						{needsSetup && (
 							<Button
 								type="button"
-								variant="outline"
+								variant="ghost"
 								size="sm"
-								className="h-6 px-2 text-[11px] text-amber-500 hover:text-amber-500"
+								className="h-[var(--btn-h-sm)] px-2 text-[11px] text-warning hover:text-warning"
 								onClick={handleGoToSetup}
 							>
 								<Trans id="dashboard.newWorkspaceModal.newWorkspaceScreen.setUpProject">

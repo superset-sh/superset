@@ -64,8 +64,8 @@ function isManagedAgent(agent: Agent): agent is ManagedAgent {
 }
 
 function meterColor(usedPercent: number): string {
-	if (usedPercent >= 90) return "bg-red-500";
-	if (usedPercent >= 70) return "bg-amber-500";
+	if (usedPercent >= 90) return "bg-destructive";
+	if (usedPercent >= 70) return "bg-warning";
 	return "bg-primary";
 }
 
@@ -211,7 +211,7 @@ function AccountCard({
 					</span>
 				)}
 				{account.status !== "ok" && (
-					<span className="rounded bg-amber-500/15 px-1 text-[9px] font-medium uppercase tracking-wide text-amber-500">
+					<span className="rounded bg-warning/15 px-1 text-[9px] font-medium uppercase tracking-wide text-warning">
 						{account.status === "token_expired" ? (
 							<Trans id="settings.usage.account.statusSignInExpired">
 								Sign-in expired
@@ -275,7 +275,7 @@ function AccountCard({
 					</span>
 					<button
 						type="button"
-						className="inline-flex max-w-full items-center gap-1 rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground transition-colors hover:bg-muted/70"
+						className="inline-flex max-w-full items-center gap-1 rounded bg-muted px-1 py-0.5 font-mono text-[10px] text-foreground transition-colors hover:bg-fill-hover"
 						title={expiredCommand}
 						onClick={() =>
 							copyToClipboard(expiredCommand).catch(() =>
@@ -291,7 +291,7 @@ function AccountCard({
 					>
 						<span className="min-w-0 truncate">{expiredCommand}</span>
 						{copied ? (
-							<LuCheck className="size-2.5 shrink-0 text-green-500" />
+							<LuCheck className="size-2.5 shrink-0 text-success" />
 						) : (
 							<LuCopy className="size-2.5 shrink-0" />
 						)}
@@ -331,7 +331,7 @@ function AccountCard({
 						)
 					) : onMakeDefault ? (
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							className="h-5 rounded px-1.5 text-[10px]"
 							disabled={isSwitching}
@@ -502,7 +502,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-6 gap-1 px-1.5 text-[10px] text-muted-foreground"
+					className="gap-1 px-1.5 text-[10px] text-muted-foreground"
 					aria-pressed={hideEmails}
 					onClick={() => setHideEmails((hidden) => !hidden)}
 				>
@@ -519,8 +519,7 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				</Button>
 				<Button
 					variant="ghost"
-					size="icon"
-					className="size-6"
+					size="icon-sm"
 					disabled={isBusy || !hostUrl}
 					onClick={() => {
 						setIsRefreshing(true);

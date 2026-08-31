@@ -87,7 +87,7 @@ export function BrowserErrorOverlay({
 					</p>
 				</div>
 				{showDetails && (
-					<div className="flex items-center gap-2 w-full rounded-md border border-muted-foreground/20 px-3 py-2">
+					<div className="flex items-center gap-2 w-full rounded border border-muted-foreground/20 px-3 py-2">
 						<span className="flex-1 text-sm text-muted-foreground/50 truncate select-text cursor-text">
 							{detailsText}
 						</span>
@@ -100,7 +100,7 @@ export function BrowserErrorOverlay({
 						</button>
 					</div>
 				)}
-				<Button variant="outline" size="sm" onClick={onRetry}>
+				<Button variant="secondary" size="sm" onClick={onRetry}>
 					Restart Browser
 				</Button>
 			</div>

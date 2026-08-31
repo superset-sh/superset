@@ -14,7 +14,7 @@ export const defaultConfig: MarkdownStyleConfig = {
 		),
 		table: ({ children }) => (
 			<div className="overflow-x-auto my-4">
-				<table className="w-max min-w-full divide-y divide-border">
+				<table className="w-max min-w-full divide-y divide-border-variant">
 					{children}
 				</table>
 			</div>
@@ -25,7 +25,7 @@ export const defaultConfig: MarkdownStyleConfig = {
 			</th>
 		),
 		td: ({ children }) => (
-			<td className="px-4 py-2 text-sm border-t border-border align-top">
+			<td className="px-4 py-2 text-sm border-t border-border-variant align-top">
 				{children}
 			</td>
 		),
@@ -48,7 +48,7 @@ export const defaultConfig: MarkdownStyleConfig = {
 			<SafeImage
 				src={src}
 				alt={alt}
-				className="max-w-full h-auto rounded-md my-4"
+				className="max-w-full h-auto rounded my-4"
 			/>
 		),
 		hr: () => <hr className="my-8 border-border" />,

@@ -266,8 +266,8 @@ export function NewProjectModal({
 							/>
 							<Button
 								type="button"
-								variant="outline"
-								size="icon"
+								variant="ghost"
+								size="icon-lg"
 								onClick={handleBrowse}
 								disabled={working || selectDirectory.isPending}
 								className="shrink-0"

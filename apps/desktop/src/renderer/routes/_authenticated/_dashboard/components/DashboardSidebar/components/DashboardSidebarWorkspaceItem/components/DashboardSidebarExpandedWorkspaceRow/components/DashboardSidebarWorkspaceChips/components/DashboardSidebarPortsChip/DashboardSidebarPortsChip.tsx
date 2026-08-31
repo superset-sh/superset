@@ -97,7 +97,7 @@ export function DashboardSidebarPortsChip({
 						}
 						className={cn(
 							"group/chip h-[18px] bg-muted/60 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
-							"[&>svg]:size-2.5 hover:bg-muted hover:text-foreground disabled:opacity-70",
+							"[&>svg]:size-2.5 hover:bg-fill-hover hover:text-foreground disabled:opacity-70",
 						)}
 					>
 						<LuRadioTower
@@ -140,7 +140,7 @@ export function DashboardSidebarPortsChip({
 					type="button"
 					onClick={() => void handleCloseAll()}
 					disabled={isPending}
-					className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
+					className="flex w-full items-center gap-1.5 rounded px-2 py-1 text-xs hover:bg-fill-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-70"
 				>
 					<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 					<Trans id="dashboard.sidebar.portsChip.closeAllPorts">

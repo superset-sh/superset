@@ -65,7 +65,7 @@ export function TeamCollaborationDemo() {
 					<div className="space-y-2">
 						{ACTIVITY.map((item) => (
 							<div key={item.id} className="flex items-center gap-2 text-xs">
-								<HiCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+								<HiCheck className="w-3 h-3 text-success shrink-0" />
 								<span className="text-foreground/80">
 									<span className="text-foreground font-medium">
 										{item.user}

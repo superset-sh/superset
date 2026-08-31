@@ -146,7 +146,7 @@ export function ProjectSection({
 		isDragOver: boolean,
 	) =>
 		cn(
-			"transition-colors rounded-sm",
+			"transition-colors rounded",
 			isDropTarget && !isDragOver && "border border-dashed border-primary/20",
 			isDragOver && "bg-primary/5 border border-solid border-primary/30",
 		);
@@ -228,7 +228,7 @@ export function ProjectSection({
 			<div
 				ref={projectHeaderRef}
 				className={cn(
-					"flex flex-col items-center py-2 border-b border-border last:border-b-0",
+					"flex flex-col items-center py-2 border-b border-border-variant last:border-b-0",
 					isDragging && "opacity-30",
 					isDragging && "cursor-grabbing",
 				)}
@@ -330,7 +330,7 @@ export function ProjectSection({
 		<div
 			ref={projectHeaderRef}
 			className={cn(
-				"border-b border-border last:border-b-0",
+				"border-b border-border-variant last:border-b-0",
 				isDragging && "opacity-30",
 				isDragging && "cursor-grabbing",
 			)}
@@ -366,7 +366,7 @@ export function ProjectSection({
 								<div
 									{...topUngroupedDropZone.handlers}
 									className={cn(
-										"transition-colors rounded-sm min-h-8",
+										"transition-colors rounded min-h-8",
 										getRootDropZoneClassName(
 											topUngroupedDropZone.isDropTarget,
 											topUngroupedDropZone.isDragOver,

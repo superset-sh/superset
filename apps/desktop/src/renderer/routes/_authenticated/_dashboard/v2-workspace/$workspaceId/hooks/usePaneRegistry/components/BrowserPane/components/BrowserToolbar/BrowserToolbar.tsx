@@ -116,7 +116,7 @@ export function BrowserToolbar({
 					type="button"
 					onClick={onGoBack}
 					disabled={!canGoBack}
-					className={`rounded-md p-1 transition-colors ${canGoBack ? "text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground" : "text-muted-foreground/30 pointer-events-none"}`}
+					className={`rounded p-1 transition-colors ${canGoBack ? "text-muted-foreground/70 hover:bg-fill-hover hover:text-foreground" : "text-muted-foreground/30 pointer-events-none"}`}
 				>
 					<TbArrowLeft className="size-3.5" />
 				</button>
@@ -124,14 +124,14 @@ export function BrowserToolbar({
 					type="button"
 					onClick={onGoForward}
 					disabled={!canGoForward}
-					className={`rounded-md p-1 transition-colors ${canGoForward ? "text-muted-foreground/70 hover:bg-muted/50 hover:text-foreground" : "text-muted-foreground/30 pointer-events-none"}`}
+					className={`rounded p-1 transition-colors ${canGoForward ? "text-muted-foreground/70 hover:bg-fill-hover hover:text-foreground" : "text-muted-foreground/30 pointer-events-none"}`}
 				>
 					<TbArrowRight className="size-3.5" />
 				</button>
 				<button
 					type="button"
 					onClick={onReload}
-					className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-fill-hover hover:text-foreground"
 				>
 					{isLoading ? (
 						<TbLoader2 className="size-3.5 animate-spin" />
@@ -157,7 +157,7 @@ export function BrowserToolbar({
 								id: "workspace.browserPane.urlInputPlaceholder",
 								message: "Enter URL or search...",
 							})}
-							className="h-[22px] w-full rounded-md border border-ring/60 bg-muted/30 px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
+							className="h-[var(--btn-h-sm)] w-full rounded border border-ring/60 bg-muted/30 px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"
 							onMouseDown={suspendAncestorDragForTextSelection}
@@ -168,7 +168,7 @@ export function BrowserToolbar({
 						type="button"
 						title={isBlank ? undefined : url}
 						onClick={enterEditMode}
-						className="group flex h-[22px] w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-left text-xs transition-colors hover:bg-muted/40"
+						className="group flex h-[var(--btn-h-sm)] w-full min-w-0 items-center gap-1.5 rounded px-2 text-left text-xs transition-colors hover:bg-fill-hover"
 					>
 						{isBlank ? (
 							<span className="min-w-0 truncate text-muted-foreground/40">

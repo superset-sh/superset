@@ -65,9 +65,9 @@ export function StepHeader({ title, subtitle, icon }: StepHeaderProps) {
 		<div className="flex flex-col items-center gap-4 text-center">
 			{icon}
 			<div className="space-y-1">
-				<h1 className="text-[14px] font-semibold text-foreground">{title}</h1>
+				<h1 className="text-base font-semibold text-foreground">{title}</h1>
 				{subtitle && (
-					<p className="text-[12px] text-muted-foreground">{subtitle}</p>
+					<p className="text-xs text-muted-foreground">{subtitle}</p>
 				)}
 			</div>
 		</div>

@@ -29,7 +29,7 @@ export function PaneHeaderActions<TData>({
 					<button
 						type="button"
 						onClick={() => action.onClick(context)}
-						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+						className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-grayAlpha-100 hover:text-foreground"
 					>
 						{icon}
 					</button>

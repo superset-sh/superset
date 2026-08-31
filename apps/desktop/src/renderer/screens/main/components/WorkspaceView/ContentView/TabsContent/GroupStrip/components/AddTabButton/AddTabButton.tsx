@@ -54,7 +54,7 @@ export function AddTabButton({
 						<>
 							<Button
 								variant="ghost"
-								className="h-7 rounded-r-none pl-2 pr-1.5 gap-1 text-xs border border-border/60 bg-muted/30 text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+								className="h-[var(--btn-h-default)] rounded-r-none pl-2 pr-1.5 gap-1 text-xs bg-grayAlpha-100 text-muted-foreground hover:bg-grayAlpha-200 hover:text-foreground"
 								onClick={onAddTerminal}
 							>
 								<BsTerminalPlus className="size-3.5" />
@@ -62,7 +62,7 @@ export function AddTabButton({
 							</Button>
 							<Button
 								variant="ghost"
-								className="h-7 rounded-none border border-l-0 border-border/60 bg-muted/30 px-1.5 gap-1 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+								className="h-[var(--btn-h-default)] rounded-none border-l border-border-variant bg-grayAlpha-100 px-1.5 gap-1 text-xs text-muted-foreground hover:bg-grayAlpha-200 hover:text-foreground"
 								onClick={onAddBrowser}
 							>
 								<TbWorld className="size-3.5" />
@@ -72,7 +72,7 @@ export function AddTabButton({
 								<Button
 									variant="ghost"
 									size="icon"
-									className="size-7 rounded-l-none border border-l-0 border-border/60 bg-muted/30 px-1 text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+									className="size-7 rounded-l-none border-l border-border-variant bg-grayAlpha-100 px-1 text-muted-foreground hover:bg-grayAlpha-200 hover:text-foreground"
 								>
 									<HiMiniChevronDown className="size-3" />
 								</Button>
@@ -83,7 +83,7 @@ export function AddTabButton({
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 px-1 rounded-md border border-border/60 bg-muted/30 text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+								className="size-7 px-1 rounded bg-grayAlpha-100 text-muted-foreground hover:bg-grayAlpha-200 hover:text-foreground"
 							>
 								<LuPlus className="size-3.5" strokeWidth={1.8} />
 							</Button>

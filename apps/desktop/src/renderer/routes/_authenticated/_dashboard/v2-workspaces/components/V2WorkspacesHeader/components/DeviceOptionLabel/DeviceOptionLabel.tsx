@@ -20,7 +20,7 @@ export function DeviceOptionLabel({
 					aria-hidden
 					className={cn(
 						"inline-block size-1.5 rounded-full",
-						isOnline ? "bg-emerald-500" : "bg-muted-foreground/40",
+						isOnline ? "bg-success" : "bg-muted-foreground/40",
 					)}
 				/>
 			) : null}

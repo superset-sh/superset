@@ -170,14 +170,14 @@ export function TasksTopBar({
 									}
 									className="flex-row gap-0"
 								>
-									<TabsList className="h-8 gap-0.5 rounded-md bg-muted/50 p-0.5">
+									<TabsList className="h-[var(--btn-h-lg)] gap-0.5 rounded bg-muted/50 p-0.5">
 										{TASK_SOURCES.map((source) => {
 											const Icon = source.Icon;
 											return (
 												<TabsTrigger
 													key={source.value}
 													value={source.value}
-													className="h-7 rounded-sm px-2 text-xs shadow-none data-[state=active]:shadow-none"
+													className="h-[var(--btn-h-default)] rounded px-2 text-xs shadow-none data-[state=active]:shadow-none"
 												>
 													<Icon className="size-3.5" />
 													<span>{taskSourceLabels[source.value]}</span>
@@ -234,9 +234,9 @@ export function TasksTopBar({
 						{showTaskOnlyControls && (
 							<>
 								<Button
-									variant="outline"
+									variant="ghost"
 									size="sm"
-									className="h-8 gap-1.5 px-3"
+									className="h-[var(--btn-h-lg)] gap-1.5 px-3"
 									onClick={() => setIsCreateTaskOpen(true)}
 								>
 									<HiOutlinePencilSquare className="size-4" />
@@ -246,7 +246,7 @@ export function TasksTopBar({
 								</Button>
 
 								<fieldset
-									className="flex items-center rounded-md border bg-muted/30 p-0.5"
+									className="flex items-center rounded border bg-muted/30 p-0.5"
 									aria-label={t({
 										id: "dashboard.tasks.topBar.taskLayout",
 										message: "Task layout",
@@ -264,9 +264,9 @@ export function TasksTopBar({
 										})}
 										aria-pressed={viewMode === "table"}
 										className={cn(
-											"flex size-6 items-center justify-center rounded-sm transition-colors",
+											"flex size-6 items-center justify-center rounded transition-colors",
 											viewMode === "table"
-												? "bg-background text-foreground shadow-sm"
+												? "bg-background text-foreground"
 												: "text-muted-foreground hover:text-foreground",
 										)}
 										onClick={() => onViewModeChange("table")}
@@ -285,9 +285,9 @@ export function TasksTopBar({
 										})}
 										aria-pressed={viewMode === "board"}
 										className={cn(
-											"flex size-6 items-center justify-center rounded-sm transition-colors",
+											"flex size-6 items-center justify-center rounded transition-colors",
 											viewMode === "board"
-												? "bg-background text-foreground shadow-sm"
+												? "bg-background text-foreground"
 												: "text-muted-foreground hover:text-foreground",
 										)}
 										onClick={() => onViewModeChange("board")}

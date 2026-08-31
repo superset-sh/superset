@@ -34,7 +34,7 @@ export function RightSidebarToggle() {
 				<button
 					type="button"
 					onClick={toggle}
-					className="no-drag group flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+					className="no-drag group flex items-center justify-center size-8 rounded text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
 				>
 					<span className="group-hover:hidden">{getToggleIcon(false)}</span>
 					<span className="hidden group-hover:block">

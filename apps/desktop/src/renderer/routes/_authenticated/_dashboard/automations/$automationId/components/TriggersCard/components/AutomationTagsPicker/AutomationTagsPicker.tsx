@@ -123,7 +123,7 @@ export function AutomationTagsPicker({
 								addDraft();
 							}
 						}}
-						className="h-7 text-[13px]"
+						className="h-[var(--input-h)] text-sm"
 					/>
 				</div>
 			</DropdownMenuContent>

@@ -69,7 +69,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 							type="button"
 							onClick={onToggleCollapse}
 							className={cn(
-								"flex items-center justify-center size-8 rounded-md",
+								"flex items-center justify-center size-8 rounded",
 								"hover:bg-fill-hover transition-colors",
 							)}
 						>

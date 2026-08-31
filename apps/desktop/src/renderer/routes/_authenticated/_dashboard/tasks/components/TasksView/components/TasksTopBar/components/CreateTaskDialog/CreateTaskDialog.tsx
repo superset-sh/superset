@@ -198,7 +198,7 @@ export function CreateTaskDialog({
 
 				<div className="flex items-center justify-between border-b px-4 py-2.5">
 					<div className="flex min-w-0 items-center gap-2 text-sm">
-						<div className="max-w-40 truncate rounded-md border border-border/60 bg-muted/40 px-2 py-1 font-medium text-muted-foreground">
+						<div className="max-w-40 truncate rounded border border-border/60 bg-muted/40 px-2 py-1 font-medium text-muted-foreground">
 							{organizationLabel}
 						</div>
 						<HiChevronRight className="size-3.5 text-muted-foreground" />
@@ -213,7 +213,7 @@ export function CreateTaskDialog({
 						<button
 							type="button"
 							disabled={isCreating}
-							className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							aria-label={t({
 								id: "dashboard.tasks.createTaskDialog.close",
 								message: "Close",
@@ -279,7 +279,7 @@ export function CreateTaskDialog({
 					<Button
 						variant="ghost"
 						size="icon"
-						className="h-10 w-10 rounded-full text-muted-foreground"
+						className="size-[var(--btn-h-xl)] rounded-full text-muted-foreground"
 						onClick={handleAttachmentClick}
 						disabled={isCreating}
 					>
@@ -290,7 +290,7 @@ export function CreateTaskDialog({
 						<Button
 							onClick={handleCreate}
 							disabled={!title.trim() || isCreating}
-							className="h-10 rounded-full px-5 text-sm"
+							className="h-[var(--btn-h-xl)] rounded-full px-5 text-sm"
 						>
 							{isCreating ? (
 								<Trans id="dashboard.tasks.createTaskDialog.creating">

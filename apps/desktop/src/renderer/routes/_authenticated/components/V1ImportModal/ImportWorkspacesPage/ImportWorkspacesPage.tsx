@@ -293,7 +293,7 @@ export function ImportWorkspacesPage({
 				void adoptAll();
 			}}
 			disabled={isAdoptingAll || pendingEntries.length === 0}
-			className="h-7 shrink-0 gap-1.5 px-2.5 text-[12px] font-medium tabular-nums"
+			className="h-[var(--btn-h-default)] shrink-0 gap-1.5 px-2.5 text-xs font-medium tabular-nums"
 		>
 			{adoptAllProgress && <Spinner className="size-3" />}
 			{adoptAllProgress

@@ -652,7 +652,7 @@ export function FileViewerPane({
 									<div className="mt-2 flex gap-2">
 										<Button
 											size="sm"
-											variant="outline"
+											variant="ghost"
 											onClick={handleReloadFromDisk}
 										>
 											Reload From Disk

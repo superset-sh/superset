@@ -100,7 +100,7 @@ export function HostsSettingsSidebar({
 					<span
 						className={cn(
 							"h-1.5 w-1.5 rounded-full shrink-0",
-							row.isOnline ? "bg-emerald-500" : "bg-muted-foreground/40",
+							row.isOnline ? "bg-success" : "bg-muted-foreground/40",
 						)}
 					/>
 					<span className="truncate flex-1">{row.name}</span>

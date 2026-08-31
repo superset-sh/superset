@@ -25,7 +25,7 @@ function ChecksDot({ status }: { status: ChecksRollup["overall"] }) {
 		return (
 			<LuCircleCheck
 				aria-hidden="true"
-				className={cn("size-3 shrink-0", "text-emerald-500")}
+				className={cn("size-3 shrink-0", "text-success")}
 			/>
 		);
 	}
@@ -33,14 +33,14 @@ function ChecksDot({ status }: { status: ChecksRollup["overall"] }) {
 		return (
 			<LuCircleX
 				aria-hidden="true"
-				className={cn("size-3 shrink-0", "text-rose-500")}
+				className={cn("size-3 shrink-0", "text-destructive")}
 			/>
 		);
 	}
 	return (
 		<LuCircleDashed
 			aria-hidden="true"
-			className={cn("size-3 shrink-0", "text-amber-500")}
+			className={cn("size-3 shrink-0", "text-warning")}
 		/>
 	);
 }

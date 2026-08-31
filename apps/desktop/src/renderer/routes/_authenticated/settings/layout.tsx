@@ -177,7 +177,7 @@ function SettingsLayout() {
 			    _dashboard route tree; CHECK_RESOURCES needs its own mount here so
 			    the hotkey and native "Resources" menu item still work in Settings. */}
 			<CheckResourcesHotkeyMount />
-			<div className="flex h-12 w-full items-center bg-sidebar dark:bg-muted/35">
+			<div className="flex h-12 w-full items-center bg-sidebar">
 				<div
 					className="drag h-full shrink-0"
 					style={{ width: isMac ? "96px" : "8px" }}

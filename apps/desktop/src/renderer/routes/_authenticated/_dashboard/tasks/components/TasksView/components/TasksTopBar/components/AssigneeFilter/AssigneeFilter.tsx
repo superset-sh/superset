@@ -162,7 +162,7 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 							message: "Assignee",
 						})
 					}
-					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+					className="h-[var(--btn-h-lg)] gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					{selectedUser ? (
 						<>
@@ -208,7 +208,7 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 								key={tabValue}
 								type="button"
 								onClick={() => setTab(tabValue)}
-								className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+								className={`flex-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
 									tab === tabValue
 										? "bg-accent text-accent-foreground"
 										: "text-muted-foreground hover:text-foreground"

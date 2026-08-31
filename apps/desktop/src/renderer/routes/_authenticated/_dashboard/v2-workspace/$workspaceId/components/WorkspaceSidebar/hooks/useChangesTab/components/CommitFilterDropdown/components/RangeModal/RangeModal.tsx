@@ -94,7 +94,7 @@ export function RangeModal({
 									key={commit.hash}
 									type="button"
 									onClick={() => handleClick(idx)}
-									className={`flex w-full min-w-0 items-start gap-2 rounded-sm px-2 py-1.5 text-left text-sm ${
+									className={`flex w-full min-w-0 items-start gap-2 rounded px-2 py-1.5 text-left text-sm ${
 										inRange
 											? "bg-accent text-accent-foreground"
 											: "hover:bg-accent/50"

@@ -92,7 +92,7 @@ export function CommentCodeBlock({
 			}
 			language={language}
 			PreTag="div"
-			className="rounded-md text-sm"
+			className="rounded text-sm"
 		>
 			{codeString}
 		</SyntaxHighlighter>

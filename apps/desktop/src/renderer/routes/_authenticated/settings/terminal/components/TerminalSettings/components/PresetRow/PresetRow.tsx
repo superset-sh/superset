@@ -133,11 +133,11 @@ export function PresetRow({
 				}
 			}}
 			className={cn(
-				"group flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+				"group flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-fill-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
 				isDragging && "opacity-30",
 			)}
 		>
-			<div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+			<div className="flex size-7 shrink-0 items-center justify-center rounded border border-border bg-background">
 				{presetIcon ? (
 					<img src={presetIcon} alt="" className="size-4 object-contain" />
 				) : (

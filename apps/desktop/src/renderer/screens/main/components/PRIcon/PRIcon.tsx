@@ -22,11 +22,11 @@ interface PRIconProps {
 // values match the PR state badge (STATE_BADGE_STYLES in $prNumber/page.tsx)
 // for consistency between the pill and the icon.
 const stateStyles: Record<PRState, string> = {
-	open: "text-emerald-500 [.dark_&]:text-[#34d399]",
-	merged: "text-violet-500 [.dark_&]:text-[#b0a6d9]",
-	closed: "text-red-500 [.dark_&]:text-[#e0918a]",
+	open: "text-success",
+	merged: "text-status-1",
+	closed: "text-destructive",
 	draft: "text-muted-foreground",
-	queued: "text-amber-500 [.dark_&]:text-[#fbbf24]",
+	queued: "text-warning",
 };
 
 /**

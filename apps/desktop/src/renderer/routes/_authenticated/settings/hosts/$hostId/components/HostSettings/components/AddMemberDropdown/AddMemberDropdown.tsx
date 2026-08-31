@@ -25,7 +25,7 @@ export function AddMemberDropdown({
 }: AddMemberDropdownProps) {
 	if (candidates.length === 0) {
 		return (
-			<Button size="sm" variant="outline" disabled>
+			<Button size="sm" variant="ghost" disabled>
 				<HiOutlinePlus className="h-4 w-4 mr-1" />
 				<Trans id="settings.hosts.addMemberDisabled">Add member</Trans>
 			</Button>
@@ -35,7 +35,7 @@ export function AddMemberDropdown({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button size="sm" variant="outline">
+				<Button size="sm" variant="ghost">
 					<HiOutlinePlus className="h-4 w-4 mr-1" />
 					<Trans id="settings.hosts.addMember">Add member</Trans>
 				</Button>

@@ -61,7 +61,7 @@ export function WorkspaceIcon({
 			)}
 			{isUnread && !workspaceStatus && (
 				<span className={cn("absolute flex size-2", overlayPosition)}>
-					<span className="relative inline-flex size-2 rounded-full bg-blue-500" />
+					<span className="relative inline-flex size-2 rounded-full bg-primary" />
 				</span>
 			)}
 		</>

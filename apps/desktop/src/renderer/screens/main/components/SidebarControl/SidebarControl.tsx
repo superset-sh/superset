@@ -19,7 +19,7 @@ export function SidebarControl() {
 					aria-label={isSidebarOpen ? "Hide Code Sidebar" : "Show Code Sidebar"}
 					aria-pressed={isSidebarOpen}
 					className={cn(
-						"no-drag gap-1.5 h-6 px-1.5 rounded",
+						"no-drag gap-1.5 h-[var(--btn-h-sm)] px-1.5 rounded",
 						isSidebarOpen
 							? "font-semibold text-foreground bg-accent"
 							: "text-muted-foreground hover:text-foreground",

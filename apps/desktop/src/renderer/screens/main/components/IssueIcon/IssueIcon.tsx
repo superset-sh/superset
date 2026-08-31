@@ -9,8 +9,8 @@ interface IssueIconProps {
 }
 
 const stateStyles: Record<IssueState, string> = {
-	open: "text-emerald-500",
-	closed: "text-violet-500",
+	open: "text-success",
+	closed: "text-status-1",
 };
 
 /**

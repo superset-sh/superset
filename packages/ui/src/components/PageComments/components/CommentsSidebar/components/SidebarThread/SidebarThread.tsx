@@ -33,7 +33,7 @@ export function SidebarThread({
 	return (
 		<div
 			className={cn(
-				"flex flex-col rounded-lg border-[0.5px] transition-colors",
+				"flex flex-col rounded border-[0.5px] transition-colors",
 				active
 					? "border-foreground/20 bg-foreground/[0.04]"
 					: "border-transparent hover:bg-foreground/[0.03]",
@@ -92,7 +92,7 @@ export function SidebarThread({
 					<Button
 						size="sm"
 						variant="ghost"
-						className="ml-auto h-5 gap-1 px-1.5 text-[10px]"
+						className="ml-auto h-[var(--btn-h-xs)] gap-1 px-1.5 text-[10px]"
 						onClick={onToggleResolved}
 					>
 						{thread.resolved ? (

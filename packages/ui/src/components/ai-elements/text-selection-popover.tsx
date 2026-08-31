@@ -125,7 +125,7 @@ export const TextSelectionPopover = ({
 			ref={popoverRef}
 			style={{ position: "fixed", top, left, zIndex: 100000 }}
 		>
-			<div className="flex items-center gap-0.5 rounded-md border border-border bg-popover px-0.5 py-0.5 shadow-lg">
+			<div className="flex items-center gap-0.5 rounded border border-border bg-popover px-0.5 py-0.5 shadow-lg">
 				<button
 					className="rounded px-1.5 py-0.5 text-xs text-popover-foreground transition-colors duration-100 hover:bg-accent active:scale-[0.97]"
 					onClick={() => handleAction(primaryAction)}

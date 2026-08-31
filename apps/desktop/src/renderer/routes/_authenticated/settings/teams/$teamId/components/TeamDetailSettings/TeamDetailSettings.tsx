@@ -434,7 +434,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 											</p>
 										</div>
 										<Button
-											variant="outline"
+											variant="ghost"
 											onClick={() => setOpenDialog("leaveTeam")}
 										>
 											<Trans id="settings.teams.detail.leaveButton">

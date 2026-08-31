@@ -32,13 +32,13 @@ function ItemSeparator({
 }
 
 const itemVariants = cva(
-	"group/item flex items-center border border-transparent text-sm rounded-md transition-colors [a]:hover:bg-accent/50 [a]:transition-colors duration-100 flex-wrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+	"group/item flex items-center border border-transparent text-sm rounded transition-colors [a]:hover:bg-grayAlpha-100 [a]:transition-colors duration-100 flex-wrap outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
 	{
 		variants: {
 			variant: {
 				default: "bg-transparent",
 				outline: "border-border",
-				muted: "bg-muted/50",
+				muted: "bg-grayAlpha-100",
 			},
 			size: {
 				default: "p-4 gap-4 ",
@@ -78,9 +78,9 @@ const itemMediaVariants = cva(
 		variants: {
 			variant: {
 				default: "bg-transparent",
-				icon: "size-8 border rounded-sm bg-muted [&_svg:not([class*='size-'])]:size-4",
+				icon: "size-8 border border-border rounded bg-grayAlpha-100 [&_svg:not([class*='size-'])]:size-4",
 				image:
-					"size-10 rounded-sm overflow-hidden [&_img]:size-full [&_img]:object-cover",
+					"size-10 rounded overflow-hidden [&_img]:size-full [&_img]:object-cover",
 			},
 		},
 		defaultVariants: {

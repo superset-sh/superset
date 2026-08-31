@@ -228,7 +228,7 @@ export function TypographySurfaceCard({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-8 gap-1.5 px-2.5 text-xs text-muted-foreground"
+						className="h-[var(--btn-h-lg)] gap-1.5 px-2.5 text-xs text-muted-foreground"
 						onClick={() => {
 							onChange(
 								Object.fromEntries(config.groupKeys.map((key) => [key, null])),

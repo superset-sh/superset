@@ -100,7 +100,7 @@ function MetricCells({
 			<span
 				className={cn(
 					CPU_COL,
-					muted ? "text-xs text-muted-foreground/80" : "text-[13px]",
+					muted ? "text-xs text-muted-foreground/80" : "text-sm",
 				)}
 			>
 				{formatCpu(cpu)}
@@ -108,7 +108,7 @@ function MetricCells({
 			<span
 				className={cn(
 					MEM_COL,
-					muted ? "text-xs text-muted-foreground/80" : "text-[13px]",
+					muted ? "text-xs text-muted-foreground/80" : "text-sm",
 				)}
 			>
 				{formatMemory(memory)}
@@ -146,9 +146,9 @@ function SystemOverview({ snapshot }: { snapshot: ResourceMetricsSnapshot }) {
 	const shareSeverity = getTrackedHostMemorySeverity(trackedSharePercent);
 	const trackedBarColorClass =
 		shareSeverity === "high"
-			? "bg-red-500/80"
+			? "bg-destructive/80"
 			: shareSeverity === "elevated"
-				? "bg-amber-500/80"
+				? "bg-warning/80"
 				: "bg-foreground/60";
 
 	// Composition of physical RAM: Superset's tracked processes, everything
@@ -321,7 +321,7 @@ export function UsageResourcesPage() {
 		<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col gap-3 px-6 py-4">
 			<div className="flex items-center gap-2">
 				<span className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground">
-					<span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+					<span className="h-1.5 w-1.5 rounded-full bg-success" />
 					<Trans id="settings.usage.resources.liveNote">
 						Live · local machine · every 2 s
 					</Trans>
@@ -330,7 +330,7 @@ export function UsageResourcesPage() {
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="flex h-6 items-center gap-1 rounded px-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+							className="flex h-[var(--btn-h-sm)] items-center gap-1 rounded px-1.5 text-[11px] text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
 							aria-label={t({
 								id: "settings.usage.resources.sortAriaLabel",
 								message: "Sort workspaces",
@@ -364,8 +364,7 @@ export function UsageResourcesPage() {
 				</DropdownMenu>
 				<Button
 					variant="ghost"
-					size="icon"
-					className="size-6"
+					size="icon-sm"
 					disabled={isFetching}
 					onClick={() => refetch()}
 					aria-label={t({
@@ -435,7 +434,7 @@ export function UsageResourcesPage() {
 						{/* Superset app processes */}
 						<div className="flex items-center gap-3 px-3 py-2">
 							<div className="flex min-w-0 flex-1 items-center gap-1.5">
-								<span className="truncate text-[13px] font-medium">
+								<span className="truncate text-sm font-medium">
 									<Trans id="settings.usage.resources.supersetApp">
 										Superset app
 									</Trans>
@@ -604,7 +603,7 @@ export function UsageResourcesPage() {
 															className="flex min-w-0 flex-1 items-center gap-3 py-1.5 pl-1 pr-3 text-left"
 														>
 															<div className="flex min-w-0 flex-1 items-center gap-1.5">
-																<span className="min-w-0 truncate text-[13px]">
+																<span className="min-w-0 truncate text-sm">
 																	{workspace.workspaceName}
 																</span>
 																<UsageSeverityBadge

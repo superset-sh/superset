@@ -134,16 +134,16 @@ export function HistoryDialog({
 										onSelect(entry.url);
 										onOpenChange(false);
 									}}
-									className="flex w-full min-w-0 items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted/60"
+									className="flex w-full min-w-0 items-center gap-2.5 rounded px-2 py-2 text-left text-sm transition-colors hover:bg-fill-hover"
 								>
 									{entry.faviconUrl ? (
 										<img
 											src={entry.faviconUrl}
 											alt=""
-											className="size-4 shrink-0 rounded-sm"
+											className="size-4 shrink-0 rounded"
 										/>
 									) : (
-										<div className="size-4 shrink-0 rounded-sm bg-muted" />
+										<div className="size-4 shrink-0 rounded bg-muted" />
 									)}
 									<div className="min-w-0 flex-1">
 										<div className="truncate text-foreground">

@@ -28,7 +28,7 @@ export function SettingsSidebar() {
 		: null;
 
 	return (
-		<div className="w-56 flex flex-col pt-1 pb-3 overflow-hidden border-r border-border bg-sidebar dark:bg-muted/35">
+		<div className="w-56 flex flex-col pt-1 pb-3 overflow-hidden border-r border-border bg-sidebar">
 			{/* Back button */}
 			<Link
 				to={originRoute}
@@ -56,7 +56,7 @@ export function SettingsSidebar() {
 					})}
 					value={searchQuery}
 					onChange={(e) => setSearchQuery(e.target.value)}
-					className="w-full h-8 pl-8 pr-8 text-sm bg-accent/50 rounded-md border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+					className="w-full h-[var(--input-h)] pl-8 pr-8 text-sm bg-input rounded border-0 outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
 				/>
 				{searchQuery && (
 					<button
@@ -78,7 +78,7 @@ export function SettingsSidebar() {
 					href={COMPANY.DOCS_URL}
 					target="_blank"
 					rel="noopener noreferrer"
-					className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-fill-hover hover:text-foreground transition-colors"
+					className="flex items-center gap-2 px-3 py-1.5 text-sm rounded text-muted-foreground hover:bg-fill-hover hover:text-foreground transition-colors"
 				>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
 					<span>

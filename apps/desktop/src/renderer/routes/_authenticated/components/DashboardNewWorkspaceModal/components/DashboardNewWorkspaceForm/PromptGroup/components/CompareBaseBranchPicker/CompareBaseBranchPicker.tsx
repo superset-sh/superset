@@ -117,7 +117,7 @@ export function CompareBaseBranchPicker({
 				>
 					<GoGitBranch className="size-3 shrink-0" />
 					{isBranchesLoading && branches.length === 0 ? (
-						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
+						<span className="h-2.5 w-14 rounded bg-muted-foreground/15 animate-pulse" />
 					) : effectiveCompareBaseBranch ? (
 						<span className="font-mono truncate">
 							{effectiveCompareBaseBranch}
@@ -169,7 +169,7 @@ export function CompareBaseBranchPicker({
 						onValueChange={(v) => onBranchFilterChange(v as BranchFilter)}
 						className="p-2"
 					>
-						<TabsList className="grid w-full grid-cols-2 h-7 bg-transparent">
+						<TabsList className="grid w-full grid-cols-2 h-[var(--btn-h-default)] bg-transparent">
 							<TabsTrigger value="all" className="text-[11px]">
 								<Trans id="dashboard.newWorkspaceModal.compareBaseBranchPicker.filterAll">
 									All
@@ -206,7 +206,7 @@ export function CompareBaseBranchPicker({
 										);
 										setOpen(false);
 									}}
-									className="group items-start gap-3 rounded-md px-2.5 py-2"
+									className="group items-start gap-3 rounded px-2.5 py-2"
 								>
 									{isWorktree ? (
 										<LuFolderOpen className="mt-0.5 size-4 shrink-0 text-primary/80" />
@@ -260,7 +260,7 @@ export function CompareBaseBranchPicker({
 									<span className="ml-2 flex shrink-0 items-center gap-1.5 self-center">
 										<button
 											type="button"
-											className="hidden items-center rounded-sm bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20 group-hover:inline-flex group-data-[selected=true]:inline-flex"
+											className="hidden items-center rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/20 group-hover:inline-flex group-data-[selected=true]:inline-flex"
 											onClick={(e) => {
 												e.stopPropagation();
 												onOpenWorkspace(toOpenWorkspaceTarget(branch));

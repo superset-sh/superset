@@ -62,7 +62,7 @@ export function ImportWorktreesDialog({
 					{worktrees.map((worktree) => (
 						<li
 							key={worktree.path}
-							className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 rounded-md px-2.5 py-2"
+							className="grid min-w-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-3 rounded px-2.5 py-2"
 						>
 							<LuGitBranch
 								className="size-4 shrink-0 text-muted-foreground"
@@ -70,7 +70,7 @@ export function ImportWorktreesDialog({
 							/>
 							<div className="flex min-w-0 flex-col">
 								<span
-									className="truncate text-[13px] font-medium leading-4 text-foreground"
+									className="truncate text-sm font-medium leading-4 text-foreground"
 									title={worktree.branch}
 								>
 									{worktree.branch}
@@ -94,7 +94,7 @@ export function ImportWorktreesDialog({
 					/>
 					<Label
 						htmlFor="import-worktrees-run-setup"
-						className="cursor-pointer text-[13px] font-normal text-muted-foreground"
+						className="cursor-pointer text-sm font-normal text-muted-foreground"
 					>
 						<Trans id="dashboard.sidebar.importWorktrees.runSetupLabel">
 							Run setup script in each imported workspace

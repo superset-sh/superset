@@ -254,7 +254,7 @@ function TerminalRichInputInner({
 						maxFiles={10}
 						maxFileSize={50 * 1024 * 1024}
 						onError={(error) => toast.error(error.message)}
-						className="rounded-[13px] bg-background [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+						className="rounded bg-background [&>[data-slot=input-group]]:rounded [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 						onSubmit={handleSubmit}
 						onKeyDown={(e) => {
 							if (e.key === "Escape") {

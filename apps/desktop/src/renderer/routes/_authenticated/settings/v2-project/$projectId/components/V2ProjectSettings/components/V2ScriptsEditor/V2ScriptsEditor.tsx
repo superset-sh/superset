@@ -280,12 +280,12 @@ export function V2ScriptsEditor({
 	if (isLoading) {
 		return (
 			<div className={cn("space-y-3", className)} aria-busy="true">
-				<div className="flex h-9 items-center gap-5 border-b border-border px-2">
+				<div className="flex h-[var(--btn-h-xl)] items-center gap-5 border-b border-border px-2">
 					<Skeleton className="h-3 w-10" />
 					<Skeleton className="h-3 w-14" />
 					<Skeleton className="h-3 w-8" />
 				</div>
-				<Skeleton className="h-24 w-full rounded-md" />
+				<Skeleton className="h-24 w-full rounded" />
 			</div>
 		);
 	}
@@ -297,19 +297,19 @@ export function V2ScriptsEditor({
 					<TabsList className="h-auto gap-0 rounded-none bg-transparent p-0">
 						<TabsTrigger
 							value="setup"
-							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+							className="relative h-[var(--btn-h-lg)] rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
 						>
 							<Trans id="settings.project.scripts.setupTab">Setup</Trans>
 						</TabsTrigger>
 						<TabsTrigger
 							value="teardown"
-							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+							className="relative h-[var(--btn-h-lg)] rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
 						>
 							<Trans id="settings.project.scripts.teardownTab">Teardown</Trans>
 						</TabsTrigger>
 						<TabsTrigger
 							value="run"
-							className="relative h-8 rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
+							className="relative h-[var(--btn-h-lg)] rounded-none border-0 bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-transparent data-[state=active]:after:bg-foreground"
 						>
 							<Trans id="settings.project.scripts.runTab">Run</Trans>
 						</TabsTrigger>
@@ -321,7 +321,7 @@ export function V2ScriptsEditor({
 							</span>
 						)}
 						{saveStatus === "saved" && (
-							<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+							<span className="flex items-center gap-1 text-success">
 								<HiCheckCircle className="h-3.5 w-3.5" />
 								<Trans id="settings.project.scripts.saved">Saved</Trans>
 							</span>

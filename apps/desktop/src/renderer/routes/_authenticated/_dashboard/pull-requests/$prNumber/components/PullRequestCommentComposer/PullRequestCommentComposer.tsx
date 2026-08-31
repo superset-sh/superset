@@ -92,7 +92,7 @@ export function PullRequestCommentComposer({
 
 	return (
 		<form
-			className="pr-diff-comment mx-3 my-1.5 overflow-hidden rounded-lg border border-border/80 bg-popover font-sans text-popover-foreground shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12),0_2px_4px_-2px_rgba(0,0,0,0.06)]"
+			className="pr-diff-comment mx-3 my-1.5 overflow-hidden rounded-lg border border-border/80 bg-popover font-sans text-popover-foreground shadow-1"
 			onSubmit={(e) => {
 				e.preventDefault();
 				void handleSubmit();
@@ -129,7 +129,7 @@ export function PullRequestCommentComposer({
 					})}
 					rows={3}
 					className={cn(
-						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",
+						"block w-full resize-none bg-transparent text-sm leading-snug text-foreground",
 						"placeholder:text-muted-foreground/60",
 						"focus:outline-none focus-visible:outline-none",
 					)}
@@ -149,7 +149,7 @@ export function PullRequestCommentComposer({
 						variant="ghost"
 						onClick={onCancel}
 						disabled={submitting}
-						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+						className="h-[var(--btn-h-default)] px-2 text-[11px] text-muted-foreground hover:text-foreground"
 					>
 						<Trans id="dashboard.pullRequests.commentComposer.cancel">
 							Cancel
@@ -159,7 +159,7 @@ export function PullRequestCommentComposer({
 						type="submit"
 						size="xs"
 						disabled={!canSubmit}
-						className="h-7 gap-1.5 px-2.5 text-[11px] font-medium disabled:opacity-40"
+						className="h-[var(--btn-h-default)] gap-1.5 px-2.5 text-[11px] font-medium disabled:opacity-40"
 					>
 						{submitting && <LuLoaderCircle className="size-3 animate-spin" />}
 						<span>

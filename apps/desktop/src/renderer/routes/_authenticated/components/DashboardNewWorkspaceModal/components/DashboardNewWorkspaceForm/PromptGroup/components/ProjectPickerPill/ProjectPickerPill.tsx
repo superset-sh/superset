@@ -192,7 +192,7 @@ export function ProjectPickerPill({
 									{project.needsSetup === true && (
 										<Tooltip>
 											<TooltipTrigger asChild>
-												<LuTriangleAlert className="size-3.5 shrink-0 text-amber-500" />
+												<LuTriangleAlert className="size-3.5 shrink-0 text-warning" />
 											</TooltipTrigger>
 											<TooltipContent>
 												<Trans id="dashboard.newWorkspaceModal.projectPicker.needsSetup">

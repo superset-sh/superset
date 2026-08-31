@@ -39,7 +39,7 @@ export function DiscardConfirmDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 					>
 						Cancel
@@ -47,7 +47,7 @@ export function DiscardConfirmDialog({
 					<AlertDialogAction
 						variant="destructive"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						disabled={confirmDisabled}
 						onClick={onConfirm}
 					>

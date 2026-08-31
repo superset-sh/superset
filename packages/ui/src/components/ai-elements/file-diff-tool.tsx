@@ -235,7 +235,7 @@ export const FileDiffTool = ({
 							id: "ui.fileDiffTool.openFileLabel",
 							message: `Open ${filePath}`,
 						})}
-						className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+						className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 					>
 						<ExternalLinkIcon className="h-3 w-3" />
 						<Trans id="ui.fileDiffTool.open">Open</Trans>
@@ -260,7 +260,7 @@ export const FileDiffTool = ({
 					id: "ui.fileDiffTool.openFileLabel",
 					message: `Open ${filePath}`,
 				})}
-				className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+				className="mr-1 flex items-center gap-1 rounded px-1 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 				onClick={() => onFilePathClick?.(filePath)}
 			>
 				<ExternalLinkIcon className="h-3 w-3" />

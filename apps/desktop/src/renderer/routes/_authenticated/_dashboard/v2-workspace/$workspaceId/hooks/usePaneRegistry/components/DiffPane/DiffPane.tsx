@@ -754,11 +754,7 @@ function BinaryDiffPlaceholder({
 				</Trans>
 			</p>
 			{canOpen ? (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => onOpenFile(file.path)}
-				>
+				<Button variant="ghost" size="sm" onClick={() => onOpenFile(file.path)}>
 					<Trans id="workspace.diffPane.openFile">Open file</Trans>
 				</Button>
 			) : null}

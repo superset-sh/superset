@@ -54,7 +54,7 @@ export const WebSearchTool = ({
 				<div className="max-h-[200px] overflow-y-auto">
 					{results.map((result, idx) => (
 						<a
-							className="group flex items-start gap-2 px-2.5 py-1.5 transition-colors hover:bg-muted/30"
+							className="group flex items-start gap-2 px-2.5 py-1.5 transition-colors hover:bg-fill-hover"
 							href={result.url}
 							key={`${result.url}-${idx}`}
 							rel="noopener noreferrer"

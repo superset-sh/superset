@@ -54,7 +54,7 @@ function CopyableDetails({
 				aria-label={isCopied ? "Copied" : "Copy contents"}
 			>
 				{isCopied ? (
-					<LuCheck className="size-3 text-green-500" />
+					<LuCheck className="size-3 text-success" />
 				) : (
 					<LuCopy className="size-3" />
 				)}

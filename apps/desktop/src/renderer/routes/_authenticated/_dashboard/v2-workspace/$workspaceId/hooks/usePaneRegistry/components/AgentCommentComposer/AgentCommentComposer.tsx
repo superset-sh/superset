@@ -103,7 +103,7 @@ export function AgentCommentComposer({
 		<form
 			className={cn(
 				"diff-comment mx-3 my-1.5 overflow-hidden rounded-lg border border-border/80 bg-popover text-popover-foreground",
-				"shadow-[0_4px_16px_-4px_rgba(0,0,0,0.12),0_2px_4px_-2px_rgba(0,0,0,0.06)]",
+				"shadow",
 			)}
 			onSubmit={(e) => {
 				e.preventDefault();
@@ -121,7 +121,7 @@ export function AgentCommentComposer({
 			}}
 		>
 			<div className="flex items-center justify-between px-3 pt-2 pb-1">
-				<span className="min-w-0 truncate text-[11px] font-medium tracking-tight text-muted-foreground">
+				<span className="min-w-0 truncate text-xs font-medium tracking-tight text-muted-foreground">
 					{contextLabel}
 				</span>
 				<span className="text-[10px] tracking-tight text-muted-foreground/70">
@@ -139,7 +139,7 @@ export function AgentCommentComposer({
 					placeholder={resolvedPlaceholder}
 					rows={3}
 					className={cn(
-						"block w-full resize-none bg-transparent text-[13px] leading-snug text-foreground",
+						"block w-full resize-none bg-transparent text-sm leading-snug text-foreground",
 						"placeholder:text-muted-foreground/60",
 						"focus:outline-none focus-visible:outline-none",
 					)}
@@ -166,7 +166,7 @@ export function AgentCommentComposer({
 						variant="ghost"
 						onClick={onCancel}
 						disabled={submitting}
-						className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+						className="h-[var(--btn-h-default)] px-2 text-xs text-muted-foreground hover:text-foreground"
 					>
 						<Trans id="workspace.agentCommentComposer.cancel">Cancel</Trans>
 					</Button>
@@ -175,7 +175,7 @@ export function AgentCommentComposer({
 						size="xs"
 						disabled={!canSubmit}
 						className={cn(
-							"h-7 gap-1.5 px-2.5 text-[11px] font-medium",
+							"h-[var(--btn-h-default)] gap-1.5 px-2.5 text-xs font-medium",
 							"bg-primary text-primary-foreground hover:bg-primary/90",
 							"disabled:opacity-40",
 						)}
@@ -207,7 +207,7 @@ function KbdEnter() {
 	return (
 		<span
 			className={cn(
-				"inline-flex h-4 items-center gap-0.5 rounded-[3px] border border-primary-foreground/20 bg-primary-foreground/10 px-1",
+				"inline-flex h-4 items-center gap-0.5 rounded border border-primary-foreground/20 bg-primary-foreground/10 px-1",
 				"text-[9px] font-medium leading-none text-primary-foreground/85",
 			)}
 		>

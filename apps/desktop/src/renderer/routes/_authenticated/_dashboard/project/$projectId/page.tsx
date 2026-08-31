@@ -398,7 +398,7 @@ function ProjectPage() {
 										<Input
 											id="task-title"
 											ref={titleInputRef}
-											className="h-11"
+											className="h-[var(--input-h)]"
 											placeholder={t({
 												id: "dashboard.project.onboarding.titlePlaceholder",
 												message: "e.g. Add dark mode, Fix checkout bug",
@@ -414,7 +414,7 @@ function ProjectPage() {
 										/>
 									</div>
 
-									<div className="rounded-md border border-border/60 bg-card/40 px-3 py-2 text-sm">
+									<div className="rounded border border-border/60 bg-card/40 px-3 py-2 text-sm">
 										<div className="flex items-center gap-2 text-muted-foreground">
 											<GoGitBranch className="size-3.5 shrink-0" />
 											<span
@@ -465,7 +465,7 @@ function ProjectPage() {
 															</Trans>
 														</span>
 														{isBranchesError ? (
-															<div className="flex items-center gap-2 h-10 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-sm">
+															<div className="flex items-center gap-2 h-[var(--input-h)] px-3 rounded border border-destructive/50 bg-destructive/10 text-destructive text-sm">
 																<Trans id="dashboard.project.onboarding.branchesError">
 																	Failed to load branches
 																</Trans>
@@ -478,8 +478,8 @@ function ProjectPage() {
 															>
 																<PopoverTrigger asChild>
 																	<Button
-																		variant="outline"
-																		className="w-full h-10 justify-between font-normal"
+																		variant="secondary"
+																		className="w-full h-[var(--input-h)] justify-between font-normal"
 																		disabled={isBranchesLoading}
 																	>
 																		<span className="flex items-center gap-2 truncate">
@@ -604,12 +604,12 @@ function ProjectPage() {
 													{setupDefaults.projectSummary}
 												</p>
 											)}
-											<div className="overflow-hidden rounded-lg border bg-card/40 divide-y divide-border/60">
+											<div className="overflow-hidden rounded-lg border bg-card/40 divide-y divide-border-variant">
 												{actions.map((action) => (
 													<label
 														key={action.id}
 														htmlFor={`action-${action.id}`}
-														className="flex items-center gap-3 px-3 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer"
+														className="flex items-center gap-3 px-3 py-2.5 hover:bg-fill-hover transition-colors cursor-pointer"
 													>
 														<Checkbox
 															id={`action-${action.id}`}
@@ -649,7 +649,7 @@ function ProjectPage() {
 											</p>
 											<div className="flex items-center justify-center gap-2">
 												<Button
-													variant="outline"
+													variant="ghost"
 													size="sm"
 													onClick={() => setSetupMode("custom")}
 												>
@@ -746,7 +746,7 @@ function ProjectPage() {
 
 									<div className="flex justify-between">
 										<Button
-											variant="outline"
+											variant="ghost"
 											onClick={() => setStep("workspace")}
 										>
 											<HiChevronLeft className="size-4" />
@@ -754,7 +754,7 @@ function ProjectPage() {
 										</Button>
 										<div className="flex items-center gap-2">
 											<Button
-												variant="outline"
+												variant="ghost"
 												onClick={handleSkipSetupAndCreateWorkspace}
 												disabled={
 													updateConfigMutation.isPending ||

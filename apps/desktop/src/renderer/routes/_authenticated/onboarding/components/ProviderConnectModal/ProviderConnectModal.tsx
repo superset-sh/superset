@@ -221,7 +221,7 @@ function ConnectDialogShell({
 						</Button>
 						<Button
 							size="sm"
-							variant="outline"
+							variant="ghost"
 							onClick={() => setMode("api-key")}
 						>
 							<LuKeyRound />

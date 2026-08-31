@@ -92,7 +92,7 @@ export function DashboardSidebarWorkspacesHeader() {
 								})}
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
-								className="group/addrepo flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+								className="group/addrepo flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 							>
 								<VscNewFolder className="size-3.5 group-hover/addrepo:hidden" />
 								<VscFolderOpened className="hidden size-3.5 group-hover/addrepo:block" />

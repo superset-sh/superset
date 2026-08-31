@@ -213,7 +213,7 @@ export function AutomationBody({
 							type="button"
 							onClick={() => setTab(tabOption.value)}
 							className={cn(
-								"rounded-md px-3 py-1.5 text-sm transition-colors",
+								"rounded px-3 py-1.5 text-sm transition-colors",
 								tab === tabOption.value
 									? "bg-accent font-medium text-foreground"
 									: "text-muted-foreground hover:text-foreground",
@@ -285,7 +285,7 @@ export function AutomationBody({
 							</div>
 						</div>
 						{agentMissing && (
-							<p className="select-text cursor-text mt-2 text-xs text-amber-600 dark:text-amber-500">
+							<p className="select-text cursor-text mt-2 text-xs text-warning">
 								<Trans id="dashboard.automations.body.agentMissingWarning">
 									This agent no longer exists on the selected device (its agents
 									may have been reset). Runs will fail until you pick a new one.

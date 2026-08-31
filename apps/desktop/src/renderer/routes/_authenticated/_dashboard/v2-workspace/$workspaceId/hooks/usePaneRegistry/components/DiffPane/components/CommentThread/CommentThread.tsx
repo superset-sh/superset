@@ -112,7 +112,7 @@ export function CommentThread({
 			open={open}
 			onOpenChange={setOpen}
 			className={cn(
-				"diff-comment mx-3 my-1 overflow-hidden rounded-md border border-border bg-card text-card-foreground",
+				"diff-comment mx-3 my-1 overflow-hidden rounded border border-border bg-card text-card-foreground",
 				isResolved && "opacity-70",
 			)}
 		>
@@ -146,12 +146,12 @@ export function CommentThread({
 						/>
 					</span>
 					{isOutdated && (
-						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
+						<span className="shrink-0 rounded bg-grayAlpha-100 px-1 py-px text-[10px] font-medium uppercase tracking-wide">
 							<Trans id="workspace.diffPane.threadOutdated">Outdated</Trans>
 						</span>
 					)}
 					{isResolved && (
-						<span className="shrink-0 rounded-sm border border-border px-1 py-px text-[10px] font-medium uppercase tracking-wide">
+						<span className="shrink-0 rounded bg-grayAlpha-100 px-1 py-px text-[10px] font-medium uppercase tracking-wide">
 							<Trans id="workspace.diffPane.threadResolved">Resolved</Trans>
 						</span>
 					)}
@@ -175,7 +175,7 @@ export function CommentThread({
 					}
 				>
 					{isCopied ? (
-						<LuCheck className="size-3 text-green-500" />
+						<LuCheck className="size-3 text-success" />
 					) : (
 						<LuCopy className="size-3" />
 					)}
@@ -197,7 +197,7 @@ export function CommentThread({
 				)}
 			</div>
 			<CollapsibleContent className="overflow-hidden border-t border-border data-[state=closed]:animate-none">
-				<ul className="divide-y divide-border">
+				<ul className="divide-y divide-border-variant">
 					{comments.map((comment) => (
 						<CommentRow key={comment.id} comment={comment} />
 					))}
@@ -206,7 +206,7 @@ export function CommentThread({
 					<Button
 						type="button"
 						size="xs"
-						variant="outline"
+						variant="ghost"
 						disabled={setResolution.isPending}
 						onClick={() =>
 							setResolution.mutate({

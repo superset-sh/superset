@@ -502,7 +502,7 @@ export function ComposerBody({
 		<div
 			ref={rootRef}
 			className={cn(
-				"relative flex flex-col rounded-2xl bg-card ring-1 ring-border transition-shadow focus-within:ring-ring/40",
+				"relative flex flex-col rounded-xl bg-background-3 ring-1 ring-border transition-shadow focus-within:ring-ring/40",
 			)}
 			onDragOver={(event) => {
 				if (dropZone == null && event.dataTransfer.types.includes("Files")) {
@@ -558,13 +558,13 @@ export function ComposerBody({
 			<div
 				aria-hidden={!dragging}
 				className={cn(
-					"pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/10 transition-opacity duration-150 motion-reduce:transition-none",
+					"pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-primary/10 transition-opacity duration-150 motion-reduce:transition-none",
 					dragging ? "opacity-100" : "opacity-0",
 				)}
 			>
 				<span
 					className={cn(
-						"inline-flex items-center rounded-md border border-border/50 bg-secondary px-3 py-1 text-sm text-foreground shadow transition-transform duration-150 motion-reduce:transition-none",
+						"inline-flex items-center rounded border border-border bg-popover px-3 py-1 text-base text-popover-foreground shadow transition-transform duration-150 motion-reduce:transition-none",
 						dragging ? "scale-100" : "scale-95",
 					)}
 				>
@@ -597,7 +597,7 @@ export function ComposerBody({
 				<PlainTextPlugin
 					contentEditable={<ContentEditable className="prompt-input-editor" />}
 					placeholder={
-						<span className="pointer-events-none absolute top-3.5 left-4 text-sm text-muted-foreground/70">
+						<span className="pointer-events-none absolute top-3.5 left-4 text-base text-muted-foreground">
 							{placeholder}
 						</span>
 					}
@@ -691,7 +691,7 @@ export function ComposerBody({
 				/>
 				{dictationSession.status === "error" ? (
 					<>
-						<span className="min-w-0 flex-1 truncate pl-1 text-sm text-muted-foreground">
+						<span className="min-w-0 flex-1 truncate pl-1 text-base text-muted-foreground">
 							{dictationSession.error?.message}
 						</span>
 						<button
@@ -701,7 +701,7 @@ export function ComposerBody({
 								message: "Retry dictation",
 							})}
 							onClick={() => void dictationSession.retry()}
-							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80"
+							className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] shrink-0 cursor-pointer items-center justify-center rounded bg-grayAlpha-100 text-foreground transition-colors hover:bg-grayAlpha-200"
 						>
 							<RefreshCcwIcon className="size-4" />
 						</button>
@@ -712,7 +712,7 @@ export function ComposerBody({
 								message: "Discard recording",
 							})}
 							onClick={dictationSession.cancel}
-							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+							className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] shrink-0 cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:bg-grayAlpha-100 hover:text-foreground"
 						>
 							<XIcon className="size-4" />
 						</button>
@@ -723,7 +723,7 @@ export function ComposerBody({
 								message: "Send message",
 							})}
 							disabled
-							className="flex size-8 shrink-0 cursor-not-allowed items-center justify-center rounded-lg bg-secondary text-muted-foreground"
+							className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] shrink-0 cursor-not-allowed items-center justify-center rounded bg-grayAlpha-100 text-muted-foreground"
 						>
 							<ArrowUpIcon className="size-4.5" />
 						</button>
@@ -742,7 +742,7 @@ export function ComposerBody({
 							})}
 							disabled={dictationSession.status === "transcribing"}
 							onClick={() => void dictationSession.finish()}
-							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 disabled:cursor-default disabled:opacity-50"
+							className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] shrink-0 cursor-pointer items-center justify-center rounded bg-grayAlpha-100 text-foreground transition-colors hover:bg-grayAlpha-200 disabled:cursor-default disabled:opacity-50"
 						>
 							<SquareIcon className="size-3.5 fill-current" />
 						</button>
@@ -753,7 +753,7 @@ export function ComposerBody({
 								message: "Send message",
 							})}
 							disabled
-							className="flex size-8 shrink-0 cursor-not-allowed items-center justify-center rounded-lg bg-secondary text-muted-foreground"
+							className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] shrink-0 cursor-not-allowed items-center justify-center rounded bg-grayAlpha-100 text-muted-foreground"
 						>
 							<ArrowUpIcon className="size-4.5" />
 						</button>
@@ -773,7 +773,7 @@ export function ComposerBody({
 									setBrowseOpen(false);
 									void dictationSession.start();
 								}}
-								className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+								className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] cursor-pointer items-center justify-center rounded text-muted-foreground transition-colors hover:bg-grayAlpha-100 hover:text-foreground"
 							>
 								<MicIcon className="size-4.5" />
 							</button>
@@ -786,7 +786,7 @@ export function ComposerBody({
 									message: "Stop response",
 								})}
 								onClick={onStop}
-								className="flex size-8 cursor-pointer items-center justify-center rounded-lg bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80"
+								className="flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] cursor-pointer items-center justify-center rounded bg-grayAlpha-100 text-foreground transition-colors hover:bg-grayAlpha-200"
 							>
 								<SquareIcon className="size-3.5 fill-current" />
 							</button>
@@ -800,10 +800,10 @@ export function ComposerBody({
 								disabled={!canSend}
 								onClick={submit}
 								className={cn(
-									"flex size-8 items-center justify-center rounded-lg transition-colors",
+									"flex h-[var(--btn-h-icon)] w-[var(--btn-w-icon)] items-center justify-center rounded transition-colors",
 									canSend
 										? "cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90"
-										: "cursor-not-allowed bg-secondary text-muted-foreground",
+										: "cursor-not-allowed bg-grayAlpha-100 text-muted-foreground",
 								)}
 							>
 								<ArrowUpIcon className="size-4.5" />

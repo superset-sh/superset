@@ -23,7 +23,7 @@ export function CommandMenu({
 	return (
 		<div
 			role="listbox"
-			className="relative z-50 w-full rounded-2xl bg-popover/95 p-1.5 shadow-xl ring-1 ring-border backdrop-blur-sm"
+			className="relative z-50 w-full rounded-xl bg-popover/95 p-1.5 text-popover-foreground shadow-xl ring-1 ring-border backdrop-blur-sm"
 		>
 			<div className="scroll-fade max-h-96 overflow-y-auto">
 				{commands.map((command, index) => {
@@ -33,7 +33,7 @@ export function CommandMenu({
 					return (
 						<Fragment key={command.id}>
 							{heading && (
-								<p className="px-3 pt-2.5 pb-1 text-[13px] text-muted-foreground">
+								<p className="px-3 pt-2.5 pb-1 text-sm text-muted-foreground">
 									{heading}
 								</p>
 							)}
@@ -43,7 +43,7 @@ export function CommandMenu({
 								role="option"
 								aria-selected={index === selectedIndex}
 								className={cn(
-									"flex cursor-pointer items-center gap-2.5 rounded-[10px] px-3 py-[5px] text-[15px] leading-[21px]",
+									"flex cursor-pointer items-center gap-2.5 rounded px-3 py-[5px] text-base",
 									index === selectedIndex
 										? "bg-accent text-accent-foreground"
 										: "text-foreground",

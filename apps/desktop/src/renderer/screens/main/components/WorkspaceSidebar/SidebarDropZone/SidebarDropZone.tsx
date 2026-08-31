@@ -173,7 +173,7 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: 10 }}
 						transition={{ duration: 0.2 }}
-						className="absolute bottom-3 left-3 right-3 z-50 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive shadow-sm"
+						className="absolute bottom-3 left-3 right-3 z-50 flex items-start gap-2 rounded border border-destructive/20 bg-destructive/10 px-3 py-2 text-destructive shadow-sm"
 					>
 						<span className="flex-1 text-xs">{error}</span>
 						<button

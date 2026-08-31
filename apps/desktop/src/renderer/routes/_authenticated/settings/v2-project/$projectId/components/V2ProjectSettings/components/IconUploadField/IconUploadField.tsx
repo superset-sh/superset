@@ -379,13 +379,13 @@ export function IconUploadField({
 							id: "settings.project.icon.changeIconColorAria",
 							message: "Change project icon and color",
 						})}
-						className="rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						className="rounded transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 					>
 						<ProjectThumbnail
 							projectName={projectName}
 							iconUrl={iconUrl}
 							color={color}
-							className="size-9 rounded-md text-sm"
+							className="size-9 rounded text-sm"
 						/>
 					</button>
 				</PopoverTrigger>
@@ -422,7 +422,7 @@ export function IconUploadField({
 										void handleSelectGlyph(glyph.icon);
 									}}
 									className={cn(
-										"flex size-8 items-center justify-center rounded-md border border-transparent",
+										"flex size-8 items-center justify-center rounded border border-transparent",
 										"hover:bg-accent hover:text-accent-foreground",
 										"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 										"disabled:cursor-not-allowed disabled:opacity-50",
@@ -436,7 +436,7 @@ export function IconUploadField({
 					</div>
 					<div className="flex flex-wrap items-center gap-2 border-t pt-3">
 						<Button
-							variant="outline"
+							variant="ghost"
 							size="sm"
 							disabled={disabled}
 							onClick={handleClickUpload}

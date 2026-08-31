@@ -48,7 +48,7 @@ export function ScriptField({
 					message: "Script editor with file drop support",
 				})}
 				className={cn(
-					"relative rounded-md border transition-colors",
+					"relative rounded border transition-colors",
 					isDragOver
 						? "ring-2 ring-primary/40 border-primary/60"
 						: "border-input",
@@ -86,13 +86,13 @@ export function ScriptField({
 						id: "settings.project.scriptField.importFromFileTitle",
 						message: "Import from file",
 					})}
-					className="absolute bottom-2 right-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+					className="absolute bottom-2 right-2 flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-fill-hover hover:text-foreground transition-colors"
 				>
 					<HiDocumentArrowUp className="h-3.5 w-3.5" />
 					<Trans id="settings.project.scriptField.import">Import</Trans>
 				</button>
 				{isDragOver && (
-					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-md bg-primary/10">
+					<div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded bg-primary/10">
 						<div className="flex items-center gap-2 text-primary text-sm font-medium">
 							<HiDocumentArrowUp className="h-5 w-5" />
 							<Trans id="settings.project.scriptField.dropToImport">

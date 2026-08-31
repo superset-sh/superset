@@ -7,26 +7,26 @@ export type { ActivePaneStatus } from "shared/tabs-types";
 /** Lookup object for status indicator styling - avoids if/else chains */
 const STATUS_CONFIG = {
 	permission: {
-		pingColor: "bg-yellow-400",
-		dotColor: "bg-yellow-500",
+		pingColor: "bg-warning",
+		dotColor: "bg-warning",
 		pulse: true,
 		tooltip: "Needs input",
 	},
 	failed: {
-		pingColor: "bg-red-400",
-		dotColor: "bg-red-500",
+		pingColor: "bg-destructive",
+		dotColor: "bg-destructive",
 		pulse: true,
 		tooltip: "Agent failed",
 	},
 	working: {
-		pingColor: "bg-amber-400",
-		dotColor: "bg-amber-500",
+		pingColor: "bg-warning",
+		dotColor: "bg-warning",
 		pulse: true,
 		tooltip: "Agent working",
 	},
 	review: {
 		pingColor: "",
-		dotColor: "bg-green-500",
+		dotColor: "bg-success",
 		pulse: false,
 		tooltip: "Ready for review",
 	},

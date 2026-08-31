@@ -157,7 +157,7 @@ export function RightSidebar() {
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<div className="flex items-center bg-background shrink-0 h-10 border-b">
+			<div className="flex items-center bg-background shrink-0 h-[var(--header-height)] border-b">
 				<div className="flex items-center h-full">
 					{showChangesTab && (
 						<TabButton
@@ -177,7 +177,7 @@ export function RightSidebar() {
 					/>
 				</div>
 				<div className="flex-1" />
-				<div className="flex items-center h-10 pr-2 gap-0.5">
+				<div className="flex items-center h-[var(--header-height)] pr-2 gap-0.5">
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button

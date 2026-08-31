@@ -4,7 +4,7 @@ import { unboundHint } from "../../hint";
 
 const TOOLTIP_OFFSET_PX = 14;
 const TOOLTIP_CLASSES =
-	"pointer-events-none fixed z-50 w-fit rounded-md bg-foreground px-3 py-1.5 text-xs text-background";
+	"pointer-events-none fixed z-50 w-fit rounded bg-foreground px-3 py-1.5 text-xs text-background";
 
 interface Position {
 	clientX: number;

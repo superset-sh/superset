@@ -404,7 +404,7 @@ export function AgentDetail({
 							<AlertDialog>
 								<AlertDialogTrigger asChild>
 									<Button
-										variant="outline"
+										variant="ghost"
 										size="sm"
 										disabled={restoreDefaultMutation.isPending}
 										className="shrink-0 gap-1.5"

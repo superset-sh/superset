@@ -43,7 +43,7 @@ export function DeleteConfirmDialog({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={() => onOpenChange(false)}
 						disabled={isDeleting}
 					>
@@ -52,7 +52,7 @@ export function DeleteConfirmDialog({
 					<Button
 						variant="destructive"
 						size="sm"
-						className="h-7 px-3 text-xs"
+						className="h-[var(--btn-h-default)] px-3 text-xs"
 						onClick={onConfirm}
 						disabled={isDeleting}
 					>

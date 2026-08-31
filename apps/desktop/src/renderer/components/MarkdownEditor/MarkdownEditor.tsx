@@ -257,8 +257,7 @@ export function MarkdownEditor({
 			}).configure({
 				lowlight,
 				HTMLAttributes: {
-					class:
-						"my-3 p-3 rounded-md bg-muted overflow-x-auto font-mono text-sm",
+					class: "my-3 p-3 rounded bg-muted overflow-x-auto font-mono text-sm",
 				},
 			}),
 			BulletList.configure({
@@ -285,7 +284,9 @@ export function MarkdownEditor({
 				},
 			}),
 			HorizontalRule.configure({
-				HTMLAttributes: { class: "my-6 border-none border-t border-border" },
+				HTMLAttributes: {
+					class: "my-6 border-none border-t border-border-variant",
+				},
 			}),
 			HardBreak,
 			History,
@@ -294,7 +295,7 @@ export function MarkdownEditor({
 				HTMLAttributes: { class: "text-primary underline" },
 			}),
 			LinearImage.configure({
-				HTMLAttributes: { class: "max-w-full h-auto rounded-md my-3" },
+				HTMLAttributes: { class: "max-w-full h-auto rounded my-3" },
 			}),
 			TableKit.configure({
 				table: {
@@ -313,7 +314,7 @@ export function MarkdownEditor({
 				},
 				tableCell: {
 					HTMLAttributes: {
-						class: "border-t border-border px-4 py-2 text-sm align-top",
+						class: "border-t border-border-variant px-4 py-2 text-sm align-top",
 					},
 				},
 			}),

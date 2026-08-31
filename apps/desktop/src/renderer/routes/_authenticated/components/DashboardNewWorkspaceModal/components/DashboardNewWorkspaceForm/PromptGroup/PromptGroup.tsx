@@ -449,7 +449,7 @@ export function PromptGroup({
 			{/* Workspace name + branch name */}
 			<div className="flex items-center">
 				<Input
-					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
+					className="border-none bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder={t({
 						id: "dashboard.newWorkspaceModal.promptGroup.workspaceNamePlaceholder",
 						message: "Workspace name (optional)",
@@ -469,7 +469,7 @@ export function PromptGroup({
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
 						className={cn(
-							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							"border-none bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
 						placeholder={
 							branchPreview ||
@@ -551,7 +551,7 @@ export function PromptGroup({
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
 				onError={(error) => toast.error(error.message)}
-				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+				className="[&>[data-slot=input-group]]:rounded [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR || linkedIssues.length > 0 || visibleFiles.length > 0) && (
 					<div className="flex flex-wrap items-start gap-2 px-3 pt-3 self-stretch">
@@ -828,9 +828,9 @@ export function PromptGroup({
 					{needsSetup ? (
 						<Button
 							type="button"
-							variant="outline"
+							variant="ghost"
 							size="sm"
-							className="h-6 px-2 text-[11px] text-amber-500 hover:text-amber-500"
+							className="h-[var(--btn-h-sm)] px-2 text-[11px] text-warning hover:text-warning"
 							onClick={handleGoToSetup}
 						>
 							<Trans id="dashboard.newWorkspaceModal.promptGroup.setUpProject">

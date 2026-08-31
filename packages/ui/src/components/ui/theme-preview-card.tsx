@@ -48,7 +48,7 @@ function ThemePreviewCard({
 		<div
 			data-slot="theme-preview-card"
 			className={cn(
-				"relative flex flex-col overflow-hidden rounded-lg border bg-transparent",
+				"border-border relative flex flex-col overflow-hidden rounded border bg-transparent",
 				className,
 			)}
 			{...props}
@@ -101,7 +101,7 @@ function ThemePreviewCard({
 
 			<div
 				className={cn(
-					"flex items-center justify-between gap-3 border-t bg-card p-3",
+					"border-border flex items-center justify-between gap-3 border-t bg-card p-3",
 					footerClassName,
 				)}
 			>

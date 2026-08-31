@@ -71,7 +71,7 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 	};
 
 	return (
-		<div className="absolute right-3 top-3 z-30 flex items-center gap-1 rounded-md border border-border bg-popover px-2 py-1 text-xs shadow-md">
+		<div className="absolute right-3 top-3 z-30 flex items-center gap-1 rounded border border-border bg-popover px-2 py-1 text-xs shadow-md">
 			<input
 				ref={inputRef}
 				value={query}
@@ -81,7 +81,7 @@ export function BrowserFindBar({ paneId, onClose }: BrowserFindBarProps) {
 					id: "workspace.browserPane.findInPagePlaceholder",
 					message: "Find in page",
 				})}
-				className="h-6 w-40 bg-transparent text-foreground outline-none placeholder:text-muted-foreground/50"
+				className="h-[var(--btn-h-sm)] w-40 bg-transparent text-foreground outline-none placeholder:text-muted-foreground/50"
 				spellCheck={false}
 				autoComplete="off"
 			/>

@@ -126,26 +126,26 @@ export function PRButton({
 
 	return (
 		<div
-			className="flex items-center ml-auto rounded border border-border overflow-hidden"
+			className="flex items-center ml-auto rounded bg-grayAlpha-100 overflow-hidden"
 			aria-busy={mergePRMutation.isPending}
 		>
 			<a
 				href={pr.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-accent transition-colors"
+				className="flex items-center gap-1 px-1.5 py-0.5 hover:bg-grayAlpha-200 transition-colors"
 			>
 				<PRIcon state={pr.state} className="w-4 h-4" />
 				<span className="text-xs text-muted-foreground font-mono">
 					#{pr.number}
 				</span>
 			</a>
-			<div className="w-px h-full bg-border" />
+			<div className="w-px h-full bg-border-variant" />
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
-						className="flex items-center px-1 py-0.5 hover:bg-accent transition-colors"
+						className="flex items-center px-1 py-0.5 hover:bg-grayAlpha-200 transition-colors"
 						disabled={mergePRMutation.isPending}
 						aria-label={
 							mergePRMutation.isPending

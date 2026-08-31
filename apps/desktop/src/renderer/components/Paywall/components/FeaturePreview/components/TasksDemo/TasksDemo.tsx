@@ -94,11 +94,11 @@ export function TasksDemo() {
 						>
 							{/* Status indicator */}
 							{task.status === "done" ? (
-								<div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-									<HiCheck className="w-3 h-3 text-emerald-400" />
+								<div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+									<HiCheck className="w-3 h-3 text-success" />
 								</div>
 							) : task.status === "in-progress" ? (
-								<SpinnerIcon className="w-5 h-5 text-amber-400 animate-spin shrink-0" />
+								<SpinnerIcon className="w-5 h-5 text-warning animate-spin shrink-0" />
 							) : (
 								<div className="w-5 h-5 rounded-full border-2 border-foreground/20 shrink-0 group-hover:border-foreground/40 transition-colors" />
 							)}

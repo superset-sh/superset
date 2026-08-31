@@ -148,7 +148,7 @@ export function SlugDialog({
 					id: "settings.organization.slugAvailable",
 					message: "Available",
 				}),
-				className: "text-green-600",
+				className: "text-success",
 			};
 		}
 		if (slugAvailable === false) {

@@ -97,7 +97,7 @@ export function FontPreview({
 					</>
 				) : (
 					<>
-						<span className="size-2 rounded-full bg-blue-500" />
+						<span className="size-2 rounded-full bg-chart-1" />
 						<span>
 							<Trans id="settings.appearance.fontPreview.editorFileName">
 								settings.ts

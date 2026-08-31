@@ -16,7 +16,7 @@ export function RemoveButton({ onClick }: RemoveButtonProps) {
 				id: "chatUi.removeButton.label",
 				message: "Remove attachment",
 			})}
-			className="absolute top-1 right-1 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+			className="absolute top-1 right-1 z-10 flex size-5 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90"
 			onClick={onClick}
 		>
 			<XIcon className="size-3" />

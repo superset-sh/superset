@@ -63,7 +63,7 @@ export function TopBarPortsGroup({ group, onNavigate }: TopBarPortsGroupProps) {
 		<Collapsible
 			open={!isCollapsed}
 			onOpenChange={() => toggleCollapsed(group.workspaceId)}
-			className="border-border/60 border-t pb-1 first:border-t-0 first:pt-0"
+			className="border-border-variant border-t pb-1 first:border-t-0 first:pt-0"
 		>
 			<div className="group/wsheader flex items-center gap-1 px-1 pt-1.5 pb-0.5">
 				<CollapsibleTrigger asChild>

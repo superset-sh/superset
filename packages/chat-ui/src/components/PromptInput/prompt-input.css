@@ -25,7 +25,7 @@
 }
 
 .prompt-input-chip[data-selected="true"] {
-	background: var(--accent);
+	background: oklch(var(--grayAlpha-200));
 }
 
 .prompt-input-chip:hover .prompt-input-chip-label {
@@ -59,7 +59,7 @@
 }
 
 .prompt-input-editor {
-	font-size: 14px;
+	font-size: var(--text-base);
 	line-height: 20px;
 	min-height: 40px;
 	outline: none;

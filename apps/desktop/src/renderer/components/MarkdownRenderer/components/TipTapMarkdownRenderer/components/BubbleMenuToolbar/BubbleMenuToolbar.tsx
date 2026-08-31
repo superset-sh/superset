@@ -103,7 +103,7 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 					id: "components.bubbleMenuToolbar.textStyle",
 					message: "Text style",
 				})}
-				className={`flex items-center gap-0.5 h-7 px-1.5 rounded text-xs font-medium hover:bg-accent/80 ${
+				className={`flex items-center gap-0.5 h-[var(--btn-h-default)] px-1.5 rounded text-xs font-medium hover:bg-accent/80 ${
 					currentLevel > 0
 						? "bg-accent text-accent-foreground"
 						: "text-foreground/80"
@@ -135,7 +135,7 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 				</svg>
 			</button>
 			{open && (
-				<div className="absolute top-full left-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md p-1 w-36 z-50">
+				<div className="absolute top-full left-0 mt-1 bg-popover text-popover-foreground border rounded shadow-md p-1 w-36 z-50">
 					{[
 						{
 							level: 0,
@@ -169,7 +169,7 @@ function HeadingDropdown({ editor }: { editor: Editor }) {
 						<button
 							type="button"
 							key={item.level}
-							className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent ${
+							className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent ${
 								(item.level === 0 && currentLevel === 0) ||
 								currentLevel === item.level
 									? "bg-accent/50"
@@ -240,7 +240,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 					id: "components.bubbleMenuToolbar.list",
 					message: "List",
 				})}
-				className={`flex items-center gap-0.5 h-7 px-1.5 rounded hover:bg-accent/80 ${
+				className={`flex items-center gap-0.5 h-[var(--btn-h-default)] px-1.5 rounded hover:bg-accent/80 ${
 					isAnyListActive
 						? "bg-accent text-accent-foreground"
 						: "text-foreground/80"
@@ -272,10 +272,10 @@ function ListDropdown({ editor }: { editor: Editor }) {
 				</svg>
 			</button>
 			{open && (
-				<div className="absolute top-full left-0 mt-1 bg-popover text-popover-foreground border rounded-md shadow-md p-1 w-40 z-50">
+				<div className="absolute top-full left-0 mt-1 bg-popover text-popover-foreground border rounded shadow-md p-1 w-40 z-50">
 					<button
 						type="button"
-						className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent ${
+						className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent ${
 							editor.isActive("bulletList") ? "bg-accent/50" : ""
 						}`}
 						onMouseDown={(e) => handleSelect("bullet", e)}
@@ -287,7 +287,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 					</button>
 					<button
 						type="button"
-						className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent ${
+						className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent ${
 							editor.isActive("orderedList") ? "bg-accent/50" : ""
 						}`}
 						onMouseDown={(e) => handleSelect("ordered", e)}
@@ -299,7 +299,7 @@ function ListDropdown({ editor }: { editor: Editor }) {
 					</button>
 					<button
 						type="button"
-						className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent ${
+						className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent ${
 							editor.isActive("taskList") ? "bg-accent/50" : ""
 						}`}
 						onMouseDown={(e) => handleSelect("task", e)}

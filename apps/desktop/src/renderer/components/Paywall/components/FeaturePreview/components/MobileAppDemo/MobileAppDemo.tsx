@@ -48,7 +48,7 @@ export function MobileAppDemo() {
 	return (
 		<div className="relative w-full h-full overflow-hidden">
 			{/* Phone frame - large and cropped at bottom */}
-			<div className="absolute right-12 top-10 w-[340px] h-[700px] bg-black rounded-[50px] border-[8px] border-neutral-700 shadow-2xl overflow-hidden">
+			<div className="absolute right-12 top-10 w-[340px] h-[700px] bg-black rounded-[50px] border-[8px] border-gray-500 shadow-2xl overflow-hidden">
 				{/* Dynamic Island */}
 				<div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-8 bg-black rounded-full z-10" />
 
@@ -65,7 +65,7 @@ export function MobileAppDemo() {
 								<div className="w-1 h-1 bg-foreground/30 rounded-full" />
 							</div>
 							<div className="w-6 h-3 border border-foreground/50 rounded-sm ml-1">
-								<div className="w-4 h-full bg-emerald-400 rounded-sm" />
+								<div className="w-4 h-full bg-success rounded-sm" />
 							</div>
 						</div>
 					</div>
@@ -82,7 +82,7 @@ export function MobileAppDemo() {
 										Superset Agent
 									</Trans>
 								</div>
-								<div className="text-[10px] text-emerald-400">
+								<div className="text-[10px] text-success">
 									<Trans id="components.mobileAppDemo.online">● Online</Trans>
 								</div>
 							</div>
@@ -99,7 +99,7 @@ export function MobileAppDemo() {
 								<div
 									className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
 										msg.role === "user"
-											? "bg-blue-500 text-white"
+											? "bg-primary text-white"
 											: "bg-foreground/10 text-foreground"
 									}`}
 								>
@@ -119,7 +119,7 @@ export function MobileAppDemo() {
 									Message...
 								</Trans>
 							</span>
-							<div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+							<div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
 								<svg
 									className="w-4 h-4 text-white"
 									fill="none"

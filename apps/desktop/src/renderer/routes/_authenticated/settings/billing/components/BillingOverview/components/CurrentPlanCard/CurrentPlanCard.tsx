@@ -67,7 +67,7 @@ export function CurrentPlanCard({
 						</Trans>
 					</span>
 					{isPaidPlan && (
-						<span className="inline-flex items-center rounded-md bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
+						<span className="inline-flex items-center rounded bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-background">
 							{i18n._(plan.name)}
 						</span>
 					)}

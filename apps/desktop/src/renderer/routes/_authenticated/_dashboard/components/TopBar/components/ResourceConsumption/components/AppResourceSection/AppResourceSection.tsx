@@ -23,7 +23,7 @@ interface SubRowProps {
 
 function SubRow({ label, cpu, memory, severity }: SubRowProps) {
 	return (
-		<div className="group flex items-center justify-between px-3.5 pl-7 py-1 hover:bg-foreground/[0.04] transition-colors">
+		<div className="group flex items-center justify-between px-3.5 pl-7 py-1 hover:bg-grayAlpha-100 transition-colors">
 			<div className="flex items-center gap-1.5 min-w-0 mr-2">
 				<span className="text-[11px] text-muted-foreground/90 truncate min-w-0">
 					{label}
@@ -50,17 +50,17 @@ export function AppResourceSection({
 	const showOther = app.other.cpu > 0 || app.other.memory > 0;
 
 	return (
-		<div className="border-b border-border/60 py-1">
+		<div className="border-b border-border-variant py-1">
 			<div className="flex items-center justify-between px-3.5 py-1.5">
 				<div className="flex items-center gap-1.5 min-w-0 mr-2">
-					<span className="text-[12px] font-medium text-foreground truncate min-w-0">
+					<span className="text-xs font-medium text-foreground truncate min-w-0">
 						<Trans id="dashboard.topBar.appResources.appName">
 							Superset App
 						</Trans>
 					</span>
 					<UsageSeverityBadge severity={appSeverity} />
 				</div>
-				<div className={cn(METRIC_COLS, "text-[12px] text-foreground")}>
+				<div className={cn(METRIC_COLS, "text-xs text-foreground")}>
 					<span className={CPU_COL}>{formatCpu(app.cpu)}</span>
 					<span className={MEM_COL}>{formatMemory(app.memory)}</span>
 				</div>

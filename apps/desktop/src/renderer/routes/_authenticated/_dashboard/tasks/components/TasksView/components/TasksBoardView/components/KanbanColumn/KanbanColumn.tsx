@@ -55,7 +55,7 @@ export function KanbanColumn({
 				ref={setNodeRef}
 				onScroll={onScroll}
 				className={cn(
-					"flex-1 flex flex-col gap-1 overflow-y-auto min-h-[60px] rounded-md p-0.5 transition-colors",
+					"flex-1 flex flex-col gap-1 overflow-y-auto min-h-[60px] rounded p-0.5 transition-colors",
 					isOver && "bg-accent/20 ring-1 ring-accent/40",
 				)}
 			>

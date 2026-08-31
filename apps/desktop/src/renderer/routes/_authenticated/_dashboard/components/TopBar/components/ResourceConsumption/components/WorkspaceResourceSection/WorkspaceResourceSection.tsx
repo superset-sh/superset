@@ -77,12 +77,15 @@ export function WorkspaceResourceSection({
 		return (
 			<div
 				key={project.projectId}
-				className={cn("py-1", projectIndex > 0 && "border-t border-border/40")}
+				className={cn(
+					"py-1",
+					projectIndex > 0 && "border-t border-border-variant",
+				)}
 			>
 				<button
 					type="button"
 					onClick={() => toggleProject(project.projectId)}
-					className="group w-full flex items-center justify-between px-2 py-1.5 hover:bg-foreground/[0.04] transition-colors"
+					className="group w-full flex items-center justify-between px-2 py-1.5 hover:bg-grayAlpha-100 transition-colors"
 					aria-label={
 						isProjectCollapsed
 							? t({
@@ -108,7 +111,7 @@ export function WorkspaceResourceSection({
 						</span>
 						<UsageSeverityBadge severity={projectSeverity} />
 					</div>
-					<div className={cn(METRIC_COLS, "text-[12px] text-foreground/90")}>
+					<div className={cn(METRIC_COLS, "text-xs text-foreground/90")}>
 						<span className={CPU_COL}>{formatCpu(project.cpu)}</span>
 						<span className={MEM_COL}>{formatMemory(project.memory)}</span>
 					</div>
@@ -122,12 +125,12 @@ export function WorkspaceResourceSection({
 
 						return (
 							<div key={workspace.workspaceId}>
-								<div className="group flex items-center hover:bg-foreground/[0.04] transition-colors">
+								<div className="group flex items-center hover:bg-grayAlpha-100 transition-colors">
 									{hasSessions ? (
 										<button
 											type="button"
 											onClick={() => toggleWorkspace(workspace.workspaceId)}
-											className="flex items-center justify-center h-7 w-5 ml-3.5 shrink-0 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+											className="flex items-center justify-center h-[var(--btn-h-default)] w-5 ml-3.5 shrink-0 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
 											aria-label={
 												isCollapsed
 													? t({
@@ -147,7 +150,7 @@ export function WorkspaceResourceSection({
 											)}
 										</button>
 									) : (
-										<span className="h-7 w-5 ml-3.5 shrink-0" />
+										<span className="h-[var(--btn-h-default)] w-5 ml-3.5 shrink-0" />
 									)}
 									<button
 										type="button"
@@ -155,16 +158,13 @@ export function WorkspaceResourceSection({
 										className="flex-1 min-w-0 flex items-center justify-between py-1.5 pr-3.5 pl-1 text-left"
 									>
 										<div className="flex items-center gap-1.5 min-w-0 mr-2">
-											<span className="text-[12px] text-foreground truncate min-w-0">
+											<span className="text-xs text-foreground truncate min-w-0">
 												{workspace.workspaceName}
 											</span>
 											<UsageSeverityBadge severity={workspaceSeverity} />
 										</div>
 										<div
-											className={cn(
-												METRIC_COLS,
-												"text-[12px] text-foreground/85",
-											)}
+											className={cn(METRIC_COLS, "text-xs text-foreground/85")}
 										>
 											<span className={CPU_COL}>
 												{formatCpu(workspace.cpu)}
@@ -190,7 +190,7 @@ export function WorkspaceResourceSection({
 												onClick={() =>
 													navigateToPane(workspace.workspaceId, session.paneId)
 												}
-												className="w-full flex items-center justify-between pl-12 pr-3.5 py-1 hover:bg-foreground/[0.04] transition-colors text-left"
+												className="w-full flex items-center justify-between pl-12 pr-3.5 py-1 hover:bg-grayAlpha-100 transition-colors text-left"
 											>
 												<div className="flex items-center gap-1.5 min-w-0 mr-2">
 													<span className="h-1 w-1 shrink-0 rounded-full bg-muted-foreground/40" />

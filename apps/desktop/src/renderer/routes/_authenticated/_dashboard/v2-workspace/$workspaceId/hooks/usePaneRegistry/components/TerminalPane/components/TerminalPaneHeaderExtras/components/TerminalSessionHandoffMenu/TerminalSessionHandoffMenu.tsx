@@ -289,7 +289,7 @@ export function TerminalSessionHandoffMenu({
 								)}
 							</div>
 						) : (
-							<div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+							<div className="rounded border bg-muted/30 px-3 py-2 text-sm">
 								<Trans id="workspace.terminalPane.forkProvider">
 									Provider: {sourceConfig?.label ?? binding.agentId}
 								</Trans>

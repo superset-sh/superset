@@ -11,10 +11,10 @@ import { DashboardSidebarAgentAvatar } from "../DashboardSidebarAgentAvatar";
 
 const STATUS_TEXT_CLASS: Record<RunningAgentStatus, string> = {
 	idle: "text-muted-foreground",
-	working: "text-amber-500",
-	permission: "text-yellow-500",
-	failed: "text-red-500",
-	review: "text-green-500",
+	working: "text-warning",
+	permission: "text-warning",
+	failed: "text-destructive",
+	review: "text-success",
 };
 
 interface DashboardSidebarAgentHoverRowProps {
@@ -44,7 +44,7 @@ export function DashboardSidebarAgentHoverRow({
 			: getStatusTooltip(agent.status);
 
 	return (
-		<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
+		<div className="flex items-center gap-1.5 rounded px-2 py-1 hover:bg-fill-hover">
 			<button
 				type="button"
 				onClick={handleOpen}

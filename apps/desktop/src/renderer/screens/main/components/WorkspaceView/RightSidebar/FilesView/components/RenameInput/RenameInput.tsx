@@ -58,7 +58,10 @@ export function RenameInput({
 
 	return (
 		<div
-			className={cn("flex items-center gap-1 px-1 h-7", "bg-accent rounded-sm")}
+			className={cn(
+				"flex items-center gap-1 px-1 h-[var(--btn-h-default)]",
+				"bg-accent rounded",
+			)}
 			style={{ paddingLeft: `${level * 16 + 4}px` }}
 		>
 			<span className="w-4 h-4 shrink-0" />

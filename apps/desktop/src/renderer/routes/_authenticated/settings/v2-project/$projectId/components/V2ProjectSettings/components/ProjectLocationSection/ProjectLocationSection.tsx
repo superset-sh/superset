@@ -155,16 +155,16 @@ export function ProjectLocationSection({
 		<>
 			{currentPath ? (
 				<div className="flex w-[28rem] max-w-full items-center gap-2">
-					<div className="flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30">
+					<div className="flex h-[var(--input-h)] min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded bg-input px-3">
 						<ClickablePath path={currentPath} className="max-w-none shrink-0" />
 					</div>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
 								type="button"
-								variant="outline"
-								size="icon"
-								className="size-9 shrink-0"
+								variant="ghost"
+								size="icon-lg"
+								className="shrink-0"
 								onClick={handleChange}
 								disabled={selectDirectory.isPending || isSubmitting}
 								aria-label={t({
@@ -191,7 +191,7 @@ export function ProjectLocationSection({
 					</span>
 					<Button
 						type="button"
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						onClick={() => setSetupOpen(true)}
 						disabled={!hostUrl}

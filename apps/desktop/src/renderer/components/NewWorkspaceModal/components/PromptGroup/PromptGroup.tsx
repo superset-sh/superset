@@ -82,7 +82,7 @@ type WorkspaceCreateAgent = AgentDefinitionId | "none";
 const AGENT_STORAGE_KEY = "lastSelectedWorkspaceCreateAgent";
 
 const PILL_BUTTON_CLASS =
-	"!h-[22px] min-h-0 rounded-md border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
+	"!h-[var(--btn-h-sm)] min-h-0 rounded border-[0.5px] border-border bg-foreground/[0.04] shadow-none text-[11px]";
 
 type ConvertedFile = {
 	data: string;
@@ -371,7 +371,7 @@ function CompareBaseBranchPickerInline({
 				>
 					<GoGitBranch className="size-3 shrink-0" />
 					{isBranchesLoading ? (
-						<span className="h-2.5 w-14 rounded-sm bg-muted-foreground/15 animate-pulse" />
+						<span className="h-2.5 w-14 rounded bg-muted-foreground/15 animate-pulse" />
 					) : (
 						<span className="font-mono truncate">
 							{effectiveCompareBaseBranch || "..."}
@@ -386,7 +386,7 @@ function CompareBaseBranchPickerInline({
 				onWheel={(event) => event.stopPropagation()}
 			>
 				<Command shouldFilter={false}>
-					<div className="flex items-center gap-0.5 rounded-md bg-muted/40 p-0.5 mx-2 mt-2">
+					<div className="flex items-center gap-0.5 rounded bg-muted/40 p-0.5 mx-2 mt-2">
 						{(["all", "worktrees"] as const).map((value) => {
 							const count =
 								value === "all"
@@ -400,7 +400,7 @@ function CompareBaseBranchPickerInline({
 									className={cn(
 										"flex-1 rounded px-2 py-1 text-xs text-center transition-colors",
 										filterMode === value
-											? "bg-background text-foreground shadow-sm"
+											? "bg-background text-foreground"
 											: "text-muted-foreground hover:text-foreground",
 									)}
 								>
@@ -521,7 +521,7 @@ function CompareBaseBranchPickerInline({
 												<Button
 													size="sm"
 													variant="ghost"
-													className="h-7 px-2.5 text-xs font-medium hover:bg-accent/10 hover:text-accent-foreground"
+													className="h-[var(--btn-h-default)] px-2.5 text-xs font-medium hover:bg-accent/10 hover:text-accent-foreground"
 													onClick={(e) => {
 														e.stopPropagation();
 														if (activeWorkspaceId) {
@@ -541,7 +541,7 @@ function CompareBaseBranchPickerInline({
 											)}
 											<Button
 												size="sm"
-												className="h-7 px-2.5 text-xs font-medium"
+												className="h-[var(--btn-h-default)] px-2.5 text-xs font-medium"
 												onClick={(e) => {
 													e.stopPropagation();
 													onSelectCompareBaseBranch(branch.name);
@@ -1295,7 +1295,7 @@ ${sanitizeText(truncatedBody)}`;
 		<div className="p-3 space-y-2">
 			<div className="flex items-center">
 				<Input
-					className="border-none bg-transparent dark:bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
+					className="border-none bg-transparent shadow-none text-base font-medium px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 min-w-0 flex-1"
 					placeholder={t({
 						id: "components.promptGroup.workspaceNamePlaceholder",
 						message: "Workspace name (optional)",
@@ -1316,7 +1316,7 @@ ${sanitizeText(truncatedBody)}`;
 				<div className="shrink min-w-0 ml-auto max-w-[50%]">
 					<Input
 						className={cn(
-							"border-none bg-transparent dark:bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
+							"border-none bg-transparent shadow-none text-xs font-mono text-muted-foreground/60 px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/30 focus:text-muted-foreground text-right placeholder:text-right overflow-hidden text-ellipsis",
 						)}
 						placeholder={t({
 							id: "components.promptGroup.branchNamePlaceholder",
@@ -1351,7 +1351,7 @@ ${sanitizeText(truncatedBody)}`;
 				maxFiles={5}
 				maxFileSize={10 * 1024 * 1024}
 				onError={(error) => toast.error(error.message)}
-				className="[&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
+				className="[&>[data-slot=input-group]]:rounded [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 			>
 				{(linkedPR ||
 					linkedIssues.length > 0 ||

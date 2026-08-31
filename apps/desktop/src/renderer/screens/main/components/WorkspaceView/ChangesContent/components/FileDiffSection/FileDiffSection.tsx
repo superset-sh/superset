@@ -465,7 +465,7 @@ export function FileDiffSection({
 									: `Large diff hidden — ${totalChanges.toLocaleString()} lines changed`}
 							</p>
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								onClick={() => setLoadHiddenDiff(true)}
 							>
@@ -493,7 +493,7 @@ export function FileDiffSection({
 												<div className="mt-2 flex gap-2">
 													<Button
 														size="sm"
-														variant="outline"
+														variant="ghost"
 														onClick={handleReloadFromDisk}
 													>
 														Reload From Disk

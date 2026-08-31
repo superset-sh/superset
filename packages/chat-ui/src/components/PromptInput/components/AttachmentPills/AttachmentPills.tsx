@@ -73,7 +73,7 @@ export function AttachmentPills({
 							<button
 								type="button"
 								aria-label={filename}
-								className="group/attachment relative block size-16 cursor-pointer overflow-hidden rounded-xl border-[0.5px] border-border bg-foreground/[0.04]"
+								className="group/attachment relative block size-16 cursor-pointer overflow-hidden rounded border-[0.5px] border-border bg-grayAlpha-50"
 								onClick={() => onAttachmentClick?.(attachment)}
 							>
 								{attachment.file.type.startsWith("video/") ? (
@@ -91,7 +91,7 @@ export function AttachmentPills({
 										onError={() => onPreviewError?.(attachment.id)}
 									/>
 								)}
-								<span className="pointer-events-none absolute inset-0 bg-foreground/[0.02] opacity-0 transition-opacity duration-150 group-hover/attachment:opacity-100" />
+								<span className="pointer-events-none absolute inset-0 bg-grayAlpha-50 opacity-0 transition-opacity duration-150 group-hover/attachment:opacity-100" />
 							</button>
 							<RemoveButton onClick={() => onRemove(attachment.id)} />
 						</div>
@@ -102,10 +102,10 @@ export function AttachmentPills({
 						<button
 							type="button"
 							onClick={() => onAttachmentClick?.(attachment)}
-							className="group/attachment relative flex h-16 w-[200px] cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl border-[0.5px] border-border bg-foreground/[0.03] px-2.5 text-left"
+							className="group/attachment relative flex h-16 w-[200px] cursor-pointer items-center gap-2.5 overflow-hidden rounded border-[0.5px] border-border bg-grayAlpha-50 px-2.5 text-left"
 						>
-							<span className="pointer-events-none absolute inset-0 bg-foreground/[0.02] opacity-0 transition-opacity duration-150 group-hover/attachment:opacity-100" />
-							<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground/[0.06]">
+							<span className="pointer-events-none absolute inset-0 bg-grayAlpha-50 opacity-0 transition-opacity duration-150 group-hover/attachment:opacity-100" />
+							<div className="flex size-10 shrink-0 items-center justify-center rounded bg-grayAlpha-100">
 								{fileTypeIcon(attachment.file.type, extension)}
 							</div>
 							<div className="min-w-0 flex-1 pr-3">
@@ -113,7 +113,7 @@ export function AttachmentPills({
 									{filename}
 								</div>
 								{extension && (
-									<div className="text-[10px] text-muted-foreground">
+									<div className="text-xs text-muted-foreground">
 										{extension}
 									</div>
 								)}

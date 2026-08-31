@@ -96,14 +96,14 @@ export function DashboardSidebarBulkActions({
 					// scrolled far out of view when selecting rows at the bottom of a
 					// long sidebar — pin it to the scroller top so the selection always
 					// has visible actions.
-					className="sticky top-0 z-10 flex h-7 w-full shrink-0 items-center gap-0.5 bg-background/85 pl-2 pr-2 backdrop-blur-sm"
+					className="sticky top-0 z-10 flex h-[var(--btn-h-default)] w-full shrink-0 items-center gap-0.5 bg-background/85 pl-2 pr-2 backdrop-blur-sm"
 				>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
 							<button
 								type="button"
 								onClick={clearSelection}
-								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+								className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 								aria-label={t({
 									id: "dashboard.sidebar.bulkActions.clearSelectionAriaLabel",
 									message: "Clear workspace selection",
@@ -136,7 +136,7 @@ export function DashboardSidebarBulkActions({
 								<DropdownMenuTrigger asChild>
 									<button
 										type="button"
-										className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+										className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 										aria-label={t({
 											id: "dashboard.sidebar.bulkActions.moveToGroupAriaLabel",
 											message: plural(selectedWorkspaces.length, {
@@ -201,7 +201,7 @@ export function DashboardSidebarBulkActions({
 								type="button"
 								disabled={groupedWorkspaceIds.length === 0}
 								onClick={ungroupSelection}
-								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
+								className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
 								aria-label={t({
 									id: "dashboard.sidebar.bulkActions.ungroupAriaLabel",
 									message: "Ungroup selected workspaces",
@@ -220,7 +220,7 @@ export function DashboardSidebarBulkActions({
 							<button
 								type="button"
 								onClick={openDeleteDialog}
-								className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+								className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
 								aria-label={t({
 									id: "dashboard.sidebar.bulkActions.deleteAriaLabel",
 									message: "Delete selected workspaces",

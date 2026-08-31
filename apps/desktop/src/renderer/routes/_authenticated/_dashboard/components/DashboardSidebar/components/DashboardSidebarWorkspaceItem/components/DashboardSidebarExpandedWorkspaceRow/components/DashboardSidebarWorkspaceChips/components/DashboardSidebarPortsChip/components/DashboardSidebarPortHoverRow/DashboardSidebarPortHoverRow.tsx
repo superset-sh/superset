@@ -22,14 +22,14 @@ export function DashboardSidebarPortHoverRow({
 	const address = formatPortRowLabel({ port, forward });
 
 	return (
-		<div className="group/row flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
+		<div className="group/row flex items-center gap-1.5 rounded px-2 py-1 hover:bg-fill-hover">
 			<button
 				type="button"
 				onClick={openPrimary}
 				disabled={isPending}
 				className="flex min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			>
-				<span className="size-1.5 shrink-0 rounded-full bg-green-500" />
+				<span className="size-1.5 shrink-0 rounded-full bg-success" />
 				{port.label && (
 					<span className="min-w-0 truncate text-xs">{port.label}</span>
 				)}

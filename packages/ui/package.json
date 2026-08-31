@@ -5,6 +5,8 @@
 	"type": "module",
 	"exports": {
 		"./globals.css": "./src/globals.css",
+		"./theme.css": "./src/theme.css",
+		"./design-tokens.css": "./src/design-tokens.css",
 		"./lib/*": "./src/lib/*.ts",
 		"./hooks/*": "./src/hooks/*.ts",
 		"./utils": "./src/lib/utils.ts",
@@ -78,6 +80,7 @@
 		"motion": "12.38.0",
 		"nanoid": "6.0.0",
 		"next-themes": "0.4.6",
+		"non.geist": "2.2.0",
 		"radix-ui": "1.4.3",
 		"react-day-picker": "9.14.0",
 		"react-hook-form": "7.72.0",

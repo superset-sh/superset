@@ -17,7 +17,7 @@ export function DropZoneOverlay({ position }: DropZoneOverlayProps) {
 	return (
 		<div className="pointer-events-none absolute inset-0 z-10">
 			<div
-				className="absolute rounded-sm border-2 border-primary/70 bg-primary/10"
+				className="absolute rounded border-2 border-primary/70 bg-primary/10"
 				style={{
 					...ZONE_STYLES[position],
 					transition: "all 150ms ease",

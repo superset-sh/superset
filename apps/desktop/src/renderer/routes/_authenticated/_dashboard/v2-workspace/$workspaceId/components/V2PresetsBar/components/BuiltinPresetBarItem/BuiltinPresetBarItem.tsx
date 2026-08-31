@@ -39,7 +39,7 @@ export function BuiltinPresetBarItem({
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-6 max-w-32 min-w-0 shrink-0 gap-1.5 rounded-md px-1.5 text-xs font-normal text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+								className="h-[var(--btn-h-sm)] max-w-32 min-w-0 shrink-0 gap-1.5 rounded px-1.5 text-xs font-normal text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 								onClick={() => onExecutePreset(preset)}
 							>
 								{icon ? (

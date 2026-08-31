@@ -58,7 +58,7 @@ function RingtoneRow({
 			}}
 			className={cn(
 				"flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-				isSelected ? "bg-accent/40" : "hover:bg-muted/50",
+				isSelected ? "bg-accent/40" : "hover:bg-fill-hover",
 			)}
 		>
 			<span className="text-xl shrink-0 w-7 text-center leading-none">
@@ -98,10 +98,10 @@ function RingtoneRow({
 							})
 				}
 				className={cn(
-					"h-7 w-7 rounded-full flex items-center justify-center transition-colors border shrink-0",
+					"h-[var(--btn-h-default)] w-[var(--btn-h-default)] rounded-full flex items-center justify-center transition-colors shrink-0",
 					isPlaying
-						? "bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90"
-						: "text-foreground border-border hover:bg-accent",
+						? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						: "text-foreground bg-grayAlpha-100 hover:bg-grayAlpha-200",
 				)}
 			>
 				{isPlaying ? (
@@ -144,7 +144,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 		? {
 				...customRingtoneData,
 				filename: "",
-				color: "from-slate-400 to-slate-500",
+				color: "from-gray-400 to-gray-500",
 			}
 		: null;
 	const ringtoneOptions = customRingtone
@@ -327,7 +327,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 							<Button
 								type="button"
 								size="sm"
-								variant="outline"
+								variant="ghost"
 								onClick={handleImportCustomRingtone}
 								disabled={importCustomRingtone.isPending}
 							>
@@ -347,7 +347,7 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 								)}
 							</Button>
 						</div>
-						<div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+						<div className="rounded-lg border border-border overflow-hidden divide-y divide-border-variant">
 							{ringtoneOptions.map((ringtone) => (
 								<RingtoneRow
 									key={ringtone.id}

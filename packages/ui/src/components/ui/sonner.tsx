@@ -32,12 +32,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
 					overflow: "hidden",
 				},
 				classNames: {
+					toast: "shadow-1 backdrop-blur-md",
 					description: "overflow-y-auto",
 				},
 			}}
 			style={
 				{
-					"--normal-bg": "var(--popover)",
+					"--normal-bg": "var(--gray-100)",
 					"--normal-text": "var(--popover-foreground)",
 					"--normal-border": "var(--border)",
 					"--border-radius": "var(--radius)",

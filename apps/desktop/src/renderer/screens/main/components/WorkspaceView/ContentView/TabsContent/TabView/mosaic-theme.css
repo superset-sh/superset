@@ -27,7 +27,7 @@
 	.mosaic-window
 	.mosaic-window-toolbar {
 	background: var(--color-tertiary);
-	height: 28px;
+	height: var(--btn-h-default);
 	padding: 0 8px;
 	display: flex;
 	align-items: center;
@@ -121,20 +121,20 @@
 
 /* Drop target when hovering - shows the split preview */
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
-	background: rgba(59, 130, 246, 0.1);
-	border: 1px solid rgba(59, 130, 246, 0.3);
+	background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
 	opacity: 1;
 }
 
 /* Workspace run pane state colors — border + toolbar tint */
 .workspace-run-pane-running {
-	--ws-run-color: #10b981;
+	--ws-run-color: var(--color-success);
 }
 .workspace-run-pane-stopped-by-user {
-	--ws-run-color: #f59e0b;
+	--ws-run-color: var(--color-warning);
 }
 .workspace-run-pane-stopped-by-exit {
-	--ws-run-color: #ef4444;
+	--ws-run-color: var(--color-destructive);
 }
 
 :is(.mosaic-theme-dark, .mosaic-theme-light) [class*="workspace-run-pane-"] {

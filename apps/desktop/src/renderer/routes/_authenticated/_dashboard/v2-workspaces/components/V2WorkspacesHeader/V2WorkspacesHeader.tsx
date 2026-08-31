@@ -243,10 +243,10 @@ export function V2WorkspacesHeader({
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								className={cn(
-									"h-8 gap-1.5 font-normal",
+									"h-[var(--btn-h-lg)] gap-1.5 font-normal",
 									activeFilterCount === 0 && "text-muted-foreground",
 								)}
 							>
@@ -486,9 +486,9 @@ export function V2WorkspacesHeader({
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant="outline"
+								variant="ghost"
 								size="sm"
-								className="h-8 gap-1.5 font-normal text-muted-foreground"
+								className="h-[var(--btn-h-lg)] gap-1.5 font-normal text-muted-foreground"
 							>
 								<LuArrowDownUp className="size-3.5" />
 								<Trans id="dashboard.workspaces.header.display">Display</Trans>
@@ -565,7 +565,7 @@ export function V2WorkspacesHeader({
 
 				<div className="flex shrink-0 items-center gap-2">
 					<fieldset
-						className="flex items-center rounded-md border bg-muted/30 p-0.5"
+						className="flex items-center rounded border bg-muted/30 p-0.5"
 						aria-label={t({
 							id: "dashboard.workspaces.header.workspaceLayout",
 							message: "Workspace layout",
@@ -575,9 +575,9 @@ export function V2WorkspacesHeader({
 							type="button"
 							aria-pressed={viewMode === "list"}
 							className={cn(
-								"flex h-6 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								"flex h-[var(--btn-h-sm)] items-center gap-1.5 rounded px-2 text-xs transition-colors",
 								viewMode === "list"
-									? "bg-background text-foreground shadow-sm"
+									? "bg-background text-foreground"
 									: "text-muted-foreground hover:text-foreground",
 							)}
 							onClick={() => setViewMode("list")}
@@ -589,9 +589,9 @@ export function V2WorkspacesHeader({
 							type="button"
 							aria-pressed={viewMode === "board"}
 							className={cn(
-								"flex h-6 items-center gap-1.5 rounded-sm px-2 text-xs transition-colors",
+								"flex h-[var(--btn-h-sm)] items-center gap-1.5 rounded px-2 text-xs transition-colors",
 								viewMode === "board"
-									? "bg-background text-foreground shadow-sm"
+									? "bg-background text-foreground"
 									: "text-muted-foreground hover:text-foreground",
 							)}
 							onClick={() => setViewMode("board")}

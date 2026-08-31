@@ -125,7 +125,7 @@ export function TabItem<TData>({
 						"group relative flex h-full w-full items-center transition-colors",
 						isActive
 							? "border border-border border-b-transparent bg-background text-foreground"
-							: "border border-transparent border-b-border text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground",
+							: "border border-transparent border-b-border text-muted-foreground hover:bg-fill-hover hover:text-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
@@ -137,7 +137,7 @@ export function TabItem<TData>({
 					{isEditing ? (
 						<div className="flex h-full w-full shrink-0 items-center px-2">
 							<TabRenameInput
-								className="w-full min-w-0 rounded border border-border bg-background px-1 py-0.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-ring"
+								className="h-[var(--input-h)] w-full min-w-0 rounded border-none bg-input px-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-ring"
 								maxLength={64}
 								onCancel={stopEditing}
 								onChange={setEditValue}
@@ -154,7 +154,7 @@ export function TabItem<TData>({
 								<TooltipTrigger asChild>
 									{/* biome-ignore lint/a11y/noStaticElementInteractions: tab selection is handled by the wrapper's mousedown; this title element is intentionally a non-focusable div so clicking a tab never steals focus from the active pane (issue #4967) */}
 									<div
-										className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-colors"
+										className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-sm transition-colors"
 										onAuxClick={(event) => {
 											if (event.button === 1) {
 												event.preventDefault();
@@ -179,10 +179,7 @@ export function TabItem<TData>({
 								)}
 								<Button
 									aria-label="Close tab"
-									className={cn(
-										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-										isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
-									)}
+									className="pointer-events-none h-[var(--btn-h-xs)] w-[var(--btn-h-xs)] cursor-pointer rounded text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 hover:bg-fill-hover"
 									onClick={(event) => {
 										event.stopPropagation();
 										onClose();

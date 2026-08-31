@@ -38,8 +38,8 @@ export function CategorySection({
 	}
 
 	const liveWorkBadgeClass: Partial<Record<ChangeCategory, string>> = {
-		unstaged: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
-		staged: "bg-green-500/15 text-green-700 dark:text-green-400",
+		unstaged: "bg-warning/15 text-warning",
+		staged: "bg-success/15 text-success",
 	};
 	const countBadgeClass = liveWorkBadgeClass[id];
 	const isLiveWork = countBadgeClass !== undefined;
@@ -49,7 +49,7 @@ export function CategorySection({
 			open={isExpanded}
 			onOpenChange={onToggle}
 			className={cn(
-				"min-w-0 overflow-hidden border-t border-border/40 transition-opacity first:border-t-0",
+				"min-w-0 overflow-hidden border-t border-border-variant transition-opacity first:border-t-0",
 				isDragging && "opacity-45",
 			)}
 		>

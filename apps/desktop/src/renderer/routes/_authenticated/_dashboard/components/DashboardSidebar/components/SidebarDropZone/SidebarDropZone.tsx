@@ -19,7 +19,7 @@ export function SidebarDropZone({ dropZoneId, label }: SidebarDropZoneProps) {
 		<div
 			ref={setNodeRef}
 			className={cn(
-				"mx-2 flex h-8 items-center justify-center rounded-md border border-dashed border-border text-[11px] text-muted-foreground",
+				"mx-2 flex h-[var(--btn-h-lg)] items-center justify-center rounded border border-dashed border-border text-[11px] text-muted-foreground",
 				isOver && "border-ring bg-fill-hover",
 			)}
 		>

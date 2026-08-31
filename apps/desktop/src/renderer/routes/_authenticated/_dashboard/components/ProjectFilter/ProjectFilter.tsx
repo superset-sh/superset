@@ -111,7 +111,7 @@ export function ProjectFilter({
 						id: "dashboard.projectFilter.repositoriesAriaLabel",
 						message: `Repositories: ${label}`,
 					})}
-					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+					className="h-[var(--btn-h-lg)] gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					{selectedProject ? (
 						<ProjectThumbnail

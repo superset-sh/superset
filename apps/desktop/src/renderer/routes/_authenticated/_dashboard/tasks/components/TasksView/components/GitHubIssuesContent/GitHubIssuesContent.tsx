@@ -292,7 +292,7 @@ export function GitHubIssuesContent({
 				{error instanceof Error && issues.length === 0 ? (
 					<div className="flex flex-col items-start gap-3 px-4 py-4 text-sm text-destructive select-text cursor-text">
 						<span>{error.message}</span>
-						<Button variant="outline" size="sm" onClick={() => refetch()}>
+						<Button variant="ghost" size="sm" onClick={() => refetch()}>
 							<Trans id="dashboard.tasks.githubIssues.tryAgain">
 								Try again
 							</Trans>
@@ -336,7 +336,7 @@ export function GitHubIssuesContent({
 										Some repositories could not be loaded: {error.message}
 									</Trans>
 								</span>
-								<Button variant="outline" size="xs" onClick={() => refetch()}>
+								<Button variant="ghost" size="xs" onClick={() => refetch()}>
 									<Trans id="dashboard.tasks.githubIssues.retry">Retry</Trans>
 								</Button>
 							</div>
@@ -350,7 +350,7 @@ export function GitHubIssuesContent({
 								// biome-ignore lint/a11y/useSemanticElements: row contains nested action buttons, so the outer element is a div with role/tabIndex
 								<div
 									key={selectionKey}
-									className="group flex h-9 cursor-pointer items-center gap-3 border-b border-border/50 px-4 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+									className="group flex h-[var(--btn-h-xl)] cursor-pointer items-center gap-3 border-b border-border-variant px-4 hover:bg-grayAlpha-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
 									onClick={() => handleOpenPreview(issue)}
 									onKeyDown={(e) => {
 										if (e.target !== e.currentTarget) return;
@@ -386,8 +386,8 @@ export function GitHubIssuesContent({
 									<StateIcon
 										className={
 											isClosed
-												? "size-4 shrink-0 text-violet-500"
-												: "size-4 shrink-0 text-emerald-500"
+												? "size-4 shrink-0 text-status-1"
+												: "size-4 shrink-0 text-success"
 										}
 									/>
 									{projectTargets.length > 1 && (
@@ -409,7 +409,7 @@ export function GitHubIssuesContent({
 									<div className="flex items-center gap-1">
 										<Button
 											variant="ghost"
-											size="icon-xs"
+											size="icon"
 											title={t({
 												id: "dashboard.tasks.githubIssues.openInBrowser",
 												message: "Open in browser",
@@ -426,8 +426,8 @@ export function GitHubIssuesContent({
 											<HiOutlineArrowTopRightOnSquare className="size-3.5" />
 										</Button>
 										<Button
-											variant="outline"
-											size="sm"
+											variant="ghost"
+											size="default"
 											title={t({
 												id: "dashboard.tasks.githubIssues.addToWorkspaceTitle",
 												message: "Add to workspace",
@@ -436,7 +436,7 @@ export function GitHubIssuesContent({
 												id: "dashboard.tasks.githubIssues.addIssueToWorkspace",
 												message: `Add issue #${issue.issueNumber} to workspace`,
 											})}
-											className="h-7 gap-1.5 px-2 text-xs"
+											className="gap-1.5 px-2 text-xs"
 											onClick={(e) => {
 												e.stopPropagation();
 												handleAddToWorkspace(issue);

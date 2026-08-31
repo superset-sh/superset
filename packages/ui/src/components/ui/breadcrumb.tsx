@@ -98,7 +98,10 @@ function BreadcrumbEllipsis({
 			data-slot="breadcrumb-ellipsis"
 			role="presentation"
 			aria-hidden="true"
-			className={cn("flex size-9 items-center justify-center", className)}
+			className={cn(
+				"flex size-[var(--btn-h-icon)] items-center justify-center",
+				className,
+			)}
 			{...props}
 		>
 			<EllipsisIcon className="size-4" />

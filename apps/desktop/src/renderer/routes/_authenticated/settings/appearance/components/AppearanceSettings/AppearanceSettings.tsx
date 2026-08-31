@@ -74,7 +74,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				{(showThemeSection || showLanguage || showMarkdown) && (
 					<div
 						key="appearance-card"
-						className="rounded-lg border border-border overflow-hidden divide-y divide-border"
+						className="rounded-lg border border-border overflow-hidden divide-y divide-border-variant"
 					>
 						{showThemeSection && <ThemeSection />}
 						{showLanguage && <LanguageSection />}

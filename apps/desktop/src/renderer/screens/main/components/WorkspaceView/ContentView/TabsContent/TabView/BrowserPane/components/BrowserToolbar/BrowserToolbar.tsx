@@ -157,7 +157,7 @@ export function BrowserToolbar({
 							onBlur={exitEditMode}
 							onKeyDown={handleKeyDown}
 							placeholder="Enter URL or search..."
-							className="h-[22px] w-full rounded-sm border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
+							className="h-[22px] w-full rounded border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"
 							onMouseDown={suspendAncestorDragForTextSelection}
@@ -167,7 +167,7 @@ export function BrowserToolbar({
 					<button
 						type="button"
 						onClick={enterEditMode}
-						className="group flex w-full min-w-0 items-baseline rounded-sm border border-transparent px-2 py-0.5 text-left text-xs"
+						className="group flex w-full min-w-0 items-baseline rounded border border-transparent px-2 py-0.5 text-left text-xs"
 					>
 						{isBlank ? (
 							<span className="text-muted-foreground/40">

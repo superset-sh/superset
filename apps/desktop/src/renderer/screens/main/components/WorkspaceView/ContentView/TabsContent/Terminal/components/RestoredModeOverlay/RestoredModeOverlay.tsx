@@ -10,7 +10,7 @@ export function RestoredModeOverlay({
 	onStartShell,
 }: RestoredModeOverlayProps) {
 	return (
-		<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+		<div className="absolute inset-0 z-10 flex items-center justify-center bg-grayAlpha-700 dark:bg-grayAlpha-500">
 			<Card className="gap-3 py-4 px-2">
 				<div className="flex flex-col items-center text-center gap-1.5 px-4">
 					<LuTerminal className="size-5 text-primary" />

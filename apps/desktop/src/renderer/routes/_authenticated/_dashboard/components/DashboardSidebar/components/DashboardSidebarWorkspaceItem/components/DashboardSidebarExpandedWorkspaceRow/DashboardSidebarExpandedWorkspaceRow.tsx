@@ -162,7 +162,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					else if (ref) ref.current = node;
 				}}
 				className={cn(
-					"relative mx-2 rounded-md text-left text-sm transition-colors",
+					"relative text-left text-sm transition-colors",
 					isActive && "bg-fill-selected",
 					isSelected && "bg-fill-selected",
 					onClick &&
@@ -194,7 +194,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					onFocus={handleRowFocus}
 					onBlur={handleRowBlur}
 					className={cn(
-						"group relative flex h-7 w-full items-center pr-2",
+						"group relative flex h-[var(--btn-h-default)] w-full items-center pr-2",
 						isInSection ? "pl-10" : "pl-6",
 						onClick && "cursor-pointer",
 					)}
@@ -222,7 +222,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 											id: "dashboard.sidebar.expandedWorkspaceRow.openPrAriaLabel",
 											message: `Open pull request #${pullRequest.number}`,
 										})}
-										className="relative mr-2 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
+										className="relative mr-2 flex size-4 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-grayAlpha-100"
 									>
 										<DashboardSidebarWorkspaceIcon
 											hostType={hostType}
@@ -354,7 +354,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								onSubmit={onSubmitRename}
 								onCancel={onCancelRename}
 								className={cn(
-									"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-[13px] leading-tight outline-none",
+									"h-5 w-full -ml-1 border-none bg-transparent px-1 py-0 text-sm leading-tight outline-none",
 								)}
 							/>
 						) : (
@@ -363,7 +363,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									name={name || branch}
 									forceActive={isFocused}
 									className={cn(
-										"text-[13px] leading-tight transition-colors",
+										"text-sm leading-tight transition-colors",
 										isActive || isSelected
 											? "text-foreground"
 											: "text-foreground/80",

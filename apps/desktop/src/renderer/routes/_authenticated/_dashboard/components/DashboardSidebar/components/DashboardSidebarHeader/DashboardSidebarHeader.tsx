@@ -243,9 +243,8 @@ export function DashboardSidebarHeader({
 					<div
 						// w +1px: overlaps the container's border-r so the sidebar's
 						// vertical border starts below the bar, not inside it. The fill
-						// is the tab bar's bg-muted/45|35-over-background flattened to an
-						// opaque color so it can paint over that border pixel.
-						className="drag h-10 w-[calc(100%+1px)] shrink-0 bg-[color-mix(in_oklab,var(--muted)_45%,var(--background))] dark:bg-[color-mix(in_oklab,var(--muted)_35%,var(--background))]"
+						// is the tab bar's own surface, so the two read as one band.
+						className="drag h-[var(--header-height)] w-[calc(100%+1px)] shrink-0 border-b border-border bg-background-2"
 					/>
 				)}
 				{/* Mirrors the expanded header's nav container so the buttons keep
@@ -256,7 +255,7 @@ export function DashboardSidebarHeader({
 							<button
 								type="button"
 								onClick={() => openModal(activeProjectId)}
-								className="flex size-7 items-center justify-center rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected"
+								className="flex size-7 items-center justify-center rounded bg-fill-hover/60 [.light_&]:bg-fill-hover text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected"
 							>
 								<div className="flex size-5 items-center justify-center rounded bg-fill-selected">
 									<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
@@ -276,7 +275,7 @@ export function DashboardSidebarHeader({
 								type="button"
 								onPointerDown={handleSearchPointerDown}
 								onClick={handleSearchClick}
-								className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover"
+								className="flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover"
 							>
 								<LuSearch className="size-3.5" strokeWidth={1.5} />
 							</button>
@@ -300,7 +299,7 @@ export function DashboardSidebarHeader({
 								type="button"
 								onClick={handleWorkspacesClick}
 								className={cn(
-									"flex size-7 items-center justify-center rounded-md transition-colors",
+									"flex size-7 items-center justify-center rounded transition-colors",
 									isWorkspacesListOpen
 										? "bg-fill-selected text-muted-foreground"
 										: "text-muted-foreground hover:bg-fill-hover",
@@ -333,7 +332,7 @@ export function DashboardSidebarHeader({
 											})
 								}
 								className={cn(
-									"relative flex size-7 items-center justify-center rounded-md transition-colors",
+									"relative flex size-7 items-center justify-center rounded transition-colors",
 									isAutomationsOpen
 										? "bg-fill-selected text-muted-foreground"
 										: "text-muted-foreground hover:bg-fill-hover",
@@ -343,7 +342,7 @@ export function DashboardSidebarHeader({
 								{myFailedCount > 0 && (
 									<span
 										aria-hidden="true"
-										className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
+										className="absolute right-1 top-1 size-1.5 rounded-full bg-destructive"
 									/>
 								)}
 							</button>
@@ -372,7 +371,7 @@ export function DashboardSidebarHeader({
 								})}
 								aria-current={isTasksOpen ? "page" : undefined}
 								className={cn(
-									"flex size-7 items-center justify-center rounded-md transition-colors",
+									"flex size-7 items-center justify-center rounded transition-colors",
 									isTasksOpen
 										? "bg-fill-selected text-muted-foreground"
 										: "text-muted-foreground hover:bg-fill-hover",
@@ -397,7 +396,7 @@ export function DashboardSidebarHeader({
 								})}
 								aria-current={isPullRequestsOpen ? "page" : undefined}
 								className={cn(
-									"flex size-7 items-center justify-center rounded-md transition-colors",
+									"flex size-7 items-center justify-center rounded transition-colors",
 									isPullRequestsOpen
 										? "bg-fill-selected text-muted-foreground"
 										: "text-muted-foreground hover:bg-fill-hover",
@@ -425,7 +424,7 @@ export function DashboardSidebarHeader({
 									})}
 									aria-current={isPagesOpen ? "page" : undefined}
 									className={cn(
-										"flex size-7 items-center justify-center rounded-md transition-colors",
+										"flex size-7 items-center justify-center rounded transition-colors",
 										isPagesOpen
 											? "bg-fill-selected text-muted-foreground"
 											: "text-muted-foreground hover:bg-fill-hover",
@@ -452,7 +451,7 @@ export function DashboardSidebarHeader({
 									})}
 									aria-current={isPluginsOpen ? "page" : undefined}
 									className={cn(
-										"flex size-7 items-center justify-center rounded-md transition-colors",
+										"flex size-7 items-center justify-center rounded transition-colors",
 										isPluginsOpen
 											? "bg-fill-selected text-muted-foreground"
 											: "text-muted-foreground hover:bg-fill-hover",
@@ -479,7 +478,7 @@ export function DashboardSidebarHeader({
 											id: "dashboard.sidebar.header.addProjectAriaLabel",
 											message: "Add project",
 										})}
-										className="group/addrepo flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover"
+										className="group/addrepo flex size-7 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-fill-hover"
 									>
 										<VscNewFolder className="size-3.5 group-hover/addrepo:hidden" />
 										<VscFolderOpened className="hidden size-3.5 group-hover/addrepo:block" />
@@ -529,13 +528,13 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div
-			className="flex flex-col gap-px px-2 pt-2 pb-2"
+			className="flex flex-col gap-px pt-2 pb-2"
 			// Pin the top inset so the traffic-light row stays a constant physical
 			// distance from the window top under page zoom (see the row below).
 			style={isMac ? { paddingTop: `${8 / zoomFactor}px` } : undefined}
 		>
-			{/* -mx-2 cancels the parent's px-2 so this row owns the 80px traffic-light
-			    inset; inset and height are counter-scaled to a constant physical size
+			{/* The row owns the full 80px traffic-light inset itself; inset and
+			    height are counter-scaled to a constant physical size
 			    so the fixed macOS traffic lights stay aligned under page zoom. On Mac
 			    the control clusters below use ZoomStable so the collapse/nav icons and
 			    usage badge keep a constant physical size instead of scaling with page
@@ -546,7 +545,7 @@ export function DashboardSidebarHeader({
 				// Window-drag regions live on the empty spacer + filler leaves, never
 				// on this row: `no-drag` carve-outs under a `drag` ancestor are lost
 				// inside zoomed wrappers like ZoomStable, deadening the controls.
-				className="-mx-2 mb-3 flex h-8 items-center pr-3"
+				className="mb-1 flex h-8 items-center pr-3"
 				style={isMac ? { height: `${32 / zoomFactor}px` } : undefined}
 			>
 				<div
@@ -566,7 +565,7 @@ export function DashboardSidebarHeader({
 			<button
 				type="button"
 				onClick={() => openModal(activeProjectId)}
-				className="group flex h-7 w-full items-center gap-2 rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover px-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
+				className="group flex h-[var(--btn-h-default)] w-full items-center bg-fill-hover/60 [.light_&]:bg-fill-hover gap-2 px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
 			>
 				<div className="flex size-5 shrink-0 items-center justify-center rounded bg-fill-selected">
 					<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
@@ -583,7 +582,7 @@ export function DashboardSidebarHeader({
 				type="button"
 				onPointerDown={handleSearchPointerDown}
 				onClick={handleSearchClick}
-				className="group flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
+				className="group flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
 			>
 				<LuSearch
 					className="size-4 shrink-0 text-muted-foreground"
@@ -601,7 +600,7 @@ export function DashboardSidebarHeader({
 				type="button"
 				onClick={handleWorkspacesClick}
 				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+					"flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium transition-colors",
 					isWorkspacesListOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
@@ -620,7 +619,7 @@ export function DashboardSidebarHeader({
 				type="button"
 				onClick={handleAutomationsClick}
 				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+					"flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium transition-colors",
 					isAutomationsOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
@@ -639,7 +638,7 @@ export function DashboardSidebarHeader({
 							id: "dashboard.sidebar.header.automationsFailedTitle",
 							message: `${myFailedCount} of your automations failed their last run`,
 						})}
-						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
+						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-destructive/15 px-1 text-[10px] font-medium tabular-nums text-destructive"
 					>
 						{myFailedCount > 9 ? "9+" : myFailedCount}
 					</span>
@@ -655,7 +654,7 @@ export function DashboardSidebarHeader({
 				})}
 				aria-current={isTasksOpen ? "page" : undefined}
 				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+					"flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium transition-colors",
 					isTasksOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
@@ -676,7 +675,7 @@ export function DashboardSidebarHeader({
 				})}
 				aria-current={isPullRequestsOpen ? "page" : undefined}
 				className={cn(
-					"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+					"flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium transition-colors",
 					isPullRequestsOpen
 						? "bg-fill-selected text-foreground"
 						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
@@ -700,7 +699,7 @@ export function DashboardSidebarHeader({
 					})}
 					aria-current={isPagesOpen ? "page" : undefined}
 					className={cn(
-						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						"flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium transition-colors",
 						isPagesOpen
 							? "bg-fill-selected text-foreground"
 							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
@@ -726,7 +725,7 @@ export function DashboardSidebarHeader({
 					})}
 					aria-current={isPluginsOpen ? "page" : undefined}
 					className={cn(
-						"flex h-7 w-full items-center gap-2 rounded-md px-2 text-[13px] font-medium transition-colors",
+						"flex h-[var(--btn-h-default)] w-full items-center gap-2 px-2 text-sm font-medium transition-colors",
 						isPluginsOpen
 							? "bg-fill-selected text-foreground"
 							: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",

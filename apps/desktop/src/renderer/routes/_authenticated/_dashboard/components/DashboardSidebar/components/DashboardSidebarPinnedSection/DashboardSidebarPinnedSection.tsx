@@ -58,7 +58,7 @@ export function DashboardSidebarPinnedSection({
 						onHoverCardOpen={onWorkspaceHover}
 					/>
 				))}
-				<div className="mx-3 mt-1 border-b border-border" />
+				<div className="mx-3 mt-1 border-b border-border-variant" />
 			</div>
 		);
 	}

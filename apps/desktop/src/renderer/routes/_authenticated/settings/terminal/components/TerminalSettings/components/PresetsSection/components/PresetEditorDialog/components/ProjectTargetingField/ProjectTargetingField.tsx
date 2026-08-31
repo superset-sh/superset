@@ -99,7 +99,7 @@ export function ProjectTargetingField({
 
 	return (
 		<div className="space-y-2">
-			<div className="inline-flex w-full overflow-hidden rounded-md border border-border">
+			<div className="inline-flex w-full overflow-hidden rounded border border-border">
 				{segmentedOptions.map((option, idx) => (
 					<button
 						key={option.value}
@@ -126,9 +126,9 @@ export function ProjectTargetingField({
 						<PopoverTrigger asChild>
 							<Button
 								type="button"
-								variant="outline"
+								variant="secondary"
 								size="sm"
-								className="h-8 w-full justify-between"
+								className="h-[var(--input-h)] w-full justify-between"
 							>
 								<span className="truncate">{buttonLabel}</span>
 								<ChevronsUpDownIcon className="size-3.5 text-muted-foreground" />

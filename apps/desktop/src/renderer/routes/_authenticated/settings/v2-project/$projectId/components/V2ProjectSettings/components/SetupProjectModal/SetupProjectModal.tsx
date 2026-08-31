@@ -301,8 +301,8 @@ export function SetupProjectModal({
 											/>
 											<Button
 												type="button"
-												variant="outline"
-												size="icon"
+												variant="ghost"
+												size="icon-lg"
 												onClick={() => {
 													if (isRemoteTarget) {
 														setBrowseTarget("parentDir");
@@ -366,8 +366,8 @@ export function SetupProjectModal({
 									/>
 									<Button
 										type="button"
-										variant="outline"
-										size="icon"
+										variant="ghost"
+										size="icon-lg"
 										onClick={() => {
 											if (isRemoteTarget) {
 												setBrowseTarget("importPath");

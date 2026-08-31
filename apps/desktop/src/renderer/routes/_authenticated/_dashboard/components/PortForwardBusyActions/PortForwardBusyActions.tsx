@@ -8,7 +8,7 @@ interface PortForwardBusyActionsProps {
 }
 
 const BUTTON_CLASS =
-	"shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-fill-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60";
+	"shrink-0 rounded bg-grayAlpha-100 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-grayAlpha-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60";
 
 /**
  * A remote port whose local port number is taken. The user picks: stop the

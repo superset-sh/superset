@@ -49,7 +49,7 @@ export function SidebarDragOverlay({
 					: "2px solid var(--color-border)",
 			}}
 		>
-			<div className="flex min-h-8 w-full items-center gap-1.5 pl-0.5 pr-2 py-1.5 text-[11px] font-medium text-muted-foreground">
+			<div className="flex min-h-[var(--btn-h-lg)] w-full items-center gap-1.5 pl-0.5 pr-2 py-1.5 text-[11px] font-medium text-muted-foreground">
 				<div className="flex shrink-0 items-center justify-center w-5 h-5 opacity-60">
 					<LuGripVertical className="size-3" />
 				</div>

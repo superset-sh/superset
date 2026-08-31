@@ -99,7 +99,7 @@ export function PageWatcherMenu({
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-6 gap-1 px-1.5 text-muted-foreground/60 text-xs hover:text-muted-foreground"
+					className="h-[var(--btn-h-sm)] gap-1 px-1.5 text-muted-foreground/60 text-xs hover:text-muted-foreground"
 					aria-label={t({
 						id: "workspace.pagePane.watcherAria",
 						message: "Choose which agent watches this page for comments",

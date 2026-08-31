@@ -233,7 +233,7 @@ export function PullRequestsContent({
 				{error instanceof Error && pullRequests.length === 0 ? (
 					<div className="flex flex-col items-start gap-3 px-4 py-4 text-sm text-destructive select-text cursor-text">
 						<span>{error.message}</span>
-						<Button variant="outline" size="sm" onClick={() => refetch()}>
+						<Button variant="ghost" size="sm" onClick={() => refetch()}>
 							<Trans id="dashboard.pullRequests.error.tryAgain">
 								Try again
 							</Trans>
@@ -275,13 +275,13 @@ export function PullRequestsContent({
 				) : (
 					<div className="flex flex-col gap-1.5 p-2">
 						{error instanceof Error && (
-							<div className="flex items-center gap-2 rounded-lg bg-destructive/5 px-4 py-2 text-xs text-destructive">
+							<div className="flex items-center gap-2 rounded bg-destructive/5 px-4 py-2 text-xs text-destructive">
 								<span className="min-w-0 flex-1 truncate select-text cursor-text">
 									<Trans id="dashboard.pullRequests.error.partialLoad">
 										Some repositories could not be loaded: {error.message}
 									</Trans>
 								</span>
-								<Button variant="outline" size="xs" onClick={() => refetch()}>
+								<Button variant="ghost" size="xs" onClick={() => refetch()}>
 									<Trans id="dashboard.pullRequests.error.retry">Retry</Trans>
 								</Button>
 							</div>

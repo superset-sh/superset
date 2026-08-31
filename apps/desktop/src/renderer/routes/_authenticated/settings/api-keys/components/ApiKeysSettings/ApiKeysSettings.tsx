@@ -204,7 +204,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 
 			{showApiKeysList &&
 				(isPending && apiKeys.length === 0 ? (
-					<div className="divide-y divide-border">
+					<div className="divide-y divide-border-variant">
 						{[1, 2, 3].map((i) => (
 							<div key={i} className="flex items-center gap-4 py-3">
 								<Skeleton className="h-4 w-4 rounded" />
@@ -228,7 +228,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 						</p>
 					</div>
 				) : (
-					<div className="divide-y divide-border">
+					<div className="divide-y divide-border-variant">
 						{apiKeys.map((key) => (
 							<div
 								key={key.id}
@@ -259,7 +259,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 									<Button
 										variant="ghost"
 										size="icon"
-										className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+										className="h-[var(--btn-h-lg)] w-[var(--btn-h-lg)] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
 										onClick={() => handleRevokeKey(key.id, key.name)}
 										aria-label={t({
 											id: "settings.apiKeys.revokeKeyAriaLabel",
@@ -360,7 +360,7 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 							<Button
 								variant="ghost"
 								size="icon"
-								className="absolute right-1 top-1 h-7 w-7"
+								className="absolute right-1 top-1 h-[var(--btn-h-default)] w-[var(--btn-h-default)]"
 								onClick={handleCopyKey}
 								aria-label={t({
 									id: "settings.apiKeys.copyKeyAriaLabel",

@@ -92,7 +92,7 @@ export function LinearProjectFilter({
 									message: "Project",
 								})
 					}
-					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+					className="h-[var(--btn-h-lg)] gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
 					<HiOutlineFolder className="size-4" />
 					<span className="text-sm hidden @4xl:inline">

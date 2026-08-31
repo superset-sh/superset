@@ -122,9 +122,9 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 									})
 						}
 						className={cn(
-							"group flex items-center gap-1.5 h-6 px-1.5 sm:pl-1.5 sm:pr-2 rounded-l border border-r-0 border-border/60 bg-secondary/50 text-xs font-medium",
+							"group flex items-center gap-1.5 h-[var(--btn-h-sm)] px-1.5 sm:pl-1.5 sm:pr-2 rounded-l bg-grayAlpha-100 text-xs font-medium",
 							"transition-all duration-150 ease-out",
-							"hover:bg-secondary hover:border-border",
+							"hover:bg-grayAlpha-200",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isLoading && "opacity-50 pointer-events-none",
@@ -171,9 +171,9 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 						type="button"
 						disabled={isLoading}
 						className={cn(
-							"flex items-center justify-center h-6 w-6 rounded-r border border-border/60 bg-secondary/50 text-muted-foreground",
+							"flex items-center justify-center h-[var(--btn-h-sm)] w-6 rounded-r border-l border-border-variant bg-grayAlpha-100 text-muted-foreground",
 							"transition-all duration-150 ease-out",
-							"hover:bg-secondary hover:border-border hover:text-foreground",
+							"hover:bg-grayAlpha-200 hover:text-foreground",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
 							"active:scale-[0.98]",
 							isLoading && "opacity-50 pointer-events-none",
