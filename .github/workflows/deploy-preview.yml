@@ -22,6 +22,7 @@ env:
 jobs:
   deploy-database:
     name: Deploy Database (Neon)
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: preview
 
@@ -79,6 +80,7 @@ jobs:
 
   deploy-api:
     name: Deploy API
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: preview
     needs: deploy-database
@@ -266,6 +268,7 @@ jobs:
 
   deploy-web:
     name: Deploy Web
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment:
       name: preview
@@ -395,6 +398,7 @@ jobs:
 
   deploy-marketing:
     name: Deploy Marketing
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: preview
     needs: deploy-database
@@ -520,6 +524,7 @@ jobs:
 
   deploy-admin:
     name: Deploy Admin
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: preview
     needs: deploy-database
@@ -642,6 +647,7 @@ jobs:
 
   deploy-docs:
     name: Deploy Docs
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     environment: preview
     needs: deploy-database
@@ -730,7 +736,7 @@ jobs:
   post-final-comment:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && github.event.pull_request.head.repo.full_name == github.repository
     needs: [deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read
