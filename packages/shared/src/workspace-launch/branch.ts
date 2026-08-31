@@ -183,6 +183,27 @@ export function sanitizeUserBranchName(
 	return cleaned;
 }
 
+/**
+ * How much of a branch name a custom prefix may occupy — half the budget, so
+ * the slug that follows still has room. The bound belongs here: nothing
+ * downstream trims `${prefix}/${slug}` before it reaches `git worktree add`.
+ */
+const CUSTOM_BRANCH_PREFIX_MAX_LENGTH = DEFAULT_BRANCH_NAME_MAX_LENGTH / 2;
+
+/**
+ * Normalizes a custom prefix typed in settings. The settings inputs persist
+ * this value as-is, and `resolveBranchPrefix` runs it again when the branch is
+ * created, so both sides have to sanitize identically — otherwise the prefix
+ * shown in settings is not the one you get on the branch.
+ */
+export function sanitizeCustomBranchPrefix(prefix: string): string {
+	return sanitizeBranchNameWithMaxLength(
+		prefix,
+		CUSTOM_BRANCH_PREFIX_MAX_LENGTH,
+		{ preserveCase: true },
+	);
+}
+
 export function resolveBranchPrefix({
 	mode,
 	customPrefix,
@@ -199,8 +220,9 @@ export function resolveBranchPrefix({
 		case "none":
 			return null;
 		case "custom":
-			prefix = customPrefix || null;
-			break;
+			return customPrefix
+				? sanitizeCustomBranchPrefix(customPrefix) || null
+				: null;
 		case "author":
 			prefix = authorPrefix || null;
 			break;
@@ -215,4 +237,20 @@ export function resolveBranchPrefix({
 				preserveCase: true,
 			})
 		: null;
+}
+
+/**
+ * True when the prefix, or any path above it, is already a branch. Git stores
+ * refs as files, so `user` and `user/team/task` can't both exist — a nested
+ * prefix has to be clear at every level, not just at its full path.
+ */
+export function branchPrefixCollides(
+	prefix: string,
+	existingBranches: string[],
+): boolean {
+	const existing = new Set(existingBranches.map((b) => b.toLowerCase()));
+	const segments = prefix.toLowerCase().split("/");
+	return segments.some((_, index) =>
+		existing.has(segments.slice(0, index + 1).join("/")),
+	);
 }

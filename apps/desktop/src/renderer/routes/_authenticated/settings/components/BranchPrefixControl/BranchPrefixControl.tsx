@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { i18n } from "@superset/i18n";
 import {
 	type BranchPrefixMode,
-	sanitizeSegment,
+	sanitizeCustomBranchPrefix,
 } from "@superset/shared/workspace-launch";
 import { Input } from "@superset/ui/input";
 import {
@@ -73,7 +73,7 @@ export function BranchPrefixControl({
 	};
 
 	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizeSegment(customPrefixInput);
+		const sanitized = sanitizeCustomBranchPrefix(customPrefixInput);
 		setCustomPrefixInput(sanitized);
 		// Empty sanitized prefix: don't persist `mode=custom, customPrefix=null`
 		// — that lies about user intent. Leave the dropdown alone so they can
