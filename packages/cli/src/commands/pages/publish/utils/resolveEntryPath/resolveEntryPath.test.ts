@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { externalEntryPath, resolveEntryPath } from "./entryPath";
+import { externalEntryPath, resolveEntryPath } from "./resolveEntryPath";
 
 const workspacePath = "/Users/dev/ws";
 

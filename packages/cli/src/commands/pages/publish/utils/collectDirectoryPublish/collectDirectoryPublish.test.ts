@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { collectDirectoryPublish, videoCodecWarning } from "./directory";
+import {
+	collectDirectoryPublish,
+	videoCodecWarning,
+} from "./collectDirectoryPublish";
 
 function site(files: Record<string, string>): string {
 	const dir = mkdtempSync(join(tmpdir(), "pages-dir-"));

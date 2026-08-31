@@ -1,21 +1,20 @@
-import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, extname, resolve } from "node:path";
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
-import { lookup as lookupMimeType } from "mime-types";
 import { command } from "../../../lib/command";
 import { resolveWorkspaceId } from "../workspaceRef";
 import {
 	collectDirectoryPublish,
 	type DirectoryAsset,
-	videoCodecWarning,
-} from "./directory";
+} from "./utils/collectDirectoryPublish";
+import { publishResult } from "./utils/publishResult";
+import { registerWatch, watchTerminalId } from "./utils/registerWatch";
 import {
 	EXTERNAL_ENTRY_PREFIX,
 	externalEntryPath,
 	resolveEntryPath,
-} from "./entryPath";
-import { registerWatch, watchTerminalId } from "./registerWatch";
+} from "./utils/resolveEntryPath";
+import { uploadAssets } from "./utils/uploadAssets";
 
 const VISIBILITIES = ["just_me", "org"] as const;
 
@@ -113,75 +112,11 @@ export default command({
 			: undefined;
 		const link = workspaceId ? { entryPath, workspaceId } : undefined;
 
-		// Republishing a directory re-uploads only what changed: hashes are
-		// compared against the previous version's files. Best effort — a
-		// failed lookup just means every asset uploads.
-		let previous: Map<string, { fileId: string; sha256: string }> | null = null;
-		if (assets.length > 0) {
-			try {
-				const target = options.page
-					? { pageId: options.page }
-					: link
-						? { workspaceId: link.workspaceId, entryPath: link.entryPath }
-						: null;
-				const resolved = target
-					? await ctx.api.page.resolveByEntryPath.query(target)
-					: null;
-				if (resolved?.latestVersionId) {
-					const listed = await ctx.api.file.list.query({
-						parentKind: "page_version",
-						parentId: resolved.latestVersionId,
-					});
-					previous = new Map();
-					for (const item of listed) {
-						if (item.path) {
-							previous.set(item.path, {
-								fileId: item.file.id,
-								sha256: item.file.sha256,
-							});
-						}
-					}
-				}
-			} catch {
-				previous = null;
-			}
-		}
-
-		const warnings: string[] = [];
-		const published: { path: string; fileId: string }[] = [];
-		let reused = 0;
-		for (const asset of assets) {
-			const bytes = readFileSync(asset.filePath);
-			const sha256 = createHash("sha256").update(bytes).digest("hex");
-			const warning = videoCodecWarning(asset.path, bytes.subarray(0, 16));
-			if (warning) warnings.push(warning);
-
-			const match = previous?.get(asset.path);
-			if (match && match.sha256 === sha256) {
-				published.push({ path: asset.path, fileId: match.fileId });
-				reused += 1;
-				continue;
-			}
-
-			const created = await ctx.api.file.createUpload.mutate({
-				name: basename(asset.path),
-				contentType: lookupMimeType(asset.path) || "application/octet-stream",
-				sizeBytes: asset.sizeBytes,
-				sha256,
-			});
-			const response = await fetch(created.uploadUrl, {
-				method: "PUT",
-				headers: created.headers,
-				body: bytes,
-			});
-			if (!response.ok) {
-				throw new CLIError(
-					`Uploading ${asset.path} failed (${response.status})`,
-				);
-			}
-			await ctx.api.file.complete.mutate({ id: created.id });
-			published.push({ path: asset.path, fileId: created.id });
-		}
+		const uploaded = await uploadAssets({
+			api: ctx.api,
+			assets,
+			target: options.page ? { pageId: options.page } : (link ?? null),
+		});
 
 		const defaultTitle =
 			isDirectory && !options.title
@@ -193,7 +128,7 @@ export default command({
 			contentType: "text/html",
 			filename: basename(entryFilePath),
 			...(link ?? {}),
-			...(published.length > 0 ? { assets: published } : {}),
+			...(uploaded.published.length > 0 ? { assets: uploaded.published } : {}),
 			...(options.page ? { pageId: options.page } : {}),
 			...(options.title
 				? { title: options.title }
@@ -207,20 +142,15 @@ export default command({
 				: {}),
 		});
 
-		const external =
+		const externalPath =
 			link && entryPath.startsWith(EXTERNAL_ENTRY_PREFIX) && !options.page
-				? `\nOutside the workspace, so this page is keyed as "${entryPath}"`
-				: "";
-		const assetNote =
-			assets.length > 0
-				? `\n${assets.length} asset${assets.length === 1 ? "" : "s"}${reused > 0 ? ` (${reused} unchanged, not re-uploaded)` : ""}`
-				: "";
-		const warningNote = warnings.length > 0 ? `\n${warnings.join("\n")}` : "";
+				? entryPath
+				: null;
 
 		const terminalId = watchTerminalId();
 		const organizationId = ctx.config.organizationId;
 		let watching = false;
-		let watchNote = "";
+		let watchNote: string | null = null;
 
 		if (
 			!options.noWatch &&
@@ -240,18 +170,20 @@ export default command({
 					api: ctx.api,
 				});
 				watching = true;
-				watchNote =
-					"\nWatching for comments — they will be sent to this session";
+				watchNote = "Watching for comments — they will be sent to this session";
 			} catch (error) {
-				watchNote = `\nNot watching for comments: ${
+				watchNote = `Not watching for comments: ${
 					error instanceof Error ? error.message : "could not reach the host"
 				}`;
 			}
 		}
 
-		return {
-			data: { ...page, watching, assets: published },
-			message: `Published "${page.title}" v${page.version}\n${page.url}${assetNote}${warningNote}${external}${watchNote}`,
-		};
+		return publishResult({
+			page,
+			assets: uploaded,
+			externalPath,
+			watching,
+			watchNote,
+		});
 	},
 });
