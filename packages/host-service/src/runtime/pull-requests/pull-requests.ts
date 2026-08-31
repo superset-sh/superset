@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Octokit } from "@octokit/rest";
-import { parseRepositoryRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import {
@@ -12,6 +11,7 @@ import {
 } from "../../db/schema";
 import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
+import { getSupportedRemotes } from "../../trpc/router/project/utils/git-remote";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
 import type { ExecGlab } from "../../trpc/router/workspace-creation/utils/exec-glab";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
@@ -923,7 +923,7 @@ export class PullRequestRuntimeManager {
 			.sync();
 		if (!project) return null;
 
-		let identity: Omit<NormalizedRepoIdentity, "defaultBranch">;
+		let identity: Omit<NormalizedRepoIdentity, "defaultBranch"> | null = null;
 		if (
 			(project.repoProvider === "github" ||
 				project.repoProvider === "gitlab") &&
@@ -940,40 +940,56 @@ export class PullRequestRuntimeManager {
 				remoteName: project.remoteName,
 				repoPath: project.repoPath,
 			};
-		} else {
-			const remoteName = "origin";
-			let remoteUrl: string;
-			// The construct sits inside the try: a repoPath that vanished from
-			// disk throws GitConstructError, which is "no repo" here, not a
-			// refresh failure to warn about every sweep.
-			try {
-				const git = await this.git(project.repoPath);
-				const value = await git.remote(["get-url", remoteName]);
-				if (typeof value !== "string") {
-					return null;
-				}
-				remoteUrl = value.trim();
-			} catch {
-				return null;
-			}
-
-			const parsedRemote = parseRepositoryRemote(remoteUrl);
-			if (!parsedRemote) return null;
-
-			this.db
-				.update(projects)
-				.set({
-					repoProvider: parsedRemote.provider,
-					repoOwner: parsedRemote.owner,
-					repoName: parsedRemote.name,
-					repoUrl: parsedRemote.url,
-					remoteName,
-				})
-				.where(eq(projects.id, projectId))
-				.run();
-
-			identity = { ...parsedRemote, remoteName, repoPath: project.repoPath };
 		}
+
+		// Re-resolve the current remote so projects created before provider
+		// support was added, or projects whose metadata is stale, can recover.
+		// Keep valid stored metadata as a fallback when the repository is absent
+		// or the provider is temporarily unavailable.
+		try {
+			const git = await this.git(project.repoPath);
+			const remotes = await getSupportedRemotes(git, async (host) => {
+				try {
+					await this.execGlab(["auth", "status", "--hostname", host], {
+						cwd: project.repoPath,
+					});
+					return true;
+				} catch {
+					return false;
+				}
+			});
+			const remoteName =
+				(project.remoteName && remotes.has(project.remoteName)
+					? project.remoteName
+					: remotes.has("origin")
+						? "origin"
+						: remotes.keys().next().value) ?? null;
+			if (remoteName) {
+				const parsedRemote = remotes.get(remoteName);
+				if (parsedRemote) {
+					identity = {
+						...parsedRemote,
+						remoteName,
+						repoPath: project.repoPath,
+					};
+					this.db
+						.update(projects)
+						.set({
+							repoProvider: parsedRemote.provider,
+							repoOwner: parsedRemote.owner,
+							repoName: parsedRemote.name,
+							repoUrl: parsedRemote.url,
+							remoteName,
+						})
+						.where(eq(projects.id, projectId))
+						.run();
+				}
+			}
+		} catch {
+			// Fall back to stored metadata below.
+		}
+
+		if (!identity) return null;
 
 		const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
 		return { ...identity, defaultBranch };

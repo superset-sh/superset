@@ -1064,6 +1064,66 @@ describe("default-branch guard", () => {
 	});
 });
 
+describe("project repository resolution", () => {
+	test("resolves an authenticated self-hosted GitLab remote for a legacy project", async () => {
+		const db = createRealDb();
+		db.insert(schema.projects)
+			.values({
+				id: PROJECT_ID,
+				repoPath: "/repo",
+				repoProvider: "github",
+				repoOwner: "stale-owner",
+				repoName: "stale-repo",
+				repoUrl: "https://github.com/stale-owner/stale-repo",
+				remoteName: "origin",
+				createdAt: Date.now(),
+			})
+			.run();
+		const execGlab = async (args: string[]) => {
+			expect(args).toEqual([
+				"auth",
+				"status",
+				"--hostname",
+				"gitlab.example.com",
+			]);
+			return {};
+		};
+		const manager = createManager(db, {
+			execGlab,
+			git: (async () => ({
+				raw: async (args: string[]) => {
+					if (args[0] === "config" && args[1] === "--get-regexp") {
+						return "remote.origin.url git@gitlab.example.com:acme/example.git\n";
+					}
+					if (args[0] === "symbolic-ref") return "origin/main\n";
+					throw new Error(`unexpected git raw: ${args.join(" ")}`);
+				},
+			})) as never,
+		});
+
+		const repo = await (
+			manager as unknown as {
+				getProjectRepository: (id: string) => Promise<{
+					provider: string;
+					owner: string;
+					name: string;
+				}>;
+			}
+		).getProjectRepository(PROJECT_ID);
+
+		expect(repo).toMatchObject({
+			provider: "gitlab",
+			owner: "acme",
+			name: "example",
+		});
+		expect(db.select().from(schema.projects).get()).toMatchObject({
+			repoProvider: "gitlab",
+			repoOwner: "acme",
+			repoName: "example",
+		});
+	});
+});
+
 type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
 
 // Minimal in-process stand-in for EventBus.onWorkspaceChanged.
