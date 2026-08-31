@@ -1,4 +1,4 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import {
 	attachments,
 	files,
@@ -159,7 +159,8 @@ export const pageRouter = {
 			const organizationId = await requireActiveOrgMembership(ctx);
 			const userId = ctx.session.user.id;
 			const title = input.title ?? "Untitled";
-			return await db.transaction(async (tx) => {
+			// neon-http has no transactions; the pooled client does.
+			return await dbWs.transaction(async (tx) => {
 				const [page] = await tx
 					.insert(pages)
 					.values({

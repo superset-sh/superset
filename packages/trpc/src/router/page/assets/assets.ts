@@ -1,4 +1,4 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { attachments, files, pages, pageVersions } from "@superset/db/schema";
 import { fileOriginalKey } from "@superset/shared/usercontent";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
@@ -222,7 +222,8 @@ async function stageAsset({
 	path: string;
 	fileId: string;
 }): Promise<void> {
-	await db.transaction(async (tx) => {
+	// neon-http has no transactions; the pooled client does.
+	await dbWs.transaction(async (tx) => {
 		await tx.delete(attachments).where(stagedAt({ pageId, path }));
 		await tx
 			.insert(attachments)
