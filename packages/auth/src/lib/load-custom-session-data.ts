@@ -27,7 +27,7 @@ export interface CustomSessionData {
 	planOrganizationId: string | null;
 	plan: string | null;
 	/** The organization the user last switched to; the fallback a new session
-	 * resumes from before the newest membership is considered. */
+	 * resumes from before any membership guess is considered. */
 	lastActiveOrganizationId: string | null;
 	onboardedAt: Date | null;
 	deletionRequestedAt: Date | null;
@@ -91,8 +91,12 @@ export async function loadCustomSessionData({
 				 WHERE organization_id = ${activeOrganizationId}::uuid LIMIT 1),
 				(SELECT m.organization_id FROM memberships m, last_active l
 				 WHERE m.organization_id = l.organization_id LIMIT 1),
+				-- Oldest membership, not newest: the last resort has to be an
+				-- answer that does not move as the user joins more
+				-- organizations. Keep it in step with findFallbackMembership in
+				-- resolve-session-organization-state, id tie-break included.
 				(SELECT organization_id FROM memberships
-				 ORDER BY created_at DESC LIMIT 1)
+				 ORDER BY created_at ASC, id ASC LIMIT 1)
 			) AS organization_id
 		)
 		SELECT

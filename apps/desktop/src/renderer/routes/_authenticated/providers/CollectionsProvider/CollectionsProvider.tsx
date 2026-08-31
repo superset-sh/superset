@@ -149,10 +149,32 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 			try {
 				// Window-local switch: warm the new org's collections, then flip the
 				// UI. The registry and the cloud org header follow from
-				// activeOrganizationId changing. The shared login session is NOT
-				// mutated, so other windows are unaffected. On failure the UI stays put.
+				// activeOrganizationId changing. Windows that are already open are
+				// unaffected — they seeded once and own their org from then on. On
+				// failure the UI stays put.
 				await preloadCollections(organizationId);
 				setActiveOrganizationId(organizationId);
+				// Record the choice on the server as well. A window that opens with
+				// no org of its own seeds from the login session, and a session that
+				// is never told about a switch keeps handing out the org the server
+				// guessed for it — which is how a window-local-only switcher kept
+				// dropping people back into an organization they had already left
+				// behind. Every other switch path (create, leave, web, mobile) goes
+				// through set-active for the same reason.
+				//
+				// Best effort and unawaited: this window has already moved, and the
+				// only cost of a failure is the seed for the next new window.
+				void authClient.organization
+					.setActive({ organizationId })
+					.then(({ error }) => {
+						if (error) throw error;
+					})
+					.catch((error) => {
+						console.error(
+							"[collections-provider] Failed to record the active organization:",
+							error,
+						);
+					});
 			} catch (error) {
 				console.error(
 					"[collections-provider] Failed to switch organization:",
