@@ -67,6 +67,12 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	// A ref, not state: nothing renders differently while a switch is in
 	// flight, it only stops two switches overlapping.
 	const switchInFlightRef = useRef(false);
+	// Set-active writes are chained rather than fired straight off, because the
+	// server keeps whichever one *completes* last. Two quick switches racing
+	// could otherwise leave the account remembering the organization you
+	// switched away from. Every link ends resolved so one failure cannot stall
+	// the rest.
+	const recordActiveOrganizationRef = useRef<Promise<void>>(Promise.resolve());
 
 	// Per-window active org. The window registry (main process) is the source of
 	// truth: each window holds its own org, so switching in one window never
@@ -164,17 +170,20 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 				//
 				// Best effort and unawaited: this window has already moved, and the
 				// only cost of a failure is the seed for the next new window.
-				void authClient.organization
-					.setActive({ organizationId })
-					.then(({ error }) => {
-						if (error) throw error;
-					})
-					.catch((error) => {
-						console.error(
-							"[collections-provider] Failed to record the active organization:",
-							error,
-						);
-					});
+				recordActiveOrganizationRef.current =
+					recordActiveOrganizationRef.current
+						.then(async () => {
+							const { error } = await authClient.organization.setActive({
+								organizationId,
+							});
+							if (error) throw error;
+						})
+						.catch((error) => {
+							console.error(
+								"[collections-provider] Failed to record the active organization:",
+								error,
+							);
+						});
 			} catch (error) {
 				console.error(
 					"[collections-provider] Failed to switch organization:",
