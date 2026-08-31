@@ -17,7 +17,7 @@ export function publishResult({
 		unknown
 	>;
 	assets: {
-		published: { path: string; fileId: string }[];
+		uploaded: number;
 		reused: number;
 		warnings: string[];
 	};
@@ -26,7 +26,7 @@ export function publishResult({
 	watchNote: string | null;
 }): { data: Record<string, unknown>; message: string } {
 	const lines = [`Published "${page.title}" v${page.version}`, page.url];
-	const count = assets.published.length;
+	const count = assets.uploaded + assets.reused;
 	if (count > 0) {
 		lines.push(
 			`${count} asset${count === 1 ? "" : "s"}${
@@ -45,7 +45,11 @@ export function publishResult({
 	if (watchNote) lines.push(watchNote);
 
 	return {
-		data: { ...page, watching, assets: assets.published },
+		data: {
+			...page,
+			watching,
+			assets: { uploaded: assets.uploaded, reused: assets.reused },
+		},
 		message: lines.join("\n"),
 	};
 }

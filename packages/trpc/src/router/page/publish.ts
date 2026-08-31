@@ -10,18 +10,18 @@ import {
 	workspacePages,
 } from "@superset/db/schema";
 import { mintPageSlug } from "@superset/shared/page-slug";
-import { pageVersionKey } from "@superset/shared/usercontent";
+import { fileOriginalKey, pageVersionKey } from "@superset/shared/usercontent";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { userError } from "../../i18n-error";
-import { putObject } from "../../lib/r2";
+import { SNIFF_BYTES, sniffContentType } from "../../lib/files";
+import { getObject, headObject, putObject } from "../../lib/r2";
 import { assertPageWritable } from "./access";
 import { pageUrl } from "./page-url";
 import {
 	isEntryPathConflict,
 	isVersionConflict,
 	titleFromFilename,
-	validateAssetPaths,
 	validatePublishContent,
 } from "./publish-rules";
 import type { PublishPageInput } from "./schema";
@@ -56,7 +56,6 @@ export async function publishPage({
 	userId: string;
 }) {
 	const { buffer, sha256 } = validatePublishContent(input);
-	validateAssetPaths(input.assets);
 
 	for (let attempt = 1; ; attempt += 1) {
 		try {
@@ -103,12 +102,11 @@ async function runPublish({
 		organizationId,
 		userId,
 	});
-	await verifyPublishAssets({
-		assets: input.assets,
-		organizationId,
-		userId,
-		pageId: target?.id ?? null,
-	});
+	// A presigned PUT lands without us seeing it, so this is the first and
+	// only place the bytes are checked against what upload declared. Doing it
+	// before the version is reserved keeps a failed asset from burning a
+	// version number.
+	const staged = target ? await verifyStagedAssets(target.id) : [];
 	const pageId = target?.id ?? randomUUID();
 	const version = (target ? await latestVersionNumber(dbWs, target.id) : 0) + 1;
 	const key = pageVersionKey(pageId, version);
@@ -188,15 +186,26 @@ async function runPublish({
 		// a committed object or delete another's. A rollback after this
 		// upload strands the object under a number the next attempt
 		// reuses and overwrites.
-		if (input.assets && input.assets.length > 0) {
+		if (staged.length > 0) {
 			await tx.insert(attachments).values(
-				input.assets.map((asset) => ({
+				staged.map((asset) => ({
 					fileId: asset.fileId,
 					parentKind: "page_version" as const,
 					parentId: row.id,
 					path: asset.path,
 				})),
 			);
+			// Staging means "new for the next version". Clearing it here is what
+			// makes that true: an asset the next publish still wants is reused
+			// from this version's rows by content hash, not left staged.
+			await tx
+				.delete(attachments)
+				.where(
+					and(
+						eq(attachments.parentKind, "page"),
+						eq(attachments.parentId, page.id),
+					),
+				);
 		}
 
 		await putObject({ key, body: buffer, contentType: input.contentType });
@@ -226,65 +235,69 @@ async function runPublish({
 }
 
 /**
- * An asset may only ride a publish if the caller uploaded it, or it already
- * belongs to this page's lineage (the republish-reuse path). Without the
- * ownership check, any org-visible file id could be republished to a wider
- * audience on someone's `everyone` page.
+ * Turns what is staged for a page into what the next version will carry.
+ *
+ * Every staged asset is checked here because a presigned PUT bypasses the
+ * API: HEAD confirms the size `upload` was told, a ranged read establishes
+ * what the bytes really are, and the stored type becomes the sniffed one so
+ * serve-time policy never keys on a declaration. A `ready` row was verified
+ * by an earlier publish and is taken as-is.
  */
-async function verifyPublishAssets({
-	assets,
-	organizationId,
-	userId,
-	pageId,
-}: {
-	assets: PublishPageInput["assets"];
-	organizationId: string;
-	userId: string;
-	pageId: string | null;
-}): Promise<void> {
-	if (!assets || assets.length === 0) return;
-	const ids = [...new Set(assets.map((asset) => asset.fileId))];
+async function verifyStagedAssets(
+	pageId: string,
+): Promise<{ fileId: string; path: string }[]> {
 	const rows = await dbWs
-		.select({
-			id: files.id,
-			status: files.status,
-			createdByUserId: files.createdByUserId,
-		})
-		.from(files)
+		.select({ file: files, path: attachments.path })
+		.from(attachments)
+		.innerJoin(files, eq(files.id, attachments.fileId))
 		.where(
-			and(inArray(files.id, ids), eq(files.organizationId, organizationId)),
+			and(eq(attachments.parentKind, "page"), eq(attachments.parentId, pageId)),
 		);
-	const lineage = new Set<string>();
-	if (pageId) {
-		const attached = await dbWs
-			.select({ fileId: attachments.fileId })
-			.from(attachments)
-			.innerJoin(pageVersions, eq(pageVersions.id, attachments.parentId))
-			.where(
-				and(
-					eq(attachments.parentKind, "page_version"),
-					eq(pageVersions.pageId, pageId),
-					inArray(attachments.fileId, ids),
-				),
-			);
-		for (const row of attached) lineage.add(row.fileId);
-	}
-	const allowed = new Set(
-		rows
-			.filter(
-				(row) =>
-					row.status === "ready" &&
-					(row.createdByUserId === userId || lineage.has(row.id)),
-			)
-			.map((row) => row.id),
+
+	return await Promise.all(
+		rows.map(async ({ file, path }) => {
+			if (!path) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Staged asset has no path",
+				});
+			}
+			if (file.status === "ready") return { fileId: file.id, path };
+
+			// Explicitly typed so a `refuse` call narrows what follows it.
+			const refuse: (reason: string) => never = (reason) => {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Asset ${JSON.stringify(path)} ${reason}`,
+				});
+			};
+			const key = fileOriginalKey(file.id);
+			const head = await headObject(key);
+			if (!head) refuse("was never uploaded — send the bytes first");
+			if (head.sizeBytes !== file.sizeBytes) {
+				refuse("does not match the size it declared — upload it again");
+			}
+			const sample = await getObject(key, {
+				range: `bytes=0-${SNIFF_BYTES - 1}`,
+			});
+			const bytes = sample
+				? new Uint8Array(await sample.arrayBuffer())
+				: new Uint8Array();
+
+			// Guarded on `pending`: if the sweep claimed this row mid-publish, the
+			// update matches nothing and the asset has to be uploaded again.
+			const [updated] = await dbWs
+				.update(files)
+				.set({
+					contentType: sniffContentType(bytes, file.contentType),
+					status: "ready",
+				})
+				.where(and(eq(files.id, file.id), eq(files.status, "pending")))
+				.returning({ id: files.id });
+			if (!updated) refuse("expired before publishing — upload it again");
+			return { fileId: file.id, path };
+		}),
 	);
-	const refused = ids.find((id) => !allowed.has(id));
-	if (refused) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Asset file ${refused} is missing, not completed, or not yours to attach`,
-		});
-	}
 }
 
 type Tx = Parameters<Parameters<typeof dbWs.transaction>[0]>[0];

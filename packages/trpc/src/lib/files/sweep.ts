@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { files } from "@superset/db/schema";
 import { fileOriginalKey } from "@superset/shared/usercontent";
 import { and, eq, inArray, lt } from "drizzle-orm";
-import { deleteObjects } from "../../lib/r2";
+import { deleteObjects } from "../r2";
 
 export const FILE_SWEEP_JOB_PATH = "/api/files/jobs/sweep";
 

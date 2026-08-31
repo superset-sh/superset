@@ -22,11 +22,6 @@ export const pageFields = {
 	agentId: z.string().min(1).max(200),
 } as const;
 
-export const publishAssetSchema = z.object({
-	path: z.string().min(1).max(512),
-	fileId: pageFields.id,
-});
-
 const publishPageFieldsSchema = z.object({
 	content: z.string().min(1),
 	contentType: z.string().min(1),
@@ -38,7 +33,6 @@ const publishPageFieldsSchema = z.object({
 	description: pageFields.description.optional(),
 	label: pageFields.label.optional(),
 	visibility: pageFields.visibility.optional(),
-	assets: z.array(publishAssetSchema).max(200).optional(),
 });
 
 /**
@@ -82,6 +76,24 @@ export const publishPageSchema = publishPageFieldsSchema
 	.refine(isAnchoredPublish, ANCHOR_MESSAGE);
 
 export type PublishPageInput = z.infer<typeof publishPageSchema>;
+
+/**
+ * A page can exist with no versions. Assets stage against a page id, so a
+ * first publish that carries assets creates the page up front and publishes
+ * into it, rather than letting `publish` mint the id it would have needed
+ * before the upload.
+ */
+export const createPageSchema = z
+	.object({
+		title: pageFields.title.optional(),
+		description: pageFields.description.optional(),
+		visibility: pageFields.visibility.optional(),
+		entryPath: pageFields.entryPath.optional(),
+		workspaceId: pageFields.workspaceId.optional(),
+	})
+	.refine(hasCompleteWorkspaceLink, WORKSPACE_LINK_MESSAGE);
+
+export type CreatePageInput = z.infer<typeof createPageSchema>;
 
 export const listPagesSchema = z
 	.object({ workspaceId: pageFields.workspaceId.optional() })

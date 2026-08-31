@@ -1295,6 +1295,10 @@ export const attachmentParentKind = pgEnum("attachment_parent_kind", [
 	"doc",
 	"chat_session",
 	"comment",
+	// Staging. Assets upload against the page before the version they will
+	// belong to exists; publish snapshots them onto that version and clears
+	// the staged rows, so a version is never served missing its own assets.
+	"page",
 ]);
 
 /**

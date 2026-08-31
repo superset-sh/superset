@@ -1,1 +1,0 @@
-export { fileRouter } from "./file";
