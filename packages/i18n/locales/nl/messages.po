@@ -3242,12 +3242,6 @@ msgid "dashboard.automations.detailHeader.runOwnerOnly"
 msgstr "Alleen de eigenaar kan deze automatisering uitvoeren"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: names.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/components/EmojiNameChip/EmojiNameChip.tsx
-msgid "dashboard.automations.emojiNameChip.reactionCount"
-msgstr "{0, plural, one {# reactie} other {# reacties}}"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationsEmptyState/AutomationsEmptyState.tsx
 msgid "dashboard.automations.emptyState.createWithAgentAriaLabel"
 msgstr "Een automatisering maken met een agent"
@@ -3640,96 +3634,6 @@ msgid "dashboard.automations.projectPicker.selectProjectLabel"
 msgstr "Project kiezen"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyAttendee"
-msgstr "Elke deelnemer"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyAttendeeEmpty"
-msgstr "Elke deelnemer"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyName"
-msgstr "Elke naam"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyTag"
-msgstr "Elke tag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyTagEmpty"
-msgstr "Elke tag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.emailPlaceholder"
-msgstr "Typ een e-mailadres, druk op Enter"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/grammar.ts
-msgid "dashboard.automations.providers.circleback.menuMeetingEnded"
-msgstr "Vergadering afgelopen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.nameFilterPlaceholder"
-msgstr "Bevat deze tekst..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.tagPlaceholder"
-msgstr "Typ een tag, druk op Enter"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.actorAnyone"
-msgstr "Iedereen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.actorSelectPeople"
-msgstr "Personen kiezen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyBranch"
-msgstr "Elke branch"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyBranchEmpty"
-msgstr "Elke branch"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyComment"
-msgstr "Elke opmerking"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyLabel"
-msgstr "Elk label"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyLabelEmpty"
-msgstr "Elk label"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyRepo"
-msgstr "Elke repo"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.commentFilterPlaceholder"
-msgstr "Bevat deze tekst..."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/grammar.ts
 msgid "dashboard.automations.providers.github.menuChecksCompleted"
 msgstr "Checks afgerond"
@@ -3853,21 +3757,6 @@ msgstr "Workflow-run afgerond…"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/grammar.ts
 msgid "dashboard.automations.providers.github.menuWorkflowSuccess"
 msgstr "Geslaagd"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.selectRepos"
-msgstr "Repo's kiezen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.subjectAuthorAnyone"
-msgstr "Iedereen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.subjectAuthorSelectPeople"
-msgstr "Personen kiezen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/google/gmail.tsx
@@ -4225,31 +4114,6 @@ msgid "dashboard.automations.providers.notion.selectDataSources"
 msgstr "Databronnen kiezen"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/schedule/schedule.tsx
-msgid "dashboard.automations.providers.schedule.label"
-msgstr "Gepland"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/schedule/schedule.tsx
-msgid "dashboard.automations.providers.schedule.menuScheduled"
-msgstr "Gepland"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.anyLevel"
-msgstr "Elk niveau"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.anyLevelEmpty"
-msgstr "Elk niveau"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.anyProject"
-msgstr "Elk project"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/grammar.ts
 msgid "dashboard.automations.providers.sentry.levelDebug"
 msgstr "Debug"
@@ -4305,41 +4169,6 @@ msgid "dashboard.automations.providers.sentry.menuIssueUnresolved"
 msgstr "Issue onopgelost"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.selectProjects"
-msgstr "Projecten kiezen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyChannel"
-msgstr "Elk kanaal"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyMessage"
-msgstr "Elk bericht"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyName"
-msgstr "Elke naam"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyone"
-msgstr "Iedereen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyReaction"
-msgstr "Elke reactie"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.emojiPlaceholder"
-msgstr ":bug: of bug, eyes"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/grammar.ts
 msgid "dashboard.automations.providers.slack.menuChannelCreated"
 msgstr "Kanaal aangemaakt"
@@ -4353,41 +4182,6 @@ msgstr "Bericht in kanaal"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/grammar.ts
 msgid "dashboard.automations.providers.slack.menuReactionAdded"
 msgstr "Reactie toegevoegd"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.messageFilterPlaceholder"
-msgstr "Bevat deze tekst..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.nameFilterPlaceholder"
-msgstr "Naam bevat deze tekst..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.noReaction"
-msgstr "Geen reactie"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.selectChannels"
-msgstr "Kanalen kiezen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.selectPeople"
-msgstr "Personen kiezen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.threadIncludingReplies"
-msgstr "inclusief antwoorden"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.threadTopLevelOnly"
-msgstr "alleen hoofdberichten"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/webhook.tsx
@@ -4518,152 +4312,6 @@ msgid "dashboard.automations.row.untilSoon"
 msgstr "binnenkort"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayFriday"
-msgstr "vrijdag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayMonday"
-msgstr "maandag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.daySaturday"
-msgstr "zaterdag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.daySunday"
-msgstr "zondag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayThursday"
-msgstr "donderdag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayTuesday"
-msgstr "dinsdag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayWednesday"
-msgstr "woensdag"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetCustom"
-msgstr "Aangepast"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetDaily"
-msgstr "Dagelijks"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetHourly"
-msgstr "Elk uur"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetWeekdays"
-msgstr "Werkdagen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetWeekly"
-msgstr "Wekelijks"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/SchedulePicker.tsx
-msgid "dashboard.automations.schedulePicker.invalidRrule"
-msgstr "Ongeldige herhalingsregel — wijzigingen worden niet opgeslagen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/SchedulePicker.tsx
-msgid "dashboard.automations.schedulePicker.schedule"
-msgstr "Schema"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.exhaustedRrule"
-msgstr "Geen komende runs — wijzigingen worden niet opgeslagen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.invalidRrule"
-msgstr "Ongeldige herhalingsregel — wijzigingen worden niet opgeslagen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.kindAtTime"
-msgstr "{kindChip} <0>om</0> {timeInput}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.kindOnDayAtTime"
-msgstr "{kindChip} <0>op</0> {daySelect} <1>om</1> {timeInput}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
-msgid "dashboard.automations.scopeChip.nothingToChoose"
-msgstr "Nog niets om te kiezen"
-
-#. js-lingui-explicit-id
-#. placeholder {0}: scope.ids.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
-msgid "dashboard.automations.scopeChip.selectedCount"
-msgstr "{0, plural, one {# geselecteerd} other {# geselecteerd}}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.save"
-msgstr "Opslaan"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.savedToast"
-msgstr "Signing secret opgeslagen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.saveFailedToast"
-msgstr "Opslaan van secret mislukt"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.saveTriggersFirst"
-msgstr "Sla eerst de triggers op"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.saving"
-msgstr "Opslaan..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.secretEmptyHint"
-msgstr "Circleback toont dit wanneer je de URL in zijn automatisering plakt. Bezorgingen worden geweigerd totdat dit is ingesteld."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.secretPlaceholder"
-msgstr "Plak de whsec_…-secret uit Circleback"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.secretSetHint"
-msgstr "{secretPrefix}… is ingesteld. Een nieuwe opslaan vervangt deze."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.signingSecret"
-msgstr "Signing secret"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/utils/staleAgentError/staleAgentError.ts
 msgid "dashboard.automations.staleAgentHelp"
 msgstr "De agent waarmee deze automatisering zou draaien bestaat niet meer op de host — de agents van die host zijn mogelijk gereset of verwijderd. Kies opnieuw een agent in de instellingen van de automatisering."
@@ -4759,61 +4407,6 @@ msgid "dashboard.automations.templates.triageIssues.name"
 msgstr "Nieuwe issues triageren"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.nextRun"
-msgstr "Volgende run"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.scopeSentence"
-msgstr "<0>in</0> <1/> <2>op</2> <3/> <4>met</4> <5/> <6>met tags</6> <7/>"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.wouldRun"
-msgstr "Zou draaien"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.addTrigger"
-msgstr "Trigger toevoegen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.discard"
-msgstr "Verwerpen"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.noMatchingTrigger"
-msgstr "Geen overeenkomende trigger"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.saveTriggers"
-msgstr "Triggers opslaan"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.saving"
-msgstr "Opslaan..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.searchPlaceholder"
-msgstr "Triggers zoeken..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.sectionLabel"
-msgstr "Triggers"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/TriggerSentence.tsx
-msgid "dashboard.automations.triggerSentence.removeTriggerAriaLabel"
-msgstr "Trigger verwijderen"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/VersionHistorySheet/VersionHistorySheet.tsx
 msgid "dashboard.automations.versionHistory.closeAriaLabel"
 msgstr "Sluiten"
@@ -4887,86 +4480,6 @@ msgstr "Hersteld"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/VersionHistorySheet/components/VersionRow/VersionRow.tsx
 msgid "dashboard.automations.versionRow.unknownAuthor"
 msgstr "Onbekend"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.copiesHeaderTooltip"
-msgstr "Kopieert de Authorization-header. Deze wordt alleen nu getoond."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.copyAuthHeader"
-msgstr "Auth-header kopiëren"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.copyFailedToast"
-msgstr "Kopiëren mislukt"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.generateAuthHeader"
-msgstr "Auth-header genereren"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.generateTokenFailedToast"
-msgstr "Genereren van token mislukt"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.generating"
-msgstr "Genereren..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.headerCopiedToast"
-msgstr "Auth-header gekopieerd"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.issuesTokenTooltip"
-msgstr "Geeft een bearer-token uit voor deze trigger."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateAuthHeader"
-msgstr "Auth-header opnieuw genereren"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogCancel"
-msgstr "Annuleren"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogConfirm"
-msgstr "Opnieuw genereren"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogDescription"
-msgstr "Het huidige token ({secretPrefix}…) stopt direct met werken."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogTitle"
-msgstr "Auth-header opnieuw genereren?"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.saveTriggersFirst"
-msgstr "Sla eerst de triggers op"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.tokenSetTooltip"
-msgstr "Token {secretPrefix}… is ingesteld. Opnieuw genereren vervangt het."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.webhookTriggered"
-msgstr "Webhook getriggerd"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/WorkspacePicker/WorkspacePicker.tsx
@@ -18628,22 +18141,12 @@ msgid "mobile.pullRequest.viewFilesChanged"
 msgstr "Gewijzigde bestanden bekijken"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewMany"
-msgstr "{count} PR's bekijken"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewManyLabel"
 msgstr "{count} pull requests bekijken"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewOne"
-msgstr "PR bekijken"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewOneLabel"
 msgstr "Pull request bekijken"
 
@@ -30358,7 +29861,6 @@ msgstr "Binnenkort"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.back"
 msgstr "Terug naar integraties"
@@ -30395,7 +29897,6 @@ msgstr "De autorisatie is geweigerd. Probeer het opnieuw."
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.callback.unauthorized"
 msgstr "Je bent niet bevoegd om deze actie uit te voeren."
@@ -30422,7 +29923,6 @@ msgstr "Annuleren"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.connected"
 msgstr "Verbonden"
@@ -30436,7 +29936,6 @@ msgstr "Verbonden als"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/github/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.connectedTo"
 msgstr "Verbonden met"
@@ -30447,7 +29946,6 @@ msgstr "Verbonden met"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.connectionCard"
 msgstr "Verbinding"
@@ -30680,7 +30178,6 @@ msgstr "Bepaal hoe taken tussen Superset en Linear synchroniseren."
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.needOrganization"
 msgstr "Je moet deel uitmaken van een organisatie om integraties te gebruiken."
@@ -30691,7 +30188,6 @@ msgstr "Je moet deel uitmaken van een organisatie om integraties te gebruiken."
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.notConnected"
 msgstr "Niet verbonden"
@@ -30743,49 +30239,9 @@ msgid "web.integrations.remove"
 msgstr "Verwijderen"
 
 #. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.blurb"
-msgstr "Verbind Sentry om automatiseringen te draaien wanneer issues worden aangemaakt, opgelost, toegewezen, gearchiveerd of heropend."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.invalidState"
-msgstr "Je sessie is verlopen. Start de verbinding opnieuw."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.missingParams"
-msgstr "Ongeldig antwoord van Sentry. Probeer het opnieuw."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.notConfigured"
-msgstr "Sentry is nog niet beschikbaar — de Superset-app is niet bij Sentry geregistreerd."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.oauthDenied"
-msgstr "De installatie is geannuleerd. Probeer het opnieuw."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.organizationLookupFailed"
-msgstr "Verbonden, maar je Sentry-organisatie kon niet worden gelezen. Verbind opnieuw."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.tokenExchangeFailed"
-msgstr "Afronden van de Sentry-installatie mislukt. Probeer het opnieuw."
-
-#. js-lingui-explicit-id
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/components/ConnectionControls/ConnectionControls.tsx
 msgid "web.integrations.sentry.connect"
 msgstr "Sentry verbinden"
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.connectionDescription"
-msgstr "Installeer de Superset-app in je Sentry-organisatie."
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/components/ConnectionControls/ConnectionControls.tsx

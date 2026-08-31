@@ -1,13 +1,7 @@
-import { Trans } from "@lingui/react/macro";
-import { formatRelativeTime } from "@superset/i18n/format";
+import { formatDateTime } from "@superset/i18n/format";
 import type { DraftTrigger } from "@superset/shared/automation-triggers";
-import {
-	formatDateTimeInTimezone,
-	nextOccurrenceAfter,
-} from "@superset/shared/rrule";
+import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import type { RouterOutputs } from "@superset/trpc";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useMemo } from "react";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import type { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
@@ -48,48 +42,6 @@ export function TriggersCard({
 		(p) => p.id === automation.v2ProjectId,
 	);
 
-	// Per trigger, not per automation: an automation can hold several schedules,
-	// and the automation-level nextRunAt is only the soonest of them — showing it
-	// on every row claims they all fire at the same time.
-	const nextRunByTriggerId = useMemo(() => {
-		// The zone travels with the date: schedules on one automation can sit in
-		// different timezones, so formatting them all in the automation-level one
-		// would label the tooltip wrongly for every schedule but the soonest.
-		const entries = new Map<string, { at: Date; timezone: string }>();
-
-		for (const trigger of automation.triggers) {
-			const config = trigger.config as DraftTrigger["config"];
-			if (config.kind !== "schedule") continue;
-
-			// The saved nextRunAt is the dispatcher's truth; the computed one
-			// covers a paused automation, whose stored value is stale.
-			if (automation.enabled && trigger.nextRunAt) {
-				entries.set(trigger.id, {
-					at: new Date(trigger.nextRunAt),
-					timezone: config.timezone,
-				});
-				continue;
-			}
-			try {
-				const next = nextOccurrenceAfter({
-					rrule: config.rrule,
-					dtstart: new Date(config.dtstart),
-					timezone: config.timezone,
-					after: new Date(),
-				});
-				if (next)
-					entries.set(trigger.id, { at: next, timezone: config.timezone });
-			} catch (error) {
-				console.warn(
-					`[TriggersCard] failed to compute next occurrence for trigger ${trigger.id}`,
-					error,
-				);
-			}
-		}
-
-		return entries;
-	}, [automation.triggers, automation.enabled]);
-
 	// The scope line is the same grammar as a trigger sentence — "in X on Y using
 	// Z" — so it uses the same chips. Left alone, the three pickers render at
 	// 36px/12px, 22px/11px and 36px/12px, none of which match the 24px/13px chips
@@ -98,30 +50,37 @@ export function TriggersCard({
 	const SCOPE_CHIP =
 		"h-6 gap-1 rounded-[6px] bg-foreground/[0.06] px-2 text-[13px] font-normal hover:bg-foreground/10";
 
-	const renderNextRun = (triggerId?: string) => {
-		const run = triggerId ? nextRunByTriggerId.get(triggerId) : undefined;
-		if (!run) return null;
-		return (
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<span>
-						{automation.enabled ? (
-							<Trans id="dashboard.automations.triggersCard.nextRun">
-								Next run
-							</Trans>
-						) : (
-							<Trans id="dashboard.automations.triggersCard.wouldRun">
-								Would run
-							</Trans>
-						)}{" "}
-						{formatRelativeTime(run.at)}
-					</span>
-				</TooltipTrigger>
-				<TooltipContent side="right">
-					{formatDateTimeInTimezone(run.at, run.timezone)}
-				</TooltipContent>
-			</Tooltip>
-		);
+	// Computed from the rule on screen, never the dispatcher's persisted
+	// nextRunAt: that value lags behind edits, goes stale while paused, and
+	// doesn't exist for a row that hasn't been saved yet.
+	const renderNextRun = (
+		config: Extract<DraftTrigger["config"], { kind: "schedule" }>,
+	) => {
+		try {
+			const next = nextOccurrenceAfter({
+				rrule: config.rrule,
+				dtstart: new Date(config.dtstart),
+				timezone: config.timezone,
+				after: new Date(),
+			});
+			if (!next) return null;
+			return (
+				<span>
+					{"Next run "}
+					{formatDateTime(next, {
+						weekday: "short",
+						month: "short",
+						day: "numeric",
+						hour: "numeric",
+						minute: "2-digit",
+						timeZoneName: "short",
+						timeZone: config.timezone,
+					})}
+				</span>
+			);
+		} catch {
+			return null;
+		}
 	};
 
 	return (
@@ -135,13 +94,9 @@ export function TriggersCard({
 				organizationId={automation.organizationId}
 				renderNextRun={renderNextRun}
 				readOnly={readOnly}
-			/>
-			<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
-				{/* One message, pickers as placeholders: bare "in"/"on"/"using"
-				    fragments cannot be translated into case-marking or verb-final
-				    languages; a whole sentence lets each locale reorder the chips. */}
-				<Trans id="dashboard.automations.triggersCard.scopeSentence">
-					<span>in</span>{" "}
+			>
+				<div className="flex flex-wrap items-center gap-x-1 gap-y-1 px-2 pt-1 text-[13px] text-muted-foreground">
+					<span>in</span>
 					<ProjectPicker
 						className={SCOPE_CHIP}
 						selectedProject={selectedProject}
@@ -149,8 +104,8 @@ export function TriggersCard({
 						recentProjects={recentProjects}
 						disabled={readOnly}
 						onSelectProject={(v2ProjectId) => onUpdate({ v2ProjectId })}
-					/>{" "}
-					<span>on</span>{" "}
+					/>
+					<span>on</span>
 					<DevicePicker
 						className={SCOPE_CHIP}
 						hostId={hostId}
@@ -159,8 +114,8 @@ export function TriggersCard({
 						onSelectHostId={(nextHostId) =>
 							onUpdate({ targetHostId: nextHostId })
 						}
-					/>{" "}
-					<span>using</span>{" "}
+					/>
+					<span>using</span>
 					<WorkspacePicker
 						className={SCOPE_CHIP}
 						hostId={hostId}
@@ -182,8 +137,8 @@ export function TriggersCard({
 									: {}),
 							})
 						}
-					/>{" "}
-					<span>tagged</span>{" "}
+					/>
+					<span>tagged</span>
 					<AutomationTagsPicker
 						className={SCOPE_CHIP}
 						tags={automation.tags}
@@ -191,8 +146,8 @@ export function TriggersCard({
 						disabled={readOnly}
 						onChange={(tags) => onUpdate({ tags })}
 					/>
-				</Trans>
-			</div>
+				</div>
+			</TriggersEditor>
 			<RelayOfflineNotice hostId={hostId} className="mt-1" />
 		</div>
 	);

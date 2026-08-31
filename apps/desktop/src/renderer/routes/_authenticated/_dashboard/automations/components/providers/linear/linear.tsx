@@ -17,7 +17,7 @@ function renderSlot(
 	config: LinearConfig,
 	slot: Slot,
 	index: number,
-	{ set, mark, options, disabled }: SentenceContext,
+	{ set, mark, options, state, disabled }: SentenceContext,
 ) {
 	switch (slot) {
 		case "teams":
@@ -40,6 +40,7 @@ function renderSlot(
 							message: "Any team",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -67,6 +68,7 @@ function renderSlot(
 							message: "Any project",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -91,6 +93,7 @@ function renderSlot(
 							message: "Any label",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -115,6 +118,7 @@ function renderSlot(
 							message: "Any status",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);
@@ -138,6 +142,7 @@ function renderSlot(
 							message: "Anyone",
 						}),
 					)}
+					state={state}
 					disabled={disabled}
 				/>
 			);

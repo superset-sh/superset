@@ -47,6 +47,58 @@ export function freshTimestamp(
 	return Math.abs(Date.now() - ms) <= toleranceMs;
 }
 
+/**
+ * Verify a delivery signed per the Standard Webhooks spec, which Granola and
+ * every other Svix-backed sender uses.
+ *
+ * Three differences from the hex-digest-over-the-body shape above, and all
+ * three matter: the signed string is `{id}.{timestamp}.{body}` rather than the
+ * body alone, the digest is base64 rather than hex, and the key is the base64
+ * payload *after* the `whsec_` prefix rather than the literal string. Signing
+ * the id and timestamp is what makes the timestamp check meaningful — an
+ * attacker cannot replay a body under a fresh timestamp without the key.
+ *
+ * The header may carry several space-separated `v1,<sig>` entries during a
+ * secret rotation, so any match is a pass.
+ */
+export function verifyStandardWebhook(params: {
+	id: string | null;
+	timestamp: string | null;
+	signatureHeader: string | null;
+	body: string;
+	secret: string;
+	toleranceMs: number;
+}): boolean {
+	const { id, timestamp, signatureHeader, body, secret } = params;
+	if (!id || !timestamp || !signatureHeader) return false;
+	if (!freshTimestamp(timestamp, params.toleranceMs)) return false;
+
+	const key = secret.startsWith("whsec_")
+		? Buffer.from(secret.slice("whsec_".length), "base64")
+		: Buffer.from(secret, "utf8");
+	if (key.length === 0) return false;
+
+	const expected = createHmac("sha256", key)
+		.update(`${id}.${timestamp}.${body}`, "utf8")
+		.digest();
+
+	// Every candidate is compared even after a match, so the work does not
+	// depend on which entry matched.
+	let matched = false;
+	for (const entry of signatureHeader.split(/\s+/)) {
+		const [version, value] = entry.split(",", 2);
+		if (version !== "v1" || !value) continue;
+		const received = Buffer.from(value, "base64");
+		if (
+			received.length === expected.length &&
+			timingSafeEqual(received, expected)
+		) {
+			matched = true;
+		}
+	}
+	return matched;
+}
+
 export function unauthorized(error: string): Response {
 	return Response.json({ error }, { status: 401 });
 }

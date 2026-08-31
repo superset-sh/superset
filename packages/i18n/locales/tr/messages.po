@@ -3242,12 +3242,6 @@ msgid "dashboard.automations.detailHeader.runOwnerOnly"
 msgstr "Bu otomasyonu yalnızca sahibi çalıştırabilir"
 
 #. js-lingui-explicit-id
-#. placeholder {0}: names.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/components/EmojiNameChip/EmojiNameChip.tsx
-msgid "dashboard.automations.emojiNameChip.reactionCount"
-msgstr "{0, plural, one {# tepki} other {# tepki}}"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/AutomationsEmptyState/AutomationsEmptyState.tsx
 msgid "dashboard.automations.emptyState.createWithAgentAriaLabel"
 msgstr "Bir ajanla otomasyon oluştur"
@@ -3640,96 +3634,6 @@ msgid "dashboard.automations.projectPicker.selectProjectLabel"
 msgstr "Proje seç"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyAttendee"
-msgstr "Tüm katılımcılar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyAttendeeEmpty"
-msgstr "Tüm katılımcılar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyName"
-msgstr "Tüm adlar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyTag"
-msgstr "Tüm etiketler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.anyTagEmpty"
-msgstr "Tüm etiketler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.emailPlaceholder"
-msgstr "E-posta yazın, Enter'a basın"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/grammar.ts
-msgid "dashboard.automations.providers.circleback.menuMeetingEnded"
-msgstr "Toplantı sona erdi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.nameFilterPlaceholder"
-msgstr "Şu metni içerir..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/circleback.tsx
-msgid "dashboard.automations.providers.circleback.tagPlaceholder"
-msgstr "Etiket yazın, Enter'a basın"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.actorAnyone"
-msgstr "Herkes"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.actorSelectPeople"
-msgstr "Kişileri seç"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyBranch"
-msgstr "Tüm dallar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyBranchEmpty"
-msgstr "Tüm dallar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyComment"
-msgstr "Tüm yorumlar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyLabel"
-msgstr "Tüm etiketler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyLabelEmpty"
-msgstr "Tüm etiketler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.anyRepo"
-msgstr "Tüm depolar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.commentFilterPlaceholder"
-msgstr "Şu metni içerir..."
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/grammar.ts
 msgid "dashboard.automations.providers.github.menuChecksCompleted"
 msgstr "Kontroller tamamlandı"
@@ -3853,21 +3757,6 @@ msgstr "Workflow çalıştırması tamamlandı…"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/grammar.ts
 msgid "dashboard.automations.providers.github.menuWorkflowSuccess"
 msgstr "Başarılı"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.selectRepos"
-msgstr "Depoları seç"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.subjectAuthorAnyone"
-msgstr "Herkes"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/github/github.tsx
-msgid "dashboard.automations.providers.github.subjectAuthorSelectPeople"
-msgstr "Kişileri seç"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/google/gmail.tsx
@@ -4225,31 +4114,6 @@ msgid "dashboard.automations.providers.notion.selectDataSources"
 msgstr "Veri kaynaklarını seç"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/schedule/schedule.tsx
-msgid "dashboard.automations.providers.schedule.label"
-msgstr "Zamanlanmış"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/schedule/schedule.tsx
-msgid "dashboard.automations.providers.schedule.menuScheduled"
-msgstr "Zamanlanmış"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.anyLevel"
-msgstr "Tüm düzeyler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.anyLevelEmpty"
-msgstr "Tüm düzeyler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.anyProject"
-msgstr "Tüm projeler"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/grammar.ts
 msgid "dashboard.automations.providers.sentry.levelDebug"
 msgstr "Hata ayıklama"
@@ -4305,41 +4169,6 @@ msgid "dashboard.automations.providers.sentry.menuIssueUnresolved"
 msgstr "Issue çözülmedi"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/sentry/sentry.tsx
-msgid "dashboard.automations.providers.sentry.selectProjects"
-msgstr "Projeleri seç"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyChannel"
-msgstr "Tüm kanallar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyMessage"
-msgstr "Tüm mesajlar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyName"
-msgstr "Tüm adlar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyone"
-msgstr "Herkes"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.anyReaction"
-msgstr "Tüm tepkiler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.emojiPlaceholder"
-msgstr ":bug: veya bug, eyes"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/grammar.ts
 msgid "dashboard.automations.providers.slack.menuChannelCreated"
 msgstr "Kanal oluşturuldu"
@@ -4353,41 +4182,6 @@ msgstr "Kanalda mesaj"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/grammar.ts
 msgid "dashboard.automations.providers.slack.menuReactionAdded"
 msgstr "Tepki eklendi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.messageFilterPlaceholder"
-msgstr "Şu metni içerir..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.nameFilterPlaceholder"
-msgstr "Ad şu metni içerir..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.noReaction"
-msgstr "Tepki yok"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.selectChannels"
-msgstr "Kanalları seç"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.selectPeople"
-msgstr "Kişileri seç"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.threadIncludingReplies"
-msgstr "yanıtlar dahil"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/slack/slack.tsx
-msgid "dashboard.automations.providers.slack.threadTopLevelOnly"
-msgstr "yalnızca üst düzey"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/webhook.tsx
@@ -4518,152 +4312,6 @@ msgid "dashboard.automations.row.untilSoon"
 msgstr "yakında"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayFriday"
-msgstr "Cuma"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayMonday"
-msgstr "Pazartesi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.daySaturday"
-msgstr "Cumartesi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.daySunday"
-msgstr "Pazar"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayThursday"
-msgstr "Perşembe"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayTuesday"
-msgstr "Salı"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.dayWednesday"
-msgstr "Çarşamba"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetCustom"
-msgstr "Özel"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetDaily"
-msgstr "Günlük"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetHourly"
-msgstr "Saatlik"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetWeekdays"
-msgstr "Hafta içi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/scheduleState.ts
-msgid "dashboard.automations.schedule.presetWeekly"
-msgstr "Haftalık"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/SchedulePicker.tsx
-msgid "dashboard.automations.schedulePicker.invalidRrule"
-msgstr "Geçersiz yineleme kuralı — değişiklikler kaydedilmiyor"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/SchedulePicker/SchedulePicker.tsx
-msgid "dashboard.automations.schedulePicker.schedule"
-msgstr "Zamanlama"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.exhaustedRrule"
-msgstr "Yaklaşan çalıştırma yok — değişiklikler kaydedilmiyor"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.invalidRrule"
-msgstr "Geçersiz yineleme kuralı — değişiklikler kaydedilmiyor"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.kindAtTime"
-msgstr "{kindChip} <0>saat</0> {timeInput}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/ScheduleSentence/ScheduleSentence.tsx
-msgid "dashboard.automations.scheduleSentence.kindOnDayAtTime"
-msgstr "{kindChip}, <0>her</0> {daySelect} <1>saat</1> {timeInput}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
-msgid "dashboard.automations.scopeChip.nothingToChoose"
-msgstr "Henüz seçilecek bir şey yok"
-
-#. js-lingui-explicit-id
-#. placeholder {0}: scope.ids.length
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/components/ScopeChip/ScopeChip.tsx
-msgid "dashboard.automations.scopeChip.selectedCount"
-msgstr "{0, plural, one {# seçildi} other {# seçildi}}"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.save"
-msgstr "Kaydet"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.savedToast"
-msgstr "İmzalama sırrı kaydedildi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.saveFailedToast"
-msgstr "Sır kaydedilemedi"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.saveTriggersFirst"
-msgstr "Önce tetikleyicileri kaydedin"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.saving"
-msgstr "Kaydediliyor..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.secretEmptyHint"
-msgstr "URL'yi Circleback otomasyonuna yapıştırdığınızda Circleback bunu gösterir. Ayarlanana kadar teslimatlar reddedilir."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.secretPlaceholder"
-msgstr "Circleback'ten aldığınız whsec_… sırrını yapıştırın"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.secretSetHint"
-msgstr "{secretPrefix}… ayarlandı. Yenisini kaydetmek bunu değiştirir."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/circleback/components/SigningSecretChip/SigningSecretChip.tsx
-msgid "dashboard.automations.signingSecretChip.signingSecret"
-msgstr "İmzalama sırrı"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/utils/staleAgentError/staleAgentError.ts
 msgid "dashboard.automations.staleAgentHelp"
 msgstr "Bu otomasyonun çalıştırılacağı ajan, host'unda artık yok — host'un ajanları sıfırlanmış veya kaldırılmış olabilir. Otomasyonun ayarlarından yeni bir ajan seçin."
@@ -4759,61 +4407,6 @@ msgid "dashboard.automations.templates.triageIssues.name"
 msgstr "Yeni issue'ları sınıflandır"
 
 #. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.nextRun"
-msgstr "Sonraki çalıştırma"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.scopeSentence"
-msgstr "<0>proje:</0> <1/> <2>cihaz:</2> <3/> <4>çalışma alanı:</4> <5/> <6>etiketler:</6> <7/>"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/TriggersCard/TriggersCard.tsx
-msgid "dashboard.automations.triggersCard.wouldRun"
-msgstr "Çalışır"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.addTrigger"
-msgstr "Tetikleyici ekle"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.discard"
-msgstr "At"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.noMatchingTrigger"
-msgstr "Eşleşen tetikleyici yok"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.saveTriggers"
-msgstr "Tetikleyicileri kaydet"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.saving"
-msgstr "Kaydediliyor..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.searchPlaceholder"
-msgstr "Tetikleyici ara..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggersEditor/TriggersEditor.tsx
-msgid "dashboard.automations.triggersEditor.sectionLabel"
-msgstr "Tetikleyiciler"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/TriggerSentence/TriggerSentence.tsx
-msgid "dashboard.automations.triggerSentence.removeTriggerAriaLabel"
-msgstr "Tetikleyiciyi kaldır"
-
-#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/VersionHistorySheet/VersionHistorySheet.tsx
 msgid "dashboard.automations.versionHistory.closeAriaLabel"
 msgstr "Kapat"
@@ -4887,86 +4480,6 @@ msgstr "Geri yüklendi"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/$automationId/components/VersionHistorySheet/components/VersionRow/VersionRow.tsx
 msgid "dashboard.automations.versionRow.unknownAuthor"
 msgstr "Bilinmiyor"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.copiesHeaderTooltip"
-msgstr "Authorization başlığını kopyalar. Yalnızca şimdi gösterilir."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.copyAuthHeader"
-msgstr "Kimlik doğrulama başlığını kopyala"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.copyFailedToast"
-msgstr "Kopyalanamadı"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.generateAuthHeader"
-msgstr "Kimlik doğrulama başlığı oluştur"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.generateTokenFailedToast"
-msgstr "Token oluşturulamadı"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.generating"
-msgstr "Oluşturuluyor..."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.headerCopiedToast"
-msgstr "Kimlik doğrulama başlığı kopyalandı"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.issuesTokenTooltip"
-msgstr "Bu tetikleyici için bir bearer token verir."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateAuthHeader"
-msgstr "Kimlik doğrulama başlığını yeniden oluştur"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogCancel"
-msgstr "İptal"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogConfirm"
-msgstr "Yeniden oluştur"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogDescription"
-msgstr "Geçerli token ({secretPrefix}…) hemen çalışmayı durdurur."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.regenerateDialogTitle"
-msgstr "Kimlik doğrulama başlığı yeniden oluşturulsun mu?"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.saveTriggersFirst"
-msgstr "Önce tetikleyicileri kaydedin"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.tokenSetTooltip"
-msgstr "{secretPrefix}… token'ı ayarlandı. Yeniden oluşturmak bunu değiştirir."
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/providers/webhook/WebhookSentence/WebhookSentence.tsx
-msgid "dashboard.automations.webhookSentence.webhookTriggered"
-msgstr "Webhook tetiklendi"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/automations/components/WorkspacePicker/WorkspacePicker.tsx
@@ -18628,22 +18141,12 @@ msgid "mobile.pullRequest.viewFilesChanged"
 msgstr "Değişen dosyaları görüntüle"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewMany"
-msgstr "{count} PR görüntüle"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewManyLabel"
 msgstr "{count} pull request görüntüle"
 
 #. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
-msgid "mobile.pullRequests.viewOne"
-msgstr "PR görüntüle"
-
-#. js-lingui-explicit-id
-#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/components/PullRequestsButton/PullRequestsButton.tsx
+#: ../../apps/mobile/screens/(authenticated)/workspace/[id]/WorkspaceScreen/WorkspaceScreen.tsx
 msgid "mobile.pullRequests.viewOneLabel"
 msgstr "Pull request görüntüle"
 
@@ -30358,7 +29861,6 @@ msgstr "Yakında"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.back"
 msgstr "Entegrasyonlara dön"
@@ -30395,7 +29897,6 @@ msgstr "Yetkilendirme reddedildi. Lütfen yeniden deneyin."
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.callback.unauthorized"
 msgstr "Bu işlemi yapma yetkiniz yok."
@@ -30422,7 +29923,6 @@ msgstr "İptal"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.connected"
 msgstr "Bağlı"
@@ -30436,7 +29936,6 @@ msgstr "Şu hesapla bağlı"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/github/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.connectedTo"
 msgstr "Şuna bağlı"
@@ -30447,7 +29946,6 @@ msgstr "Şuna bağlı"
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.connectionCard"
 msgstr "Bağlantı"
@@ -30680,7 +30178,6 @@ msgstr "Görevlerin Superset ile Linear arasında nasıl eşitleneceğini yapıl
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.needOrganization"
 msgstr "Entegrasyonları kullanmak için bir kuruluşun parçası olmanız gerekir."
@@ -30691,7 +30188,6 @@ msgstr "Entegrasyonları kullanmak için bir kuruluşun parçası olmanız gerek
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/linear/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/microsoft-teams/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/notion/page.tsx
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/slack/page.tsx
 msgid "web.integrations.notConnected"
 msgstr "Bağlı değil"
@@ -30743,49 +30239,9 @@ msgid "web.integrations.remove"
 msgstr "Kaldır"
 
 #. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.blurb"
-msgstr "Issue'lar oluşturulduğunda, çözüldüğünde, atandığında, arşivlendiğinde veya yeniden açıldığında otomasyon çalıştırmak için Sentry'yi bağlayın."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.invalidState"
-msgstr "Oturumunuzun süresi doldu. Bağlantıyı yeniden başlatın."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.missingParams"
-msgstr "Sentry'den geçersiz yanıt. Lütfen yeniden deneyin."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.notConfigured"
-msgstr "Sentry henüz kullanılamıyor — Superset uygulaması Sentry'ye kaydedilmemiş."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.oauthDenied"
-msgstr "Kurulum iptal edildi. Lütfen yeniden deneyin."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.organizationLookupFailed"
-msgstr "Bağlandı, ancak Sentry kuruluşunuz okunamadı. Lütfen yeniden bağlanın."
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.callback.tokenExchangeFailed"
-msgstr "Sentry kurulumu tamamlanamadı. Lütfen yeniden deneyin."
-
-#. js-lingui-explicit-id
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/components/ConnectionControls/ConnectionControls.tsx
 msgid "web.integrations.sentry.connect"
 msgstr "Sentry'yi bağla"
-
-#. js-lingui-explicit-id
-#: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/page.tsx
-msgid "web.integrations.sentry.connectionDescription"
-msgstr "Superset uygulamasını Sentry kuruluşunuza kurun."
 
 #. js-lingui-explicit-id
 #: ../../apps/web/src/app/(dashboard-legacy)/integrations/sentry/components/ConnectionControls/ConnectionControls.tsx

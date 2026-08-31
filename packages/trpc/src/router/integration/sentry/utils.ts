@@ -30,25 +30,32 @@ export type SentryOrganization = {
 };
 
 /**
- * The single organization an installation's token belongs to, with its region
- * URL. A public-app token is scoped to one org, so `/organizations/` returns
- * exactly the one this install is for — which is how the org slug is learned
- * from the callback, whose query params carry only the code and install id.
+ * One organization by slug, with its region URL.
+ *
+ * The slug has to be passed in: an installation token is scoped to a single
+ * organization but is not a member of it, so `/organizations/` — which lists
+ * the caller's memberships — answers 200 with an empty array for these tokens.
+ * Sentry sends the slug on the callback as `orgSlug`, which is where the one
+ * this reads comes from.
  */
 export async function fetchSentryOrganization(
 	token: string,
+	slug: string,
 ): Promise<SentryOrganization | null> {
-	const response = await fetch(`${SENTRY_URL}/api/0/organizations/`, {
+	const response = await fetch(`${SENTRY_URL}/api/0/organizations/${slug}/`, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
-	if (!response.ok) return null;
-	const orgs = (await response.json()) as Array<{
+	if (!response.ok) {
+		console.error(
+			`[sentry] Organization lookup for ${slug} returned ${response.status}`,
+		);
+		return null;
+	}
+	const org = (await response.json()) as {
 		slug: string;
 		name: string;
 		links?: { regionUrl?: string };
-	}>;
-	const [org] = orgs;
-	if (!org) return null;
+	};
 	return {
 		slug: org.slug,
 		name: org.name,

@@ -8,11 +8,11 @@ export const SENTRY_STATE_COOKIE = "sentry_oauth_state";
  * Starts a Sentry install for the org's Sentry admin.
  *
  * A public Sentry integration is installed from Sentry's side, and Sentry
- * redirects back to the app's one fixed Redirect URL with only a grant code and
- * an install id — no state of ours. Sentry's install payload never names the
- * Superset org either. So the one place the Superset org is known is right here,
- * and it is carried to the callback in a signed, first-party cookie rather than
- * through Sentry.
+ * redirects back to the app's one fixed Redirect URL with a grant code, an
+ * install id and the Sentry org's slug — but no state of ours, and nothing
+ * naming the Superset org. So the one place the Superset org is known is right
+ * here, and it is carried to the callback in a signed, first-party cookie
+ * rather than through Sentry.
  */
 export async function GET(request: Request) {
 	const member = await requireOrgMember(request);

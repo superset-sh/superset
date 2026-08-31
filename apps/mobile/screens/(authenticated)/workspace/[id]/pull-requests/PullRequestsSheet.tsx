@@ -31,8 +31,8 @@ export function PullRequestsSheet() {
 		host?.isOnline === true
 			? hostServiceUrl(host.organizationId, host.machineId)
 			: null;
-	// The hook hands back current-then-newest, which is what the chip colours
-	// itself from; only the list wants the other direction.
+	// The hook hands back current-then-newest, which is what the strip's chip
+	// colours itself from; only the list wants the other direction.
 	const pullRequests = useWorkspacePullRequests(id ?? null).toReversed();
 
 	return (

@@ -1148,6 +1148,16 @@ export const workspacesRouter = router({
 				}
 			}
 
+			// Not chaining? Then the agent and the setup script are independent —
+			// that is what this path means — so launch the agent first. Its
+			// session is the one the user came for, and every client's tab order
+			// follows creation order, which had been handing the first slot to a
+			// setup shell nobody asked to look at.
+			const earlyAgentsResult =
+				chainAgent === null && sugarLaunches.length > 0
+					? await dispatchSugarAgents(ctx, workspaceRow.id, sugarLaunches)
+					: null;
+
 			let chainedAgentResult: AgentLaunchResult | null = null;
 			if (!alreadyExists && input.runSetup !== false) {
 				const { terminal, warning, chained } =
@@ -1176,11 +1186,12 @@ export const workspacesRouter = router({
 			}
 
 			const [agentsResult, commandResult] = await Promise.all([
-				dispatchSugarAgents(
-					ctx,
-					workspaceRow.id,
-					chainedAgentResult ? [] : sugarLaunches,
-				),
+				earlyAgentsResult ??
+					dispatchSugarAgents(
+						ctx,
+						workspaceRow.id,
+						chainedAgentResult ? [] : sugarLaunches,
+					),
 				input.command
 					? startCommandTerminal({
 							ctx,

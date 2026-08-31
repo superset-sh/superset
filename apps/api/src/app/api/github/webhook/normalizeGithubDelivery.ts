@@ -172,6 +172,8 @@ export function matchableFrom(
 				payload.pull_request?.user?.id ?? payload.issue?.user?.id ?? undefined;
 			return id !== undefined ? String(id) : null;
 		})(),
+		subjectAuthorLogin:
+			payload.pull_request?.user?.login ?? payload.issue?.user?.login ?? null,
 	};
 }
 

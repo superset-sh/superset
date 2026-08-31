@@ -1,1 +1,0 @@
-export { SigningSecretChip } from "./SigningSecretChip";

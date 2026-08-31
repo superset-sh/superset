@@ -73,6 +73,7 @@ type CallbackKeys = {
 			| "missing_params"
 			| "not_configured"
 			| "oauth_denied"
+			| "organization_already_linked"
 			| "organization_lookup_failed"
 			| "token_exchange_failed"
 			| "unauthorized";

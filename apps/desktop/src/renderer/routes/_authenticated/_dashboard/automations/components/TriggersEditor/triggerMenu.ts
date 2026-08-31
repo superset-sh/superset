@@ -51,7 +51,7 @@ function flattenEntries(
 	icon: IconType,
 ): TriggerMenuLeaf[] {
 	return entries.flatMap((entry) => {
-		const path = [...trail, i18n._(entry.label).replace(/…$/, "")];
+		const path = [...trail, providerLabelText(entry.label).replace(/…$/, "")];
 		if ("children" in entry) return flattenEntries(entry.children, path, icon);
 		return [{ path, icon, create: entry.create }];
 	});

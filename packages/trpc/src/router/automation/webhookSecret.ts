@@ -28,3 +28,22 @@ export function bearerToken(authorization: string | null): string | null {
 	const match = authorization?.match(/^Bearer\s+(\S+)$/i);
 	return match?.[1] ?? null;
 }
+
+/**
+ * The token a delivery presented, wherever it travelled. The header wins when
+ * both are sent; the `token` query parameter exists for producers whose
+ * webhook settings accept nothing but a URL — most SaaS products — where the
+ * URL itself has to carry the credential, the way a capability URL does.
+ */
+export function presentedWebhookToken(
+	authorization: string | null,
+	requestUrl: string,
+): string | null {
+	const fromHeader = bearerToken(authorization);
+	if (fromHeader) return fromHeader;
+	try {
+		return new URL(requestUrl).searchParams.get("token");
+	} catch {
+		return null;
+	}
+}

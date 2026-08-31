@@ -56,6 +56,7 @@ const event = (overrides: Partial<GithubMatchableEvent> = {}) =>
 		labels: [],
 		isFork: false,
 		subjectAuthorId: null,
+		subjectAuthorLogin: null,
 		names: ["pull_request.opened"],
 		...overrides,
 	}) satisfies GithubMatchableEvent;
@@ -102,6 +103,39 @@ describe("githubTriggerMatches actor scope", () => {
 	it("refuses an empty list — a half-built trigger matches nothing", () => {
 		expect(
 			githubTriggerMatches(config({ mode: "list", ids: [] }), event()),
+		).toEqual({ matches: false, reason: "actor" });
+	});
+
+	// The roster saves numeric ids, but it is empty without the members
+	// permission, so the editor also takes typed logins. Both have to match.
+	it("matches a listed login as well as a listed id", () => {
+		expect(
+			githubTriggerMatches(config({ mode: "list", ids: ["someone"] }), event())
+				.matches,
+		).toBe(true);
+		expect(
+			githubTriggerMatches(
+				config({ mode: "list", ids: ["someone"] }),
+				event({ actorLogin: "someone-else" }),
+			),
+		).toEqual({ matches: false, reason: "actor" });
+	});
+
+	it("still matches by id when the login has since changed", () => {
+		expect(
+			githubTriggerMatches(
+				config({ mode: "list", ids: ["1234"] }),
+				event({ actorLogin: "renamed" }),
+			).matches,
+		).toBe(true);
+	});
+
+	it("refuses a list scope when the event names neither id nor login", () => {
+		expect(
+			githubTriggerMatches(
+				config({ mode: "list", ids: ["1234"] }),
+				event({ actorId: null, actorLogin: null }),
+			),
 		).toEqual({ matches: false, reason: "actor" });
 	});
 });

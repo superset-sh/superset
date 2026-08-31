@@ -119,6 +119,8 @@ export function addressScopeAllows(
 	addresses: string[],
 ): boolean {
 	if (scope.mode === "any") return true;
+	// "me" is pre-resolved by the dispatcher; unresolved it matches nobody.
+	if (scope.mode === "me") return false;
 	const wanted = scope.ids.map((id) => id.trim().toLowerCase());
 	return addresses.some((address) =>
 		wanted.some((id) =>

@@ -3,13 +3,23 @@ import {
 	automationEvents,
 	automations,
 	automationTriggers,
+	subscriptions,
 } from "@superset/db/schema";
+import { findProviderIdentity } from "@superset/db/utils";
 import {
+	configHasMeScope,
 	type MatchableEvent,
+	resolveMeScopes,
 	triggerMatches,
 } from "@superset/shared/automation-matching";
+import {
+	ACTIVE_SUBSCRIPTION_STATUSES,
+	type PlanTier,
+	planAllowsTriggerKind,
+	requiredPlanForTriggerKind,
+} from "@superset/shared/billing";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { env } from "@/env";
 
 const qstash = new Client({
@@ -55,11 +65,23 @@ export async function dispatchMatchingTriggers(params: {
 }): Promise<{ matched: number; considered: number }> {
 	const { event } = params;
 
+	// Tier gate, same map the editor badges from: a downgraded org's triggers
+	// stay configured and editable, they just never fire. The event is still
+	// marked dispatched — it was handled, by being declined.
+	if (requiredPlanForTriggerKind(event.provider) !== undefined) {
+		const plan = await organizationPlan(params.organizationId);
+		if (!planAllowsTriggerKind(plan, event.provider)) {
+			await markDispatched(params.eventId);
+			return { matched: 0, considered: 0 };
+		}
+	}
+
 	const candidates = await dbWs
 		.select({
 			triggerId: automationTriggers.id,
 			config: automationTriggers.config,
 			automationId: automations.id,
+			ownerUserId: automations.ownerUserId,
 		})
 		.from(automationTriggers)
 		.innerJoin(automations, eq(automations.id, automationTriggers.automationId))
@@ -89,7 +111,34 @@ export async function dispatchMatchingTriggers(params: {
 		return { matched: 0, considered: 0 };
 	}
 
-	const matched = candidates.filter(
+	// "Me" scopes resolve to the automation owner's identity at the event's
+	// provider NOW, not the identity they had when the trigger was written —
+	// reconnecting a different account moves every "Me" trigger with it. One
+	// lookup per owner per event, and only for configs that carry the mode.
+	const meIds = new Map<string, Promise<string | null>>();
+	const meIdFor = (ownerUserId: string) => {
+		// The promise is what's cached — the candidates resolve concurrently,
+		// and a value cache would miss for every one of them.
+		let pending = meIds.get(ownerUserId);
+		if (!pending) {
+			pending = findProviderIdentity({
+				organizationId: params.organizationId,
+				userId: ownerUserId,
+				provider: event.provider,
+			}).then((identity) => identity?.externalId ?? null);
+			meIds.set(ownerUserId, pending);
+		}
+		return pending;
+	};
+	const resolved = await Promise.all(
+		candidates.map(async (candidate) => {
+			if (!configHasMeScope(candidate.config)) return candidate;
+			const meId = await meIdFor(candidate.ownerUserId);
+			return { ...candidate, config: resolveMeScopes(candidate.config, meId) };
+		}),
+	);
+
+	const matched = resolved.filter(
 		(candidate) => triggerMatches(candidate.config, event).matches,
 	);
 
@@ -116,6 +165,27 @@ export async function dispatchMatchingTriggers(params: {
 
 	await markDispatched(params.eventId);
 	return { matched: matched.length, considered: candidates.length };
+}
+
+/**
+ * The org's plan as billing.activePlan resolves it: the newest subscription
+ * in a paying status, else free. Unrecognized plan names read as free — the
+ * gate must fail closed on a plan string this build doesn't know.
+ */
+async function organizationPlan(organizationId: string): Promise<PlanTier> {
+	const [subscription] = await dbWs
+		.select({ plan: subscriptions.plan })
+		.from(subscriptions)
+		.where(
+			and(
+				eq(subscriptions.referenceId, organizationId),
+				inArray(subscriptions.status, [...ACTIVE_SUBSCRIPTION_STATUSES]),
+			),
+		)
+		.orderBy(desc(subscriptions.createdAt))
+		.limit(1);
+	const plan = subscription?.plan;
+	return plan === "pro" || plan === "enterprise" ? plan : "free";
 }
 
 /**

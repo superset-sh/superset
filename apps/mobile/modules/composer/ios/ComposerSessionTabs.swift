@@ -15,9 +15,13 @@ import SwiftUI
 struct ComposerSessionTabs: View {
   let tabs: [ComposerSessionTab]
   let labels: ComposerSessionTabLabels
+  /// The strip's one leading control, or nothing. Absent on every surface that
+  /// has no link to offer.
+  let action: ComposerSessionAction?
   let onSelect: (String) -> Void
   let onClose: (String) -> Void
   let onCopyId: (String) -> Void
+  let onAction: () -> Void
   let onNewSession: () -> Void
   let onAllSessions: () -> Void
 
@@ -33,6 +37,19 @@ struct ComposerSessionTabs: View {
 
   var body: some View {
     HStack(spacing: ComposerMetrics.sessionTabControlGap) {
+      // Ahead of the scroll view, so it holds still while the tabs move under
+      // the thumb — the whole point of putting it here rather than in the bar.
+      // The scroll-home chevron overlays the strip's own leading edge, so once
+      // the row has scrolled the two sit side by side.
+      if let action {
+        control(
+          symbol: action.symbol,
+          label: action.label,
+          tint: ComposerSessionActionTint(rawValue: action.tint ?? "")?.color,
+          iconUri: action.iconUri,
+          action: onAction
+        )
+      }
       ScrollViewReader { proxy in
         ScrollView(.horizontal) {
           HStack(spacing: ComposerMetrics.sessionTabGap) {
@@ -112,14 +129,50 @@ struct ComposerSessionTabs: View {
     symbol: String,
     label: String,
     opaque: Bool = false,
+    tint: Color? = nil,
+    iconUri: String? = nil,
     action: @escaping () -> Void
   ) -> some View {
     Button(action: action) {
-      Image(systemName: symbol)
-        .font(.system(size: ComposerMetrics.sessionTabControlGlyph, weight: .semibold))
+      glyph(symbol: symbol, iconUri: iconUri)
+        // On the label, not on the button: the style below paints
+        // `.primary` on whatever it is handed, and the inner style wins.
+        .foregroundStyle(tint.map { AnyShapeStyle($0) } ?? AnyShapeStyle(.primary))
     }
     .buttonStyle(ComposerSessionTabControlStyle(opaque: opaque))
     .accessibilityLabel(label)
+  }
+
+  /// The bundled mark when one has resolved, the SF Symbol until then.
+  ///
+  /// Templated rather than drawn as-is, so a one-colour mark takes the tint the
+  /// symbol would have — the art carries the shape, this side carries the
+  /// palette, the same split as everywhere else in the strip.
+  @ViewBuilder
+  private func glyph(symbol: String, iconUri: String?) -> some View {
+    if let uri = iconUri, !uri.isEmpty, let url = URL(string: uri) {
+      AsyncImage(url: url) { image in
+        image
+          .renderingMode(.template)
+          .resizable()
+          .aspectRatio(contentMode: .fit)
+      } placeholder: {
+        // The symbol rather than blank, so the chip does not flash empty on
+        // the frame before the file lands.
+        symbolGlyph(symbol)
+      }
+      .frame(
+        width: ComposerMetrics.sessionTabControlMark,
+        height: ComposerMetrics.sessionTabControlMark
+      )
+    } else {
+      symbolGlyph(symbol)
+    }
+  }
+
+  private func symbolGlyph(_ symbol: String) -> some View {
+    Image(systemName: symbol)
+      .font(.system(size: ComposerMetrics.sessionTabControlGlyph, weight: .semibold))
   }
 }
 
@@ -293,6 +346,31 @@ private struct ComposerSessionMark: View {
     Text(tab.initial)
       .font(.system(size: size * 0.62, weight: .bold))
       .foregroundStyle(.secondary)
+  }
+}
+
+/// What a linked pull request's state colours the leading control, as it
+/// reaches this side of the bridge.
+///
+/// Same split as `ComposerSessionAttention` below: the state name crosses, the
+/// palette is the composer's. Kept in step by hand with `PULL_REQUEST_STATUS`
+/// in `screens/(authenticated)/workspace/[id]/utils/pullRequest/status.ts`,
+/// which is where the rest of the app reads the same five colours from.
+enum ComposerSessionActionTint: String {
+  case open
+  case draft
+  case queued
+  case merged
+  case closed
+
+  var color: Color {
+    switch self {
+    case .open: Color(red: 0.00, green: 0.74, blue: 0.49)  // emerald-500
+    case .draft: Color(white: 0.64)  // muted-foreground, dark
+    case .queued: Color(red: 0.99, green: 0.60, blue: 0.00)  // amber-500
+    case .merged: Color(red: 0.68, green: 0.27, blue: 1.00)  // purple-500
+    case .closed: Color(red: 0.88, green: 0.31, blue: 0.31)  // destructive, dark
+    }
   }
 }
 

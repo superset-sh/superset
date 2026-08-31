@@ -20,6 +20,7 @@
 		"@better-auth/expo": "1.6.22",
 		"@expo/ui": "57.0.12",
 		"@expo/vector-icons": "15.1.1",
+		"@formatjs/intl-pluralrules": "6.3.13",
 		"@legendapp/list": "3.0.3",
 		"@lingui/core": "6.6.0",
 		"@lingui/react": "6.6.0",

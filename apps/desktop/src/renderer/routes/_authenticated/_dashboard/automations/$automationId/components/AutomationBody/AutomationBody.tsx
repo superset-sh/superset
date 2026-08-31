@@ -122,8 +122,11 @@ export function AutomationBody({
 		!matchAgentChoice(hostAgents, automation.agent);
 
 	return (
-		<div className="flex-1 overflow-y-auto px-8 py-8">
-			<div className="mx-auto flex w-full max-w-3xl flex-col">
+		<div className="flex-1 overflow-y-auto px-12 py-8">
+			{/* Full width, not a centered max-w column: a Slack sentence is wider
+			    than 3xl and would wrap onto a second line, shifting the rows below
+			    every time one renders. */}
+			<div className="flex w-full flex-col">
 				<EmojiTextInput
 					value={name}
 					onChange={setName}

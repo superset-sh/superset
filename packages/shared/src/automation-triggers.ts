@@ -33,6 +33,11 @@ export const triggerScopeSchema = z
 			mode: z.literal("list"),
 			ids: z.array(z.string().min(1)).max(200),
 		}),
+		// The automation owner's own identity at the provider, resolved when the
+		// event arrives rather than when the trigger was written — reconnecting
+		// a different account moves the trigger with it. People pickers offer it;
+		// on any other scope it resolves to the same id and matches nothing.
+		z.object({ mode: z.literal("me") }),
 	])
 	.default({ mode: "any" });
 export type TriggerScope = z.infer<typeof triggerScopeSchema>;
@@ -182,9 +187,6 @@ export const slackTriggerConfigSchema = z.object({
 	// A pattern over the message text, or over the channel name for
 	// channel_created.
 	messageFilter: textFilterSchema.nullable().default(null),
-	// message_in_channel only: whether a reply inside a thread counts. Defaults
-	// to top-level posts, since a busy thread would otherwise fire once a reply.
-	topLevelOnly: z.boolean().default(true),
 	// message_in_channel only: the reaction to add to the triggering message
 	// when the run completes; null for none.
 	completionReaction: slackEmojiName.nullable().default("white_check_mark"),
@@ -232,22 +234,6 @@ export const sentryTriggerConfigSchema = z.object({
 	projects: triggerScopeSchema,
 	// Optional narrowing over fatal/error/warning/info/debug; "any" by default.
 	level: triggerScopeSchema,
-});
-
-export const circlebackTriggerEventValues = ["meeting.completed"] as const;
-
-/**
- * Circleback has no connection: it posts to a per-trigger URL and signs the
- * body with a secret it generates and shows in its own UI. That secret is
- * pasted into the trigger row and lives on the trigger row's secret column,
- * never in this config — the config is returned to every member of the org.
- */
-export const circlebackTriggerConfigSchema = z.object({
-	kind: z.literal("circleback"),
-	event: z.enum(circlebackTriggerEventValues),
-	tags: triggerScopeSchema,
-	attendees: triggerScopeSchema,
-	nameFilter: textFilterSchema.nullable().default(null),
 });
 
 /**
@@ -404,7 +390,6 @@ export const draftTriggerSchema = z.object({
 		linearTriggerConfigSchema,
 		sentryTriggerConfigSchema,
 		notionTriggerConfigSchema,
-		circlebackTriggerConfigSchema,
 		microsoftTeamsTriggerConfigSchema,
 		googleCalendarTriggerConfigSchema,
 		gmailTriggerConfigSchema,

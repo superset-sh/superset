@@ -715,6 +715,13 @@
       "when": 1788145777142,
       "tag": "0101_add_files_and_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1788147817056,
+      "tag": "0102_drop_circleback_trigger_kind",
+      "breakpoints": true
     }
   ]
 }

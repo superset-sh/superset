@@ -19,6 +19,8 @@ export type GithubMatchableEvent = BaseMatchableEvent & {
 	isFork: boolean;
 	/** Who opened the thing being commented on. */
 	subjectAuthorId: string | null;
+	/** Their login, for the same reason actorLogin exists on people filters. */
+	subjectAuthorLogin: string | null;
 	/** The product-level names this delivery maps to; see githubEventNames. */
 	names: GithubTriggerEvent[];
 };
@@ -91,6 +93,10 @@ export function githubEventNames(event: {
 }
 
 /** Whether a GitHub trigger config accepts this event. */
+/** The values a people filter may name someone by, absent ones dropped. */
+const people = (id: string | null, login: string | null): string[] =>
+	[id, login].filter((value): value is string => value !== null);
+
 export function githubTriggerMatches(
 	config: {
 		event: string;
@@ -116,12 +122,18 @@ export function githubTriggerMatches(
 	if (!scopeAllowsAny(config.labels, event.labels)) {
 		return no("label");
 	}
-	if (!scopeAllows(config.actor, event.actorId)) {
+	// Id or login: the roster saves GitHub's numeric id, but the roster is empty
+	// without the members permission, so people filters also accept a username
+	// someone typed. Only the id survives a rename — see UserScopeChip.
+	if (!scopeAllowsAny(config.actor, people(event.actorId, event.actorLogin))) {
 		return no("actor");
 	}
 	if (
 		config.subjectAuthor !== undefined &&
-		!scopeAllows(config.subjectAuthor, event.subjectAuthorId)
+		!scopeAllowsAny(
+			config.subjectAuthor,
+			people(event.subjectAuthorId, event.subjectAuthorLogin),
+		)
 	) {
 		return no("subjectAuthor");
 	}

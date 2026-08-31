@@ -118,7 +118,6 @@ export const automationTriggerKindValues = [
 	"google_calendar",
 	"gmail",
 	"notion",
-	"circleback",
 ] as const satisfies readonly TriggerConfigInput["kind"][];
 
 export type _EveryKindHasEnumValue = [

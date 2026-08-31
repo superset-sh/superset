@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import { githubInstallations, githubRepositories } from "@superset/db/schema";
+import { findProviderIdentity } from "@superset/db/utils";
 import { desc, eq } from "drizzle-orm";
 import { installationOctokit } from "../../../lib/blaxel/clone-token";
 import type { TriggerOptionSource } from "../trigger-options";
@@ -23,7 +24,17 @@ export async function listGithubRepositories(organizationId: string) {
  */
 const repositories: TriggerOptionSource = async ({ organizationId }) => {
 	const list = await listGithubRepositories(organizationId);
-	return list.map((repo) => ({ id: repo.repoId, label: repo.fullName }));
+	return list.map((repo) => {
+		// Name as the label, owner as the muted hint beside it — every repo in
+		// one installation shares the owner, so repeating it per row is noise.
+		const slash = repo.fullName.indexOf("/");
+		if (slash < 0) return { id: repo.repoId, label: repo.fullName };
+		return {
+			id: repo.repoId,
+			label: repo.fullName.slice(slash + 1),
+			hint: repo.fullName.slice(0, slash),
+		};
+	});
 };
 
 const PER_PAGE = 100;
@@ -107,4 +118,20 @@ const people: TriggerOptionSource = async ({ organizationId }) => {
 		.sort((a, b) => a.label.localeCompare(b.label));
 };
 
-export const githubTriggerOptions = { repositories, people };
+/**
+ * The caller's own GitHub id — the editor uses its presence to warn when a
+ * "Me" scope cannot resolve for them. Same lookup the dispatcher runs when a
+ * "Me" trigger fires, so the warning and the runtime agree.
+ */
+const viewer: TriggerOptionSource = async ({ organizationId, userId }) => {
+	const identity = await findProviderIdentity({
+		organizationId,
+		userId,
+		provider: "github",
+	});
+	return identity
+		? [{ id: identity.externalId, label: identity.handle ?? "Me" }]
+		: [];
+};
+
+export const githubTriggerOptions = { repositories, people, viewer };

@@ -126,15 +126,13 @@ function formatMonth(month: number, locale?: string): string {
 export type Weekday = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
 
 /**
- * Strict preset match — only the five shapes the SchedulePicker can author.
- * Anything else (intervals, MONTHLY/YEARLY, multi-day BYDAY outside
- * weekdays/weekends, etc.) collapses to `{ kind: "custom" }` so the picker
- * falls back to raw-RRULE editing.
+ * Strict preset match — only the four shapes the SchedulePicker can author.
+ * Anything else (intervals, MONTHLY/YEARLY, multi-day BYDAY, etc.) collapses
+ * to `{ kind: "custom" }` so the picker falls back to raw-RRULE editing.
  */
 export type PresetMatch =
 	| { kind: "hourly" }
 	| { kind: "daily"; hour: number; minute: number }
-	| { kind: "weekdays"; hour: number; minute: number }
 	| { kind: "weekly"; day: Weekday; hour: number; minute: number }
 	| { kind: "custom"; rrule: string };
 
@@ -168,9 +166,6 @@ export function matchPreset(rrule: string): PresetMatch {
 	}
 
 	if (freq === "WEEKLY" && byHour !== null) {
-		if (sameSet(byDay, WEEKDAYS)) {
-			return { kind: "weekdays", hour: byHour, minute: byMinute };
-		}
 		if (byDay.length === 1) {
 			return {
 				kind: "weekly",
@@ -190,8 +185,6 @@ export function buildRrule(match: PresetMatch): string {
 			return "FREQ=HOURLY";
 		case "daily":
 			return `FREQ=DAILY;BYHOUR=${match.hour};BYMINUTE=${match.minute}`;
-		case "weekdays":
-			return `FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=${match.hour};BYMINUTE=${match.minute}`;
 		case "weekly":
 			return `FREQ=WEEKLY;BYDAY=${match.day};BYHOUR=${match.hour};BYMINUTE=${match.minute}`;
 		case "custom":
