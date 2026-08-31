@@ -19,7 +19,14 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { LuFileCode } from "react-icons/lu";
 import {
 	createPaneScrollStateKey,
@@ -28,6 +35,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache";
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
+import { getImageMimeType, isImageFile } from "shared/file-types";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -116,6 +124,7 @@ export function DiffPane({
 	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
 		id: workspaceId,
 	});
+	const worktreePath = workspaceQuery.data?.worktreePath;
 	const writeFile = workspaceTrpc.filesystem.writeFile.useMutation();
 	const utils = workspaceTrpc.useUtils();
 	const { trpcClient } = useWorkspaceClient();
@@ -610,7 +619,14 @@ export function DiffPane({
 				if (item.type !== "file") return null;
 				const file = fileByItemId.get(item.id);
 				if (!file) return null;
-				return <BinaryDiffPlaceholder file={file} onOpenFile={onOpenFile} />;
+				return (
+					<BinaryDiffPlaceholder
+						file={file}
+						workspaceId={workspaceId}
+						worktreePath={worktreePath}
+						onOpenFile={onOpenFile}
+					/>
+				);
 			}
 			if (m.kind === "deferred-placeholder") {
 				if (item.type !== "file") return null;
@@ -679,6 +695,7 @@ export function DiffPane({
 			requestDiff,
 			onOpenFile,
 			t,
+			worktreePath,
 		],
 	);
 
@@ -738,30 +755,88 @@ export function DiffPane({
 
 function BinaryDiffPlaceholder({
 	file,
+	workspaceId,
+	worktreePath,
+	onOpenFile,
+}: {
+	file: ChangesetFile;
+	workspaceId: string;
+	worktreePath?: string;
+	onOpenFile: (path: string, openInNewTab?: boolean) => void;
+}) {
+	const canOpen = file.status !== "deleted";
+	const mimeType = getImageMimeType(file.path);
+	const imageQuery = workspaceTrpc.filesystem.readFile.useQuery(
+		{
+			workspaceId,
+			absolutePath: toAbsoluteWorkspacePath(worktreePath ?? "", file.path),
+			maxBytes: 10 * 1024 * 1024,
+		},
+		{
+			enabled: canOpen && !!worktreePath && isImageFile(file.path),
+			retry: false,
+			staleTime: 30_000,
+		},
+	);
+
+	if (mimeType && imageQuery.data?.kind === "bytes") {
+		if (imageQuery.data.exceededLimit) {
+			return (
+				<BinaryDiffPlaceholderContent>
+					Image is too large to preview (max 10MB)
+					<BinaryDiffPlaceholderActions file={file} onOpenFile={onOpenFile} />
+				</BinaryDiffPlaceholderContent>
+			);
+		}
+		return (
+			<div className="flex flex-col items-center gap-3 bg-muted/30 p-4">
+				<img
+					src={`data:${mimeType};base64,${imageQuery.data.content}`}
+					alt={file.path}
+					className="max-h-96 max-w-full object-contain"
+				/>
+				<BinaryDiffPlaceholderActions file={file} onOpenFile={onOpenFile} />
+			</div>
+		);
+	}
+
+	if (mimeType && canOpen && imageQuery.isLoading) {
+		return (
+			<BinaryDiffPlaceholderContent>
+				Loading image…
+			</BinaryDiffPlaceholderContent>
+		);
+	}
+
+	return (
+		<BinaryDiffPlaceholderContent>
+			<Trans id="workspace.diffPane.binaryFileHidden">Binary file hidden</Trans>
+			{canOpen ? (
+				<BinaryDiffPlaceholderActions file={file} onOpenFile={onOpenFile} />
+			) : null}
+		</BinaryDiffPlaceholderContent>
+	);
+}
+
+function BinaryDiffPlaceholderContent({ children }: { children: ReactNode }) {
+	return (
+		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
+			<LuFileCode className="size-8" />
+			{children}
+		</div>
+	);
+}
+
+function BinaryDiffPlaceholderActions({
+	file,
 	onOpenFile,
 }: {
 	file: ChangesetFile;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 }) {
-	const canOpen = file.status !== "deleted";
-
 	return (
-		<div className="flex flex-col items-center justify-center gap-3 bg-muted/30 py-8 text-muted-foreground">
-			<LuFileCode className="size-8" />
-			<p className="cursor-text select-text text-sm">
-				<Trans id="workspace.diffPane.binaryFileHidden">
-					Binary file hidden
-				</Trans>
-			</p>
-			{canOpen ? (
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() => onOpenFile(file.path)}
-				>
-					<Trans id="workspace.diffPane.openFile">Open file</Trans>
-				</Button>
-			) : null}
-		</div>
+		<Button variant="outline" size="sm" onClick={() => onOpenFile(file.path)}>
+			<Trans id="workspace.diffPane.openFile">Open file</Trans>
+		</Button>
 	);
 }
