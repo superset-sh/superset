@@ -98,10 +98,15 @@ export default async function AcceptInvitationPage({
 			<div className="max-w-lg space-y-6 text-center">
 				{invitation.organization.logo && (
 					<div className="relative mx-auto h-16 w-16">
+						{/* unoptimized: the URL is already a 256px square, resized and
+						    re-encoded by Cloudflare and cached at its edge. Without
+						    this, Vercel's optimizer fetches that and re-encodes it a
+						    second time, for a logo rendered at 64px. */}
 						<Image
 							src={invitation.organization.logo}
 							alt={invitation.organization.name}
 							fill
+							unoptimized
 							className="rounded-lg object-contain"
 						/>
 					</div>
