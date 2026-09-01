@@ -190,9 +190,40 @@ export function useDashboardSidebarData() {
 					projectId: sidebarProjects.projectId,
 					isCollapsed: sidebarProjects.isCollapsed,
 					tabOrder: sidebarProjects.tabOrder,
+					collectionId: sidebarProjects.collectionId,
 				})),
 		[collections],
 	);
+
+	// Collections group projects at the sidebar root (the level above projects).
+	const { data: sidebarCollections = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ collections: collections.v2SidebarCollections })
+				.orderBy(({ collections }) => collections.tabOrder, "asc")
+				.select(({ collections }) => ({
+					id: collections.collectionId,
+					name: collections.name,
+					isCollapsed: collections.isCollapsed,
+					tabOrder: collections.tabOrder,
+					color: collections.color,
+					icon: collections.icon,
+				})),
+		[collections],
+	);
+	// Same JS re-sort as the project rows below, for the same reason: the
+	// query's incremental orderBy doesn't reliably re-sort after an insert or
+	// a tabOrder renumber, so a new collection could sit in the wrong place until
+	// reload. `collectionId` breaks ties so equal tabOrders stay stable.
+	const orderedSidebarCollections = useMemo(
+		() =>
+			[...sidebarCollections].sort(
+				(left, right) =>
+					left.tabOrder - right.tabOrder || left.id.localeCompare(right.id),
+			),
+		[sidebarCollections],
+	);
+
 	// Sorted in JS, not via the query's orderBy: the incremental orderBy
 	// does not reliably re-sort on row inserts/renumbers (a newly added
 	// project stayed appended at the bottom until reload), and tabOrders
@@ -231,6 +262,7 @@ export function useDashboardSidebarData() {
 					createdAt: new Date(project.createdAt),
 					updatedAt: new Date(project.updatedAt),
 					isCollapsed: row.isCollapsed,
+					collectionId: row.collectionId,
 				},
 			];
 		});
@@ -264,8 +296,8 @@ export function useDashboardSidebarData() {
 	);
 
 	// The section lane the builder consumes is the deriveTagFolders union:
-	// stored presentation rows PLUS folders that exist only because some
-	// workspace carries the tag. A folder must exist because a workspace
+	// stored presentation rows PLUS collections that exist only because some
+	// workspace carries the tag. A collection must exist because a workspace
 	// carries the tag, not because a local row does.
 	const tagFolderContext = useTagFolderContext();
 	const sidebarSections = useMemo(
@@ -565,6 +597,7 @@ export function useDashboardSidebarData() {
 
 	return {
 		groups,
+		collections: orderedSidebarCollections,
 		pinnedWorkspaces,
 		sessionWorkspaces,
 		sessionTagGroups: sessions.tagGroups,

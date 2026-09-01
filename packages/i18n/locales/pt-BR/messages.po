@@ -7485,6 +7485,51 @@ msgid "dashboard.sidebar.collapsedProject.workspaceCount"
 msgstr "{totalWorkspaceCount, plural, one {# área de trabalho} other {# áreas de trabalho}}"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Escolher imagem…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Excluir coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Não foi possível usar essa imagem"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Remover ícone"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Renomear coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Definir a cor da coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Definir o ícone da coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Usar {emoji} como ícone da coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/ColorMenuItems/ColorMenuItems.tsx
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Padrão"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog/DashboardSidebarDeleteDialog.tsx
 msgid "dashboard.sidebar.deleteDialog.delete"
 msgstr "Excluir"
@@ -8028,6 +8073,51 @@ msgid "dashboard.sidebar.projectActions.renameHostUnreachable"
 msgstr "O host do projeto está inacessível — não dá para renomear agora"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelection"
+msgstr "Limpar seleção (Esc)"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Limpar a seleção de projetos"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Mover para coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Mover # projeto selecionado para uma coleção} other {Mover # projetos selecionados para uma coleção}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Nova coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Remover da coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Remover os projetos selecionados de suas coleções"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# projeto} other {# projetos}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Ações dos projetos selecionados"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent/DashboardSidebarExpandedProjectContent.tsx
 msgid "dashboard.sidebar.projectContent.dropToUnpin"
 msgstr "Solte para desafixar"
@@ -8044,6 +8134,16 @@ msgstr "Importar worktrees não monitoradas"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Mover para coleção"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Nova coleção…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.newGroup"
 msgstr "Novo grupo"
 
@@ -8056,6 +8156,11 @@ msgstr "Abrir no Finder"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.projectSettings"
 msgstr "Configurações do projeto"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Remover da coleção"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
@@ -8076,6 +8181,11 @@ msgstr "Nova área de trabalho"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
 msgid "dashboard.sidebar.projectRow.newWorkspaceAriaLabel"
 msgstr "Nova área de trabalho"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", selecionado"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspaceItem/components/DashboardSidebarWorkspaceHoverCardContent/components/PullRequestStatusBadge/PullRequestStatusBadge.tsx
@@ -8127,11 +8237,6 @@ msgstr "Revisão pendente"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCloudSection/DashboardSidebarCloudSection.tsx
 msgid "dashboard.sidebar.sectionCloud"
 msgstr "Nuvem"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
-msgid "dashboard.sidebar.sectionMenu.defaultColor"
-msgstr "Padrão"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
@@ -8513,6 +8618,11 @@ msgstr "Falha na importação"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
 msgid "dashboard.sidebar.workspacesHeader.importMultipleProjects"
 msgstr "Vários projetos usam este repositório ({0}). Escolha o projeto nas configurações para configurá-lo neste dispositivo."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Nova coleção"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx

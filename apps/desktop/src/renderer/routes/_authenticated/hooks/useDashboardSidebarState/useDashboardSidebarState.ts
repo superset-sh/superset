@@ -37,6 +37,16 @@ import {
 } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
+	createCollectionInState,
+	deleteCollectionInState,
+	moveProjectToCollectionInState,
+	renameCollectionInState,
+	reorderCollectionsInState,
+	setCollectionColorInState,
+	setCollectionIconInState,
+	toggleCollectionCollapsedInState,
+} from "./collectionMutations";
+import {
 	createEmptyPaneLayout,
 	removeProjectFromSidebarState,
 	tombstoneSidebarWorkspaceRecord,
@@ -65,8 +75,8 @@ function compareProjectTopLevelItems(
 
 function getProjectTopLevelItems(
 	collections: ProjectTopLevelCollections,
-	// Host rows carry the tags that decide folder membership — a workspace
-	// whose tag resolves into a folder must NOT count as top-level, or every
+	// Host rows carry the tags that decide collection membership — a workspace
+	// whose tag resolves into a collection must NOT count as top-level, or every
 	// insert index computed against this lane is shifted by phantom siblings.
 	// Same resolver as the sidebar builder and the flatten pass.
 	hostWorkspaces: readonly TagFolderWorkspaceInput[],
@@ -75,7 +85,7 @@ function getProjectTopLevelItems(
 	projectId: string | null,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
 ): ProjectTopLevelItem[] {
-	const folderIndex: ReadonlyMap<string, TagFolderRef> =
+	const collectionIndex: ReadonlyMap<string, TagFolderRef> =
 		projectId === null
 			? new Map()
 			: getProjectFolderTagIndex(
@@ -98,7 +108,7 @@ function getProjectTopLevelItems(
 					resolveWorkspaceSectionId({
 						tags: hostTagsByWorkspaceId.get(item.workspaceId),
 						localSectionId: item.sidebarState.sectionId,
-						index: folderIndex,
+						index: collectionIndex,
 					}) === null &&
 					item.workspaceId !== options.excludeWorkspaceId,
 			)
@@ -107,7 +117,7 @@ function getProjectTopLevelItems(
 				id: item.workspaceId,
 				tabOrder: item.sidebarState.tabOrder,
 			})),
-		// Stored rows only: a derived-only folder has no row to renumber, and
+		// Stored rows only: a derived-only collection has no row to renumber, and
 		// its synthetic tabOrder floor must never feed getNextTabOrder math.
 		...Array.from(collections.v2SidebarSections.state.values())
 			.filter(
@@ -123,7 +133,7 @@ function getProjectTopLevelItems(
 	].sort(compareProjectTopLevelItems);
 }
 
-function getProjectFolderIndex(
+function getProjectCollectionIndex(
 	collections: Pick<AppCollections, "v2SidebarSections">,
 	hostWorkspaces: readonly TagFolderWorkspaceInput[],
 	tagFolderContext: TagFolderContext,
@@ -162,7 +172,7 @@ function getEffectiveSectionId(
 	return resolveWorkspaceSectionId({
 		tags: getHostWorkspaceTags(hostWorkspaces, row.workspaceId),
 		localSectionId: row.sidebarState.sectionId,
-		index: getProjectFolderIndex(
+		index: getProjectCollectionIndex(
 			collections,
 			hostWorkspaces,
 			tagFolderContext,
@@ -299,7 +309,7 @@ export function useDashboardSidebarState() {
 	const { v2Workspaces } = useOptimisticActions();
 	const tagFolderContext = useTagFolderContext();
 
-	// Folder membership lives in host-side tags; every membership write is a
+	// Collection membership lives in host-side tags; every membership write is a
 	// host call through the optimistic path (cache upsert → workspace.update
 	// → invalidate + toast on failure).
 	const writeWorkspaceTags = useCallback(
@@ -312,7 +322,7 @@ export function useDashboardSidebarState() {
 		[v2Workspaces],
 	);
 
-	// Folder presentation (label, color) lives host-side so it follows the
+	// Collection presentation (label, color) lives host-side so it follows the
 	// user across devices; write to every host serving the project so
 	// replicas stay aligned. The project:changed broadcast re-renders every
 	// window and device.
@@ -366,7 +376,7 @@ export function useDashboardSidebarState() {
 	);
 
 	/**
-	 * Materialize-on-interaction: a derived folder has no stored row, so
+	 * Materialize-on-interaction: a derived collection has no stored row, so
 	 * color/rename/collapse/reorder mint one first (keyed by the composite
 	 * `${projectId}:${tag}` — the tag is recoverable from the key alone).
 	 * Returns the row, or null when the id is neither stored nor parseable.
@@ -467,10 +477,10 @@ export function useDashboardSidebarState() {
 		) => {
 			// A workspace item in the lane list is EXPLICITLY top-level. Local
 			// sectionId writes alone can't deliver that for a tag-filed row —
-			// the tag would keep it in its folder and a drag out of a folder
-			// would silently snap back — so strip the project's folder tags on
-			// its host too (folder tags only; unrelated tags survive).
-			const folderIndex = getProjectFolderIndex(
+			// the tag would keep it in its collection and a drag out of a collection
+			// would silently snap back — so strip the project's collection tags on
+			// its host too (collection tags only; unrelated tags survive).
+			const collectionIndex = getProjectCollectionIndex(
 				collections,
 				hostWorkspaces,
 				tagFolderContext,
@@ -483,7 +493,7 @@ export function useDashboardSidebarState() {
 					const currentTags = getHostWorkspaceTags(hostWorkspaces, item.id);
 					const strippedTags = applyFolderTagChange(
 						currentTags,
-						folderIndex.keys(),
+						collectionIndex.keys(),
 						null,
 					);
 					if (strippedTags.join("\n") !== currentTags.join("\n")) {
@@ -496,7 +506,7 @@ export function useDashboardSidebarState() {
 						draft.sidebarState.isHidden = false;
 					});
 				} else {
-					// Reordering the lane is a customisation: a derived folder in
+					// Reordering the lane is a customisation: a derived collection in
 					// the ordered list materializes its row so the order sticks.
 					if (!ensureSectionRow(item.id)) return;
 					collections.v2SidebarSections.update(item.id, (draft) => {
@@ -527,7 +537,7 @@ export function useDashboardSidebarState() {
 			// members are found through the shared resolver, not the pointer.
 			const targetTag = parseSidebarFolderKey(sectionId)?.tag ?? null;
 			if (targetTag !== null) {
-				const folderIndex = getProjectFolderIndex(
+				const collectionIndex = getProjectCollectionIndex(
 					collections,
 					hostWorkspaces,
 					tagFolderContext,
@@ -537,7 +547,7 @@ export function useDashboardSidebarState() {
 					workspaceId,
 					applyFolderTagChange(
 						getHostWorkspaceTags(hostWorkspaces, workspaceId),
-						folderIndex.keys(),
+						collectionIndex.keys(),
 						targetTag,
 					),
 				);
@@ -577,11 +587,11 @@ export function useDashboardSidebarState() {
 			const { name = "New group" } = options;
 			ensureSidebarProjectRecord(collections, projectId);
 
-			// A folder IS a tag: mint one from the name (collisions get -2)
+			// A collection IS a tag: mint one from the name (collisions get -2)
 			// and key the presentation row by it.
 			const tag = mintFolderTag(
 				name,
-				getProjectFolderIndex(
+				getProjectCollectionIndex(
 					collections,
 					hostWorkspaces,
 					tagFolderContext,
@@ -691,7 +701,7 @@ export function useDashboardSidebarState() {
 		) => {
 			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
-			const folderIndex = getProjectFolderIndex(
+			const collectionIndex = getProjectCollectionIndex(
 				collections,
 				hostWorkspaces,
 				tagFolderContext,
@@ -717,11 +727,11 @@ export function useDashboardSidebarState() {
 				) {
 					return;
 				}
-				// Strip only the project's folder tags — an agent's unrelated
+				// Strip only the project's collection tags — an agent's unrelated
 				// tag survives the ungroup.
 				const strippedTags = applyFolderTagChange(
 					currentTags,
-					folderIndex.keys(),
+					collectionIndex.keys(),
 					null,
 				);
 				if (strippedTags.join("\n") !== currentTags.join("\n")) {
@@ -756,7 +766,7 @@ export function useDashboardSidebarState() {
 				return;
 			}
 
-			// A move into a tag-backed folder reads the tag from the KEY — a
+			// A move into a tag-backed collection reads the tag from the KEY — a
 			// missing row means "derived", never "legacy" (treating it as
 			// legacy would write a sectionId pointing at nothing).
 			const targetTag = parseSidebarFolderKey(sectionId)?.tag ?? null;
@@ -781,13 +791,13 @@ export function useDashboardSidebarState() {
 			if (targetTag !== null) {
 				writeWorkspaceTags(
 					workspaceId,
-					applyFolderTagChange(currentTags, folderIndex.keys(), targetTag),
+					applyFolderTagChange(currentTags, collectionIndex.keys(), targetTag),
 				);
 			}
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 				draft.sidebarState.projectId = projectId;
 				// Tag-backed membership lives in the tags; a pointer at the
-				// folder would only go stale. Legacy (unconverted) targets keep
+				// collection would only go stale. Legacy (unconverted) targets keep
 				// the pointer until the migration converts them.
 				draft.sidebarState.sectionId = targetTag !== null ? null : sectionId;
 				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
@@ -801,12 +811,12 @@ export function useDashboardSidebarState() {
 		(sectionId: string) => {
 			const section = collections.v2SidebarSections.get(sectionId);
 			const parsed = parseSidebarFolderKey(sectionId);
-			// A derived folder has no row but is still deletable — deleting it
+			// A derived collection has no row but is still deletable — deleting it
 			// means untagging its members.
 			if (!section && !parsed) return;
 			const projectId = section?.projectId ?? parsed?.projectId;
 			if (!projectId) return;
-			const folderTag =
+			const collectionTag =
 				normalizeWorkspaceTag(section?.tag) ?? parsed?.tag ?? null;
 
 			// Groups interleave with ungrouped rows, so replace the deleted
@@ -861,22 +871,22 @@ export function useDashboardSidebarState() {
 			);
 			writeProjectTopLevelOrder(collections, projectId, topLevelItems);
 
-			// Untag every member on its host — the folder is the tag, so this
+			// Untag every member on its host — the collection is the tag, so this
 			// is what actually deletes it. Members that carry the tag without a
 			// local row (filed from another machine) get untagged too.
-			if (folderTag !== null) {
+			if (collectionTag !== null) {
 				for (const workspace of hostWorkspaces) {
 					if (workspace.projectId !== projectId) continue;
 					const tags = normalizeWorkspaceTags(workspace.tags);
-					if (!tags.includes(folderTag)) continue;
+					if (!tags.includes(collectionTag)) continue;
 					writeWorkspaceTags(
 						workspace.id,
-						tags.filter((tag) => tag !== folderTag),
+						tags.filter((tag) => tag !== collectionTag),
 					);
 				}
 			}
 
-			if (folderTag !== null) removeTagSetting(projectId, folderTag);
+			if (collectionTag !== null) removeTagSetting(projectId, collectionTag);
 			if (section) collections.v2SidebarSections.delete(sectionId);
 		},
 		[
@@ -1012,7 +1022,66 @@ export function useDashboardSidebarState() {
 		[collections, hostWorkspaces, machineId],
 	);
 
+	// --- Collections (the grouping level above projects) -----------------------
+	// Thin wrappers over the pure helpers in ./collectionMutations.
+
+	const createCollection = useCallback(
+		(options: { name?: string } = {}) =>
+			createCollectionInState(collections, options),
+		[collections],
+	);
+
+	const renameCollection = useCallback(
+		(collectionId: string, name: string) =>
+			renameCollectionInState(collections, collectionId, name),
+		[collections],
+	);
+
+	const toggleCollectionCollapsed = useCallback(
+		(collectionId: string) =>
+			toggleCollectionCollapsedInState(collections, collectionId),
+		[collections],
+	);
+
+	const setCollectionColor = useCallback(
+		(collectionId: string, color: string | null) =>
+			setCollectionColorInState(collections, collectionId, color),
+		[collections],
+	);
+
+	const setCollectionIcon = useCallback(
+		(collectionId: string, icon: string | null) =>
+			setCollectionIconInState(collections, collectionId, icon),
+		[collections],
+	);
+
+	const moveProjectToCollection = useCallback(
+		(projectId: string, collectionId: string | null) =>
+			moveProjectToCollectionInState(collections, projectId, collectionId),
+		[collections],
+	);
+
+	const deleteCollection = useCallback(
+		(collectionId: string) =>
+			deleteCollectionInState(collections, collectionId),
+		[collections],
+	);
+
+	const reorderCollections = useCallback(
+		(collectionIds: string[]) =>
+			reorderCollectionsInState(collections, collectionIds),
+		[collections],
+	);
+
 	return {
+		createCollection,
+		deleteCollection,
+		moveProjectToCollection,
+		renameCollection,
+		reorderCollections,
+		setCollectionColor,
+		setCollectionIcon,
+		toggleCollectionCollapsed,
 		createSection,
 		deleteSection,
 		ensureProjectInSidebar,

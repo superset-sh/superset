@@ -7485,6 +7485,51 @@ msgid "dashboard.sidebar.collapsedProject.workspaceCount"
 msgstr "{totalWorkspaceCount, plural, one {# werkruimte} other {# werkruimtes}}"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Afbeelding kiezen…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Verzameling verwijderen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Kan die afbeelding niet gebruiken"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Pictogram verwijderen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Verzamelingsnaam wijzigen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Verzamelingskleur instellen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Verzamelingspictogram instellen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "{emoji} als verzamelingspictogram gebruiken"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/ColorMenuItems/ColorMenuItems.tsx
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Standaard"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog/DashboardSidebarDeleteDialog.tsx
 msgid "dashboard.sidebar.deleteDialog.delete"
 msgstr "Verwijderen"
@@ -8028,6 +8073,51 @@ msgid "dashboard.sidebar.projectActions.renameHostUnreachable"
 msgstr "De host van het project is onbereikbaar — naam kan nu niet worden gewijzigd"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelection"
+msgstr "Selectie wissen (Esc)"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Projectselectie wissen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Naar verzameling verplaatsen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {# geselecteerd project naar een verzameling verplaatsen} other {# geselecteerde projecten naar een verzameling verplaatsen}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Nieuwe verzameling"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Uit verzameling verwijderen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Geselecteerde projecten uit hun verzamelingen verwijderen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# project} other {# projecten}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Acties voor geselecteerde projecten"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent/DashboardSidebarExpandedProjectContent.tsx
 msgid "dashboard.sidebar.projectContent.dropToUnpin"
 msgstr "Sleep hierheen om los te maken"
@@ -8044,6 +8134,16 @@ msgstr "Niet-gevolgde worktrees importeren"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Naar verzameling verplaatsen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Nieuwe verzameling…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.newGroup"
 msgstr "Nieuwe groep"
 
@@ -8056,6 +8156,11 @@ msgstr "Openen in Finder"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.projectSettings"
 msgstr "Projectinstellingen"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Uit verzameling verwijderen"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
@@ -8076,6 +8181,11 @@ msgstr "Nieuwe werkruimte"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
 msgid "dashboard.sidebar.projectRow.newWorkspaceAriaLabel"
 msgstr "Nieuwe werkruimte"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", geselecteerd"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspaceItem/components/DashboardSidebarWorkspaceHoverCardContent/components/PullRequestStatusBadge/PullRequestStatusBadge.tsx
@@ -8127,11 +8237,6 @@ msgstr "Review in behandeling"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCloudSection/DashboardSidebarCloudSection.tsx
 msgid "dashboard.sidebar.sectionCloud"
 msgstr "Cloud"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
-msgid "dashboard.sidebar.sectionMenu.defaultColor"
-msgstr "Standaard"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
@@ -8513,6 +8618,11 @@ msgstr "Importeren mislukt"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
 msgid "dashboard.sidebar.workspacesHeader.importMultipleProjects"
 msgstr "Meerdere projecten gebruiken deze repository ({0}). Kies het project in de instellingen om het op dit apparaat in te stellen."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Nieuwe verzameling"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx

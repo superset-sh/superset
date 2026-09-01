@@ -7485,6 +7485,51 @@ msgid "dashboard.sidebar.collapsedProject.workspaceCount"
 msgstr "{totalWorkspaceCount, plural, one {# pracovní prostor} few {# pracovní prostory} many {# pracovního prostoru} other {# pracovních prostorů}}"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Vybrat obrázek…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Smazat kolekci"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Tento obrázek se nepodařilo použít"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Odebrat ikonu"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Přejmenovat kolekci"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Nastavit barvu kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Nastavit ikonu kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Použít {emoji} jako ikonu kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/ColorMenuItems/ColorMenuItems.tsx
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Výchozí"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog/DashboardSidebarDeleteDialog.tsx
 msgid "dashboard.sidebar.deleteDialog.delete"
 msgstr "Smazat"
@@ -8028,6 +8073,51 @@ msgid "dashboard.sidebar.projectActions.renameHostUnreachable"
 msgstr "Host projektu není dostupný — teď nelze přejmenovat"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelection"
+msgstr "Zrušit výběr (Esc)"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Zrušit výběr projektů"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Přesunout do kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Přesunout # vybraný projekt do kolekce} few {Přesunout # vybrané projekty do kolekce} many {Přesunout # vybraného projektu do kolekce} other {Přesunout # vybraných projektů do kolekce}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Nová kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Odebrat z kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Odebrat vybrané projekty z jejich kolekcí"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# projekt} few {# projekty} many {# projektu} other {# projektů}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Akce vybraných projektů"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent/DashboardSidebarExpandedProjectContent.tsx
 msgid "dashboard.sidebar.projectContent.dropToUnpin"
 msgstr "Přetažením odepnete"
@@ -8044,6 +8134,16 @@ msgstr "Importovat nesledované worktree"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Přesunout do kolekce"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Nová kolekce…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.newGroup"
 msgstr "Nová skupina"
 
@@ -8056,6 +8156,11 @@ msgstr "Otevřít ve Finderu"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.projectSettings"
 msgstr "Nastavení projektu"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Odebrat z kolekce"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
@@ -8076,6 +8181,11 @@ msgstr "Nový pracovní prostor"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
 msgid "dashboard.sidebar.projectRow.newWorkspaceAriaLabel"
 msgstr "Nový pracovní prostor"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", vybráno"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspaceItem/components/DashboardSidebarWorkspaceHoverCardContent/components/PullRequestStatusBadge/PullRequestStatusBadge.tsx
@@ -8127,11 +8237,6 @@ msgstr "Čeká na revizi"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCloudSection/DashboardSidebarCloudSection.tsx
 msgid "dashboard.sidebar.sectionCloud"
 msgstr "Cloud"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
-msgid "dashboard.sidebar.sectionMenu.defaultColor"
-msgstr "Výchozí"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
@@ -8513,6 +8618,11 @@ msgstr "Import selhal"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
 msgid "dashboard.sidebar.workspacesHeader.importMultipleProjects"
 msgstr "Tento repozitář používá více projektů ({0}). Vyberte v nastavení projekt, který chcete na tomto zařízení nastavit."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Nová kolekce"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx

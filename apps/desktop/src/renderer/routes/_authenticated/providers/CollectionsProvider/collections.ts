@@ -12,12 +12,15 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { reclaimTerminalStateForQuota } from "renderer/lib/terminal/terminal-buffer-gc";
 import type { z } from "zod";
 import {
+	type DashboardSidebarCollectionRow,
 	type DashboardSidebarProjectRow,
 	type DashboardSidebarSectionRow,
+	dashboardSidebarCollectionSchema,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
 	type FailedWorkspaceCreateRow,
 	failedWorkspaceCreateSchema,
+	healSidebarProject,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	type V2TerminalPresetRow,
@@ -89,6 +92,13 @@ export interface OrgCollections {
 		typeof dashboardSidebarProjectSchema,
 		z.input<typeof dashboardSidebarProjectSchema>
 	>;
+	v2SidebarCollections: Collection<
+		DashboardSidebarCollectionRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof dashboardSidebarCollectionSchema,
+		z.input<typeof dashboardSidebarCollectionSchema>
+	>;
 	v2WorkspaceLocalState: Collection<
 		WorkspaceLocalStateRow,
 		string,
@@ -136,19 +146,43 @@ function getCollectionsCacheKey(organizationId: string): string {
 function createOrgCollections(organizationId: string): OrgCollections {
 	const v2SidebarProjects = createIndexedCollection(
 		localStorageCollectionOptions(
-			hardenLocalCollection({
-				id: `v2_sidebar_projects-${organizationId}`,
-				storageKey: `v2-sidebar-projects-${organizationId}`,
-				schema: dashboardSidebarProjectSchema,
-				// Explicit type for the same reason `withReadHeal` needs one: a
-				// passthrough generic drops the contextual typing that would
-				// otherwise narrow the key to string.
-				getKey: (item: DashboardSidebarProjectRow) => item.projectId,
-			}),
+			hardenLocalCollection(
+				{
+					id: `v2_sidebar_projects-${organizationId}`,
+					storageKey: `v2-sidebar-projects-${organizationId}`,
+					schema: dashboardSidebarProjectSchema,
+					// Explicit type for the same reason `withReadHeal` needs one: a
+					// passthrough generic drops the contextual typing that would
+					// otherwise narrow the key to string.
+					getKey: (item: DashboardSidebarProjectRow) => item.projectId,
+				},
+				healSidebarProject,
+			),
 		),
 	);
 	v2SidebarProjects.createIndex(
 		(sidebarProject) => sidebarProject.tabOrder,
+		basicIndexConfig,
+	);
+	v2SidebarProjects.createIndex(
+		(sidebarProject) => sidebarProject.collectionId,
+		basicIndexConfig,
+	);
+
+	const v2SidebarCollections = createIndexedCollection(
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_collections-${organizationId}`,
+				storageKey: `v2-sidebar-collections-${organizationId}`,
+				schema: dashboardSidebarCollectionSchema,
+				// Explicit type for the same reason the sibling collections need
+				// one: a passthrough generic drops the contextual typing.
+				getKey: (item: DashboardSidebarCollectionRow) => item.collectionId,
+			}),
+		),
+	);
+	v2SidebarCollections.createIndex(
+		(collection) => collection.tabOrder,
 		basicIndexConfig,
 	);
 
@@ -241,6 +275,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 
 	return {
 		v2SidebarProjects,
+		v2SidebarCollections,
 		v2WorkspaceLocalState,
 		v2SidebarSections,
 		v2TerminalPresets,

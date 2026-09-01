@@ -13,7 +13,34 @@ export const dashboardSidebarProjectSchema = z.object({
 	isCollapsed: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
 	defaultOpenInApp: z.string().nullable().default(null),
+	// Collection this project belongs to, or null when it sits at the sidebar root.
+	// Mirrors how a workspace points at its section via sidebarState.sectionId.
+	collectionId: z.string().uuid().nullable().default(null),
 });
+
+/**
+ * A sidebar collection groups PROJECTS (repos) at the sidebar root — the level above
+ * projects. Deliberately named "collection" rather than "group": the UI already uses
+ * "group" for a section of workspaces *inside* one project, so a second meaning
+ * would be ambiguous.
+ *
+ * Shape intentionally mirrors `dashboardSidebarSectionSchema` (the workspace
+ * grouping one level down) so ordering, collapse and colour behave identically.
+ */
+export const dashboardSidebarCollectionSchema = z.object({
+	collectionId: z.string().uuid(),
+	name: z.string().trim().min(1),
+	createdAt: persistedDateSchema,
+	tabOrder: z.number().int().default(0),
+	isCollapsed: z.boolean().default(false),
+	color: z.string().nullable().default(null),
+	/** Emoji shown before the collection name; null renders none. */
+	icon: z.string().nullable().default(null),
+});
+
+export type DashboardSidebarCollectionRow = z.infer<
+	typeof dashboardSidebarCollectionSchema
+>;
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
 
@@ -450,6 +477,23 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
  * the stored row — they have no synthesizable default. Optional fields with
  * intrinsic defaults get filled at both the top level and inside sidebarState.
  */
+/**
+ * Rows written before collections existed have no `collectionId` at all, and a
+ * localStorage read bypasses the schema default — leaving it `undefined`
+ * rather than `null`. The menu tests `collectionId !== null` to decide whether to
+ * offer "Remove from collection", so a legacy root project offered it and did
+ * nothing. Normalise on read.
+ */
+export function healSidebarProject(raw: unknown): DashboardSidebarProjectRow {
+	const row = (
+		raw && typeof raw === "object" ? raw : {}
+	) as Partial<DashboardSidebarProjectRow>;
+	return {
+		...row,
+		collectionId: row.collectionId ?? null,
+	} as DashboardSidebarProjectRow;
+}
+
 export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}

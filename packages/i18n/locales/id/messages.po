@@ -7485,6 +7485,51 @@ msgid "dashboard.sidebar.collapsedProject.workspaceCount"
 msgstr "{totalWorkspaceCount, plural, one {# workspace} other {# workspace}}"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "Pilih gambar…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "Hapus koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "Tidak dapat menggunakan gambar itu"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "Hapus ikon"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "Ganti nama koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "Setel warna koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "Setel ikon koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "Gunakan {emoji} sebagai ikon koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/ColorMenuItems/ColorMenuItems.tsx
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "Bawaan"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog/DashboardSidebarDeleteDialog.tsx
 msgid "dashboard.sidebar.deleteDialog.delete"
 msgstr "Hapus"
@@ -8028,6 +8073,51 @@ msgid "dashboard.sidebar.projectActions.renameHostUnreachable"
 msgstr "Host proyek tidak bisa dijangkau — tidak bisa ganti nama sekarang"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelection"
+msgstr "Bersihkan pilihan (Esc)"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "Bersihkan pilihan proyek"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "Pindahkan ke koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {Pindahkan # proyek terpilih ke koleksi} other {Pindahkan # proyek terpilih ke koleksi}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "Koleksi baru"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "Keluarkan dari koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "Keluarkan proyek terpilih dari koleksinya"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {# proyek} other {# proyek}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "Tindakan proyek terpilih"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent/DashboardSidebarExpandedProjectContent.tsx
 msgid "dashboard.sidebar.projectContent.dropToUnpin"
 msgstr "Lepas untuk melepas sematan"
@@ -8044,6 +8134,16 @@ msgstr "Impor worktree yang belum terlacak"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "Pindahkan ke koleksi"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "Koleksi baru…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.newGroup"
 msgstr "Grup baru"
 
@@ -8056,6 +8156,11 @@ msgstr "Buka di Finder"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.projectSettings"
 msgstr "Pengaturan Proyek"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "Keluarkan dari koleksi"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
@@ -8076,6 +8181,11 @@ msgstr "Workspace baru"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
 msgid "dashboard.sidebar.projectRow.newWorkspaceAriaLabel"
 msgstr "Workspace baru"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", terpilih"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspaceItem/components/DashboardSidebarWorkspaceHoverCardContent/components/PullRequestStatusBadge/PullRequestStatusBadge.tsx
@@ -8127,11 +8237,6 @@ msgstr "Review tertunda"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCloudSection/DashboardSidebarCloudSection.tsx
 msgid "dashboard.sidebar.sectionCloud"
 msgstr "Cloud"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
-msgid "dashboard.sidebar.sectionMenu.defaultColor"
-msgstr "Bawaan"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
@@ -8513,6 +8618,11 @@ msgstr "Impor gagal"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
 msgid "dashboard.sidebar.workspacesHeader.importMultipleProjects"
 msgstr "Beberapa proyek memakai repositori ini ({0}). Pilih proyeknya di pengaturan untuk menyiapkannya di perangkat ini."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "Koleksi baru"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx

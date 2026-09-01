@@ -7485,6 +7485,51 @@ msgid "dashboard.sidebar.collapsedProject.workspaceCount"
 msgstr "{totalWorkspaceCount, plural, one {워크스페이스 #개} other {워크스페이스 #개}}"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.chooseImage"
+msgstr "이미지 선택…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.delete"
+msgstr "컬렉션 삭제"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.iconImageFailed"
+msgstr "이 이미지를 사용할 수 없습니다"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.removeIcon"
+msgstr "아이콘 제거"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.rename"
+msgstr "컬렉션 이름 변경"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setColor"
+msgstr "컬렉션 색상 설정"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.setIcon"
+msgstr "컬렉션 아이콘 설정"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCollectionHeader/components/CollectionActionsMenuItems/CollectionActionsMenuItems.tsx
+msgid "dashboard.sidebar.collectionMenu.useEmojiIcon"
+msgstr "{emoji}을(를) 컬렉션 아이콘으로 사용"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/ColorMenuItems/ColorMenuItems.tsx
+msgid "dashboard.sidebar.colorMenu.defaultColor"
+msgstr "기본값"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog/DashboardSidebarDeleteDialog.tsx
 msgid "dashboard.sidebar.deleteDialog.delete"
 msgstr "삭제"
@@ -8028,6 +8073,51 @@ msgid "dashboard.sidebar.projectActions.renameHostUnreachable"
 msgstr "프로젝트 호스트에 연결할 수 없습니다 — 지금은 이름을 변경할 수 없습니다"
 
 #. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelection"
+msgstr "선택 해제 (Esc)"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.clearSelectionLabel"
+msgstr "프로젝트 선택 해제"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollection"
+msgstr "컬렉션으로 이동"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.moveToCollectionLabel"
+msgstr "{count, plural, one {선택한 프로젝트 #개를 컬렉션으로 이동} other {선택한 프로젝트 #개를 컬렉션으로 이동}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.newCollection"
+msgstr "새 컬렉션"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollection"
+msgstr "컬렉션에서 제거"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.removeFromCollectionLabel"
+msgstr "선택한 프로젝트를 컬렉션에서 제거"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.selectedCount"
+msgstr "{count, plural, one {프로젝트 #개} other {프로젝트 #개}}"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarBulkActions/components/DashboardSidebarProjectBulkToolbar/DashboardSidebarProjectBulkToolbar.tsx
+msgid "dashboard.sidebar.projectBulk.toolbarLabel"
+msgstr "선택한 프로젝트 작업"
+
+#. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarExpandedProjectContent/DashboardSidebarExpandedProjectContent.tsx
 msgid "dashboard.sidebar.projectContent.dropToUnpin"
 msgstr "놓아서 고정 해제"
@@ -8044,6 +8134,16 @@ msgstr "추적되지 않은 worktree 가져오기"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.moveToCollection"
+msgstr "컬렉션으로 이동"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.newCollection"
+msgstr "새 컬렉션…"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.newGroup"
 msgstr "새 그룹"
 
@@ -8056,6 +8156,11 @@ msgstr "Finder에서 열기"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
 msgid "dashboard.sidebar.projectMenu.projectSettings"
 msgstr "프로젝트 설정"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
+msgid "dashboard.sidebar.projectMenu.removeFromCollection"
+msgstr "컬렉션에서 제거"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectContextMenu/DashboardSidebarProjectContextMenu.tsx
@@ -8076,6 +8181,11 @@ msgstr "새 워크스페이스"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
 msgid "dashboard.sidebar.projectRow.newWorkspaceAriaLabel"
 msgstr "새 워크스페이스"
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx
+msgid "dashboard.sidebar.projectRow.selectedSuffix"
+msgstr ", 선택됨"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspaceItem/components/DashboardSidebarWorkspaceHoverCardContent/components/PullRequestStatusBadge/PullRequestStatusBadge.tsx
@@ -8127,11 +8237,6 @@ msgstr "리뷰 대기 중"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarCloudSection/DashboardSidebarCloudSection.tsx
 msgid "dashboard.sidebar.sectionCloud"
 msgstr "클라우드"
-
-#. js-lingui-explicit-id
-#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
-msgid "dashboard.sidebar.sectionMenu.defaultColor"
-msgstr "기본값"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSection/components/DashboardSidebarSectionContextMenu/components/SectionActionsMenuItems/SectionActionsMenuItems.tsx
@@ -8513,6 +8618,11 @@ msgstr "가져오기 실패"
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
 msgid "dashboard.sidebar.workspacesHeader.importMultipleProjects"
 msgstr "여러 프로젝트가 이 리포지토리({0})를 사용합니다. 설정에서 프로젝트를 선택해 이 기기에 설정하세요."
+
+#. js-lingui-explicit-id
+#: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx
+msgid "dashboard.sidebar.workspacesHeader.newCollection"
+msgstr "새 컬렉션"
 
 #. js-lingui-explicit-id
 #: ../../apps/desktop/src/renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarWorkspacesHeader/DashboardSidebarWorkspacesHeader.tsx

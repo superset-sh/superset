@@ -29,20 +29,32 @@ interface SelectWorkspaceOptions {
 	orderedWorkspaceIds: string[];
 }
 
+// Project rows reuse the workspace selection algorithm (toggle/range/anchor)
+// under one fixed scope, since all selectable projects share the sidebar.
+const PROJECT_SELECTION_SCOPE = "__sidebar-projects__";
+
 interface DashboardSidebarSelectionContextValue {
 	selectedProjectId: string | null;
 	selectedWorkspaceIds: string[];
+	selectedProjectIds: string[];
 	clearSelection: () => void;
 	isWorkspaceSelected: (workspaceId: string) => boolean;
+	isProjectSelected: (projectId: string) => boolean;
 	removeSelectedWorkspaces: (workspaceIds: string[]) => void;
 	selectWorkspaceFromEvent: (
 		event: WorkspaceSelectionEvent,
 		options: SelectWorkspaceOptions,
 	) => boolean;
+	selectProjectFromEvent: (
+		event: WorkspaceSelectionEvent,
+		projectId: string,
+	) => boolean;
 }
 
 interface DashboardSidebarSelectionProviderProps {
 	availableWorkspaceIds: ReadonlySet<string>;
+	/** Project ids in rendered order — range selection follows this order. */
+	orderedProjectIds: string[];
 	activeWorkspaceId: string | null;
 	children: ReactNode;
 }
@@ -52,15 +64,19 @@ const DashboardSidebarSelectionContext =
 
 export function DashboardSidebarSelectionProvider({
 	availableWorkspaceIds,
+	orderedProjectIds,
 	activeWorkspaceId,
 	children,
 }: DashboardSidebarSelectionProviderProps) {
 	const [selection, setSelection] = useState<WorkspaceSelectionState>(
 		EMPTY_WORKSPACE_SELECTION,
 	);
+	const [projectSelection, setProjectSelection] =
+		useState<WorkspaceSelectionState>(EMPTY_WORKSPACE_SELECTION);
 
 	const clearSelection = useCallback(() => {
 		setSelection(EMPTY_WORKSPACE_SELECTION);
+		setProjectSelection(EMPTY_WORKSPACE_SELECTION);
 	}, []);
 
 	useEffect(() => {
@@ -81,6 +97,7 @@ export function DashboardSidebarSelectionProvider({
 				return;
 			}
 			setSelection(EMPTY_WORKSPACE_SELECTION);
+			setProjectSelection(EMPTY_WORKSPACE_SELECTION);
 		};
 
 		window.addEventListener("keydown", handleKeyDown);
@@ -105,6 +122,27 @@ export function DashboardSidebarSelectionProvider({
 		});
 	}, [availableWorkspaceIds]);
 
+	// Prune project selection when rows leave the rendered order (folder
+	// collapsed, project removed) — mirrors the workspace pruning above.
+	useEffect(() => {
+		const orderedIdSet = new Set(orderedProjectIds);
+		setProjectSelection((current) => {
+			const selectedIds = current.selectedIds.filter((id) =>
+				orderedIdSet.has(id),
+			);
+			if (selectedIds.length === current.selectedIds.length) return current;
+			if (selectedIds.length === 0) return EMPTY_WORKSPACE_SELECTION;
+			return {
+				...current,
+				selectedIds,
+				anchorId:
+					current.anchorId && orderedIdSet.has(current.anchorId)
+						? current.anchorId
+						: selectedIds[0],
+			};
+		});
+	}, [orderedProjectIds]);
+
 	const selectWorkspaceFromEvent = useCallback(
 		(
 			event: WorkspaceSelectionEvent,
@@ -118,6 +156,9 @@ export function DashboardSidebarSelectionProvider({
 
 			event.preventDefault();
 			event.stopPropagation();
+			// Workspace and project selections are mutually exclusive: one
+			// toolbar, one kind of bulk action at a time.
+			setProjectSelection(EMPTY_WORKSPACE_SELECTION);
 			setSelection((current) =>
 				applyWorkspaceSelection(current, {
 					...options,
@@ -128,6 +169,30 @@ export function DashboardSidebarSelectionProvider({
 			return true;
 		},
 		[activeWorkspaceId],
+	);
+
+	const selectProjectFromEvent = useCallback(
+		(event: WorkspaceSelectionEvent, projectId: string): boolean => {
+			const mode = workspaceSelectionModeFromModifiers(event);
+			if (!mode) {
+				setProjectSelection(EMPTY_WORKSPACE_SELECTION);
+				return false;
+			}
+
+			event.preventDefault();
+			event.stopPropagation();
+			setSelection(EMPTY_WORKSPACE_SELECTION);
+			setProjectSelection((current) =>
+				applyWorkspaceSelection(current, {
+					workspaceId: projectId,
+					projectId: PROJECT_SELECTION_SCOPE,
+					orderedWorkspaceIds: orderedProjectIds,
+					mode,
+				}),
+			);
+			return true;
+		},
+		[orderedProjectIds],
 	);
 
 	const removeSelectedWorkspaces = useCallback((workspaceIds: string[]) => {
@@ -157,22 +222,37 @@ export function DashboardSidebarSelectionProvider({
 		[selectedWorkspaceIdSet],
 	);
 
+	const selectedProjectIdSet = useMemo(
+		() => new Set(projectSelection.selectedIds),
+		[projectSelection.selectedIds],
+	);
+	const isProjectSelected = useCallback(
+		(projectId: string) => selectedProjectIdSet.has(projectId),
+		[selectedProjectIdSet],
+	);
+
 	const value = useMemo<DashboardSidebarSelectionContextValue>(
 		() => ({
 			selectedProjectId: selection.projectId,
 			selectedWorkspaceIds: selection.selectedIds,
+			selectedProjectIds: projectSelection.selectedIds,
 			clearSelection,
 			isWorkspaceSelected,
+			isProjectSelected,
 			removeSelectedWorkspaces,
 			selectWorkspaceFromEvent,
+			selectProjectFromEvent,
 		}),
 		[
 			selection.projectId,
 			selection.selectedIds,
+			projectSelection.selectedIds,
 			clearSelection,
 			isWorkspaceSelected,
+			isProjectSelected,
 			removeSelectedWorkspaces,
 			selectWorkspaceFromEvent,
+			selectProjectFromEvent,
 		],
 	);
 

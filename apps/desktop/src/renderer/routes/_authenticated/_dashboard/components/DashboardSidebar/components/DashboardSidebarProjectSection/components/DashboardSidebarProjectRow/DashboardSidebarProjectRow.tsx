@@ -1,10 +1,15 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { type ComponentPropsWithoutRef, forwardRef } from "react";
+import {
+	type ComponentPropsWithoutRef,
+	forwardRef,
+	type MouseEvent,
+} from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import type { WorkspaceSelectionEvent } from "../../../../providers/DashboardSidebarSelectionProvider";
 
 interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -20,6 +25,9 @@ interface DashboardSidebarProjectRowProps
 	onStartRename: () => void;
 	onToggleCollapse: () => void;
 	onNewWorkspace: () => void;
+	/** Part of the sidebar's bulk project selection. */
+	isSelected?: boolean;
+	onSelectionClick?: (event: WorkspaceSelectionEvent) => boolean;
 }
 
 export const DashboardSidebarProjectRow = forwardRef<
@@ -40,19 +48,49 @@ export const DashboardSidebarProjectRow = forwardRef<
 			onStartRename,
 			onToggleCollapse,
 			onNewWorkspace,
+			isSelected = false,
+			onSelectionClick,
 			className,
 			...props
 		},
 		ref,
 	) => {
 		const { t } = useLingui();
+		// Selection runs on mousedown so modifier-clicks never reach the
+		// collapse toggle; a plain click clears the selection and toggles.
+		const handleSelectionMouseDown = (event: MouseEvent<HTMLElement>) => {
+			if (!event.ctrlKey && !event.metaKey && !event.shiftKey) return;
+			if (
+				event.target instanceof Element &&
+				event.target.closest("button, input, textarea, [role='menuitem']")
+			) {
+				return;
+			}
+			onSelectionClick?.(event);
+		};
+		const handleClick = (event: MouseEvent<HTMLElement>) => {
+			if (
+				onSelectionClick &&
+				(event.ctrlKey || event.metaKey || event.shiftKey)
+			) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+			if (onSelectionClick?.(event)) return;
+			onToggleCollapse();
+		};
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: The header acts as a single toggle target in view mode while preserving nested inline controls.
 			<div
 				ref={ref}
 				role={isRenaming ? undefined : "button"}
 				tabIndex={isRenaming ? undefined : 0}
-				onClick={isRenaming ? undefined : onToggleCollapse}
+				data-selected={isSelected || undefined}
+				onClick={isRenaming ? undefined : handleClick}
+				onMouseDownCapture={
+					isRenaming || !onSelectionClick ? undefined : handleSelectionMouseDown
+				}
 				onDoubleClick={isRenaming ? undefined : onStartRename}
 				onKeyDown={
 					isRenaming
@@ -67,6 +105,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 				className={cn(
 					"group mx-2 flex h-7 items-center rounded-md pl-2 pr-1 text-[13px] font-medium",
 					"hover:bg-fill-hover transition-colors",
+					isSelected && "bg-fill-selected",
 					className,
 				)}
 				{...props}
@@ -95,7 +134,16 @@ export const DashboardSidebarProjectRow = forwardRef<
 							className="-ml-1 h-6 min-w-0 flex-1 bg-transparent border-none px-1 py-0 text-sm font-medium outline-none"
 						/>
 					) : (
-						<span className="truncate">{projectName}</span>
+						<span className="truncate">
+							{projectName}
+							{isSelected && (
+								<span className="sr-only">
+									<Trans id="dashboard.sidebar.projectRow.selectedSuffix">
+										, selected
+									</Trans>
+								</span>
+							)}
+						</span>
 					)}
 				</div>
 

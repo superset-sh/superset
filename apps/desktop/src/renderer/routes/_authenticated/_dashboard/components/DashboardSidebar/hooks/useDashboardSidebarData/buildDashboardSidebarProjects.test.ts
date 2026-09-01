@@ -31,6 +31,7 @@ function makeProject(
 		createdAt: DATE,
 		updatedAt: DATE,
 		isCollapsed: false,
+		collectionId: null,
 		...overrides,
 	};
 }
@@ -364,7 +365,7 @@ describe("sessions (null projectId)", () => {
 	});
 });
 
-describe("buildDashboardSidebarProjects with tag-derived folders", () => {
+describe("buildDashboardSidebarProjects with tag-derived collections", () => {
 	// The real pipeline: the hook derives the section union from tags first,
 	// then the builder resolves membership through the same module.
 	function deriveSections(
@@ -396,7 +397,7 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 		}));
 	}
 
-	it("a folder exists and holds members because workspaces carry the tag — no local row anywhere", () => {
+	it("a collection exists and holds members because workspaces carry the tag — no local row anywhere", () => {
 		const workspaces = [
 			makeWorkspace({ id: "w-1", tags: ["perf"] }),
 			makeWorkspace({ id: "w-2", tags: ["perf"], tabOrder: 2 }),
@@ -411,14 +412,15 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 			(child) => child.type === "section",
 		);
 		expect(sections).toHaveLength(1);
-		const [folder] = sections;
-		if (folder.type !== "section") throw new Error("expected section");
-		expect(folder.section.id).toBe(buildSidebarFolderKey("project-1", "perf"));
-		expect(folder.section.name).toBe("perf");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
-			"w-1",
-			"w-2",
-		]);
+		const [collection] = sections;
+		if (collection.type !== "section") throw new Error("expected section");
+		expect(collection.section.id).toBe(
+			buildSidebarFolderKey("project-1", "perf"),
+		);
+		expect(collection.section.name).toBe("perf");
+		expect(
+			collection.section.workspaces.map((workspace) => workspace.id),
+		).toEqual(["w-1", "w-2"]);
 
 		const topLevelIds = project.children
 			.filter((child) => child.type === "workspace")
@@ -426,11 +428,11 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 		expect(topLevelIds).toEqual(["w-3"]);
 	});
 
-	it("tags beat a stale sectionId pointer at a tag-backed folder", () => {
+	it("tags beat a stale sectionId pointer at a tag-backed collection", () => {
 		const perfKey = buildSidebarFolderKey("project-1", "perf");
 		const workspaces = [
-			// Untagged, but its local row still points at the perf folder: the
-			// tag-backed folder ignores sectionId, so it renders top-level.
+			// Untagged, but its local row still points at the perf collection: the
+			// tag-backed collection ignores sectionId, so it renders top-level.
 			makeWorkspace({ id: "w-stale", sectionId: perfKey, tags: [] }),
 			makeWorkspace({ id: "w-tagged", tags: ["perf"], tabOrder: 2 }),
 		];
@@ -439,18 +441,20 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 			visibleSidebarWorkspaces: workspaces,
 		});
 
-		const folder = project.children.find((child) => child.type === "section");
-		if (folder?.type !== "section") throw new Error("expected section");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
-			"w-tagged",
-		]);
+		const collection = project.children.find(
+			(child) => child.type === "section",
+		);
+		if (collection?.type !== "section") throw new Error("expected section");
+		expect(
+			collection.section.workspaces.map((workspace) => workspace.id),
+		).toEqual(["w-tagged"]);
 		const topLevelIds = project.children
 			.filter((child) => child.type === "workspace")
 			.map((child) => (child.type === "workspace" ? child.workspace.id : null));
 		expect(topLevelIds).toEqual(["w-stale"]);
 	});
 
-	it("a legacy folder keeps owning members via sectionId when no tags resolve", () => {
+	it("a legacy collection keeps owning members via sectionId when no tags resolve", () => {
 		const workspaces = [
 			makeWorkspace({ id: "w-legacy", sectionId: "section-1" }),
 		];
@@ -459,12 +463,14 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 			visibleSidebarWorkspaces: workspaces,
 		});
 
-		const folder = project.children.find((child) => child.type === "section");
-		if (folder?.type !== "section") throw new Error("expected section");
-		expect(folder.section.id).toBe("section-1");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
-			"w-legacy",
-		]);
+		const collection = project.children.find(
+			(child) => child.type === "section",
+		);
+		if (collection?.type !== "section") throw new Error("expected section");
+		expect(collection.section.id).toBe("section-1");
+		expect(
+			collection.section.workspaces.map((workspace) => workspace.id),
+		).toEqual(["w-legacy"]);
 	});
 
 	it("a workspace row with the tags field ABSENT renders exactly like an untagged one", () => {
@@ -480,7 +486,7 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 		expect(project.children[0]?.type).toBe("workspace");
 	});
 
-	it("a customised stored row wins over deriving a duplicate folder for the same tag", () => {
+	it("a customised stored row wins over deriving a duplicate collection for the same tag", () => {
 		const storedRow = makeSection({
 			id: buildSidebarFolderKey("project-1", "perf"),
 			name: "perf",
@@ -498,13 +504,13 @@ describe("buildDashboardSidebarProjects with tag-derived folders", () => {
 			(child) => child.type === "section",
 		);
 		expect(sections).toHaveLength(1);
-		const [folder] = sections;
-		if (folder.type !== "section") throw new Error("expected section");
-		expect(folder.section.color).toBe("#ff0000");
-		expect(folder.section.workspaces.map((workspace) => workspace.id)).toEqual([
-			"w-1",
-		]);
-		// Members inherit the customised folder colour.
-		expect(folder.section.workspaces[0]?.accentColor).toBe("#ff0000");
+		const [collection] = sections;
+		if (collection.type !== "section") throw new Error("expected section");
+		expect(collection.section.color).toBe("#ff0000");
+		expect(
+			collection.section.workspaces.map((workspace) => workspace.id),
+		).toEqual(["w-1"]);
+		// Members inherit the customised collection colour.
+		expect(collection.section.workspaces[0]?.accentColor).toBe("#ff0000");
 	});
 });

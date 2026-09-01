@@ -3,11 +3,13 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
+import { LuFolders } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -22,7 +24,13 @@ import {
 } from "renderer/stores/add-repository-modal";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 
-export function DashboardSidebarWorkspacesHeader() {
+interface DashboardSidebarWorkspacesHeaderProps {
+	onNewCollection: () => void;
+}
+
+export function DashboardSidebarWorkspacesHeader({
+	onNewCollection,
+}: DashboardSidebarWorkspacesHeaderProps) {
 	const { t } = useLingui();
 	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
@@ -136,6 +144,15 @@ export function DashboardSidebarWorkspacesHeader() {
 						<VscLayout className="size-4" />
 						<Trans id="dashboard.sidebar.workspacesHeader.startFromTemplate">
 							Start from a template
+						</Trans>
+					</DropdownMenuItem>
+					<DropdownMenuSeparator />
+					{/* Sits directly under "Create new project"; the collection icon
+					    distinguishes the two. */}
+					<DropdownMenuItem onSelect={onNewCollection}>
+						<LuFolders className="size-4" />
+						<Trans id="dashboard.sidebar.workspacesHeader.newCollection">
+							New collection
 						</Trans>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
