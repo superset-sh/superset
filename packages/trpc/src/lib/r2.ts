@@ -68,16 +68,27 @@ function bucket(): string {
  */
 export function publicBucket(): string {
 	if (!env.R2_PUBLIC_BUCKET) {
-		throw new Error("Public storage is not configured");
+		throw new Error(
+			"Public storage is not configured: R2_PUBLIC_BUCKET is unset",
+		);
+	}
+	// A misconfiguration that pointed both names at one bucket would put every
+	// private object behind the static host, which serves without a ticket.
+	if (env.R2_PUBLIC_BUCKET === env.R2_PRIVATE_BUCKET) {
+		throw new Error(
+			"R2_PUBLIC_BUCKET must not be the same bucket as R2_PRIVATE_BUCKET",
+		);
 	}
 	return env.R2_PUBLIC_BUCKET;
 }
 
 export function staticBaseUrl(): string {
 	if (!env.STATIC_URL) {
-		throw new Error("Static host is not configured");
+		throw new Error("Static host is not configured: STATIC_URL is unset");
 	}
-	return env.STATIC_URL;
+	// Trailing slashes are valid per the url() check and would double up in
+	// every generated object URL.
+	return env.STATIC_URL.replace(/\/+$/, "");
 }
 
 function isMissing(error: unknown): boolean {
