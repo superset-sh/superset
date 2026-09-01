@@ -8,8 +8,17 @@ Five places. Miss one and it fails silently, or far from the change.
 gh secret set MY_VAR -R superset-sh/superset --body "value"
 ```
 
+Always a secret, never a repo variable, even for something as unsecret as a
+bucket name — one mechanism means one place to look when a value goes missing.
+
 Add `--env Production` / `--env Preview` only when the two need different
-values. Without it, both environments get the same one.
+values. Without it, both environments get the same one. Scoping works because
+every deploy job declares `environment: production` / `preview`; a job that
+does not will read an environment secret as empty.
+
+Give both environments the **same name** and different values. A separate
+`MY_VAR_DEV` variable is easy to reference in a workflow and forget to create,
+and it fails as an empty string at boot rather than as a missing key.
 
 ## 2. Add it to the schema
 
@@ -51,7 +60,7 @@ MY_VAR: ${{ secrets.MY_VAR }}     # the job's env: block
 --env MY_VAR=$MY_VAR \            # the deploy command's passthrough
 ```
 
-Preview often wants a different value — a `-dev` bucket, a localhost URL.
+Both reference `${{ secrets.MY_VAR }}`; the environment picks the value.
 
 ## Checklist
 

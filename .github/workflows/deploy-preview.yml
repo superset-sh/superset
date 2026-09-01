@@ -130,10 +130,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_PRIVATE_BUCKET: superset-private-dev
           R2_PUBLIC_BUCKET: superset-public-dev
-          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           USERCONTENT_URL: ${{ vars.USERCONTENT_URL_DEV }}
           MEDIA_URL: ${{ vars.MEDIA_URL_DEV }}
-          STATIC_URL: ${{ vars.STATIC_URL_DEV }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
           USERCONTENT_TOKEN_SECRET: ${{ secrets.USERCONTENT_TOKEN_SECRET_DEV }}
           CLOUDFLARE_BROWSER_RENDERING_TOKEN: ${{ secrets.CLOUDFLARE_BROWSER_RENDERING_TOKEN }}
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
@@ -327,7 +327,7 @@ jobs:
           NEXT_PUBLIC_RELAY_URL: ${{ secrets.RELAY_URL }}
           USERCONTENT_URL: ${{ vars.USERCONTENT_URL_DEV }}
           MEDIA_URL: ${{ vars.MEDIA_URL_DEV }}
-          STATIC_URL: ${{ vars.STATIC_URL_DEV }}
+          STATIC_URL: ${{ secrets.STATIC_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
           NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
