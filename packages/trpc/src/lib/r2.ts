@@ -25,9 +25,7 @@ function s3(): S3Client {
 	if (!client) {
 		client = new S3Client({
 			region: "auto",
-			endpoint:
-				env.R2_ENDPOINT ??
-				`https://${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+			endpoint: env.R2_ENDPOINT,
 			credentials: {
 				accessKeyId: env.R2_ACCESS_KEY_ID,
 				secretAccessKey: env.R2_SECRET_ACCESS_KEY,

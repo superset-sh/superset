@@ -87,6 +87,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_PRIVATE_BUCKET: ${{ vars.R2_PRIVATE_BUCKET }}
           R2_PUBLIC_BUCKET: ${{ vars.R2_PUBLIC_BUCKET }}
+          R2_ENDPOINT: ${{ vars.R2_ENDPOINT }}
           USERCONTENT_URL: ${{ vars.USERCONTENT_URL }}
           MEDIA_URL: ${{ vars.MEDIA_URL }}
           STATIC_URL: ${{ vars.STATIC_URL }}
@@ -160,6 +161,7 @@ jobs:
             --env R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
             --env R2_PRIVATE_BUCKET=$R2_PRIVATE_BUCKET \
             --env R2_PUBLIC_BUCKET=$R2_PUBLIC_BUCKET \
+            --env R2_ENDPOINT=$R2_ENDPOINT \
             --env USERCONTENT_URL=$USERCONTENT_URL \
             --env MEDIA_URL=$MEDIA_URL \
             --env STATIC_URL=$STATIC_URL \

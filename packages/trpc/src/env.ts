@@ -21,8 +21,11 @@ export const env = createEnv({
 		// deployment missing it should fail at boot rather than at the first
 		// upload.
 		R2_PUBLIC_BUCKET: z.string().min(1),
-		// Endpoint override for S3-compatible emulators (MinIO) in tests/dev.
-		R2_ENDPOINT: z.string().url().optional(),
+		// Set explicitly rather than derived from the account id: a
+		// jurisdiction-restricted bucket carries a region label the derived
+		// form would miss, and pointing this at localhost is how the storage
+		// path is exercised against an S3-compatible emulator in tests/dev.
+		R2_ENDPOINT: z.string().url(),
 		USERCONTENT_URL: z.string().url().optional(),
 		MEDIA_URL: z.string().url().optional(),
 		STATIC_URL: z.string().url(),
