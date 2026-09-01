@@ -212,7 +212,12 @@ async function runPublish({
 			);
 		}
 
-		await putObject({ key, body: buffer, contentType: input.contentType });
+		await putObject({
+			key,
+			body: buffer,
+			contentType: input.contentType,
+			bucket: "private",
+		});
 		return {
 			id: page.id,
 			slug: page.slug,

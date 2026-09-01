@@ -5,7 +5,7 @@ import { Client } from "@upstash/qstash";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
-import { objectExists, putObject, storageEnv } from "../../lib/r2";
+import { cloudflareAccountId, objectExists, putObject } from "../../lib/r2";
 import {
 	mintPageTicket,
 	usercontentBaseUrl,
@@ -118,7 +118,7 @@ export async function generatePageThumbnail({
 	});
 
 	const response = await fetch(
-		`https://api.cloudflare.com/client/v4/accounts/${storageEnv().accountId}/browser-rendering/screenshot?cacheTTL=0`,
+		`https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId()}/browser-rendering/screenshot?cacheTTL=0`,
 		{
 			method: "POST",
 			headers: {
@@ -153,6 +153,7 @@ export async function generatePageThumbnail({
 		key,
 		body: new Uint8Array(await response.arrayBuffer()),
 		contentType: "image/jpeg",
+		bucket: "private",
 	});
 	return "generated";
 }

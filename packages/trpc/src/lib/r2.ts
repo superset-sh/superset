@@ -8,44 +8,40 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "../env";
 
-export function storageEnv(): {
-	accountId: string;
-	accessKeyId: string;
-	secretAccessKey: string;
-	bucket: string;
-} {
-	const {
-		CLOUDFLARE_ACCOUNT_ID,
-		R2_ACCESS_KEY_ID,
-		R2_SECRET_ACCESS_KEY,
-		R2_PRIVATE_BUCKET,
-	} = env;
-	if (
-		!CLOUDFLARE_ACCOUNT_ID ||
-		!R2_ACCESS_KEY_ID ||
-		!R2_SECRET_ACCESS_KEY ||
-		!R2_PRIVATE_BUCKET
-	) {
-		throw new Error("R2 storage is not configured");
-	}
-	return {
-		accountId: CLOUDFLARE_ACCOUNT_ID,
-		accessKeyId: R2_ACCESS_KEY_ID,
-		secretAccessKey: R2_SECRET_ACCESS_KEY,
-		bucket: R2_PRIVATE_BUCKET,
-	};
+/**
+ * Which bucket an operation addresses. Named rather than defaulted: the two
+ * differ in who can read them, and a public write that silently landed in the
+ * private bucket would surface as a broken image rather than an error.
+ */
+export type Bucket = "private" | "public";
+
+export function bucketName(bucket: Bucket): string {
+	return bucket === "public" ? env.R2_PUBLIC_BUCKET : env.R2_PRIVATE_BUCKET;
+}
+
+/** The account the Browser Rendering API is called against. */
+export function cloudflareAccountId(): string {
+	return env.CLOUDFLARE_ACCOUNT_ID;
+}
+
+/** Base URL of the host serving the public bucket, without a trailing slash. */
+export function staticBaseUrl(): string {
+	return env.STATIC_URL.replace(/\/+$/, "");
 }
 
 let client: S3Client | null = null;
 
 function s3(): S3Client {
 	if (!client) {
-		const { accountId, accessKeyId, secretAccessKey } = storageEnv();
 		client = new S3Client({
 			region: "auto",
 			endpoint:
-				env.R2_ENDPOINT ?? `https://${accountId}.r2.cloudflarestorage.com`,
-			credentials: { accessKeyId, secretAccessKey },
+				env.R2_ENDPOINT ??
+				`https://${env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+			credentials: {
+				accessKeyId: env.R2_ACCESS_KEY_ID,
+				secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+			},
 			// Path-style keeps emulators working and R2 accepts it.
 			forcePathStyle: true,
 			// R2 rejects the SDK's default CRC32 request checksums; Cloudflare's
@@ -55,40 +51,6 @@ function s3(): S3Client {
 		});
 	}
 	return client;
-}
-
-function bucket(): string {
-	return storageEnv().bucket;
-}
-
-/**
- * The bucket whose contents are served without a ticket, on the static host.
- * Separate from the private one so a public write can never land in the
- * bucket the page origin serves from, whatever the key says.
- */
-export function publicBucket(): string {
-	if (!env.R2_PUBLIC_BUCKET) {
-		throw new Error(
-			"Public storage is not configured: R2_PUBLIC_BUCKET is unset",
-		);
-	}
-	// A misconfiguration that pointed both names at one bucket would put every
-	// private object behind the static host, which serves without a ticket.
-	if (env.R2_PUBLIC_BUCKET === env.R2_PRIVATE_BUCKET) {
-		throw new Error(
-			"R2_PUBLIC_BUCKET must not be the same bucket as R2_PRIVATE_BUCKET",
-		);
-	}
-	return env.R2_PUBLIC_BUCKET;
-}
-
-export function staticBaseUrl(): string {
-	if (!env.STATIC_URL) {
-		throw new Error("Static host is not configured: STATIC_URL is unset");
-	}
-	// Trailing slashes are valid per the url() check and would double up in
-	// every generated object URL.
-	return env.STATIC_URL.replace(/\/+$/, "");
 }
 
 function isMissing(error: unknown): boolean {
@@ -107,20 +69,19 @@ export async function putObject({
 	key,
 	body,
 	contentType,
-	bucket: target,
+	bucket,
 	cacheControl,
 }: {
 	key: string;
 	body: Uint8Array | string;
 	contentType: string;
-	/** Defaults to the private bucket; pass `publicBucket()` for static assets. */
-	bucket?: string;
+	bucket: Bucket;
 	cacheControl?: string;
 }): Promise<void> {
 	await s3().send(
 		new PutObjectCommand({
 			CacheControl: cacheControl,
-			Bucket: target ?? bucket(),
+			Bucket: bucketName(bucket),
 			Key: key,
 			Body: body,
 			ContentType: contentType,
@@ -131,11 +92,15 @@ export async function putObject({
 /** The object's response, streaming, or null when it does not exist. */
 export async function getObject(
 	key: string,
-	{ range }: { range?: string } = {},
+	{ range, bucket = "private" }: { range?: string; bucket?: Bucket } = {},
 ): Promise<Response | null> {
 	try {
 		const result = await s3().send(
-			new GetObjectCommand({ Bucket: bucket(), Key: key, Range: range }),
+			new GetObjectCommand({
+				Bucket: bucketName(bucket),
+				Key: key,
+				Range: range,
+			}),
 		);
 		if (!result.Body) return null;
 		return new Response(result.Body.transformToWebStream(), {
@@ -156,10 +121,11 @@ export async function getObject(
 /** Size and stored content type, or null when the object does not exist. */
 export async function headObject(
 	key: string,
+	{ bucket = "private" }: { bucket?: Bucket } = {},
 ): Promise<{ sizeBytes: number; contentType: string | null } | null> {
 	try {
 		const result = await s3().send(
-			new HeadObjectCommand({ Bucket: bucket(), Key: key }),
+			new HeadObjectCommand({ Bucket: bucketName(bucket), Key: key }),
 		);
 		return {
 			sizeBytes: result.ContentLength ?? 0,
@@ -171,20 +137,23 @@ export async function headObject(
 	}
 }
 
-export async function objectExists(key: string): Promise<boolean> {
-	return (await headObject(key)) !== null;
+export async function objectExists(
+	key: string,
+	{ bucket = "private" }: { bucket?: Bucket } = {},
+): Promise<boolean> {
+	return (await headObject(key, { bucket })) !== null;
 }
 
 /** Deletes are idempotent and batched; a missing key is not an error. */
 export async function deleteObjects(
 	keys: readonly string[],
-	{ bucket: target }: { bucket?: string } = {},
+	{ bucket = "private" }: { bucket?: Bucket } = {},
 ): Promise<void> {
 	for (let i = 0; i < keys.length; i += 1000) {
 		const batch = keys.slice(i, i + 1000);
 		const result = await s3().send(
 			new DeleteObjectsCommand({
-				Bucket: target ?? bucket(),
+				Bucket: bucketName(bucket),
 				Delete: {
 					Objects: batch.map((key) => ({ Key: key })),
 					Quiet: true,
@@ -208,7 +177,7 @@ export async function presignedGetUrl(
 ): Promise<string> {
 	return getSignedUrl(
 		s3(),
-		new GetObjectCommand({ Bucket: bucket(), Key: key }),
+		new GetObjectCommand({ Bucket: bucketName("private"), Key: key }),
 		{ expiresIn: expiresInSeconds },
 	);
 }
@@ -232,7 +201,7 @@ export async function presignedPutUrl({
 	const url = await getSignedUrl(
 		s3(),
 		new PutObjectCommand({
-			Bucket: bucket(),
+			Bucket: bucketName("private"),
 			Key: key,
 			ContentType: contentType,
 			ContentLength: contentLength,

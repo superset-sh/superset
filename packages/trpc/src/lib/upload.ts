@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import sharp from "sharp";
 import { userError } from "../i18n-error";
-import { deleteObjects, publicBucket, putObject, staticBaseUrl } from "./r2";
+import { deleteObjects, putObject, staticBaseUrl } from "./r2";
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_SIZE_MB = 4.5;
@@ -82,15 +82,15 @@ export async function putImageVariants({
 					key: `${pathname}/${name}.webp`,
 					body,
 					contentType: "image/webp",
-					bucket: publicBucket(),
+					bucket: "public",
 					cacheControl: CACHE_CONTROL,
 				}),
 			),
 		);
 	} catch (error) {
-		await deleteObjects(variantKeys(pathname), {
-			bucket: publicBucket(),
-		}).catch(() => {});
+		await deleteObjects(variantKeys(pathname), { bucket: "public" }).catch(
+			() => {},
+		);
 		throw error;
 	}
 
@@ -165,7 +165,7 @@ async function reclaim({
 	if (!previous || previous === pathname) return;
 	if (previous.replace(/\/[^/]+$/, "") !== owner) return;
 
-	await deleteObjects([...variantKeys(previous)], { bucket: publicBucket() });
+	await deleteObjects(variantKeys(previous), { bucket: "public" });
 }
 
 export function generateImagePathname({

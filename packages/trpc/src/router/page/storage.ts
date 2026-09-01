@@ -128,6 +128,7 @@ export async function writePageManifest(pageId: string): Promise<void> {
 				key: pageManifestKey(pageId),
 				body: JSON.stringify(manifest),
 				contentType: "application/json",
+				bucket: "private",
 			});
 			return;
 		} catch (error) {
