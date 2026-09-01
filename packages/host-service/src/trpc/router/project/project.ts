@@ -6,9 +6,15 @@ import {
 } from "@superset/shared/github-remote";
 import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
-import { projects, workspaces } from "../../../db/schema";
+import {
+	projects,
+	terminalAgentBindings,
+	terminalSessions,
+	workspaces,
+} from "../../../db/schema";
+import { invalidateLabelCache } from "../../../ports/static-ports";
 import {
 	deleteTagSetting,
 	emitProjectChanged,
@@ -18,6 +24,7 @@ import {
 	upsertTagSetting,
 } from "../../../projects/local-project-store";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
+import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { machineOnlyProcedure, protectedProcedure, router } from "../../index";
 import {
@@ -625,6 +632,13 @@ export const projectRouter = router({
 			z.object({
 				projectId: z.string().uuid(),
 				/**
+				 * Reuse an existing main-workspace id rather than minting one.
+				 * A cross-org move re-registers the project on the destination
+				 * host; without this the checkout would come back with a new id
+				 * and lose the local state keyed to it.
+				 */
+				mainWorkspaceId: z.string().uuid().optional(),
+				/**
 				 * Repo coordinates supplied by the caller (from the host
 				 * fan-out) so a local-first project created on ANOTHER host can
 				 * be set up on this device. Required whenever this host has no
@@ -699,6 +713,7 @@ export const projectRouter = router({
 							ctx,
 							input.projectId,
 							existing.repoPath,
+							{ mainWorkspaceId: input.mainWorkspaceId },
 						);
 						return {
 							repoPath: existing.repoPath,
@@ -731,6 +746,7 @@ export const projectRouter = router({
 						ctx,
 						input.projectId,
 						resolved.repoPath,
+						{ mainWorkspaceId: input.mainWorkspaceId },
 					);
 					return {
 						repoPath: resolved.repoPath,
@@ -779,6 +795,7 @@ export const projectRouter = router({
 							ctx,
 							input.projectId,
 							existing.repoPath,
+							{ mainWorkspaceId: input.mainWorkspaceId },
 						);
 						return {
 							repoPath: existing.repoPath,
@@ -793,6 +810,7 @@ export const projectRouter = router({
 						ctx,
 						input.projectId,
 						resolved.repoPath,
+						{ mainWorkspaceId: input.mainWorkspaceId },
 					);
 					return {
 						repoPath: resolved.repoPath,
@@ -870,5 +888,126 @@ export const projectRouter = router({
 			}
 
 			return { success: true, repoPath: localProject.repoPath };
+		}),
+
+	/**
+	 * Source-side half of a cross-organization project move: forget the
+	 * project in THIS host database and nothing else.
+	 *
+	 * Each organization runs its own host process over its own sqlite file,
+	 * so a project "belongs" to whichever org's DB holds its row. Moving one
+	 * means re-registering it in the target org's DB (same project id, same
+	 * worktrees on disk) and then detaching it here. That makes detach the
+	 * deliberate opposite of `remove` in two places:
+	 *
+	 *   - No filesystem work. The main repo, the worktrees, and their git
+	 *     registrations are exactly what the other org's host has just
+	 *     adopted, so `remove`'s `git worktree remove` sweep would destroy
+	 *     the moved project's working state.
+	 *
+	 *   - No cloud call. The caller performs the cloud-side move itself;
+	 *     `remove`'s fire-and-forget `v2Project.delete` would delete the very
+	 *     project that was just moved.
+	 *
+	 * PTYs *are* torn down: terminal sessions live in this org's pty-daemon
+	 * and cannot follow the project into another host process, so leaving
+	 * them running would orphan the processes. Killing a PTY touches
+	 * processes and sockets, never the worktree.
+	 *
+	 * Idempotent: an id this host doesn't serve is a quiet no-op, same
+	 * contract as `project.remove`.
+	 */
+	detach: protectedProcedure
+		.input(z.object({ projectId: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			const localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+			if (!localProject) {
+				return {
+					success: true,
+					repoPath: null,
+					workspaceIds: [] as string[],
+					warnings: [] as string[],
+				};
+			}
+
+			const localWorkspaces = ctx.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.projectId, input.projectId))
+				.all();
+			const workspaceIds = localWorkspaces.map((ws) => ws.id);
+			const warnings: string[] = [];
+
+			for (const ws of localWorkspaces) {
+				try {
+					const killed = await disposeSessionsByWorkspaceId(ws.id, ctx.db);
+					if (killed.failed > 0) {
+						warnings.push(
+							`${ws.name}: ${killed.failed} terminal(s) may still be running`,
+						);
+					}
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					warnings.push(
+						`${ws.name}: failed to dispose terminal sessions: ${message}`,
+					);
+				}
+			}
+
+			try {
+				// One transaction: a throw part way through would otherwise leave
+				// a project row whose workspaces are already gone — a project the
+				// destination host has adopted but this one still half-owns.
+				ctx.db.transaction(() => {
+					if (workspaceIds.length > 0) {
+						// Confirmed-dead sessions go now — `origin_workspace_id` is ON
+						// DELETE SET NULL, so anything left behind would survive the
+						// workspace delete as an unowned orphan no sweep can find.
+						// Still-`active` rows are failed kills: keep them reachable so
+						// the reaper can retry, exactly as workspaceCleanup.destroy does.
+						ctx.db
+							.delete(terminalSessions)
+							.where(
+								and(
+									inArray(terminalSessions.originWorkspaceId, workspaceIds),
+									ne(terminalSessions.status, "active"),
+								),
+							)
+							.run();
+						// `workspace_id` here is plain text with no foreign key, so the
+						// project cascade never reaches it — delete explicitly.
+						ctx.db
+							.delete(terminalAgentBindings)
+							.where(inArray(terminalAgentBindings.workspaceId, workspaceIds))
+							.run();
+					}
+
+					// Per-row so each deletion broadcasts. The store context omits
+					// `api` on purpose: a detached workspace has not been deleted, so
+					// reporting `workspace_deleted` telemetry would be a lie — and it
+					// is the one cloud call this local-only path could still make.
+					for (const ws of localWorkspaces) {
+						deleteLocalWorkspace({ db: ctx.db, eventBus: ctx.eventBus }, ws.id);
+						invalidateLabelCache(ws.id);
+					}
+					// `pull_requests` rows cascade off the project row's foreign key.
+					ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
+				});
+				emitProjectChanged(ctx.eventBus, "deleted", input.projectId);
+			} catch (err) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to detach project locally: ${err instanceof Error ? err.message : String(err)}`,
+				});
+			}
+
+			return {
+				success: true,
+				repoPath: localProject.repoPath,
+				workspaceIds,
+				warnings,
+			};
 		}),
 });

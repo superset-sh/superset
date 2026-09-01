@@ -7,10 +7,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useMoveProjectToOrganization } from "renderer/routes/_authenticated/hooks/useMoveProjectToOrganization";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
@@ -58,6 +60,27 @@ export function useDashboardSidebarProjectSectionActions({
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
+
+	// Orgs the user belongs to, minus the one showing this project. The list is
+	// unscoped — it is exactly "orgs I'm in".
+	const { data: organizations } =
+		cloudTrpc.organization.list.useQuery(undefined);
+	const { activeOrganizationId } = useLocalHostService();
+	const moveTargetOrganizations = useMemo(
+		() =>
+			(organizations ?? [])
+				.filter((organization) => organization.id !== activeOrganizationId)
+				.map((organization) => ({
+					id: organization.id,
+					name: organization.name,
+				})),
+		[organizations, activeOrganizationId],
+	);
+	const {
+		moveProjectToOrganization,
+		getMoveImpact,
+		isMoving: isMovingToOrganization,
+	} = useMoveProjectToOrganization();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(project.name);
@@ -160,6 +183,57 @@ export function useDashboardSidebarProjectSectionActions({
 					}),
 					variant: "destructive",
 					onClick: () => removeProjectFromSidebar(project.id),
+				},
+			],
+		});
+	};
+
+	const confirmMoveToOrganization = async (organizationId: string) => {
+		const organization = moveTargetOrganizations.find(
+			(candidate) => candidate.id === organizationId,
+		);
+		if (!organization) return;
+		// Ask what is actually running before warning about it. A blanket
+		// "terminals will close" on a project with nothing open teaches people
+		// to click through the one time it matters.
+		const impact = await getMoveImpact(project.id).catch(() => null);
+		const terminalWarning = !impact
+			? ""
+			: impact.terminalCount === 0
+				? " Nothing is running in it right now."
+				: ` ${impact.terminalCount} running terminal${impact.terminalCount === 1 ? "" : "s"} will be closed and re-opened on the other side — ${impact.workspaceBreakdown
+						.map((entry) => `${entry.name} (${entry.terminalCount})`)
+						.join(
+							", ",
+						)}. Some may be running in the background with no pane open. Anything mid-run stops, so save or hand off first.`;
+		alert({
+			title: `Move to ${organization.name}?`,
+			description: `The repo and its worktrees move across with their branches intact — nothing on disk changes.${terminalWarning}`,
+			actions: [
+				{ label: "Cancel", variant: "outline", onClick: () => {} },
+				{
+					label: "Move",
+					onClick: () => {
+						void moveProjectToOrganization({
+							projectId: project.id,
+							targetOrganizationId: organizationId,
+						})
+							.then(({ skippedWorkspaces }) => {
+								if (skippedWorkspaces.length > 0) {
+									toast.warning(
+										`Moved to ${organization.name}, but ${skippedWorkspaces.length} worktree(s) couldn't be adopted: ${skippedWorkspaces.join(", ")}`,
+									);
+									return;
+								}
+								toast.success(`Moved ${project.name} to ${organization.name}`);
+							})
+							.catch((error: unknown) => {
+								toast.error("Couldn't move the project", {
+									description:
+										error instanceof Error ? error.message : String(error),
+								});
+							});
+					},
 				},
 			],
 		});
@@ -290,6 +364,9 @@ export function useDashboardSidebarProjectSectionActions({
 
 	return {
 		cancelRename,
+		confirmMoveToOrganization,
+		isMovingToOrganization,
+		moveTargetOrganizations,
 		confirmImportWorktrees,
 		confirmRemoveFromSidebar,
 		deleteSection,
