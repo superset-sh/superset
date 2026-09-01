@@ -6,11 +6,7 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import { objectExists, putObject } from "../../lib/r2";
-import {
-	mintPageTicket,
-	usercontentBaseUrl,
-	writePageManifest,
-} from "./storage";
+import { mintPageTicket, writePageManifest } from "./storage";
 
 export const PAGE_THUMBNAIL_JOB_PATH = "/api/pages/jobs/thumbnail";
 
@@ -108,7 +104,7 @@ export async function generatePageThumbnail({
 	await writePageManifest(pageId);
 
 	const url = pageViewUrl({
-		baseUrl: usercontentBaseUrl(),
+		baseUrl: env.USERCONTENT_URL,
 		pageId,
 		version,
 		ticket: await mintPageTicket(page, {

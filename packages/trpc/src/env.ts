@@ -26,10 +26,9 @@ export const env = createEnv({
 		// form would miss, and pointing this at localhost is how the storage
 		// path is exercised against an S3-compatible emulator in tests/dev.
 		R2_ENDPOINT: z.string().url(),
-		USERCONTENT_URL: z.string().url().optional(),
-		MEDIA_URL: z.string().url().optional(),
+		USERCONTENT_URL: z.string().url(),
 		STATIC_URL: z.string().url(),
-		USERCONTENT_TOKEN_SECRET: z.string().min(32).optional(),
+		USERCONTENT_TOKEN_SECRET: z.string().min(32),
 		// Optional: page thumbnails are skipped wherever this is unset.
 		CLOUDFLARE_BROWSER_RENDERING_TOKEN: z.string().min(1).optional(),
 		POSTHOG_API_KEY: z.string(),
