@@ -27,7 +27,6 @@ export const env = createEnv({
 		// path is exercised against an S3-compatible emulator in tests/dev.
 		R2_ENDPOINT: z.string().url(),
 		USERCONTENT_URL: z.string().url(),
-		MEDIA_URL: z.string().url(),
 		STATIC_URL: z.string().url(),
 		USERCONTENT_TOKEN_SECRET: z.string().min(32),
 		// Optional: page thumbnails are skipped wherever this is unset.

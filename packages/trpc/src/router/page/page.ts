@@ -21,6 +21,7 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray, or, type SQL, sql } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
 import { deleteObjects, presignedGetUrl } from "../../lib/r2";
 import { protectedProcedure, userError } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
@@ -46,7 +47,6 @@ import { resolveSharedVersion, servedVersion } from "./shared-version";
 import {
 	deletePageObjects,
 	mintPageTicket,
-	usercontentBaseUrl,
 	writePageManifest,
 } from "./storage";
 import { enqueuePageThumbnail } from "./thumbnail";
@@ -296,7 +296,7 @@ export const pageRouter = {
 					);
 
 			const rows = await scoped.orderBy(desc(pages.updatedAt));
-			const baseUrl = usercontentBaseUrl();
+			const baseUrl = env.USERCONTENT_URL;
 			return await Promise.all(
 				rows.map(async (row) => {
 					const served = servedVersion(row.sharedVersion, row.latestVersion);
@@ -342,7 +342,7 @@ export const pageRouter = {
 			...page,
 			url: pageUrl(page.slug),
 			viewUrl: pageViewUrl({
-				baseUrl: usercontentBaseUrl(),
+				baseUrl: env.USERCONTENT_URL,
 				pageId: page.id,
 				version: served,
 				ticket: await mintPageTicket(
@@ -701,7 +701,7 @@ export const pageRouter = {
 			}
 
 			const viewUrl = pageViewUrl({
-				baseUrl: usercontentBaseUrl(),
+				baseUrl: env.USERCONTENT_URL,
 				pageId: page.id,
 				version: row.version,
 				ticket: await mintPageTicket(page, { version: row.version }),
