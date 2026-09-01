@@ -2,9 +2,6 @@ import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 
 const objectStore = new Map<string, Uint8Array | string>();
 mock.module("../../lib/r2", () => ({
-	bucketName: (bucket: "private" | "public") => `test-${bucket}`,
-	cloudflareAccountId: () => "test",
-	staticBaseUrl: () => "https://static.test",
 	putObject: async ({
 		key,
 		body,

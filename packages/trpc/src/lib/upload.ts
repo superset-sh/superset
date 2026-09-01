@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import sharp from "sharp";
+import { env } from "../env";
 import { userError } from "../i18n-error";
-import { deleteObjects, putObject, staticBaseUrl } from "./r2";
+import { deleteObjects, putObject } from "./r2";
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_SIZE_MB = 4.5;
@@ -26,6 +27,15 @@ const CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 /** The variant a stored URL points at. */
 export const CANONICAL_VARIANT = "256";
+
+/**
+ * Base URL of the host serving the public bucket, without a trailing slash —
+ * a trailing one is valid per the env schema's `url()` and would double up in
+ * every object URL built from it.
+ */
+function staticBaseUrl(): string {
+	return env.STATIC_URL.replace(/\/+$/, "");
+}
 
 export function variantKeys(pathname: string): string[] {
 	return IMAGE_VARIANTS.map((variant) => `${pathname}/${variant.name}.webp`);

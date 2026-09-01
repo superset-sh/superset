@@ -15,18 +15,8 @@ import { env } from "../env";
  */
 export type Bucket = "private" | "public";
 
-export function bucketName(bucket: Bucket): string {
+function bucketName(bucket: Bucket): string {
 	return bucket === "public" ? env.R2_PUBLIC_BUCKET : env.R2_PRIVATE_BUCKET;
-}
-
-/** The account the Browser Rendering API is called against. */
-export function cloudflareAccountId(): string {
-	return env.CLOUDFLARE_ACCOUNT_ID;
-}
-
-/** Base URL of the host serving the public bucket, without a trailing slash. */
-export function staticBaseUrl(): string {
-	return env.STATIC_URL.replace(/\/+$/, "");
 }
 
 let client: S3Client | null = null;
