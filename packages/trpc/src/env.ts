@@ -14,10 +14,14 @@ export const env = createEnv({
 		R2_ACCESS_KEY_ID: z.string().min(1).optional(),
 		R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
 		R2_PRIVATE_BUCKET: z.string().min(1).optional(),
+		// Avatars and organization logos: world-readable by design, served
+		// straight from the bucket's custom domain with no ticket.
+		R2_PUBLIC_BUCKET: z.string().min(1).optional(),
 		// Endpoint override for S3-compatible emulators (MinIO) in tests/dev.
 		R2_ENDPOINT: z.string().url().optional(),
 		USERCONTENT_URL: z.string().url().optional(),
 		MEDIA_URL: z.string().url().optional(),
+		STATIC_URL: z.string().url().optional(),
 		USERCONTENT_TOKEN_SECRET: z.string().min(32).optional(),
 		// Optional: page thumbnails are skipped wherever this is unset.
 		CLOUDFLARE_BROWSER_RENDERING_TOKEN: z.string().min(1).optional(),

@@ -104,6 +104,7 @@
 		"google-auth-library": "10.5.0",
 		"posthog-node": "5.28.8",
 		"resend": "6.18.0",
+		"sharp": "0.35.4",
 		"superjson": "2.2.6",
 		"zod": "4.4.3"
 	},

@@ -61,6 +61,25 @@ function bucket(): string {
 	return storageEnv().bucket;
 }
 
+/**
+ * The bucket whose contents are served without a ticket, on the static host.
+ * Separate from the private one so a public write can never land in the
+ * bucket the page origin serves from, whatever the key says.
+ */
+export function publicBucket(): string {
+	if (!env.R2_PUBLIC_BUCKET) {
+		throw new Error("Public storage is not configured");
+	}
+	return env.R2_PUBLIC_BUCKET;
+}
+
+export function staticBaseUrl(): string {
+	if (!env.STATIC_URL) {
+		throw new Error("Static host is not configured");
+	}
+	return env.STATIC_URL;
+}
+
 function isMissing(error: unknown): boolean {
 	const candidate = error as {
 		name?: string;
@@ -77,14 +96,20 @@ export async function putObject({
 	key,
 	body,
 	contentType,
+	bucket: target,
+	cacheControl,
 }: {
 	key: string;
 	body: Uint8Array | string;
 	contentType: string;
+	/** Defaults to the private bucket; pass `publicBucket()` for static assets. */
+	bucket?: string;
+	cacheControl?: string;
 }): Promise<void> {
 	await s3().send(
 		new PutObjectCommand({
-			Bucket: bucket(),
+			CacheControl: cacheControl,
+			Bucket: target ?? bucket(),
 			Key: key,
 			Body: body,
 			ContentType: contentType,
@@ -140,12 +165,15 @@ export async function objectExists(key: string): Promise<boolean> {
 }
 
 /** Deletes are idempotent and batched; a missing key is not an error. */
-export async function deleteObjects(keys: readonly string[]): Promise<void> {
+export async function deleteObjects(
+	keys: readonly string[],
+	{ bucket: target }: { bucket?: string } = {},
+): Promise<void> {
 	for (let i = 0; i < keys.length; i += 1000) {
 		const batch = keys.slice(i, i + 1000);
 		const result = await s3().send(
 			new DeleteObjectsCommand({
-				Bucket: bucket(),
+				Bucket: target ?? bucket(),
 				Delete: {
 					Objects: batch.map((key) => ({ Key: key })),
 					Quiet: true,

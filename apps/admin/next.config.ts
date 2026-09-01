@@ -28,6 +28,10 @@ const config: NextConfig = {
 				protocol: "https",
 				hostname: "*.public.blob.vercel-storage.com",
 			},
+			{
+				protocol: "https",
+				hostname: "static.supersetusercontent.com",
+			},
 		],
 	},
 

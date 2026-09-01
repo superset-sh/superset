@@ -33,6 +33,10 @@ const config: NextConfig = {
 			},
 			{
 				protocol: "https",
+				hostname: "static.supersetusercontent.com",
+			},
+			{
+				protocol: "https",
 				hostname: "unavatar.io",
 			},
 		],
