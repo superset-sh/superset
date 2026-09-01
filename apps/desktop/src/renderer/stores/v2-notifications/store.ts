@@ -14,7 +14,8 @@ export type V2NotificationSourceInput =
 	| V2NotificationSourceKey;
 
 /**
- * Renderer-local notification state. Terminal agent statuses
+ * Profile-local notification state, synchronized between open windows.
+ * Terminal agent statuses
  * (working/permission/idle/review) are DERIVED from host agent bindings —
  * see `renderer/hooks/host-service/useV2NotificationStatus` — so the only
  * facts stored here are about the user, not the agents:

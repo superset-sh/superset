@@ -209,6 +209,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out binding mutations that are not lifecycle hooks. Renderers refetch
+	 * status from the host, but notification controllers do not treat this as an
+	 * agent completion event.
+	 */
+	broadcastAgentBindingsChanged(
+		message: Omit<
+			Extract<ServerMessage, { type: "agent:bindings-changed" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "agent:bindings-changed", ...message });
+	}
+
+	/**
 	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
 	 * status can otherwise get stuck when a terminal exits while its pane is not
 	 * mounted and therefore cannot observe the terminal websocket `exit` packet.

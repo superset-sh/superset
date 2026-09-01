@@ -391,6 +391,10 @@ export const terminalAgentsRouter = router({
 				input.workspaceId,
 				input.terminalId,
 			);
+			ctx.eventBus.broadcastAgentBindingsChanged({
+				workspaceId: input.workspaceId,
+				occurredAt: Date.now(),
+			});
 			return { success: true };
 		}),
 
