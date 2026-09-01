@@ -1,5 +1,4 @@
 import { TRPCError } from "@trpc/server";
-import sharp from "sharp";
 import { env } from "../env";
 import { userError } from "../i18n-error";
 import { deleteObjects, putObject } from "./r2";
@@ -46,6 +45,18 @@ export function imageUrlFor(pathname: string): string {
 }
 
 /**
+ * sharp is a native module, and this file is imported by the organization and
+ * user routers, so loading it at module scope makes its load failure every
+ * procedure's failure: on 2026-09-01 a bundle shipped without libvips and the
+ * whole API answered 500 until it was rolled back. Loaded here on first use,
+ * a broken sharp fails avatar and logo uploads and nothing else.
+ */
+async function loadSharp() {
+	const { default: sharp } = await import("sharp");
+	return sharp;
+}
+
+/**
  * Decodes the image and writes every variant. Shared with the backfill script
  * so a change to the sizes or the object layout cannot make fresh uploads and
  * migrated rows diverge.
@@ -60,6 +71,7 @@ export async function putImageVariants({
 	buffer: Buffer;
 	pathname: string;
 }): Promise<string> {
+	const sharp = await loadSharp();
 	let rendered: { name: string; body: Buffer }[];
 	try {
 		rendered = await Promise.all(
