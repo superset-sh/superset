@@ -1,4 +1,11 @@
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import {
+	applyFolderTagChange,
+	mintFolderTag,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
@@ -22,6 +29,8 @@ export function useBulkWorkspaceMoveActions({
 	sectionIdByWorkspaceId,
 }: UseBulkWorkspaceMoveActionsOptions) {
 	const { createSection, moveWorkspaceToSection } = useDashboardSidebarState();
+	const { v2Workspaces } = useOptimisticActions();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
 	const { clearSelection, selectedWorkspaceIds } =
 		useDashboardSidebarSelection();
@@ -40,9 +49,32 @@ export function useBulkWorkspaceMoveActions({
 	const groupedWorkspaceIds = selectedIds.filter((workspaceId) =>
 		sectionIdByWorkspaceId.has(workspaceId),
 	);
+	const sessionTags = new Set(sections.map((section) => section.id));
+	const updateSessionWorkspaceGroup = (
+		workspaceId: string,
+		tag: string | null,
+	) => {
+		const workspace = hostWorkspaces.find((item) => item.id === workspaceId);
+		void v2Workspaces.updateWorkspace(workspaceId, {
+			tags: applyFolderTagChange(
+				normalizeWorkspaceTags(workspace?.tags),
+				sessionTags,
+				tag,
+			),
+		});
+	};
 
 	const moveSelectionToSection = (sectionId: string) => {
-		if (!projectId) return;
+		if (projectId === null) {
+			for (const workspaceId of workspaceIdsForSectionMove(
+				selectedIds,
+				sectionIdByWorkspaceId,
+				sectionId,
+			))
+				updateSessionWorkspaceGroup(workspaceId, sectionId);
+			clearSelection();
+			return;
+		}
 		for (const workspaceId of workspaceIdsForSectionMove(
 			selectedIds,
 			sectionIdByWorkspaceId,
@@ -54,7 +86,14 @@ export function useBulkWorkspaceMoveActions({
 	};
 
 	const createGroupFromSelection = () => {
-		if (!projectId) return;
+		if (projectId === null) {
+			const tag = mintFolderTag("New group", sessionTags);
+			for (const workspaceId of selectedIds)
+				updateSessionWorkspaceGroup(workspaceId, tag);
+			clearSelection();
+			requestSectionRename(`session:${tag}`);
+			return;
+		}
 		const sectionId = createSection(projectId);
 		for (const workspaceId of selectedIds) {
 			moveWorkspaceToSection(workspaceId, projectId, sectionId);
@@ -64,7 +103,12 @@ export function useBulkWorkspaceMoveActions({
 	};
 
 	const ungroupSelection = () => {
-		if (!projectId) return;
+		if (projectId === null) {
+			for (const workspaceId of [...groupedWorkspaceIds].reverse())
+				updateSessionWorkspaceGroup(workspaceId, null);
+			clearSelection();
+			return;
+		}
 		// Each move inserts directly below the row's former group, so processing
 		// in visual order would stack the rows reversed. Iterate back-to-front to
 		// keep the selection's visual order.

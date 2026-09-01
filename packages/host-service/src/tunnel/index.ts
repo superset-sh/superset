@@ -1,2 +1,2 @@
 export { type ConnectRelayOptions, connectRelay } from "./connect";
-export { TunnelClient, type TunnelClientOptions } from "./tunnel-client";
+export { TunnelClientV2, type TunnelClientV2Options } from "./tunnel-client-v2";

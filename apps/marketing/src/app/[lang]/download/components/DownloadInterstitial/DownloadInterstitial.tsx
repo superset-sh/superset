@@ -1,141 +1,176 @@
 "use client";
 
 import { Trans } from "@lingui/react/macro";
-import {
-	DOWNLOAD_URL_MAC_ARM64,
-	DOWNLOAD_URL_MAC_X64,
-} from "@superset/shared/constants";
-import Link from "next/link";
+import { formatNumber } from "@superset/i18n/format";
 import { useEffect, useRef } from "react";
-import { SupersetLogo } from "@/app/[lang]/components/Header/components/SupersetLogo";
-import { AppMockup } from "@/app/[lang]/components/HeroSection/components/AppMockup";
 import { WaitlistForm } from "@/app/[lang]/components/WaitlistForm";
-import { isMacPlatform, Platform, usePlatform } from "@/app/[lang]/hooks/useOS";
+import { Platform, usePlatform } from "@/app/[lang]/hooks/useOS";
 import { track } from "@/lib/analytics";
+import { desktopUrlFor, shouldAutoDownload } from "../../utils/desktopUrlFor";
+import { formatReleaseDate } from "../../utils/formatReleaseDate";
+import type { DesktopRelease } from "../../utils/getDesktopReleases";
+import type { ReleaseAssetKey } from "../../utils/toReleasePlatforms";
+import { DesktopDownloadButton } from "../DesktopDownloadButton";
 import { DownloadLinkForm } from "../DownloadLinkForm";
 
 const AUTO_DOWNLOAD_DELAY_MS = 600;
 
-function macUrlFor(platform: Platform): string {
-	return platform === Platform.MacIntel
-		? DOWNLOAD_URL_MAC_X64
-		: DOWNLOAD_URL_MAC_ARM64;
+// Platform identifiers, not prose — they read the same in every locale
+const PLATFORM_LABELS: Record<Platform, string> = {
+	[Platform.MacAppleSilicon]: "macOS · Apple Silicon",
+	[Platform.MacIntel]: "macOS · Intel",
+	[Platform.Windows]: "Windows",
+	[Platform.Linux]: "Linux · x64",
+	[Platform.Mobile]: "Mobile browser",
+	[Platform.Unknown]: "macOS",
+};
+
+// Which artifact the spec block is describing, matched on key rather than on
+// the human label so the copy can change without breaking the lookup.
+const PLATFORM_ASSET_KEY: Partial<Record<Platform, ReleaseAssetKey>> = {
+	[Platform.MacAppleSilicon]: "mac-arm64",
+	[Platform.MacIntel]: "mac-x64",
+	[Platform.Linux]: "linux-appimage-x64",
+	[Platform.Unknown]: "mac-arm64",
+};
+
+const BYTES_PER_MB = 1024 * 1024;
+
+const HEADING_CLASS =
+	"text-3xl font-medium tracking-tight text-foreground sm:text-4xl";
+
+interface DownloadInterstitialProps {
+	latestRelease: DesktopRelease | null;
 }
 
-export function DownloadInterstitial() {
+export function DownloadInterstitial({
+	latestRelease,
+}: DownloadInterstitialProps) {
 	const { platform } = usePlatform();
 	const firedRef = useRef(false);
 
-	const isMac = isMacPlatform(platform);
-	// Only auto-download on Mac (the only built binary). Mobile visitors can send
-	// the link to their desktop; Windows/Linux visitors see the platform waitlist.
+	// A phone can't run the app, so mobile visitors get a link to open on their
+	// desktop. Windows has no published build and falls through to the waitlist.
 	const showEmailLink = platform === Platform.Mobile;
-	const showWaitlist =
-		!isMac && platform !== Platform.Unknown && !showEmailLink;
+	const canAutoDownload = !showEmailLink && shouldAutoDownload(platform);
+	const showWaitlist = platform === Platform.Windows;
 
 	useEffect(() => {
 		if (firedRef.current) return;
-		if (!isMac) return;
+		if (!canAutoDownload) return;
 
-		firedRef.current = true;
-		const url = macUrlFor(platform);
+		const url = desktopUrlFor(platform);
 		track("download_started", { platform });
 
-		window.setTimeout(() => {
+		// Latched in the callback, not here: if `platform` resolved again before
+		// the timer fired, latching early would strand the pending redirect on
+		// the stale URL. Cleanup cancels it so the newest platform wins.
+		const timer = window.setTimeout(() => {
+			firedRef.current = true;
 			window.location.href = url;
 		}, AUTO_DOWNLOAD_DELAY_MS);
-	}, [isMac, platform]);
+		return () => window.clearTimeout(timer);
+	}, [canAutoDownload, platform]);
+
+	const assetKey = PLATFORM_ASSET_KEY[platform];
+	const asset = assetKey
+		? latestRelease?.platforms
+				.flatMap((entry) => entry.assets)
+				.find((entry) => entry.key === assetKey)
+		: undefined;
 
 	return (
-		<div className="relative isolate min-h-screen overflow-hidden bg-background px-6 py-10 sm:px-12 sm:py-14 lg:px-20 lg:py-20">
-			<Link
-				href="/"
-				className="inline-flex items-center text-foreground transition-colors hover:text-foreground/80"
-				aria-label="Superset"
-			>
-				<SupersetLogo />
-			</Link>
+		<section className="grid gap-10 pb-12 sm:pb-16 md:grid-cols-[minmax(0,1fr)_auto] md:items-end md:gap-16">
+			<div>
+				<div className="mb-6 inline-flex w-max items-center gap-2 whitespace-nowrap rounded-[2px] border border-border bg-background/80 px-3 py-1.5 font-mono text-muted-foreground text-xs">
+					<span className="shrink-0 text-brand">●</span>
+					<span>{PLATFORM_LABELS[platform]}</span>
+				</div>
 
-			<div className="mt-20 grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
-				<div className="flex flex-col gap-6">
-					{showEmailLink ? (
-						<>
-							<h1
-								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
-								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
-							>
-								<Trans id="marketing.download.mobileTitle">
-									Get Superset on your Mac
-								</Trans>
-							</h1>
-							<p className="text-sm text-muted-foreground sm:text-base">
-								<Trans id="marketing.download.mobileBody">
-									Superset is a desktop app. Enter your email and we&apos;ll
-									send you a download link to open on your Mac.
-								</Trans>
-							</p>
+				{showEmailLink ? (
+					<div className="max-w-2xl">
+						<h1 className={HEADING_CLASS}>
+							<Trans id="marketing.download.mobileTitle">
+								Get Superset on your Mac
+							</Trans>
+						</h1>
+						<p className="mt-3 text-muted-foreground sm:text-lg">
+							<Trans id="marketing.download.mobileBody">
+								Superset is a desktop app. Enter your email and we&apos;ll send
+								you a download link to open on your Mac.
+							</Trans>
+						</p>
+						<div className="mt-6">
 							<DownloadLinkForm />
-						</>
-					) : showWaitlist ? (
-						<>
-							<h1
-								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
-								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
-							>
-								<Trans id="marketing.download.waitlistTitle">
-									Superset is Mac-only for now
-								</Trans>
-							</h1>
-							<p className="text-sm text-muted-foreground sm:text-base">
-								<Trans id="marketing.download.waitlistBody">
-									We're bringing Superset to Windows &amp; Linux. Drop your
-									email and we'll let you know the moment it's ready.
-								</Trans>
-							</p>
-							<div className="max-w-sm">
-								<WaitlistForm />
-							</div>
-						</>
-					) : (
-						<>
-							<h1
-								className="text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
-								style={{ fontFamily: "var(--font-ibm-plex-mono), monospace" }}
-							>
-								<Trans id="marketing.download.autoTitle">
-									You're about to get Superset
-								</Trans>
-							</h1>
-							<p className="text-sm text-muted-foreground sm:text-base">
-								<Trans id="marketing.download.autoBody">
-									Your download will start automatically. If it didn't start,
-									you can{" "}
-									<a
-										href={macUrlFor(platform)}
-										onClick={() =>
-											track("download_manual_clicked", { platform })
-										}
-										className="text-foreground underline underline-offset-4"
-									>
-										download now
-									</a>
-									.
-								</Trans>
-							</p>
-						</>
-					)}
-				</div>
-
-				<div
-					aria-hidden="true"
-					style={{
-						maskImage:
-							"linear-gradient(to right, transparent 0%, black 18%, black 100%)",
-					}}
-				>
-					<AppMockup activeDemo="Orchestrate Parallel Agents" />
-				</div>
+						</div>
+					</div>
+				) : showWaitlist ? (
+					<div className="max-w-2xl">
+						<h1 className={HEADING_CLASS}>
+							<Trans id="marketing.download.waitlistTitle">
+								Superset isn't on Windows yet
+							</Trans>
+						</h1>
+						<p className="mt-3 text-muted-foreground sm:text-lg">
+							<Trans id="marketing.download.waitlistBody">
+								The desktop app runs on macOS and Linux today. Drop your email
+								and we'll let you know the moment the Windows build ships.
+							</Trans>
+						</p>
+						<div className="mt-6 max-w-sm">
+							<WaitlistForm />
+						</div>
+					</div>
+				) : (
+					<div className="max-w-2xl">
+						<h1 className={HEADING_CLASS}>
+							<Trans id="marketing.download.autoTitle">
+								You're about to get Superset
+							</Trans>
+						</h1>
+						<p className="mt-3 text-muted-foreground sm:text-lg">
+							<Trans id="marketing.download.autoBodyShort">
+								Your download starts automatically. If it didn't, grab it here.
+							</Trans>
+						</p>
+						<div className="mt-6">
+							<DesktopDownloadButton />
+						</div>
+					</div>
+				)}
 			</div>
-		</div>
+
+			{/* Answers what you are actually getting, and gives the empty half of
+			    the row something to do. Hidden when there is nothing real to show. */}
+			{asset && latestRelease ? (
+				<dl className="divide-y divide-border border border-border font-mono text-xs md:min-w-[260px]">
+					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
+						<dt className="text-muted-foreground">
+							<Trans id="marketing.download.specVersion">Version</Trans>
+						</dt>
+						<dd className="text-foreground">{latestRelease.version}</dd>
+					</div>
+					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
+						<dt className="text-muted-foreground">
+							<Trans id="marketing.download.specSize">Size</Trans>
+						</dt>
+						<dd className="text-foreground">
+							{formatNumber(asset.sizeBytes / BYTES_PER_MB, {
+								maximumFractionDigits: 0,
+							})}
+							{" MB"}
+						</dd>
+					</div>
+					<div className="flex items-center justify-between gap-8 px-4 py-2.5">
+						<dt className="text-muted-foreground">
+							<Trans id="marketing.download.specPublished">Published</Trans>
+						</dt>
+						<dd className="text-foreground">
+							{formatReleaseDate(latestRelease.publishedAt)}
+						</dd>
+					</div>
+				</dl>
+			) : null}
+		</section>
 	);
 }

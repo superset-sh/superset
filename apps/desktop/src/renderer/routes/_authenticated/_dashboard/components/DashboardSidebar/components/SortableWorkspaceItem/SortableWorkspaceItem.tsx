@@ -3,7 +3,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
-import type { DashboardSidebarWorkspace } from "../../types";
+import type {
+	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceIndentation,
+} from "../../types";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 
 interface SortableWorkspaceItemProps {
@@ -11,6 +14,7 @@ interface SortableWorkspaceItemProps {
 	workspace: DashboardSidebarWorkspace;
 	accentColor?: string | null;
 	isInSection?: boolean;
+	indentation?: DashboardSidebarWorkspaceIndentation;
 	onHoverCardOpen?: (workspaceId: string) => void | Promise<void>;
 	shortcutLabel?: string;
 	disabled?: boolean;
@@ -40,6 +44,7 @@ export function SortableWorkspaceItem({
 	workspace,
 	accentColor,
 	isInSection,
+	indentation,
 	onHoverCardOpen,
 	shortcutLabel,
 	disabled,
@@ -68,6 +73,7 @@ export function SortableWorkspaceItem({
 				onHoverCardOpen={onHoverCardOpen}
 				shortcutLabel={shortcutLabel}
 				isInSection={isInSection}
+				indentation={indentation}
 				isSelected={isSelected}
 				onSelectionClick={onSelectionClick}
 				pinnedContext={pinnedContext}
@@ -78,6 +84,7 @@ export function SortableWorkspaceItem({
 			onHoverCardOpen,
 			shortcutLabel,
 			isInSection,
+			indentation,
 			isSelected,
 			onSelectionClick,
 			pinnedContext,

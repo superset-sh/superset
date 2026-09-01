@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import { errorMessage } from "@superset/i18n/errors";
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -18,7 +19,12 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import {
+	applyFolderTagChange,
+	mintFolderTag,
+} from "renderer/routes/_authenticated/utils/workspaceTagFolders";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -27,6 +33,11 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
 	/** Null for project-less "session" workspaces. */
 	projectId: string | null;
+	/**
+	 * Cloud rows are also project-less, so a null `projectId` alone does not
+	 * mean "session". Only sessions may be grouped by tag.
+	 */
+	isSessionWorkspace?: boolean;
 	workspaceName: string;
 	branch: string;
 	isMainWorkspace?: boolean;
@@ -36,6 +47,7 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 export function useDashboardSidebarWorkspaceItemActions({
 	workspaceId,
 	projectId,
+	isSessionWorkspace = false,
 	workspaceName,
 	branch,
 	isMainWorkspace = false,
@@ -56,6 +68,17 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
 	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const sessionGroupTags = new Set(
+		hostWorkspaces.flatMap((workspace) =>
+			workspace.projectId === null
+				? normalizeWorkspaceTags(workspace.tags)
+				: [],
+		),
+	);
+	const currentWorkspaceTags = normalizeWorkspaceTags(
+		hostWorkspaces.find((workspace) => workspace.id === workspaceId)?.tags,
+	);
 
 	const clearWorkspaceAttention = () => {
 		clearManualUnread(workspaceId);
@@ -132,11 +155,33 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		// Sessions get groups in the stacked nesting PR.
-		if (projectId === null) return;
+		if (projectId === null) {
+			if (!isSessionWorkspace) return;
+			const tag = mintFolderTag("New group", sessionGroupTags);
+			void workspaceActions.updateWorkspace(workspaceId, {
+				tags: applyFolderTagChange(currentWorkspaceTags, sessionGroupTags, tag),
+			});
+			requestSectionRename(`session:${tag}`);
+			return;
+		}
 		const sectionId = createSection(projectId);
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);
+	};
+
+	const handleMoveToSection = (sectionId: string | null) => {
+		if (projectId !== null) {
+			moveWorkspaceToSection(workspaceId, projectId, sectionId);
+			return;
+		}
+		if (!isSessionWorkspace) return;
+		void workspaceActions.updateWorkspace(workspaceId, {
+			tags: applyFolderTagChange(
+				currentWorkspaceTags,
+				sessionGroupTags,
+				sectionId,
+			),
+		});
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {
@@ -292,6 +337,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleCopyPath,
 		handleCopyBranchName,
 		handleCreateSection,
+		handleMoveToSection,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
 		handleRemovePullRequest,
@@ -300,7 +346,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 		isActive,
 		isRenaming,
 		isUnread,
-		moveWorkspaceToSection,
 		pendingName,
 		renameValue,
 		requestDelete,

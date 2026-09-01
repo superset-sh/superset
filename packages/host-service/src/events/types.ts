@@ -34,6 +34,18 @@ export interface AgentLifecycleMessage {
 	occurredAt: number;
 }
 
+/**
+ * Invalidation-only signal for host-owned agent bindings changed outside a
+ * lifecycle hook (for example, the sidebar's Clear Status action). This is
+ * intentionally separate from `agent:lifecycle`: consumers should refetch
+ * binding state without playing completion sounds or showing notifications.
+ */
+export interface AgentBindingsChangedMessage {
+	type: "agent:bindings-changed";
+	workspaceId: string;
+	occurredAt: number;
+}
+
 export interface TerminalLifecycleMessage {
 	type: "terminal:lifecycle";
 	workspaceId: string;
@@ -172,6 +184,7 @@ export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
 	| AgentLifecycleMessage
+	| AgentBindingsChangedMessage
 	| TerminalLifecycleMessage
 	| PortChangedMessage
 	| WorkspaceChangedMessage

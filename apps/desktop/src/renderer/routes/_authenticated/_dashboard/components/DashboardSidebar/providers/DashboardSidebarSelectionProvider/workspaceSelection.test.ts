@@ -9,6 +9,54 @@ import {
 const orderedWorkspaceIds = ["one", "two", "three", "four", "five"];
 
 describe("applyWorkspaceSelection", () => {
+	it("includes the active workspace on the first additive click", () => {
+		expect(
+			applyWorkspaceSelection(EMPTY_WORKSPACE_SELECTION, {
+				workspaceId: "four",
+				projectId: "project-a",
+				orderedWorkspaceIds,
+				mode: "toggle",
+				activeWorkspaceId: "two",
+			}),
+		).toEqual({
+			projectId: "project-a",
+			selectedIds: ["two", "four"],
+			anchorId: "four",
+		});
+	});
+
+	it("uses the active workspace as the first range anchor", () => {
+		expect(
+			applyWorkspaceSelection(EMPTY_WORKSPACE_SELECTION, {
+				workspaceId: "five",
+				projectId: "sessions",
+				orderedWorkspaceIds,
+				mode: "range",
+				activeWorkspaceId: "two",
+			}),
+		).toEqual({
+			projectId: "sessions",
+			selectedIds: ["two", "three", "four", "five"],
+			anchorId: "two",
+		});
+	});
+
+	it("ignores an active workspace outside the clicked lane", () => {
+		expect(
+			applyWorkspaceSelection(EMPTY_WORKSPACE_SELECTION, {
+				workspaceId: "three",
+				projectId: "project-a",
+				orderedWorkspaceIds,
+				mode: "toggle",
+				activeWorkspaceId: "different-project-workspace",
+			}),
+		).toEqual({
+			projectId: "project-a",
+			selectedIds: ["three"],
+			anchorId: "three",
+		});
+	});
+
 	it("starts a project-scoped selection", () => {
 		expect(
 			applyWorkspaceSelection(EMPTY_WORKSPACE_SELECTION, {

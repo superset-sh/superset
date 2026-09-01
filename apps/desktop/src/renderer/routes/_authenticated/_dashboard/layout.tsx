@@ -27,6 +27,7 @@ import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { syncPersistedStoreAcrossWindows } from "renderer/stores/syncPersistedStoreAcrossWindows";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
@@ -67,10 +68,14 @@ function DashboardLayout() {
 		const stopSectionCollapseSync = syncPersistedStoreAcrossWindows(
 			useSidebarSectionsCollapseStore,
 		);
+		const stopAgentStateSync = syncPersistedStoreAcrossWindows(
+			useV2NotificationStore,
+		);
 
 		return () => {
 			stopWorkspaceSidebarSync();
 			stopSectionCollapseSync();
+			stopAgentStateSync();
 		};
 	}, []);
 	// Get current workspace from route to pre-select project in new workspace modal

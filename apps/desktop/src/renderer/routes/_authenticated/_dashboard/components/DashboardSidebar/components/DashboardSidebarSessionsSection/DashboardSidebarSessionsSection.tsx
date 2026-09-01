@@ -4,6 +4,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useState } from "react";
 import { LuPlus } from "react-icons/lu";
 import { useOpenNewSessionModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
@@ -13,14 +14,23 @@ import {
 	SESSIONS_CONTAINER,
 	useDashboardSidebarDnd,
 } from "../../hooks/useSidebarDnd";
-import type { DashboardSidebarWorkspace } from "../../types";
+import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
+import type {
+	DashboardSidebarSessionTagGroup as DashboardSidebarSessionTagGroupData,
+	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceIndentation,
+} from "../../types";
 import { DashboardSidebarSectionHeader } from "../DashboardSidebarSectionHeader";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
+import { WorkspaceBulkMenuScope } from "../DashboardSidebarWorkspaceItem/components/WorkspaceBulkMenuScope";
 import { SidebarDropZone } from "../SidebarDropZone";
 import { SortableWorkspaceItem } from "../SortableWorkspaceItem";
+import { DashboardSidebarSessionTagGroup } from "./components/DashboardSidebarSessionTagGroup";
 
 interface DashboardSidebarSessionsSectionProps {
 	sessionWorkspaces: DashboardSidebarWorkspace[];
+	ungroupedWorkspaces: DashboardSidebarWorkspace[];
+	tagGroups: DashboardSidebarSessionTagGroupData[];
 	isCollapsed?: boolean;
 	workspaceShortcutLabels?: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
@@ -38,14 +48,21 @@ interface DashboardSidebarSessionsSectionProps {
  */
 export function DashboardSidebarSessionsSection({
 	sessionWorkspaces,
+	ungroupedWorkspaces,
+	tagGroups,
 	isCollapsed = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 }: DashboardSidebarSessionsSectionProps) {
 	const { t } = useLingui();
+	const [collapsedTagGroups, setCollapsedTagGroups] = useState<Set<string>>(
+		() => new Set(),
+	);
 	const openNewSessionModal = useOpenNewSessionModal();
-	const { sessionItems, workspacesById, activeWorkspaceHome } =
+	const { sessionItems, activeWorkspaceHome, workspacesById } =
 		useDashboardSidebarDnd();
+	const { isWorkspaceSelected, selectWorkspaceFromEvent } =
+		useDashboardSidebarSelection();
 	const isSectionCollapsed = useSidebarSectionsCollapseStore(
 		(s) => s.collapsed.sessions,
 	);
@@ -56,6 +73,59 @@ export function DashboardSidebarSessionsSection({
 		!isCollapsed &&
 		sessionItems.length === 0 &&
 		activeWorkspaceHome === SESSIONS_CONTAINER;
+	const sortableIdByWorkspaceId = new Map(
+		sessionItems.flatMap((id) => {
+			const parsed = parseId(id);
+			return parsed?.type === "workspace" ? [[parsed.realId, String(id)]] : [];
+		}),
+	);
+	const visibleSessionWorkspaces = [
+		...ungroupedWorkspaces,
+		...tagGroups.flatMap((group) =>
+			collapsedTagGroups.has(group.tag) ? [] : group.workspaces,
+		),
+	];
+	const orderedWorkspaceIds = visibleSessionWorkspaces
+		.filter((workspace) => workspace.pendingTransaction?.type !== "insert")
+		.map((workspace) => workspace.id);
+	const groupInfo = new Map(
+		tagGroups.flatMap((group) =>
+			group.workspaces.map(
+				(workspace) => [workspace.id, { sectionId: group.tag }] as const,
+			),
+		),
+	);
+	const renderWorkspace = (
+		workspace: DashboardSidebarWorkspace,
+		indentation: DashboardSidebarWorkspaceIndentation,
+		isInSection = false,
+	) => {
+		const sortableId = sortableIdByWorkspaceId.get(workspace.id);
+		if (!sortableId) return null;
+		const canBulkSelect = workspace.pendingTransaction?.type !== "insert";
+		return (
+			<SortableWorkspaceItem
+				key={workspace.id}
+				sortableId={sortableId}
+				workspace={workspace}
+				isInSection={isInSection}
+				indentation={indentation}
+				isSelected={canBulkSelect && isWorkspaceSelected(workspace.id)}
+				onSelectionClick={
+					canBulkSelect
+						? (event) =>
+								selectWorkspaceFromEvent(event, {
+									workspaceId: workspace.id,
+									projectId: "sessions",
+									orderedWorkspaceIds,
+								})
+						: undefined
+				}
+				shortcutLabel={workspaceShortcutLabels?.get(workspace.id)}
+				onHoverCardOpen={onWorkspaceHover}
+			/>
+		);
+	};
 
 	if (isCollapsed) {
 		if (sessionWorkspaces.length === 0) return null;
@@ -110,26 +180,39 @@ export function DashboardSidebarSessionsSection({
 				</Tooltip>
 			</DashboardSidebarSectionHeader>
 			{!isSectionCollapsed && (
-				<SortableContext
-					items={sessionItems}
-					strategy={verticalListSortingStrategy}
+				<WorkspaceBulkMenuScope
+					projectId={null}
+					workspacesById={workspacesById}
+					groupInfo={groupInfo}
 				>
-					{sessionItems.map((id) => {
-						const parsed = parseId(id);
-						if (!parsed || parsed.type !== "workspace") return null;
-						const workspace = workspacesById.get(parsed.realId);
-						if (!workspace) return null;
-						return (
-							<SortableWorkspaceItem
-								key={String(id)}
-								sortableId={String(id)}
-								workspace={workspace}
-								shortcutLabel={workspaceShortcutLabels?.get(parsed.realId)}
-								onHoverCardOpen={onWorkspaceHover}
-							/>
-						);
-					})}
-				</SortableContext>
+					<SortableContext
+						items={sessionItems}
+						strategy={verticalListSortingStrategy}
+					>
+						{ungroupedWorkspaces.map((workspace) =>
+							renderWorkspace(workspace, "top-level"),
+						)}
+						{tagGroups.map((group) => (
+							<DashboardSidebarSessionTagGroup
+								key={group.tag}
+								tag={group.tag}
+								isCollapsed={collapsedTagGroups.has(group.tag)}
+								onToggleCollapse={() =>
+									setCollapsedTagGroups((current) => {
+										const next = new Set(current);
+										if (next.has(group.tag)) next.delete(group.tag);
+										else next.add(group.tag);
+										return next;
+									})
+								}
+							>
+								{group.workspaces.map((workspace) =>
+									renderWorkspace(workspace, "workspace", true),
+								)}
+							</DashboardSidebarSessionTagGroup>
+						))}
+					</SortableContext>
+				</WorkspaceBulkMenuScope>
 			)}
 			{dropZoneEligible && (
 				<SidebarDropZone

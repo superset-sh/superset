@@ -145,6 +145,7 @@ export function DashboardSidebarCloudSection({
 					<DashboardSidebarWorkspaceItem
 						key={workspace.id}
 						workspace={workspace}
+						indentation="top-level"
 						onHoverCardOpen={onWorkspaceHover}
 					/>
 				))}

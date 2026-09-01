@@ -18,6 +18,33 @@ function createEventBus(): EventBus {
 	});
 }
 
+describe("EventBus agent binding events", () => {
+	it("broadcasts invalidation-only binding changes to every client", () => {
+		const eventBus = createEventBus();
+		const sentMessages: string[] = [];
+		const socket = {
+			readyState: 1,
+			send(data: string) {
+				sentMessages.push(data);
+			},
+			close() {},
+		};
+		eventBus.handleOpen(socket);
+
+		eventBus.broadcastAgentBindingsChanged({
+			workspaceId: "workspace-1",
+			occurredAt: 1_700_000_000_000,
+		});
+
+		expect(sentMessages).toHaveLength(1);
+		expect(JSON.parse(sentMessages[0] ?? "{}")).toEqual({
+			type: "agent:bindings-changed",
+			workspaceId: "workspace-1",
+			occurredAt: 1_700_000_000_000,
+		});
+	});
+});
+
 describe("EventBus port events", () => {
 	it("broadcasts port changes from the shared port manager and removes listeners on close", () => {
 		const eventBus = createEventBus();

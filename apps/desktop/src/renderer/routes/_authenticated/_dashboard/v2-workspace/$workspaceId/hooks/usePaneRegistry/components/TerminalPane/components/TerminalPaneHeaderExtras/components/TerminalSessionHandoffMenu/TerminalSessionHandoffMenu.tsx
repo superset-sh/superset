@@ -25,6 +25,8 @@ import { AgentSelect } from "renderer/components/AgentSelect";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
+import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
+import { resolveDefaultTargetConfigId } from "./resolveDefaultTargetConfigId";
 
 type Placement = "split-pane" | "new-tab";
 
@@ -79,6 +81,13 @@ export function TerminalSessionHandoffMenu({
 	const canFork = Boolean(
 		binding?.agentSessionId && sourceConfig?.forkArgs?.length,
 	);
+	const defaultTargetConfigId = resolveDefaultTargetConfigId(
+		configs.map((config) => config.id),
+		typeof window === "undefined"
+			? null
+			: window.localStorage.getItem(AGENT_STORAGE_KEY),
+		sourceConfig?.id,
+	);
 
 	// Fetched when the dialog opens rather than on Continue, so the size of
 	// what is about to be sent is on screen before the decision.
@@ -107,12 +116,8 @@ export function TerminalSessionHandoffMenu({
 
 	useEffect(() => {
 		if (action !== "handoff" || targetConfigId) return;
-		const defaultTarget =
-			configs.find((config) => config.id !== sourceConfig?.id) ??
-			sourceConfig ??
-			configs[0];
-		if (defaultTarget) setTargetConfigId(defaultTarget.id);
-	}, [action, configs, sourceConfig, targetConfigId]);
+		if (defaultTargetConfigId) setTargetConfigId(defaultTargetConfigId);
+	}, [action, defaultTargetConfigId, targetConfigId]);
 
 	if (!binding) return null;
 
@@ -121,11 +126,7 @@ export function TerminalSessionHandoffMenu({
 		setAction(nextAction);
 		setPlacement("split-pane");
 		if (nextAction === "handoff") {
-			const defaultTarget =
-				configs.find((config) => config.id !== sourceConfig?.id) ??
-				sourceConfig ??
-				configs[0];
-			setTargetConfigId(defaultTarget?.id ?? "");
+			setTargetConfigId(defaultTargetConfigId);
 		}
 	};
 

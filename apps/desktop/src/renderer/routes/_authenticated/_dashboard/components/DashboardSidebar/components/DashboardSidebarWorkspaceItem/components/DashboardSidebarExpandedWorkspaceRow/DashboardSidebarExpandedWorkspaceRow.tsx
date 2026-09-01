@@ -23,6 +23,7 @@ import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/R
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
+	DashboardSidebarWorkspaceIndentation,
 	DashboardSidebarWorkspacePullRequest,
 } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
@@ -65,6 +66,7 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
 	isInSection?: boolean;
+	indentation?: DashboardSidebarWorkspaceIndentation;
 	isBulkSelectable?: boolean;
 	isSelected?: boolean;
 	/** Present when rendered in the Pinned section: shows the project avatar. */
@@ -95,6 +97,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			diffStats,
 			workspaceStatus = null,
 			isInSection = false,
+			indentation,
 			isBulkSelectable = false,
 			isSelected = false,
 			pinnedContext,
@@ -113,6 +116,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		ref,
 	) => {
 		const { t } = useLingui();
+		const resolvedIndentation =
+			indentation ?? (isInSection ? "grouped" : "workspace");
 		const {
 			hostType,
 			hostIsOnline,
@@ -195,7 +200,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					onBlur={handleRowBlur}
 					className={cn(
 						"group relative flex h-7 w-full items-center pr-2",
-						isInSection ? "pl-10" : "pl-6",
+						resolvedIndentation === "top-level"
+							? "pl-2"
+							: resolvedIndentation === "grouped"
+								? "pl-10"
+								: "pl-6",
 						onClick && "cursor-pointer",
 					)}
 				>
@@ -485,6 +494,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					<DashboardSidebarWorkspaceChips
 						workspaceId={workspace.id}
 						isInSection={isInSection}
+						indentation={resolvedIndentation}
 						onClick={onWorkspaceChipsClick}
 					/>
 				)}

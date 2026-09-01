@@ -3,6 +3,7 @@ import type { MouseEventHandler } from "react";
 import { useDashboardSidebarWorkspacePorts } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
+import type { DashboardSidebarWorkspaceIndentation } from "../../../../../../types";
 import { DashboardSidebarAgentsChip } from "./components/DashboardSidebarAgentsChip";
 import { DashboardSidebarPortsChip } from "./components/DashboardSidebarPortsChip";
 import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardSidebarWorkspaceRunningAgents";
@@ -10,6 +11,7 @@ import { useDashboardSidebarWorkspaceRunningAgents } from "./hooks/useDashboardS
 interface DashboardSidebarWorkspaceChipsProps {
 	workspaceId: string;
 	isInSection?: boolean;
+	indentation?: DashboardSidebarWorkspaceIndentation;
 	/** Invoked when the strip itself (not one of its chips) is clicked. */
 	onClick?: MouseEventHandler<HTMLDivElement>;
 }
@@ -23,6 +25,7 @@ interface DashboardSidebarWorkspaceChipsProps {
 export function DashboardSidebarWorkspaceChips({
 	workspaceId,
 	isInSection = false,
+	indentation,
 	onClick,
 }: DashboardSidebarWorkspaceChipsProps) {
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
@@ -47,7 +50,11 @@ export function DashboardSidebarWorkspaceChips({
 		<div
 			className={cn(
 				"flex h-7 items-center gap-1 pr-2",
-				isInSection ? "pl-[50px]" : "pl-[42px]",
+				indentation === "top-level"
+					? "pl-[26px]"
+					: indentation === "grouped" || isInSection
+						? "pl-[50px]"
+						: "pl-[42px]",
 				onClick && "cursor-pointer",
 			)}
 			onMouseDown={(event) => event.stopPropagation()}

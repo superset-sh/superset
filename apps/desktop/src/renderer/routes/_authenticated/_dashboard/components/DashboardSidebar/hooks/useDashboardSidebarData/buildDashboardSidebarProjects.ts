@@ -1,3 +1,4 @@
+import { normalizeWorkspaceTags } from "@superset/shared/workspace-tags";
 import {
 	getProjectFolderTagIndex,
 	resolveWorkspaceSectionId,
@@ -10,6 +11,7 @@ import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 	DashboardSidebarSection,
+	DashboardSidebarSessions,
 	DashboardSidebarWorkspace,
 	DashboardSidebarWorkspaceType,
 } from "../../types";
@@ -191,17 +193,68 @@ export function buildDashboardSidebarSessionWorkspaces({
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
 }): DashboardSidebarWorkspace[] {
-	return sessionSidebarWorkspaces
+	return buildDashboardSidebarSessions({
+		sessionSidebarWorkspaces,
+		machineId,
+		pullRequestsByWorkspaceId,
+	}).orderedWorkspaces;
+}
+
+/**
+ * Builds the project-less Sessions lane without pretending sessions belong to
+ * a synthetic project. A multi-tag session chooses the alphabetically first
+ * normalized tag, giving it one deterministic home just like project folders
+ * choose one winning tag. Untagged sessions
+ * remain at the top and each lane preserves the user's tab order.
+ *
+ * `orderedWorkspaces` deliberately remains flat: Sessions is one persisted
+ * reorder/pin container in the DnD model, while `tagGroups` is presentation
+ * derived from host-owned tags.
+ */
+export function buildDashboardSidebarSessions({
+	sessionSidebarWorkspaces,
+	machineId,
+	pullRequestsByWorkspaceId,
+}: {
+	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
+	machineId: string;
+	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+}): DashboardSidebarSessions {
+	const sorted = sessionSidebarWorkspaces
 		.slice()
-		.sort((left, right) => left.tabOrder - right.tabOrder)
-		.map((workspace) =>
-			decorateSidebarWorkspace(
-				workspace,
-				{ githubOwner: null, githubRepoName: null },
-				machineId,
-				pullRequestsByWorkspaceId,
-			),
+		.sort(
+			(left, right) =>
+				left.tabOrder - right.tabOrder || left.id.localeCompare(right.id),
 		);
+	const ungroupedWorkspaces: DashboardSidebarWorkspace[] = [];
+	const groupsByTag = new Map<string, DashboardSidebarWorkspace[]>();
+
+	for (const workspace of sorted) {
+		const decorated = decorateSidebarWorkspace(
+			workspace,
+			{ githubOwner: null, githubRepoName: null },
+			machineId,
+			pullRequestsByWorkspaceId,
+		);
+		const tag = normalizeWorkspaceTags(workspace.tags)[0];
+		if (!tag) {
+			ungroupedWorkspaces.push(decorated);
+			continue;
+		}
+		const group = groupsByTag.get(tag) ?? [];
+		group.push(decorated);
+		groupsByTag.set(tag, group);
+	}
+
+	const tagGroups = [...groupsByTag.entries()]
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([tag, workspaces]) => ({ tag, workspaces }));
+	const orderedWorkspaces = [
+		...ungroupedWorkspaces,
+		...tagGroups.flatMap((group) => group.workspaces),
+	];
+
+	return { ungroupedWorkspaces, tagGroups, orderedWorkspaces };
 }
 
 export interface BuildDashboardSidebarProjectsParams {

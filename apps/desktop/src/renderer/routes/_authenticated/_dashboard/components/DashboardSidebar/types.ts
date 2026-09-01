@@ -7,6 +7,11 @@ export type DashboardSidebarWorkspaceHostType =
 
 export type DashboardSidebarWorkspaceType = "main" | "worktree" | "session";
 
+export type DashboardSidebarWorkspaceIndentation =
+	| "top-level"
+	| "workspace"
+	| "grouped";
+
 export interface DashboardSidebarWorkspacePullRequestCheck {
 	name: string;
 	status: "success" | "failure" | "pending" | "skipped" | "cancelled";
@@ -68,6 +73,20 @@ export interface DashboardSidebarSection {
 	tabOrder: number;
 	color: string | null;
 	workspaces: DashboardSidebarWorkspace[];
+}
+
+/** A derived Sessions lane. Sessions have no project-scoped folder settings,
+ * so the normalized workspace tag is both its identity and display name. */
+export interface DashboardSidebarSessionTagGroup {
+	tag: string;
+	workspaces: DashboardSidebarWorkspace[];
+}
+
+export interface DashboardSidebarSessions {
+	ungroupedWorkspaces: DashboardSidebarWorkspace[];
+	tagGroups: DashboardSidebarSessionTagGroup[];
+	/** Flat render order consumed by the existing single Sessions DnD lane. */
+	orderedWorkspaces: DashboardSidebarWorkspace[];
 }
 
 export type DashboardSidebarProjectChild =

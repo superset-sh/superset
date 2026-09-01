@@ -35,6 +35,7 @@ import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { jwksAdapter } from "./lib/cached-jwks";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { getActivationVariant } from "./lib/lifecycle";
 import { loadCustomSessionData } from "./lib/load-custom-session-data";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
@@ -296,10 +297,9 @@ export const auth = betterAuth({
 							.where(eq(authSchema.sessions.userId, user.id));
 					}
 
-					// Lifecycle emails ship to every signup. The A/B (experiment
-					// 387868) was retired inconclusive: at ~143 signups/day the
-					// diluted intent-to-treat effect would need years to resolve.
-					// Kill switch for the nudges is the Resend automation toggle.
+					// The welcome email is unconditional in BOTH arms. Gating it is
+					// what invalidated experiment 387868: a6beb048b changed the control
+					// condition mid-flight and the run became unreadable.
 					try {
 						const { error } = await resend.emails.send({
 							from: "Superset <noreply@superset.sh>",
@@ -320,18 +320,35 @@ export const auth = betterAuth({
 						);
 					}
 
-					try {
-						const { error } = await resend.events.send({
-							event: "user.signed_up",
-							email: user.email,
-							payload: { userId: user.id, name: user.name },
-						});
-						if (error) throw new Error(error.message);
-					} catch (error) {
-						console.error(
-							`[lifecycle] Failed to emit signup event for ${user.id}:`,
-							error,
-						);
+					// Only drip enrolment is randomised. Nothing differs between arms
+					// until the first nudge (>=23h after signup), so "not activated at
+					// 22h" stays a pre-treatment covariate and the analysis can restrict
+					// to it without selection bias. Kill switch for the nudges is still
+					// the Resend automation toggle.
+					//
+					// CAUTION: withholding this event withholds it from EVERY consumer,
+					// not just the activation drip. Safe today because activation-drip
+					// is the only automation in sync-automations.ts triggering on
+					// `user.signed_up` — but that script is create-only and Resend can
+					// hold automations it never defined, so check the live account
+					// before trusting that. A second consumer means splitting enrolment
+					// first: emit `user.signed_up` unconditionally and gate an
+					// activation-only event instead, or the control arm silently drops
+					// out of that campaign too.
+					if ((await getActivationVariant(user.id)) === "test") {
+						try {
+							const { error } = await resend.events.send({
+								event: "user.signed_up",
+								email: user.email,
+								payload: { userId: user.id, name: user.name },
+							});
+							if (error) throw new Error(error.message);
+						} catch (error) {
+							console.error(
+								`[lifecycle] Failed to emit signup event for ${user.id}:`,
+								error,
+							);
+						}
 					}
 				},
 			},

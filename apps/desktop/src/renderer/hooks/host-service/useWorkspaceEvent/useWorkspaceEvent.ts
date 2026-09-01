@@ -1,4 +1,5 @@
 import type {
+	AgentBindingsChangedPayload,
 	AgentLifecyclePayload,
 	GitChangedPayload,
 	PageWatchChangedPayload,
@@ -24,6 +25,12 @@ export function useWorkspaceEvent(
 	type: "fs:events",
 	workspaceId: string,
 	callback: (event: FsWatchEvent) => void,
+	enabled?: boolean,
+): void;
+export function useWorkspaceEvent(
+	type: "agent:bindings-changed",
+	workspaceId: string,
+	callback: (payload: AgentBindingsChangedPayload) => void,
 	enabled?: boolean,
 ): void;
 export function useWorkspaceEvent(
@@ -55,6 +62,7 @@ export function useWorkspaceEvent(
 		| "git:changed"
 		| "fs:events"
 		| "agent:lifecycle"
+		| "agent:bindings-changed"
 		| "terminal:lifecycle"
 		| "port:changed"
 		| "page-watch:changed",
@@ -63,6 +71,7 @@ export function useWorkspaceEvent(
 		| ((event: FsWatchEvent) => void)
 		| ((payload: GitChangedPayload) => void)
 		| ((payload: AgentLifecyclePayload) => void)
+		| ((payload: AgentBindingsChangedPayload) => void)
 		| ((payload: TerminalLifecyclePayload) => void)
 		| ((payload: PortChangedPayload) => void)
 		| ((payload: PageWatchChangedPayload) => void),
@@ -89,6 +98,15 @@ export function useWorkspaceEvent(
 				},
 			);
 			cleanups.push(removeListener, () => bus.unwatchFs(workspaceId));
+		} else if (type === "agent:bindings-changed") {
+			const removeListener = bus.on(
+				"agent:bindings-changed",
+				workspaceId,
+				(_wid, payload) => {
+					(handler as (payload: AgentBindingsChangedPayload) => void)(payload);
+				},
+			);
+			cleanups.push(removeListener);
 		} else if (type === "agent:lifecycle") {
 			const removeListener = bus.on(
 				"agent:lifecycle",

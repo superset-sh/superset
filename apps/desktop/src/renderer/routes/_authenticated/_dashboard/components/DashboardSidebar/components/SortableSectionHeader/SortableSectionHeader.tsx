@@ -5,13 +5,14 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { parseSidebarFolderKey } from "renderer/routes/_authenticated/utils/workspaceTagFolders";
+import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import type { DashboardSidebarSection } from "../../types";
+import { DashboardSidebarGroupHeader } from "../DashboardSidebarGroupHeader";
 import {
 	DashboardSidebarSectionActionsDropdown,
 	DashboardSidebarSectionContextMenu,
 } from "../DashboardSidebarSection/components/DashboardSidebarSectionContextMenu";
-import { DashboardSidebarSectionHeader } from "../DashboardSidebarSection/components/DashboardSidebarSectionHeader";
 
 interface SortableSectionHeaderProps {
 	sortableId: string;
@@ -96,16 +97,26 @@ export function SortableSectionHeader({
 				onDelete={() => onDelete(section.id)}
 				onHide={onHide}
 			>
-				<DashboardSidebarSectionHeader
-					section={section}
-					isRenaming={isRenaming}
-					renameValue={renameValue}
-					onRenameValueChange={setRenameValue}
-					onSubmitRename={handleSubmitRename}
-					onCancelRename={() => {
-						setRenameValue(section.name);
-						setIsRenaming(false);
-					}}
+				<DashboardSidebarGroupHeader
+					label={
+						isRenaming ? (
+							<RenameInput
+								value={renameValue}
+								onChange={setRenameValue}
+								onSubmit={handleSubmitRename}
+								onCancel={() => {
+									setRenameValue(section.name);
+									setIsRenaming(false);
+								}}
+								className="-ml-1 h-5 w-full min-w-0 border-none bg-transparent px-1 py-0 text-[13px] font-medium text-muted-foreground outline-none"
+							/>
+						) : (
+							<span className="truncate">{section.name}</span>
+						)
+					}
+					isCollapsed={section.isCollapsed}
+					isEditing={isRenaming}
+					isDraggable
 					onToggleCollapse={() => onToggleCollapse(section.id)}
 					actions={
 						<DashboardSidebarSectionActionsDropdown

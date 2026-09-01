@@ -28,7 +28,7 @@ import type {
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
-	buildDashboardSidebarSessionWorkspaces,
+	buildDashboardSidebarSessions,
 	partitionSidebarWorkspacesByPinned,
 } from "./buildDashboardSidebarProjects";
 import {
@@ -539,16 +539,17 @@ export function useDashboardSidebarData() {
 	);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 
-	const computedSessionWorkspaces = useMemo<DashboardSidebarWorkspace[]>(
+	const computedSessions = useMemo(
 		() =>
-			buildDashboardSidebarSessionWorkspaces({
+			buildDashboardSidebarSessions({
 				sessionSidebarWorkspaces: sessionRows,
 				machineId,
 				pullRequestsByWorkspaceId,
 			}),
 		[machineId, pullRequestsByWorkspaceId, sessionRows],
 	);
-	const sessionWorkspaces = useJsonStable(computedSessionWorkspaces);
+	const sessions = useJsonStable(computedSessions);
+	const sessionWorkspaces = sessions.orderedWorkspaces;
 
 	const computedPinnedWorkspaces = useMemo<DashboardSidebarPinnedWorkspace[]>(
 		() =>
@@ -566,6 +567,8 @@ export function useDashboardSidebarData() {
 		groups,
 		pinnedWorkspaces,
 		sessionWorkspaces,
+		sessionTagGroups: sessions.tagGroups,
+		ungroupedSessionWorkspaces: sessions.ungroupedWorkspaces,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

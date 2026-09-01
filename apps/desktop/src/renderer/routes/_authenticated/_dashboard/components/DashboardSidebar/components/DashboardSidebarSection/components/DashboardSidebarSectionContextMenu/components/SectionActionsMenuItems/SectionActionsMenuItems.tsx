@@ -102,7 +102,7 @@ export function SectionActionsMenuItems({
 
 		return renderItem({
 			key: projectColor.value,
-			onSelect: () => onSetColor(isDefault ? null : projectColor.value),
+			onSelect: () => onSetColor?.(isDefault ? null : projectColor.value),
 			children: (
 				<>
 					<span
@@ -145,21 +145,21 @@ export function SectionActionsMenuItems({
 					</>
 				),
 			})}
-			{kind === "context" ? (
+			{onSetColor && kind === "context" ? (
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>{colorTrigger}</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						{colorItems}
 					</ContextMenuSubContent>
 				</ContextMenuSub>
-			) : (
+			) : onSetColor ? (
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>{colorTrigger}</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-40 max-h-80 overflow-y-auto">
 						{colorItems}
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
-			)}
+			) : null}
 			{onHide
 				? renderItem({
 						onSelect: onHide,

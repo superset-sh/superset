@@ -3,8 +3,8 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 @theme {
-	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+	--font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+	--font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
 
 @theme inline {
@@ -153,7 +153,7 @@
 	border-radius: 0.25rem;
 	font-size: 0.875em;
 	color: rgb(255 255 255 / 0.9);
-	font-family: var(--font-family-mono);
+	font-family: var(--font-mono);
 }
 
 .prose code::before,
@@ -168,7 +168,7 @@
 	padding: 1rem;
 	overflow-x: auto;
 	color: rgb(255 255 255 / 0.85);
-	font-family: var(--font-family-mono);
+	font-family: var(--font-mono);
 	font-size: 0.875rem;
 	line-height: 1.7;
 }

@@ -91,6 +91,7 @@ export function DashboardSidebarPinnedSection({
 								key={String(id)}
 								sortableId={String(id)}
 								workspace={workspace}
+								indentation="top-level"
 								pinnedContext={{
 									projectName: project?.name ?? null,
 									projectIconUrl: project?.iconUrl ?? null,

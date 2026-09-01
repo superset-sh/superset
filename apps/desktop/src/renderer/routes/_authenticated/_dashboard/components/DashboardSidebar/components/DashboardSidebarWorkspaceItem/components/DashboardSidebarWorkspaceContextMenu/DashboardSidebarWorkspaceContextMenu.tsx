@@ -36,8 +36,13 @@ import { useDashboardSidebarWorkspacePorts } from "../../../../providers/Dashboa
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
-	/** Null for project-less "session" workspaces (no group actions yet). */
+	/** Null for project-less session workspaces. */
 	projectId: string | null;
+	/**
+	 * Cloud rows are project-less too, so a null `projectId` alone does not mean
+	 * "session". Only sessions and project workspaces can join a group.
+	 */
+	isSessionWorkspace?: boolean;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isLocalMainWorkspace?: boolean;
@@ -64,6 +69,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 export function DashboardSidebarWorkspaceContextMenu({
 	workspaceId,
 	projectId,
+	isSessionWorkspace = false,
 	isInSection,
 	isLocalWorkspace,
 	isLocalMainWorkspace = false,
@@ -97,6 +103,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	// The derived union — a tag-only folder with no stored row is a valid
 	// move target.
 	const { sections } = useProjectTagFolderSections(projectId);
+	const canJoinGroup = projectId !== null || isSessionWorkspace;
 	const handleCloseAllPorts = () => {
 		if (isKillingPorts) return;
 		void killPorts(ports);
@@ -185,8 +192,10 @@ export function DashboardSidebarWorkspaceContextMenu({
 					</ContextMenuItem>
 				)}
 				{/* Group actions mutate placement (sectionId/tabOrder), which a pinned
-				    row doesn't display — the change would only surface on unpin. */}
-				{!isPinned && !isLocalMainWorkspace && projectId !== null && (
+				    row doesn't display — the change would only surface on unpin.
+				    Cloud rows are project-less but ungroupable: they stay in the Cloud
+				    section, so grouping them would write tags with nothing to show. */}
+				{!isPinned && !isLocalMainWorkspace && canJoinGroup && (
 					<>
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onCreateSection}>

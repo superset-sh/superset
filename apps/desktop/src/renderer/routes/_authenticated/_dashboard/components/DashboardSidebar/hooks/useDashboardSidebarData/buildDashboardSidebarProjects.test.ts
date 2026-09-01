@@ -7,6 +7,7 @@ import {
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
+	buildDashboardSidebarSessions,
 	buildDashboardSidebarSessionWorkspaces,
 	partitionSidebarWorkspacesByPinned,
 	type SidebarProjectInput,
@@ -285,6 +286,61 @@ describe("sessions (null projectId)", () => {
 		expect(rows[0].projectId).toBeNull();
 		expect(rows[0].repoUrl).toBeNull();
 		expect(rows[0].branchExistsOnRemote).toBe(false);
+	});
+
+	it("groups sessions by their normalized tag and leaves untagged rows above groups", () => {
+		const sessions = buildDashboardSidebarSessions({
+			sessionSidebarWorkspaces: [
+				makeWorkspace({
+					id: "tagged-late",
+					projectId: null,
+					type: "session",
+					tabOrder: 4,
+					tags: ["Zeta"],
+				}),
+				makeWorkspace({
+					id: "untagged",
+					projectId: null,
+					type: "session",
+					tabOrder: 3,
+					tags: [],
+				}),
+				makeWorkspace({
+					id: "multi-tag",
+					projectId: null,
+					type: "session",
+					tabOrder: 2,
+					tags: ["zeta", " Alpha "],
+				}),
+				makeWorkspace({
+					id: "tagged-early",
+					projectId: null,
+					type: "session",
+					tabOrder: 1,
+					tags: ["ZETA"],
+				}),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(sessions.ungroupedWorkspaces.map((row) => row.id)).toEqual([
+			"untagged",
+		]);
+		expect(sessions.tagGroups.map((group) => group.tag)).toEqual([
+			"alpha",
+			"zeta",
+		]);
+		expect(sessions.tagGroups[1].workspaces.map((row) => row.id)).toEqual([
+			"tagged-early",
+			"tagged-late",
+		]);
+		expect(sessions.orderedWorkspaces.map((row) => row.id)).toEqual([
+			"untagged",
+			"multi-tag",
+			"tagged-early",
+			"tagged-late",
+		]);
 	});
 
 	it("keeps a pinned session in the Pinned section with null project identity", () => {
