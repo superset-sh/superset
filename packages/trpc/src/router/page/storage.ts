@@ -27,16 +27,10 @@ const SERVED_TICKET_WINDOW_SECONDS = 60 * 60;
 const VERSION_TICKET_WINDOW_SECONDS = 24 * 60 * 60;
 
 export function usercontentBaseUrl(): string {
-	if (!env.USERCONTENT_URL) {
-		throw new Error("Usercontent origin is not configured");
-	}
 	return env.USERCONTENT_URL;
 }
 
 function ticketSecret(): string {
-	if (!env.USERCONTENT_TOKEN_SECRET) {
-		throw new Error("Usercontent origin is not configured");
-	}
 	return env.USERCONTENT_TOKEN_SECRET;
 }
 
