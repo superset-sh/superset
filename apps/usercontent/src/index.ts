@@ -7,6 +7,7 @@ import {
 	injectScriptTag,
 	type PageManifest,
 	type PageTicketClaims,
+	pageAssetResponsePolicy,
 	pageContentSecurityPolicy,
 	pageIdFromHost,
 	pageManifestKey,
@@ -328,8 +329,19 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 					Math.min(auth.exp - Math.floor(Date.now() / 1000), 86400),
 				)}, immutable`;
 	const isHtml = asset.contentType.startsWith("text/html");
+	// Everything that is not the page's own document gets a policy of its own:
+	// without one an SVG navigated to directly ran as a top-level document with
+	// no CSP at all, reaching any host the page's CSP would have denied.
+	const policy = isHtml
+		? null
+		: pageAssetResponsePolicy({
+				contentType: asset.contentType,
+				fetchDest: c.req.header("sec-fetch-dest"),
+			});
 	const headers = new Headers({
-		"Content-Type": isHtml ? "text/html; charset=utf-8" : asset.contentType,
+		"Content-Type": isHtml
+			? "text/html; charset=utf-8"
+			: (policy?.contentType ?? asset.contentType),
 		"Superset-Storage-Key": asset.key,
 		"X-Content-Type-Options": "nosniff",
 		"Referrer-Policy": "no-referrer",
@@ -346,6 +358,14 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 			),
 		);
 		headers.set("Origin-Agent-Cluster", "?1");
+	} else if (policy) {
+		headers.set("Content-Security-Policy", FILE_CONTENT_SECURITY_POLICY);
+		if (policy.disposition === "attachment") {
+			headers.set(
+				"Content-Disposition",
+				contentDisposition("attachment", assetPath.split("/").pop() || "file"),
+			);
+		}
 	}
 
 	const range = parseRange(c.req.header("range"));

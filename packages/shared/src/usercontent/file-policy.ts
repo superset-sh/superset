@@ -61,3 +61,41 @@ export function fileResponsePolicy({
 		disposition: "attachment",
 	};
 }
+
+/**
+ * What a browser may do with a file published alongside a page's document, on
+ * the page's own origin.
+ *
+ * This differs from `fileResponsePolicy` in the one way that matters: a page
+ * legitimately serves its own stylesheets and scripts as subresources, so
+ * those stay inline where the media route would download them. What a page
+ * asset must never do is run as a top-level document outside the page's own
+ * policy. An SVG is a document with script the moment it is navigated to, and
+ * without this it was served with no policy at all — script, `fetch` and
+ * `sendBeacon` all reaching any host, which is precisely the network access
+ * the page's own CSP exists to deny.
+ */
+export function pageAssetResponsePolicy({
+	contentType,
+	fetchDest,
+}: {
+	contentType: string;
+	fetchDest: string | undefined;
+}): FileResponsePolicy {
+	const type = (contentType.split(";")[0] ?? "").trim().toLowerCase();
+
+	if (type === "image/svg+xml") {
+		// Renders in an <img>; downloads when navigated to.
+		return {
+			contentType: type,
+			disposition: fetchDest === "image" ? "inline" : "attachment",
+		};
+	}
+	if (SCRIPTABLE.has(type)) {
+		return { contentType: type, disposition: "attachment" };
+	}
+	return {
+		contentType: type || "application/octet-stream",
+		disposition: "inline",
+	};
+}

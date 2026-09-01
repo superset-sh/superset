@@ -3,6 +3,7 @@ export {
 	FILE_CONTENT_SECURITY_POLICY,
 	type FileResponsePolicy,
 	fileResponsePolicy,
+	pageAssetResponsePolicy,
 } from "./file-policy";
 export { injectScriptTag, RUNTIME_SCRIPT_PATH } from "./inject";
 export {
