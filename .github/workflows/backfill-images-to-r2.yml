@@ -28,11 +28,20 @@ concurrency:
   group: backfill-images-to-r2
   cancel-in-progress: false
 
+# Checkout is all the token is for. The job runs with production database and
+# R2 credentials in its environment, so it should not also hold a token that
+# can write to the repository.
+permissions:
+  contents: read
+
 jobs:
   backfill:
     name: Backfill images
     runs-on: ubuntu-latest
     environment: production
+    # Neither the per-object fetch nor the R2 writes set a timeout, so one hung
+    # connection would otherwise hold the runner for GitHub's six-hour default.
+    timeout-minutes: 60
 
     steps:
       - name: Require confirmation to write
@@ -43,6 +52,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -50,7 +61,11 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        # Matches every other workflow here. sharp declares an install script,
+        # but it only checks for a prebuilt binary and falls back to building
+        # from source; the lockfile carries @img/sharp-linux-x64, so the check
+        # has nothing to do on this runner.
+        run: bun install --frozen --ignore-scripts
 
       - name: Run backfill (${{ inputs.mode }})
         env:
