@@ -3,7 +3,6 @@ import { env } from "../env";
 import { userError } from "../i18n-error";
 import { deleteObjects, putObject } from "./r2";
 
-const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
 const MAX_SIZE_MB = 4.5;
 
 /**
@@ -50,12 +49,16 @@ function objectKeysFor(pathname: string): string[] {
  * cached there. `format=auto` negotiates AVIF or WebP per request, so the
  * stored URL does not pin a format the requesting browser may not support.
  *
+ * `fit=crop` rather than `cover`: both fill the square, but crop never
+ * upscales, which is what sharp's `withoutEnlargement` did. A 48px avatar
+ * stays 48px instead of being blown up to a soft 256.
+ *
  * Requires Images > Transformations to be enabled on the supersetusercontent
  * zone; without it the edge does not intercept `/cdn-cgi/image/` and the
  * request falls through to R2, which has no such key.
  */
 export function imageUrlFor(pathname: string): string {
-	const options = `width=${CANONICAL_WIDTH},height=${CANONICAL_WIDTH},fit=cover,format=auto`;
+	const options = `width=${CANONICAL_WIDTH},height=${CANONICAL_WIDTH},fit=crop,format=auto`;
 	return `${staticBaseUrl()}/cdn-cgi/image/${options}/${originalKey(pathname)}`;
 }
 
@@ -93,26 +96,43 @@ function sniffImageType(buffer: Buffer): string | null {
 	return null;
 }
 
+/**
+ * Whether the file ends the way its format says it should. Decoding used to
+ * catch a truncated upload; this catches the same case — the common one, where
+ * a transfer stopped early — without a decoder. It is deliberately not a
+ * validity check: bytes corrupted in the middle still pass here and fail later
+ * at the edge.
+ */
+function looksComplete(buffer: Buffer, contentType: string): boolean {
+	if (contentType === "image/png") {
+		const iend = Buffer.from([0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82]);
+		return buffer.length >= 8 && buffer.subarray(-8).equals(iend);
+	}
+	if (contentType === "image/jpeg") {
+		return (
+			buffer.length >= 2 &&
+			buffer[buffer.length - 2] === 0xff &&
+			buffer[buffer.length - 1] === 0xd9
+		);
+	}
+	if (contentType === "image/webp") {
+		// RIFF records the payload length in bytes 4..8; the file is that plus
+		// the 8 bytes of header.
+		return buffer.length >= 12 && buffer.readUInt32LE(4) + 8 === buffer.length;
+	}
+	return true;
+}
+
 export async function uploadImage({
 	fileData,
-	mimeType,
 	pathname,
 	existingUrl,
 }: {
 	fileData: string;
-	mimeType: string;
 	pathname: string;
 	/** The row's current URL, reclaimed once the new object is up. */
 	existingUrl: string | null;
 }) {
-	if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
-		throw userError({
-			code: "BAD_REQUEST",
-			message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
-			i18nKey: "serverError.upload.invalidImageTypeOnlyPngJpeg",
-		});
-	}
-
 	const base64Data = fileData.includes("base64,")
 		? fileData.split("base64,")[1] || fileData
 		: fileData;
@@ -126,8 +146,11 @@ export async function uploadImage({
 		});
 	}
 
+	// The bytes decide, not the Content-Type the client sent: the sniff is
+	// strictly the stronger check, and consulting the header as well only adds
+	// a way to reject a valid image that a browser happened to mislabel.
 	const contentType = sniffImageType(buffer);
-	if (!contentType) {
+	if (!contentType || !looksComplete(buffer, contentType)) {
 		throw userError({
 			code: "BAD_REQUEST",
 			message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
@@ -201,12 +224,7 @@ async function reclaim({
 	await deleteObjects(objectKeysFor(previous), { bucket: "public" });
 }
 
-export function generateImagePathname({
-	prefix,
-}: {
-	prefix: string;
-	mimeType?: string;
-}) {
+export function generateImagePathname({ prefix }: { prefix: string }) {
 	// No extension: the key is a folder holding the uploaded bytes, and the
 	// stored URL describes the rendition asked of them.
 	const randomId = Math.random().toString(36).substring(2, 15);
