@@ -163,10 +163,8 @@ Three traps worth knowing before you touch catalogs:
 - `.agents/skills/`: CDP UI verification, DB migrations, ticket format, and more. Read the matching
   `SKILL.md` when a task fits its description.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
-- `docs/environment-variables.md`: read before adding an environment variable. It has to
-  land in six places — schema, both templates, the root `.env` every worktree is copied
-  from, and both deploy workflows — and missing one usually fails silently or somewhere
-  far from the change.
+- `docs/environment-variables.md`: read before adding an environment variable. Five places,
+  and missing one fails silently.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
 - `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the
