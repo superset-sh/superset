@@ -104,3 +104,34 @@ describe("pageAssetResponsePolicy", () => {
 		expect(policy("", "image").contentType).toBe("application/octet-stream");
 	});
 });
+
+describe("varyOnFetchDest", () => {
+	test("SVG varies, because its disposition is chosen from the fetch dest", () => {
+		// Without Vary a shared cache hands a navigation the variant it stored
+		// for an <img>, which quietly undoes the download guard.
+		expect(
+			pageAssetResponsePolicy({
+				contentType: "image/svg+xml",
+				fetchDest: "image",
+			}).varyOnFetchDest,
+		).toBe(true);
+		expect(
+			fileResponsePolicy({ contentType: "image/svg+xml", fetchDest: "image" })
+				.varyOnFetchDest,
+		).toBe(true);
+	});
+
+	test("types with a fixed disposition do not vary", () => {
+		for (const type of [
+			"image/png",
+			"text/css",
+			"text/html",
+			"application/pdf",
+		]) {
+			expect(
+				pageAssetResponsePolicy({ contentType: type, fetchDest: "document" })
+					.varyOnFetchDest,
+			).toBe(false);
+		}
+	});
+});

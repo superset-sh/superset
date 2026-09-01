@@ -260,6 +260,7 @@ async function serveFile(c: Context<AppContext>): Promise<Response> {
 		"Content-Type": policy.contentType,
 		"Content-Disposition": contentDisposition(policy.disposition, filename),
 		"Content-Security-Policy": FILE_CONTENT_SECURITY_POLICY,
+		...(policy.varyOnFetchDest ? { Vary: "Sec-Fetch-Dest" } : {}),
 		"Superset-Storage-Key": key,
 		"X-Content-Type-Options": "nosniff",
 		"Referrer-Policy": "no-referrer",
@@ -360,6 +361,7 @@ async function serveAsset(c: Context<AppContext>): Promise<Response> {
 		headers.set("Origin-Agent-Cluster", "?1");
 	} else if (policy) {
 		headers.set("Content-Security-Policy", FILE_CONTENT_SECURITY_POLICY);
+		if (policy.varyOnFetchDest) headers.set("Vary", "Sec-Fetch-Dest");
 		if (policy.disposition === "attachment") {
 			headers.set(
 				"Content-Disposition",

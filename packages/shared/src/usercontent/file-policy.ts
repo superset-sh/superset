@@ -9,6 +9,13 @@
 export interface FileResponsePolicy {
 	contentType: string;
 	disposition: "inline" | "attachment";
+	/**
+	 * The disposition was chosen from `Sec-Fetch-Dest`, so the response is not
+	 * interchangeable between contexts. Callers must send `Vary: Sec-Fetch-Dest`
+	 * or a shared HTTP cache will hand a navigation the variant it stored for an
+	 * `<img>` — which is the whole guard, undone by the cache.
+	 */
+	varyOnFetchDest: boolean;
 }
 
 const SCRIPTABLE = new Set([
@@ -40,7 +47,11 @@ export function fileResponsePolicy({
 	const type = (contentType.split(";")[0] ?? "").trim().toLowerCase();
 
 	if (SCRIPTABLE.has(type)) {
-		return { contentType: type, disposition: "attachment" };
+		return {
+			contentType: type,
+			disposition: "attachment",
+			varyOnFetchDest: false,
+		};
 	}
 	if (type === "image/svg+xml") {
 		// Renders in an <img>, downloads when navigated to: an SVG is a
@@ -48,17 +59,19 @@ export function fileResponsePolicy({
 		return {
 			contentType: type,
 			disposition: fetchDest === "image" ? "inline" : "attachment",
+			varyOnFetchDest: true,
 		};
 	}
 	if (
 		INLINE_TYPES.has(type) ||
 		INLINE_PREFIXES.some((prefix) => type.startsWith(prefix))
 	) {
-		return { contentType: type, disposition: "inline" };
+		return { contentType: type, disposition: "inline", varyOnFetchDest: false };
 	}
 	return {
 		contentType: type || "application/octet-stream",
 		disposition: "attachment",
+		varyOnFetchDest: false,
 	};
 }
 
@@ -89,13 +102,19 @@ export function pageAssetResponsePolicy({
 		return {
 			contentType: type,
 			disposition: fetchDest === "image" ? "inline" : "attachment",
+			varyOnFetchDest: true,
 		};
 	}
 	if (SCRIPTABLE.has(type)) {
-		return { contentType: type, disposition: "attachment" };
+		return {
+			contentType: type,
+			disposition: "attachment",
+			varyOnFetchDest: false,
+		};
 	}
 	return {
 		contentType: type || "application/octet-stream",
 		disposition: "inline",
+		varyOnFetchDest: false,
 	};
 }
