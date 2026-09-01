@@ -323,9 +323,16 @@ export const auth = betterAuth({
 					// Only drip enrolment is randomised. Nothing differs between arms
 					// until the first nudge (>=23h after signup), so "not activated at
 					// 22h" stays a pre-treatment covariate and the analysis can restrict
-					// to it without selection bias — the undiluted effect needs ~3.2k per
-					// arm rather than ~80k. Kill switch for the nudges is still the
-					// Resend automation toggle.
+					// to it without selection bias. Kill switch for the nudges is still
+					// the Resend automation toggle.
+					//
+					// CAUTION: `user.signed_up` triggers BOTH activation-drip and
+					// habit-drip, so withholding it withholds both. That is only safe
+					// while habit-drip stays disabled. Before re-arming habit-drip with
+					// this flag on, split enrolment into its own event (emit
+					// `user.signed_up` unconditionally, add an activation-only event and
+					// repoint activation-drip's trigger at it in sync-automations.ts),
+					// or control users silently drop out of the habit campaign too.
 					if ((await getActivationVariant(user.id)) === "test") {
 						try {
 							const { error } = await resend.events.send({

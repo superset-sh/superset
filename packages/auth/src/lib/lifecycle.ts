@@ -8,6 +8,9 @@ const posthog = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	host: env.NEXT_PUBLIC_POSTHOG_HOST,
 	flushAt: 1,
 	flushInterval: 0,
+	// This is awaited inside the signup hook, and the SDK default is 10s — long
+	// enough that a slow PostHog would stall signup rather than fail open.
+	requestTimeout: 3000,
 });
 
 /**
