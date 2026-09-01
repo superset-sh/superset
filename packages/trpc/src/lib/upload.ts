@@ -85,23 +85,32 @@ export async function putImageVariants({
 		});
 	}
 
-	try {
-		await Promise.all(
-			rendered.map(({ name, body }) =>
-				putObject({
-					key: `${pathname}/${name}.webp`,
-					body,
-					contentType: "image/webp",
-					bucket: "public",
-					cacheControl: CACHE_CONTROL,
-				}),
-			),
-		);
-	} catch (error) {
+	// Every write is allowed to settle before cleanup runs: aborting on the
+	// first rejection would let a slower PUT land after the delete and leave
+	// exactly the orphan the cleanup exists to prevent.
+	const writes = await Promise.allSettled(
+		rendered.map(({ name, body }) =>
+			putObject({
+				key: `${pathname}/${name}.webp`,
+				body,
+				contentType: "image/webp",
+				bucket: "public",
+				cacheControl: CACHE_CONTROL,
+			}),
+		),
+	);
+	const failure = writes.find(
+		(write): write is PromiseRejectedResult => write.status === "rejected",
+	);
+	if (failure) {
 		await deleteObjects(variantKeys(pathname), { bucket: "public" }).catch(
-			() => {},
+			(error) =>
+				console.error(
+					`[upload] variants left behind at ${pathname} after a failed write`,
+					error,
+				),
 		);
-		throw error;
+		throw failure.reason;
 	}
 
 	return imageUrlFor(pathname);

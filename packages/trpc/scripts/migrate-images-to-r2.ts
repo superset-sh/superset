@@ -18,14 +18,23 @@
 import { db } from "@superset/db/client";
 import { organizations, users } from "@superset/db/schema";
 import { and, eq, like } from "drizzle-orm";
+import sharp from "sharp";
+import { deleteObjects } from "../src/lib/r2";
 import {
 	generateImagePathname,
 	imageUrlFor,
 	putImageVariants,
+	variantKeys,
 } from "../src/lib/upload";
 
 const DRY_RUN = process.argv.includes("--dry-run");
-const BLOB_SUFFIX = ".public.blob.vercel-storage.com";
+
+/**
+ * Our one Vercel Blob store, matched exactly rather than by suffix: every
+ * Vercel customer's objects share the `.blob.vercel-storage.com` parent, so a
+ * suffix test would happily rehost somebody else's URL that landed in a row.
+ */
+const BLOB_HOST = "ka6mxqeko8bmbqtb.public.blob.vercel-storage.com";
 const BLOB_LIKE = "%blob.vercel-storage%";
 
 /**
@@ -40,14 +49,12 @@ function isOurBlobUrl(raw: string): boolean {
 	} catch {
 		return false;
 	}
-	return (
-		url.protocol === "https:" &&
-		(url.hostname === BLOB_SUFFIX.slice(1) ||
-			url.hostname.endsWith(BLOB_SUFFIX))
-	);
+	return url.protocol === "https:" && url.hostname === BLOB_HOST;
 }
 
-async function rehost(url: string, prefix: string): Promise<string | null> {
+type Rehosted = { url: string; pathname: string };
+
+async function rehost(url: string, prefix: string): Promise<Rehosted | null> {
 	if (!isOurBlobUrl(url)) {
 		console.warn(`  ! not a Vercel Blob URL, skipped: ${url}`);
 		return null;
@@ -59,8 +66,25 @@ async function rehost(url: string, prefix: string): Promise<string | null> {
 	}
 	const buffer = Buffer.from(await response.arrayBuffer());
 	const pathname = generateImagePathname({ prefix });
-	if (DRY_RUN) return imageUrlFor(pathname);
-	return await putImageVariants({ buffer, pathname });
+	if (DRY_RUN) {
+		// Decode without writing, so an object we cannot read is counted here
+		// rather than discovered halfway through the real run.
+		await sharp(buffer).metadata();
+		return { url: imageUrlFor(pathname), pathname };
+	}
+	return { url: await putImageVariants({ buffer, pathname }), pathname };
+}
+
+/**
+ * Removes the variants written for a row that then moved out from under us.
+ * Without this, every skipped or failed row leaves two unreferenced objects
+ * in the public bucket that nothing will ever look for again.
+ */
+async function discard(pathname: string): Promise<void> {
+	if (DRY_RUN) return;
+	await deleteObjects(variantKeys(pathname), { bucket: "public" }).catch(
+		(error) => console.warn(`  ! orphaned variants at ${pathname}`, error),
+	);
 }
 
 let moved = 0;
@@ -74,9 +98,10 @@ const userRows = await db
 console.log(`users on Vercel Blob: ${userRows.length}`);
 for (const row of userRows) {
 	if (!row.image) continue;
+	let written: Rehosted | null = null;
 	try {
-		const next = await rehost(row.image, `user/${row.id}/avatar`);
-		if (!next) {
+		written = await rehost(row.image, `user/${row.id}/avatar`);
+		if (!written) {
 			failed += 1;
 			continue;
 		}
@@ -85,10 +110,11 @@ for (const row of userRows) {
 			// keeps their newer image instead of being reverted to ours.
 			const updated = await db
 				.update(users)
-				.set({ image: next })
+				.set({ image: written.url })
 				.where(and(eq(users.id, row.id), eq(users.image, row.image)))
 				.returning({ id: users.id });
 			if (updated.length === 0) {
+				await discard(written.pathname);
 				skipped += 1;
 				continue;
 			}
@@ -96,6 +122,7 @@ for (const row of userRows) {
 		moved += 1;
 	} catch (error) {
 		console.warn(`  ! user ${row.id}`, error);
+		if (written) await discard(written.pathname);
 		failed += 1;
 	}
 }
@@ -107,21 +134,23 @@ const orgRows = await db
 console.log(`organizations on Vercel Blob: ${orgRows.length}`);
 for (const row of orgRows) {
 	if (!row.logo) continue;
+	let written: Rehosted | null = null;
 	try {
-		const next = await rehost(row.logo, `organization/${row.id}/logo`);
-		if (!next) {
+		written = await rehost(row.logo, `organization/${row.id}/logo`);
+		if (!written) {
 			failed += 1;
 			continue;
 		}
 		if (!DRY_RUN) {
 			const updated = await db
 				.update(organizations)
-				.set({ logo: next })
+				.set({ logo: written.url })
 				.where(
 					and(eq(organizations.id, row.id), eq(organizations.logo, row.logo)),
 				)
 				.returning({ id: organizations.id });
 			if (updated.length === 0) {
+				await discard(written.pathname);
 				skipped += 1;
 				continue;
 			}
@@ -129,6 +158,7 @@ for (const row of orgRows) {
 		moved += 1;
 	} catch (error) {
 		console.warn(`  ! organization ${row.id}`, error);
+		if (written) await discard(written.pathname);
 		failed += 1;
 	}
 }
@@ -136,3 +166,6 @@ for (const row of orgRows) {
 console.log(
 	`${DRY_RUN ? "[dry run] " : ""}moved ${moved}, skipped ${skipped} (changed under us), failed ${failed}. Blob objects left in place.`,
 );
+
+// A partial backfill must not look like a clean one to whoever runs it.
+if (failed > 0) process.exit(1);
