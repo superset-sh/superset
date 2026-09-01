@@ -148,7 +148,6 @@
 		"@trpc/server": "11.16.0",
 		"@types/express": "5.0.6",
 		"@types/pidusage": "2.0.5",
-		"@vercel/blob": "2.3.2",
 		"@xterm/addon-clipboard": "0.3.0-beta.289",
 		"@xterm/addon-fit": "0.12.0-beta.289",
 		"@xterm/addon-image": "0.10.0-beta.289",

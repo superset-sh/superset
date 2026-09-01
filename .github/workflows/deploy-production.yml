@@ -81,7 +81,6 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -154,7 +153,6 @@ jobs:
           vercel deploy --prod --prebuilt --archive=tgz --token=$VERCEL_TOKEN \
             --env DATABASE_URL=$DATABASE_URL \
             --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
-            --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
             --env CLOUDFLARE_ACCOUNT_ID=$CLOUDFLARE_ACCOUNT_ID \
             --env R2_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID \
             --env R2_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY \
