@@ -93,6 +93,55 @@ describe("GitHub pull request REST queries", () => {
 		]);
 	});
 
+	// #4513.2: a branch can carry both an old closed PR and a live open PR. The
+	// REST list is sorted by `updated desc`, so if the closed PR was touched most
+	// recently it comes first — but we must surface the OPEN one.
+	test("prefers the open PR when a head branch has both closed and open PRs", async () => {
+		const { execGh } = createExecGh([
+			[
+				{
+					number: 50,
+					title: "Old closed PR",
+					html_url: "https://github.com/superset-sh/superset/pull/50",
+					state: "closed",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-09T12:00:00Z",
+					head: {
+						ref: "feature",
+						sha: "closedsha",
+						repo: { name: "superset", owner: { login: "superset-sh" } },
+					},
+					base: { repo: { full_name: "superset-sh/superset" } },
+				},
+				{
+					number: 51,
+					title: "Live open PR",
+					html_url: "https://github.com/superset-sh/superset/pull/51",
+					state: "open",
+					draft: false,
+					merged_at: null,
+					updated_at: "2026-05-08T12:00:00Z",
+					head: {
+						ref: "feature",
+						sha: "opensha",
+						repo: { name: "superset", owner: { login: "superset-sh" } },
+					},
+					base: { repo: { full_name: "superset-sh/superset" } },
+				},
+			],
+		]);
+
+		const result = await fetchPullRequestByHeadFromGh(
+			execGh,
+			{ owner: "superset-sh", name: "superset" },
+			{ owner: "superset-sh", repo: "superset", branch: "feature" },
+		);
+
+		expect(result?.number).toBe(51);
+		expect(result?.state).toBe("OPEN");
+	});
+
 	test("filters REST head candidates by exact upstream repository", async () => {
 		const { execGh } = createExecGh([
 			[

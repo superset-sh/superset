@@ -125,19 +125,24 @@ function normalizePullRequestCandidates(
 	head: GitHubPullRequestHeadRef,
 ): GitHubPullRequestNode | null {
 	const requestedKey = headKey(head.owner, head.repo, head.branch);
-	return (
-		asArray(raw)
-			.map((item) => normalizePullRequest(item))
-			.find(
-				(node) =>
-					node &&
-					headKey(
-						node.headRepositoryOwner?.login,
-						node.headRepository?.name,
-						node.headRefName,
-					) === requestedKey,
-			) ?? null
-	);
+	const matches = asArray(raw)
+		.map((item) => normalizePullRequest(item))
+		.filter(
+			(node): node is GitHubPullRequestNode =>
+				node !== null &&
+				headKey(
+					node.headRepositoryOwner?.login,
+					node.headRepository?.name,
+					node.headRefName,
+				) === requestedKey,
+		);
+	if (matches.length === 0) return null;
+
+	// A single head branch can carry both an old closed/merged PR and the live
+	// open one (#4513). The REST list is sorted by `updated desc`, so a recently
+	// touched closed PR would otherwise win — prefer the OPEN candidate, and only
+	// fall back to the most recently updated when none is open.
+	return matches.find((node) => node.state === "OPEN") ?? matches[0] ?? null;
 }
 
 function mapReviewDecision(
