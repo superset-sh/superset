@@ -112,7 +112,21 @@ export function ProjectHeader({
 			const previousLastViewedWorkspaceId = localStorage.getItem(
 				"lastViewedWorkspaceId",
 			);
-			localStorage.removeItem("lastViewedWorkspaceId");
+			const shouldClearLastViewedWorkspace = previousGrouped.some(
+				(group) =>
+					group.project.id === id &&
+					(group.workspaces.some(
+						(workspace) => workspace.id === previousLastViewedWorkspaceId,
+					) ||
+						group.sections.some((section) =>
+							section.workspaces.some(
+								(workspace) => workspace.id === previousLastViewedWorkspaceId,
+							),
+						)),
+			);
+			if (shouldClearLastViewedWorkspace) {
+				localStorage.removeItem("lastViewedWorkspaceId");
+			}
 
 			// The workspace route cannot render after this mutation deletes it.
 			try {
@@ -146,7 +160,15 @@ export function ProjectHeader({
 				);
 			}
 			if (context?.previousWorkspaceId) {
-				void navigateToWorkspace(context.previousWorkspaceId, navigate);
+				void navigateToWorkspace(
+					context.previousWorkspaceId,
+					navigate,
+				).catch((navigationError) => {
+					console.error(
+						"[ProjectHeader] Failed to restore workspace after closing project failed",
+						navigationError,
+					);
+				});
 			}
 			toast.error(`Failed to close project: ${error.message}`);
 		},
