@@ -1,6 +1,7 @@
 "use client";
 
 import { useLingui } from "@lingui/react/macro";
+import { formatDateTime } from "@superset/i18n/format";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -33,7 +34,17 @@ const COMPUTING_REASON = "computing";
 interface MrrSeries {
 	points: { date: string; mrrUsd: number }[];
 	dataLoadTime: string | null;
+	dataThrough: string | null;
 }
+
+// Matches the timestamp InsightTileFrame renders in the header, so the two
+// read as the same kind of fact.
+const TIMESTAMP_FORMAT: Intl.DateTimeFormatOptions = {
+	month: "short",
+	day: "numeric",
+	hour: "numeric",
+	minute: "2-digit",
+};
 
 // One daily-180d Stripe query serves every range; ranges differ only in
 // sampling: 7d shows days, 35d shows 7d intervals, 180d shows month ends.
@@ -95,6 +106,7 @@ export function MrrTile() {
 		setLastSeries({
 			points: query.data.points,
 			dataLoadTime: query.data.dataLoadTime,
+			dataThrough: query.data.dataThrough,
 		});
 	}
 	const series = query.data?.available || isComputing ? lastSeries : null;
@@ -186,6 +198,17 @@ export function MrrTile() {
 								{t({
 									id: "admin.mrr.previousPeriod",
 									message: `$${latest.prevUsd.toLocaleString()} previous period (${latest.prevDate})`,
+								})}
+							</p>
+						) : null}
+						{series?.dataThrough ? (
+							// Sigma's MRR table runs hours behind live, so the header's
+							// refresh time is not how current the figure is. Say when the
+							// data actually ends, or a correct number reads as a stale one.
+							<p className="text-muted-foreground text-xs">
+								{t({
+									id: "admin.mrr.dataThrough",
+									message: `Stripe data through ${formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)}`,
 								})}
 							</p>
 						) : null}

@@ -319,6 +319,12 @@ msgid "admin.mrr.computing"
 msgstr "Calcolo in Stripe — fino a un minuto al primo caricamento"
 
 #. js-lingui-explicit-id
+#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
+#: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
+msgid "admin.mrr.dataThrough"
+msgstr "Dati Stripe fino al {0}"
+
+#. js-lingui-explicit-id
 #: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
 msgid "admin.mrr.description"
 msgstr "Il report MRR Sigma di Stripe, calcolato su richiesta tramite la Query Run API"

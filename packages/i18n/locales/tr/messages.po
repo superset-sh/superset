@@ -319,6 +319,12 @@ msgid "admin.mrr.computing"
 msgstr "Stripe üzerinde hesaplanıyor — ilk yüklemede bir dakikayı bulabilir"
 
 #. js-lingui-explicit-id
+#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
+#: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
+msgid "admin.mrr.dataThrough"
+msgstr "Stripe verileri {0} tarihine kadar"
+
+#. js-lingui-explicit-id
 #: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
 msgid "admin.mrr.description"
 msgstr "Stripe'ın kendi Sigma MRR raporu, Query Run API üzerinden istek üzerine hesaplanır"

@@ -319,6 +319,12 @@ msgid "admin.mrr.computing"
 msgstr "Počítá se ve Stripe — při prvním načtení až minutu"
 
 #. js-lingui-explicit-id
+#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
+#: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
+msgid "admin.mrr.dataThrough"
+msgstr "Data ze Stripe do {0}"
+
+#. js-lingui-explicit-id
 #: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
 msgid "admin.mrr.description"
 msgstr "Vlastní MRR report ze Stripe Sigma, počítaný na vyžádání přes Query Run API"

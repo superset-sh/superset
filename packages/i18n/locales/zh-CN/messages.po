@@ -319,6 +319,12 @@ msgid "admin.mrr.computing"
 msgstr "正在Stripe中计算 — 首次加载最多需要一分钟"
 
 #. js-lingui-explicit-id
+#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
+#: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
+msgid "admin.mrr.dataThrough"
+msgstr "Stripe 数据截至 {0}"
+
+#. js-lingui-explicit-id
 #: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
 msgid "admin.mrr.description"
 msgstr "Stripe自带的Sigma MRR报表，通过Query Run API按需计算"

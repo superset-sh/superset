@@ -118,8 +118,13 @@ daily_mrr_series AS (
   FROM daily_mrrs
   WHERE date >= CURRENT_DATE - INTERVAL '180' DAY
   ORDER BY date
+),
+data_freshness AS (
+  SELECT TO_ISO8601(MAX(event_timestamp)) AS data_through
+  FROM subscription_item_change_events_v2_beta
 )
-SELECT * FROM daily_mrr_series`;
+SELECT daily_mrr_series.*, data_freshness.data_through
+FROM daily_mrr_series CROSS JOIN data_freshness`;
 
 interface MrrPoint {
 	date: string;
@@ -127,7 +132,14 @@ interface MrrPoint {
 }
 
 type MrrResult =
-	| { available: true; dataLoadTime: string | null; points: MrrPoint[] }
+	| {
+			available: true;
+			/** When we ran the query. */
+			dataLoadTime: string | null;
+			/** When Sigma's data actually ends — hours behind dataLoadTime. */
+			dataThrough: string | null;
+			points: MrrPoint[];
+	  }
 	| { available: false; reason: string };
 
 interface QueryRun {
@@ -144,13 +156,23 @@ function stripeHeaders() {
 	};
 }
 
-function parseMrrCsv(csv: string): MrrPoint[] {
+function parseMrrCsv(csv: string): {
+	points: MrrPoint[];
+	dataThrough: string | null;
+} {
 	const [header, ...rows] = csv.trim().split("\n");
 	const columns = (header ?? "").split(",").map((c) => c.replaceAll('"', ""));
 	const dayIndex = columns.indexOf("day");
 	const mrrIndex = columns.indexOf("total_mrr_in_usd");
-	if (dayIndex === -1 || mrrIndex === -1) return [];
-	return rows
+	const throughIndex = columns.indexOf("data_through");
+	if (dayIndex === -1 || mrrIndex === -1) {
+		return { points: [], dataThrough: null };
+	}
+	// One value for the whole run, repeated on every row by the CROSS JOIN.
+	// event_timestamp is UTC and TO_ISO8601 leaves the offset off, so pin it
+	// rather than let the reader guess a zone.
+	const through = (rows[0]?.split(",")[throughIndex] ?? "").replaceAll('"', "");
+	const points = rows
 		.map((row) => {
 			const cells = row.split(",").map((c) => c.replaceAll('"', ""));
 			return {
@@ -161,6 +183,7 @@ function parseMrrCsv(csv: string): MrrPoint[] {
 		})
 		.filter((p) => p.date && Number.isFinite(p.mrrUsd))
 		.sort((a, b) => a.date.localeCompare(b.date));
+	return { points, dataThrough: through ? `${through}Z` : null };
 }
 
 // Sigma data refreshes ~daily and the query takes ~30-60s, so results are
@@ -215,11 +238,16 @@ async function collectMrrRun(runId: string): Promise<MrrResult | null> {
 		return { available: false, reason: `Sigma query ${run.status}` };
 	}
 	const csv = await (await fetch(downloadUrl)).text();
-	const points = parseMrrCsv(csv);
+	const { points, dataThrough } = parseMrrCsv(csv);
 	if (!points.length) {
 		return { available: false, reason: "unexpected Sigma CSV columns" };
 	}
-	return { available: true, dataLoadTime: new Date().toISOString(), points };
+	return {
+		available: true,
+		dataLoadTime: new Date().toISOString(),
+		dataThrough,
+		points,
+	};
 }
 
 /**

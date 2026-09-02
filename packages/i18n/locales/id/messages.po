@@ -319,6 +319,12 @@ msgid "admin.mrr.computing"
 msgstr "Menghitung di Stripe — hingga satu menit saat pemuatan pertama"
 
 #. js-lingui-explicit-id
+#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
+#: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
+msgid "admin.mrr.dataThrough"
+msgstr "Data Stripe hingga {0}"
+
+#. js-lingui-explicit-id
 #: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
 msgid "admin.mrr.description"
 msgstr "Laporan MRR Sigma milik Stripe, dihitung sesuai permintaan lewat Query Run API"

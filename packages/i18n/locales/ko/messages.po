@@ -319,6 +319,12 @@ msgid "admin.mrr.computing"
 msgstr "Stripe에서 계산 중 — 첫 로드 시 최대 1분 소요"
 
 #. js-lingui-explicit-id
+#. placeholder {0}: formatDateTime(new Date(series.dataThrough), TIMESTAMP_FORMAT)
+#: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
+msgid "admin.mrr.dataThrough"
+msgstr "{0}까지의 Stripe 데이터"
+
+#. js-lingui-explicit-id
 #: ../../apps/admin/src/app/(dashboard)/components/MrrTile/MrrTile.tsx
 msgid "admin.mrr.description"
 msgstr "Stripe 자체 Sigma MRR 리포트를 Query Run API로 요청 시 계산"
