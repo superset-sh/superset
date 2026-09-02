@@ -74,6 +74,16 @@ console.log(
 	`avatars on the old variant URL: users ${legacyUsers.length}, organizations ${legacyOrgs.length}`,
 );
 
+// A few live URLs, so a run can be checked by fetching one rather than by
+// trusting the counts. Whether a rewritten row actually renders is exactly
+// what a count cannot tell you.
+const samples = await db
+	.select({ image: users.image })
+	.from(users)
+	.where(like(users.image, "%supersetusercontent%"))
+	.limit(3);
+for (const row of samples) console.log(`  sample: ${row.image}`);
+
 if (DELETE_PAGES && legacyPages.length > 0) {
 	for (const row of legacyPages) {
 		await db
