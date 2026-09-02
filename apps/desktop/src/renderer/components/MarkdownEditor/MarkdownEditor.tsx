@@ -38,6 +38,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import { common, createLowlight } from "lowlight";
 import { useEffect, useRef } from "react";
 import { BubbleMenuToolbar } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/components/BubbleMenuToolbar";
+import { PreserveSoftbreakSpaces } from "renderer/components/MarkdownRenderer/components/TipTapMarkdownRenderer/preserveSoftbreakSpaces";
 import { env } from "renderer/env.renderer";
 import { useInlineUrlPolicy } from "renderer/lib/clickPolicy";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
@@ -333,6 +334,7 @@ export function MarkdownEditor({
 				transformPastedText: true,
 				transformCopiedText: true,
 			}),
+			PreserveSoftbreakSpaces,
 			...(showSlashCommand ? [SlashCommand] : []),
 			...(showEmoji ? [EmojiSuggestion] : []),
 			...(showFileMention

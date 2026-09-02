@@ -34,6 +34,7 @@ import { Markdown } from "tiptap-markdown";
 import { EditableCodeBlockView } from "./components/EditableCodeBlockView";
 import { ReadOnlyCodeBlockView } from "./components/ReadOnlyCodeBlockView";
 import { ReadOnlySafeImageView } from "./components/ReadOnlySafeImageView";
+import { PreserveSoftbreakSpaces } from "./preserveSoftbreakSpaces";
 import {
 	serializeMarkdownTable,
 	serializeSelectionForClipboard,
@@ -288,6 +289,7 @@ export function createMarkdownExtensions({
 			transformPastedText: true,
 			transformCopiedText: true,
 		}),
+		PreserveSoftbreakSpaces,
 		TableClipboardMarkdown,
 		TaskListTightness,
 		EditorHotkeys.configure({
