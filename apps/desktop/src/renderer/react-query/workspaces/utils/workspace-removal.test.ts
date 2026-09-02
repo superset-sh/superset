@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	getWorkspaceFocusTargetAfterRemoval,
+	removeProjectFromGroups,
 	removeWorkspaceFromGroups,
 } from "./workspace-removal";
 
@@ -61,5 +62,23 @@ describe("removeWorkspaceFromGroups", () => {
 				(item) => item.id,
 			),
 		).toEqual(["w1", "s1"]);
+	});
+});
+
+describe("removeProjectFromGroups", () => {
+	it("removes every workspace group for the closed project", () => {
+		const groupedProjects = [
+			{ project: { id: "p1" }, ...groups[0] },
+			{
+				project: { id: "p2" },
+				workspaces: [{ id: "w5", tabOrder: 1 }],
+				sections: [],
+				topLevelItems: [{ id: "w5", kind: "workspace" as const, tabOrder: 1 }],
+			},
+		];
+
+		expect(removeProjectFromGroups(groupedProjects, "p1")).toEqual([
+			groupedProjects[1],
+		]);
 	});
 });

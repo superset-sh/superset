@@ -103,3 +103,9 @@ export function removeWorkspaceFromGroups<TGroup extends WorkspaceGroupLike>(
 		})
 		.filter(hasVisibleWorkspaces);
 }
+
+export function removeProjectFromGroups<
+	TGroup extends { project: { id: string } },
+>(groups: readonly TGroup[], projectId: string): TGroup[] {
+	return groups.filter((group) => group.project.id !== projectId);
+}

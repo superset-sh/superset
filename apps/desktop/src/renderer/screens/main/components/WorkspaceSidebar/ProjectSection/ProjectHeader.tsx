@@ -27,6 +27,7 @@ import {
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
+import { removeProjectFromGroups } from "renderer/react-query/workspaces/utils/workspace-removal";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useProjectRename } from "renderer/screens/main/hooks/useProjectRename";
 import { STROKE_WIDTH } from "../constants";
@@ -51,6 +52,15 @@ interface ProjectHeaderProps {
 	onNewWorkspace: () => void;
 }
 
+type CloseProjectContext = {
+	previousWorkspaceId?: string;
+	previousGrouped?: ReturnType<
+		typeof electronTrpc.useUtils
+	>["workspaces"]["getAllGrouped"]["getData"] extends () => infer R
+		? R
+		: never;
+};
+
 export function ProjectHeader({
 	projectId,
 	projectName,
@@ -73,46 +83,71 @@ export function ProjectHeader({
 
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
-			let shouldNavigate = false;
+			const workspaceId = params.workspaceId;
+			if (!workspaceId) return {};
 
-			if (params.workspaceId) {
-				try {
-					const currentWorkspace = await utils.workspaces.get.fetch({
-						id: params.workspaceId,
-					});
-					shouldNavigate = currentWorkspace?.projectId === id;
-				} catch (error) {
+			const currentWorkspace = await utils.workspaces.get
+				.fetch({
+					id: workspaceId,
+				})
+				.catch((error) => {
 					console.warn(
 						"[ProjectHeader] Failed to resolve current workspace before closing project",
 						error,
 					);
+					throw error;
+				});
+
+			if (currentWorkspace?.projectId !== id) return {};
+
+			await utils.workspaces.getAllGrouped.cancel();
+			const previousGrouped =
+				utils.workspaces.getAllGrouped.getData() ??
+				(await utils.workspaces.getAllGrouped.fetch());
+			utils.workspaces.getAllGrouped.setData(
+				undefined,
+				removeProjectFromGroups(previousGrouped, id),
+			);
+
+			const previousLastViewedWorkspaceId = localStorage.getItem(
+				"lastViewedWorkspaceId",
+			);
+			localStorage.removeItem("lastViewedWorkspaceId");
+
+			// The workspace route cannot render after this mutation deletes it.
+			try {
+				await navigate({ to: "/workspace" });
+			} catch (error) {
+				utils.workspaces.getAllGrouped.setData(undefined, previousGrouped);
+				if (previousLastViewedWorkspaceId) {
+					localStorage.setItem(
+						"lastViewedWorkspaceId",
+						previousLastViewedWorkspaceId,
+					);
 				}
+				throw error;
 			}
 
-			return { shouldNavigate };
+			return { previousWorkspaceId: workspaceId, previousGrouped };
 		},
-		onSuccess: async (data, { id }, context) => {
+		onSuccess: (data) => {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.projects.getRecents.invalidate();
-
-			if (context?.shouldNavigate) {
-				const groups = await utils.workspaces.getAllGrouped.fetch();
-				const otherWorkspace = groups
-					.flatMap((group) => group.workspaces)
-					.find((w) => w.projectId !== id);
-
-				if (otherWorkspace) {
-					navigateToWorkspace(otherWorkspace.id, navigate);
-				} else {
-					navigate({ to: "/workspace" });
-				}
-			}
 
 			if (data.terminalWarning) {
 				toast.warning(data.terminalWarning);
 			}
 		},
-		onError: (error) => {
+		onError: (error, _variables, context: CloseProjectContext | undefined) => {
+			if (context?.previousGrouped !== undefined) {
+				utils.workspaces.getAllGrouped.setData(
+					undefined,
+					context.previousGrouped,
+				);
+			}
+			if (context?.previousWorkspaceId) {
+				void navigateToWorkspace(context.previousWorkspaceId, navigate);
+			}
 			toast.error(`Failed to close project: ${error.message}`);
 		},
 	});
