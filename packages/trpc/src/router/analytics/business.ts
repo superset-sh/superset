@@ -22,6 +22,16 @@ import { adminProcedure } from "../../trpc";
 // chart), executed on demand via the Query Run API — no dashboard scheduled
 // query involved. Requires an active Sigma subscription; a full secret key or
 // a restricted key with reporting_write + sigma_api_write.
+//
+// Deviates from the template in one place. The template's date spine is
+// exchange_rates_from_usd, which lands a day late and is then shifted back
+// another day, so the series stopped two days short of today even though the
+// subscription events behind it were current — the tile read as stuck. The
+// spine now runs to whichever of the two sources is newer, carrying the last
+// known rates forward across the days FX has not landed yet. It starts at the
+// first subscription change rather than at the first FX rate: SEQUENCE caps at
+// 10k elements and the FX table reaches back to 2010, which would have walked
+// the query into a hard failure some years out for rows that are all zero MRR.
 const STRIPE_QUERY_RUN_VERSION = "2026-04-22.preview";
 
 const MRR_SQL = `-- This template returns total monthly recurring revenue
@@ -42,11 +52,28 @@ sparse_mrrs AS (
   FROM sparse_mrr_changes
   ORDER BY currency, date DESC
 ),
-fx AS (
+sparse_fx AS (
   SELECT
     date - INTERVAL '1' DAY AS date,
     cast(JSON_PARSE(buy_currency_exchange_rates) AS MAP(VARCHAR, DOUBLE)) AS rate_per_usd
   FROM exchange_rates_from_usd
+),
+fx AS (
+  SELECT
+    spine.date,
+    LAST_VALUE(sparse_fx.rate_per_usd) IGNORE NULLS OVER (
+      ORDER BY spine.date ASC
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS rate_per_usd
+  FROM UNNEST(SEQUENCE(
+    (SELECT MIN(date) FROM sparse_mrr_changes),
+    (SELECT GREATEST(
+      (SELECT MAX(date) FROM sparse_fx),
+      (SELECT CAST(MAX(date) AS TIMESTAMP) FROM sparse_mrr_changes)
+    )),
+    INTERVAL '1' DAY
+  )) AS spine(date)
+  LEFT JOIN sparse_fx ON sparse_fx.date = spine.date
 ),
 currencies AS (
   SELECT DISTINCT(currency) FROM subscription_item_change_events_v2_beta
