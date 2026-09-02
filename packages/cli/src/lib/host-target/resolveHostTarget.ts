@@ -7,6 +7,7 @@ import SuperJSON from "superjson";
 import type { ApiClient } from "../api-client";
 import { isProcessAlive, readManifest } from "../host/manifest";
 import { getRelayUrl } from "../host/relay-url";
+import { getHostJwt } from "../host-jwt";
 
 export type HostServiceClient = ReturnType<
 	typeof createTRPCClient<HostServiceRouter>
@@ -99,9 +100,16 @@ export async function resolveHostTarget(
 				httpBatchLink({
 					url: `${relayUrl}/hosts/${routingKey}/trpc`,
 					transformer: SuperJSON,
-					headers: {
-						Authorization: `Bearer ${options.userJwt}`,
-						"x-superset-client-machine-id": localHostId,
+					// The relay only verifies a JWKS-signed JWT. The raw bearer
+					// may be an `sk_live_…` API key (from --api-key /
+					// SUPERSET_API_KEY), which must first be exchanged for a JWT
+					// — sending it raw makes the relay return UNAUTHORIZED, which
+					// the CLI renders as the misleading "Session expired" (#6315).
+					async headers() {
+						return {
+							Authorization: `Bearer ${await getHostJwt(options.userJwt)}`,
+							"x-superset-client-machine-id": localHostId,
+						};
 					},
 				}),
 			],
