@@ -200,6 +200,15 @@ function fileWatchKey(workspaceId: string, absolutePath: string): string {
 	return `${workspaceId}\0${absolutePath}`;
 }
 
+function probesEqual(
+	left: RelayAffinityProbe | null,
+	right: RelayAffinityProbe | null,
+): boolean {
+	if (left === right) return true;
+	if (left === null || right === null) return false;
+	return left.status === right.status && left.region === right.region;
+}
+
 function setConnectionStatus(
 	state: ConnectionState,
 	next: { state?: HostConnectionState; probe?: RelayAffinityProbe | null },
@@ -207,12 +216,20 @@ function setConnectionStatus(
 	const current = state.status;
 	const nextState = next.state ?? current.state;
 	const nextProbe = "probe" in next ? (next.probe ?? null) : current.probe;
-	if (nextState === current.state && nextProbe === current.probe) return;
+	// Value-compare probes: the preflight allocates a fresh result object per
+	// dial, so identity comparison republished an unchanged 503 on every
+	// backoff attempt — fanning a no-op "transition" out to every status
+	// subscriber (and their React commits) for as long as a host stayed down.
+	if (nextState === current.state && probesEqual(nextProbe, current.probe)) {
+		return;
+	}
 
 	state.status = {
 		state: nextState,
 		since: nextState === current.state ? current.since : Date.now(),
-		probe: nextProbe,
+		// Keep the old probe object when only the state moved, so subscribers
+		// keying on probe identity don't re-derive from an equal value.
+		probe: probesEqual(nextProbe, current.probe) ? current.probe : nextProbe,
 	};
 	for (const listener of state.statusListeners) listener(state.status);
 }
