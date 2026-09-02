@@ -34,20 +34,18 @@
 		}
 	},
 	"scripts": {
-		"extract": "lingui extract --overwrite && bun scripts/sort-po-references.ts",
-		"compile": "lingui compile --strict",
-		"check": "lingui extract --clean --overwrite && bun scripts/sort-po-references.ts && lingui compile --strict && bun scripts/check-stale-translations.ts && git diff --exit-code -- locales && test -z \"$(git status --porcelain locales)\"",
+		"extract": "bunx --bun lingui extract --clean --overwrite --workers 1",
+		"compile": "bunx --bun lingui compile --strict --verbose --workers 1",
+		"check": "bun run extract && bun run compile && bun scripts/check-stale-translations.ts",
 		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"clean": "git clean -xdf .cache .turbo node_modules",
-		"translate": "bun scripts/translate-missing.ts && bun scripts/sort-po-references.ts && lingui compile --strict"
+		"clean": "git clean -xdf .cache .turbo node_modules"
 	},
 	"dependencies": {
 		"@lingui/core": "6.6.0",
 		"@lingui/react": "6.6.0"
 	},
 	"devDependencies": {
-		"@anthropic-ai/sdk": "0.78.0",
 		"@ast-grep/napi": "0.41.1",
 		"@lingui/cli": "6.6.0",
 		"@lingui/format-po": "6.6.0",

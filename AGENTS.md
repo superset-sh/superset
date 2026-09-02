@@ -124,7 +124,10 @@ User-facing strings use Lingui with explicit IDs — `<Trans id="area.name">Text
 or `useLingui()`'s `t({ id, message })` in React, `i18n._({ id, message })` outside React
 (Electron main). Numbers, currencies, and dates go through `@superset/i18n/format`
 helpers, never `new Intl.*("en-US")` or `toLocale*` with a hardcoded locale. After adding
-or changing strings, run `bun run --cwd packages/i18n check` (CI enforces it). Conventions
+or changing strings, run `bun run check:i18n` (CI enforces it): it regenerates the catalogs
+and lists every untranslated id per locale. Write those translations yourself into each
+`locales/<locale>/messages.po` and commit the catalogs with the change — nothing on CI fills
+translations for you. Conventions
 and ID scheme: `packages/i18n/README.md`; terms that never translate:
 `packages/i18n/glossary.md`; strategy and phasing: `plans/20260826-i18n-strategy.md`.
 Directories listed in `packages/i18n/test/enforced-dirs.ts` must not contain hardcoded
@@ -149,9 +152,9 @@ Three traps worth knowing before you touch catalogs:
   is always regenerated, and the `check` script fails on translations the edit stranded.
   Details and the exemption file: `packages/i18n/README.md`.
 - **Regenerate from a clean tree.** `messages.po` is environment-sensitive. Entry order and
-  `#:` reference order both used to vary between macOS and Linux; `orderBy: "messageId"` and
-  `scripts/sort-po-references.ts` pin them, but a catalog regenerated on top of local
-  experiments will still commit noise.
+  `#:` reference order both vary between macOS and Linux; `orderBy: "messageId"` and
+  `origins: false` in `lingui.config.ts` keep both out of the catalog, but a catalog
+  regenerated on top of local experiments will still commit noise.
 - **`bun test` runs uncompiled source.** The Lingui macro rewrites `` message: `${n} items` ``
   into a placeholder message plus values at build time, so the catalog stores `{n} items`.
   Tests see neither, which is why `apps/desktop/test-setup.ts` shims the macros and `i18n._`.

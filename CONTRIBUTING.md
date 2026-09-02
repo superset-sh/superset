@@ -34,6 +34,7 @@ See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide.
    bun run lint      # CI fails on warnings too. Run `bun run lint:fix` first.
    bun run typecheck
    bun run test
+   bun run check:i18n  # Only if you touched user-facing strings; commit the catalogs it regenerates.
    ```
 3. [Open a PR from your fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork) and fill in the template. Check **"Allow edits from maintainers"** so we can touch up your branch. It speeds up review a lot.
 

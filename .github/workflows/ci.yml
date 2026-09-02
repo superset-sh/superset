@@ -117,13 +117,8 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      # Message catalogs must match source (extract) and compile with no
-      # missing translations (--strict); a dirty diff means someone forgot
-      # to run `bun run --cwd packages/i18n check` after changing strings.
-      # The audit also fails on translations left stranded by an English edit,
-      # which --strict cannot see because nothing is missing.
-      - name: Audit i18n catalogs
-        run: bun run --cwd packages/i18n check
+      - name: Check i18n catalogs
+        run: bun run check:i18n && git diff --exit-code --stat HEAD -- packages/i18n/locales
 
   test:
     name: Test

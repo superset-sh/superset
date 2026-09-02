@@ -1015,7 +1015,6 @@
         "@lingui/react": "6.6.0",
       },
       "devDependencies": {
-        "@anthropic-ai/sdk": "0.78.0",
         "@ast-grep/napi": "0.41.1",
         "@lingui/cli": "6.6.0",
         "@lingui/format-po": "6.6.0",

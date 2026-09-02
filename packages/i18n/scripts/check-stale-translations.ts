@@ -15,10 +15,13 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { SUPPORTED_LOCALES } from "../src/locales";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const TRANSLATED_LOCALES = ["ja", "zh-CN"] as const;
 const SOURCE_LOCALE = "en";
+const TRANSLATED_LOCALES = SUPPORTED_LOCALES.filter(
+	(locale) => locale !== SOURCE_LOCALE,
+);
 const EXEMPTIONS_FILE = "locales/en-only-changes.txt";
 
 /** Path of a catalog relative to the repo root, for `git show <ref>:<path>`. */

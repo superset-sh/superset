@@ -47,6 +47,7 @@
 		"release:cli": "bun scripts/release/cli.ts",
 		"release:canary": "./scripts/release-canary.sh",
 		"check:versions": "bun scripts/release/check-versions.ts",
+		"check:i18n": "bun run --cwd packages/i18n check",
 		"typecheck:release": "tsc -p scripts/release/tsconfig.json",
 		"test:release": "bun test scripts/release",
 		"db:push": "bun run --cwd packages/db push",
