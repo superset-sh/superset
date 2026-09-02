@@ -57,9 +57,15 @@ function objectKeysFor(pathname: string): string[] {
  * zone; without it the edge does not intercept `/cdn-cgi/image/` and the
  * request falls through to R2, which has no such key.
  */
+const TRANSFORM_OPTIONS = `width=${CANONICAL_WIDTH},height=${CANONICAL_WIDTH},fit=crop,format=auto`;
+
+/** A transformation URL over any object key in the public bucket. */
+export function transformUrlFor(key: string): string {
+	return `${staticBaseUrl()}/cdn-cgi/image/${TRANSFORM_OPTIONS}/${key}`;
+}
+
 export function imageUrlFor(pathname: string): string {
-	const options = `width=${CANONICAL_WIDTH},height=${CANONICAL_WIDTH},fit=crop,format=auto`;
-	return `${staticBaseUrl()}/cdn-cgi/image/${options}/${originalKey(pathname)}`;
+	return transformUrlFor(originalKey(pathname));
 }
 
 /**
