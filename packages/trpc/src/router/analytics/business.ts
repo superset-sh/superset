@@ -582,6 +582,27 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 export const businessRouter = {
 	getMrr: adminProcedure.query(() => fetchLatestSigmaMrr()),
 
+	// The tile's refresh button. The hourly job already keeps the entry warm,
+	// so the only reason to press this is to get past the cached figure —
+	// hence dropping the entry rather than just re-reading it. Dropping it is
+	// also what makes the tile's poll follow the new run: getMrr serves the
+	// cache before it ever looks at a pending run, so an entry left in place
+	// would leave this run uncollected until the next hourly job.
+	//
+	// Kicking the run is all this does. Sigma takes 30-60s and the tRPC route
+	// caps at 60s, so driving it to completion here would be a coin flip
+	// against the function timeout; the tile polls it down instead.
+	refreshMrr: adminProcedure.mutation(async () => {
+		const result = await advanceSigmaMrr({ ignoreCache: true });
+		// Only drop the cached figure once there is a run to replace it with,
+		// so a Stripe blip leaves the last good number on screen rather than
+		// trading it for an error.
+		if (!result.available && result.reason === MRR_COMPUTING_REASON) {
+			await clearMetricCache(MRR_CACHE_KEY);
+		}
+		return result;
+	}),
+
 	// Cohort survival: % of subscriptions started in a month still active k
 	// months later. Neon is authoritative for subscription state (D-10).
 	getChurnCohorts: adminProcedure

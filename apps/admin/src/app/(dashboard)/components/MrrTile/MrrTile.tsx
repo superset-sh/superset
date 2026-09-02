@@ -14,7 +14,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { cn } from "@superset/ui/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 
@@ -26,6 +26,14 @@ import { type MrrDatum, MrrTooltip } from "./MrrTooltip";
 
 const RANGE_DAYS = { "7d": 7, "35d": 35, "180d": 180 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
+
+/** Matches the server's reason for "a Sigma run is in flight". */
+const COMPUTING_REASON = "computing";
+
+interface MrrSeries {
+	points: { date: string; mrrUsd: number }[];
+	dataLoadTime: string | null;
+}
 
 // One daily-180d Stripe query serves every range; ranges differ only in
 // sampling: 7d shows days, 35d shows 7d intervals, 180d shows month ends.
@@ -57,18 +65,43 @@ export function MrrTile() {
 		},
 	} satisfies ChartConfig;
 	const [range, setRange] = useState<RangeKey>("7d");
+	const queryClient = useQueryClient();
 	const query = useQuery(
 		trpc.business.getMrr.queryOptions(undefined, {
 			refetchInterval: (q) =>
 				q.state.data && !q.state.data.available ? 10_000 : false,
 		}),
 	);
+	const refresh = useMutation(
+		trpc.business.refreshMrr.mutationOptions({
+			// Settled rather than success: the mutation reports the run it
+			// kicked, and the poll below is what lands it either way.
+			onSettled: () =>
+				queryClient.invalidateQueries({
+					queryKey: trpc.business.getMrr.queryKey(),
+				}),
+		}),
+	);
 
 	const unavailableReason =
 		query.data && !query.data.available ? query.data.reason : null;
+	const isComputing = unavailableReason === COMPUTING_REASON;
+	// Refreshing drops the cached figure, so the server answers "computing"
+	// for the ~minute Sigma takes. Hold the series already on screen through
+	// that rather than blanking the tile the moment someone asks to refresh
+	// it. Only across "computing" — a real failure should still surface.
+	const [lastSeries, setLastSeries] = useState<MrrSeries | null>(null);
+	if (query.data?.available && query.data.points !== lastSeries?.points) {
+		setLastSeries({
+			points: query.data.points,
+			dataLoadTime: query.data.dataLoadTime,
+		});
+	}
+	const series = query.data?.available || isComputing ? lastSeries : null;
+
 	// Server returns 180 daily points; range switches filter client-side.
 	const days = RANGE_DAYS[range];
-	const allPoints = query.data?.available ? query.data.points : [];
+	const allPoints = series?.points ?? [];
 	const enriched: MrrDatum[] = allPoints.map((p, i) => {
 		const prev = allPoints[i - days];
 		return {
@@ -95,12 +128,14 @@ export function MrrTile() {
 				message:
 					"Stripe's own Sigma MRR report, computed on demand via the Query Run API",
 			})}
-			lastRefresh={query.data?.available ? query.data.dataLoadTime : null}
+			lastRefresh={series?.dataLoadTime ?? null}
 			isLoading={query.isLoading}
+			onRefresh={() => refresh.mutate()}
+			isRefreshing={refresh.isPending || isComputing}
 			error={query.error}
 			empty={points.length === 0}
 			emptyLabel={
-				unavailableReason === "computing"
+				isComputing
 					? t({
 							id: "admin.mrr.computing",
 							message: "Computing in Stripe — up to a minute on first load",
