@@ -64,12 +64,12 @@
 		"tooling/*"
 	],
 	"overrides": {
-		"@tiptap/extension-dropcursor": "3.21.0",
-		"@tiptap/extension-floating-menu": "3.21.0",
-		"@tiptap/extension-gapcursor": "3.21.0",
-		"@tiptap/extension-list": "3.21.0",
-		"@tiptap/extension-list-keymap": "3.21.0",
-		"@tiptap/extensions": "3.21.0",
+		"@tiptap/extension-dropcursor": "3.30.4",
+		"@tiptap/extension-floating-menu": "3.30.4",
+		"@tiptap/extension-gapcursor": "3.30.4",
+		"@tiptap/extension-list": "3.30.4",
+		"@tiptap/extension-list-keymap": "3.30.4",
+		"@tiptap/extensions": "3.30.4",
 		"@types/hast": "3.0.5",
 		"axios": "1.18.1",
 		"hono": "4.12.34",
